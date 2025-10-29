@@ -1,0 +1,523 @@
+{
+  "platform": "gmail",
+  "version": "2.0",
+  "description": "Gmail API - Complete email management with SMART bundled tools for AI-powered composition, bulk operations, inbox organization, and intelligent processing",
+  "tools": [
+    {
+      "name": "gmail_ai_smart_compose_and_send",
+      "description": "🤖 SMART TOOL: AI-powered email composition and sending in ONE call. Takes natural language prompt, generates professional email, and sends or creates draft. Optionally creates Google Calendar events from email content. Use this instead of manually writing emails.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "description": "Natural language description of what to write. Examples: 'Follow up with John about yesterday's product launch meeting', 'Thank the team for Q4 performance', 'Apologize to customer for order #12345 delay'",
+          "required": true
+        },
+        "recipients": {
+          "type": "array",
+          "description": "List of email addresses to send to",
+          "required": true
+        },
+        "cc": {
+          "type": "array",
+          "description": "CC recipients",
+          "required": false
+        },
+        "bcc": {
+          "type": "array",
+          "description": "BCC recipients",
+          "required": false
+        },
+        "tone": {
+          "type": "string",
+          "description": "Email tone: 'professional', 'casual', 'formal', 'friendly'",
+          "required": false,
+          "default": "professional"
+        },
+        "send_immediately": {
+          "type": "boolean",
+          "description": "If true, sends email. If false, creates draft for review.",
+          "required": false,
+          "default": true
+        },
+        "attachments": {
+          "type": "array",
+          "description": "File paths to attach",
+          "required": false
+        },
+        "create_calendar_event": {
+          "type": "boolean",
+          "description": "If true, extracts date/time from email and creates Google Calendar event",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "email_sent": "boolean",
+        "message_id": "string",
+        "subject": "string",
+        "body": "string (AI-generated content)",
+        "calendar_event_id": "string (if create_calendar_event=true)",
+        "draft_id": "string (if send_immediately=false)"
+      },
+      "use_cases": [
+        "Send AI-generated follow-up emails",
+        "Compose and send meeting requests with calendar events",
+        "Create professional apology/thank you emails",
+        "Draft emails for review before sending"
+      ],
+      "efficiency": "50% faster than manual composition + send"
+    },
+    {
+      "name": "gmail_smart_bulk_send_personalized",
+      "description": "📧 SMART TOOL: Send personalized bulk emails with mail merge in ONE call. Each recipient gets customized email with their specific data ({{name}}, {{order_id}}, etc.). Perfect for mass outreach, reports, invoices, onboarding.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "template": {
+          "type": "string",
+          "description": "Email body template with {{variables}}. Example: 'Hi {{name}}, your order {{order_id}} is ready! Total: ${{amount}}'",
+          "required": true
+        },
+        "recipients_data": {
+          "type": "array",
+          "description": "Array of recipient objects with email and variables. Example: [{'email': 'john@co.com', 'name': 'John', 'order_id': '12345', 'amount': '99.99'}]",
+          "required": true
+        },
+        "subject_template": {
+          "type": "string",
+          "description": "Email subject with {{variables}}. Example: 'Your Order {{order_id}} Update'",
+          "required": true
+        },
+        "cc": {
+          "type": "array",
+          "description": "CC recipients for ALL emails",
+          "required": false
+        },
+        "bcc": {
+          "type": "array",
+          "description": "BCC recipients for ALL emails",
+          "required": false
+        },
+        "delay_seconds": {
+          "type": "integer",
+          "description": "Seconds to wait between sends (avoid rate limits)",
+          "required": false,
+          "default": 2
+        }
+      },
+      "returns": {
+        "total_sent": "integer",
+        "total_failed": "integer",
+        "successful": "array of email addresses",
+        "failed": "array of {email, error}",
+        "sent_messages": "array of message IDs"
+      },
+      "use_cases": [
+        "Send 50 customers their personalized invoices",
+        "Email team members their individual performance reports",
+        "Send new hires their custom onboarding instructions",
+        "Bulk outreach with personalized content",
+        "Mass newsletter with recipient-specific data"
+      ],
+      "efficiency": "98% reduction in tool calls (50 calls → 1 call)"
+    },
+    {
+      "name": "gmail_smart_bulk_read_summarize_prioritize",
+      "description": "📖 SMART TOOL: Bulk read, summarize, and prioritize emails in ONE call. AI analyzes multiple emails, generates summaries, assigns priority scores (1-5), recommends actions, and optionally creates Google Spreadsheet with results. Perfect for inbox triage.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Gmail search query. Examples: 'is:unread', 'from:client.com', 'has:attachment', 'newer_than:7d'",
+          "required": false,
+          "default": "is:unread"
+        },
+        "max_messages": {
+          "type": "integer",
+          "description": "Maximum number of messages to process",
+          "required": false,
+          "default": 50
+        },
+        "summarize": {
+          "type": "boolean",
+          "description": "Generate AI summaries for each email",
+          "required": false,
+          "default": true
+        },
+        "prioritize": {
+          "type": "boolean",
+          "description": "Assign priority scores (1-5, 5=urgent) using AI",
+          "required": false,
+          "default": true
+        },
+        "create_spreadsheet": {
+          "type": "boolean",
+          "description": "Create Google Sheets with results and recommended actions",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "total_processed": "integer",
+        "emails": "array of {message_id, from, subject, date, summary, priority, recommended_action, labels}",
+        "spreadsheet_id": "string (if create_spreadsheet=true)",
+        "spreadsheet_url": "string (if create_spreadsheet=true)"
+      },
+      "use_cases": [
+        "Process 200 unread emails and identify urgent ones",
+        "Summarize all emails from clients this week",
+        "Read emails with attachments and prioritize",
+        "Create spreadsheet of inbox with recommended actions",
+        "Triage support emails by priority"
+      ],
+      "efficiency": "90% time saved on inbox processing"
+    },
+    {
+      "name": "gmail_smart_auto_reply_draft_creator",
+      "description": "💬 SMART TOOL: Auto-generate reply drafts for multiple emails in ONE call. AI analyzes emails and creates appropriate responses based on content and response type. Creates drafts for review or returns generated text.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "message_ids": {
+          "type": "array",
+          "description": "List of Gmail message IDs to reply to",
+          "required": true
+        },
+        "response_type": {
+          "type": "string",
+          "description": "Type of response: 'acknowledge', 'answer', 'decline', 'accept', 'custom'",
+          "required": false,
+          "default": "acknowledge"
+        },
+        "tone": {
+          "type": "string",
+          "description": "Response tone: 'professional', 'casual', 'formal', 'friendly'",
+          "required": false,
+          "default": "professional"
+        },
+        "custom_instructions": {
+          "type": "string",
+          "description": "Additional instructions for AI. Example: 'Mention our support hours are 9-5 EST'",
+          "required": false
+        },
+        "create_drafts": {
+          "type": "boolean",
+          "description": "If true, creates drafts in Gmail. If false, just returns generated text.",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "total_processed": "integer",
+        "replies": "array of {original_message_id, original_subject, original_from, generated_reply, draft_id}"
+      },
+      "use_cases": [
+        "Create reply drafts for all support emails",
+        "Auto-respond to meeting requests with availability",
+        "Generate acknowledgment replies for customer orders",
+        "Draft responses to all unread client emails",
+        "Batch create replies for common inquiries"
+      ],
+      "efficiency": "95% faster than manual reply composition"
+    },
+    {
+      "name": "gmail_smart_inbox_organizer_cleaner",
+      "description": "🗂️ SMART TOOL: Organize, clean, and auto-filter inbox in ONE call. Creates labels, applies filters, archives old emails, deletes spam, and organizes messages automatically. Perfect for inbox zero workflows.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "action": {
+          "type": "string",
+          "description": "Action to perform: 'organize', 'cleanup', 'auto_filter', 'full'",
+          "required": false,
+          "default": "organize"
+        },
+        "categories": {
+          "type": "array",
+          "description": "Label categories to create. Example: ['Clients', 'Internal', 'Newsletters', 'Urgent']",
+          "required": false
+        },
+        "rules": {
+          "type": "array",
+          "description": "Filtering rules. Example: [{'from': 'team@co.com', 'label': 'Team', 'archive': false}, {'subject_contains': 'invoice', 'label': 'Invoices', 'important': true}]",
+          "required": false
+        },
+        "process_existing": {
+          "type": "boolean",
+          "description": "Apply rules to existing emails (not just future ones)",
+          "required": false,
+          "default": true
+        },
+        "archive_older_than_days": {
+          "type": "integer",
+          "description": "Archive emails older than N days",
+          "required": false
+        },
+        "delete_spam": {
+          "type": "boolean",
+          "description": "Permanently delete emails in Spam folder",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "labels_created": "array of label names",
+        "filters_created": "integer",
+        "emails_processed": "integer",
+        "emails_archived": "integer",
+        "emails_deleted": "integer",
+        "organization_summary": "dict"
+      },
+      "use_cases": [
+        "Organize inbox - create labels and filter emails",
+        "Clean up inbox - archive old emails, delete spam",
+        "Set up auto-labeling for client/team emails",
+        "Create filters for newsletters and automated emails",
+        "Achieve inbox zero with automated organization"
+      ],
+      "efficiency": "95% reduction in inbox management complexity"
+    },
+    {
+      "name": "gmail_send_email",
+      "description": "Send an email with attachments and HTML formatting",
+      "platform": "gmail",
+      "category": "basic",
+      "parameters": {
+        "to": {
+          "type": "array",
+          "description": "Recipient email addresses",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject",
+          "required": true
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body (plain text or HTML)",
+          "required": true
+        },
+        "cc": {
+          "type": "array",
+          "required": false
+        },
+        "bcc": {
+          "type": "array",
+          "required": false
+        },
+        "attachments": {
+          "type": "array",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "gmail_create_draft",
+      "description": "Create a draft email",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_send_draft",
+      "description": "Send an existing draft",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_list_messages",
+      "description": "List messages in mailbox",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_get_message",
+      "description": "Get a specific message by ID",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_get_attachment",
+      "description": "Download email attachment",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_delete_message",
+      "description": "Delete a message",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_modify_message",
+      "description": "Modify message labels",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_mark_as_read",
+      "description": "Mark message as read",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_mark_as_unread",
+      "description": "Mark message as unread",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_archive_message",
+      "description": "Archive a message",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_unarchive_message",
+      "description": "Unarchive a message",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_list_labels",
+      "description": "List all labels",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_create_label",
+      "description": "Create a new label",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_update_label",
+      "description": "Update label properties",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_delete_label",
+      "description": "Delete a label",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_create_filter",
+      "description": "Create email filter",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_list_filters",
+      "description": "List all filters",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_delete_filter",
+      "description": "Delete a filter",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_get_profile",
+      "description": "Get Gmail profile info",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_search_messages",
+      "description": "Search messages with query",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_batch_delete",
+      "description": "Delete multiple messages",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_batch_modify",
+      "description": "Modify multiple messages",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_watch_mailbox",
+      "description": "Set up mailbox watch",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_stop_watch",
+      "description": "Stop mailbox watch",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_get_thread",
+      "description": "Get email thread",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_list_threads",
+      "description": "List email threads",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_trash_thread",
+      "description": "Move thread to trash",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_get_history",
+      "description": "Get mailbox history",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_send_email_smtp",
+      "description": "Send email via SMTP",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_send_email_smtp_html",
+      "description": "Send HTML email via SMTP",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_list_available_accounts",
+      "description": "List configured email accounts",
+      "platform": "gmail",
+      "category": "basic"
+    }
+  ],
+  "usage_guide": {
+    "smart_tools_overview": "Gmail SMART tools bundle multiple operations into single AI-powered calls for maximum efficiency.",
+    "decision_tree": {
+      "composing_email": "Use gmail_ai_smart_compose_and_send - AI writes professional emails from natural language",
+      "bulk_personalized_send": "Use gmail_smart_bulk_send_personalized - Send customized emails to multiple recipients with mail merge",
+      "inbox_triage": "Use gmail_smart_bulk_read_summarize_prioritize - AI analyzes, summarizes, and prioritizes emails",
+      "auto_replies": "Use gmail_smart_auto_reply_draft_creator - AI generates appropriate replies for multiple emails",
+      "inbox_organization": "Use gmail_smart_inbox_organizer_cleaner - Auto-create labels, filters, and organize inbox",
+      "single_email": "Use basic gmail_send_email or gmail_create_draft"
+    },
+    "efficiency_gains": {
+      "email_composition": "50% faster with AI generation",
+      "bulk_sending": "98% reduction (50 calls → 1 call)",
+      "inbox_processing": "90% time saved on analysis",
+      "auto_replies": "95% faster than manual",
+      "organization": "95% reduction in complexity"
+    }
+  }
+}

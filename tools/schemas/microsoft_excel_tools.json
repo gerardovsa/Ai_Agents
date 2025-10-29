@@ -1,0 +1,282 @@
+{
+  "platform": "microsoft_excel",
+  "version": "1.0",
+  "description": "Microsoft Excel spreadsheet creation, data analysis, and automation tools via Graph API",
+  "authentication": "microsoft_oauth",
+  "base_url": "https://graph.microsoft.com/v1.0",
+  "tools": [
+    {
+      "name": "excel_create_workbook",
+      "description": "Create a new Excel workbook in OneDrive",
+      "category": "workbook_management",
+      "parameters": {
+        "name": {"type": "string", "required": true, "description": "Workbook name (will add .xlsx if not present)"},
+        "folder_id": {"type": "string", "required": false, "description": "OneDrive folder ID (default: root)"}
+      },
+      "returns": "Dict with workbook_id, name, web_url, created_datetime"
+    },
+    {
+      "name": "excel_get_workbook",
+      "description": "Get Excel workbook metadata",
+      "category": "workbook_management",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "OneDrive item ID of the workbook"}
+      },
+      "returns": "Dict with workbook details including name, URLs, dates, size"
+    },
+    {
+      "name": "excel_list_workbooks",
+      "description": "List Excel workbooks in OneDrive folder",
+      "category": "workbook_management",
+      "parameters": {
+        "folder_id": {"type": "string", "required": false, "description": "Folder ID (default: root)"},
+        "limit": {"type": "integer", "required": false, "default": 50, "description": "Maximum workbooks to return"}
+      },
+      "returns": "Dict with count and list of workbooks"
+    },
+    {
+      "name": "excel_delete_workbook",
+      "description": "Delete an Excel workbook",
+      "category": "workbook_management",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID to delete"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_list_worksheets",
+      "description": "List all worksheets in workbook",
+      "category": "worksheet_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"}
+      },
+      "returns": "Dict with count and list of worksheets"
+    },
+    {
+      "name": "excel_add_worksheet",
+      "description": "Add new worksheet to workbook",
+      "category": "worksheet_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "name": {"type": "string", "required": true, "description": "Worksheet name"}
+      },
+      "returns": "Dict with new worksheet info"
+    },
+    {
+      "name": "excel_rename_worksheet",
+      "description": "Rename worksheet",
+      "category": "worksheet_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_id": {"type": "string", "required": true, "description": "Worksheet ID"},
+        "new_name": {"type": "string", "required": true, "description": "New worksheet name"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_delete_worksheet",
+      "description": "Delete worksheet from workbook",
+      "category": "worksheet_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_id": {"type": "string", "required": true, "description": "Worksheet ID to delete"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_get_range",
+      "description": "Get cell or range values and formatting",
+      "category": "cell_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "range_address": {"type": "string", "required": true, "description": "Range address (e.g., 'A1', 'A1:B10')"}
+      },
+      "returns": "Dict with values, formulas, and formatting"
+    },
+    {
+      "name": "excel_update_range",
+      "description": "Update cell or range values",
+      "category": "cell_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "range_address": {"type": "string", "required": true, "description": "Range address (e.g., 'A1:B10')"},
+        "values": {"type": "array", "required": true, "description": "2D array of values"}
+      },
+      "returns": "Dict with success status and updated counts"
+    },
+    {
+      "name": "excel_clear_range",
+      "description": "Clear range contents and/or formatting",
+      "category": "cell_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "range_address": {"type": "string", "required": true, "description": "Range address"},
+        "apply_to": {"type": "string", "required": false, "default": "All", "description": "What to clear ('All', 'Contents', 'Formats')"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_insert_rows",
+      "description": "Insert rows in worksheet",
+      "category": "cell_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "index": {"type": "integer", "required": true, "description": "Row index to insert at (0-based)"},
+        "count": {"type": "integer", "required": false, "default": 1, "description": "Number of rows to insert"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_delete_rows",
+      "description": "Delete rows from worksheet",
+      "category": "cell_operations",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "index": {"type": "integer", "required": true, "description": "Row index to delete from (0-based)"},
+        "count": {"type": "integer", "required": false, "default": 1, "description": "Number of rows to delete"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_set_formula",
+      "description": "Set formula in cell and get calculated result",
+      "category": "formulas",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "cell_address": {"type": "string", "required": true, "description": "Cell address (e.g., 'A1')"},
+        "formula": {"type": "string", "required": true, "description": "Excel formula (e.g., '=SUM(A1:A10)')"}
+      },
+      "returns": "Dict with formula and calculated value"
+    },
+    {
+      "name": "excel_calculate",
+      "description": "Trigger workbook calculation",
+      "category": "formulas",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "calculation_type": {"type": "string", "required": false, "default": "Recalculate", "description": "'Recalculate' or 'Full'"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_create_chart",
+      "description": "Create chart in worksheet",
+      "category": "charts",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "chart_type": {"type": "string", "required": true, "description": "Chart type ('ColumnClustered', 'Line', 'Pie', etc.)"},
+        "source_range": {"type": "string", "required": true, "description": "Data range for chart (e.g., 'A1:B10')"},
+        "title": {"type": "string", "required": false, "description": "Chart title"}
+      },
+      "returns": "Dict with chart ID and info"
+    },
+    {
+      "name": "excel_list_charts",
+      "description": "List all charts in worksheet",
+      "category": "charts",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"}
+      },
+      "returns": "Dict with count and list of charts"
+    },
+    {
+      "name": "excel_sort_range",
+      "description": "Sort data range by column",
+      "category": "data_analysis",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "range_address": {"type": "string", "required": true, "description": "Range to sort (e.g., 'A1:C10')"},
+        "sort_column": {"type": "integer", "required": true, "description": "Column index to sort by (0-based)"},
+        "ascending": {"type": "boolean", "required": false, "default": true, "description": "Sort ascending or descending"},
+        "has_headers": {"type": "boolean", "required": false, "default": true, "description": "Whether range has header row"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_filter_range",
+      "description": "Apply autofilter to range",
+      "category": "data_analysis",
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "range_address": {"type": "string", "required": true, "description": "Range to filter"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "excel_smart_import_csv",
+      "description": "SMART: Import CSV data and create formatted workbook with auto-formatting and optional charts",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "csv_data": {"type": "array", "required": true, "description": "2D array of CSV data (includes headers)"},
+        "workbook_name": {"type": "string", "required": true, "description": "Name for new workbook"},
+        "sheet_name": {"type": "string", "required": false, "default": "Data", "description": "Worksheet name"},
+        "auto_format": {"type": "boolean", "required": false, "default": true, "description": "Apply automatic formatting"},
+        "create_chart": {"type": "boolean", "required": false, "default": false, "description": "Generate chart from data"}
+      },
+      "returns": "Dict with workbook_id, web_url, import stats, and optional chart_id",
+      "use_cases": ["Import sales data", "Create financial reports", "Visualize survey results"]
+    },
+    {
+      "name": "excel_smart_data_analysis",
+      "description": "SMART: Analyze data and generate summary statistics with auto-generated analysis worksheet",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
+        "data_range": {"type": "string", "required": true, "description": "Range containing data (e.g., 'A1:D100')"},
+        "analysis_type": {"type": "string", "required": false, "default": "summary", "description": "Type of analysis ('summary', 'distribution', 'trends')"}
+      },
+      "returns": "Dict with statistics (count, sum, average, min, max per column) and analysis sheet",
+      "use_cases": ["Analyze sales data", "Generate data summaries", "Identify trends"]
+    },
+    {
+      "name": "excel_smart_create_pivot",
+      "description": "SMART: Create pivot table from data with custom grouping and aggregation",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
+        "source_sheet": {"type": "string", "required": true, "description": "Source worksheet name"},
+        "source_range": {"type": "string", "required": true, "description": "Data range (e.g., 'A1:D100')"},
+        "row_fields": {"type": "array", "required": true, "description": "Columns to use as row labels"},
+        "value_fields": {"type": "array", "required": true, "description": "Columns to aggregate"},
+        "destination_sheet": {"type": "string", "required": false, "description": "Destination sheet name (creates if needed)"}
+      },
+      "returns": "Dict with pivot table info",
+      "use_cases": ["Summarize sales by region", "Analyze expenses by category", "Group data by time period"]
+    },
+    {
+      "name": "excel_smart_financial_report",
+      "description": "SMART: Generate comprehensive financial report with multiple sheets, formulas, and charts",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "workbook_name": {"type": "string", "required": true, "description": "Name for workbook"},
+        "financial_data": {"type": "object", "required": true, "description": "Dict with 'income', 'balance', 'cashflow' data arrays"},
+        "include_charts": {"type": "boolean", "required": false, "default": true, "description": "Generate charts for each sheet"}
+      },
+      "returns": "Dict with workbook_id, web_url, sheets created",
+      "use_cases": ["Quarterly financial reports", "Annual statements", "Budget analysis"]
+    }
+  ],
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 600,
+    "note": "Follows Microsoft Graph API throttling limits"
+  },
+  "required_scopes": [
+    "Files.ReadWrite.All"
+  ]
+}

@@ -1,0 +1,513 @@
+{
+  "platform": "instagram",
+  "description": "Instagram Graph API - Media posts, stories, comments, insights for Instagram Business/Creator accounts",
+  "tools": [
+    {
+      "name": "instagram_get_account_info",
+      "description": "Get Instagram Business/Creator account information",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "fields": {
+          "type": "array",
+          "description": "Fields to retrieve (username, name, biography, followers_count, etc.)",
+          "required": false,
+          "default": ["username", "name", "biography", "followers_count", "follows_count", "media_count"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Account information"
+      }
+    },
+    {
+      "name": "instagram_get_media",
+      "description": "Get media object details",
+      "platform": "instagram",
+      "parameters": {
+        "media_id": {
+          "type": "string",
+          "description": "Media ID",
+          "required": true
+        },
+        "fields": {
+          "type": "array",
+          "description": "Fields to retrieve (caption, media_type, media_url, permalink, timestamp, etc.)",
+          "required": false,
+          "default": ["id", "caption", "media_type", "media_url", "permalink", "timestamp", "like_count", "comments_count"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Media object details"
+      }
+    },
+    {
+      "name": "instagram_list_media",
+      "description": "List user's media posts",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of media items (1-100)",
+          "required": false,
+          "default": 25
+        },
+        "since": {
+          "type": "string",
+          "description": "Unix timestamp - media published after this time",
+          "required": false
+        },
+        "until": {
+          "type": "string",
+          "description": "Unix timestamp - media published before this time",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of media objects"
+      }
+    },
+    {
+      "name": "instagram_publish_photo",
+      "description": "Publish a photo to Instagram (two-step process: create container, then publish)",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "image_url": {
+          "type": "string",
+          "description": "Public URL of image to publish",
+          "required": true
+        },
+        "caption": {
+          "type": "string",
+          "description": "Photo caption (supports @mentions and #hashtags)",
+          "required": false
+        },
+        "location_id": {
+          "type": "string",
+          "description": "Facebook Page location ID",
+          "required": false
+        },
+        "user_tags": {
+          "type": "array",
+          "description": "Array of user tag objects with username and x/y coordinates",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Published media ID and permalink"
+      }
+    },
+    {
+      "name": "instagram_publish_video",
+      "description": "Publish a video to Instagram",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "video_url": {
+          "type": "string",
+          "description": "Public URL of video to publish",
+          "required": true
+        },
+        "caption": {
+          "type": "string",
+          "description": "Video caption",
+          "required": false
+        },
+        "location_id": {
+          "type": "string",
+          "description": "Facebook Page location ID",
+          "required": false
+        },
+        "thumb_offset": {
+          "type": "integer",
+          "description": "Thumbnail frame offset in milliseconds",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Published video ID"
+      }
+    },
+    {
+      "name": "instagram_publish_carousel",
+      "description": "Publish a carousel album (multiple photos/videos)",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "children": {
+          "type": "array",
+          "description": "Array of media container IDs (created separately)",
+          "required": true
+        },
+        "caption": {
+          "type": "string",
+          "description": "Carousel caption",
+          "required": false
+        },
+        "location_id": {
+          "type": "string",
+          "description": "Facebook Page location ID",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Published carousel ID"
+      }
+    },
+    {
+      "name": "instagram_publish_story",
+      "description": "Publish a story (photo or video)",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "media_url": {
+          "type": "string",
+          "description": "Public URL of photo or video",
+          "required": true
+        },
+        "media_type": {
+          "type": "string",
+          "description": "Media type: IMAGE or VIDEO",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Published story ID"
+      }
+    },
+    {
+      "name": "instagram_list_stories",
+      "description": "List user's active stories",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of active story media"
+      }
+    },
+    {
+      "name": "instagram_get_comments",
+      "description": "Get comments on a media object",
+      "platform": "instagram",
+      "parameters": {
+        "media_id": {
+          "type": "string",
+          "description": "Media ID",
+          "required": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of comments (1-100)",
+          "required": false,
+          "default": 25
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of comments with text, username, timestamp"
+      }
+    },
+    {
+      "name": "instagram_get_comment",
+      "description": "Get details of a specific comment",
+      "platform": "instagram",
+      "parameters": {
+        "comment_id": {
+          "type": "string",
+          "description": "Comment ID",
+          "required": true
+        },
+        "fields": {
+          "type": "array",
+          "description": "Fields to retrieve",
+          "required": false,
+          "default": ["text", "username", "timestamp", "like_count"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Comment details"
+      }
+    },
+    {
+      "name": "instagram_reply_to_comment",
+      "description": "Reply to a comment",
+      "platform": "instagram",
+      "parameters": {
+        "comment_id": {
+          "type": "string",
+          "description": "Comment ID to reply to",
+          "required": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Reply message",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Reply comment ID"
+      }
+    },
+    {
+      "name": "instagram_delete_comment",
+      "description": "Delete a comment",
+      "platform": "instagram",
+      "parameters": {
+        "comment_id": {
+          "type": "string",
+          "description": "Comment ID to delete",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "instagram_hide_comment",
+      "description": "Hide or unhide a comment",
+      "platform": "instagram",
+      "parameters": {
+        "comment_id": {
+          "type": "string",
+          "description": "Comment ID",
+          "required": true
+        },
+        "hide": {
+          "type": "boolean",
+          "description": "True to hide, false to unhide",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update confirmation"
+      }
+    },
+    {
+      "name": "instagram_get_media_insights",
+      "description": "Get insights/analytics for a media post",
+      "platform": "instagram",
+      "parameters": {
+        "media_id": {
+          "type": "string",
+          "description": "Media ID",
+          "required": true
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Metrics to retrieve (engagement, impressions, reach, saved, video_views, etc.)",
+          "required": false,
+          "default": ["engagement", "impressions", "reach", "saved"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Media insights data"
+      }
+    },
+    {
+      "name": "instagram_get_account_insights",
+      "description": "Get account-level insights",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Metrics (impressions, reach, follower_count, email_contacts, etc.)",
+          "required": true
+        },
+        "period": {
+          "type": "string",
+          "description": "Time period: day, week, days_28, or lifetime",
+          "required": true
+        },
+        "since": {
+          "type": "string",
+          "description": "Unix timestamp - start date",
+          "required": false
+        },
+        "until": {
+          "type": "string",
+          "description": "Unix timestamp - end date",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Account insights data"
+      }
+    },
+    {
+      "name": "instagram_get_audience_insights",
+      "description": "Get audience demographics and insights",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Metrics (audience_city, audience_country, audience_gender_age, etc.)",
+          "required": true
+        },
+        "period": {
+          "type": "string",
+          "description": "Time period: lifetime",
+          "required": false,
+          "default": "lifetime"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Audience demographics data"
+      }
+    },
+    {
+      "name": "instagram_get_story_insights",
+      "description": "Get insights for a story",
+      "platform": "instagram",
+      "parameters": {
+        "story_id": {
+          "type": "string",
+          "description": "Story media ID",
+          "required": true
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Metrics (impressions, reach, replies, exits, taps_forward, taps_back, etc.)",
+          "required": false,
+          "default": ["impressions", "reach", "replies"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Story insights data"
+      }
+    },
+    {
+      "name": "instagram_get_hashtag_id",
+      "description": "Get Instagram hashtag ID for search",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "hashtag": {
+          "type": "string",
+          "description": "Hashtag (without # symbol)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Hashtag ID"
+      }
+    },
+    {
+      "name": "instagram_search_hashtag",
+      "description": "Search for recent or top media by hashtag",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "hashtag_id": {
+          "type": "string",
+          "description": "Hashtag ID (from instagram_get_hashtag_id)",
+          "required": true
+        },
+        "search_type": {
+          "type": "string",
+          "description": "Search type: recent_media or top_media",
+          "required": false,
+          "default": "recent_media"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of results (1-50)",
+          "required": false,
+          "default": 25
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of media matching hashtag"
+      }
+    },
+    {
+      "name": "instagram_get_mentioned_media",
+      "description": "Get media where user is mentioned",
+      "platform": "instagram",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "Instagram Business Account ID",
+          "required": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of media (1-100)",
+          "required": false,
+          "default": 25
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of media with mentions"
+      }
+    }
+  ]
+}

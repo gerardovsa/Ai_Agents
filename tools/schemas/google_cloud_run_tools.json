@@ -1,0 +1,471 @@
+{
+  "platform": "google_cloud_run",
+  "description": "Google Cloud Run - Deploy and manage containerized applications on serverless infrastructure",
+  "tools": [
+    {
+      "name": "google_cloud_run_deploy_service",
+      "description": "Deploy a new Cloud Run service from container image",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service to deploy",
+          "required": true
+        },
+        "image": {
+          "type": "string",
+          "description": "Container image URL (e.g., gcr.io/project/image:tag)",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region (e.g., us-central1, europe-west1)",
+          "required": false
+        },
+        "allow_unauthenticated": {
+          "type": "boolean",
+          "description": "Allow unauthenticated requests",
+          "required": false
+        },
+        "cpu": {
+          "type": "string",
+          "description": "CPU allocation (e.g., '1', '2', '4')",
+          "required": false
+        },
+        "memory": {
+          "type": "string",
+          "description": "Memory allocation (e.g., '256Mi', '512Mi', '1Gi')",
+          "required": false
+        },
+        "max_instances": {
+          "type": "integer",
+          "description": "Maximum number of instances",
+          "required": false
+        },
+        "min_instances": {
+          "type": "integer",
+          "description": "Minimum number of instances (always-warm)",
+          "required": false
+        },
+        "env_vars": {
+          "type": "object",
+          "description": "Environment variables as key-value pairs",
+          "required": false
+        },
+        "port": {
+          "type": "integer",
+          "description": "Container port (default: 8080)",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_list_services",
+      "description": "List all Cloud Run services in a project",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region (default: all regions)",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_get_service",
+      "description": "Get details of a specific Cloud Run service",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_update_service",
+      "description": "Update an existing Cloud Run service",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        },
+        "image": {
+          "type": "string",
+          "description": "New container image URL",
+          "required": false
+        },
+        "cpu": {
+          "type": "string",
+          "description": "CPU allocation",
+          "required": false
+        },
+        "memory": {
+          "type": "string",
+          "description": "Memory allocation",
+          "required": false
+        },
+        "max_instances": {
+          "type": "integer",
+          "description": "Maximum number of instances",
+          "required": false
+        },
+        "min_instances": {
+          "type": "integer",
+          "description": "Minimum number of instances",
+          "required": false
+        },
+        "env_vars": {
+          "type": "object",
+          "description": "Environment variables to update",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_delete_service",
+      "description": "Delete a Cloud Run service",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service to delete",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_get_service_url",
+      "description": "Get the public URL of a Cloud Run service",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_set_traffic",
+      "description": "Set traffic routing between service revisions (for blue-green deployments)",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        },
+        "traffic_splits": {
+          "type": "object",
+          "description": "Revision names to traffic percentages (e.g., {'rev-001': 80, 'rev-002': 20})",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_list_revisions",
+      "description": "List all revisions of a Cloud Run service",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_get_service_metrics",
+      "description": "Get metrics for a Cloud Run service (requests, latency, errors)",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        },
+        "start_time": {
+          "type": "string",
+          "description": "Start time (ISO format or relative like '1h', '24h')",
+          "required": false
+        },
+        "end_time": {
+          "type": "string",
+          "description": "End time (ISO format or 'now')",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_get_service_logs",
+      "description": "Get logs from a Cloud Run service",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of log entries (default: 100)",
+          "required": false
+        },
+        "severity": {
+          "type": "string",
+          "description": "Minimum log severity (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+          "required": false
+        },
+        "time_range": {
+          "type": "string",
+          "description": "Time range (e.g., '1h', '24h', '7d')",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_set_iam_policy",
+      "description": "Set IAM policy for a Cloud Run service (manage access)",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        },
+        "member": {
+          "type": "string",
+          "description": "Member to grant access (e.g., 'allUsers', 'user:email@example.com')",
+          "required": true
+        },
+        "role": {
+          "type": "string",
+          "description": "IAM role (e.g., 'roles/run.invoker')",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_create_job",
+      "description": "Create a Cloud Run Job (for batch/scheduled tasks)",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "job_name": {
+          "type": "string",
+          "description": "Name of the job",
+          "required": true
+        },
+        "image": {
+          "type": "string",
+          "description": "Container image URL",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": false
+        },
+        "task_count": {
+          "type": "integer",
+          "description": "Number of parallel tasks",
+          "required": false
+        },
+        "max_retries": {
+          "type": "integer",
+          "description": "Maximum retry attempts",
+          "required": false
+        },
+        "timeout": {
+          "type": "string",
+          "description": "Task timeout (e.g., '10m', '1h')",
+          "required": false
+        },
+        "env_vars": {
+          "type": "object",
+          "description": "Environment variables",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_execute_job",
+      "description": "Execute a Cloud Run Job",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "job_name": {
+          "type": "string",
+          "description": "Name of the job to execute",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        },
+        "wait": {
+          "type": "boolean",
+          "description": "Wait for job completion",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_list_jobs",
+      "description": "List all Cloud Run Jobs",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "google_cloud_run_get_job_executions",
+      "description": "Get execution history for a Cloud Run Job",
+      "platform": "google_cloud_run",
+      "parameters": {
+        "project_id": {
+          "type": "string",
+          "description": "Google Cloud project ID",
+          "required": true
+        },
+        "job_name": {
+          "type": "string",
+          "description": "Name of the job",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "description": "GCP region",
+          "required": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of executions to return",
+          "required": false
+        }
+      }
+    }
+  ]
+}

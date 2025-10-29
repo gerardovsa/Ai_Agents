@@ -1,0 +1,15 @@
+# Cloudflare Worker Configuration
+name = "mustcare-worker"
+main = "mustcare-worker.js"
+compatibility_date = "2025-10-23"
+account_id = "d31a1c9ec65f373f4008216c30b071cc"
+
+# Routes (add manually in dashboard - token lacks route permissions)
+# routes = [
+#     { pattern = "mustcare.valorsynergysuite.com/*", zone_name = "valorsynergysuite.com" }
+# ]
+
+# Environment Variables (if needed)
+[vars]
+BACKEND_URL = "https://mustcare-38241773079.australia-southeast1.run.app"
+ENVIRONMENT = "production"

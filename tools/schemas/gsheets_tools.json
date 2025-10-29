@@ -1,0 +1,270 @@
+{
+  "platform": "google_sheets",
+  "description": "Google Sheets API - Create spreadsheets, add data, format cells, analyze data. V2 includes SMART BUNDLED TOOLS for efficient operations.",
+  "version": "2.0.0",
+  "tools": [
+    {
+      "name": "gsheets_create_complete_spreadsheet",
+      "description": "⭐ PREFERRED METHOD: Create a complete spreadsheet with data and formatting in ONE operation. Much more efficient than calling create + write + format separately. Spreadsheet is automatically shareable.",
+      "platform": "google_sheets",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title",
+          "required": true,
+          "example": "Q4 Sales Report"
+        },
+        "data": {
+          "type": "array",
+          "description": "2D array of data [[row1], [row2], ...]. Each row is an array of values.",
+          "required": true,
+          "example": [
+            ["Widget A", 15000, 150],
+            ["Widget B", 22000, 200],
+            ["Widget C", 18500, 175]
+          ]
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row (will be bolded and frozen automatically)",
+          "required": false,
+          "example": ["Product", "Revenue", "Units Sold"]
+        },
+        "sheet_name": {
+          "type": "string",
+          "description": "Name for the first sheet",
+          "required": false,
+          "default": "Sheet1"
+        },
+        "formatting": {
+          "type": "object",
+          "description": "Optional formatting options: bold_headers (bool), freeze_header (bool), auto_resize (bool)",
+          "required": false,
+          "example": {
+            "bold_headers": true,
+            "freeze_header": true,
+            "auto_resize": true
+          }
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make spreadsheet accessible to anyone with the link",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete spreadsheet details with id, url (shareable link), title, rows_added, columns count"
+      },
+      "usage_notes": "This is the MOST EFFICIENT way to create spreadsheets. Use this instead of separate create + write + format calls. Headers are automatically bolded and frozen."
+    },
+    {
+      "name": "gsheets_ai_generate_table",
+      "description": "⭐ AI-POWERED: Generate a data table from natural language description. AI determines appropriate columns, generates realistic sample data, and formats professionally. Perfect when you're not sure what structure to use.",
+      "platform": "google_sheets",
+      "category": "ai_powered",
+      "priority": "high",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "description": "Natural language description of the table you want to create",
+          "required": true,
+          "example": "Create a sales tracking table with columns for date, product name, quantity sold, unit price, and total revenue. Include 10 sample rows of realistic data."
+        },
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title (optional, AI will generate if not provided)",
+          "required": false,
+          "example": "Sales Tracking Q4"
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make spreadsheet accessible to anyone with the link",
+          "required": false,
+          "default": true
+        },
+        "ai_model": {
+          "type": "string",
+          "description": "OpenAI model to use",
+          "required": false,
+          "default": "gpt-4",
+          "enum": ["gpt-4", "gpt-3.5-turbo"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete spreadsheet with url (link to share), rows_generated count, and AI generation details"
+      },
+      "usage_notes": "Use this when the user describes what they want in natural language. AI will determine the best columns and generate realistic data. Requires OPENAI_API_KEY environment variable."
+    },
+    {
+      "name": "gsheets_bulk_create_multiple",
+      "description": "⭐ BULK OPERATION: Create multiple spreadsheets at once. Most efficient for creating many spreadsheets with similar structure (e.g., regional reports, department trackers).",
+      "platform": "google_sheets",
+      "category": "bulk",
+      "priority": "high",
+      "parameters": {
+        "spreadsheets_configs": {
+          "type": "array",
+          "description": "List of spreadsheet configurations. Each config is an object with: title, headers (optional), data (2D array), sheet_name (optional)",
+          "required": true,
+          "example": [
+            {
+              "title": "Q1 Sales - NYC",
+              "headers": ["Product", "Revenue"],
+              "data": [["Widget A", 15000], ["Widget B", 22000]]
+            },
+            {
+              "title": "Q1 Sales - LA",
+              "headers": ["Product", "Revenue"],
+              "data": [["Widget A", 18000], ["Widget B", 25000]]
+            }
+          ]
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make all spreadsheets accessible to anyone with the link",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Array of all created spreadsheets with their URLs and details"
+      },
+      "usage_notes": "Use this when creating 2+ spreadsheets at once. Much more efficient than creating spreadsheets one by one."
+    },
+    {
+      "name": "gsheets_create",
+      "description": "Create a basic Google Sheets spreadsheet (empty, no data). NOTE: Use gsheets_create_complete_spreadsheet instead for better efficiency.",
+      "platform": "google_sheets",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title",
+          "required": true
+        },
+        "sheets": {
+          "type": "array",
+          "description": "Array of sheet names to create",
+          "required": false,
+          "example": ["Sheet1", "Sheet2", "Sheet3"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Spreadsheet with id, url, and title"
+      }
+    },
+    {
+      "name": "gsheets_read",
+      "description": "Read data from a Google Sheets spreadsheet",
+      "platform": "google_sheets",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID from URL",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Cell range (e.g., 'Sheet1!A1:D10' or just 'A1:D10')",
+          "required": true,
+          "example": "Sheet1!A1:D10"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Cell values as 2D array with row/column counts"
+      }
+    },
+    {
+      "name": "gsheets_write",
+      "description": "Write data to a Google Sheets spreadsheet. NOTE: Use gsheets_create_complete_spreadsheet for new spreadsheets.",
+      "platform": "google_sheets",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID from URL",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Cell range to write to",
+          "required": true,
+          "example": "Sheet1!A1"
+        },
+        "values": {
+          "type": "array",
+          "description": "2D array of values to write",
+          "required": true,
+          "example": [["Name", "Score"], ["John", 95], ["Jane", 87]]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update confirmation with rows and cells updated count"
+      }
+    },
+    {
+      "name": "gsheets_append",
+      "description": "Append rows to the end of a sheet",
+      "platform": "google_sheets",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID from URL",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Sheet name and starting column (e.g., 'Sheet1!A:D')",
+          "required": true,
+          "example": "Sheet1!A:D"
+        },
+        "values": {
+          "type": "array",
+          "description": "2D array of values to append",
+          "required": true,
+          "example": [["New Row 1", 100], ["New Row 2", 200]]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Append confirmation with rows appended count"
+      }
+    }
+  ],
+  "usage_instructions": {
+    "creating_spreadsheets": {
+      "preferred_method": "Use gsheets_create_complete_spreadsheet - it creates the spreadsheet with data and formatting in ONE call",
+      "ai_method": "Use gsheets_ai_generate_table when the user describes what they want in natural language",
+      "bulk_method": "Use gsheets_bulk_create_multiple when creating 2+ spreadsheets at once"
+    },
+    "best_practices": [
+      "Always use smart bundled tools (gsheets_create_complete_spreadsheet) instead of create + write + format separately",
+      "Spreadsheets are shareable by default - no need to set permissions manually",
+      "Use AI generation when user provides a description rather than specific data structure",
+      "Use bulk operations when working with multiple spreadsheets",
+      "Headers are automatically bolded and frozen when using create_complete_spreadsheet"
+    ],
+    "common_workflows": {
+      "simple_table": "gsheets_create_complete_spreadsheet with headers and data",
+      "ai_table": "gsheets_ai_generate_table with prompt",
+      "multiple_reports": "gsheets_bulk_create_multiple with configs array",
+      "read_data": "gsheets_read to get existing data",
+      "update_data": "gsheets_write or gsheets_append to modify existing spreadsheet"
+    }
+  }
+}

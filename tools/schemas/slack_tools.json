@@ -1,0 +1,584 @@
+{
+  "platform": "slack",
+  "description": "Slack API - Team communication, channels, workspaces, bots, and file management",
+  "tools": [
+    {
+      "name": "slack_post_message",
+      "description": "Post a message to a channel or user",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID or name (e.g., '#general', 'C1234567890')",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text (supports markdown)",
+          "required": true
+        },
+        "thread_ts": {
+          "type": "string",
+          "description": "Thread timestamp to reply to",
+          "required": false
+        },
+        "blocks": {
+          "type": "array",
+          "description": "Array of Block Kit blocks for rich formatting",
+          "required": false
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Array of message attachments",
+          "required": false
+        },
+        "username": {
+          "type": "string",
+          "description": "Custom bot username",
+          "required": false
+        },
+        "icon_emoji": {
+          "type": "string",
+          "description": "Bot icon emoji (e.g., ':robot_face:')",
+          "required": false
+        },
+        "icon_url": {
+          "type": "string",
+          "description": "Bot icon image URL",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Message timestamp and channel info"
+      }
+    },
+    {
+      "name": "slack_update_message",
+      "description": "Update an existing message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "ts": {
+          "type": "string",
+          "description": "Message timestamp",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "New message text",
+          "required": true
+        },
+        "blocks": {
+          "type": "array",
+          "description": "New blocks",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated message confirmation"
+      }
+    },
+    {
+      "name": "slack_delete_message",
+      "description": "Delete a message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "ts": {
+          "type": "string",
+          "description": "Message timestamp",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "slack_get_message_permalink",
+      "description": "Get permanent link to a message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "message_ts": {
+          "type": "string",
+          "description": "Message timestamp",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Permanent URL to message"
+      }
+    },
+    {
+      "name": "slack_list_channels",
+      "description": "List all public channels in workspace",
+      "platform": "slack",
+      "parameters": {
+        "exclude_archived": {
+          "type": "boolean",
+          "description": "Exclude archived channels",
+          "required": false,
+          "default": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of channels (1-1000)",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of channels with metadata"
+      }
+    },
+    {
+      "name": "slack_create_channel",
+      "description": "Create a new public or private channel",
+      "platform": "slack",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Channel name (lowercase, no spaces)",
+          "required": true
+        },
+        "is_private": {
+          "type": "boolean",
+          "description": "Create as private channel",
+          "required": false,
+          "default": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Channel description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created channel details"
+      }
+    },
+    {
+      "name": "slack_archive_channel",
+      "description": "Archive a channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Archive confirmation"
+      }
+    },
+    {
+      "name": "slack_unarchive_channel",
+      "description": "Unarchive a channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Unarchive confirmation"
+      }
+    },
+    {
+      "name": "slack_invite_to_channel",
+      "description": "Invite users to a channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "users": {
+          "type": "array",
+          "description": "Array of user IDs to invite",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Invitation confirmation"
+      }
+    },
+    {
+      "name": "slack_kick_from_channel",
+      "description": "Remove user from channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "user": {
+          "type": "string",
+          "description": "User ID to remove",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Removal confirmation"
+      }
+    },
+    {
+      "name": "slack_get_channel_info",
+      "description": "Get channel information",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "include_num_members": {
+          "type": "boolean",
+          "description": "Include member count",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Channel details"
+      }
+    },
+    {
+      "name": "slack_get_channel_history",
+      "description": "Get message history from channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of messages (1-1000)",
+          "required": false,
+          "default": 100
+        },
+        "oldest": {
+          "type": "string",
+          "description": "Start timestamp",
+          "required": false
+        },
+        "latest": {
+          "type": "string",
+          "description": "End timestamp",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Message history"
+      }
+    },
+    {
+      "name": "slack_list_users",
+      "description": "List all users in workspace",
+      "platform": "slack",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Number of users (1-1000)",
+          "required": false,
+          "default": 100
+        },
+        "include_locale": {
+          "type": "boolean",
+          "description": "Include user locale",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of users with profiles"
+      }
+    },
+    {
+      "name": "slack_get_user_info",
+      "description": "Get user profile information",
+      "platform": "slack",
+      "parameters": {
+        "user": {
+          "type": "string",
+          "description": "User ID",
+          "required": true
+        },
+        "include_locale": {
+          "type": "boolean",
+          "description": "Include locale",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "User profile details"
+      }
+    },
+    {
+      "name": "slack_set_user_status",
+      "description": "Set custom status for bot user",
+      "platform": "slack",
+      "parameters": {
+        "status_text": {
+          "type": "string",
+          "description": "Status text",
+          "required": true
+        },
+        "status_emoji": {
+          "type": "string",
+          "description": "Status emoji",
+          "required": false
+        },
+        "status_expiration": {
+          "type": "integer",
+          "description": "Unix timestamp when status expires",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Status update confirmation"
+      }
+    },
+    {
+      "name": "slack_upload_file",
+      "description": "Upload a file to Slack",
+      "platform": "slack",
+      "parameters": {
+        "channels": {
+          "type": "array",
+          "description": "Array of channel IDs to share file",
+          "required": false
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (text or base64 encoded)",
+          "required": true
+        },
+        "filename": {
+          "type": "string",
+          "description": "File name",
+          "required": true
+        },
+        "filetype": {
+          "type": "string",
+          "description": "File type (e.g., 'pdf', 'jpg', 'txt')",
+          "required": false
+        },
+        "title": {
+          "type": "string",
+          "description": "File title",
+          "required": false
+        },
+        "initial_comment": {
+          "type": "string",
+          "description": "Comment with file upload",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Uploaded file details"
+      }
+    },
+    {
+      "name": "slack_get_file_info",
+      "description": "Get file information",
+      "platform": "slack",
+      "parameters": {
+        "file": {
+          "type": "string",
+          "description": "File ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "File details and download URL"
+      }
+    },
+    {
+      "name": "slack_delete_file",
+      "description": "Delete a file",
+      "platform": "slack",
+      "parameters": {
+        "file": {
+          "type": "string",
+          "description": "File ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "slack_add_reaction",
+      "description": "Add emoji reaction to a message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Message timestamp",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Emoji name (without colons, e.g., 'thumbsup')",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Reaction confirmation"
+      }
+    },
+    {
+      "name": "slack_remove_reaction",
+      "description": "Remove emoji reaction from message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Message timestamp",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Emoji name",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Removal confirmation"
+      }
+    },
+    {
+      "name": "slack_get_workspace_info",
+      "description": "Get workspace/team information",
+      "platform": "slack",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Workspace details"
+      }
+    },
+    {
+      "name": "slack_search_messages",
+      "description": "Search messages in workspace",
+      "platform": "slack",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Search query",
+          "required": true
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of results (1-100)",
+          "required": false,
+          "default": 20
+        },
+        "sort": {
+          "type": "string",
+          "description": "Sort order: score or timestamp",
+          "required": false,
+          "default": "score"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results"
+      }
+    },
+    {
+      "name": "slack_set_channel_topic",
+      "description": "Set channel topic",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "topic": {
+          "type": "string",
+          "description": "New topic text",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Topic update confirmation"
+      }
+    },
+    {
+      "name": "slack_set_channel_purpose",
+      "description": "Set channel purpose/description",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID",
+          "required": true
+        },
+        "purpose": {
+          "type": "string",
+          "description": "New purpose text",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Purpose update confirmation"
+      }
+    }
+  ]
+}

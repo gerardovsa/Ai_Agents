@@ -1,0 +1,32 @@
+{
+  "name": "cloudflare-ai-toolkit",
+  "version": "1.0.0",
+  "description": "CLI toolkit for managing Cloudflare services and AI Workers",
+  "main": "cloudflare-ai-client.js",
+  "bin": {
+    "cfai": "./cli.js"
+  },
+  "scripts": {
+    "verify": "node cli.js verify",
+    "models": "node cli.js models",
+    "chat": "node cli.js chat",
+    "diagnose": "node cli.js diagnose",
+    "help": "node cli.js help",
+    "test": "node test-client.js"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "ai",
+    "cli",
+    "diagnostics"
+  ],
+  "author": "Valor AI",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.3"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

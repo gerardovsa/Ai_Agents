@@ -1,0 +1,97 @@
+# ============================================================================
+# COMBINED REQUIREMENTS - AI Infrastructure + Business AI Platform
+# ============================================================================
+
+# ============================================================================
+# CORE AI INFRASTRUCTURE (Existing - Already Installed)
+# ============================================================================
+
+# Core AI SDKs
+anthropic>=0.40.0              # Claude API client (Sonnet, Haiku)
+openai>=1.0.0                  # OpenAI GPT-4o, GPT-4o-mini
+requests>=2.31.0               # DeepSeek API calls
+
+# Flask web framework
+Flask>=3.0.0                   # Web framework
+Flask-CORS>=4.0.0              # CORS support
+Flask-SocketIO>=5.3.0          # WebSocket support
+
+# Database (SQL Server)
+pyodbc>=5.0.0                  # SQL Server connection
+
+# Testing
+pytest>=7.4.0                  # Testing framework
+pytest-asyncio>=0.21.0         # Async test support
+pytest-cov>=4.1.0              # Test coverage reports
+
+# Development
+black>=23.0.0                  # Code formatting
+pylint>=2.17.0                 # Code linting
+
+
+# ============================================================================
+# BUSINESS AI PLATFORM ADDITIONS (New)
+# ============================================================================
+
+# Database - Cloud & Local
+supabase==2.0.3                # Supabase Python client (PostgreSQL cloud)
+psycopg2-binary==2.9.9         # PostgreSQL driver
+sqlalchemy==2.0.23             # ORM for database operations
+
+# Workflow Automation
+celery==5.3.4                  # Async task queue
+redis==5.0.1                   # Message broker for Celery
+schedule==1.2.0                # Cron-like scheduling
+apscheduler==3.10.4            # Advanced scheduling
+
+# File Processing (for ONLYOFFICE integration)
+python-magic==0.4.27           # File type detection
+cryptography==41.0.7           # Document encryption
+
+# Data Export
+openpyxl==3.1.2                # Excel file creation
+xlsxwriter==3.1.9              # Alternative Excel writer
+reportlab==4.0.7               # PDF generation
+pdfkit==1.0.0                  # HTML to PDF conversion
+pandas==2.1.3                  # Data processing (optional but useful)
+
+# Utilities
+python-dotenv==1.0.0           # Environment variable management
+httpx==0.25.2                  # Modern async HTTP client
+python-dateutil==2.8.2         # Date/time parsing
+pyjwt==2.8.0                   # JSON Web Tokens for authentication
+bcrypt==4.1.1                  # Password hashing
+
+# Google Integration (for Tool Registry)
+google-auth==2.23.4            # Google authentication
+google-api-python-client==2.108.0  # Google API client
+
+# Additional AI Providers
+google-generativeai==0.3.1     # Google Gemini
+
+
+# ============================================================================
+# PROJECT MANAGEMENT INTEGRATIONS (Optional)
+# ============================================================================
+
+# External project management tools (uncomment if needed)
+# py-trello==0.19.0            # Trello API integration
+# asana==3.2.2                 # Asana API integration
+# PyGithub==2.1.1              # GitHub API integration
+
+
+# ============================================================================
+# OPTIONAL ENHANCEMENTS
+# ============================================================================
+
+# Monitoring & Logging
+# sentry-sdk==1.39.1           # Error tracking
+# python-json-logger==2.0.7    # JSON logging
+
+# Performance
+# gunicorn==21.2.0             # Production WSGI server
+# gevent==23.9.1               # Async greenlets
+
+# Data Validation
+# pydantic==2.5.0              # Data validation
+# marshmallow==3.20.1          # Serialization

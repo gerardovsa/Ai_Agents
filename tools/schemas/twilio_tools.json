@@ -1,0 +1,461 @@
+{
+  "platform": "twilio",
+  "description": "Twilio Communications API - SMS, voice calls, WhatsApp, video, and email via SendGrid",
+  "tools": [
+    {
+      "name": "twilio_send_sms",
+      "description": "Send an SMS message",
+      "platform": "twilio",
+      "parameters": {
+        "to": {
+          "type": "string",
+          "description": "Recipient phone number (E.164 format: +1234567890)",
+          "required": true
+        },
+        "from": {
+          "type": "string",
+          "description": "Twilio phone number (E.164 format)",
+          "required": true
+        },
+        "body": {
+          "type": "string",
+          "description": "Message body (up to 1600 characters)",
+          "required": true
+        },
+        "media_url": {
+          "type": "array",
+          "description": "Array of media URLs for MMS",
+          "required": false
+        },
+        "status_callback": {
+          "type": "string",
+          "description": "Webhook URL for delivery status",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Message SID and status"
+      }
+    },
+    {
+      "name": "twilio_get_message",
+      "description": "Get SMS message details and status",
+      "platform": "twilio",
+      "parameters": {
+        "message_sid": {
+          "type": "string",
+          "description": "Message SID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Message details including delivery status"
+      }
+    },
+    {
+      "name": "twilio_list_messages",
+      "description": "List sent and received messages",
+      "platform": "twilio",
+      "parameters": {
+        "to": {
+          "type": "string",
+          "description": "Filter by recipient phone number",
+          "required": false
+        },
+        "from": {
+          "type": "string",
+          "description": "Filter by sender phone number",
+          "required": false
+        },
+        "date_sent": {
+          "type": "string",
+          "description": "Filter by date sent (YYYY-MM-DD)",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of messages to return (1-1000)",
+          "required": false,
+          "default": 50
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of messages"
+      }
+    },
+    {
+      "name": "twilio_make_call",
+      "description": "Make an outbound voice call",
+      "platform": "twilio",
+      "parameters": {
+        "to": {
+          "type": "string",
+          "description": "Recipient phone number (E.164 format)",
+          "required": true
+        },
+        "from": {
+          "type": "string",
+          "description": "Twilio phone number",
+          "required": true
+        },
+        "url": {
+          "type": "string",
+          "description": "TwiML instructions URL",
+          "required": false
+        },
+        "twiml": {
+          "type": "string",
+          "description": "TwiML instructions inline",
+          "required": false
+        },
+        "status_callback": {
+          "type": "string",
+          "description": "Webhook URL for call status",
+          "required": false
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Ring timeout in seconds",
+          "required": false,
+          "default": 60
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Call SID and status"
+      }
+    },
+    {
+      "name": "twilio_get_call",
+      "description": "Get call details and status",
+      "platform": "twilio",
+      "parameters": {
+        "call_sid": {
+          "type": "string",
+          "description": "Call SID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Call details including duration and status"
+      }
+    },
+    {
+      "name": "twilio_list_calls",
+      "description": "List voice calls",
+      "platform": "twilio",
+      "parameters": {
+        "to": {
+          "type": "string",
+          "description": "Filter by recipient",
+          "required": false
+        },
+        "from": {
+          "type": "string",
+          "description": "Filter by sender",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "description": "Filter by status: queued, ringing, in-progress, completed, etc.",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number to return (1-1000)",
+          "required": false,
+          "default": 50
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of calls"
+      }
+    },
+    {
+      "name": "twilio_update_call",
+      "description": "Update an in-progress call (redirect, modify, cancel)",
+      "platform": "twilio",
+      "parameters": {
+        "call_sid": {
+          "type": "string",
+          "description": "Call SID",
+          "required": true
+        },
+        "url": {
+          "type": "string",
+          "description": "New TwiML URL",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "description": "New status: canceled or completed",
+          "required": false
+        },
+        "twiml": {
+          "type": "string",
+          "description": "New TwiML instructions",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated call details"
+      }
+    },
+    {
+      "name": "twilio_send_whatsapp",
+      "description": "Send a WhatsApp message",
+      "platform": "twilio",
+      "parameters": {
+        "to": {
+          "type": "string",
+          "description": "Recipient WhatsApp number (whatsapp:+1234567890)",
+          "required": true
+        },
+        "from": {
+          "type": "string",
+          "description": "Twilio WhatsApp number (whatsapp:+14155238886)",
+          "required": true
+        },
+        "body": {
+          "type": "string",
+          "description": "Message body",
+          "required": true
+        },
+        "media_url": {
+          "type": "array",
+          "description": "Array of media URLs",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "WhatsApp message SID"
+      }
+    },
+    {
+      "name": "twilio_create_video_room",
+      "description": "Create a video conferencing room",
+      "platform": "twilio",
+      "parameters": {
+        "unique_name": {
+          "type": "string",
+          "description": "Unique room name",
+          "required": true
+        },
+        "type": {
+          "type": "string",
+          "description": "Room type: go, peer-to-peer, group, or group-small",
+          "required": false,
+          "default": "group"
+        },
+        "max_participants": {
+          "type": "integer",
+          "description": "Maximum participants",
+          "required": false,
+          "default": 10
+        },
+        "record_participants_on_connect": {
+          "type": "boolean",
+          "description": "Auto-record participants",
+          "required": false,
+          "default": false
+        },
+        "status_callback": {
+          "type": "string",
+          "description": "Webhook URL for room events",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Video room SID and details"
+      }
+    },
+    {
+      "name": "twilio_get_video_room",
+      "description": "Get video room details",
+      "platform": "twilio",
+      "parameters": {
+        "room_sid": {
+          "type": "string",
+          "description": "Room SID or unique name",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Room status and participant count"
+      }
+    },
+    {
+      "name": "twilio_list_video_rooms",
+      "description": "List video rooms",
+      "platform": "twilio",
+      "parameters": {
+        "status": {
+          "type": "string",
+          "description": "Filter by status: in-progress or completed",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number to return",
+          "required": false,
+          "default": 50
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of video rooms"
+      }
+    },
+    {
+      "name": "twilio_complete_video_room",
+      "description": "End a video room session",
+      "platform": "twilio",
+      "parameters": {
+        "room_sid": {
+          "type": "string",
+          "description": "Room SID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Completed room details"
+      }
+    },
+    {
+      "name": "twilio_list_phone_numbers",
+      "description": "List purchased phone numbers",
+      "platform": "twilio",
+      "parameters": {
+        "phone_number": {
+          "type": "string",
+          "description": "Filter by specific number",
+          "required": false
+        },
+        "friendly_name": {
+          "type": "string",
+          "description": "Filter by friendly name",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of phone numbers with capabilities"
+      }
+    },
+    {
+      "name": "twilio_search_available_numbers",
+      "description": "Search for available phone numbers to purchase",
+      "platform": "twilio",
+      "parameters": {
+        "country_code": {
+          "type": "string",
+          "description": "ISO country code (e.g., 'US', 'GB')",
+          "required": true
+        },
+        "area_code": {
+          "type": "string",
+          "description": "Area code preference",
+          "required": false
+        },
+        "contains": {
+          "type": "string",
+          "description": "Number must contain pattern",
+          "required": false
+        },
+        "sms_enabled": {
+          "type": "boolean",
+          "description": "SMS capability required",
+          "required": false,
+          "default": true
+        },
+        "voice_enabled": {
+          "type": "boolean",
+          "description": "Voice capability required",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of available numbers"
+      }
+    },
+    {
+      "name": "twilio_purchase_number",
+      "description": "Purchase a phone number",
+      "platform": "twilio",
+      "parameters": {
+        "phone_number": {
+          "type": "string",
+          "description": "Phone number to purchase (E.164 format)",
+          "required": true
+        },
+        "friendly_name": {
+          "type": "string",
+          "description": "Friendly name for the number",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Purchased number details"
+      }
+    },
+    {
+      "name": "twilio_sendgrid_send_email",
+      "description": "Send email via SendGrid (Twilio)",
+      "platform": "twilio",
+      "parameters": {
+        "to": {
+          "type": "array",
+          "description": "Array of recipient email objects with email and name",
+          "required": true
+        },
+        "from": {
+          "type": "object",
+          "description": "Sender object with email and name",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Plain text content",
+          "required": false
+        },
+        "html": {
+          "type": "string",
+          "description": "HTML content",
+          "required": false
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Array of attachment objects",
+          "required": false
+        },
+        "reply_to": {
+          "type": "object",
+          "description": "Reply-to email object",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Send confirmation with message ID"
+      }
+    }
+  ]
+}

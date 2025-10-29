@@ -1,0 +1,149 @@
+{
+  "platform": "cloudconvert",
+  "description": "CloudConvert file conversion and optimization tools",
+  "tools": [
+    {
+      "name": "cloudconvert_convert",
+      "description": "Convert a file from one format to another",
+      "platform": "cloudconvert",
+      "parameters": {
+        "input_file": {
+          "type": "string",
+          "description": "Path to input file or URL",
+          "required": true
+        },
+        "input_format": {
+          "type": "string",
+          "description": "Input file format (e.g., 'docx', 'jpg', 'mp4')",
+          "required": true
+        },
+        "output_format": {
+          "type": "string",
+          "description": "Output file format (e.g., 'pdf', 'png', 'webm')",
+          "required": true
+        },
+        "output_file": {
+          "type": "string",
+          "description": "Path where converted file should be saved",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Conversion result with download URL and job ID"
+      },
+      "examples": [
+        {
+          "description": "Convert DOCX to PDF",
+          "parameters": {
+            "input_file": "/path/to/document.docx",
+            "input_format": "docx",
+            "output_format": "pdf",
+            "output_file": "/path/to/document.pdf"
+          }
+        }
+      ]
+    },
+    {
+      "name": "cloudconvert_optimize",
+      "description": "Optimize image or video file for web/mobile",
+      "platform": "cloudconvert",
+      "parameters": {
+        "input_file": {
+          "type": "string",
+          "description": "Path to input file",
+          "required": true
+        },
+        "file_type": {
+          "type": "string",
+          "description": "File type: 'image' or 'video'",
+          "required": true
+        },
+        "quality": {
+          "type": "integer",
+          "description": "Quality level 1-100 (default: 85)",
+          "required": false,
+          "default": 85
+        },
+        "output_file": {
+          "type": "string",
+          "description": "Path where optimized file should be saved",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Optimization result with size reduction stats"
+      },
+      "examples": [
+        {
+          "description": "Optimize image for web",
+          "parameters": {
+            "input_file": "/path/to/image.jpg",
+            "file_type": "image",
+            "quality": 80
+          }
+        }
+      ]
+    },
+    {
+      "name": "cloudconvert_merge",
+      "description": "Merge multiple files into one (PDFs, videos, etc.)",
+      "platform": "cloudconvert",
+      "parameters": {
+        "input_files": {
+          "type": "array",
+          "description": "Array of file paths to merge",
+          "required": true
+        },
+        "output_format": {
+          "type": "string",
+          "description": "Output format (e.g., 'pdf', 'mp4')",
+          "required": true
+        },
+        "output_file": {
+          "type": "string",
+          "description": "Path where merged file should be saved",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Merge result with download URL"
+      },
+      "examples": [
+        {
+          "description": "Merge PDFs",
+          "parameters": {
+            "input_files": ["/path/to/doc1.pdf", "/path/to/doc2.pdf"],
+            "output_format": "pdf"
+          }
+        }
+      ]
+    },
+    {
+      "name": "cloudconvert_status",
+      "description": "Check the status of a conversion job",
+      "platform": "cloudconvert",
+      "parameters": {
+        "job_id": {
+          "type": "string",
+          "description": "CloudConvert job ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Job status with progress and result URL"
+      },
+      "examples": [
+        {
+          "description": "Check job status",
+          "parameters": {
+            "job_id": "abc123-def456-ghi789"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,285 @@
+# ========================================
+# AI AGENTS - GIT IGNORE RULES
+# ========================================
+
+# ========================================
+# ENVIRONMENT FILES (CRITICAL - DO NOT COMMIT)
+# ========================================
+.env
+.env.local
+.env.production
+.env.development
+.env.staging
+.env.test
+.env.*.local
+.env.master
+.env*.master
+*.env.master
+
+# Keep template files only
+!.env.example
+
+# ========================================
+# CREDENTIALS & SECRETS
+# ========================================
+**/credentials.json
+**/service-account*.json
+**/private-key*.pem
+**/*secret*
+**/*password*
+**/*token*
+**/.credentials/
+
+# Google Cloud Service Account Credentials
+vsa-anythingllm-project-*.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!render.yaml
+!AI_infrastructure/data/*.json
+
+# Azure AD App Config (contains secrets)
+Microsoft_365_Connection/azure_ad_app_config.json
+
+# Azure CLI Installer (too large for GitHub)
+Microsoft_365_Connection/AzureCLI.msi
+
+# Config files with API keys
+config.py
+!config.example.py
+
+# Documentation with embedded secrets
+docs/archive/google_workspace_old_docs/GOOGLE_SERVICES_SETUP_GUIDE.md
+docs/archive/google_workspace/GOOGLE_OAUTH_COMPLETE_TRACE.md
+docs/archive/summaries/RENDER_DEPLOYMENT_COMPLETE_GUIDE.md
+docs/archive/ui/INTEGRATION_TEST_RESULTS.md
+google-auth.js
+
+# ========================================
+# PYTHON
+# ========================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# ========================================
+# NODE.JS / JAVASCRIPT
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Dependency directories
+jspm_packages/
+
+# Package files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ========================================
+# LOGS & DATABASES
+# ========================================
+*.log
+*.sql
+*.sqlite
+*.db
+logs/
+temp/
+tmp/
+
+# ========================================
+# IDE & EDITORS
+# ========================================
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ========================================
+# OPERATING SYSTEM FILES
+# ========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ========================================
+# CLOUDFLARE
+# ========================================
+.wrangler/
+wrangler.toml.backup
+worker-*.js.map
+
+# ========================================
+# TEMPORARY FILES
+# ========================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*-old.*
+*-backup.*
+
+# ========================================
+# CACHE & BUILD
+# ========================================
+.cache/
+.parcel-cache/
+.webpack/
+.next/
+out/
+dist/
+build/
+
+# ========================================
+# TESTING
+# ========================================
+test-results/
+playwright-report/
+.nyc_output/
+
+# ========================================
+# DOCUMENTATION (Optional)
+# ========================================
+# Uncomment if you want to ignore generated docs
+# docs/_build/
+# site/
+
+# ========================================
+# PLATFORM SPECIFIC
+# ========================================
+# Render
+.render/
+
+# Vercel
+.vercel/
+
+# Netlify
+.netlify/
+
+# ========================================
+# CUSTOM IGNORES
+# ========================================
+# Add your custom ignore patterns below
+
+# Backup files
+*.backup
+backups/
+
+# Local development
+local/
+dev-data/
+test-data/
+
+# Keys and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+
+# Sensitive data
+sensitive/
+private/
+confidential/
+
+# ========================================
+# END OF GITIGNORE
+# ========================================
+
+# Test credentials (DO NOT COMMIT)
+test_credentials*.txt
+*.credentials.txt

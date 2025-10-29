@@ -1,0 +1,300 @@
+{
+  "platform": "microsoft_onenote",
+  "version": "1.0",
+  "authentication": "microsoft_oauth",
+  "description": "Note-taking and knowledge management via OneNote notebooks, sections, and pages",
+  "required_scopes": [
+    "Notes.ReadWrite.All"
+  ],
+  "rate_limits": {
+    "requests_per_minute": 120,
+    "requests_per_hour": 5000
+  },
+  "tools": [
+    {
+      "name": "onenote_list_notebooks",
+      "tier": 2,
+      "category": "Notebook Management",
+      "description": "List all OneNote notebooks",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 50,
+          "description": "Maximum notebooks to return"
+        }
+      },
+      "returns": "Dict with notebooks list (id, name, created, modified, section_count)"
+    },
+    {
+      "name": "onenote_get_notebook",
+      "tier": 2,
+      "category": "Notebook Management",
+      "description": "Get specific notebook details",
+      "parameters": {
+        "notebook_id": {
+          "type": "string",
+          "required": true,
+          "description": "Notebook ID"
+        }
+      },
+      "returns": "Dict with notebook details"
+    },
+    {
+      "name": "onenote_create_notebook",
+      "tier": 3,
+      "category": "Notebook Management",
+      "description": "Create new OneNote notebook",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "required": true,
+          "description": "Notebook name"
+        }
+      },
+      "returns": "Dict with new notebook info (id, name, web_url)"
+    },
+    {
+      "name": "onenote_list_sections",
+      "tier": 2,
+      "category": "Section Operations",
+      "description": "List sections in notebook",
+      "parameters": {
+        "notebook_id": {
+          "type": "string",
+          "required": true,
+          "description": "Notebook ID"
+        }
+      },
+      "returns": "Dict with sections list (id, name, created, modified, page_count)"
+    },
+    {
+      "name": "onenote_create_section",
+      "tier": 3,
+      "category": "Section Operations",
+      "description": "Create new section in notebook",
+      "parameters": {
+        "notebook_id": {
+          "type": "string",
+          "required": true,
+          "description": "Notebook ID"
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "description": "Section name"
+        }
+      },
+      "returns": "Dict with new section info (id, name, web_url)"
+    },
+    {
+      "name": "onenote_list_pages",
+      "tier": 2,
+      "category": "Page Management",
+      "description": "List pages in section or all pages",
+      "parameters": {
+        "section_id": {
+          "type": "string",
+          "required": false,
+          "description": "Optional section ID (omit for all pages)"
+        },
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 50,
+          "description": "Maximum pages to return"
+        }
+      },
+      "returns": "Dict with pages list (id, title, created, modified, web_url)"
+    },
+    {
+      "name": "onenote_get_page",
+      "tier": 2,
+      "category": "Page Management",
+      "description": "Get page details and content",
+      "parameters": {
+        "page_id": {
+          "type": "string",
+          "required": true,
+          "description": "Page ID"
+        },
+        "include_content": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include HTML content"
+        }
+      },
+      "returns": "Dict with page details and HTML content"
+    },
+    {
+      "name": "onenote_create_page",
+      "tier": 3,
+      "category": "Page Management",
+      "description": "Create new page in section",
+      "parameters": {
+        "section_id": {
+          "type": "string",
+          "required": true,
+          "description": "Section ID"
+        },
+        "title": {
+          "type": "string",
+          "required": true,
+          "description": "Page title"
+        },
+        "content_html": {
+          "type": "string",
+          "required": false,
+          "description": "HTML content for page body"
+        }
+      },
+      "returns": "Dict with new page info (id, title, web_url)"
+    },
+    {
+      "name": "onenote_update_page",
+      "tier": 3,
+      "category": "Page Management",
+      "description": "Append content to existing page",
+      "parameters": {
+        "page_id": {
+          "type": "string",
+          "required": true,
+          "description": "Page ID"
+        },
+        "content_html": {
+          "type": "string",
+          "required": true,
+          "description": "HTML content to append"
+        }
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "onenote_delete_page",
+      "tier": 3,
+      "category": "Page Management",
+      "description": "Delete page",
+      "parameters": {
+        "page_id": {
+          "type": "string",
+          "required": true,
+          "description": "Page ID to delete"
+        }
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "onenote_search_pages",
+      "tier": 3,
+      "category": "Search & Discovery",
+      "description": "Search across all notebooks and pages",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "required": true,
+          "description": "Search query"
+        },
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 50,
+          "description": "Maximum results to return"
+        }
+      },
+      "returns": "Dict with search results (pages matching query)"
+    },
+    {
+      "name": "onenote_smart_meeting_notes",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Create structured meeting notes with agenda and action items",
+      "parameters": {
+        "notebook_id": {
+          "type": "string",
+          "required": true,
+          "description": "Notebook ID"
+        },
+        "section_name": {
+          "type": "string",
+          "required": false,
+          "default": "Meetings",
+          "description": "Section name (creates if doesn't exist)"
+        },
+        "meeting_title": {
+          "type": "string",
+          "required": true,
+          "description": "Meeting title"
+        },
+        "attendees": {
+          "type": "array",
+          "required": false,
+          "description": "List of attendee names"
+        },
+        "agenda": {
+          "type": "array",
+          "required": false,
+          "description": "List of agenda items"
+        },
+        "action_items": {
+          "type": "array",
+          "required": false,
+          "description": "List of action items with owner and due date"
+        }
+      },
+      "returns": "Dict with page_id, web_url, and structured note details"
+    },
+    {
+      "name": "onenote_smart_organize_by_topic",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Create organized section structure for knowledge base",
+      "parameters": {
+        "notebook_id": {
+          "type": "string",
+          "required": true,
+          "description": "Notebook ID"
+        },
+        "topics": {
+          "type": "array",
+          "required": true,
+          "description": "List of topic names to create sections for"
+        }
+      },
+      "returns": "Dict with created sections and index page"
+    },
+    {
+      "name": "onenote_smart_extract_tasks",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Extract action items from page content",
+      "parameters": {
+        "page_id": {
+          "type": "string",
+          "required": true,
+          "description": "Page ID to analyze"
+        }
+      },
+      "returns": "Dict with extracted tasks (text, owner, due_date, priority)"
+    },
+    {
+      "name": "onenote_smart_knowledge_base",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Create comprehensive knowledge base structure",
+      "parameters": {
+        "notebook_name": {
+          "type": "string",
+          "required": true,
+          "description": "Knowledge base notebook name"
+        },
+        "categories": {
+          "type": "array",
+          "required": true,
+          "description": "List of category dicts with 'name' and 'subcategories'"
+        }
+      },
+      "returns": "Dict with notebook_id, sections created, and template pages"
+    }
+  ]
+}
