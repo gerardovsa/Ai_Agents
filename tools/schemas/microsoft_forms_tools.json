@@ -1,0 +1,280 @@
+{
+  "platform": "microsoft_forms",
+  "version": "1.0",
+  "authentication": "microsoft_oauth",
+  "description": "Survey and data collection via Microsoft Forms - create forms, add questions, collect and analyze responses",
+  "required_scopes": [
+    "Forms.Read",
+    "Forms.ReadWrite"
+  ],
+  "rate_limits": {
+    "requests_per_minute": 120,
+    "requests_per_hour": 5000
+  },
+  "api_notes": "Forms API is currently in beta and may have limited availability",
+  "tools": [
+    {
+      "name": "forms_list_forms",
+      "tier": 2,
+      "category": "Form Management",
+      "description": "List all forms created by user",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 50,
+          "description": "Maximum forms to return"
+        }
+      },
+      "returns": "Dict with forms list (form_id, name, created, modified, web_url)"
+    },
+    {
+      "name": "forms_get_form",
+      "tier": 2,
+      "category": "Form Management",
+      "description": "Get form details and metadata",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID"
+        }
+      },
+      "returns": "Dict with form details"
+    },
+    {
+      "name": "forms_create_form",
+      "tier": 3,
+      "category": "Form Management",
+      "description": "Create new form",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "required": true,
+          "description": "Form title"
+        },
+        "description": {
+          "type": "string",
+          "required": false,
+          "description": "Form description"
+        }
+      },
+      "returns": "Dict with new form info (form_id, title, web_url)"
+    },
+    {
+      "name": "forms_delete_form",
+      "tier": 3,
+      "category": "Form Management",
+      "description": "Delete form",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID to delete"
+        }
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "forms_add_question",
+      "tier": 3,
+      "category": "Question Operations",
+      "description": "Add question to form",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID"
+        },
+        "question_text": {
+          "type": "string",
+          "required": true,
+          "description": "Question text"
+        },
+        "question_type": {
+          "type": "string",
+          "required": true,
+          "enum": ["choice", "text", "rating", "date", "ranking", "file"],
+          "description": "Question type"
+        },
+        "required": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Whether question is required"
+        },
+        "options": {
+          "type": "array",
+          "required": false,
+          "description": "Options for choice/ranking questions"
+        }
+      },
+      "returns": "Dict with question_id and details"
+    },
+    {
+      "name": "forms_list_questions",
+      "tier": 2,
+      "category": "Question Operations",
+      "description": "List all questions in form",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID"
+        }
+      },
+      "returns": "Dict with questions list"
+    },
+    {
+      "name": "forms_get_responses",
+      "tier": 2,
+      "category": "Response Collection",
+      "description": "Get form responses",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID"
+        },
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 100,
+          "description": "Maximum responses to return"
+        }
+      },
+      "returns": "Dict with responses list (response_id, submitted_datetime, answers)"
+    },
+    {
+      "name": "forms_export_responses",
+      "tier": 3,
+      "category": "Response Collection",
+      "description": "Export form responses to specified format",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID"
+        },
+        "format": {
+          "type": "string",
+          "required": false,
+          "default": "excel",
+          "enum": ["excel", "csv", "json"],
+          "description": "Export format"
+        }
+      },
+      "returns": "Dict with export URL or data"
+    },
+    {
+      "name": "forms_get_statistics",
+      "tier": 3,
+      "category": "Analysis & Statistics",
+      "description": "Get form response statistics",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID"
+        }
+      },
+      "returns": "Dict with statistics (total_responses, completion_rate, avg_time)"
+    },
+    {
+      "name": "forms_smart_create_survey",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Create complete survey from question templates with auto-ordering and best practices",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "required": true,
+          "description": "Survey title"
+        },
+        "description": {
+          "type": "string",
+          "required": true,
+          "description": "Survey description"
+        },
+        "question_templates": {
+          "type": "array",
+          "required": true,
+          "description": "List of question template dicts with 'text', 'type', 'options'"
+        },
+        "settings": {
+          "type": "object",
+          "required": false,
+          "description": "Optional survey settings (isAnonymous, etc.)"
+        }
+      },
+      "returns": "Dict with form_id, web_url, question_count, and questions added"
+    },
+    {
+      "name": "forms_smart_satisfaction_survey",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Create NPS, CSAT, or CES satisfaction survey with standard questions",
+      "parameters": {
+        "product_name": {
+          "type": "string",
+          "required": true,
+          "description": "Product or service name"
+        },
+        "survey_type": {
+          "type": "string",
+          "required": false,
+          "default": "nps",
+          "enum": ["nps", "csat", "ces"],
+          "description": "Survey type (NPS=Net Promoter Score, CSAT=Customer Satisfaction, CES=Customer Effort Score)"
+        }
+      },
+      "returns": "Dict with form_id, web_url, survey_type, and standard questions"
+    },
+    {
+      "name": "forms_smart_analyze_responses",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Analyze form responses with summary statistics, distribution, and insights",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID"
+        },
+        "analysis_type": {
+          "type": "string",
+          "required": false,
+          "default": "summary",
+          "enum": ["summary", "detailed", "sentiment"],
+          "description": "Analysis depth"
+        }
+      },
+      "returns": "Dict with analysis results (statistics per question, trends, insights)"
+    },
+    {
+      "name": "forms_smart_export_to_excel",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Export responses to formatted Excel workbook with charts and analysis",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "required": true,
+          "description": "Form ID"
+        },
+        "workbook_name": {
+          "type": "string",
+          "required": true,
+          "description": "Name for Excel workbook"
+        },
+        "include_charts": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Generate charts for visualization"
+        }
+      },
+      "returns": "Dict with workbook_id, web_url, and sheets created"
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+# render.yaml - Render.com Blueprint for AI-Powered Multi-Platform Intelligence Suite
+# Auto-deploy configuration for complete infrastructure
+
+services:
+  # ============================================================================
+  # Main Web Service - FastAPI Backend API
+  # ============================================================================
+  - type: web
+    name: ai-suite-backend
+    runtime: docker
+    region: oregon  # Options: oregon (US West), frankfurt (EU), singapore (Asia)
+    plan: free  # Options: free, starter ($7/mo), standard ($25/mo)
+    
+    # Docker configuration
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    
+    # Environment variables
+    envVars:
+      # ========================================
+      # ONLYOFFICE Configuration (External)
+      # ========================================
+      - key: ONLYOFFICE_SERVER_URL
+        sync: false  # Set manually in Render dashboard
+      - key: ONLYOFFICE_JWT_SECRET
+        generateValue: true  # Auto-generate secure secret
+      
+      # ========================================
+      # AI Model API Keys (CRITICAL - User has these!)
+      # ========================================
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      
+      # ========================================
+      # Google Workspace OAuth2
+      # ========================================
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      
+      # ========================================
+      # Google Cloud Platform (Cloud Run, etc.)
+      # ========================================
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false  # Path to service account JSON file
+      - key: GOOGLE_CLOUD_PROJECT
+        sync: false  # GCP Project ID
+      
+      # ========================================
+      # Database Connections
+      # ========================================
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-suite-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: ai-suite-redis
+          property: connectionString
+      
+      # Supabase (Alternative to Render PostgreSQL)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      
+      # ========================================
+      # E-Commerce & Payment Platforms
+      # ========================================
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: WOOCOMMERCE_URL
+        sync: false
+      - key: WOOCOMMERCE_KEY
+        sync: false
+      - key: WOOCOMMERCE_SECRET
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_SECRET
+        sync: false
+      
+      # ========================================
+      # Communication Platforms
+      # ========================================
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      
+      # ========================================
+      # Social Media
+      # ========================================
+      - key: INSTAGRAM_ACCESS_TOKEN
+        sync: false
+      - key: INSTAGRAM_BUSINESS_ACCOUNT_ID
+        sync: false
+      
+      # ========================================
+      # Cloud Services
+      # ========================================
+      - key: ASSEMBLYAI_API_KEY
+        sync: false
+      - key: CLOUDCONVERT_API_KEY
+        sync: false
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      
+      # ========================================
+      # Application Settings
+      # ========================================
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: ALLOWED_ORIGINS
+        value: "*"  # Update with your domain: https://yourdomain.com
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PORT
+        value: "10000"  # Render default port
+      
+      # ========================================
+      # Optional: Monitoring & Analytics
+      # ========================================
+      - key: SENTRY_DSN
+        sync: false
+      - key: DATADOG_API_KEY
+        sync: false
+    
+    # Health check
+    healthCheckPath: /health
+    
+    # Auto-deploy settings
+    autoDeploy: true  # Auto-deploy on git push
+    
+    # Build command (optional - Docker handles this)
+    # buildCommand: pip install -r requirements.txt
+    
+    # Start command (optional - Dockerfile handles this)
+    # startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+  # ============================================================================
+  # Background Worker (Optional - for heavy processing)
+  # Uncomment if you need background job processing
+  # ============================================================================
+  # - type: worker
+  #   name: ai-suite-worker
+  #   runtime: docker
+  #   dockerfilePath: ./Dockerfile.worker
+  #   dockerContext: .
+  #   plan: starter
+  #   region: oregon
+  #   
+  #   envVars:
+  #     - fromGroup: ai-suite-backend  # Inherit all env vars from web service
+  #   
+  #   # No health check needed for workers
+  #   autoDeploy: true
+
+# ============================================================================
+# Managed Databases (PostgreSQL + Redis)
+# ============================================================================
+databases:
+  # PostgreSQL Database
+  - name: ai-suite-postgres
+    databaseName: ai_suite_db
+    user: ai_suite_user
+    plan: free  # Free: 256 MB RAM, 1 GB storage | Starter: $7/mo, 1 GB RAM, 10 GB storage
+    region: oregon
+    ipAllowList: []  # Empty = accessible from all Render services
+    
+  # Redis Cache & Queue
+  - name: ai-suite-redis
+    plan: free  # Free: 25 MB | Starter: $10/mo, 100 MB
+    region: oregon
+    maxmemoryPolicy: allkeys-lru  # Cache eviction policy
+    ipAllowList: []  # Empty = accessible from all Render services

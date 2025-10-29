@@ -1,0 +1,421 @@
+{
+  "platform": "microsoft_sharepoint",
+  "version": "1.0",
+  "authentication": "microsoft_oauth",
+  "description": "Enterprise content management and collaboration via SharePoint sites, document libraries, and lists",
+  "required_scopes": [
+    "Sites.ReadWrite.All",
+    "Files.ReadWrite.All"
+  ],
+  "rate_limits": {
+    "requests_per_minute": 120,
+    "requests_per_hour": 5000
+  },
+  "tools": [
+    {
+      "name": "sharepoint_get_site",
+      "tier": 2,
+      "category": "Site Management",
+      "description": "Get SharePoint site details by ID or URL",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": false,
+          "description": "SharePoint site ID"
+        },
+        "site_url": {
+          "type": "string",
+          "required": false,
+          "description": "SharePoint site URL (relative to tenant)"
+        }
+      },
+      "returns": "Dict with site details (id, name, web_url, description)"
+    },
+    {
+      "name": "sharepoint_list_sites",
+      "tier": 2,
+      "category": "Site Management",
+      "description": "List followed or accessible SharePoint sites",
+      "parameters": {
+        "search_query": {
+          "type": "string",
+          "required": false,
+          "description": "Search term to filter sites"
+        },
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 50,
+          "description": "Maximum sites to return"
+        }
+      },
+      "returns": "Dict with sites list and count"
+    },
+    {
+      "name": "sharepoint_search_content",
+      "tier": 3,
+      "category": "Site Management",
+      "description": "Search content across SharePoint sites",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "required": true,
+          "description": "Search query"
+        },
+        "site_id": {
+          "type": "string",
+          "required": false,
+          "description": "Optional site ID to limit search scope"
+        }
+      },
+      "returns": "Dict with search results (files, lists, pages)"
+    },
+    {
+      "name": "sharepoint_list_drives",
+      "tier": 2,
+      "category": "Document Libraries",
+      "description": "List document libraries in SharePoint site",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        }
+      },
+      "returns": "Dict with document libraries (drives) list"
+    },
+    {
+      "name": "sharepoint_list_items",
+      "tier": 2,
+      "category": "Document Libraries",
+      "description": "List files and folders in document library",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "drive_id": {
+          "type": "string",
+          "required": true,
+          "description": "Document library (drive) ID"
+        },
+        "folder_path": {
+          "type": "string",
+          "required": false,
+          "description": "Optional folder path (default: root)"
+        }
+      },
+      "returns": "Dict with files and folders list"
+    },
+    {
+      "name": "sharepoint_upload_file",
+      "tier": 3,
+      "category": "Document Libraries",
+      "description": "Upload file to SharePoint document library",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "drive_id": {
+          "type": "string",
+          "required": true,
+          "description": "Document library (drive) ID"
+        },
+        "file_name": {
+          "type": "string",
+          "required": true,
+          "description": "File name with extension"
+        },
+        "content": {
+          "type": "string",
+          "required": true,
+          "description": "File content (base64 for binary)"
+        },
+        "folder_path": {
+          "type": "string",
+          "required": false,
+          "description": "Optional folder path (default: root)"
+        }
+      },
+      "returns": "Dict with uploaded file info"
+    },
+    {
+      "name": "sharepoint_create_folder",
+      "tier": 2,
+      "category": "Document Libraries",
+      "description": "Create folder in document library",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "drive_id": {
+          "type": "string",
+          "required": true,
+          "description": "Document library (drive) ID"
+        },
+        "folder_name": {
+          "type": "string",
+          "required": true,
+          "description": "Folder name"
+        },
+        "parent_path": {
+          "type": "string",
+          "required": false,
+          "description": "Parent folder path (default: root)"
+        }
+      },
+      "returns": "Dict with created folder info"
+    },
+    {
+      "name": "sharepoint_list_lists",
+      "tier": 2,
+      "category": "SharePoint Lists",
+      "description": "List SharePoint lists in site",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        }
+      },
+      "returns": "Dict with SharePoint lists"
+    },
+    {
+      "name": "sharepoint_get_list_items",
+      "tier": 2,
+      "category": "SharePoint Lists",
+      "description": "Get items from SharePoint list",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "list_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint list ID"
+        },
+        "filter": {
+          "type": "string",
+          "required": false,
+          "description": "OData filter query"
+        },
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 100,
+          "description": "Maximum items to return"
+        }
+      },
+      "returns": "Dict with list items"
+    },
+    {
+      "name": "sharepoint_create_list_item",
+      "tier": 3,
+      "category": "SharePoint Lists",
+      "description": "Create item in SharePoint list",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "list_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint list ID"
+        },
+        "fields": {
+          "type": "object",
+          "required": true,
+          "description": "Field values dict"
+        }
+      },
+      "returns": "Dict with created item info"
+    },
+    {
+      "name": "sharepoint_update_list_item",
+      "tier": 3,
+      "category": "SharePoint Lists",
+      "description": "Update item in SharePoint list",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "list_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint list ID"
+        },
+        "item_id": {
+          "type": "string",
+          "required": true,
+          "description": "List item ID"
+        },
+        "fields": {
+          "type": "object",
+          "required": true,
+          "description": "Field values to update"
+        }
+      },
+      "returns": "Dict with updated item info"
+    },
+    {
+      "name": "sharepoint_get_permissions",
+      "tier": 3,
+      "category": "Permissions",
+      "description": "Get permissions for site, library, or item",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "drive_id": {
+          "type": "string",
+          "required": false,
+          "description": "Optional document library ID"
+        },
+        "item_id": {
+          "type": "string",
+          "required": false,
+          "description": "Optional item ID"
+        }
+      },
+      "returns": "Dict with permissions list"
+    },
+    {
+      "name": "sharepoint_create_share_link",
+      "tier": 3,
+      "category": "Permissions",
+      "description": "Create sharing link for item",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "drive_id": {
+          "type": "string",
+          "required": true,
+          "description": "Document library ID"
+        },
+        "item_id": {
+          "type": "string",
+          "required": true,
+          "description": "Item ID to share"
+        },
+        "link_type": {
+          "type": "string",
+          "required": false,
+          "default": "view",
+          "enum": ["view", "edit"],
+          "description": "Link permission type"
+        }
+      },
+      "returns": "Dict with sharing link"
+    },
+    {
+      "name": "sharepoint_smart_site_audit",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Comprehensive site health and usage analysis",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "check_permissions": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Analyze permissions"
+        },
+        "check_storage": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Analyze storage usage"
+        }
+      },
+      "returns": "Dict with comprehensive audit report (storage, permissions, activity, recommendations)"
+    },
+    {
+      "name": "sharepoint_smart_bulk_upload",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Bulk upload files with automatic folder creation",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "drive_id": {
+          "type": "string",
+          "required": true,
+          "description": "Document library ID"
+        },
+        "files": {
+          "type": "array",
+          "required": true,
+          "description": "List of file dicts with 'name', 'content', 'path'"
+        }
+      },
+      "returns": "Dict with upload results (success, failed, created_folders)"
+    },
+    {
+      "name": "sharepoint_smart_organize_library",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Auto-organize files by type, date, or metadata",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "drive_id": {
+          "type": "string",
+          "required": true,
+          "description": "Document library ID"
+        },
+        "rules": {
+          "type": "object",
+          "required": true,
+          "description": "Organization rules (group_by: 'type'|'date'|'metadata', folder_structure)"
+        }
+      },
+      "returns": "Dict with organization results (files_moved, folders_created)"
+    },
+    {
+      "name": "sharepoint_smart_permission_report",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "SMART: Generate detailed permission analysis and recommendations",
+      "parameters": {
+        "site_id": {
+          "type": "string",
+          "required": true,
+          "description": "SharePoint site ID"
+        },
+        "include_lists": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Include SharePoint lists in analysis"
+        }
+      },
+      "returns": "Dict with permission report (user_access, group_access, recommendations, security_issues)"
+    }
+  ]
+}

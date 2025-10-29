@@ -1,0 +1,651 @@
+{
+  "platform": "microsoft_calendar",
+  "description": "Microsoft Calendar (Outlook Calendar) - Event scheduling, meeting management, and calendar coordination",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "calendar_list_events",
+      "description": "List calendar events within a date range",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date (ISO 8601 format)",
+          "required": false,
+          "default": "today"
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date (ISO 8601 format)",
+          "required": false,
+          "default": "next 7 days"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of events to return",
+          "required": false,
+          "default": 50
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "start_date": "2025-10-29T00:00:00Z",
+        "end_date": "2025-11-05T23:59:59Z",
+        "max_results": 50
+      }
+    },
+    {
+      "name": "calendar_create_event",
+      "description": "Create a new calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Event title",
+          "required": true
+        },
+        "start_time": {
+          "type": "string",
+          "description": "Start time (ISO 8601 format)",
+          "required": true
+        },
+        "end_time": {
+          "type": "string",
+          "description": "End time (ISO 8601 format)",
+          "required": true
+        },
+        "body": {
+          "type": "string",
+          "description": "Event description",
+          "required": false
+        },
+        "location": {
+          "type": "string",
+          "description": "Event location",
+          "required": false
+        },
+        "attendees": {
+          "type": "array",
+          "description": "List of attendee email addresses",
+          "required": false
+        },
+        "is_online_meeting": {
+          "type": "boolean",
+          "description": "Create Teams meeting link",
+          "required": false,
+          "default": false
+        },
+        "reminder_minutes": {
+          "type": "integer",
+          "description": "Reminder time before event (minutes)",
+          "required": false,
+          "default": 15
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "subject": "Sprint Planning Meeting",
+        "start_time": "2025-10-30T14:00:00Z",
+        "end_time": "2025-10-30T15:00:00Z",
+        "location": "Conference Room A",
+        "attendees": ["john@company.com", "jane@company.com"],
+        "is_online_meeting": true
+      }
+    },
+    {
+      "name": "calendar_get_event",
+      "description": "Get details of a specific calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event ID",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T..."
+      }
+    },
+    {
+      "name": "calendar_update_event",
+      "description": "Update an existing calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event ID to update",
+          "required": true
+        },
+        "updates": {
+          "type": "object",
+          "description": "Fields to update (subject, start, end, location, body, etc.)",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T...",
+        "updates": {
+          "subject": "Updated: Sprint Planning",
+          "location": "Virtual - Teams"
+        }
+      }
+    },
+    {
+      "name": "calendar_delete_event",
+      "description": "Delete a calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event ID to delete",
+          "required": true
+        },
+        "notify_attendees": {
+          "type": "boolean",
+          "description": "Send cancellation notice to attendees",
+          "required": false,
+          "default": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T...",
+        "notify_attendees": true
+      }
+    },
+    {
+      "name": "calendar_create_recurring_event",
+      "description": "Create a recurring calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Event title",
+          "required": true
+        },
+        "start_time": {
+          "type": "string",
+          "description": "Start time (ISO 8601 format)",
+          "required": true
+        },
+        "end_time": {
+          "type": "string",
+          "description": "End time (ISO 8601 format)",
+          "required": true
+        },
+        "recurrence_pattern": {
+          "type": "object",
+          "description": "Recurrence pattern (daily, weekly, monthly, yearly)",
+          "required": true
+        },
+        "attendees": {
+          "type": "array",
+          "description": "List of attendee email addresses",
+          "required": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "subject": "Weekly Team Standup",
+        "start_time": "2025-10-30T09:00:00Z",
+        "end_time": "2025-10-30T09:30:00Z",
+        "recurrence_pattern": {
+          "type": "weekly",
+          "interval": 1,
+          "days_of_week": ["monday", "wednesday", "friday"],
+          "range": {
+            "type": "endDate",
+            "end_date": "2025-12-31"
+          }
+        },
+        "attendees": ["team@company.com"]
+      }
+    },
+    {
+      "name": "calendar_respond_to_event",
+      "description": "Accept, decline, or tentatively accept an event invitation",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event ID",
+          "required": true
+        },
+        "response": {
+          "type": "string",
+          "description": "Response: 'accept', 'decline', 'tentative'",
+          "required": true
+        },
+        "comment": {
+          "type": "string",
+          "description": "Optional comment with response",
+          "required": false
+        },
+        "send_response": {
+          "type": "boolean",
+          "description": "Send response to organizer",
+          "required": false,
+          "default": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T...",
+        "response": "accept",
+        "comment": "Looking forward to it!",
+        "send_response": true
+      }
+    },
+    {
+      "name": "calendar_get_availability",
+      "description": "Check availability for one or more users",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "attendees": {
+          "type": "array",
+          "description": "List of email addresses to check",
+          "required": true
+        },
+        "start_time": {
+          "type": "string",
+          "description": "Start time (ISO 8601 format)",
+          "required": true
+        },
+        "end_time": {
+          "type": "string",
+          "description": "End time (ISO 8601 format)",
+          "required": true
+        },
+        "interval_minutes": {
+          "type": "integer",
+          "description": "Time slot interval in minutes",
+          "required": false,
+          "default": 30
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "attendees": ["john@company.com", "jane@company.com"],
+        "start_time": "2025-10-30T08:00:00Z",
+        "end_time": "2025-10-30T17:00:00Z",
+        "interval_minutes": 30
+      }
+    },
+    {
+      "name": "calendar_find_meeting_rooms",
+      "description": "Find available meeting rooms",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "start_time": {
+          "type": "string",
+          "description": "Start time (ISO 8601 format)",
+          "required": true
+        },
+        "end_time": {
+          "type": "string",
+          "description": "End time (ISO 8601 format)",
+          "required": true
+        },
+        "capacity": {
+          "type": "integer",
+          "description": "Minimum room capacity",
+          "required": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "start_time": "2025-10-30T14:00:00Z",
+        "end_time": "2025-10-30T15:00:00Z",
+        "capacity": 10
+      }
+    },
+    {
+      "name": "calendar_book_room",
+      "description": "Book a meeting room for an event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event ID to add room to",
+          "required": true
+        },
+        "room_email": {
+          "type": "string",
+          "description": "Room resource email",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T...",
+        "room_email": "conferenceroom-a@company.com"
+      }
+    },
+    {
+      "name": "calendar_list_calendars",
+      "description": "List all calendars accessible to the user",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123"
+      }
+    },
+    {
+      "name": "calendar_create_calendar",
+      "description": "Create a new calendar",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Calendar name",
+          "required": true
+        },
+        "color": {
+          "type": "string",
+          "description": "Calendar color",
+          "required": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "name": "Project Alpha",
+        "color": "lightBlue"
+      }
+    },
+    {
+      "name": "calendar_smart_find_meeting_time",
+      "description": "AI-powered meeting time finder based on attendee availability",
+      "platform": "microsoft_calendar",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "attendees": {
+          "type": "array",
+          "description": "List of required attendee emails",
+          "required": true
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "description": "Meeting duration in minutes",
+          "required": true
+        },
+        "date_range_start": {
+          "type": "string",
+          "description": "Start of search window (ISO 8601)",
+          "required": true
+        },
+        "date_range_end": {
+          "type": "string",
+          "description": "End of search window (ISO 8601)",
+          "required": true
+        },
+        "preferred_times": {
+          "type": "object",
+          "description": "Preferred time slots (business hours, morning, afternoon)",
+          "required": false,
+          "default": {"business_hours": true}
+        },
+        "include_room": {
+          "type": "boolean",
+          "description": "Also find available meeting room",
+          "required": false,
+          "default": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "attendees": ["john@company.com", "jane@company.com", "bob@company.com"],
+        "duration_minutes": 60,
+        "date_range_start": "2025-10-30T00:00:00Z",
+        "date_range_end": "2025-11-03T23:59:59Z",
+        "preferred_times": {"business_hours": true, "time_of_day": "morning"},
+        "include_room": true
+      }
+    },
+    {
+      "name": "calendar_smart_schedule_series",
+      "description": "Bulk schedule multiple events based on pattern",
+      "platform": "microsoft_calendar",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "events": {
+          "type": "array",
+          "description": "List of events to create with templates",
+          "required": true
+        },
+        "check_conflicts": {
+          "type": "boolean",
+          "description": "Check for conflicts before creating",
+          "required": false,
+          "default": true
+        },
+        "auto_resolve": {
+          "type": "boolean",
+          "description": "Automatically resolve conflicts",
+          "required": false,
+          "default": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "events": [
+          {
+            "subject": "Team Standup - Week 1",
+            "start": "2025-10-30T09:00:00Z",
+            "duration_minutes": 15,
+            "attendees": ["team@company.com"]
+          },
+          {
+            "subject": "Sprint Review",
+            "start": "2025-11-01T14:00:00Z",
+            "duration_minutes": 60,
+            "attendees": ["stakeholders@company.com"]
+          }
+        ],
+        "check_conflicts": true
+      }
+    },
+    {
+      "name": "calendar_smart_conflict_resolver",
+      "description": "Detect and automatically resolve calendar conflicts",
+      "platform": "microsoft_calendar",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start of date range to check (ISO 8601)",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End of date range to check (ISO 8601)",
+          "required": true
+        },
+        "resolution_strategy": {
+          "type": "string",
+          "description": "Strategy: 'suggest', 'auto_reschedule', 'report_only'",
+          "required": false,
+          "default": "suggest"
+        },
+        "priority_rules": {
+          "type": "object",
+          "description": "Priority rules for conflict resolution",
+          "required": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "start_date": "2025-10-29T00:00:00Z",
+        "end_date": "2025-11-05T23:59:59Z",
+        "resolution_strategy": "suggest",
+        "priority_rules": {
+          "all_day_events": "high",
+          "with_attendees": "high",
+          "personal": "low"
+        }
+      }
+    },
+    {
+      "name": "calendar_get_reminders",
+      "description": "Get upcoming event reminders",
+      "platform": "microsoft_calendar",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "next_hours": {
+          "type": "integer",
+          "description": "Look ahead time in hours",
+          "required": false,
+          "default": 24
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "next_hours": 48
+      }
+    },
+    {
+      "name": "calendar_set_working_hours",
+      "description": "Set working hours and availability",
+      "platform": "microsoft_calendar",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "working_hours": {
+          "type": "object",
+          "description": "Working hours configuration per day",
+          "required": true
+        },
+        "timezone": {
+          "type": "string",
+          "description": "Timezone identifier",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "working_hours": {
+          "monday": {"start": "09:00", "end": "17:00"},
+          "tuesday": {"start": "09:00", "end": "17:00"},
+          "friday": {"start": "09:00", "end": "15:00"}
+        },
+        "timezone": "Pacific Standard Time"
+      }
+    }
+  ]
+}

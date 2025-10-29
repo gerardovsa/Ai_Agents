@@ -1,0 +1,858 @@
+{
+  "platform": "google_docs",
+  "description": "Google Docs API - Create, edit, format documents, manage content, collaborate",
+  "tools": [
+    {
+      "name": "google_docs_smart_create_from_markdown",
+      "description": "🤖 SMART TOOL: Create a fully formatted Google Doc from markdown in ONE CALL. Supports ALL formatting: headings (# to ######), colored headings (## Title {#1a73e8}), **bold**, *italic*, ~~strikethrough==, ==highlight==, `inline code`, ```code blocks```, [links](url), ![images](url), - nested bullets (2 spaces = 1 level), 1. nested numbers, > blockquotes, --- horizontal lines, <<NEW-PAGE>>, and | tables | with | content |",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Document title",
+          "required": true
+        },
+        "markdown_content": {
+          "type": "string",
+          "description": "Full markdown content with ALL features: # headings (H1-H6), colored headings (## Title {#hexcode}), **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, ```blocks```, [text](url) links, ![alt](url) images, nested lists (indent with 2 spaces), > blockquotes, --- lines, <<NEW-PAGE>>, | tables |",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with ID, shareable URL, and formatting stats"
+      }
+    },
+    {
+      "name": "google_docs_smart_update",
+      "description": "🚀 SMART UPDATE TOOL: Add formatted markdown to EXISTING Google Docs using mathematical index tracking. Only 2 API calls (vs 20+)! Works on documents with existing content. Supports all formatting: # headings, colored headings (## Title {#1a73e8}), **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, [links](url), - lists, | tables |. Returns end_index for chaining updates.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "ID of EXISTING Google Doc to update",
+          "required": true
+        },
+        "markdown_content": {
+          "type": "string",
+          "description": "Markdown content to insert (same features as smart_create_from_markdown)",
+          "required": true
+        },
+        "insertion_position": {
+          "type": "string",
+          "description": "Where to insert: 'end' (append - default), 'start' (beginning), or specific index number",
+          "required": false,
+          "default": "end"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Result with start_index, end_index (for chaining!), operations count, and URL"
+      }
+    },
+    {
+      "name": "google_docs_create_document",
+      "description": "Create a new Google Doc",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Document title",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with ID and URL"
+      }
+    },
+    {
+      "name": "google_docs_get_document",
+      "description": "Get document content and structure",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete document content with formatting"
+      }
+    },
+    {
+      "name": "google_docs_batch_update",
+      "description": "Apply multiple updates to document (insert, delete, format text)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "requests": {
+          "type": "array",
+          "description": "Array of update requests (insertText, deleteContentRange, updateTextStyle, etc.)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update results with reply objects"
+      }
+    },
+    {
+      "name": "google_docs_insert_text",
+      "description": "Insert text at specific location",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Text to insert",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Character index to insert at (1-based)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Insert confirmation"
+      }
+    },
+    {
+      "name": "google_docs_delete_content",
+      "description": "Delete content from document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index (1-based)",
+          "required": true
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index (exclusive)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "google_docs_format_text",
+      "description": "Apply formatting to text range (bold, italic, font, color, etc.)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index",
+          "required": true
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index",
+          "required": true
+        },
+        "bold": {
+          "type": "boolean",
+          "description": "Apply bold",
+          "required": false
+        },
+        "italic": {
+          "type": "boolean",
+          "description": "Apply italic",
+          "required": false
+        },
+        "underline": {
+          "type": "boolean",
+          "description": "Apply underline",
+          "required": false
+        },
+        "font_size": {
+          "type": "integer",
+          "description": "Font size in points",
+          "required": false
+        },
+        "font_family": {
+          "type": "string",
+          "description": "Font family name",
+          "required": false
+        },
+        "foreground_color": {
+          "type": "string",
+          "description": "Text color (hex format #RRGGBB)",
+          "required": false
+        },
+        "background_color": {
+          "type": "string",
+          "description": "Background color (hex format)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Format confirmation"
+      }
+    },
+    {
+      "name": "google_docs_insert_table",
+      "description": "Insert table into document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert table",
+          "required": true
+        },
+        "rows": {
+          "type": "integer",
+          "description": "Number of rows",
+          "required": true
+        },
+        "columns": {
+          "type": "integer",
+          "description": "Number of columns",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Inserted table details"
+      }
+    },
+    {
+      "name": "google_docs_insert_image",
+      "description": "Insert image into document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert image",
+          "required": true
+        },
+        "image_uri": {
+          "type": "string",
+          "description": "Image URL (must be publicly accessible)",
+          "required": true
+        },
+        "width": {
+          "type": "integer",
+          "description": "Width in points",
+          "required": false
+        },
+        "height": {
+          "type": "integer",
+          "description": "Height in points",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Inserted image details"
+      }
+    },
+    {
+      "name": "google_docs_create_heading",
+      "description": "Create heading (H1, H2, H3, etc.)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Heading text",
+          "required": true
+        },
+        "level": {
+          "type": "integer",
+          "description": "Heading level (1-6)",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert heading",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created heading"
+      }
+    },
+    {
+      "name": "google_docs_create_list",
+      "description": "Create bulleted or numbered list",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "items": {
+          "type": "array",
+          "description": "List items",
+          "required": true
+        },
+        "list_type": {
+          "type": "string",
+          "description": "List type: BULLET or NUMBER",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert list",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created list"
+      }
+    },
+    {
+      "name": "google_docs_insert_page_break",
+      "description": "Insert page break",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert page break",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Insert confirmation"
+      }
+    },
+    {
+      "name": "google_docs_replace_text",
+      "description": "Find and replace text throughout document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "find_text": {
+          "type": "string",
+          "description": "Text to find",
+          "required": true
+        },
+        "replace_text": {
+          "type": "string",
+          "description": "Replacement text",
+          "required": true
+        },
+        "match_case": {
+          "type": "boolean",
+          "description": "Case-sensitive matching",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Number of replacements made"
+      }
+    },
+    {
+      "name": "google_docs_append_text",
+      "description": "Append text to end of document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Text to append",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Append confirmation"
+      }
+    },
+    {
+      "name": "google_docs_export_as_pdf",
+      "description": "Export document as PDF",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "PDF file data (base64 encoded)"
+      }
+    },
+    {
+      "name": "google_docs_add_page_numbers",
+      "description": "Configure document for page numbering (starting number). NOTE: Actual page number insertion requires manual step via Google Docs UI: Insert > Page numbers",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "position": {
+          "type": "string",
+          "description": "Page number position: HEADER or FOOTER (default: FOOTER)",
+          "required": false,
+          "default": "FOOTER"
+        },
+        "alignment": {
+          "type": "string",
+          "description": "Page number alignment: LEFT, CENTER, or RIGHT (default: CENTER)",
+          "required": false,
+          "default": "CENTER"
+        },
+        "starting_number": {
+          "type": "integer",
+          "description": "Page number to start from (default: 1)",
+          "required": false,
+          "default": 1
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Configuration result with manual insertion instructions"
+      }
+    },
+    {
+      "name": "google_docs_export_as_html",
+      "description": "Export document as HTML",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "HTML content"
+      }
+    },
+    {
+      "name": "google_docs_export_as_markdown",
+      "description": "Export document as Markdown",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Markdown content"
+      }
+    },
+    {
+      "name": "google_docs_create_from_template",
+      "description": "Create document from template with variable substitution",
+      "platform": "google_docs",
+      "parameters": {
+        "template_id": {
+          "type": "string",
+          "description": "Template document ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "New document title",
+          "required": true
+        },
+        "variables": {
+          "type": "object",
+          "description": "Variables to replace (e.g., {name: 'John', date: '2025-10-23'})",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with substituted variables"
+      }
+    },
+    {
+      "name": "google_docs_get_suggestions",
+      "description": "Get all suggestions/comments in document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of suggestions and comments"
+      }
+    },
+    {
+      "name": "google_docs_create_named_range",
+      "description": "Create named range for bookmarking/referencing",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Range name",
+          "required": true
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index",
+          "required": true
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created named range"
+      }
+    },
+    {
+      "name": "google_docs_create_professional_report_with_charts",
+      "description": "Create a professional stakeholder-ready Google Doc report with linked Google Sheets charts. Creates CLEAN document (no instructions) with chart placeholders and a separate spreadsheet with interactive charts. Charts have black centered titles, axis labels with units, legends. Document uses Figure 1, Figure 2 format with hyperlinks to exact chart locations. Perfect for financial reports, business analytics, presentations.",
+      "platform": "google_docs",
+      "parameters": {
+        "report_title": {
+          "type": "string",
+          "description": "Title for both document and spreadsheet (e.g., 'Q1 2025 Financial Report')",
+          "required": true
+        },
+        "charts_config": {
+          "type": "array",
+          "description": "Array of chart configurations. Each chart needs: title (str), headers (array of column names), data (2D array), chart_type (COLUMN/BAR/LINE/AREA/PIE), x_axis (label), y_axis (label with units like 'Amount ($)'). Example: [{title: 'Monthly Revenue', headers: ['Month','Revenue ($)'], data: [['Jan',125000],['Feb',138000]], chart_type: 'COLUMN', x_axis: 'Month', y_axis: 'Amount ($)'}]",
+          "required": false
+        },
+        "separate_sheets": {
+          "type": "boolean",
+          "description": "True = each chart in own sheet tab (recommended), False = all charts in one sheet",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains document_id, document_url, spreadsheet_id, spreadsheet_url, charts array (with title/chart_id/data_range/sheet_name/link for each), and instructions string with step-by-step guide for inserting charts"
+      }
+    },
+    {
+      "name": "google_sheets_create",
+      "description": "Create a new Google Sheets spreadsheet with optional data and headers. Uses official Google Sheets API (no gspread required). Can create empty spreadsheets or populate with data immediately. Auto-formats header row with bold text and gray background.",
+      "platform": "google_sheets",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Title of the new spreadsheet",
+          "required": true
+        },
+        "data": {
+          "type": "array",
+          "description": "Optional 2D array of data rows. Example: [['Alice', 100], ['Bob', 200]]",
+          "required": false
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row. Example: ['Name', 'Score']",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains spreadsheet_id, spreadsheet_url, and success status"
+      }
+    },
+    {
+      "name": "google_sheets_read_data",
+      "description": "Read data from a Google Sheets spreadsheet using official Google Sheets API",
+      "platform": "google_sheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "The spreadsheet ID (from URL)",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Range in A1 notation (e.g., 'Sheet1!A1:D10' or just 'A1:D10')",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains values (2D array), range, and row/column counts"
+      }
+    },
+    {
+      "name": "google_sheets_append_data",
+      "description": "Append data to a Google Sheets spreadsheet (adds rows at the end)",
+      "platform": "google_sheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "The spreadsheet ID",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Range to append to (e.g., 'Sheet1!A:D')",
+          "required": true
+        },
+        "values": {
+          "type": "array",
+          "description": "2D array of values to append. Example: [['Alice', 100], ['Bob', 200]]",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains updated spreadsheet info and number of rows appended"
+      }
+    },
+    {
+      "name": "google_docs_add_formatted_content",
+      "description": "Add sample formatted content to a Google Doc to demonstrate rich text capabilities. Adds: Heading 1, Heading 2, paragraphs with bold/italic text, bulleted lists, numbered lists, and mixed formatting. Useful for testing or creating template documents.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "The document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains document_id and success status"
+      }
+    },
+    {
+      "name": "google_charts_create",
+      "description": "Create a professional Google Chart in a new Google Sheets spreadsheet. Supports 10+ chart types (column, bar, line, area, pie, scatter, combo, histogram, candlestick, bubble) with customization options (title, axis labels, colors, legend, dimensions). Returns spreadsheet with embedded interactive chart.",
+      "platform": "google_sheets",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title (e.g., 'Q1 Sales Chart')",
+          "required": true
+        },
+        "chart_type": {
+          "type": "string",
+          "description": "Chart type: column/bar/line/area/pie/scatter/combo/histogram/candlestick/bubble",
+          "required": true
+        },
+        "data": {
+          "type": "array",
+          "description": "2D array of data. First column = labels/x-axis, remaining = data series. Example: [['Jan', 10, 20], ['Feb', 15, 25]]",
+          "required": true
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row. Example: ['Month', 'Sales', 'Expenses']",
+          "required": false
+        },
+        "chart_options": {
+          "type": "object",
+          "description": "Optional customization: {title: str, subtitle: str, x_axis_title: str, y_axis_title: str, width: int, height: int, legend_position: str, colors: [str], stacked: bool}",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains spreadsheet_id, spreadsheet_url, chart_id, and chart details"
+      }
+    },
+    {
+      "name": "google_docs_insert_chart",
+      "description": "Create a Google Chart and insert it as an image into a Google Doc. Creates temporary spreadsheet with chart, exports as PNG, inserts into doc, and cleans up. Supports all chart types from google_charts_create.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Target Google Doc ID",
+          "required": true
+        },
+        "chart_data": {
+          "type": "object",
+          "description": "Chart data: {headers: [str], data: [[values]]}. Example: {headers: ['Month', 'Sales'], data: [['Jan', 100], ['Feb', 150]]}",
+          "required": true
+        },
+        "chart_type": {
+          "type": "string",
+          "description": "Chart type: column/bar/line/area/pie/scatter (default: column)",
+          "required": false,
+          "default": "column"
+        },
+        "chart_options": {
+          "type": "object",
+          "description": "Optional chart customization (same as google_charts_create)",
+          "required": false
+        },
+        "insertion_index": {
+          "type": "integer",
+          "description": "Position in doc to insert chart (null = end of document)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains inserted status, image_url, temp_spreadsheet_id, chart_type, insertion_index"
+      }
+    },
+    {
+      "name": "google_docs_ai_smart_generate_document",
+      "description": "🤖 SMART TOOL: AI-powered document generation from natural language in ONE call. Takes a prompt like 'Create a product requirements document for a mobile app' and AI generates complete, professionally formatted document with proper structure, headings, lists, tables. Use this instead of manually writing documents.",
+      "platform": "google_docs",
+      "category": "smart_bundled",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "description": "Natural language description of document to create. Examples: 'Create a product requirements document for a mobile fitness app with sections for overview, features, technical specs, timeline', 'Write a professional project proposal for website redesign', 'Generate meeting minutes template'",
+          "required": true
+        },
+        "tone": {
+          "type": "string",
+          "description": "Writing tone: 'professional', 'casual', 'formal', 'technical'",
+          "required": false,
+          "default": "professional"
+        },
+        "share_with": {
+          "type": "array",
+          "description": "Email addresses to share document with",
+          "required": false
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Google Drive folder ID to store document in",
+          "required": false
+        },
+        "include_toc": {
+          "type": "boolean",
+          "description": "Add table of contents at beginning",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "document_id": "string",
+        "document_url": "string",
+        "title": "string (AI-generated)",
+        "generated_content": "string (full markdown content)",
+        "word_count": "integer",
+        "sections": "array of section names"
+      },
+      "use_cases": [
+        "Create product requirements documents",
+        "Generate technical specifications",
+        "Write project proposals with timelines",
+        "Create meeting minutes templates",
+        "Generate policy documents",
+        "Write standard operating procedures"
+      ],
+      "efficiency": "99% faster than manual writing (2 hours → 10 seconds)"
+    },
+    {
+      "name": "google_docs_smart_bulk_create_multiple",
+      "description": "📚 SMART TOOL: Bulk create multiple Google Docs in ONE call. Creates multiple complete documents simultaneously from markdown or AI generation. Each document can have different content, sharing, and folder settings. Perfect for batch operations.",
+      "platform": "google_docs",
+      "category": "smart_bundled",
+      "parameters": {
+        "documents": {
+          "type": "array",
+          "description": "Array of document configurations. Each can be: {'title': str, 'markdown_content': str} OR {'title': str, 'prompt': str, 'tone': str}. Example: [{'title': 'Q1 Report', 'markdown_content': '# Q1...'}, {'title': 'Q2 Report', 'prompt': 'Create Q2 financial report'}]",
+          "required": true
+        },
+        "share_with": {
+          "type": "array",
+          "description": "Default email addresses to share ALL documents with (can be overridden per document)",
+          "required": false
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Default Google Drive folder for ALL documents (can be overridden per document)",
+          "required": false
+        }
+      },
+      "returns": {
+        "total_created": "integer",
+        "total_failed": "integer",
+        "successful": "array of {title, document_id, document_url}",
+        "failed": "array of {title, error}",
+        "created_documents": "array of full document details"
+      },
+      "use_cases": [
+        "Create 12 monthly report documents at once",
+        "Generate meeting notes for entire quarter",
+        "Create product documentation for multiple features",
+        "Bulk create project proposals for clients",
+        "Generate onboarding docs for new employees",
+        "Create standard templates library"
+      ],
+      "efficiency": "97% reduction in tool calls (20 calls per doc × 5 docs = 100 calls → 1 call)"
+    }
+  ]
+}

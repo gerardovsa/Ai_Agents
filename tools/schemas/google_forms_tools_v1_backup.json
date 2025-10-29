@@ -1,0 +1,464 @@
+{
+  "platform": "google_forms",
+  "description": "Google Forms API - Create forms, add questions, collect responses, analyze data",
+  "tools": [
+    {
+      "name": "google_forms_create_form",
+      "description": "Create a new Google Form",
+      "platform": "google_forms",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Form title",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "description": "Form description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created form with ID and URL"
+      }
+    },
+    {
+      "name": "google_forms_get_form",
+      "description": "Get form structure and questions",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete form details"
+      }
+    },
+    {
+      "name": "google_forms_add_question",
+      "description": "Add question to form",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "question_type": {
+          "type": "string",
+          "description": "Question type: TEXT, PARAGRAPH_TEXT, MULTIPLE_CHOICE, CHECKBOX, DROPDOWN, LINEAR_SCALE, MULTIPLE_CHOICE_GRID, CHECKBOX_GRID, DATE, TIME, FILE_UPLOAD",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Is question required",
+          "required": false,
+          "default": false
+        },
+        "options": {
+          "type": "array",
+          "description": "Answer options (for multiple choice, checkbox, dropdown)",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Question description/help text",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_add_multiple_choice",
+      "description": "Add multiple choice question",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "options": {
+          "type": "array",
+          "description": "Answer choices",
+          "required": true
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Required question",
+          "required": false,
+          "default": false
+        },
+        "shuffle": {
+          "type": "boolean",
+          "description": "Shuffle option order",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created question"
+      }
+    },
+    {
+      "name": "google_forms_add_text_question",
+      "description": "Add short or long text question",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "paragraph": {
+          "type": "boolean",
+          "description": "Long text (paragraph) vs short text",
+          "required": false,
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Required question",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created question"
+      }
+    },
+    {
+      "name": "google_forms_add_linear_scale",
+      "description": "Add linear scale question (1-5, 0-10, etc.)",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "low_value": {
+          "type": "integer",
+          "description": "Minimum value (0 or 1)",
+          "required": true
+        },
+        "high_value": {
+          "type": "integer",
+          "description": "Maximum value (2-10)",
+          "required": true
+        },
+        "low_label": {
+          "type": "string",
+          "description": "Label for low value",
+          "required": false
+        },
+        "high_label": {
+          "type": "string",
+          "description": "Label for high value",
+          "required": false
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Required question",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created scale question"
+      }
+    },
+    {
+      "name": "google_forms_update_question",
+      "description": "Update existing question",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "question_id": {
+          "type": "string",
+          "description": "Question ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "New question text",
+          "required": false
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Required status",
+          "required": false
+        },
+        "options": {
+          "type": "array",
+          "description": "New options",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated question"
+      }
+    },
+    {
+      "name": "google_forms_delete_question",
+      "description": "Delete question from form",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "question_id": {
+          "type": "string",
+          "description": "Question ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "google_forms_get_responses",
+      "description": "Get all form responses",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "filter": {
+          "type": "string",
+          "description": "Filter query",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Array of responses with answers"
+      }
+    },
+    {
+      "name": "google_forms_get_response",
+      "description": "Get specific response",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "response_id": {
+          "type": "string",
+          "description": "Response ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Response details"
+      }
+    },
+    {
+      "name": "google_forms_delete_response",
+      "description": "Delete form response",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "response_id": {
+          "type": "string",
+          "description": "Response ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "google_forms_update_settings",
+      "description": "Update form settings",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "collect_email": {
+          "type": "boolean",
+          "description": "Collect respondent email",
+          "required": false
+        },
+        "require_login": {
+          "type": "boolean",
+          "description": "Require Google account login",
+          "required": false
+        },
+        "limit_one_response": {
+          "type": "boolean",
+          "description": "Limit to one response per user",
+          "required": false
+        },
+        "allow_response_edit": {
+          "type": "boolean",
+          "description": "Allow editing after submit",
+          "required": false
+        },
+        "show_progress_bar": {
+          "type": "boolean",
+          "description": "Show progress bar",
+          "required": false
+        },
+        "shuffle_questions": {
+          "type": "boolean",
+          "description": "Randomize question order",
+          "required": false
+        },
+        "confirmation_message": {
+          "type": "string",
+          "description": "Message after submission",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated settings"
+      }
+    },
+    {
+      "name": "google_forms_export_responses_csv",
+      "description": "Export responses to CSV",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "CSV data as string"
+      }
+    },
+    {
+      "name": "google_forms_create_quiz",
+      "description": "Create quiz with answer key and point values",
+      "platform": "google_forms",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Quiz title",
+          "required": true
+        },
+        "release_score": {
+          "type": "string",
+          "description": "When to release scores: IMMEDIATELY or LATER",
+          "required": false,
+          "default": "IMMEDIATELY"
+        },
+        "show_missed_questions": {
+          "type": "boolean",
+          "description": "Show which questions were missed",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created quiz form"
+      }
+    },
+    {
+      "name": "google_forms_add_quiz_question",
+      "description": "Add quiz question with correct answer and points",
+      "platform": "google_forms",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "question_type": {
+          "type": "string",
+          "description": "Question type",
+          "required": true
+        },
+        "options": {
+          "type": "array",
+          "description": "Answer options",
+          "required": true
+        },
+        "correct_answer": {
+          "type": "string",
+          "description": "Correct answer (for auto-grading)",
+          "required": true
+        },
+        "points": {
+          "type": "integer",
+          "description": "Point value",
+          "required": true
+        },
+        "feedback": {
+          "type": "string",
+          "description": "Feedback for incorrect answers",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created quiz question"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business AI Platform - Unified Dashboard</title>
+    
+    <!-- ==================== EXTERNAL LIBRARIES ==================== -->
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tabulator for Data Grids -->
+    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+    
+    <!-- Chart.js for Visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Plotly.js for Advanced Charts -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <!-- Mermaid for Flowcharts -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <!-- Marked.js for Markdown in Chat -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Prism.js for Code Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    
+    <!-- Luxon for DateTime -->
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    
+    <style>
+        /* ==================== ROOT VARIABLES ==================== */
+        :root {
+            /* Base Colors */
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #1c2128;
+            --bg-hover: #21262d;
+            
+            /* Accent Colors */
+            --accent-primary: #58a6ff;
+            --accent-success: #3fb950;
+            --accent-warning: #d29922;
+            --accent-error: #f85149;
+            --accent-info: #79c0ff;
+            
+            /* Text Colors */
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            
+            /* Border Colors */
+            --border-default: #30363d;
+            --border-muted: #21262d;
+            
+            /* Platform Colors */
+            --slack-purple: #4a154b;
+            --stripe-blue: #635bff;
+            --woocommerce-purple: #7f54b3;
+            --google-blue: #4285f4;
+            
+            /* Spacing */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 24px;
+            --space-6: 32px;
+            
+            /* Typography */
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-mono: 'Fira Code', 'Consolas', monospace;
+            
+            /* Layout */
+            --sidebar-width: 60px;
+            --chat-width: 400px;
+            --header-height: 60px;
+        }
+        
+        /* Light Theme Override */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #ffffff;
+            --bg-hover: #f3f4f6;
+            --text-primary: #1f2328;
+            --text-secondary: #656d76;
+            --text-muted: #8c959f;
+            --border-default: #d0d7de;
+            --border-muted: #e5e7eb;
+        }
+        
+        /* ==================== BASE STYLES ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-primary);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+        
+        /* ==================== LAYOUT GRID ==================== */
+        .platform-container {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: var(--header-height) 1fr;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            grid-row: 1 / 3;
+            grid-column: 1;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-default);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--space-4) 0;
+            gap: var(--space-3);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .sidebar-icon-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+        
+        .sidebar-icon-btn:hover {
+            background: var(--bg-hover);
+            color: var(--accent-primary);
+            transform: scale(1.05);
+        }
+        
+        .sidebar-icon-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+        
+        .sidebar-divider {
+            width: 30px;
+            height: 1px;
+            background: var(--border-default);
+            margin: var(--space-2) 0;
+        }
+        
+        /* ==================== TOP HEADER ==================== */
+        .top-header {
+            grid-row: 1;
+            grid-column: 2;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-5);
+            z-index: 900;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+        
+        .platform-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-info));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .header-search {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: var(--space-2) var(--space-3);
+            width: 300px;
+        }
+        
+        .header-search input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            width: 100%;
+            font-size: 14px;
+        }
+        
+        .header-search i {
+            color: var(--text-muted);
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        
+        .header-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: var(--space-2) var(--space-3);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .header-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* ==================== MAIN CONTENT AREA ==================== */
+        .main-content-wrapper {
+            grid-row: 2;
+            grid-column: 2;
+            display: grid;
+            grid-template-columns: 1fr var(--chat-width);
+            overflow: hidden;
+        }
+        
+        .main-content-wrapper.chat-collapsed {
+            grid-template-columns: 1fr 0;
+        }
+        
+        .main-content {
+            overflow-y: auto;
+            padding: var(--space-5);
+            background: var(--bg-primary);
+        }
+        
+        /* ==================== TAB NAVIGATION ==================== */
+        .tab-navigation {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-5);
+            border-bottom: 2px solid var(--border-default);
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+        
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: var(--space-3) var(--space-4);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+        
+        .tab-btn.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* ==================== AI CHAT PANEL ==================== */
+        .ai-chat-panel {
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-default);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-collapsed .ai-chat-panel {
+            width: 0;
+            opacity: 0;
+        }
+        
+        .ai-chat-header {
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .ai-chat-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .ai-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .chat-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: var(--space-2);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .chat-close-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        .ai-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+        
+        .ai-message {
+            display: flex;
+            gap: var(--space-3);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .ai-message.user {
+            flex-direction: row-reverse;
+        }
+        
+        .ai-message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+        
+        .ai-message.user .ai-message-avatar {
+            background: var(--accent-primary);
+            color: white;
+        }
+        
+        .ai-message.assistant .ai-message-avatar {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .ai-message-content {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: var(--space-3);
+            max-width: 85%;
+            font-size: 14px;
+            line-height: 1.6;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .ai-message-content:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.2);
+        }
+        
+        .ai-message.user .ai-message-content {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+        
+        /* ==================== MESSAGE POPUP MODAL ==================== */
+        .message-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .message-popup-overlay.active {
+            display: flex;
+        }
+        
+        .message-popup-modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            max-width: 800px;
+            max-height: 80vh;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: slideInUp 0.3s ease;
+        }
+        
+        @keyframes slideInUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .message-popup-header {
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .message-popup-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .message-popup-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: var(--space-2);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            font-size: 20px;
+        }
+        
+        .message-popup-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        .message-popup-body {
+            padding: var(--space-5);
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .message-popup-actions {
+            padding: var(--space-4);
+            border-top: 1px solid var(--border-default);
+            display: flex;
+            gap: var(--space-2);
+            justify-content: flex-end;
+        }
+        
+        .ai-message-content pre {
+            background: var(--bg-primary);
+            padding: var(--space-3);
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: var(--space-2) 0;
+        }
+        
+        .ai-chat-input-container {
+            padding: var(--space-4);
+            border-top: 1px solid var(--border-default);
+        }
+        
+        .ai-chat-input-wrapper {
+            display: flex;
+            gap: var(--space-2);
+        }
+        
+        .ai-chat-input {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: var(--space-3);
+            color: var(--text-primary);
+            font-size: 14px;
+            resize: none;
+            font-family: var(--font-primary);
+        }
+        
+        .ai-chat-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        
+        .ai-chat-send-btn {
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 6px;
+            padding: var(--space-3) var(--space-4);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            transition: all 0.2s ease;
+        }
+        
+        .ai-chat-send-btn:hover {
+            background: #4493e8;
+            transform: scale(1.02);
+        }
+        
+        .ai-chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* ==================== CARDS ==================== */
+        .dashboard-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: var(--space-5);
+            margin-bottom: var(--space-4);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-4);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+        
+        .card-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: var(--space-2) var(--space-3);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        
+        .card-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+        
+        /* ==================== STATS GRID ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-5);
+        }
+        
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: var(--space-4);
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .stat-icon.primary { background: var(--accent-primary); color: white; }
+        .stat-icon.success { background: var(--accent-success); color: white; }
+        .stat-icon.warning { background: var(--accent-warning); color: white; }
+        .stat-icon.error { background: var(--accent-error); color: white; }
+        
+        .stat-content {
+            flex: 1;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-1);
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .stat-change {
+            font-size: 12px;
+            margin-top: var(--space-1);
+        }
+        
+        .stat-change.positive { color: var(--accent-success); }
+        .stat-change.negative { color: var(--accent-error); }
+        
+        /* ==================== BUTTONS ==================== */
+        .btn {
+            padding: var(--space-2) var(--space-4);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+        
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4493e8;
+            transform: scale(1.02);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border-color: var(--border-default);
+            color: var(--text-primary);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+        
+        .btn-success {
+            background: var(--accent-success);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--accent-warning);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--accent-error);
+            color: white;
+        }
+        
+        /* ==================== NOTIFICATIONS ==================== */
+        .notification-container {
+            position: fixed;
+            top: var(--space-5);
+            right: var(--space-5);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            pointer-events: none;
+        }
+        
+        .notification {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: var(--space-4);
+            min-width: 300px;
+            display: flex;
+            align-items: start;
+            gap: var(--space-3);
+            pointer-events: all;
+            animation: slideInRight 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .notification-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .notification.success { border-left: 3px solid var(--accent-success); }
+        .notification.error { border-left: 3px solid var(--accent-error); }
+        .notification.warning { border-left: 3px solid var(--accent-warning); }
+        .notification.info { border-left: 3px solid var(--accent-info); }
+        
+        .notification-content {
+            flex: 1;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: var(--space-1);
+        }
+        
+        .notification-message {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .notification-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: var(--space-1);
+        }
+        
+        /* ==================== LOADING SPINNER ==================== */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border-default);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1024px) {
+            .main-content-wrapper {
+                grid-template-columns: 1fr 0;
+            }
+            
+            .ai-chat-panel {
+                position: fixed;
+                right: 0;
+                top: var(--header-height);
+                bottom: 0;
+                width: var(--chat-width);
+                transform: translateX(100%);
+            }
+            
+            .ai-chat-panel.mobile-open {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ==================== LAYOUT GRID ==================== -->
+    <div class="platform-container">
+        
+        <!-- ==================== SIDEBAR ==================== -->
+        <div class="sidebar">
+            <button class="sidebar-icon-btn active" data-action="home" title="Home Dashboard">
+                <i class="fas fa-home"></i>
+            </button>
+            
+            <div class="sidebar-divider"></div>
+            
+            <button class="sidebar-icon-btn" data-tab="communication" title="Communication Hub">
+                <i class="fas fa-comments"></i>
+            </button>
+            
+            <button class="sidebar-icon-btn" data-tab="sales" title="Sales & E-Commerce">
+                <i class="fas fa-shopping-cart"></i>
+            </button>
+            
+            <button class="sidebar-icon-btn" data-tab="analytics" title="Analytics & Reports">
+                <i class="fas fa-chart-line"></i>
+            </button>
+            
+            <button class="sidebar-icon-btn" data-tab="documents" title="Document Management">
+                <i class="fas fa-file-alt"></i>
+            </button>
+            
+            <button class="sidebar-icon-btn" data-tab="stock" title="Stock Management">
+                <i class="fas fa-boxes"></i>
+            </button>
+            
+            <button class="sidebar-icon-btn" data-tab="transcripts" title="Transcript Processing">
+                <i class="fas fa-microphone"></i>
+            </button>
+            
+            <button class="sidebar-icon-btn" data-tab="scheduling" title="Scheduling & Forms">
+                <i class="fas fa-calendar"></i>
+            </button>
+            
+            <button class="sidebar-icon-btn" data-tab="automation" title="Automation Workflows">
+                <i class="fas fa-project-diagram"></i>
+            </button>
+            
+            <div class="sidebar-divider"></div>
+            
+            <button class="sidebar-icon-btn" data-action="settings" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+        
+        <!-- ==================== TOP HEADER ==================== -->
+        <div class="top-header">
+            <div class="header-left">
+                <div class="platform-logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <span>Business AI Platform</span>
+                </div>
+                
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search across platforms...">
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <button class="header-btn" id="toggle-chat-btn">
+                    <i class="fas fa-robot"></i>
+                    <span>AI Assistant</span>
+                </button>
+                
+                <button class="header-btn" id="theme-toggle-btn">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <button class="header-btn">
+                    <div class="status-indicator"></div>
+                    <span>19 Platforms</span>
+                </button>
+                
+                <button class="header-btn">
+                    <i class="fas fa-bell"></i>
+                </button>
+                
+                <button class="header-btn">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- ==================== MAIN CONTENT WRAPPER ==================== -->
+        <div class="main-content-wrapper" id="main-content-wrapper">
+            
+            <!-- ==================== MAIN CONTENT ==================== -->
+            <div class="main-content">
+                
+                <!-- ==================== HOME TAB ==================== -->
+                <div class="tab-content active" id="tab-home">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard Overview
+                    </h2>
+                    
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon primary">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Messages Sent</div>
+                                <div class="stat-value">1,247</div>
+                                <div class="stat-change positive">
+                                    <i class="fas fa-arrow-up"></i> 12% this week
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon success">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Total Revenue</div>
+                                <div class="stat-value">$45,723</div>
+                                <div class="stat-change positive">
+                                    <i class="fas fa-arrow-up"></i> 8% this month
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon warning">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">Documents Processed</div>
+                                <div class="stat-value">892</div>
+                                <div class="stat-change positive">
+                                    <i class="fas fa-arrow-up"></i> 15% today
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon error">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-label">AI Tool Executions</div>
+                                <div class="stat-value">3,452</div>
+                                <div class="stat-change positive">
+                                    <i class="fas fa-arrow-up"></i> 24% this week
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Platform Status -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-plug"></i> Platform Connections
+                            </h3>
+                            <div class="card-actions">
+                                <button class="card-btn">
+                                    <i class="fas fa-sync-alt"></i> Refresh All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="platform-status-grid">
+                            <p style="color: var(--text-secondary);">Loading platform status...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-history"></i> Recent Activity
+                            </h3>
+                        </div>
+                        
+                        <div id="recent-activity-list">
+                            <p style="color: var(--text-secondary);">Loading recent activity...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ==================== COMMUNICATION TAB ==================== -->
+                <div class="tab-content" id="tab-communication">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-comments"></i> Communication Hub
+                    </h2>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Slack Integration</h3>
+                            <button class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send Message
+                            </button>
+                        </div>
+                        <p style="color: var(--text-secondary);">Slack integration content coming soon...</p>
+                    </div>
+                </div>
+                
+                <!-- ==================== SALES TAB ==================== -->
+                <div class="tab-content" id="tab-sales">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-shopping-cart"></i> Sales & E-Commerce
+                    </h2>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">WooCommerce Orders</h3>
+                            <button class="btn btn-primary">
+                                <i class="fas fa-sync"></i> Sync Orders
+                            </button>
+                        </div>
+                        <p style="color: var(--text-secondary);">WooCommerce integration content coming soon...</p>
+                    </div>
+                </div>
+                
+                <!-- ==================== ANALYTICS TAB ==================== -->
+                <div class="tab-content" id="tab-analytics">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-chart-line"></i> Analytics & Reports
+                    </h2>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Query Builder</h3>
+                        </div>
+                        <p style="color: var(--text-secondary);">Analytics content coming soon...</p>
+                    </div>
+                </div>
+                
+                <!-- ==================== DOCUMENTS TAB ==================== -->
+                <div class="tab-content" id="tab-documents">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-file-alt"></i> Document Management
+                    </h2>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Google Drive Files</h3>
+                            <button class="btn btn-primary">
+                                <i class="fas fa-folder-open"></i> Browse Files
+                            </button>
+                        </div>
+                        <p style="color: var(--text-secondary);">Document management content coming soon...</p>
+                    </div>
+                </div>
+                
+                <!-- ==================== STOCK TAB ==================== -->
+                <div class="tab-content" id="tab-stock">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-boxes"></i> Stock Management
+                    </h2>
+                    
+                    <div class="dashboard-card">
+                        <p style="color: var(--text-secondary);">
+                            Stock management content will be migrated from stock_management_updated.html
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- ==================== TRANSCRIPTS TAB ==================== -->
+                <div class="tab-content" id="tab-transcripts">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-microphone"></i> Transcript Processing
+                    </h2>
+                    
+                    <div class="dashboard-card">
+                        <p style="color: var(--text-secondary);">
+                            Transcript processing content will be migrated from transcript_processor.html
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- ==================== SCHEDULING TAB ==================== -->
+                <div class="tab-content" id="tab-scheduling">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-calendar"></i> Scheduling & Forms
+                    </h2>
+                    
+                    <div class="dashboard-card">
+                        <p style="color: var(--text-secondary);">Scheduling content coming soon...</p>
+                    </div>
+                </div>
+                
+                <!-- ==================== AUTOMATION TAB ==================== -->
+                <div class="tab-content" id="tab-automation">
+                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
+                        <i class="fas fa-project-diagram"></i> Automation Workflows
+                    </h2>
+                    
+                    <div class="dashboard-card">
+                        <p style="color: var(--text-secondary);">Automation workflows coming soon...</p>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- ==================== AI CHAT PANEL ==================== -->
+            <div class="ai-chat-panel" id="ai-chat-panel">
+                <div class="ai-chat-header">
+                    <div class="ai-chat-title">
+                        <div class="ai-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <span>AI Assistant</span>
+                    </div>
+                    <button class="chat-close-btn" id="chat-close-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="ai-chat-messages" id="ai-chat-messages">
+                    <div class="ai-message assistant">
+                        <div class="ai-message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="ai-message-content">
+                            👋 <strong>Welcome to your Business AI Platform!</strong><br><br>
+                            I'm your AI assistant with access to <strong>19 platforms</strong> and <strong>114+ tools</strong>.<br><br>
+                            I can help you:<br>
+                            • 💬 Send messages (Slack, Gmail, Twilio)<br>
+                            • 📊 Analyze data (Supabase, Google Analytics)<br>
+                            • 🛒 Manage orders (WooCommerce, Stripe)<br>
+                            • 📄 Process documents (Google Docs, Drive)<br>
+                            • And much more!<br><br>
+                            Try asking: <em>"Show me today's sales"</em> or <em>"Send a Slack message"</em>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ai-chat-input-container">
+                    <div class="ai-chat-input-wrapper">
+                        <textarea 
+                            class="ai-chat-input" 
+                            id="ai-chat-input" 
+                            rows="3" 
+                            placeholder="Ask me anything about your business..."></textarea>
+                        <button class="ai-chat-send-btn" id="ai-chat-send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Send</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- ==================== NOTIFICATION CONTAINER ==================== -->
+    <div class="notification-container" id="notification-container"></div>
+    
+    <!-- ==================== MESSAGE POPUP MODAL ==================== -->
+    <div class="message-popup-overlay" id="message-popup-overlay">
+        <div class="message-popup-modal">
+            <div class="message-popup-header">
+                <div class="message-popup-title">
+                    <i class="fas fa-comment-alt"></i>
+                    <span id="message-popup-title-text">Message Details</span>
+                </div>
+                <button class="message-popup-close" onclick="closeMessagePopup()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="message-popup-body" id="message-popup-body">
+                <!-- Message content will be inserted here -->
+            </div>
+            <div class="message-popup-actions">
+                <button class="btn btn-secondary" onclick="copyMessageContent()">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+                <button class="btn btn-primary" onclick="closeMessagePopup()">
+                    <i class="fas fa-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script>
+        // ==================== GLOBAL STATE ====================
+        const AppState = {
+            currentTab: 'home',
+            chatOpen: true,
+            theme: 'dark',
+            platforms: [],
+            chatMessages: []
+        };
+        
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Business AI Platform initializing...');
+            
+            initTabNavigation();
+            initChatPanel();
+            initThemeToggle();
+            loadPlatformStatus();
+            
+            console.log('✅ Platform ready!');
+        });
+        
+        // ==================== TAB NAVIGATION ====================
+        function initTabNavigation() {
+            // Sidebar buttons
+            document.querySelectorAll('.sidebar-icon-btn[data-tab]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.dataset.tab;
+                    switchTab(tabId);
+                    
+                    // Update sidebar active state
+                    document.querySelectorAll('.sidebar-icon-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+            
+            // Home button
+            document.querySelector('.sidebar-icon-btn[data-action="home"]').addEventListener('click', () => {
+                switchTab('home');
+                document.querySelectorAll('.sidebar-icon-btn').forEach(b => b.classList.remove('active'));
+                document.querySelector('.sidebar-icon-btn[data-action="home"]').classList.add('active');
+            });
+        }
+        
+        function switchTab(tabId) {
+            console.log(`🔧 Switching to tab: ${tabId}`);
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if (targetTab) {
+                targetTab.classList.add('active');
+                AppState.currentTab = tabId;
+                
+                // Update AI chat context
+                updateAIChatContext(tabId);
+            }
+        }
+        
+        // ==================== AI CHAT PANEL ====================
+        function initChatPanel() {
+            const toggleBtn = document.getElementById('toggle-chat-btn');
+            const closeBtn = document.getElementById('chat-close-btn');
+            const sendBtn = document.getElementById('ai-chat-send-btn');
+            const input = document.getElementById('ai-chat-input');
+            
+            toggleBtn.addEventListener('click', toggleChat);
+            closeBtn.addEventListener('click', toggleChat);
+            sendBtn.addEventListener('click', sendChatMessage);
+            
+            // Enter to send (Shift+Enter for new line)
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+        }
+        
+        function toggleChat() {
+            const wrapper = document.getElementById('main-content-wrapper');
+            AppState.chatOpen = !AppState.chatOpen;
+            
+            if (AppState.chatOpen) {
+                wrapper.classList.remove('chat-collapsed');
+            } else {
+                wrapper.classList.add('chat-collapsed');
+            }
+        }
+        
+        function sendChatMessage() {
+            const input = document.getElementById('ai-chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addChatMessage('user', message);
+            input.value = '';
+            
+            // Show thinking indicator
+            addChatMessage('assistant', '<div class="ai-thinking-dots"><span></span><span></span><span></span></div>', true);
+            
+            // Simulate AI response (replace with actual API call)
+            setTimeout(() => {
+                removeThinkingIndicator();
+                const response = `I received your message: "${message}". This is a demo response. In production, I would connect to your backend AI service.`;
+                addChatMessage('assistant', response);
+            }, 1500);
+        }
+        
+        function addChatMessage(role, content, isThinking = false) {
+            const messagesContainer = document.getElementById('ai-chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${role}${isThinking ? ' thinking' : ''}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'ai-message-avatar';
+            avatar.innerHTML = role === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ai-message-content';
+            contentDiv.innerHTML = content;
+            
+            // Add click event to open popup
+            if (!isThinking) {
+                contentDiv.addEventListener('click', () => {
+                    openMessagePopup(role, content);
+                });
+            }
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // ==================== MESSAGE POPUP FUNCTIONS ====================
+        function openMessagePopup(role, content) {
+            const overlay = document.getElementById('message-popup-overlay');
+            const body = document.getElementById('message-popup-body');
+            const titleText = document.getElementById('message-popup-title-text');
+            
+            titleText.textContent = role === 'user' ? 'Your Message' : 'AI Assistant Response';
+            body.innerHTML = content;
+            
+            // Store content for copy function
+            overlay.dataset.content = content;
+            
+            overlay.classList.add('active');
+            
+            // Close on overlay click
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    closeMessagePopup();
+                }
+            };
+        }
+        
+        function closeMessagePopup() {
+            const overlay = document.getElementById('message-popup-overlay');
+            overlay.classList.remove('active');
+        }
+        
+        function copyMessageContent() {
+            const overlay = document.getElementById('message-popup-overlay');
+            const content = overlay.dataset.content;
+            
+            // Create temporary element to strip HTML
+            const temp = document.createElement('div');
+            temp.innerHTML = content;
+            const text = temp.textContent || temp.innerText;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Message copied to clipboard!', 'success');
+            });
+        }
+        
+        function removeThinkingIndicator() {
+            const thinking = document.querySelector('.ai-message.thinking');
+            if (thinking) thinking.remove();
+        }
+        
+        function updateAIChatContext(tabId) {
+            console.log(`🔧 Updating AI context for tab: ${tabId}`);
+            // In production, send context to backend
+        }
+        
+        // ==================== THEME TOGGLE ====================
+        function initThemeToggle() {
+            const toggleBtn = document.getElementById('theme-toggle-btn');
+            toggleBtn.addEventListener('click', () => {
+                const html = document.documentElement;
+                const currentTheme = html.getAttribute('data-theme') || 'dark';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                html.setAttribute('data-theme', newTheme);
+                AppState.theme = newTheme;
+                
+                // Update icon
+                const icon = toggleBtn.querySelector('i');
+                icon.className = newTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+                
+                showNotification(`Switched to ${newTheme} theme`, 'info');
+            });
+        }
+        
+        // ==================== PLATFORM STATUS ====================
+        async function loadPlatformStatus() {
+            // Simulate loading platform status
+            const platforms = [
+                { name: 'Slack', status: 'connected', icon: 'fa-slack', color: '#4a154b' },
+                { name: 'WooCommerce', status: 'connected', icon: 'fa-shopping-cart', color: '#7f54b3' },
+                { name: 'Google Analytics', status: 'connected', icon: 'fa-chart-line', color: '#4285f4' },
+                { name: 'Stripe', status: 'connected', icon: 'fa-stripe', color: '#635bff' },
+                { name: 'Supabase', status: 'connected', icon: 'fa-database', color: '#3fb950' },
+                { name: 'GitHub', status: 'connected', icon: 'fa-github', color: '#58a6ff' }
+            ];
+            
+            const grid = document.getElementById('platform-status-grid');
+            grid.innerHTML = platforms.map(p => `
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 8px;">
+                    <div style="width: 40px; height: 40px; background: ${p.color}; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white;">
+                        <i class="fab ${p.icon}"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600;">${p.name}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Connected</div>
+                    </div>
+                    <div style="width: 8px; height: 8px; background: var(--accent-success); border-radius: 50%;"></div>
+                </div>
+            `).join('');
+        }
+        
+        // ==================== NOTIFICATIONS ====================
+        function showNotification(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-icon">
+                    <i class="fas ${icons[type] || icons.info}"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-message">${message}</div>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(notification);
+            
+            if (duration > 0) {
+                setTimeout(() => notification.remove(), duration);
+            }
+        }
+        
+        // ==================== UTILITY FUNCTIONS ====================
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-US').format(num);
+        }
+        
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+        
+        function formatDate(date) {
+            return new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }).format(new Date(date));
+        }
+    </script>
+</body>
+</html>

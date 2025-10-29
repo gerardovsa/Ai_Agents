@@ -1,0 +1,226 @@
+{
+  "platform": "microsoft_word",
+  "version": "1.0",
+  "description": "Microsoft Word document creation, editing, and automation tools via Graph API",
+  "authentication": "microsoft_oauth",
+  "base_url": "https://graph.microsoft.com/v1.0",
+  "tools": [
+    {
+      "name": "word_create_document",
+      "description": "Create a new Word document in OneDrive",
+      "category": "document_management",
+      "parameters": {
+        "name": {"type": "string", "required": true, "description": "Document name (will add .docx if not present)"},
+        "content": {"type": "string", "required": false, "description": "Initial text content (plain text)"},
+        "folder_id": {"type": "string", "required": false, "description": "OneDrive folder ID (default: root)"}
+      },
+      "returns": "Dict with document_id, name, web_url, created_datetime"
+    },
+    {
+      "name": "word_get_document",
+      "description": "Get Word document metadata",
+      "category": "document_management",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "OneDrive item ID of the document"}
+      },
+      "returns": "Dict with document details including name, URLs, dates, size"
+    },
+    {
+      "name": "word_list_documents",
+      "description": "List Word documents in OneDrive folder",
+      "category": "document_management",
+      "parameters": {
+        "folder_id": {"type": "string", "required": false, "description": "Folder ID (default: root)"},
+        "limit": {"type": "integer", "required": false, "default": 50, "description": "Maximum documents to return"}
+      },
+      "returns": "Dict with count and list of documents"
+    },
+    {
+      "name": "word_delete_document",
+      "description": "Delete a Word document",
+      "category": "document_management",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID to delete"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "word_get_content",
+      "description": "Get document content as text",
+      "category": "content_operations",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"}
+      },
+      "returns": "Dict with text content and metadata"
+    },
+    {
+      "name": "word_append_text",
+      "description": "Append text to document",
+      "category": "content_operations",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"},
+        "text": {"type": "string", "required": true, "description": "Text to append"},
+        "paragraph": {"type": "boolean", "required": false, "default": true, "description": "Add as new paragraph (vs inline)"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "word_search_text",
+      "description": "Search for text in document",
+      "category": "content_operations",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"},
+        "search_term": {"type": "string", "required": true, "description": "Text to search for"}
+      },
+      "returns": "Dict with search results"
+    },
+    {
+      "name": "word_insert_heading",
+      "description": "Insert heading in document",
+      "category": "formatting",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"},
+        "text": {"type": "string", "required": true, "description": "Heading text"},
+        "level": {"type": "integer", "required": false, "default": 1, "description": "Heading level (1-9)"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "word_insert_table",
+      "description": "Insert table in document",
+      "category": "formatting",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"},
+        "rows": {"type": "integer", "required": true, "description": "Number of rows"},
+        "columns": {"type": "integer", "required": true, "description": "Number of columns"},
+        "data": {"type": "array", "required": false, "description": "Optional 2D array of cell data"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "word_insert_image",
+      "description": "Insert image in document",
+      "category": "formatting",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"},
+        "image_url": {"type": "string", "required": true, "description": "URL of image to insert"},
+        "width": {"type": "integer", "required": false, "description": "Image width in pixels"},
+        "height": {"type": "integer", "required": false, "description": "Image height in pixels"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "word_apply_style",
+      "description": "Apply formatting style to document",
+      "category": "formatting",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"},
+        "style_name": {"type": "string", "required": true, "description": "Style name (e.g., 'Heading 1', 'Normal')"},
+        "scope": {"type": "string", "required": false, "default": "document", "description": "Apply to 'document', 'paragraph', or 'selection'"}
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "word_add_comment",
+      "description": "Add comment to document",
+      "category": "collaboration",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"},
+        "text": {"type": "string", "required": true, "description": "Comment text"},
+        "author": {"type": "string", "required": false, "description": "Comment author name"}
+      },
+      "returns": "Dict with comment ID"
+    },
+    {
+      "name": "word_get_comments",
+      "description": "Get all comments in document",
+      "category": "collaboration",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"}
+      },
+      "returns": "Dict with comments list"
+    },
+    {
+      "name": "word_export_pdf",
+      "description": "Export document as PDF",
+      "category": "export",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID"}
+      },
+      "returns": "Dict with PDF download URL and file ID"
+    },
+    {
+      "name": "word_copy_document",
+      "description": "Copy document to new location",
+      "category": "document_management",
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Source document ID"},
+        "new_name": {"type": "string", "required": true, "description": "Name for copied document"},
+        "destination_folder_id": {"type": "string", "required": false, "description": "Destination folder ID"}
+      },
+      "returns": "Dict with new document info and monitor URL"
+    },
+    {
+      "name": "word_smart_generate_report",
+      "description": "SMART: Generate formatted report from structured data with title page, TOC, sections, and auto-styling",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "title": {"type": "string", "required": true, "description": "Report title"},
+        "sections": {"type": "array", "required": true, "description": "List of {'heading': str, 'content': str} dicts"},
+        "folder_id": {"type": "string", "required": false, "description": "Destination folder ID"},
+        "include_toc": {"type": "boolean", "required": false, "default": true, "description": "Include table of contents"},
+        "export_pdf": {"type": "boolean", "required": false, "default": false, "description": "Also export as PDF"}
+      },
+      "returns": "Dict with document_id, web_url, and optional pdf_id",
+      "use_cases": ["Generate quarterly reports", "Create project documentation", "Build meeting minutes"]
+    },
+    {
+      "name": "word_smart_merge_documents",
+      "description": "SMART: Merge multiple Word documents into one with page breaks and unified TOC",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "document_ids": {"type": "array", "required": true, "description": "List of document IDs to merge"},
+        "output_name": {"type": "string", "required": true, "description": "Name for merged document"},
+        "add_page_breaks": {"type": "boolean", "required": false, "default": true, "description": "Add page break between documents"},
+        "add_toc": {"type": "boolean", "required": false, "default": true, "description": "Generate table of contents"}
+      },
+      "returns": "Dict with merged document info",
+      "use_cases": ["Combine multiple reports", "Create comprehensive documentation", "Merge team submissions"]
+    },
+    {
+      "name": "word_smart_template_fill",
+      "description": "SMART: Fill template with variables by replacing {{variable_name}} placeholders",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "template_id": {"type": "string", "required": true, "description": "Template document ID"},
+        "variables": {"type": "object", "required": true, "description": "Dict of variable_name: value pairs"},
+        "output_name": {"type": "string", "required": true, "description": "Name for generated document"}
+      },
+      "returns": "Dict with generated document info",
+      "use_cases": ["Generate contracts", "Create personalized letters", "Build reports from templates"]
+    },
+    {
+      "name": "word_smart_extract_data",
+      "description": "SMART: Extract structured data from document (headings, tables, lists, images)",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "document_id": {"type": "string", "required": true, "description": "Document ID to extract from"},
+        "extract_type": {"type": "string", "required": false, "default": "all", "description": "What to extract ('all', 'headings', 'tables', 'images')"}
+      },
+      "returns": "Dict with extracted structured data",
+      "use_cases": ["Parse document content", "Extract tables to CSV", "Analyze document structure"]
+    }
+  ],
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 600,
+    "note": "Follows Microsoft Graph API throttling limits"
+  },
+  "required_scopes": [
+    "Files.ReadWrite.All"
+  ]
+}

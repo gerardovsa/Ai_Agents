@@ -1,0 +1,81 @@
+{
+  "platform": "google_docs",
+  "description": "Google Sheets API - Create spreadsheets, write/read data, format cells, analyze data",
+  "tools": [
+    {
+      "name": "google_sheets_create",
+      "description": "🌟 Create a new Google Sheet with optional data and headers. Auto-formats header row (gray background, bold text). Returns shareable link.",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title",
+          "required": true
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row (e.g., ['Name', 'Age', 'City'])",
+          "required": false
+        },
+        "data": {
+          "type": "array",
+          "description": "Optional 2D array of data (e.g., [['John', 25, 'NYC'], ['Jane', 30, 'LA']])",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created spreadsheet with ID, shareable URL, title, and rows written"
+      }
+    },
+    {
+      "name": "google_sheets_append_data",
+      "description": "Append data to existing Google Sheet. Automatically finds last row and appends below existing data.",
+      "platform": "google_docs",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Target spreadsheet ID (from URL or create response)",
+          "required": true
+        },
+        "data": {
+          "type": "array",
+          "description": "2D array of data to append (e.g., [['Widget C', 39.99, 75]])",
+          "required": true
+        },
+        "sheet_name": {
+          "type": "string",
+          "description": "Sheet name (default: 'Sheet1')",
+          "required": false,
+          "default": "Sheet1"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Rows added and range updated"
+      }
+    },
+    {
+      "name": "google_sheets_read_data",
+      "description": "Read data from Google Sheet. Returns 2D array of values.",
+      "platform": "google_docs",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Source spreadsheet ID",
+          "required": true
+        },
+        "range_name": {
+          "type": "string",
+          "description": "A1 notation range (e.g., 'Sheet1!A1:C10' or 'Sheet1!A1:Z1000'). Default reads first 1000 rows.",
+          "required": false,
+          "default": "Sheet1!A1:Z1000"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "2D array of values with row/column counts"
+      }
+    }
+  ]
+}

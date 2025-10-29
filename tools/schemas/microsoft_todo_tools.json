@@ -1,0 +1,723 @@
+{
+  "platform": "microsoft_todo",
+  "description": "Microsoft To Do & Planner - Task management, project planning, team assignments, and workload tracking",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "todo_list_tasks",
+      "description": "List tasks from To Do",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "list_id": {
+          "type": "string",
+          "description": "Task list ID (default list if not specified)",
+          "required": false
+        },
+        "filter": {
+          "type": "string",
+          "description": "Filter: 'all', 'completed', 'incomplete', 'today', 'important'",
+          "required": false,
+          "default": "incomplete"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of tasks to return",
+          "required": false,
+          "default": 100
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "list_id": "AAMkAGI...",
+        "filter": "today",
+        "max_results": 50
+      }
+    },
+    {
+      "name": "todo_create_task",
+      "description": "Create a new task in To Do",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Task title",
+          "required": true
+        },
+        "list_id": {
+          "type": "string",
+          "description": "Task list ID (default list if not specified)",
+          "required": false
+        },
+        "due_date": {
+          "type": "string",
+          "description": "Due date (ISO 8601 format)",
+          "required": false
+        },
+        "reminder": {
+          "type": "string",
+          "description": "Reminder date/time (ISO 8601 format)",
+          "required": false
+        },
+        "importance": {
+          "type": "string",
+          "description": "Importance: 'low', 'normal', 'high'",
+          "required": false,
+          "default": "normal"
+        },
+        "body": {
+          "type": "string",
+          "description": "Task description/notes",
+          "required": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "title": "Review project proposal",
+        "due_date": "2025-10-31T17:00:00Z",
+        "importance": "high",
+        "body": "Focus on budget and timeline sections"
+      }
+    },
+    {
+      "name": "todo_update_task",
+      "description": "Update an existing task",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to update",
+          "required": true
+        },
+        "updates": {
+          "type": "object",
+          "description": "Fields to update",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "AAMkAGI...",
+        "updates": {
+          "title": "Updated: Review proposal",
+          "due_date": "2025-11-01T17:00:00Z",
+          "status": "in_progress"
+        }
+      }
+    },
+    {
+      "name": "todo_complete_task",
+      "description": "Mark a task as completed",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to complete",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "AAMkAGI..."
+      }
+    },
+    {
+      "name": "todo_delete_task",
+      "description": "Delete a task",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to delete",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "AAMkAGI..."
+      }
+    },
+    {
+      "name": "todo_create_list",
+      "description": "Create a new task list",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "List name",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "name": "Project Alpha Tasks"
+      }
+    },
+    {
+      "name": "todo_list_lists",
+      "description": "List all task lists",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123"
+      }
+    },
+    {
+      "name": "planner_list_plans",
+      "description": "List all Planner plans accessible to user",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "group_id": {
+          "type": "string",
+          "description": "Optional: Filter by Microsoft 365 Group ID",
+          "required": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "group_id": "12345678-1234-1234-1234-123456789abc"
+      }
+    },
+    {
+      "name": "planner_create_plan",
+      "description": "Create a new Planner plan",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Plan title",
+          "required": true
+        },
+        "owner_group_id": {
+          "type": "string",
+          "description": "Microsoft 365 Group ID that owns the plan",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "title": "Q4 2025 Marketing Campaign",
+        "owner_group_id": "12345678-1234-1234-1234-123456789abc"
+      }
+    },
+    {
+      "name": "planner_list_buckets",
+      "description": "List buckets (columns) in a Planner plan",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "plan_id": {
+          "type": "string",
+          "description": "Plan ID",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg"
+      }
+    },
+    {
+      "name": "planner_create_bucket",
+      "description": "Create a bucket (column) in a plan",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "plan_id": {
+          "type": "string",
+          "description": "Plan ID",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Bucket name",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg",
+        "name": "In Progress"
+      }
+    },
+    {
+      "name": "planner_list_tasks",
+      "description": "List tasks in a Planner plan",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "plan_id": {
+          "type": "string",
+          "description": "Plan ID",
+          "required": true
+        },
+        "bucket_id": {
+          "type": "string",
+          "description": "Optional: Filter by bucket ID",
+          "required": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg"
+      }
+    },
+    {
+      "name": "planner_create_task",
+      "description": "Create a task in Planner",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "plan_id": {
+          "type": "string",
+          "description": "Plan ID",
+          "required": true
+        },
+        "bucket_id": {
+          "type": "string",
+          "description": "Bucket ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Task title",
+          "required": true
+        },
+        "assignments": {
+          "type": "array",
+          "description": "List of user IDs to assign task to",
+          "required": false
+        },
+        "due_date": {
+          "type": "string",
+          "description": "Due date (ISO 8601 format)",
+          "required": false
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Priority: 1-10 (1=urgent, 5=medium, 9=low)",
+          "required": false,
+          "default": 5
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg",
+        "bucket_id": "hsOf2dhoh02QT52nf-ZdbZcAKABg",
+        "title": "Design homepage mockup",
+        "assignments": ["john@company.com"],
+        "due_date": "2025-11-05T17:00:00Z",
+        "priority": 3
+      }
+    },
+    {
+      "name": "planner_update_task",
+      "description": "Update a Planner task",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID",
+          "required": true
+        },
+        "updates": {
+          "type": "object",
+          "description": "Fields to update",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "01gzSlKkduf...",
+        "updates": {
+          "percent_complete": 50,
+          "bucket_id": "new-bucket-id"
+        }
+      }
+    },
+    {
+      "name": "planner_assign_task",
+      "description": "Assign or reassign a task to users",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID",
+          "required": true
+        },
+        "assignees": {
+          "type": "array",
+          "description": "List of user IDs to assign",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "01gzSlKkduf...",
+        "assignees": ["john@company.com", "jane@company.com"]
+      }
+    },
+    {
+      "name": "planner_add_checklist",
+      "description": "Add checklist items to a Planner task",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID",
+          "required": true
+        },
+        "checklist_items": {
+          "type": "array",
+          "description": "List of checklist item titles",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "01gzSlKkduf...",
+        "checklist_items": [
+          "Research competitors",
+          "Create wireframes",
+          "Get feedback from team"
+        ]
+      }
+    },
+    {
+      "name": "todo_smart_daily_digest",
+      "description": "Generate daily task digest with priorities and due dates",
+      "platform": "microsoft_todo",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "include_overdue": {
+          "type": "boolean",
+          "description": "Include overdue tasks",
+          "required": false,
+          "default": true
+        },
+        "include_upcoming": {
+          "type": "boolean",
+          "description": "Include tasks due in next 7 days",
+          "required": false,
+          "default": true
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'text', 'html', 'markdown'",
+          "required": false,
+          "default": "html"
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "include_overdue": true,
+        "include_upcoming": true,
+        "format": "html"
+      }
+    },
+    {
+      "name": "planner_smart_sprint_setup",
+      "description": "Create complete sprint board with buckets and initial tasks",
+      "platform": "microsoft_todo",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "plan_name": {
+          "type": "string",
+          "description": "Sprint/plan name",
+          "required": true
+        },
+        "owner_group_id": {
+          "type": "string",
+          "description": "Microsoft 365 Group ID",
+          "required": true
+        },
+        "sprint_config": {
+          "type": "object",
+          "description": "Sprint configuration with buckets and tasks",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_name": "Sprint 15 - October 2025",
+        "owner_group_id": "12345678-1234-1234-1234-123456789abc",
+        "sprint_config": {
+          "buckets": ["Backlog", "In Progress", "Review", "Done"],
+          "tasks": [
+            {
+              "title": "User authentication feature",
+              "bucket": "Backlog",
+              "assignee": "john@company.com",
+              "priority": 1
+            },
+            {
+              "title": "Database schema update",
+              "bucket": "In Progress",
+              "assignee": "jane@company.com",
+              "priority": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "planner_smart_team_workload",
+      "description": "Analyze team workload and suggest task redistribution",
+      "platform": "microsoft_todo",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "plan_id": {
+          "type": "string",
+          "description": "Plan ID to analyze",
+          "required": true
+        },
+        "balance_by": {
+          "type": "string",
+          "description": "Balance method: 'task_count', 'priority', 'estimated_hours'",
+          "required": false,
+          "default": "task_count"
+        },
+        "auto_reassign": {
+          "type": "boolean",
+          "description": "Automatically reassign tasks to balance workload",
+          "required": false,
+          "default": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg",
+        "balance_by": "priority",
+        "auto_reassign": false
+      }
+    },
+    {
+      "name": "todo_smart_recurring_tasks",
+      "description": "Create recurring tasks with custom patterns",
+      "platform": "microsoft_todo",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "task_template": {
+          "type": "object",
+          "description": "Task template with title, description, importance",
+          "required": true
+        },
+        "recurrence": {
+          "type": "object",
+          "description": "Recurrence pattern (daily, weekly, monthly)",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "When to stop creating tasks (ISO 8601)",
+          "required": false
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "task_template": {
+          "title": "Weekly status report",
+          "importance": "high",
+          "body": "Prepare and send weekly team status"
+        },
+        "recurrence": {
+          "type": "weekly",
+          "day_of_week": "friday",
+          "time": "17:00"
+        },
+        "end_date": "2025-12-31T23:59:59Z"
+      }
+    },
+    {
+      "name": "planner_get_plan_progress",
+      "description": "Get progress statistics for a Planner plan",
+      "platform": "microsoft_todo",
+      "category": "advanced",
+      "priority": "medium",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "plan_id": {
+          "type": "string",
+          "description": "Plan ID",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg"
+      }
+    },
+    {
+      "name": "todo_export_tasks",
+      "description": "Export tasks to various formats",
+      "platform": "microsoft_todo",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "description": "User ID for authentication",
+          "required": true
+        },
+        "list_id": {
+          "type": "string",
+          "description": "Task list ID to export",
+          "required": true
+        },
+        "format": {
+          "type": "string",
+          "description": "Export format: 'csv', 'json', 'markdown'",
+          "required": false,
+          "default": "csv"
+        },
+        "output_path": {
+          "type": "string",
+          "description": "Local path to save export",
+          "required": true
+        }
+      },
+      "example": {
+        "user_id": "user123",
+        "list_id": "AAMkAGI...",
+        "format": "csv",
+        "output_path": "/exports/tasks.csv"
+      }
+    }
+  ]
+}
