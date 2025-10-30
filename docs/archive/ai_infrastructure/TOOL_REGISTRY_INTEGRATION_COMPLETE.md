@@ -228,7 +228,7 @@ FileNotFoundError: [Errno 2] No such file or directory:
 {
     "AI": {
         "AnthropicAPIKey": "sk-ant-...",
-        "Model": "claude-3-5-sonnet-20241022"
+        "Model": "claude-sonnet-4-5-20250929"
     }
 }
 ```

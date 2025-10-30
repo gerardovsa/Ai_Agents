@@ -31,9 +31,9 @@ try:
     import sys
     sys.path.insert(0, os.path.dirname(__file__))
     from config import Config
-    print("✅ Using AI_infrastructure/config.py for configuration")
+    print("[OK] Using AI_infrastructure/config.py for configuration")
 except (ImportError, AttributeError) as e:
-    print(f"⚠️ WARNING: Local config.py import failed ({e}) - using fallback configuration")
+    print(f"[WARNING] Local config.py import failed ({e}) - using fallback configuration")
     # Fallback configuration class with all required attributes
     class Config:
         """Flask app configuration - Fallback"""

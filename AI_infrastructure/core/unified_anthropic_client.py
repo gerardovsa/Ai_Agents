@@ -618,7 +618,8 @@ Always provide data-driven insights with actionable recommendations."""
         elif content_block.type == 'thinking':
             return {
                 'type': 'thinking',
-                'thinking': content_block.thinking
+                'thinking': content_block.thinking,
+                'signature': getattr(content_block, 'signature', '')  # Required by Anthropic API
             }
         elif content_block.type == 'tool_use':
             return {

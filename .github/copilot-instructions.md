@@ -2,7 +2,39 @@
 
 ## 🏗️ Architecture Overview
 
-This is a multi-agent AI platform with 564 tools across 19+ platforms. The Flask backend runs on port 5001 and provides a unified API for tool execution, session management, and multi-provider AI interactions.
+This is a multi-agent AI platform with 576 tools across 20+ platforms. The Flask backend runs on port 5001 and provides a unified API for tool execution, session management, and multi-provider AI interactions.
+
+## 🆕 Calculator Tools Integration (January 2025)
+
+**NEW**: InHouse Print quote calculators now accessible to AI agents!
+
+### Available Calculator Tools (7 total):
+1. `calculate_business_cards` - Business cards with Shopify pricing
+2. `calculate_flyers` - Flyers/leaflets (also handles business cards as 90x55mm)
+3. `calculate_perfect_bound_books` - Perfect bound books with glued spine
+4. `calculate_corflute_signs` - Rigid signage with tier pricing
+5. `calculate_booklets` - Saddle-stitched booklets
+6. `get_stock_list` - Available paper stocks
+7. `get_calculator_requirements` - Parameter requirements for any calculator
+
+### How It Works:
+- Wrapper in `tools/implementations/calculator.py` imports calculator from In_House_SQL project
+- Direct import strategy (no HTTP wrapper needed)
+- Connects to In_House_SQL database: `C:\Users\gpoli\GIT\In_House_SQL\G_Folder`
+- Uses `ComprehensiveQuoteCalculator` class from `complete_calculator_implementation.py`
+
+### Usage Example:
+```
+User: "Calculate quote for 1,000 business cards, double-sided, 350GSM Satin"
+AI: Calls calculate_business_cards(quantity=1000, stock_type="standard", ...)
+Returns: Quote with total price, per-card cost, stock details, turnaround time
+```
+
+### Files Created:
+- `tools/schemas/calculator_tools.json` - 7 tool definitions
+- `tools/implementations/calculator.py` - CalculatorWrapper class
+- `CALCULATOR_INTEGRATION_COMPLETE.md` - Complete documentation
+- `CALCULATOR_QUICK_START.md` - Quick reference guide
 
 ## 📋 Key Component Pattern
 
@@ -359,6 +391,6 @@ When completing tasks:
 
 ---
 
-**Last Updated:** October 29, 2025  
-**Version:** 1.0.0  
-**Status:** ✅ Production Ready
+**Last Updated:** January 2025  
+**Version:** 1.1.0  
+**Status:** ✅ Production Ready (with Calculator Integration)

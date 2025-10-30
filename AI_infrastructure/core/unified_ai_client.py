@@ -340,8 +340,10 @@ class UnifiedAIClient:
                     except:
                         pass
         
-        # Add to conversation (Anthropic format for consistency)
+        # ✅ Add to conversation (Anthropic format for consistency)
+        # DeepSeek doesn't support thinking blocks, but we preserve the format
         conversation.append({'role': 'user', 'content': [{'type': 'text', 'text': prompt}]})
+        # NOTE: DeepSeek responses are text-only (no thinking/tool_use support)
         conversation.append({'role': 'assistant', 'content': [{'type': 'text', 'text': assistant_text}]})
         
         return conversation
@@ -408,8 +410,10 @@ class UnifiedAIClient:
                         'index': 0
                     })
         
-        # Add to conversation (Anthropic format for consistency)
+        # ✅ Add to conversation (Anthropic format for consistency)
+        # OpenAI doesn't support thinking blocks, but we preserve the format
         conversation.append({'role': 'user', 'content': [{'type': 'text', 'text': prompt}]})
+        # NOTE: OpenAI responses are text-only (no thinking/tool_use support)
         conversation.append({'role': 'assistant', 'content': [{'type': 'text', 'text': assistant_text}]})
         
         return conversation
