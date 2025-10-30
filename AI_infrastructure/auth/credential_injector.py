@@ -25,7 +25,8 @@ from typing import Callable, Dict, Any, Optional
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from auth.user_auth import UserAuthManager
+# Import from same directory
+from .user_auth import UserAuthManager
 
 try:
     from google.oauth2.credentials import Credentials
@@ -102,7 +103,7 @@ def inject_user_credentials_into_tool(user_id: int, tool_name: str,
     
     # Determine if this is a Microsoft 365 tool
     microsoft_tools_prefixes = ['microsoft_', 'outlook_', 'teams_', 'onedrive_', 
-                                'sharepoint_', 'onenote_', 'planner_', 'todo_']
+                                'sharepoint_', 'onenote_', 'planner_', 'todo_', 'word_']
     
     is_google_tool = any(tool_name.startswith(prefix) for prefix in google_tools_prefixes)
     is_microsoft_tool = any(tool_name.startswith(prefix) for prefix in microsoft_tools_prefixes)

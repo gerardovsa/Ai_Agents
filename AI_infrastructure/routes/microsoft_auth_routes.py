@@ -6,7 +6,7 @@ User login with Microsoft 365 accounts
 """
 
 from flask import Blueprint, request, jsonify, redirect, url_for, session
-from auth.user_auth import user_auth_manager
+from auth.user_auth import user_auth_manager, require_auth
 from Microsoft_365_Connection.microsoft365_oauth_manager import (
     microsoft_oauth_manager,
     get_microsoft_auth_url,
@@ -561,6 +561,7 @@ def microsoft_config():
 
 
 @microsoft_auth_bp.route('/status', methods=['GET'])
+@require_auth
 def microsoft_status():
     """
     Check Microsoft connection status
@@ -571,41 +572,40 @@ def microsoft_status():
     Returns Microsoft connection status for current user
     """
     try:
-        # Get current user
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({
-                'success': False,
-                'error': 'Missing authorization header'
-            }), 401
+        # Get current user from request (set by auth middleware)
+        user_id = request.user['user_id']
         
-        jwt_token = auth_header.split(' ')[1]
-        user = user_auth_manager.verify_session(jwt_token)
+        # Check Microsoft tokens in database directly
+        import sqlite3
+        conn = get_db_connection()
+        cursor = conn.cursor()
         
-        if not user:
-            return jsonify({
-                'success': False,
-                'error': 'Invalid token'
-            }), 401
+        cursor.execute('''
+            SELECT credential_value, metadata, created_at
+            FROM user_platform_credentials
+            WHERE user_id = ?
+            AND platform IN ('microsoft', 'microsoft365')
+            AND credential_key = 'access_token'
+            AND is_active = 1
+            ORDER BY created_at DESC
+            LIMIT 1
+        ''', (user_id,))
         
-        # Check Microsoft connection
-        microsoft_data = user_auth_manager.get_microsoft_tokens(user['id'])
+        token_row = cursor.fetchone()
+        conn.close()
         
-        if microsoft_data:
-            # Get profile info from metadata
-            microsoft_email = microsoft_data.get('microsoft_email')
-            microsoft_id = microsoft_data.get('microsoft_id')
-            display_name = microsoft_data.get('display_name', microsoft_email)
+        if token_row:
+            import json
+            metadata = json.loads(token_row['metadata']) if token_row['metadata'] else {}
             
             return jsonify({
                 'success': True,
                 'connected': True,
-                'microsoft_email': microsoft_email,
-                'microsoft_id': microsoft_id,
-                'display_name': display_name,
-                'avatar_url': f"https://graph.microsoft.com/v1.0/users/{microsoft_id}/photo/$value" if microsoft_id else None,
-                'token_expires_at': microsoft_data.get('expires_at'),
-                'connected_at': microsoft_data.get('created_at')
+                'microsoft_email': metadata.get('microsoft_email'),
+                'microsoft_id': metadata.get('microsoft_id'),
+                'display_name': metadata.get('display_name', metadata.get('microsoft_email')),
+                'avatar_url': f"https://graph.microsoft.com/v1.0/users/{metadata.get('microsoft_id')}/photo/$value" if metadata.get('microsoft_id') else None,
+                'connected_at': token_row['created_at']
             })
         else:
             return jsonify({
@@ -615,6 +615,8 @@ def microsoft_status():
             
     except Exception as e:
         logger.error(f"❌ Microsoft status check failed: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)

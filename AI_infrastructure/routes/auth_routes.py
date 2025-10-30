@@ -253,35 +253,36 @@ def get_profile():
                 auth_platform = 'microsoft'
         
         # ✅ Check if user has active OAuth tokens in user_platform_credentials
+        # ✅ CRITICAL FIX: Check OAuth credentials for ALL users, not just OAuth-created accounts
+        # Local accounts (admin) can have linked OAuth credentials too!
         google_oauth_connected = False
         microsoft_oauth_connected = False
         
-        if auth_platform == 'google':
-            # Check for Google OAuth tokens (access_token)
-            cursor.execute('''
-                SELECT COUNT(*) as count 
-                FROM user_platform_credentials 
-                WHERE user_id = ? 
-                AND platform = 'google' 
-                AND credential_key = 'access_token'
-                AND is_active = 1
-            ''', (user_id,))
-            result = cursor.fetchone()
-            google_oauth_connected = result['count'] > 0 if result else False
-            
-        elif auth_platform == 'microsoft':
-            # Check for Microsoft OAuth tokens (access_token)
-            # ✅ Check for both 'microsoft' and 'microsoft365' for backwards compatibility
-            cursor.execute('''
-                SELECT COUNT(*) as count 
-                FROM user_platform_credentials 
-                WHERE user_id = ? 
-                AND (platform = 'microsoft' OR platform = 'microsoft365')
-                AND credential_key = 'access_token'
-                AND is_active = 1
-            ''', (user_id,))
-            result = cursor.fetchone()
-            microsoft_oauth_connected = result['count'] > 0 if result else False
+        # Always check for Google OAuth tokens (regardless of auth_platform)
+        cursor.execute('''
+            SELECT COUNT(*) as count 
+            FROM user_platform_credentials 
+            WHERE user_id = ? 
+            AND platform = 'google' 
+            AND credential_type = 'oauth'
+            AND credential_key = 'access_token'
+            AND is_active = 1
+        ''', (user_id,))
+        result = cursor.fetchone()
+        google_oauth_connected = result['count'] > 0 if result else False
+        
+        # Always check for Microsoft OAuth tokens (regardless of auth_platform)
+        cursor.execute('''
+            SELECT COUNT(*) as count 
+            FROM user_platform_credentials 
+            WHERE user_id = ? 
+            AND (platform = 'microsoft' OR platform = 'microsoft365')
+            AND credential_type = 'oauth'
+            AND credential_key = 'access_token'
+            AND is_active = 1
+        ''', (user_id,))
+        result = cursor.fetchone()
+        microsoft_oauth_connected = result['count'] > 0 if result else False
         
         conn.close()
         

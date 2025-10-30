@@ -162,28 +162,71 @@ def oauth_workspace_callback():
             'expiry': credentials.expiry.isoformat() if credentials.expiry else None
         }
         
-        # Check if user exists
-        # For now, we'll use session to pass data to dashboard
-        # In production, store encrypted token in database
+        # ✅ Store in database (user_platform_credentials table)
+        import sqlite3
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ai_infrastructure.db')
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
         
+        # Get or create user
+        cursor.execute('SELECT id FROM users WHERE email = ?', (user_email,))
+        user_row = cursor.fetchone()
+        
+        if user_row:
+            user_id = user_row['id']
+            print(f"✅ Found existing user: {user_id}")
+        else:
+            # Auto-create user if OAuth login
+            username = user_email.split('@')[0]
+            cursor.execute(
+                'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
+                (username, user_email, 'oauth_google', 'user')
+            )
+            user_id = cursor.lastrowid
+            print(f"✅ Created new user: {user_id}")
+        
+        # Store access token with proper schema
+        cursor.execute('''
+            INSERT OR REPLACE INTO user_platform_credentials 
+            (user_id, platform, credential_type, credential_key, credential_value, is_active, metadata, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (user_id, 'google', 'oauth', 'access_token', credentials.token, 1, json.dumps({
+            'scopes': list(credentials.scopes),
+            'expiry': credentials.expiry.isoformat() if credentials.expiry else None,
+            'user_email': user_email
+        })))
+        
+        # Store refresh token if available
+        if credentials.refresh_token:
+            cursor.execute('''
+                INSERT OR REPLACE INTO user_platform_credentials 
+                (user_id, platform, credential_type, credential_key, credential_value, is_active, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (user_id, 'google', 'oauth', 'refresh_token', credentials.refresh_token, 1))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Stored Google OAuth credentials in database for user {user_id}")
+        
+        # Also store in session for immediate use
         session['user_email'] = user_email
+        session['user_id'] = user_id
         session['oauth_connected'] = True
-        session['oauth_token'] = json.dumps(token_data)
         
-        # Store token in user's token file (temporary solution)
-        token_file = config.get('token_file', 'token_unified_web.json')
+        # Generate JWT token for the user
+        from auth.user_auth import user_auth_manager
+        jwt_token = user_auth_manager.generate_jwt({
+            'id': user_id,
+            'username': username if not user_row else None,
+            'email': user_email,
+            'role': 'user'
+        })
         
-        # Add user email to token file name for multi-user support
-        token_file_user = token_file.replace('.json', f'_{user_email.replace("@", "_at_")}.json')
-        
-        with open(token_file_user, 'w') as f:
-            json.dump(token_data, f, indent=2)
-        
-        print(f"💾 Token saved: {token_file_user}")
-        
-        # Redirect to dashboard with success message
-        success_msg = f"Google Workspace connected! All services ready."
-        return redirect(f'/dashboard?success={success_msg}')
+        # Redirect to main app with JWT token
+        print(f"✅ OAuth login successful, redirecting with JWT token")
+        return redirect(f'http://localhost:5001/?token={jwt_token}')
         
     except Exception as e:
         print(f"❌ OAuth callback error: {e}")
