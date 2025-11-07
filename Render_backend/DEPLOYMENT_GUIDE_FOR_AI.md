@@ -36,7 +36,7 @@ This guide provides **step-by-step instructions** for deploying the AI Agents pl
 
 ## 1. Prerequisites Check
 
-### ✅ Checklist
+###  Checklist
 
 Run this command to check prerequisites:
 
@@ -235,7 +235,7 @@ python Render_backend/deploy_to_render.py
 
 **Expected output:**
 ```
-✅ Service created successfully!
+ Service created successfully!
    Service ID: srv-xxxxxxxxxxxxx
    Service URL: https://ai-agents-backend-xxxx.onrender.com
    Dashboard: https://dashboard.render.com/web/srv-xxxxxxxxxxxxx
@@ -305,7 +305,7 @@ python Render_backend/monitor_deployment.py --service-id srv-xxxxxxxxxxxxx
 3. ⏳ Installing dependencies (pip)
 4. ⏳ Starting Flask server
 5. ⏳ Loading 564 tools
-6. ✅ Service live
+6.  Service live
 
 ### Step 6.2: Update OAuth Redirect URLs
 
@@ -368,12 +368,12 @@ python Render_backend/test_deployment.py --service-url https://ai-agents-backend
 ```
 
 **Tests performed:**
-1. ✅ Health endpoint: `/health`
-2. ✅ Agent endpoint: `/api/agent/query`
-3. ✅ OAuth endpoints: `/api/auth/microsoft/login`, `/api/auth/google/login`
-4. ✅ Tool registry: Check 564 tools loaded
-5. ✅ Database connection
-6. ✅ Response time (<2s)
+1.  Health endpoint: `/health`
+2.  Agent endpoint: `/api/agent/query`
+3.  OAuth endpoints: `/api/auth/microsoft/login`, `/api/auth/google/login`
+4.  Tool registry: Check 564 tools loaded
+5.  Database connection
+6.  Response time (<2s)
 
 ### Step 7.2: Manual Testing
 
@@ -534,4 +534,4 @@ python Render_backend/test_deployment.py
 
 **Last Updated:** October 29, 2025  
 **Version:** 1.0.0  
-**Status:** ✅ Complete Guide for AI Deployment
+**Status:**  Complete Guide for AI Deployment

@@ -44,19 +44,19 @@ for i in range(60):  # Check for 10 minutes (60 * 10 seconds)
             elif status == 'update_in_progress':
                 print(f"   🔄 Updating... (check #{i+1})")
             elif status == 'live':
-                print(f"   ✅ LIVE! Deploy complete!")
+                print(f"    LIVE! Deploy complete!")
                 print(f"\n{'='*80}")
                 print(f"DEPLOY SUCCESSFUL!")
                 print(f"{'='*80}")
-                print(f"\n✅ Streamlit URL: https://inhouseprint-streamlit.onrender.com")
-                print(f"✅ FLASK_URL env var: https://inhouseprint-flask.onrender.com")
+                print(f"\n Streamlit URL: https://inhouseprint-streamlit.onrender.com")
+                print(f" FLASK_URL env var: https://inhouseprint-flask.onrender.com")
                 print(f"\n🎉 NOW TEST THE CONNECTION:")
                 print(f"   1. Visit: https://inhouseprint-streamlit.onrender.com")
                 print(f"   2. Navigate to: 'Stock Management & Analytics' page")
                 print(f"   3. It should now load Flask dashboard (no more 'Flask not running' error)")
                 break
             elif status in ['build_failed', 'update_failed', 'canceled']:
-                print(f"   ❌ DEPLOY FAILED: {status}")
+                print(f"    DEPLOY FAILED: {status}")
                 print(f"\nCheck logs at: https://dashboard.render.com/web/{service_id}")
                 break
             else:

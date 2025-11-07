@@ -257,10 +257,10 @@ print(result['chart_id'])
 ```
 User Request: "Create a report with charts"
 ├─ Multiple charts + professional document?
-│  └─ ✅ Use: google_docs_create_professional_report_with_charts
+│  └─  Use: google_docs_create_professional_report_with_charts
 │
 ├─ Just need a chart in spreadsheet?
-│  └─ ✅ Use: google_charts_create
+│  └─  Use: google_charts_create
 │
 └─ Need to add chart to existing doc?
    └─ ⚠️ Use: Manual workflow (create chart, user copies it)
@@ -278,7 +278,7 @@ I'll create a professional financial report with interactive charts for Q1 2025.
 
 [Calls: google_docs_create_professional_report_with_charts with appropriate data]
 
-✅ Report created successfully!
+ Report created successfully!
 
 📄 **Google Doc**: [URL]
 📊 **Spreadsheet with Charts**: [URL]
@@ -314,7 +314,7 @@ I'll create a bar chart showing sales by region.
 
 [Calls: google_charts_create with regional data]
 
-✅ Chart created!
+ Chart created!
 
 📊 **View Chart**: [Spreadsheet URL]
 
@@ -335,10 +335,10 @@ Would you like me to create a full report document with this chart?
 
 ### NO EMOJIS EVER
 **NEVER use emojis in Google Docs or Sheets!**
-- ❌ Emojis corrupt document structure
-- ❌ Causes rendering failures
-- ❌ Breaks formatting
-- ✅ Use text descriptions instead
+-  Emojis corrupt document structure
+-  Causes rendering failures
+-  Breaks formatting
+-  Use text descriptions instead
 
 ### Chart Title Formatting
 - Titles are automatically: **Black, Bold, Centered**
@@ -414,7 +414,7 @@ Would you like me to create a full report document with this chart?
 
 ---
 
-## ✅ Success Checklist
+##  Success Checklist
 
 Before telling user "Done":
 - [ ] Document URL provided
@@ -431,4 +431,4 @@ Before telling user "Done":
 
 **Last Updated**: October 27, 2025  
 **Version**: 1.0.0  
-**Status**: ✅ Production Ready
+**Status**:  Production Ready

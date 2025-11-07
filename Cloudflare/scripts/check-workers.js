@@ -51,7 +51,7 @@ async function checkWorkers() {
         // Get all Workers
         console.log('\n📋 Fetching deployed Workers...\n');
         const workers = await makeRequest(`/client/v4/accounts/${ACCOUNT_ID}/workers/scripts`);
-        
+
         if (workers.length === 0) {
             console.log('⚠️  No Workers found in account.\n');
             console.log('💡 This might mean:');
@@ -61,13 +61,13 @@ async function checkWorkers() {
             return;
         }
 
-        console.log(`✅ Found ${workers.length} Worker(s):\n`);
+        console.log(`Found ${workers.length} Worker(s):\n`);
 
         for (const worker of workers) {
             console.log(`📦 ${worker.id}`);
             console.log(`   Created: ${new Date(worker.created_on).toLocaleString()}`);
             console.log(`   Modified: ${new Date(worker.modified_on).toLocaleString()}`);
-            
+
             // Try to get routes
             try {
                 const routes = await makeRequest(`/client/v4/accounts/${ACCOUNT_ID}/workers/scripts/${worker.id}/routes`);
@@ -80,33 +80,33 @@ async function checkWorkers() {
             } catch (error) {
                 console.log(`   ⚠️  Could not fetch routes`);
             }
-            
+
             console.log('');
         }
 
         // Check zone routes
         console.log('\n🌐 Checking Zone-specific Worker Routes...\n');
         const zones = await makeRequest(`/client/v4/zones?account.id=${ACCOUNT_ID}`);
-        
+
         for (const zone of zones) {
             console.log(`📍 ${zone.name}:`);
             try {
                 const routes = await makeRequest(`/client/v4/zones/${zone.id}/workers/routes`);
                 if (routes.length > 0) {
                     routes.forEach(route => {
-                        console.log(`   ✅ ${route.pattern} → ${route.script || 'No script'}`);
+                        console.log(`   {route.pattern} → ${route.script || 'No script'}`);
                     });
                 } else {
                     console.log(`   ℹ️  No Worker routes configured`);
                 }
             } catch (error) {
-                console.log(`   ❌ Could not fetch routes: ${error.message}`);
+                console.log(`    Could not fetch routes: ${error.message}`);
             }
             console.log('');
         }
 
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
     }
 
     console.log('━'.repeat(80));

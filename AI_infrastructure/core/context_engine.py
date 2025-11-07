@@ -332,7 +332,7 @@ class ContextEngine:
 - {temporal['greeting']}! It's {temporal['time_of_day']} for the user.
 - Current time: {temporal['time']} ({temporal['timezone']})
 - Day: {temporal['day_of_week'].title()}, {temporal['date']}
-- {'✅ Work hours' if temporal['is_work_hours'] else '⏸️ Outside work hours'}
+- {' Work hours' if temporal['is_work_hours'] else '⏸️ Outside work hours'}
 - {'🏢 Work day' if temporal['is_work_day'] else '🏖️ Weekend/Off day'}
 - Season: {temporal['season'].title()}
 
@@ -345,7 +345,7 @@ class ContextEngine:
 {'- ' + chr(10).join([f"📁 {p['name']} ({p['status']})" for p in projects['active_projects']]) if projects['active_projects'] else '- No active projects yet'}
 
 **Completed Work:**
-{'- ' + chr(10).join([f"✅ {p['name']}" for p in projects['completed_projects']]) if projects['completed_projects'] else '- No completed projects yet'}
+{'- ' + chr(10).join([f" {p['name']}" for p in projects['completed_projects']]) if projects['completed_projects'] else '- No completed projects yet'}
 
 **AI Behavior Adjustments:**
 - Greeting style: Use "{temporal['greeting']}" appropriate for {temporal['time_of_day']}

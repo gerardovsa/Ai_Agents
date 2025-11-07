@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +25,7 @@
             --space-4: 16px;
             --space-5: 24px;
             --space-6: 32px;
-            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-primary: 'Roboto', Arial, sans-serif;
         }
 
         * {
@@ -125,7 +126,7 @@
 
         .status-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -134,7 +135,7 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-default);
             border-radius: 12px;
-            padding: var(--space-5);
+            padding: var(--space-3);
             transition: all 0.2s ease;
         }
 
@@ -148,7 +149,7 @@
             color: var(--text-primary);
             font-size: 16px;
             font-weight: 600;
-            margin-bottom: var(--space-3);
+            margin-bottom: var(--space-2);
             display: flex;
             align-items: center;
             gap: var(--space-2);
@@ -321,6 +322,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>
@@ -344,7 +346,8 @@
 
         <div class="welcome-card">
             <h2>Welcome to Your AI Dashboard! 🎉</h2>
-            <p>Your AI-powered business platform is ready to help you automate tasks, manage emails, create documents, and more.</p>
+            <p>Your AI-powered business platform is ready to help you automate tasks, manage emails, create documents,
+                and more.</p>
         </div>
 
         <div class="status-cards">
@@ -367,7 +370,8 @@
                 <button class="button" id="connect-btn" onclick="connectWorkspace()" style="display: none;">
                     🔗 Connect Google Workspace
                 </button>
-                <button class="button secondary" id="disconnect-btn" onclick="disconnectWorkspace()" style="display: none;">
+                <button class="button secondary" id="disconnect-btn" onclick="disconnectWorkspace()"
+                    style="display: none;">
                     🔓 Disconnect
                 </button>
             </div>
@@ -405,24 +409,21 @@
                 Ask the AI to help you with tasks like creating documents, sending emails, scheduling events, and more.
             </p>
             <div class="chat-input-container">
-                <input 
-                    type="text" 
-                    class="chat-input" 
-                    id="chat-input"
+                <input type="text" class="chat-input" id="chat-input"
                     placeholder="Type your message... (e.g., 'Create a marketing plan document')"
-                    onkeypress="handleChatKeypress(event)"
-                >
+                    onkeypress="handleChatKeypress(event)">
                 <button class="send-btn" id="send-btn" onclick="sendMessage()">
                     📤 Send
                 </button>
             </div>
-            <div id="chat-response" style="margin-top: 20px; padding: 16px; background: #0d1117; border-radius: 8px; display: none;"></div>
+            <div id="chat-response"
+                style="margin-top: 20px; padding: 16px; background: #0d1117; border-radius: 8px; display: none;"></div>
         </div>
     </div>
 
     <script>
-        const API_BASE_URL = window.location.hostname === 'localhost' 
-            ? 'http://localhost:4000' 
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:4000'
             : window.location.origin;
 
         // Check authentication on load
@@ -434,7 +435,7 @@
 
         async function checkAuth() {
             const token = localStorage.getItem('auth_token');
-            
+
             if (!token) {
                 window.location.href = '/login';
                 return;
@@ -476,7 +477,7 @@
                 if (result.connected) {
                     statusIndicator.classList.add('connected');
                     statusText.textContent = 'Connected';
-                    oauthStatusText.textContent = '✅ Connected to Google Workspace';
+                    oauthStatusText.textContent = ' Connected to Google Workspace';
                     serviceList.style.display = 'block';
                     disconnectBtn.style.display = 'block';
                     connectBtn.style.display = 'none';
@@ -499,7 +500,7 @@
 
             if (success) {
                 const alert = document.getElementById('alert');
-                alert.textContent = `✅ ${success}`;
+                alert.textContent = ` ${success}`;
                 alert.classList.add('show');
 
                 // Remove param from URL
@@ -529,14 +530,14 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('✅ Google Workspace disconnected');
+                    alert(' Google Workspace disconnected');
                     await checkOAuthStatus();
                 } else {
-                    alert(`❌ ${result.error}`);
+                    alert(` ${result.error}`);
                 }
             } catch (error) {
                 console.error('Disconnect error:', error);
-                alert('❌ Network error');
+                alert(' Network error');
             }
         }
 
@@ -549,13 +550,13 @@
 
         function quickAction(action) {
             const chatInput = document.getElementById('chat-input');
-            
+
             if (action === 'create-doc') {
                 chatInput.value = 'Create a new document called "Business Plan"';
             } else if (action === 'send-email') {
                 chatInput.value = 'Send an email to team@example.com with subject "Meeting Update"';
             }
-            
+
             chatInput.focus();
         }
 
@@ -598,12 +599,12 @@
 
                 if (result.success || result.response) {
                     chatResponse.innerHTML = `
-                        <p style="color: #3fb950; margin-bottom: 8px;">✅ AI Response:</p>
+                        <p style="color: #3fb950; margin-bottom: 8px;"> AI Response:</p>
                         <p style="color: #c9d1d9;">${result.response || result.message}</p>
                     `;
                 } else {
                     chatResponse.innerHTML = `
-                        <p style="color: #f85149;">❌ Error: ${result.error || 'Unknown error'}</p>
+                        <p style="color: #f85149;"> Error: ${result.error || 'Unknown error'}</p>
                     `;
                 }
 
@@ -611,7 +612,7 @@
             } catch (error) {
                 console.error('Chat error:', error);
                 chatResponse.innerHTML = `
-                    <p style="color: #f85149;">❌ Network error. Please try again.</p>
+                    <p style="color: #f85149;"> Network error. Please try again.</p>
                 `;
             } finally {
                 sendBtn.disabled = false;
@@ -620,4 +621,5 @@
         }
     </script>
 </body>
+
 </html>

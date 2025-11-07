@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "cloudflare_deploy_worker",
-      "description": "Deploy a Cloudflare Worker script",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDeploy a Cloudflare Worker script",
       "platform": "cloudflare",
       "parameters": {
         "worker_name": {
@@ -33,14 +33,16 @@
           "parameters": {
             "worker_name": "api-handler",
             "script_path": "/path/to/worker.js",
-            "routes": ["api.example.com/*"]
+            "routes": [
+              "api.example.com/*"
+            ]
           }
         }
       ]
     },
     {
       "name": "cloudflare_list_workers",
-      "description": "List all deployed Cloudflare Workers",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all deployed Cloudflare Workers",
       "platform": "cloudflare",
       "parameters": {},
       "returns": {
@@ -50,7 +52,7 @@
     },
     {
       "name": "cloudflare_get_worker_logs",
-      "description": "Fetch logs for a specific Worker",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFetch logs for a specific Worker",
       "platform": "cloudflare",
       "parameters": {
         "worker_name": {
@@ -72,7 +74,7 @@
     },
     {
       "name": "cloudflare_worker_status",
-      "description": "Check the health/status of a Worker",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck the health/status of a Worker",
       "platform": "cloudflare",
       "parameters": {
         "worker_name": {

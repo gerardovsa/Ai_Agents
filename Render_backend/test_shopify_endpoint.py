@@ -15,13 +15,13 @@ print(f"\nURL: {FLASK_URL}/shopify-dashboard")
 
 try:
     response = requests.get(f"{FLASK_URL}/shopify-dashboard", timeout=30)
-    print(f"\n✅ Status Code: {response.status_code}")
+    print(f"\n Status Code: {response.status_code}")
     
     if response.status_code == 200:
-        print(f"✅ SUCCESS! Page loaded successfully")
+        print(f" SUCCESS! Page loaded successfully")
         print(f"   Content Length: {len(response.content)} bytes")
     else:
-        print(f"❌ ERROR! Status {response.status_code}")
+        print(f" ERROR! Status {response.status_code}")
         print(f"\nResponse Headers:")
         for key, value in response.headers.items():
             print(f"   {key}: {value}")
@@ -30,11 +30,11 @@ try:
         print(response.text[:2000])  # First 2000 characters
         
 except requests.Timeout:
-    print(f"❌ TIMEOUT after 30s")
+    print(f" TIMEOUT after 30s")
 except requests.ConnectionError as e:
-    print(f"❌ CONNECTION ERROR: {e}")
+    print(f" CONNECTION ERROR: {e}")
 except Exception as e:
-    print(f"❌ ERROR: {e}")
+    print(f" ERROR: {e}")
 
 # Also test other working endpoints for comparison
 print("\n" + "=" * 80)

@@ -79,7 +79,7 @@ def supabase_query(table: str, select: str = "*", filters: dict = None,
         }
         
     except Exception as e:
-        print(f"❌ Query failed: {e}")
+        print(f" Query failed: {e}")
         raise
 
 
@@ -106,7 +106,7 @@ def supabase_insert(table: str, data: dict):
         }
         
     except Exception as e:
-        print(f"❌ Insert failed: {e}")
+        print(f" Insert failed: {e}")
         raise
 
 
@@ -140,7 +140,7 @@ def supabase_update(table: str, data: dict, filters: dict):
         }
         
     except Exception as e:
-        print(f"❌ Update failed: {e}")
+        print(f" Update failed: {e}")
         raise
 
 
@@ -173,7 +173,7 @@ def supabase_delete(table: str, filters: dict):
         }
         
     except Exception as e:
-        print(f"❌ Delete failed: {e}")
+        print(f" Delete failed: {e}")
         raise
 
 
@@ -204,7 +204,7 @@ def supabase_auth_user(email: str, password: str):
         }
         
     except Exception as e:
-        print(f"❌ Authentication failed: {e}")
+        print(f" Authentication failed: {e}")
         raise
 
 
@@ -245,7 +245,7 @@ def supabase_storage_upload(bucket: str, file_path: str, file_content: str):
         }
         
     except Exception as e:
-        print(f"❌ Upload failed: {e}")
+        print(f" Upload failed: {e}")
         raise
 
 
@@ -272,7 +272,7 @@ def supabase_rpc(function_name: str, parameters: dict = None):
         }
         
     except Exception as e:
-        print(f"❌ RPC call failed: {e}")
+        print(f" RPC call failed: {e}")
         raise
 
 
@@ -306,7 +306,7 @@ def supabase_count(table: str, filters: dict = None):
         }
         
     except Exception as e:
-        print(f"❌ Count failed: {e}")
+        print(f" Count failed: {e}")
         raise
 
 
@@ -341,7 +341,7 @@ def supabase_auth_signup(email: str, password: str, metadata: dict = None):
         }
         
     except Exception as e:
-        print(f"❌ Signup failed: {e}")
+        print(f" Signup failed: {e}")
         raise
 
 
@@ -372,7 +372,7 @@ def supabase_auth_signin(email: str, password: str):
         }
         
     except Exception as e:
-        print(f"❌ Sign in failed: {e}")
+        print(f" Sign in failed: {e}")
         raise
 
 
@@ -394,7 +394,7 @@ def supabase_auth_signout():
         }
         
     except Exception as e:
-        print(f"❌ Sign out failed: {e}")
+        print(f" Sign out failed: {e}")
         raise
 
 
@@ -416,7 +416,7 @@ def supabase_auth_get_user():
         }
         
     except Exception as e:
-        print(f"❌ Get user failed: {e}")
+        print(f" Get user failed: {e}")
         raise
 
 
@@ -453,7 +453,7 @@ def supabase_auth_update_user(email: str = None, password: str = None, metadata:
         }
         
     except Exception as e:
-        print(f"❌ Update user failed: {e}")
+        print(f" Update user failed: {e}")
         raise
 
 
@@ -479,7 +479,7 @@ def supabase_auth_reset_password(email: str):
         }
         
     except Exception as e:
-        print(f"❌ Password reset failed: {e}")
+        print(f" Password reset failed: {e}")
         raise
 
 
@@ -510,7 +510,7 @@ def supabase_auth_invite_user(email: str, metadata: dict = None):
         }
         
     except Exception as e:
-        print(f"❌ Invite user failed: {e}")
+        print(f" Invite user failed: {e}")
         raise
 
 
@@ -538,7 +538,7 @@ def supabase_storage_download(bucket: str, file_path: str):
         }
         
     except Exception as e:
-        print(f"❌ Download failed: {e}")
+        print(f" Download failed: {e}")
         raise
 
 
@@ -565,7 +565,7 @@ def supabase_storage_delete(bucket: str, file_paths: list):
         }
         
     except Exception as e:
-        print(f"❌ Delete failed: {e}")
+        print(f" Delete failed: {e}")
         raise
 
 
@@ -596,7 +596,7 @@ def supabase_storage_list(bucket: str, path: str = '', limit: int = 100):
         }
         
     except Exception as e:
-        print(f"❌ List failed: {e}")
+        print(f" List failed: {e}")
         raise
 
 
@@ -623,7 +623,7 @@ def supabase_storage_get_public_url(bucket: str, file_path: str):
         }
         
     except Exception as e:
-        print(f"❌ Get public URL failed: {e}")
+        print(f" Get public URL failed: {e}")
         raise
 
 
@@ -652,7 +652,7 @@ def supabase_storage_create_signed_url(bucket: str, file_path: str, expires_in: 
         }
         
     except Exception as e:
-        print(f"❌ Create signed URL failed: {e}")
+        print(f" Create signed URL failed: {e}")
         raise
 
 
@@ -681,7 +681,7 @@ def supabase_storage_move(bucket: str, from_path: str, to_path: str):
         }
         
     except Exception as e:
-        print(f"❌ Move failed: {e}")
+        print(f" Move failed: {e}")
         raise
 
 
@@ -710,7 +710,7 @@ def supabase_realtime_subscribe(table: str, event: str = '*', callback: str = No
         }
         
     except Exception as e:
-        print(f"❌ Subscribe failed: {e}")
+        print(f" Subscribe failed: {e}")
         raise
 
 
@@ -740,7 +740,7 @@ def supabase_create_bucket(bucket_name: str, public: bool = False):
         }
         
     except Exception as e:
-        print(f"❌ Create bucket failed: {e}")
+        print(f" Create bucket failed: {e}")
         raise
 
 
@@ -763,7 +763,7 @@ def supabase_list_buckets():
         }
         
     except Exception as e:
-        print(f"❌ List buckets failed: {e}")
+        print(f" List buckets failed: {e}")
         raise
 
 
@@ -789,7 +789,7 @@ def supabase_delete_bucket(bucket_name: str):
         }
         
     except Exception as e:
-        print(f"❌ Delete bucket failed: {e}")
+        print(f" Delete bucket failed: {e}")
         raise
 
 
@@ -824,10 +824,10 @@ def supabase_get_schema(table: str = None):
             }
         
     except Exception as e:
-        print(f"❌ Get schema failed: {e}")
+        print(f" Get schema failed: {e}")
         raise
 
 
 if __name__ == "__main__":
     # Test the tools
-    print("✅ Supabase tools loaded - ALL 25 functions implemented")
+    print(" Supabase tools loaded - ALL 25 functions implemented")

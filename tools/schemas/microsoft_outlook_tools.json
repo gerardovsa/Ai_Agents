@@ -1,672 +1,870 @@
 {
   "platform": "microsoft_outlook",
-  "description": "Microsoft 365 Outlook API - Send emails, read messages, search inbox, manage folders, organize with categories, set rules, and automate email workflows. Includes SMART tools for bulk operations and common patterns.",
+  "description": "Microsoft 365 Outlook API - Send emails, read messages, search inbox, manage folders, organize with categories, set rules, and automate email workflows. Includes SMART tools for bulk operations and common patterns.\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "version": "1.0.0",
   "tools": [
     {
-      "name": "outlook_send_email",
-      "description": "Send an email via Microsoft 365 Outlook. Supports HTML content, attachments, CC, BCC, importance flags, and read receipts.",
+      "name": "microsoft_outlook_send_email",
+      "description": "⚠️ TEMPORARILY DISABLED: This tool now saves emails to DRAFTS instead of sending them.\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_send_email', ...) - DO NOT call directly!\n\nCURRENT BEHAVIOR: Creates a draft email in Outlook Drafts folder instead of sending. User must manually review and send from Outlook.\n\nOriginal purpose: Send an email via Microsoft 365 Outlook. Supports HTML content, attachments, CC, BCC, importance flags, and read receipts.\n\nExample response:\nDraft Saved: **Email Draft**\n- Draft ID: `abc123`\n- Note: Email saved to Drafts folder for manual sending\n- Action Required: Open Outlook and send manually",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "to": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Recipient email addresses",
-          "required": true,
-          "example": ["user@example.com", "team@company.com"]
-        },
-        "subject": {
-          "type": "string",
-          "description": "Email subject line",
-          "required": true,
-          "example": "Q4 Project Update"
-        },
-        "body": {
-          "type": "string",
-          "description": "Email body content (plain text or HTML)",
-          "required": true,
-          "example": "<p>Hello team,</p><p>Here's the Q4 update...</p>"
-        },
-        "body_type": {
-          "type": "string",
-          "enum": ["text", "html"],
-          "description": "Body content type (default: html)",
-          "default": "html"
-        },
-        "cc": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "CC recipients (optional)",
-          "required": false
-        },
-        "bcc": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "BCC recipients (optional)",
-          "required": false
-        },
-        "importance": {
-          "type": "string",
-          "enum": ["low", "normal", "high"],
-          "description": "Email importance (default: normal)",
-          "default": "normal"
-        },
-        "attachments": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {"type": "string"},
-              "content": {"type": "string", "description": "Base64 encoded file content"},
-              "content_type": {"type": "string"}
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "array",
+            "description": "Recipient email addresses",
+            "items": {
+              "type": "string"
             }
           },
-          "description": "File attachments (optional)",
-          "required": false
+          "subject": {
+            "type": "string",
+            "description": "Email subject line"
+          },
+          "body": {
+            "type": "string",
+            "description": "Email body content (plain text or HTML)"
+          },
+          "body_type": {
+            "type": "string",
+            "description": "Body content type (default: html)",
+            "default": "html",
+            "enum": [
+              "text",
+              "html"
+            ]
+          },
+          "cc": {
+            "type": "array",
+            "description": "CC recipients (optional)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bcc": {
+            "type": "array",
+            "description": "BCC recipients (optional)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "importance": {
+            "type": "string",
+            "description": "Email importance (default: normal)",
+            "default": "normal",
+            "enum": [
+              "low",
+              "normal",
+              "high"
+            ]
+          },
+          "attachments": {
+            "type": "array",
+            "description": "File attachments (optional)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Base64 encoded file content"
+                },
+                "content_type": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "request_read_receipt": {
+            "type": "boolean",
+            "description": "Request read receipt (default: false)",
+            "default": false
+          }
         },
-        "request_read_receipt": {
-          "type": "boolean",
-          "description": "Request read receipt (default: false)",
-          "default": false
-        }
+        "required": [
+          "to",
+          "subject",
+          "body"
+        ]
       },
-      "required": ["to", "subject", "body"]
+      "required": [
+        "to",
+        "subject",
+        "body"
+      ]
     },
     {
-      "name": "outlook_smart_bulk_send_personalized",
-      "description": "🎯 SMART: Send personalized emails to multiple recipients with mail merge. Automatically handles rate limiting, personalization with {{fields}}, and tracks delivery status. Much more efficient than calling outlook_send_email in a loop.",
+      "name": "microsoft_outlook_smart_bulk_send_personalized",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_bulk_send_personalized', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Send personalized emails to multiple recipients with mail merge. Automatically handles rate limiting, personalization with {{fields}}, and tracks delivery status. Much more efficient than calling outlook_send_email in a loop.",
       "platform": "microsoft_outlook",
       "category": "smart_bundled",
       "priority": "high",
       "parameters": {
-        "subject_template": {
-          "type": "string",
-          "description": "Subject line with {{placeholder}} fields",
-          "required": true,
-          "example": "Welcome to {{company}}, {{first_name}}!"
-        },
-        "body_template": {
-          "type": "string",
-          "description": "Email body with {{placeholder}} fields (HTML supported)",
-          "required": true,
-          "example": "<p>Hi {{first_name}},</p><p>Welcome to {{company}}!</p>"
-        },
-        "recipients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "email": {"type": "string"},
-              "merge_fields": {"type": "object"}
+        "type": "object",
+        "properties": {
+          "subject_template": {
+            "type": "string",
+            "description": "Subject line with {{placeholder}} fields"
+          },
+          "body_template": {
+            "type": "string",
+            "description": "Email body with {{placeholder}} fields (HTML supported)"
+          },
+          "recipients": {
+            "type": "array",
+            "description": "List of recipients with personalization data",
+            "items": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "merge_fields": {
+                  "type": "object"
+                }
+              }
             }
           },
-          "description": "List of recipients with personalization data",
-          "required": true,
-          "example": [
-            {
-              "email": "john@example.com",
-              "merge_fields": {"first_name": "John", "company": "Acme Corp"}
-            }
-          ]
+          "importance": {
+            "type": "string",
+            "description": "",
+            "default": "normal",
+            "enum": [
+              "low",
+              "normal",
+              "high"
+            ]
+          },
+          "delay_seconds": {
+            "type": "integer",
+            "description": "Delay between sends to avoid rate limits (default: 1)",
+            "default": 1
+          }
         },
-        "importance": {
-          "type": "string",
-          "enum": ["low", "normal", "high"],
-          "default": "normal"
-        },
-        "delay_seconds": {
-          "type": "integer",
-          "description": "Delay between sends to avoid rate limits (default: 1)",
-          "default": 1
-        }
+        "required": [
+          "subject_template",
+          "body_template",
+          "recipients"
+        ]
       },
-      "required": ["subject_template", "body_template", "recipients"]
+      "required": [
+        "subject_template",
+        "body_template",
+        "recipients"
+      ]
     },
     {
-      "name": "outlook_list_messages",
-      "description": "List emails from inbox or specific folder. Returns message metadata including sender, subject, preview, and date.",
+      "name": "microsoft_outlook_list_messages",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList emails from inbox or specific folder. Returns message metadata including sender, subject, preview, and date.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "folder": {
-          "type": "string",
-          "description": "Folder to list from (default: inbox). Use folder ID or well-known names: inbox, sentitems, drafts, deleteditems, junkemail",
-          "default": "inbox"
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "description": "Folder to list from (default: inbox). Use folder ID or well-known names: inbox, sentitems, drafts, deleteditems, junkemail",
+            "default": "inbox"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of messages to return (default: 50, max: 500)",
+            "default": 50
+          },
+          "filter": {
+            "type": "string",
+            "description": "OData filter query (e.g., 'from/emailAddress/address eq \"user@example.com\"')"
+          },
+          "search": {
+            "type": "string",
+            "description": "Search query string (searches subject, body, sender)"
+          },
+          "order_by": {
+            "type": "string",
+            "description": "Sort order (default: 'receivedDateTime desc')",
+            "default": "receivedDateTime desc"
+          },
+          "unread_only": {
+            "type": "boolean",
+            "description": "Return only unread messages (default: false)",
+            "default": false
+          }
         },
-        "max_results": {
-          "type": "integer",
-          "description": "Maximum number of messages to return (default: 50, max: 500)",
-          "default": 50
-        },
-        "filter": {
-          "type": "string",
-          "description": "OData filter query (e.g., 'from/emailAddress/address eq \"user@example.com\"')",
-          "required": false
-        },
-        "search": {
-          "type": "string",
-          "description": "Search query string (searches subject, body, sender)",
-          "required": false
-        },
-        "order_by": {
-          "type": "string",
-          "description": "Sort order (default: 'receivedDateTime desc')",
-          "default": "receivedDateTime desc"
-        },
-        "unread_only": {
-          "type": "boolean",
-          "description": "Return only unread messages (default: false)",
-          "default": false
-        }
+        "required": []
       },
       "required": []
     },
     {
-      "name": "outlook_get_message",
-      "description": "Get complete details of a specific email including full body content, attachments, and metadata.",
+      "name": "microsoft_outlook_get_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_get_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet complete details of a specific email including full body content, attachments, and metadata.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "message_id": {
-          "type": "string",
-          "description": "Message ID to retrieve",
-          "required": true
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Message ID to retrieve"
+          },
+          "include_attachments": {
+            "type": "boolean",
+            "description": "Include attachment content (default: false)",
+            "default": false
+          }
         },
-        "include_attachments": {
-          "type": "boolean",
-          "description": "Include attachment content (default: false)",
-          "default": false
-        }
+        "required": [
+          "message_id"
+        ]
       },
-      "required": ["message_id"]
+      "required": [
+        "message_id"
+      ]
     },
     {
-      "name": "outlook_search_messages",
-      "description": "Advanced search across all email folders with multiple criteria. Supports date ranges, sender filters, attachment checks, and keyword search.",
+      "name": "microsoft_outlook_search_messages",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_search_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAdvanced search across all email folders with multiple criteria. Supports date ranges, sender filters, attachment checks, and keyword search.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "query": {
-          "type": "string",
-          "description": "Search query (searches subject, body, sender, recipients)",
-          "required": true,
-          "example": "project update"
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (searches subject, body, sender, recipients)"
+          },
+          "from_email": {
+            "type": "string",
+            "description": "Filter by sender email address"
+          },
+          "has_attachments": {
+            "type": "boolean",
+            "description": "Filter messages with attachments"
+          },
+          "date_from": {
+            "type": "string",
+            "description": "Start date in ISO format (e.g., 2025-10-01)"
+          },
+          "date_to": {
+            "type": "string",
+            "description": "End date in ISO format"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum results (default: 50)",
+            "default": 50
+          }
         },
-        "from_email": {
-          "type": "string",
-          "description": "Filter by sender email address",
-          "required": false
-        },
-        "has_attachments": {
-          "type": "boolean",
-          "description": "Filter messages with attachments",
-          "required": false
-        },
-        "date_from": {
-          "type": "string",
-          "description": "Start date in ISO format (e.g., 2025-10-01)",
-          "required": false
-        },
-        "date_to": {
-          "type": "string",
-          "description": "End date in ISO format",
-          "required": false
-        },
-        "max_results": {
-          "type": "integer",
-          "description": "Maximum results (default: 50)",
-          "default": 50
-        }
+        "required": [
+          "query"
+        ]
       },
-      "required": ["query"]
+      "required": [
+        "query"
+      ]
     },
     {
-      "name": "outlook_mark_as_read",
-      "description": "Mark one or multiple messages as read or unread.",
+      "name": "microsoft_outlook_mark_as_read",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_mark_as_read', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark one or multiple messages as read or unread.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "message_ids": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "List of message IDs to mark",
-          "required": true
+        "type": "object",
+        "properties": {
+          "message_ids": {
+            "type": "array",
+            "description": "List of message IDs to mark",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_read": {
+            "type": "boolean",
+            "description": "Mark as read (true) or unread (false)"
+          }
         },
-        "is_read": {
-          "type": "boolean",
-          "description": "Mark as read (true) or unread (false)",
-          "required": true
-        }
+        "required": [
+          "message_ids",
+          "is_read"
+        ]
       },
-      "required": ["message_ids", "is_read"]
+      "required": [
+        "message_ids",
+        "is_read"
+      ]
     },
     {
-      "name": "outlook_move_message",
-      "description": "Move message(s) to a different folder.",
+      "name": "microsoft_outlook_move_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_move_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove message(s) to a different folder.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "message_ids": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Message IDs to move",
-          "required": true
+        "type": "object",
+        "properties": {
+          "message_ids": {
+            "type": "array",
+            "description": "Message IDs to move",
+            "items": {
+              "type": "string"
+            }
+          },
+          "destination_folder": {
+            "type": "string",
+            "description": "Destination folder ID or well-known name (inbox, sentitems, drafts, deleteditems, junkemail)"
+          }
         },
-        "destination_folder": {
-          "type": "string",
-          "description": "Destination folder ID or well-known name (inbox, sentitems, drafts, deleteditems, junkemail)",
-          "required": true
-        }
+        "required": [
+          "message_ids",
+          "destination_folder"
+        ]
       },
-      "required": ["message_ids", "destination_folder"]
+      "required": [
+        "message_ids",
+        "destination_folder"
+      ]
     },
     {
-      "name": "outlook_delete_message",
-      "description": "Delete message(s). Can soft delete (move to deleted items) or hard delete (permanent).",
+      "name": "microsoft_outlook_delete_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_delete_message', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete message(s). Can soft delete (move to deleted items) or hard delete (permanent).",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "message_ids": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Message IDs to delete",
-          "required": true
+        "type": "object",
+        "properties": {
+          "message_ids": {
+            "type": "array",
+            "description": "Message IDs to delete",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permanent": {
+            "type": "boolean",
+            "description": "Permanently delete (true) or move to deleted items (false, default)",
+            "default": false
+          }
         },
-        "permanent": {
-          "type": "boolean",
-          "description": "Permanently delete (true) or move to deleted items (false, default)",
-          "default": false
-        }
+        "required": [
+          "message_ids"
+        ]
       },
-      "required": ["message_ids"]
+      "required": [
+        "message_ids"
+      ]
     },
     {
-      "name": "outlook_create_folder",
-      "description": "Create a new mail folder.",
+      "name": "microsoft_outlook_create_folder",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_folder', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new mail folder.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "low",
       "parameters": {
-        "display_name": {
-          "type": "string",
-          "description": "Folder name",
-          "required": true,
-          "example": "Projects 2025"
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "description": "Folder name"
+          },
+          "parent_folder": {
+            "type": "string",
+            "description": "Parent folder ID (optional, defaults to root)"
+          }
         },
-        "parent_folder": {
-          "type": "string",
-          "description": "Parent folder ID (optional, defaults to root)",
-          "required": false
-        }
+        "required": [
+          "display_name"
+        ]
       },
-      "required": ["display_name"]
+      "required": [
+        "display_name"
+      ]
     },
     {
-      "name": "outlook_list_folders",
-      "description": "List all mail folders in the mailbox.",
+      "name": "microsoft_outlook_list_folders",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_folders', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all mail folders in the mailbox.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "low",
-      "parameters": {},
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
       "required": []
     },
     {
-      "name": "outlook_create_draft",
-      "description": "Create a draft email without sending it. Useful for preparing emails for later review/sending.",
+      "name": "microsoft_outlook_create_draft",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_draft', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a draft email without sending it. Useful for preparing emails for later review/sending.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "to": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Recipient email addresses",
-          "required": true
-        },
-        "subject": {
-          "type": "string",
-          "description": "Email subject",
-          "required": true
-        },
-        "body": {
-          "type": "string",
-          "description": "Email body",
-          "required": true
-        },
-        "body_type": {
-          "type": "string",
-          "enum": ["text", "html"],
-          "default": "html"
-        },
-        "cc": {
-          "type": "array",
-          "items": {"type": "string"},
-          "required": false
-        }
-      },
-      "required": ["to", "subject", "body"]
-    },
-    {
-      "name": "outlook_send_draft",
-      "description": "Send a previously created draft email.",
-      "platform": "microsoft_outlook",
-      "category": "basic",
-      "priority": "medium",
-      "parameters": {
-        "message_id": {
-          "type": "string",
-          "description": "Draft message ID to send",
-          "required": true
-        }
-      },
-      "required": ["message_id"]
-    },
-    {
-      "name": "outlook_reply_to_message",
-      "description": "Reply to an email. Can reply to sender only or reply-all to all recipients.",
-      "platform": "microsoft_outlook",
-      "category": "basic",
-      "priority": "high",
-      "parameters": {
-        "message_id": {
-          "type": "string",
-          "description": "Original message ID to reply to",
-          "required": true
-        },
-        "body": {
-          "type": "string",
-          "description": "Reply body content",
-          "required": true
-        },
-        "reply_all": {
-          "type": "boolean",
-          "description": "Reply to all recipients (true) or sender only (false, default)",
-          "default": false
-        },
-        "body_type": {
-          "type": "string",
-          "enum": ["text", "html"],
-          "default": "html"
-        }
-      },
-      "required": ["message_id", "body"]
-    },
-    {
-      "name": "outlook_forward_message",
-      "description": "Forward an email to one or more recipients.",
-      "platform": "microsoft_outlook",
-      "category": "basic",
-      "priority": "medium",
-      "parameters": {
-        "message_id": {
-          "type": "string",
-          "description": "Message ID to forward",
-          "required": true
-        },
-        "to": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Forward recipient email addresses",
-          "required": true
-        },
-        "comment": {
-          "type": "string",
-          "description": "Additional comment to add before forwarded message",
-          "required": false
-        }
-      },
-      "required": ["message_id", "to"]
-    },
-    {
-      "name": "outlook_add_category",
-      "description": "Add one or more categories (labels/tags) to message(s) for organization.",
-      "platform": "microsoft_outlook",
-      "category": "basic",
-      "priority": "low",
-      "parameters": {
-        "message_ids": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Message IDs to categorize",
-          "required": true
-        },
-        "categories": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Category names to add (e.g., 'Important', 'Follow Up', 'Project A')",
-          "required": true,
-          "example": ["Important", "Follow Up"]
-        }
-      },
-      "required": ["message_ids", "categories"]
-    },
-    {
-      "name": "outlook_flag_message",
-      "description": "Flag message(s) for follow-up with optional due date and reminder.",
-      "platform": "microsoft_outlook",
-      "category": "basic",
-      "priority": "medium",
-      "parameters": {
-        "message_ids": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Message IDs to flag",
-          "required": true
-        },
-        "flag_status": {
-          "type": "string",
-          "enum": ["flagged", "complete", "notFlagged"],
-          "description": "Flag status",
-          "required": true
-        },
-        "due_date": {
-          "type": "string",
-          "description": "Due date in ISO format (optional)",
-          "required": false
-        }
-      },
-      "required": ["message_ids", "flag_status"]
-    },
-    {
-      "name": "outlook_smart_organize_inbox",
-      "description": "🎯 SMART: Intelligently organize inbox using rules. Automatically moves emails to folders based on sender, subject keywords, or importance. Creates folders if they don't exist.",
-      "platform": "microsoft_outlook",
-      "category": "smart_bundled",
-      "priority": "high",
-      "parameters": {
-        "rules": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {"type": "string", "description": "Rule name"},
-              "folder": {"type": "string", "description": "Destination folder name"},
-              "from_contains": {"type": "array", "items": {"type": "string"}},
-              "subject_contains": {"type": "array", "items": {"type": "string"}},
-              "mark_as_read": {"type": "boolean"}
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "array",
+            "description": "Recipient email addresses",
+            "items": {
+              "type": "string"
             }
           },
-          "description": "Organization rules to apply",
-          "required": true,
-          "example": [
-            {
-              "name": "Project Emails",
-              "folder": "Projects",
-              "subject_contains": ["[PROJECT]", "project update"],
-              "mark_as_read": false
+          "subject": {
+            "type": "string",
+            "description": "Email subject"
+          },
+          "body": {
+            "type": "string",
+            "description": "Email body"
+          },
+          "body_type": {
+            "type": "string",
+            "description": "",
+            "default": "html",
+            "enum": [
+              "text",
+              "html"
+            ]
+          },
+          "cc": {
+            "type": "array",
+            "description": "",
+            "items": {
+              "type": "string"
             }
-          ]
+          }
         },
-        "create_folders": {
-          "type": "boolean",
-          "description": "Create folders if they don't exist (default: true)",
-          "default": true
-        },
-        "max_messages": {
-          "type": "integer",
-          "description": "Maximum messages to process (default: 100)",
-          "default": 100
-        }
+        "required": [
+          "to",
+          "subject",
+          "body"
+        ]
       },
-      "required": ["rules"]
+      "required": [
+        "to",
+        "subject",
+        "body"
+      ]
     },
     {
-      "name": "outlook_smart_email_summary",
-      "description": "🎯 SMART: Generate a summary of recent emails grouped by sender, importance, and topic. Perfect for catching up on inbox after being away.",
+      "name": "microsoft_outlook_send_draft",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_send_draft', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend a previously created draft email.",
+      "platform": "microsoft_outlook",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Draft message ID to send"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      },
+      "required": [
+        "message_id"
+      ]
+    },
+    {
+      "name": "microsoft_outlook_reply_to_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_reply_to_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nReply to an email. Can reply to sender only or reply-all to all recipients.",
+      "platform": "microsoft_outlook",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Original message ID to reply to"
+          },
+          "body": {
+            "type": "string",
+            "description": "Reply body content"
+          },
+          "reply_all": {
+            "type": "boolean",
+            "description": "Reply to all recipients (true) or sender only (false, default)",
+            "default": false
+          },
+          "body_type": {
+            "type": "string",
+            "description": "",
+            "default": "html",
+            "enum": [
+              "text",
+              "html"
+            ]
+          }
+        },
+        "required": [
+          "message_id",
+          "body"
+        ]
+      },
+      "required": [
+        "message_id",
+        "body"
+      ]
+    },
+    {
+      "name": "microsoft_outlook_forward_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_forward_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nForward an email to one or more recipients.",
+      "platform": "microsoft_outlook",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Message ID to forward"
+          },
+          "to": {
+            "type": "array",
+            "description": "Forward recipient email addresses",
+            "items": {
+              "type": "string"
+            }
+          },
+          "comment": {
+            "type": "string",
+            "description": "Additional comment to add before forwarded message"
+          }
+        },
+        "required": [
+          "message_id",
+          "to"
+        ]
+      },
+      "required": [
+        "message_id",
+        "to"
+      ]
+    },
+    {
+      "name": "microsoft_outlook_add_category",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_add_category', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd one or more categories (labels/tags) to message(s) for organization.",
+      "platform": "microsoft_outlook",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_ids": {
+            "type": "array",
+            "description": "Message IDs to categorize",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categories": {
+            "type": "array",
+            "description": "Category names to add (e.g., 'Important', 'Follow Up', 'Project A')",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "message_ids",
+          "categories"
+        ]
+      },
+      "required": [
+        "message_ids",
+        "categories"
+      ]
+    },
+    {
+      "name": "microsoft_outlook_flag_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_flag_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFlag message(s) for follow-up with optional due date and reminder.",
+      "platform": "microsoft_outlook",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_ids": {
+            "type": "array",
+            "description": "Message IDs to flag",
+            "items": {
+              "type": "string"
+            }
+          },
+          "flag_status": {
+            "type": "string",
+            "description": "Flag status",
+            "enum": [
+              "flagged",
+              "complete",
+              "notFlagged"
+            ]
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date in ISO format (optional)"
+          }
+        },
+        "required": [
+          "message_ids",
+          "flag_status"
+        ]
+      },
+      "required": [
+        "message_ids",
+        "flag_status"
+      ]
+    },
+    {
+      "name": "microsoft_outlook_smart_organize_inbox",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_organize_inbox', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🎯 SMART: Intelligently organize inbox using rules. Automatically moves emails to folders based on sender, subject keywords, or importance. Creates folders if they don't exist.",
+      "platform": "microsoft_outlook",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "description": "Organization rules to apply",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Rule name"
+                },
+                "folder": {
+                  "type": "string",
+                  "description": "Destination folder name"
+                },
+                "from_contains": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "subject_contains": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "mark_as_read": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "create_folders": {
+            "type": "boolean",
+            "description": "Create folders if they don't exist (default: true)",
+            "default": true
+          },
+          "max_messages": {
+            "type": "integer",
+            "description": "Maximum messages to process (default: 100)",
+            "default": 100
+          }
+        },
+        "required": [
+          "rules"
+        ]
+      },
+      "required": [
+        "rules"
+      ]
+    },
+    {
+      "name": "microsoft_outlook_smart_email_summary",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_email_summary', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🎯 SMART: Generate a summary of recent emails grouped by sender, importance, and topic. Perfect for catching up on inbox after being away.",
       "platform": "microsoft_outlook",
       "category": "smart_bundled",
       "priority": "medium",
       "parameters": {
-        "days_back": {
-          "type": "integer",
-          "description": "Number of days to look back (default: 7)",
-          "default": 7
+        "type": "object",
+        "properties": {
+          "days_back": {
+            "type": "integer",
+            "description": "Number of days to look back (default: 7)",
+            "default": 7
+          },
+          "unread_only": {
+            "type": "boolean",
+            "description": "Summarize only unread emails (default: true)",
+            "default": true
+          },
+          "group_by": {
+            "type": "string",
+            "description": "How to group emails (default: sender)",
+            "default": "sender",
+            "enum": [
+              "sender",
+              "importance",
+              "topic",
+              "date"
+            ]
+          },
+          "max_messages": {
+            "type": "integer",
+            "description": "Maximum messages to analyze (default: 200)",
+            "default": 200
+          }
         },
-        "unread_only": {
-          "type": "boolean",
-          "description": "Summarize only unread emails (default: true)",
-          "default": true
-        },
-        "group_by": {
-          "type": "string",
-          "enum": ["sender", "importance", "topic", "date"],
-          "description": "How to group emails (default: sender)",
-          "default": "sender"
-        },
-        "max_messages": {
-          "type": "integer",
-          "description": "Maximum messages to analyze (default: 200)",
-          "default": 200
-        }
+        "required": []
       },
       "required": []
     },
     {
-      "name": "outlook_smart_follow_up_reminder",
-      "description": "🎯 SMART: Find emails that need follow-up based on age, importance, and response status. Automatically flags them with reminders.",
+      "name": "microsoft_outlook_smart_follow_up_reminder",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_smart_follow_up_reminder', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🎯 SMART: Find emails that need follow-up based on age, importance, and response status. Automatically flags them with reminders.",
       "platform": "microsoft_outlook",
       "category": "smart_bundled",
       "priority": "medium",
       "parameters": {
-        "days_without_response": {
-          "type": "integer",
-          "description": "Flag emails older than X days with no response (default: 3)",
-          "default": 3
+        "type": "object",
+        "properties": {
+          "days_without_response": {
+            "type": "integer",
+            "description": "Flag emails older than X days with no response (default: 3)",
+            "default": 3
+          },
+          "from_important_senders": {
+            "type": "array",
+            "description": "Prioritize emails from these senders",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keywords": {
+            "type": "array",
+            "description": "Keywords indicating follow-up needed (e.g., 'urgent', 'response needed')",
+            "items": {
+              "type": "string"
+            }
+          },
+          "auto_flag": {
+            "type": "boolean",
+            "description": "Automatically flag identified emails (default: true)",
+            "default": true
+          }
         },
-        "from_important_senders": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Prioritize emails from these senders",
-          "required": false
-        },
-        "keywords": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "Keywords indicating follow-up needed (e.g., 'urgent', 'response needed')",
-          "required": false
-        },
-        "auto_flag": {
-          "type": "boolean",
-          "description": "Automatically flag identified emails (default: true)",
-          "default": true
-        }
+        "required": []
       },
       "required": []
     },
     {
-      "name": "outlook_create_inbox_rule",
-      "description": "Create an automatic inbox rule that runs on incoming emails (server-side filtering).",
+      "name": "microsoft_outlook_create_inbox_rule",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_create_inbox_rule', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate an automatic inbox rule that runs on incoming emails (server-side filtering).",
       "platform": "microsoft_outlook",
       "category": "advanced",
       "priority": "low",
       "parameters": {
-        "display_name": {
-          "type": "string",
-          "description": "Rule name",
-          "required": true
-        },
-        "conditions": {
-          "type": "object",
-          "properties": {
-            "from_addresses": {"type": "array", "items": {"type": "string"}},
-            "subject_contains": {"type": "array", "items": {"type": "string"}},
-            "body_contains": {"type": "array", "items": {"type": "string"}},
-            "importance": {"type": "string", "enum": ["low", "normal", "high"]}
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "description": "Rule name"
           },
-          "description": "Rule conditions",
-          "required": true
-        },
-        "actions": {
-          "type": "object",
-          "properties": {
-            "move_to_folder": {"type": "string"},
-            "mark_as_read": {"type": "boolean"},
-            "mark_importance": {"type": "string"},
-            "forward_to": {"type": "array", "items": {"type": "string"}},
-            "categories": {"type": "array", "items": {"type": "string"}}
+          "conditions": {
+            "type": "object",
+            "description": "Rule conditions"
           },
-          "description": "Actions to perform",
-          "required": true
-        }
+          "actions": {
+            "type": "object",
+            "description": "Actions to perform"
+          }
+        },
+        "required": [
+          "display_name",
+          "conditions",
+          "actions"
+        ]
       },
-      "required": ["display_name", "conditions", "actions"]
+      "required": [
+        "display_name",
+        "conditions",
+        "actions"
+      ]
     },
     {
-      "name": "outlook_list_inbox_rules",
-      "description": "List all inbox rules configured for the mailbox.",
+      "name": "microsoft_outlook_list_inbox_rules",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_inbox_rules', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all inbox rules configured for the mailbox.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "low",
-      "parameters": {},
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
       "required": []
     },
     {
-      "name": "outlook_get_attachments",
-      "description": "Get all attachments from a message with download URLs or content.",
+      "name": "microsoft_outlook_get_attachments",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_get_attachments', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet all attachments from a message with download URLs or content.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "message_id": {
-          "type": "string",
-          "description": "Message ID",
-          "required": true
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Message ID"
+          },
+          "download_content": {
+            "type": "boolean",
+            "description": "Download attachment content (base64 encoded) - default: false",
+            "default": false
+          }
         },
-        "download_content": {
-          "type": "boolean",
-          "description": "Download attachment content (base64 encoded) - default: false",
-          "default": false
-        }
+        "required": [
+          "message_id"
+        ]
       },
-      "required": ["message_id"]
+      "required": [
+        "message_id"
+      ]
     },
     {
-      "name": "outlook_download_attachment",
-      "description": "Download a specific attachment from a message.",
+      "name": "microsoft_outlook_download_attachment",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_download_attachment', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload a specific attachment from a message.",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "message_id": {
-          "type": "string",
-          "description": "Message ID",
-          "required": true
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Message ID"
+          },
+          "attachment_id": {
+            "type": "string",
+            "description": "Attachment ID"
+          }
         },
-        "attachment_id": {
-          "type": "string",
-          "description": "Attachment ID",
-          "required": true
-        }
+        "required": [
+          "message_id",
+          "attachment_id"
+        ]
       },
-      "required": ["message_id", "attachment_id"]
+      "required": [
+        "message_id",
+        "attachment_id"
+      ]
     }
   ]
 }

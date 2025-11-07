@@ -27,29 +27,61 @@ if (-not (Test-Path "$UI_DIR\business-ai-platform-v2.html")) {
     exit 1
 }
 
-Write-Host "[1/3] Starting Flask Backend..." -ForegroundColor Green
+Write-Host "[0/2] Checking for existing Flask servers on port 5001..." -ForegroundColor Yellow
+
+# Method 1: Try Get-NetTCPConnection (works on Windows 10+)
+try {
+    $flaskProcesses = Get-NetTCPConnection -LocalPort 5001 -State Listen -ErrorAction Stop | 
+                      Select-Object -ExpandProperty OwningProcess -Unique |
+                      ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue } |
+                      Where-Object { $_ -ne $null }
+    
+    if ($flaskProcesses) {
+        Write-Host "      Found $($flaskProcesses.Count) process(es) on port 5001" -ForegroundColor Yellow
+        foreach ($proc in $flaskProcesses) {
+            Write-Host "      Stopping PID $($proc.Id) ($($proc.ProcessName))..." -ForegroundColor Gray
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+        }
+        Start-Sleep -Seconds 2
+        Write-Host "      [OK] Port 5001 cleared" -ForegroundColor Green
+    } else {
+        Write-Host "      [OK] Port 5001 is available" -ForegroundColor Green
+    }
+} catch {
+    # Method 2: Fallback using netstat (works on all Windows versions)
+    Write-Host "      Using fallback method (netstat)..." -ForegroundColor Gray
+    $netstatOutput = netstat -aon | Select-String ":5001.*LISTENING"
+    
+    if ($netstatOutput) {
+        $pids = $netstatOutput | ForEach-Object {
+            if ($_ -match '\s+(\d+)\s*$') { $matches[1] }
+        } | Select-Object -Unique
+        
+        Write-Host "      Found $($pids.Count) process(es) on port 5001" -ForegroundColor Yellow
+        foreach ($processId in $pids) {
+            Write-Host "      Stopping PID $processId..." -ForegroundColor Gray
+            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+        }
+        Start-Sleep -Seconds 2
+        Write-Host "      [OK] Port 5001 cleared" -ForegroundColor Green
+    } else {
+        Write-Host "      [OK] Port 5001 is available" -ForegroundColor Green
+    }
+}
+Write-Host ""
+
+Write-Host "[1/2] Starting Flask Backend..." -ForegroundColor Green
 Write-Host "      Location: $FLASK_DIR" -ForegroundColor Gray
 Write-Host "      Port: 5001" -ForegroundColor Gray
 Write-Host ""
 
 # Start Flask in new PowerShell window
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$FLASK_DIR'; Write-Host 'Flask Backend Running on http://localhost:5001' -ForegroundColor Green; python flask_app.py"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$FLASK_DIR'; `$env:PYTHONIOENCODING='utf-8'; Write-Host 'Flask Backend Running on http://localhost:5001' -ForegroundColor Green; python flask_app.py"
 
 # Wait 3 seconds for Flask to initialize
 Start-Sleep -Seconds 3
 
-Write-Host "[2/3] Starting UI Server..." -ForegroundColor Green
-Write-Host "      Location: $UI_DIR" -ForegroundColor Gray
-Write-Host "      Port: 8080" -ForegroundColor Gray
-Write-Host ""
-
-# Start UI server in new PowerShell window
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$UI_DIR'; Write-Host 'UI Server Running on http://localhost:8080' -ForegroundColor Green; python -m http.server 8080"
-
-# Wait 2 seconds for UI server to start
-Start-Sleep -Seconds 2
-
-Write-Host "[3/3] Opening Platform in Browser..." -ForegroundColor Green
+Write-Host "[2/2] Opening Platform in Browser..." -ForegroundColor Green
 Write-Host ""
 
 # Open browser to platform
@@ -59,6 +91,12 @@ Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "   PLATFORM LAUNCHED SUCCESSFULLY!" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "   Flask Backend:  http://localhost:5001" -ForegroundColor White
+Write-Host "   UI Platform:    http://localhost:8080/business-ai-platform-v2.html" -ForegroundColor White
+Write-Host "" 
+Write-Host "   Note: Open business-ai-platform-v2.html directly in browser" -ForegroundColor Gray
+Write-Host "         or serve UI folder with any web server on port 8080" -ForegroundColor Gray
 Write-Host ""
 Write-Host "    Flask Backend:  http://localhost:5001" -ForegroundColor Yellow
 Write-Host "    UI Platform:    http://localhost:8080/business-ai-platform-v2.html" -ForegroundColor Yellow

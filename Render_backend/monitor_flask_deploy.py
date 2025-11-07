@@ -44,7 +44,7 @@ for i in range(30):  # Check for 5 minutes (30 * 10 seconds)
             elif status == 'update_in_progress':
                 print(f"   🔄 Updating... (check #{i+1})")
             elif status == 'live':
-                print(f"   ✅ LIVE! Deploy complete!")
+                print(f"    LIVE! Deploy complete!")
                 print(f"\n{'='*80}")
                 print(f"DEPLOY SUCCESSFUL!")
                 print(f"{'='*80}")
@@ -52,7 +52,7 @@ for i in range(30):  # Check for 5 minutes (30 * 10 seconds)
                 print(f"Test the fix now in Streamlit!")
                 break
             elif status in ['build_failed', 'update_failed', 'canceled']:
-                print(f"   ❌ DEPLOY FAILED: {status}")
+                print(f"    DEPLOY FAILED: {status}")
                 print(f"\nCheck logs at: https://dashboard.render.com/web/{service_id}")
                 break
             else:

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Standardization Demo - Updated Design</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Standardization CSS -->
+    <link rel="stylesheet" href="css/ui-standardization.css">
+    <link rel="stylesheet" href="css/tabulator-toast.css">
+
+    <style>
+        body {
+            background: var(--bg-primary);
+            padding: var(--space-5);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .demo-section {
+            margin-bottom: var(--space-6);
+        }
+
+        .demo-label {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--space-2);
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="demo-container">
+
+        <!-- Header -->
+        <div style="margin-bottom: var(--space-6); text-align: center;">
+            <h1 style="font-size: 36px; color: var(--primary-color); margin-bottom: var(--space-2);">
+                <i class="fas fa-palette"></i> UI Standardization System
+            </h1>
+            <p style="color: var(--text-secondary);">Updated based on feedback: Compact metrics, larger subtabs,
+                centered headers, less rounded buttons</p>
+        </div>
+
+        <!-- Section 1: Metric Cards -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-line"></i>
+                    Metric Cards
+                </h2>
+                <p class="section-subtitle">Compact design with icon on left, title above value, change and context on
+                    same line</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card success">
+                    <div class="metric-icon success">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Total Jobs</div>
+                        <div class="metric-value">25</div>
+                        <div class="metric-footer">
+                            <span class="metric-change positive">
+                                <i class="fas fa-arrow-up"></i> +12%
+                            </span>
+                            <span class="divider">|</span>
+                            <span>vs last month</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card info">
+                    <div class="metric-icon info">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Total Revenue</div>
+                        <div class="metric-value">$45.2K</div>
+                        <div class="metric-footer">
+                            <span class="metric-change positive">
+                                <i class="fas fa-arrow-up"></i> +8.5%
+                            </span>
+                            <span class="divider">|</span>
+                            <span>This month</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card warning">
+                    <div class="metric-icon warning">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Low Stock Items</div>
+                        <div class="metric-value">8</div>
+                        <div class="metric-footer">
+                            <span class="metric-change negative">
+                                <i class="fas fa-arrow-down"></i> Needs attention
+                            </span>
+                            <span class="divider">|</span>
+                            <span>Reorder now</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card error">
+                    <div class="metric-icon error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Critical Alerts</div>
+                        <div class="metric-value">3</div>
+                        <div class="metric-footer">
+                            <span class="metric-change negative">
+                                <i class="fas fa-bell"></i> Action required
+                            </span>
+                            <span class="divider">|</span>
+                            <span>View alerts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Subtab Navigation -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-th-large"></i>
+                    Subtab Navigation
+                </h2>
+                <p class="section-subtitle">Larger text (16px), medium weight, clean active state</p>
+            </div>
+
+            <div class="subtab-nav">
+                <button class="subtab-btn active">
+                    <i class="fas fa-box"></i> Orders
+                </button>
+                <button class="subtab-btn">
+                    <i class="fas fa-shopping-bag"></i> Products
+                </button>
+                <button class="subtab-btn">
+                    <i class="fas fa-users"></i> Customers
+                </button>
+                <button class="subtab-btn">
+                    <i class="fas fa-dollar-sign"></i> Finance
+                </button>
+                <button class="subtab-btn">
+                    <i class="fas fa-chart-bar"></i> Reports
+                </button>
+                <button class="subtab-btn">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- Section 3: Action Bar -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-sliders-h"></i>
+                    Action Bar
+                </h2>
+                <p class="section-subtitle">Timeline, refresh, filters in one consistent row</p>
+            </div>
+
+            <div class="action-bar">
+                <div class="action-bar-left">
+                    <button class="btn btn-ghost">
+                        <i class="fas fa-calendar"></i> Last 30 Days
+                    </button>
+                    <button class="btn btn-ghost">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+                <div class="action-bar-center">
+                    <input type="text" class="form-control" placeholder="Search..." style="max-width: 300px;">
+                </div>
+                <div class="action-bar-right">
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Filter Row -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-filter"></i>
+                    Filter Row
+                </h2>
+                <p class="section-subtitle">Consistent filter buttons with active states</p>
+            </div>
+
+            <div class="filter-row">
+                <button class="filter-btn active">
+                    <i class="fas fa-globe"></i> All Items
+                </button>
+                <button class="filter-btn">
+                    <i class="fas fa-clock"></i> Pending
+                </button>
+                <button class="filter-btn">
+                    <i class="fas fa-spinner"></i> In Progress
+                </button>
+                <button class="filter-btn">
+                    <i class="fas fa-check-circle"></i> Completed
+                </button>
+                <button class="filter-btn">
+                    <i class="fas fa-times-circle"></i> Cancelled
+                </button>
+            </div>
+        </div>
+
+        <!-- Section 5: Buttons -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-mouse-pointer"></i>
+                    Buttons
+                </h2>
+                <p class="section-subtitle">Less rounded (4px), consistent sizing</p>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3 class="card-title">Button Variants</h3>
+                </div>
+                <div class="card-body" style="display: flex; flex-direction: column; gap: var(--space-4);">
+                    <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+                        <button class="btn">Primary</button>
+                        <button class="btn btn-secondary">Secondary</button>
+                        <button class="btn btn-success">Success</button>
+                        <button class="btn btn-error">Error</button>
+                        <button class="btn btn-warning">Warning</button>
+                        <button class="btn btn-ghost">Ghost</button>
+                    </div>
+                    <div style="display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center;">
+                        <button class="btn btn-lg">
+                            <i class="fas fa-plus"></i> Large Button
+                        </button>
+                        <button class="btn">
+                            <i class="fas fa-check"></i> Normal Button
+                        </button>
+                        <button class="btn btn-sm">
+                            <i class="fas fa-download"></i> Small Button
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 6: Expanders -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-chevron-down"></i>
+                    Expanders
+                </h2>
+                <p class="section-subtitle">Collapsible sections for organized content</p>
+            </div>
+
+            <div class="expander">
+                <div class="expander-header" onclick="toggleExpander(this)">
+                    <div class="expander-title">
+                        <i class="fas fa-info-circle"></i>
+                        Order Details
+                    </div>
+                    <div class="expander-toggle">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                <div class="expander-content">
+                    <p style="color: var(--text-secondary); margin: 0;">
+                        This is the content inside the expander. Click the header to collapse/expand.
+                    </p>
+                </div>
+            </div>
+
+            <div class="expander expanded">
+                <div class="expander-header" onclick="toggleExpander(this)">
+                    <div class="expander-title">
+                        <i class="fas fa-chart-line"></i>
+                        Analytics Breakdown
+                    </div>
+                    <div class="expander-toggle">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                <div class="expander-content">
+                    <div class="metrics-grid">
+                        <div class="metric-card info">
+                            <div class="metric-icon info">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-label">Views</div>
+                                <div class="metric-value">1.2K</div>
+                                <div class="metric-footer">
+                                    <span class="metric-change positive"><i class="fas fa-arrow-up"></i> +15%</span>
+                                    <span class="divider">|</span>
+                                    <span>Today</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric-card success">
+                            <div class="metric-icon success">
+                                <i class="fas fa-mouse-pointer"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-label">Clicks</div>
+                                <div class="metric-value">456</div>
+                                <div class="metric-footer">
+                                    <span class="metric-change positive"><i class="fas fa-arrow-up"></i> +22%</span>
+                                    <span class="divider">|</span>
+                                    <span>Today</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 7: Forms -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-edit"></i>
+                    Form Controls
+                </h2>
+                <p class="section-subtitle">Consistent input styling</p>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3 class="card-title">Sample Form</h3>
+                </div>
+                <div class="card-body" style="max-width: 600px;">
+                    <div class="form-group">
+                        <label class="form-label">Product Name</label>
+                        <input type="text" class="form-control" placeholder="Enter product name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <select class="form-control">
+                            <option>Select category</option>
+                            <option>Electronics</option>
+                            <option>Clothing</option>
+                            <option>Food</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" placeholder="Enter description"></textarea>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn">Save</button>
+                        <button class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 8: Badges & Tags -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-tags"></i>
+                    Badges & Tags
+                </h2>
+                <p class="section-subtitle">Status indicators and labels</p>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-body" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+                    <span class="badge badge-primary">
+                        <i class="fas fa-star"></i> Primary
+                    </span>
+                    <span class="badge badge-success">
+                        <i class="fas fa-check"></i> Active
+                    </span>
+                    <span class="badge badge-error">
+                        <i class="fas fa-times"></i> Blocked
+                    </span>
+                    <span class="badge badge-warning">
+                        <i class="fas fa-exclamation"></i> Pending
+                    </span>
+                    <span class="badge badge-info">
+                        <i class="fas fa-info"></i> Info
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Test -->
+        <div class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-bell"></i>
+                    Toast Notifications
+                </h2>
+                <p class="section-subtitle">Bottom-left position as requested</p>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-body" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="showToast('success')">
+                        <i class="fas fa-check"></i> Success Toast
+                    </button>
+                    <button class="btn btn-error" onclick="showToast('error')">
+                        <i class="fas fa-times"></i> Error Toast
+                    </button>
+                    <button class="btn btn-warning" onclick="showToast('warning')">
+                        <i class="fas fa-exclamation"></i> Warning Toast
+                    </button>
+                    <button class="btn" onclick="showToast('info')">
+                        <i class="fas fa-info"></i> Info Toast
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast System -->
+    <script src="js/tabulator-toast-system.js"></script>
+
+    <script>
+        // Expander toggle
+        function toggleExpander(header) {
+            const expander = header.closest('.expander');
+            expander.classList.toggle('expanded');
+        }
+
+        // Toast demo
+        function showToast(type) {
+            const messages = {
+                success: 'Changes saved successfully!',
+                error: 'Failed to save changes',
+                warning: 'Please review before saving',
+                info: 'Processing your request...'
+            };
+            window.toastSystem[type](messages[type]);
+        }
+
+        // Auto-expand first expander on load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('UI Standardization Demo loaded');
+        });
+    </script>
+</body>
+
+</html>

@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "stripe_create_payment_intent",
-      "description": "Create a payment intent for card payments",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a payment intent for card payments",
       "platform": "stripe",
       "parameters": {
         "amount": {
@@ -36,7 +36,9 @@
           "type": "array",
           "description": "Payment methods to accept (e.g., ['card', 'alipay'])",
           "required": false,
-          "default": ["card"]
+          "default": [
+            "card"
+          ]
         },
         "receipt_email": {
           "type": "string",
@@ -57,7 +59,7 @@
     },
     {
       "name": "stripe_confirm_payment",
-      "description": "Confirm a payment intent",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nConfirm a payment intent",
       "platform": "stripe",
       "parameters": {
         "payment_intent_id": {
@@ -83,7 +85,7 @@
     },
     {
       "name": "stripe_capture_payment",
-      "description": "Capture an authorized payment",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCapture an authorized payment",
       "platform": "stripe",
       "parameters": {
         "payment_intent_id": {
@@ -104,7 +106,7 @@
     },
     {
       "name": "stripe_create_refund",
-      "description": "Create a refund for a payment",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a refund for a payment",
       "platform": "stripe",
       "parameters": {
         "payment_intent_id": {
@@ -135,7 +137,7 @@
     },
     {
       "name": "stripe_list_refunds",
-      "description": "List all refunds",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all refunds",
       "platform": "stripe",
       "parameters": {
         "payment_intent_id": {
@@ -157,7 +159,7 @@
     },
     {
       "name": "stripe_create_customer",
-      "description": "Create a new customer",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new customer",
       "platform": "stripe",
       "parameters": {
         "email": {
@@ -198,7 +200,7 @@
     },
     {
       "name": "stripe_get_customer",
-      "description": "Retrieve customer details",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRetrieve customer details",
       "platform": "stripe",
       "parameters": {
         "customer_id": {
@@ -214,7 +216,7 @@
     },
     {
       "name": "stripe_update_customer",
-      "description": "Update customer information",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate customer information",
       "platform": "stripe",
       "parameters": {
         "customer_id": {
@@ -250,7 +252,7 @@
     },
     {
       "name": "stripe_delete_customer",
-      "description": "Delete a customer",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a customer",
       "platform": "stripe",
       "parameters": {
         "customer_id": {
@@ -266,7 +268,7 @@
     },
     {
       "name": "stripe_list_customers",
-      "description": "List all customers",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all customers",
       "platform": "stripe",
       "parameters": {
         "email": {
@@ -288,7 +290,7 @@
     },
     {
       "name": "stripe_create_subscription",
-      "description": "Create a subscription for a customer",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a subscription for a customer",
       "platform": "stripe",
       "parameters": {
         "customer_id": {
@@ -325,7 +327,7 @@
     },
     {
       "name": "stripe_update_subscription",
-      "description": "Update an existing subscription",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing subscription",
       "platform": "stripe",
       "parameters": {
         "subscription_id": {
@@ -356,7 +358,7 @@
     },
     {
       "name": "stripe_cancel_subscription",
-      "description": "Cancel a subscription",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCancel a subscription",
       "platform": "stripe",
       "parameters": {
         "subscription_id": {
@@ -378,7 +380,7 @@
     },
     {
       "name": "stripe_list_subscriptions",
-      "description": "List subscriptions",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList subscriptions",
       "platform": "stripe",
       "parameters": {
         "customer_id": {
@@ -405,7 +407,7 @@
     },
     {
       "name": "stripe_create_invoice",
-      "description": "Create an invoice for a customer",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate an invoice for a customer",
       "platform": "stripe",
       "parameters": {
         "customer_id": {
@@ -443,7 +445,7 @@
     },
     {
       "name": "stripe_finalize_invoice",
-      "description": "Finalize an invoice to make it payable",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFinalize an invoice to make it payable",
       "platform": "stripe",
       "parameters": {
         "invoice_id": {
@@ -465,7 +467,7 @@
     },
     {
       "name": "stripe_pay_invoice",
-      "description": "Pay an invoice manually",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nPay an invoice manually",
       "platform": "stripe",
       "parameters": {
         "invoice_id": {
@@ -486,7 +488,7 @@
     },
     {
       "name": "stripe_void_invoice",
-      "description": "Void an invoice",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nVoid an invoice",
       "platform": "stripe",
       "parameters": {
         "invoice_id": {
@@ -502,7 +504,7 @@
     },
     {
       "name": "stripe_list_invoices",
-      "description": "List invoices",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList invoices",
       "platform": "stripe",
       "parameters": {
         "customer_id": {
@@ -529,7 +531,7 @@
     },
     {
       "name": "stripe_create_product",
-      "description": "Create a product",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a product",
       "platform": "stripe",
       "parameters": {
         "name": {
@@ -560,7 +562,7 @@
     },
     {
       "name": "stripe_create_price",
-      "description": "Create a price for a product",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a price for a product",
       "platform": "stripe",
       "parameters": {
         "product_id": {
@@ -596,7 +598,7 @@
     },
     {
       "name": "stripe_list_payment_methods",
-      "description": "List payment methods for a customer",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList payment methods for a customer",
       "platform": "stripe",
       "parameters": {
         "customer_id": {
@@ -618,7 +620,7 @@
     },
     {
       "name": "stripe_attach_payment_method",
-      "description": "Attach payment method to customer",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAttach payment method to customer",
       "platform": "stripe",
       "parameters": {
         "payment_method_id": {
@@ -639,7 +641,7 @@
     },
     {
       "name": "stripe_detach_payment_method",
-      "description": "Detach payment method from customer",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDetach payment method from customer",
       "platform": "stripe",
       "parameters": {
         "payment_method_id": {
@@ -655,7 +657,7 @@
     },
     {
       "name": "stripe_get_balance",
-      "description": "Get Stripe account balance",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Stripe account balance",
       "platform": "stripe",
       "parameters": {},
       "returns": {

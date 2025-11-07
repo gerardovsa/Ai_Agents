@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent / '.env.master'
 if env_path.exists():
     load_dotenv(env_path, override=True)
-    print(f"✅ Loaded environment from: {env_path}")
+    print(f" Loaded environment from: {env_path}")
 
 sys.path.insert(0, os.path.abspath('.'))
 
@@ -65,7 +65,7 @@ def create_simple_chart_sheet(title, headers, data):
     spreadsheet_id = result['spreadsheetId']
     sheet_id = result['sheets'][0]['properties']['sheetId']
     
-    print(f"✅ Created spreadsheet: {spreadsheet_id}")
+    print(f" Created spreadsheet: {spreadsheet_id}")
     
     # Write data
     values = [headers] + data
@@ -78,7 +78,7 @@ def create_simple_chart_sheet(title, headers, data):
         body=body
     ).execute()
     
-    print(f"✅ Wrote {len(values)} rows")
+    print(f" Wrote {len(values)} rows")
     
     # Make spreadsheet publicly readable with "anyone with link" permission
     print("🔓 Making spreadsheet publicly accessible (anyone with link)...")
@@ -95,7 +95,7 @@ def create_simple_chart_sheet(title, headers, data):
             },
             fields='id'
         ).execute()
-        print(f"✅ Spreadsheet is now publicly readable (anyone with link)")
+        print(f" Spreadsheet is now publicly readable (anyone with link)")
         print(f"   Permission ID: {permission.get('id', 'N/A')}")
     except Exception as e:
         print(f"⚠️ Could not make spreadsheet public: {e}")
@@ -182,7 +182,7 @@ def create_simple_chart_sheet(title, headers, data):
         ).execute()
         
         chart_id = chart_result['replies'][0]['addChart']['chart']['chartId']
-        print(f"✅ Created chart (ID: {chart_id})")
+        print(f" Created chart (ID: {chart_id})")
         
     except Exception as e:
         print(f"⚠️ Chart creation failed: {e}")
@@ -275,17 +275,17 @@ def insert_image_in_doc(document_id, image_url, index=None):
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Image inserted successfully!")
+        print(f" Image inserted successfully!")
         return True
         
     except Exception as e:
         error_msg = str(e)
         if "publicly accessible" in error_msg:
-            print(f"❌ Image not publicly accessible")
+            print(f" Image not publicly accessible")
         elif "forbidden" in error_msg.lower():
-            print(f"❌ Access forbidden to image")
+            print(f" Access forbidden to image")
         else:
-            print(f"❌ Failed: {error_msg[:100]}")
+            print(f" Failed: {error_msg[:100]}")
         return False
 
 
@@ -336,7 +336,7 @@ def create_doc_with_chart_images(title, markdown_content, charts_data):
     document_id = doc_result['document_id']
     document_url = doc_result['url']
     
-    print(f"\n✅ Document created: {document_id}")
+    print(f"\n Document created: {document_id}")
     print(f"   URL: {document_url}")
     
     # Step 2: Create charts and insert images
@@ -365,11 +365,11 @@ def create_doc_with_chart_images(title, markdown_content, charts_data):
         for url_type, url in url_attempts:
             print(f"\n   Trying {url_type}: {url[:80]}...")
             if insert_image_in_doc(document_id=document_id, image_url=url):
-                print(f"   ✅ {url_type} worked!")
+                print(f"    {url_type} worked!")
                 image_inserted = True
                 break
             else:
-                print(f"   ❌ {url_type} failed")
+                print(f"    {url_type} failed")
         
         if not image_inserted:
             print(f"\n   ⚠️ All URL formats failed for this chart")
@@ -387,7 +387,7 @@ def create_doc_with_chart_images(title, markdown_content, charts_data):
         
         print(f"\n📊 Chart {i+1} Status:")
         print(f"   Sheet URL: {sheet_result['sheet_url']}")
-        print(f"   Image in Doc: {'✅ Yes' if image_inserted else '❌ No'}")
+        print(f"   Image in Doc: {' Yes' if image_inserted else ' No'}")
     
     # Step 3: Return results
     return {
@@ -453,13 +453,13 @@ Strong performance across all metrics. Q2 outlook remains positive.
     print("\n" + "="*80)
     print("📋 FINAL SUMMARY")
     print("="*80)
-    print(f"✅ Document URL: {result['document_url']}")
+    print(f" Document URL: {result['document_url']}")
     print(f"\n📊 Charts created: {len(result['charts'])}")
     
     for i, chart in enumerate(result['charts']):
         print(f"\n   Chart {i+1}:")
         print(f"      Sheet: {chart['sheet_url']}")
-        print(f"      In Doc: {'✅ Embedded' if chart['image_inserted'] else '❌ Failed'}")
+        print(f"      In Doc: {' Embedded' if chart['image_inserted'] else ' Failed'}")
     
     if result['success']:
         print(f"\n🎉 SUCCESS! All charts embedded in document")

@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "cloudconvert_convert",
-      "description": "Convert a file from one format to another",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nConvert a file from one format to another",
       "platform": "cloudconvert",
       "parameters": {
         "input_file": {
@@ -46,7 +46,7 @@
     },
     {
       "name": "cloudconvert_optimize",
-      "description": "Optimize image or video file for web/mobile",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nOptimize image or video file for web/mobile",
       "platform": "cloudconvert",
       "parameters": {
         "input_file": {
@@ -88,7 +88,7 @@
     },
     {
       "name": "cloudconvert_merge",
-      "description": "Merge multiple files into one (PDFs, videos, etc.)",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMerge multiple files into one (PDFs, videos, etc.)",
       "platform": "cloudconvert",
       "parameters": {
         "input_files": {
@@ -115,7 +115,10 @@
         {
           "description": "Merge PDFs",
           "parameters": {
-            "input_files": ["/path/to/doc1.pdf", "/path/to/doc2.pdf"],
+            "input_files": [
+              "/path/to/doc1.pdf",
+              "/path/to/doc2.pdf"
+            ],
             "output_format": "pdf"
           }
         }
@@ -123,7 +126,7 @@
     },
     {
       "name": "cloudconvert_status",
-      "description": "Check the status of a conversion job",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck the status of a conversion job",
       "platform": "cloudconvert",
       "parameters": {
         "job_id": {

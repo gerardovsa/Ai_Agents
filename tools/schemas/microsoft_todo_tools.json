@@ -1,37 +1,39 @@
 {
   "platform": "microsoft_todo",
-  "description": "Microsoft To Do & Planner - Task management, project planning, team assignments, and workload tracking",
+  "description": "Microsoft To Do & Planner - Task management, project planning, team assignments, and workload tracking\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "version": "1.0.0",
   "tools": [
     {
-      "name": "todo_list_tasks",
-      "description": "List tasks from To Do",
+      "name": "microsoft_todo_list_tasks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_list_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tasks from To Do",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "Task list ID (default list if not specified)"
+          },
+          "filter": {
+            "type": "string",
+            "description": "Filter: 'all', 'completed', 'incomplete', 'today', 'important'",
+            "default": "incomplete"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of tasks to return",
+            "default": 100
+          }
         },
-        "list_id": {
-          "type": "string",
-          "description": "Task list ID (default list if not specified)",
-          "required": false
-        },
-        "filter": {
-          "type": "string",
-          "description": "Filter: 'all', 'completed', 'incomplete', 'today', 'important'",
-          "required": false,
-          "default": "incomplete"
-        },
-        "max_results": {
-          "type": "integer",
-          "description": "Maximum number of tasks to return",
-          "required": false,
-          "default": 100
-        }
+        "required": [
+          "user_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -41,48 +43,48 @@
       }
     },
     {
-      "name": "todo_create_task",
-      "description": "Create a new task in To Do",
+      "name": "microsoft_todo_create_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_create_task', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new task in To Do",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "Task list ID (default list if not specified)"
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date (ISO 8601 format)"
+          },
+          "reminder": {
+            "type": "string",
+            "description": "Reminder date/time (ISO 8601 format)"
+          },
+          "importance": {
+            "type": "string",
+            "description": "Importance: 'low', 'normal', 'high'",
+            "default": "normal"
+          },
+          "body": {
+            "type": "string",
+            "description": "Task description/notes"
+          }
         },
-        "title": {
-          "type": "string",
-          "description": "Task title",
-          "required": true
-        },
-        "list_id": {
-          "type": "string",
-          "description": "Task list ID (default list if not specified)",
-          "required": false
-        },
-        "due_date": {
-          "type": "string",
-          "description": "Due date (ISO 8601 format)",
-          "required": false
-        },
-        "reminder": {
-          "type": "string",
-          "description": "Reminder date/time (ISO 8601 format)",
-          "required": false
-        },
-        "importance": {
-          "type": "string",
-          "description": "Importance: 'low', 'normal', 'high'",
-          "required": false,
-          "default": "normal"
-        },
-        "body": {
-          "type": "string",
-          "description": "Task description/notes",
-          "required": false
-        }
+        "required": [
+          "user_id",
+          "title"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -93,27 +95,32 @@
       }
     },
     {
-      "name": "todo_update_task",
-      "description": "Update an existing task",
+      "name": "microsoft_todo_update_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_update_task', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing task",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to update"
+          },
+          "updates": {
+            "type": "object",
+            "description": "Fields to update"
+          }
         },
-        "task_id": {
-          "type": "string",
-          "description": "Task ID to update",
-          "required": true
-        },
-        "updates": {
-          "type": "object",
-          "description": "Fields to update",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "task_id",
+          "updates"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -126,22 +133,27 @@
       }
     },
     {
-      "name": "todo_complete_task",
-      "description": "Mark a task as completed",
+      "name": "microsoft_todo_complete_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_complete_task', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark a task as completed",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to complete"
+          }
         },
-        "task_id": {
-          "type": "string",
-          "description": "Task ID to complete",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "task_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -149,22 +161,27 @@
       }
     },
     {
-      "name": "todo_delete_task",
-      "description": "Delete a task",
+      "name": "microsoft_todo_delete_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_delete_task', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a task",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "low",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to delete"
+          }
         },
-        "task_id": {
-          "type": "string",
-          "description": "Task ID to delete",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "task_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -172,22 +189,27 @@
       }
     },
     {
-      "name": "todo_create_list",
-      "description": "Create a new task list",
+      "name": "microsoft_todo_create_list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_create_list', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new task list",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "name": {
+            "type": "string",
+            "description": "List name"
+          }
         },
-        "name": {
-          "type": "string",
-          "description": "List name",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "name"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -195,17 +217,22 @@
       }
     },
     {
-      "name": "todo_list_lists",
-      "description": "List all task lists",
+      "name": "microsoft_todo_list_lists",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_list_lists', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all task lists",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
-        }
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
       },
       "example": {
         "user_id": "user123"
@@ -213,21 +240,25 @@
     },
     {
       "name": "planner_list_plans",
-      "description": "List all Planner plans accessible to user",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_list_plans', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all Planner plans accessible to user",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "group_id": {
+            "type": "string",
+            "description": "Optional: Filter by Microsoft 365 Group ID"
+          }
         },
-        "group_id": {
-          "type": "string",
-          "description": "Optional: Filter by Microsoft 365 Group ID",
-          "required": false
-        }
+        "required": [
+          "user_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -236,26 +267,31 @@
     },
     {
       "name": "planner_create_plan",
-      "description": "Create a new Planner plan",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_create_plan', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Planner plan",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "title": {
+            "type": "string",
+            "description": "Plan title"
+          },
+          "owner_group_id": {
+            "type": "string",
+            "description": "Microsoft 365 Group ID that owns the plan"
+          }
         },
-        "title": {
-          "type": "string",
-          "description": "Plan title",
-          "required": true
-        },
-        "owner_group_id": {
-          "type": "string",
-          "description": "Microsoft 365 Group ID that owns the plan",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "title",
+          "owner_group_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -265,21 +301,26 @@
     },
     {
       "name": "planner_list_buckets",
-      "description": "List buckets (columns) in a Planner plan",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_list_buckets', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList buckets (columns) in a Planner plan",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          }
         },
-        "plan_id": {
-          "type": "string",
-          "description": "Plan ID",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "plan_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -288,26 +329,31 @@
     },
     {
       "name": "planner_create_bucket",
-      "description": "Create a bucket (column) in a plan",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_create_bucket', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a bucket (column) in a plan",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Bucket name"
+          }
         },
-        "plan_id": {
-          "type": "string",
-          "description": "Plan ID",
-          "required": true
-        },
-        "name": {
-          "type": "string",
-          "description": "Bucket name",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "plan_id",
+          "name"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -317,26 +363,30 @@
     },
     {
       "name": "planner_list_tasks",
-      "description": "List tasks in a Planner plan",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_list_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tasks in a Planner plan",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          },
+          "bucket_id": {
+            "type": "string",
+            "description": "Optional: Filter by bucket ID"
+          }
         },
-        "plan_id": {
-          "type": "string",
-          "description": "Plan ID",
-          "required": true
-        },
-        "bucket_id": {
-          "type": "string",
-          "description": "Optional: Filter by bucket ID",
-          "required": false
-        }
+        "required": [
+          "user_id",
+          "plan_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -345,80 +395,89 @@
     },
     {
       "name": "planner_create_task",
-      "description": "Create a task in Planner",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_create_task', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a task in Planner",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "high",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          },
+          "bucket_id": {
+            "type": "string",
+            "description": "Bucket ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "assignments": {
+            "type": "array",
+            "description": "List of user IDs to assign task to"
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date (ISO 8601 format)"
+          },
+          "priority": {
+            "type": "integer",
+            "description": "Priority: 1-10 (1=urgent, 5=medium, 9=low)",
+            "default": 5
+          }
         },
-        "plan_id": {
-          "type": "string",
-          "description": "Plan ID",
-          "required": true
-        },
-        "bucket_id": {
-          "type": "string",
-          "description": "Bucket ID",
-          "required": true
-        },
-        "title": {
-          "type": "string",
-          "description": "Task title",
-          "required": true
-        },
-        "assignments": {
-          "type": "array",
-          "description": "List of user IDs to assign task to",
-          "required": false
-        },
-        "due_date": {
-          "type": "string",
-          "description": "Due date (ISO 8601 format)",
-          "required": false
-        },
-        "priority": {
-          "type": "integer",
-          "description": "Priority: 1-10 (1=urgent, 5=medium, 9=low)",
-          "required": false,
-          "default": 5
-        }
+        "required": [
+          "user_id",
+          "plan_id",
+          "bucket_id",
+          "title"
+        ]
       },
       "example": {
         "user_id": "user123",
         "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg",
         "bucket_id": "hsOf2dhoh02QT52nf-ZdbZcAKABg",
         "title": "Design homepage mockup",
-        "assignments": ["john@company.com"],
+        "assignments": [
+          "john@company.com"
+        ],
         "due_date": "2025-11-05T17:00:00Z",
         "priority": 3
       }
     },
     {
       "name": "planner_update_task",
-      "description": "Update a Planner task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_update_task', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate a Planner task",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "updates": {
+            "type": "object",
+            "description": "Fields to update"
+          }
         },
-        "task_id": {
-          "type": "string",
-          "description": "Task ID",
-          "required": true
-        },
-        "updates": {
-          "type": "object",
-          "description": "Fields to update",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "task_id",
+          "updates"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -431,55 +490,68 @@
     },
     {
       "name": "planner_assign_task",
-      "description": "Assign or reassign a task to users",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_assign_task', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAssign or reassign a task to users",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "assignees": {
+            "type": "array",
+            "description": "List of user IDs to assign"
+          }
         },
-        "task_id": {
-          "type": "string",
-          "description": "Task ID",
-          "required": true
-        },
-        "assignees": {
-          "type": "array",
-          "description": "List of user IDs to assign",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "task_id",
+          "assignees"
+        ]
       },
       "example": {
         "user_id": "user123",
         "task_id": "01gzSlKkduf...",
-        "assignees": ["john@company.com", "jane@company.com"]
+        "assignees": [
+          "john@company.com",
+          "jane@company.com"
+        ]
       }
     },
     {
       "name": "planner_add_checklist",
-      "description": "Add checklist items to a Planner task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_add_checklist', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd checklist items to a Planner task",
       "platform": "microsoft_todo",
       "category": "basic",
       "priority": "low",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "checklist_items": {
+            "type": "array",
+            "description": "List of checklist item titles"
+          }
         },
-        "task_id": {
-          "type": "string",
-          "description": "Task ID",
-          "required": true
-        },
-        "checklist_items": {
-          "type": "array",
-          "description": "List of checklist item titles",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "task_id",
+          "checklist_items"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -492,35 +564,37 @@
       }
     },
     {
-      "name": "todo_smart_daily_digest",
-      "description": "Generate daily task digest with priorities and due dates",
+      "name": "microsoft_todo_smart_daily_digest",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_smart_daily_digest', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGenerate daily task digest with priorities and due dates",
       "platform": "microsoft_todo",
       "category": "smart_bundled",
       "priority": "high",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "include_overdue": {
+            "type": "boolean",
+            "description": "Include overdue tasks",
+            "default": true
+          },
+          "include_upcoming": {
+            "type": "boolean",
+            "description": "Include tasks due in next 7 days",
+            "default": true
+          },
+          "format": {
+            "type": "string",
+            "description": "Output format: 'text', 'html', 'markdown'",
+            "default": "html"
+          }
         },
-        "include_overdue": {
-          "type": "boolean",
-          "description": "Include overdue tasks",
-          "required": false,
-          "default": true
-        },
-        "include_upcoming": {
-          "type": "boolean",
-          "description": "Include tasks due in next 7 days",
-          "required": false,
-          "default": true
-        },
-        "format": {
-          "type": "string",
-          "description": "Output format: 'text', 'html', 'markdown'",
-          "required": false,
-          "default": "html"
-        }
+        "required": [
+          "user_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -531,38 +605,48 @@
     },
     {
       "name": "planner_smart_sprint_setup",
-      "description": "Create complete sprint board with buckets and initial tasks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_smart_sprint_setup', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nCreate complete sprint board with buckets and initial tasks",
       "platform": "microsoft_todo",
       "category": "smart_bundled",
       "priority": "high",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_name": {
+            "type": "string",
+            "description": "Sprint/plan name"
+          },
+          "owner_group_id": {
+            "type": "string",
+            "description": "Microsoft 365 Group ID"
+          },
+          "sprint_config": {
+            "type": "object",
+            "description": "Sprint configuration with buckets and tasks"
+          }
         },
-        "plan_name": {
-          "type": "string",
-          "description": "Sprint/plan name",
-          "required": true
-        },
-        "owner_group_id": {
-          "type": "string",
-          "description": "Microsoft 365 Group ID",
-          "required": true
-        },
-        "sprint_config": {
-          "type": "object",
-          "description": "Sprint configuration with buckets and tasks",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "plan_name",
+          "owner_group_id",
+          "sprint_config"
+        ]
       },
       "example": {
         "user_id": "user123",
         "plan_name": "Sprint 15 - October 2025",
         "owner_group_id": "12345678-1234-1234-1234-123456789abc",
         "sprint_config": {
-          "buckets": ["Backlog", "In Progress", "Review", "Done"],
+          "buckets": [
+            "Backlog",
+            "In Progress",
+            "Review",
+            "Done"
+          ],
           "tasks": [
             {
               "title": "User authentication feature",
@@ -582,33 +666,36 @@
     },
     {
       "name": "planner_smart_team_workload",
-      "description": "Analyze team workload and suggest task redistribution",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_smart_team_workload', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAnalyze team workload and suggest task redistribution",
       "platform": "microsoft_todo",
       "category": "smart_bundled",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID to analyze"
+          },
+          "balance_by": {
+            "type": "string",
+            "description": "Balance method: 'task_count', 'priority', 'estimated_hours'",
+            "default": "task_count"
+          },
+          "auto_reassign": {
+            "type": "boolean",
+            "description": "Automatically reassign tasks to balance workload",
+            "default": false
+          }
         },
-        "plan_id": {
-          "type": "string",
-          "description": "Plan ID to analyze",
-          "required": true
-        },
-        "balance_by": {
-          "type": "string",
-          "description": "Balance method: 'task_count', 'priority', 'estimated_hours'",
-          "required": false,
-          "default": "task_count"
-        },
-        "auto_reassign": {
-          "type": "boolean",
-          "description": "Automatically reassign tasks to balance workload",
-          "required": false,
-          "default": false
-        }
+        "required": [
+          "user_id",
+          "plan_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -618,32 +705,36 @@
       }
     },
     {
-      "name": "todo_smart_recurring_tasks",
-      "description": "Create recurring tasks with custom patterns",
+      "name": "microsoft_todo_smart_recurring_tasks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_smart_recurring_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate recurring tasks with custom patterns",
       "platform": "microsoft_todo",
       "category": "smart_bundled",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_template": {
+            "type": "object",
+            "description": "Task template with title, description, importance"
+          },
+          "recurrence": {
+            "type": "object",
+            "description": "Recurrence pattern (daily, weekly, monthly)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "When to stop creating tasks (ISO 8601)"
+          }
         },
-        "task_template": {
-          "type": "object",
-          "description": "Task template with title, description, importance",
-          "required": true
-        },
-        "recurrence": {
-          "type": "object",
-          "description": "Recurrence pattern (daily, weekly, monthly)",
-          "required": true
-        },
-        "end_date": {
-          "type": "string",
-          "description": "When to stop creating tasks (ISO 8601)",
-          "required": false
-        }
+        "required": [
+          "user_id",
+          "task_template",
+          "recurrence"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -662,21 +753,26 @@
     },
     {
       "name": "planner_get_plan_progress",
-      "description": "Get progress statistics for a Planner plan",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='planner_get_plan_progress', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet progress statistics for a Planner plan",
       "platform": "microsoft_todo",
       "category": "advanced",
       "priority": "medium",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          }
         },
-        "plan_id": {
-          "type": "string",
-          "description": "Plan ID",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "plan_id"
+        ]
       },
       "example": {
         "user_id": "user123",
@@ -684,33 +780,37 @@
       }
     },
     {
-      "name": "todo_export_tasks",
-      "description": "Export tasks to various formats",
+      "name": "microsoft_todo_export_tasks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_export_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport tasks to various formats",
       "platform": "microsoft_todo",
       "category": "advanced",
       "priority": "low",
       "parameters": {
-        "user_id": {
-          "type": "string",
-          "description": "User ID for authentication",
-          "required": true
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "Task list ID to export"
+          },
+          "format": {
+            "type": "string",
+            "description": "Export format: 'csv', 'json', 'markdown'",
+            "default": "csv"
+          },
+          "output_path": {
+            "type": "string",
+            "description": "Local path to save export"
+          }
         },
-        "list_id": {
-          "type": "string",
-          "description": "Task list ID to export",
-          "required": true
-        },
-        "format": {
-          "type": "string",
-          "description": "Export format: 'csv', 'json', 'markdown'",
-          "required": false,
-          "default": "csv"
-        },
-        "output_path": {
-          "type": "string",
-          "description": "Local path to save export",
-          "required": true
-        }
+        "required": [
+          "user_id",
+          "list_id",
+          "output_path"
+        ]
       },
       "example": {
         "user_id": "user123",

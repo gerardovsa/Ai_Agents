@@ -48,25 +48,25 @@ function testWorkersAI() {
 
                 try {
                     const response = JSON.parse(body);
-                    
+
                     if (res.statusCode === 200 && response.success) {
-                        console.log('✅ SUCCESS! Workers AI is working!');
+                        console.log(' SUCCESS! Workers AI is working!');
                         console.log(`   AI Response: ${response.result?.response || JSON.stringify(response.result)}`);
                         resolve(response);
                     } else {
-                        console.error('❌ FAILED');
+                        console.error(' FAILED');
                         console.error(`   Errors: ${JSON.stringify(response.errors, null, 2)}`);
                         reject(new Error('API call failed'));
                     }
                 } catch (error) {
-                    console.error('❌ Parse error:', error.message);
+                    console.error(' Parse error:', error.message);
                     reject(error);
                 }
             });
         });
 
         req.on('error', (error) => {
-            console.error('❌ Request error:', error.message);
+            console.error(' Request error:', error.message);
             reject(error);
         });
 
@@ -84,12 +84,12 @@ console.log('');
 testWorkersAI()
     .then(() => {
         console.log('\n━'.repeat(80));
-        console.log('✅ Test completed successfully!');
+        console.log(' Test completed successfully!');
         console.log('━'.repeat(80));
     })
     .catch((error) => {
         console.log('\n━'.repeat(80));
-        console.error('❌ Test failed:', error.message);
+        console.error(' Test failed:', error.message);
         console.log('━'.repeat(80));
         process.exit(1);
     });

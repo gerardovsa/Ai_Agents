@@ -116,7 +116,7 @@ def google_cloud_run_deploy_service(project_id, service_name, image, region='us-
         }
     
     except Exception as e:
-        print(f"❌ Failed to deploy service: {e}")
+        print(f" Failed to deploy service: {e}")
         raise
 
 
@@ -153,7 +153,7 @@ def google_cloud_run_list_services(project_id, region=None):
         }
     
     except Exception as e:
-        print(f"❌ Failed to list services: {e}")
+        print(f" Failed to list services: {e}")
         raise
 
 
@@ -180,7 +180,7 @@ def google_cloud_run_get_service(project_id, service_name, region):
         }
     
     except Exception as e:
-        print(f"❌ Failed to get service: {e}")
+        print(f" Failed to get service: {e}")
         raise
 
 
@@ -232,7 +232,7 @@ def google_cloud_run_update_service(project_id, service_name, region, image=None
         }
     
     except Exception as e:
-        print(f"❌ Failed to update service: {e}")
+        print(f" Failed to update service: {e}")
         raise
 
 
@@ -252,7 +252,7 @@ def google_cloud_run_delete_service(project_id, service_name, region):
         }
     
     except Exception as e:
-        print(f"❌ Failed to delete service: {e}")
+        print(f" Failed to delete service: {e}")
         raise
 
 
@@ -268,7 +268,7 @@ def google_cloud_run_get_service_url(project_id, service_name, region):
         }
     
     except Exception as e:
-        print(f"❌ Failed to get service URL: {e}")
+        print(f" Failed to get service URL: {e}")
         raise
 
 
@@ -302,7 +302,7 @@ def google_cloud_run_set_traffic(project_id, service_name, region, traffic_split
         }
     
     except Exception as e:
-        print(f"❌ Failed to set traffic: {e}")
+        print(f" Failed to set traffic: {e}")
         raise
 
 
@@ -327,7 +327,7 @@ def google_cloud_run_list_revisions(project_id, service_name, region):
         }
     
     except Exception as e:
-        print(f"❌ Failed to list revisions: {e}")
+        print(f" Failed to list revisions: {e}")
         raise
 
 
@@ -373,7 +373,7 @@ def google_cloud_run_get_service_metrics(project_id, service_name, region,
         return results
     
     except Exception as e:
-        print(f"❌ Failed to get metrics: {e}")
+        print(f" Failed to get metrics: {e}")
         raise
 
 
@@ -414,7 +414,7 @@ def google_cloud_run_get_service_logs(project_id, service_name, region=None,
         }
     
     except Exception as e:
-        print(f"❌ Failed to get logs: {e}")
+        print(f" Failed to get logs: {e}")
         raise
 
 
@@ -451,7 +451,7 @@ def google_cloud_run_set_iam_policy(project_id, service_name, region, member, ro
         }
     
     except Exception as e:
-        print(f"❌ Failed to set IAM policy: {e}")
+        print(f" Failed to set IAM policy: {e}")
         raise
 
 
@@ -502,7 +502,7 @@ def google_cloud_run_create_job(project_id, job_name, image, region='us-central1
         }
     
     except Exception as e:
-        print(f"❌ Failed to create job: {e}")
+        print(f" Failed to create job: {e}")
         raise
 
 
@@ -530,7 +530,7 @@ def google_cloud_run_execute_job(project_id, job_name, region, wait=False):
             }
     
     except Exception as e:
-        print(f"❌ Failed to execute job: {e}")
+        print(f" Failed to execute job: {e}")
         raise
 
 
@@ -566,7 +566,7 @@ def google_cloud_run_list_jobs(project_id, region=None):
         }
     
     except Exception as e:
-        print(f"❌ Failed to list jobs: {e}")
+        print(f" Failed to list jobs: {e}")
         raise
 
 
@@ -592,5 +592,5 @@ def google_cloud_run_get_job_executions(project_id, job_name, region, limit=10):
         }
     
     except Exception as e:
-        print(f"❌ Failed to get job executions: {e}")
+        print(f" Failed to get job executions: {e}")
         raise

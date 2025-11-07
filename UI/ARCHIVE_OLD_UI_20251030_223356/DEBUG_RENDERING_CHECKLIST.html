@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rendering Debug Checklist</title>
+    <script src="visualisation_engine/streamingTwoRule.js"></script>
+    <script src="visualisation_engine/visualisation_copy.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #58a6ff;
+            border-bottom: 2px solid #21262d;
+            padding-bottom: 10px;
+        }
+
+        .test-section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .test-title {
+            color: #79c0ff;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status.pass {
+            background: #0d4429;
+            border-left: 4px solid #2ea043;
+        }
+
+        .status.fail {
+            background: #490a0a;
+            border-left: 4px solid #da3633;
+        }
+
+        .status.info {
+            background: #1c2d41;
+            border-left: 4px solid #58a6ff;
+        }
+
+        .code {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #2ea043;
+        }
+
+        .test-container {
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 15px 0;
+            min-height: 100px;
+            background: #0d1117;
+        }
+
+        pre {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Business AI Platform - Rendering Diagnostics</h1>
+
+    <div class="test-section">
+        <div class="test-title">Test 1: Script Loading Status</div>
+        <div id="script-status"></div>
+        <div class="code" id="script-details"></div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 2: Basic Markdown Renderer</div>
+        <button onclick="testBasicMarkdown()">Run Basic Markdown Test</button>
+        <div class="test-container" id="basic-markdown-result"></div>
+        <pre id="basic-markdown-html"></pre>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 3: TwoRuleStreamProcessor</div>
+        <button onclick="testTwoRuleProcessor()">Run Visualization Engine Test</button>
+        <div class="test-container" id="two-rule-result"></div>
+        <pre id="two-rule-html"></pre>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 4: Complex Markdown Content</div>
+        <button onclick="testComplexMarkdown()">Run Complex Content Test</button>
+        <div class="test-container" id="complex-result"></div>
+        <pre id="complex-html"></pre>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 5: Simulation of addChatMessage</div>
+        <button onclick="testAddChatMessage()">Run Chat Message Simulation</button>
+        <div class="test-container" id="chat-message-result"></div>
+        <pre id="chat-message-logs"></pre>
+    </div>
+
+    <script>
+        // ==================== BASIC MARKDOWN RENDERER ====================
+        function renderBasicMarkdown(text) {
+            if (!text) return '';
+
+            let html = text;
+
+            // Code blocks
+            html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                return `<pre><code class="language-${lang || 'plaintext'}">${escapeHtml(code.trim())}</code></pre>`;
+            });
+
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Bold
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+            // Italic
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+
+            // Headers
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+            // Lists
+            html = html.replace(/^[\*\-] (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+            // Line breaks
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = html.replace(/\n/g, '<br>');
+
+            if (!html.startsWith('<')) {
+                html = `<p>${html}</p>`;
+            }
+
+            return html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== TEST FUNCTIONS ====================
+
+        // Test 1: Check script loading
+        window.addEventListener('load', () => {
+            const statusDiv = document.getElementById('script-status');
+            const detailsDiv = document.getElementById('script-details');
+
+            let results = [];
+
+            // Check TwoRuleStreamProcessor
+            if (typeof TwoRuleStreamProcessor !== 'undefined') {
+                results.push('<div class="status pass">✅ TwoRuleStreamProcessor loaded successfully</div>');
+                detailsDiv.innerHTML += '<div>TwoRuleStreamProcessor type: ' + typeof TwoRuleStreamProcessor + '</div>';
+                detailsDiv.innerHTML += '<div>TwoRuleStreamProcessor constructor: ' + (TwoRuleStreamProcessor.constructor ? 'Yes' : 'No') + '</div>';
+            } else {
+                results.push('<div class="status fail"> TwoRuleStreamProcessor NOT found</div>');
+                detailsDiv.innerHTML += '<div>Check: visualisation_engine/streamingTwoRule.js loaded?</div>';
+            }
+
+            // Check if visualisation_copy.js loaded
+            if (typeof window.sidebarVisualizationState !== 'undefined') {
+                results.push('<div class="status pass">✅ visualisation_copy.js loaded (sidebarVisualizationState found)</div>');
+            } else {
+                results.push('<div class="status fail"> visualisation_copy.js may not be loaded</div>');
+            }
+
+            // Check renderBasicMarkdown
+            if (typeof renderBasicMarkdown !== 'undefined') {
+                results.push('<div class="status pass">✅ renderBasicMarkdown function defined</div>');
+            } else {
+                results.push('<div class="status fail"> renderBasicMarkdown function NOT found</div>');
+            }
+
+            statusDiv.innerHTML = results.join('');
+        });
+
+        // Test 2: Basic Markdown
+        function testBasicMarkdown() {
+            const container = document.getElementById('basic-markdown-result');
+            const htmlPre = document.getElementById('basic-markdown-html');
+
+            const testContent = `# Heading 1
+## Heading 2
+
+This is **bold text** and this is *italic text*.
+
+Here's some \`inline code\` and a code block:
+
+\`\`\`javascript
+function hello() {
+    console.log("Hello World!");
+}
+\`\`\`
+
+- List item 1
+- List item 2
+- List item 3`;
+
+            try {
+                const html = renderBasicMarkdown(testContent);
+                container.innerHTML = html;
+                htmlPre.textContent = 'Generated HTML:\n' + html;
+
+                if (html && html.length > 0) {
+                    htmlPre.style.borderLeft = '4px solid #2ea043';
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="status fail"> Error: ${error.message}</div>`;
+                htmlPre.textContent = error.stack;
+                htmlPre.style.borderLeft = '4px solid #da3633';
+            }
+        }
+
+        // Test 3: TwoRuleStreamProcessor
+        function testTwoRuleProcessor() {
+            const container = document.getElementById('two-rule-result');
+            const htmlPre = document.getElementById('two-rule-html');
+
+            const testContent = `# Visualization Engine Test
+
+This is a test of the **TwoRuleStreamProcessor**.
+
+\`\`\`python
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+\`\`\`
+
+Testing *italic* and **bold** formatting.`;
+
+            if (typeof TwoRuleStreamProcessor === 'undefined') {
+                container.innerHTML = '<div class="status fail"> TwoRuleStreamProcessor not available</div>';
+                htmlPre.textContent = 'ERROR: TwoRuleStreamProcessor is undefined';
+                htmlPre.style.borderLeft = '4px solid #da3633';
+                return;
+            }
+
+            try {
+                container.innerHTML = ''; // Clear
+                const processor = new TwoRuleStreamProcessor(container);
+                processor.processChunk(testContent);
+                processor.finalize();
+
+                htmlPre.textContent = 'Generated HTML:\n' + container.innerHTML;
+
+                if (container.innerHTML && container.innerHTML.length > 0) {
+                    htmlPre.style.borderLeft = '4px solid #2ea043';
+                } else {
+                    htmlPre.textContent = 'WARNING: Processor produced empty output';
+                    htmlPre.style.borderLeft = '4px solid #d29922';
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="status fail"> Error: ${error.message}</div>`;
+                htmlPre.textContent = error.stack;
+                htmlPre.style.borderLeft = '4px solid #da3633';
+            }
+        }
+
+        // Test 4: Complex Markdown
+        function testComplexMarkdown() {
+            const container = document.getElementById('complex-result');
+            const htmlPre = document.getElementById('complex-html');
+
+            const complexContent = `## Complex Content Test
+
+This message contains:
+1. **Multiple formatting** styles
+2. *Nested* ***formatting***
+3. \`Inline code\` and code blocks
+
+\`\`\`javascript
+// This is a code block
+const greeting = "Hello!";
+console.log(greeting);
+\`\`\`
+
+### Lists
+- Item one
+- Item two
+  - Nested item (may not work in basic renderer)
+- Item three
+
+### More content
+This is a paragraph with **bold**, *italic*, and \`code\`.`;
+
+            try {
+                const html = renderBasicMarkdown(complexContent);
+                container.innerHTML = html;
+                htmlPre.textContent = 'Generated HTML:\n' + html;
+                htmlPre.style.borderLeft = '4px solid #2ea043';
+            } catch (error) {
+                container.innerHTML = `<div class="status fail"> Error: ${error.message}</div>`;
+                htmlPre.textContent = error.stack;
+                htmlPre.style.borderLeft = '4px solid #da3633';
+            }
+        }
+
+        // Test 5: Simulate addChatMessage
+        function testAddChatMessage() {
+            const container = document.getElementById('chat-message-result');
+            const logsPre = document.getElementById('chat-message-logs');
+
+            let logs = [];
+
+            // Override console.log temporarily
+            const originalLog = console.log;
+            const originalError = console.error;
+
+            console.log = (...args) => {
+                logs.push('[LOG] ' + args.join(' '));
+                originalLog(...args);
+            };
+
+            console.error = (...args) => {
+                logs.push('[ERROR] ' + args.join(' '));
+                originalError(...args);
+            };
+
+            const testContent = `Hello! I can help you with that.
+
+Here's some **important information**:
+- Point 1
+- Point 2
+- Point 3
+
+\`\`\`python
+print("Hello World")
+\`\`\``;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ai-message-content';
+
+            try {
+                logs.push('🎨 Rendering AI message...');
+                logs.push('📝 Content preview: ' + testContent.substring(0, 50) + '...');
+
+                // Simulate the actual rendering logic
+                if (typeof TwoRuleStreamProcessor !== 'undefined') {
+                    try {
+                        logs.push('🔧 Using TwoRuleStreamProcessor...');
+                        const processor = new TwoRuleStreamProcessor(contentDiv);
+                        processor.processChunk(testContent);
+                        processor.finalize();
+
+                        logs.push('✅ Visualization processing complete');
+                        logs.push('📏 Rendered HTML length: ' + contentDiv.innerHTML.length);
+
+                        if (!contentDiv.innerHTML || contentDiv.innerHTML.trim() === '') {
+                            logs.push('⚠️ Visualization engine produced empty content, using basic renderer');
+                            contentDiv.innerHTML = renderBasicMarkdown(testContent);
+                        }
+                    } catch (error) {
+                        logs.push(' Visualization engine error: ' + error.message);
+                        logs.push('↩️ Falling back to basic markdown renderer');
+                        contentDiv.innerHTML = renderBasicMarkdown(testContent);
+                    }
+                } else {
+                    logs.push('📄 Using basic markdown renderer (TwoRuleStreamProcessor not found)');
+                    contentDiv.innerHTML = renderBasicMarkdown(testContent);
+                }
+
+                if (!contentDiv.innerHTML || contentDiv.innerHTML.trim() === '') {
+                    logs.push(' All rendering methods failed! Using raw text.');
+                    contentDiv.textContent = testContent;
+                }
+
+                logs.push('✅ Message rendered successfully');
+
+                // Display result
+                container.innerHTML = '';
+                container.appendChild(contentDiv);
+
+            } catch (error) {
+                logs.push(' CRITICAL ERROR: ' + error.message);
+                container.innerHTML = `<div class="status fail"> Fatal Error: ${error.message}</div>`;
+            } finally {
+                // Restore console
+                console.log = originalLog;
+                console.error = originalError;
+
+                // Display logs
+                logsPre.textContent = logs.join('\n');
+                logsPre.style.borderLeft = '4px solid #58a6ff';
+            }
+        }
+    </script>
+</body>
+
+</html>

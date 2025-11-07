@@ -17,7 +17,7 @@ def load_env_master():
     env_path = Path('.env.master')
     
     if not env_path.exists():
-        print("❌ .env.master file not found")
+        print(" .env.master file not found")
         print("\n💡 Create .env.master with your API keys:")
         print("   ANTHROPIC_API_KEY=sk-ant-...")
         print("   OPENAI_API_KEY=sk-...")
@@ -31,7 +31,7 @@ def load_env_master():
         env_vars = dotenv_values(env_path, encoding='utf-8', errors='ignore')
         return env_vars
     except Exception as e:
-        print(f"❌ Error reading .env.master: {e}")
+        print(f" Error reading .env.master: {e}")
         return None
 
 def validate_required_keys(env_vars):
@@ -74,10 +74,10 @@ def save_to_json(render_vars, output_file='render_env_vars.json'):
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(render_vars, f, indent=2)
         
-        print(f"✅ Saved {len(render_vars)} environment variables to {output_file}")
+        print(f" Saved {len(render_vars)} environment variables to {output_file}")
         return True
     except Exception as e:
-        print(f"❌ Error saving JSON: {e}")
+        print(f" Error saving JSON: {e}")
         return False
 
 def preview_vars(render_vars):
@@ -113,14 +113,14 @@ def main():
     if not env_vars:
         return 1
     
-    print(f"   ✅ Loaded {len(env_vars)} environment variables")
+    print(f"    Loaded {len(env_vars)} environment variables")
     
     # Step 2: Validate required keys
     print("\n2️⃣  Validating required API keys...")
     if not validate_required_keys(env_vars):
         print("   ⚠️  Some required keys are missing (deployment may fail)")
     else:
-        print("   ✅ All required keys present")
+        print("    All required keys present")
     
     # Step 3: Convert to Render format
     print("\n3️⃣  Converting to Render format...")
@@ -129,7 +129,7 @@ def main():
     # Add PORT if not present
     if not any(var['key'] == 'PORT' for var in render_vars):
         render_vars.append({"key": "PORT", "value": "10000"})
-        print("   ✅ Added PORT=10000 (Render default)")
+        print("    Added PORT=10000 (Render default)")
     
     # Step 4: Preview
     preview_vars(render_vars)
@@ -141,7 +141,7 @@ def main():
     
     # Step 6: Next steps
     print("\n" + "=" * 70)
-    print("✅ Environment variables exported successfully!")
+    print(" Environment variables exported successfully!")
     print("=" * 70)
     print("\n📋 Next Steps:")
     print("\n1. Review the generated render_env_vars.json")

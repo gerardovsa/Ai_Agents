@@ -6,12 +6,26 @@ This is the NEW clean Flask app that replaces flask_triple_agent_app.py
 Run on port 5001 for testing, then swap to port 5000 when ready
 """
 
+import os
+import sys
+from pathlib import Path
+
+# Configure AI_agents paths ONLY - Standalone project
+ai_agents_root = Path(__file__).parent.parent  # Go up to AI_agents root
+ai_infrastructure_path = ai_agents_root / 'AI_infrastructure'
+
+# Add AI_agents paths
+for path in [str(ai_agents_root), str(ai_infrastructure_path)]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+print("[OK] AI_agents standalone - No external dependencies")
+
+# Now import Flask and other dependencies
 from flask import Flask, jsonify, request, Response, send_from_directory
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_socketio import SocketIO
 import json
-import os
-from pathlib import Path
 from queue import Queue, Empty
 import threading
 
@@ -25,24 +39,26 @@ print(f"DEEPSEEK_API_KEY_1: {'SET' if os.getenv('DEEPSEEK_API_KEY_1') else 'NOT 
 print(f"MICROSOFT_CLIENT_ID: {'SET' if os.getenv('MICROSOFT_CLIENT_ID') else 'NOT SET'}")
 print(f"MICROSOFT_CLIENT_SECRET: {'SET' if os.getenv('MICROSOFT_CLIENT_SECRET') else 'NOT SET'}")
 
-# Import configuration from LOCAL config.py (AI_infrastructure/config.py)
-try:
-    # Try importing from same directory
-    import sys
-    sys.path.insert(0, os.path.dirname(__file__))
-    from config import Config
-    print("[OK] Using AI_infrastructure/config.py for configuration")
-except (ImportError, AttributeError) as e:
-    print(f"[WARNING] Local config.py import failed ({e}) - using fallback configuration")
-    # Fallback configuration class with all required attributes
-    class Config:
+# Stock Management - ENABLED (using local AI_agents copy)
+STOCK_DB_PATH = str(Path(__file__).parent.parent / 'data' / 'stock_data.db')
+STOCK_DB_AVAILABLE = os.path.exists(STOCK_DB_PATH)
+STOCK_DB_CONFIG = {'db_path': STOCK_DB_PATH} if STOCK_DB_AVAILABLE else None
+if STOCK_DB_AVAILABLE:
+    print(f"[INFO] Stock management enabled - database found at {STOCK_DB_PATH}")
+else:
+    print("[WARNING] Stock management disabled - database not found")
+
+# Flask Configuration (inline - no external config.py needed)
+class Config:
         """Flask app configuration - Fallback"""
         BASE_DIR = Path(__file__).parent
+        ROOT_DIR = BASE_DIR.parent  # AI_agents root
+        DATA_DIR = ROOT_DIR / 'data'  # Centralized data folder
         SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
         DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
         TESTING = False
-        DB_CONFIG_PATH = Path(__file__).parent / 'data' / 'database-config.json'
-        SESSION_DB_PATH = Path(__file__).parent / 'data' / 'sessions.db'
+        DB_CONFIG_PATH = DATA_DIR / 'database-config.json'
+        SESSION_DB_PATH = DATA_DIR / 'sessions.db'
         
         # Session configuration
         SESSION_TYPE = 'filesystem'
@@ -51,38 +67,104 @@ except (ImportError, AttributeError) as e:
         # CORS configuration
         CORS_ORIGINS = ['http://localhost:5001', 'http://localhost:5000', 'http://127.0.0.1:5001', 'http://127.0.0.1:5000', '*']
         
-        # Database configuration (SQLite)
-        DATABASE_PATH = os.getenv('DATABASE_PATH', str(BASE_DIR / 'ai_infrastructure.db'))
+        # Database configuration (SQLite) - Centralized location
+        DATABASE_PATH = os.getenv('DATABASE_PATH', str(DATA_DIR / 'ai_infrastructure.db'))
 
 # Import core infrastructure (NEW CLEAN CODE)
 from core.unified_session_manager import session_manager
 from core.unified_ai_client import initialize_ai_client
 
-# Import routes (blueprints) - CLEANED UP: Only generic routes
-from routes.agent_routes import agent_bp
+# Import routes (blueprints) - Working In_House_SQL implementation
+from routes.agent_routes_v4 import agent_bp  # V4 modular architecture with tool execution
 from routes.thread_routes import thread_bp
 from routes.export_routes import export_bp
 from routes.woocommerce_routes import woocommerce_bp
 from routes.auth_routes import auth_bp  # NEW: User authentication
-from routes.google_auth_routes import google_auth_bp  # NEW: Google OAuth
-from routes.microsoft_auth_routes import microsoft_auth_bp  # NEW: Microsoft OAuth
+from routes.google_auth_routes_V2_FIXED import google_auth_bp  # NEW: Google OAuth V2
+from routes.microsoft_auth_routes_V2_FIXED import microsoft_auth_bp  # NEW: Microsoft OAuth V2
 from routes.account_linking_routes import account_linking_bp  # NEW: Account linking
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
+from routes.database_visualizer_routes import database_visualizer_bp  # NEW: Database visualizer module
+from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
+from routes.inhouse_kanban_routes import inhouse_kanban_bp  # NEW: InHousePrint production workflow
+from routes.kanban_analytics_routes import kanban_analytics_bp  # NEW: Kanban Analytics (SQLite database with custom metrics)
+from routes.production_log_routes import production_log_bp  # NEW: Production Log (comprehensive job tracking)
+from routes.user_preferences_routes import user_preferences_bp  # NEW: User personalization preferences
+from routes.geolocation_routes import geolocation_bp  # NEW: Geolocation detection
+from routes.thread_assignment_routes import thread_assignment_bp  # NEW: Thread assignments (JSON storage)
+# from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Register blueprints - CLEANED UP: Generic routes only (16 endpoints)
-app.register_blueprint(agent_bp, url_prefix='/api/agent')           # 8 endpoints (AI agent orchestration)
+# Register blueprints - Working In_House_SQL implementation
+app.register_blueprint(agent_bp)                                     # Working agent routes with async support
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
 app.register_blueprint(export_bp, url_prefix='/api/export')         # 3 endpoints (export functionality)
 app.register_blueprint(woocommerce_bp)                               # 9 endpoints (WooCommerce direct API)
 app.register_blueprint(auth_bp)                                      # NEW: 6 endpoints (user auth)
-app.register_blueprint(google_auth_bp)                               # NEW: Google OAuth (/api/auth/google/*)
-app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth (/api/auth/microsoft/*)
+app.register_blueprint(google_auth_bp)                               # NEW: Google OAuth V2 (/api/auth/google/*)
+app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth V2 (/api/auth/microsoft/*)
 app.register_blueprint(account_linking_bp)                           # NEW: Account linking (/api/account/*)
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
+app.register_blueprint(database_visualizer_bp)                       # NEW: Database visualizer (5 endpoints)
+app.register_blueprint(synergy_bp)                                   # NEW: Synergy Dashboard (6 endpoints: /api/synergy/*)
+app.register_blueprint(inhouse_kanban_bp)                            # NEW: InHousePrint production workflow (5 endpoints)
+app.register_blueprint(kanban_analytics_bp)                          # NEW: Kanban Analytics SQLite (15 endpoints: /api/kanban-analytics/*)
+app.register_blueprint(production_log_bp)                            # NEW: Production Log (10 endpoints: /api/production-log/*)
+app.register_blueprint(user_preferences_bp)                          # NEW: User preferences (2 endpoints: /api/user/preferences)
+app.register_blueprint(geolocation_bp)                               # NEW: Geolocation detection (2 endpoints: /api/geolocation/*)
+app.register_blueprint(thread_assignment_bp)                         # NEW: Thread assignments (7 endpoints: /api/thread-assignments/*)
+# app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
+
+# 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)
+# This discovers and registers Flask routes from UI/external/modules/*/routes/
+try:
+    from core.module_blueprint_loader import load_module_blueprints
+    module_bp_count = load_module_blueprints(app)
+    print(f"✅ Loaded {module_bp_count} module blueprints from UI/external/modules")
+except Exception as e:
+    print(f"⚠️  Module blueprints not loaded: {e}")
+    print("   (Module blueprints are optional)")
+
+# Stock Management: ENABLED (load routes from module folder)
+if STOCK_DB_AVAILABLE:
+    try:
+        # Add stock management module to path
+        module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'external', 'modules', 'stock-management')
+        if os.path.exists(module_path):
+            sys.path.insert(0, module_path)
+            from stock_routes import init_stock_routes
+            init_stock_routes(app, STOCK_DB_CONFIG, STOCK_DB_AVAILABLE)
+            print(f"✅ Stock management routes registered from {module_path}")
+        else:
+            print(f"⚠️ Stock management module not found at {module_path}")
+    except Exception as e:
+        print(f"❌ Failed to load stock routes: {e}")
+        import traceback
+        traceback.print_exc()
+else:
+    print("[INFO] Stock management disabled - database not available")
+
+# Shopify E-Commerce: ENABLED (load routes from module folder)
+if STOCK_DB_AVAILABLE:  # Shopify uses same database as Stock Management
+    try:
+        # Add shopify module to path
+        shopify_module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'external', 'modules', 'shopify')
+        if os.path.exists(shopify_module_path):
+            sys.path.insert(0, shopify_module_path)
+            from shopify_routes import init_shopify_routes
+            init_shopify_routes(app, STOCK_DB_CONFIG, STOCK_DB_AVAILABLE)
+            print(f"✅ Shopify E-Commerce routes registered from {shopify_module_path}")
+        else:
+            print(f"⚠️ Shopify module not found at {shopify_module_path}")
+    except Exception as e:
+        print(f"❌ Failed to load shopify routes: {e}")
+        import traceback
+        traceback.print_exc()
+else:
+    print("[INFO] Shopify E-Commerce disabled - database not available")
 
 # Legacy compatibility: register /api/sessions/* proxy so older UIs work
 try:
@@ -285,6 +367,7 @@ def ws_synergy_user_activity(data):
     }, room=room, include_self=False)
 
 # Initialize AI client
+print(f"[DEBUG] Using config path: {Config.DB_CONFIG_PATH}")
 ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
 
 # Store AI client in app config for blueprints to access
@@ -621,6 +704,396 @@ def cleanup_sessions():
 
 
 # ============================================================================
+# STOCK MANAGEMENT API ENDPOINTS - MOVED TO stock_routes.py
+# ============================================================================
+# NOTE: All stock endpoints now handled by stock_routes.py (thin wrappers)
+# Old inline implementations commented out below for reference
+# Delete this section once confirmed working
+
+# # @app.route('/api/stock/test', methods=['GET', 'OPTIONS'])
+# @cross_origin()
+# def stock_health_check():
+    """
+    Health check endpoint - tests database connection
+    Returns stock count and connection status
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        if not STOCK_DB_AVAILABLE:
+            return jsonify({
+                'status': 'error',
+                'message': 'Stock database connection not configured',
+                'db_connected': False
+            }), 503
+        
+        # Test database connection
+        db = InHousePrintDB(STOCK_DB_CONFIG)
+        result = db.execute_query("SELECT COUNT(*) as count FROM Quote_DigitalStocks")
+        db.close()
+        
+        # Extract count from DataFrame
+        import pandas as pd
+        if isinstance(result, pd.DataFrame) and not result.empty:
+            stock_count = int(result.iloc[0]['count'])
+        else:
+            stock_count = 0
+        
+        return jsonify({
+            'status': 'ok',
+            'db_connected': True,
+            'stock_count': stock_count,
+            'database': 'In HousePrint',
+            'server': '3.25.76.138\\INHPSQLSERVER',
+            'config': STOCK_DB_CONFIG
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"  Stock health check failed: {error_details}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'db_connected': False,
+            'details': error_details
+        }), 500
+
+
+# @app.route('/api/stock/usage-analytics', methods=['GET', 'OPTIONS'])
+# @cross_origin()
+# def stock_usage_analytics():
+    """
+    Usage Analytics - Thin wrapper calling stock_manager.py
+    Query params: days (30, 90, 180, 365)
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        if not STOCK_DB_AVAILABLE:
+            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
+        
+        days = int(request.args.get('days', 30))
+        
+        # Stock management disabled - standalone mode
+        raise ImportError("Stock management not available in standalone mode")
+        
+        # TODO: Implement standalone stock manager in AI_agents
+        # manager = StockManager(STOCK_DB_CONFIG)
+        result = manager.get_usage_analytics_complete(days=days)
+        
+        # Return result directly (stock_manager.py already formats for Chart.js)
+        return jsonify({
+            'status': 'ok',
+            'days': days,
+            'data': result
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"  Usage analytics failed: {error_details}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# @app.route('/api/stock/reorder-dashboard', methods=['GET', 'OPTIONS'])
+# @cross_origin()
+# def stock_reorder_dashboard():
+    """
+    Reorder Dashboard - Returns stock alerts and recommendations
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        if not STOCK_DB_AVAILABLE:
+            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
+        
+        db = InHousePrintDB(STOCK_DB_CONFIG)
+        
+        # Get all stocks with usage metrics (via JobTickets → GSM)
+        query = """
+        SELECT 
+            ds.StockID,
+            dst.StockType,
+            ds.GSM,
+            ds.Length,
+            ds.Width,
+            ds.CostPerThousand,
+            COUNT(jt.TicketID) as recent_jobs,
+            SUM(jt.QTY) as total_quantity_used,
+            MAX(o.OrderDate) as last_used_date
+        FROM Quote_DigitalStocks ds
+        LEFT JOIN Quote_DigitalStockType dst ON ds.StockTypeID = dst.StockTypeID
+        LEFT JOIN GSM gsm 
+            ON ds.GSM = CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT)
+        LEFT JOIN JobTickets jt ON jt.GSM_ID = gsm.GSM_ID
+        LEFT JOIN Orders o ON jt.OrderID = o.OrderID 
+            AND o.OrderDate >= DATEADD(day, -90, GETDATE())
+        GROUP BY ds.StockID, dst.StockType, ds.GSM, ds.Length, ds.Width, ds.CostPerThousand
+        ORDER BY recent_jobs DESC
+        """
+        stocks_data = db.execute_query(query)
+        db.close()
+        
+        import pandas as pd
+        if not isinstance(stocks_data, pd.DataFrame):
+            return jsonify({'status': 'ok', 'critical': [], 'warning': [], 'healthy': []})
+        
+        # Classify stocks by usage
+        critical = []
+        warning = []
+        healthy = []
+        
+        for _, row in stocks_data.iterrows():
+            stock_info = {
+                'stock_id': int(row['StockID']) if pd.notna(row['StockID']) else 0,
+                'stock_type': str(row['StockType']) if pd.notna(row['StockType']) else 'Unknown',
+                'gsm': int(row['GSM']) if pd.notna(row['GSM']) else 0,
+                'recent_jobs': int(row['recent_jobs']) if pd.notna(row['recent_jobs']) else 0,
+                'last_used': str(row['last_used_date']) if pd.notna(row['last_used_date']) else 'Never',
+                'cost': float(row['CostPerThousand']) if pd.notna(row['CostPerThousand']) else 0
+            }
+            
+            # Categorize based on usage
+            if stock_info['recent_jobs'] > 20:
+                critical.append(stock_info)
+            elif stock_info['recent_jobs'] > 5:
+                warning.append(stock_info)
+            else:
+                healthy.append(stock_info)
+        
+        return jsonify({
+            'status': 'ok',
+            'critical': critical,
+            'warning': warning,
+            'healthy': healthy
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"  Reorder dashboard failed: {error_details}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# @app.route('/api/stock/profit-analysis', methods=['GET', 'OPTIONS'])
+# @cross_origin()
+# def stock_profit_analysis():
+    """
+    Profit Analysis - Returns profitability data by stock
+    Query params: days (30, 90, 180, 365)
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        if not STOCK_DB_AVAILABLE:
+            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
+        
+        days = int(request.args.get('days', 30))
+        
+        db = InHousePrintDB(STOCK_DB_CONFIG)
+        
+        # Profitability by stock (via JobTickets → GSM)
+        query = f"""
+        SELECT 
+            ds.StockID,
+            dst.StockType,
+            ds.GSM,
+            ds.CostPerThousand as cost_per_thousand,
+            ds.Markup,
+            COUNT(jt.TicketID) as job_count,
+            SUM(jt.QTY) as total_quantity,
+            SUM(jt.QTY * ds.CostPerThousand / 1000) as total_cost,
+            SUM(jt.QTY * ds.CostPerThousand * ds.Markup / 1000) as total_revenue,
+            SUM((jt.QTY * ds.CostPerThousand * ds.Markup / 1000) - (jt.QTY * ds.CostPerThousand / 1000)) as total_profit
+        FROM JobTickets jt
+        INNER JOIN Orders o ON jt.OrderID = o.OrderID
+        LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID
+        LEFT JOIN Quote_DigitalStocks ds 
+            ON ds.GSM = CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT)
+        LEFT JOIN Quote_DigitalStockType dst ON ds.StockTypeID = dst.StockTypeID
+        WHERE o.OrderDate >= DATEADD(day, -{days}, GETDATE())
+        GROUP BY ds.StockID, dst.StockType, ds.GSM, ds.CostPerThousand, ds.Markup
+        ORDER BY total_profit DESC
+        """
+        profit_data = db.execute_query(query)
+        db.close()
+        
+        import pandas as pd
+        return jsonify({
+            'status': 'ok',
+            'days': days,
+            'profit_by_stock': profit_data.to_dict('records') if isinstance(profit_data, pd.DataFrame) else []
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"  Profit analysis failed: {error_details}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# @app.route('/api/stock/sql-query', methods=['POST', 'OPTIONS'])
+# @cross_origin()
+# def stock_sql_query():
+    """
+    SQL Viewer - Execute SELECT queries
+    Body: { "query": "SELECT ..." }
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        if not STOCK_DB_AVAILABLE:
+            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
+        
+        data = request.get_json()
+        query = data.get('query', '')
+        
+        # Security: only allow SELECT queries
+        if not query.strip().upper().startswith('SELECT'):
+            return jsonify({'status': 'error', 'message': 'Only SELECT queries allowed'}), 400
+        
+        db = InHousePrintDB(STOCK_DB_CONFIG)
+        result = db.execute_query(query)
+        db.close()
+        
+        import pandas as pd
+        return jsonify({
+            'status': 'ok',
+            'columns': list(result.columns) if isinstance(result, pd.DataFrame) else [],
+            'rows': result.to_dict('records') if isinstance(result, pd.DataFrame) else []
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"  SQL query failed: {error_details}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# @app.route('/api/stock/update-cell', methods=['POST', 'OPTIONS'])
+# @cross_origin()
+# def stock_update_cell():
+    """
+    SQL Viewer - Update single cell
+    Body: { "table": "...", "column": "...", "value": "...", "where": "..." }
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        if not STOCK_DB_AVAILABLE:
+            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
+        
+        data = request.get_json()
+        table = data.get('table')
+        column = data.get('column')
+        value = data.get('value')
+        where_clause = data.get('where')
+        
+        if not all([table, column, value, where_clause]):
+            return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
+        
+        # Build UPDATE query
+        query = f"UPDATE {table} SET {column} = '{value}' WHERE {where_clause}"
+        
+        db = InHousePrintDB(STOCK_DB_CONFIG)
+        result = db.execute_query(query)
+        db.close()
+        
+        return jsonify({'status': 'ok', 'message': 'Cell updated successfully'})
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"  Cell update failed: {error_details}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# @app.route('/api/stock/ai-analytics', methods=['GET', 'OPTIONS'])
+# @cross_origin()
+# def stock_ai_analytics():
+    """
+    AI Analytics - Placeholder for AI usage metrics
+    Query params: days (30, 90, 180, 365)
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        days = int(request.args.get('days', 30))
+        
+        # Placeholder data - in real implementation would track AI usage
+        return jsonify({
+            'status': 'ok',
+            'days': days,
+            'total_queries': 0,
+            'cost_estimate': 0,
+            'recent_operations': []
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"  AI analytics failed: {error_details}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# @app.route('/api/stock/invoice-process', methods=['POST', 'OPTIONS'])
+# @cross_origin()
+# def stock_invoice_process():
+    """
+    Invoice Processing - Upload and extract invoice data
+    Multipart form: invoice_file
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        if not STOCK_DB_AVAILABLE:
+            return jsonify({'status': 'error', 'message': 'Database not configured'}), 503
+        
+        if 'invoice_file' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No file uploaded'}), 400
+        
+        file = request.files['invoice_file']
+        if file.filename == '':
+            return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+        
+        # Save file temporarily
+        import os
+        import tempfile
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, file.filename)
+        file.save(file_path)
+        
+        # Placeholder for AI extraction
+        # In real implementation, would use Claude API here
+        
+        return jsonify({
+            'status': 'ok',
+            'message': 'Invoice uploaded successfully',
+            'filename': file.filename,
+            'extracted_data': {
+                'supplier': 'Unknown',
+                'invoice_number': 'TBD',
+                'items': []
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"  Invoice processing failed: {error_details}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# ============================================================================
 # ERROR HANDLERS
 # ============================================================================
 
@@ -647,7 +1120,7 @@ if __name__ == '__main__':
     print("\n" + "=" * 80)
     print("STARTING NEW FLASK APP (Clean Architecture)")
     print("=" * 80)
-    print("Port: 5001 (AI Infrastructure - Testing)")
+    print("Port: 5001 (AI Infrastructure - Production Mode)")
     print("Infrastructure: AI_infrastructure/")
     print("Session Manager: Unified (SQLite + in-memory)")
     print("AI Client: Multi-provider (Anthropic + DeepSeek + OpenAI)")
@@ -656,11 +1129,51 @@ if __name__ == '__main__':
     print("Health check: http://localhost:5001/health")
     print("\n")
     
-    # Run Flask app
-    socketio.run(
-        app,
-        host='0.0.0.0',
-        port=5001,  # AI Infrastructure port (5001 for testing, 5000 for production)
-        debug=True,
-        use_reloader=True
-    )
+    # Check if Waitress is available (production WSGI server)
+    USE_PRODUCTION_SERVER = os.environ.get('USE_PRODUCTION_SERVER', 'true').lower() == 'true'
+    
+    if USE_PRODUCTION_SERVER:
+        try:
+            from waitress import serve
+            print("=" * 80)
+            print("PRODUCTION MODE: Using Waitress WSGI Server")
+            print("=" * 80)
+            print("- No auto-reload (stable connections)")
+            print("- Production-grade performance")
+            print("- Thread pool: 4 workers")
+            print("=" * 80 + "\n")
+            
+            # Serve with Waitress (production WSGI server)
+            serve(
+                app,
+                host='0.0.0.0',
+                port=5001,
+                threads=4,  # Thread pool for concurrent requests
+                url_scheme='http'
+            )
+        except ImportError:
+            print("=" * 80)
+            print("WARNING: Waitress not installed - using Flask dev server")
+            print("Install with: pip install waitress")
+            print("=" * 80 + "\n")
+            
+            # Fallback to Flask dev server (disable auto-reload to prevent connection resets)
+            socketio.run(
+                app,
+                host='0.0.0.0',
+                port=5001,
+                debug=True,
+                use_reloader=False  # DISABLED: Prevents constant restarts
+            )
+    else:
+        # Development mode with auto-reload (only use during active development)
+        print("=" * 80)
+        print("DEVELOPMENT MODE: Flask dev server with auto-reload")
+        print("=" * 80 + "\n")
+        socketio.run(
+            app,
+            host='0.0.0.0',
+            port=5001,
+            debug=True,
+            use_reloader=True
+        )

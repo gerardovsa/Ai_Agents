@@ -21,8 +21,8 @@ async function loadApiToken() {
     if (process.env.CLOUDFLARE_API_TOKEN) {
         return process.env.CLOUDFLARE_API_TOKEN;
     }
-    
-    console.error('❌ CLOUDFLARE_API_TOKEN not found in .env file');
+
+    console.error(' CLOUDFLARE_API_TOKEN not found in .env file');
     process.exit(1);
 }
 
@@ -30,13 +30,13 @@ async function loadApiToken() {
 const commands = {
     async verify() {
         console.log('\n🔐 Verifying Cloudflare API Token...\n');
-        
+
         await loadApiToken();
         const client = new CloudflareAIClient();
-        
+
         try {
             const result = await client.verifyToken();
-            console.log('\n✅ Token Verification Successful!\n');
+            console.log('\nToken Verification Successful!\n');
             console.log('📊 Token Details:');
             console.log(`   Status: ${result.status}`);
             console.log(`   Account ID: ${result.accountId}`);
@@ -44,21 +44,21 @@ const commands = {
             console.log(`   Test Response: "${result.message}"`);
             console.log('\n');
         } catch (error) {
-            console.error('\n❌ Verification Failed:', error.message, '\n');
+            console.error('\n Verification Failed:', error.message, '\n');
             process.exit(1);
         }
     },
 
     async models() {
         console.log('\n🤖 Fetching Available AI Models...\n');
-        
+
         await loadApiToken();
         const client = new CloudflareAIClient();
-        
+
         try {
             const models = await client.listModels();
             console.log(`\n📊 Found ${models.length} models:\n`);
-            
+
             // Group by task type
             const grouped = models.reduce((acc, model) => {
                 const task = model.task?.name || 'other';
@@ -76,52 +76,52 @@ const commands = {
                     }
                 });
             });
-            
+
             console.log('\n');
         } catch (error) {
-            console.error('\n❌ Failed to fetch models:', error.message, '\n');
+            console.error('\n Failed to fetch models:', error.message, '\n');
             process.exit(1);
         }
     },
 
     async chat(message) {
         if (!message) {
-            console.error('❌ Please provide a message: node cli.js chat "your message"');
+            console.error(' Please provide a message: node cli.js chat "your message"');
             process.exit(1);
         }
 
         console.log('\n💬 Chatting with Cloudflare AI...\n');
         console.log(`You: ${message}\n`);
-        
+
         await loadApiToken();
         const client = new CloudflareAIClient();
-        
+
         try {
             const response = await client.generateText(message, {
                 systemPrompt: 'You are a helpful AI assistant specializing in Cloudflare services, web development, and technical problem-solving.'
             });
-            
+
             console.log(`AI: ${response}\n`);
         } catch (error) {
-            console.error('\n❌ Chat failed:', error.message, '\n');
+            console.error('\n Chat failed:', error.message, '\n');
             process.exit(1);
         }
     },
 
     async diagnose(errorCode, errorMessage) {
         if (!errorCode) {
-            console.error('❌ Usage: node cli.js diagnose <error_code> <error_message>');
+            console.error(' Usage: node cli.js diagnose <error_code> <error_message>');
             process.exit(1);
         }
 
         console.log(`\n🔍 Diagnosing Cloudflare Error ${errorCode}...\n`);
-        
+
         await loadApiToken();
         const client = new CloudflareAIClient();
-        
+
         try {
             const result = await client.diagnoseError(errorCode, errorMessage || 'No message provided');
-            
+
             console.log('━'.repeat(80));
             console.log(`📊 ERROR DIAGNOSIS REPORT`);
             console.log('━'.repeat(80));
@@ -133,33 +133,33 @@ const commands = {
             console.log('━'.repeat(80));
             console.log(`\n${result.diagnosis}\n`);
             console.log('━'.repeat(80));
-            
+
             // Save report
             const reportPath = path.join(__dirname, 'logs', `error-${errorCode}-${Date.now()}.json`);
             await fs.mkdir(path.join(__dirname, 'logs'), { recursive: true });
             await fs.writeFile(reportPath, JSON.stringify(result, null, 2));
             console.log(`\n💾 Report saved to: ${reportPath}\n`);
         } catch (error) {
-            console.error('\n❌ Diagnosis failed:', error.message, '\n');
+            console.error('\n Diagnosis failed:', error.message, '\n');
             process.exit(1);
         }
     },
 
     async analyze(filePath) {
         if (!filePath) {
-            console.error('❌ Usage: node cli.js analyze <file_path>');
+            console.error(' Usage: node cli.js analyze <file_path>');
             process.exit(1);
         }
 
         console.log(`\n📊 Analyzing file: ${filePath}...\n`);
-        
+
         await loadApiToken();
         const client = new CloudflareAIClient();
-        
+
         try {
             const content = await fs.readFile(filePath, 'utf8');
             const fileExt = path.extname(filePath);
-            
+
             let prompt = `Analyze this ${fileExt} file and provide:
 1. Summary of what it does
 2. Potential issues or improvements
@@ -175,26 +175,26 @@ ${content.substring(0, 8000)} ${content.length > 8000 ? '...(truncated)' : ''}
                 systemPrompt: 'You are an expert code reviewer and security analyst.',
                 maxTokens: 2000
             });
-            
+
             console.log('━'.repeat(80));
             console.log('FILE ANALYSIS REPORT');
             console.log('━'.repeat(80));
             console.log(`\n${analysis}\n`);
             console.log('━'.repeat(80) + '\n');
         } catch (error) {
-            console.error('\n❌ Analysis failed:', error.message, '\n');
+            console.error('\n Analysis failed:', error.message, '\n');
             process.exit(1);
         }
     },
 
     async logs(count = 10) {
         console.log(`\n📋 Recent Error Logs (last ${count})...\n`);
-        
+
         try {
             const logsDir = path.join(__dirname, 'logs');
             const files = await fs.readdir(logsDir);
             const errorLogs = files.filter(f => f.startsWith('error-')).sort().reverse().slice(0, count);
-            
+
             if (errorLogs.length === 0) {
                 console.log('📭 No error logs found.\n');
                 return;
@@ -203,26 +203,26 @@ ${content.substring(0, 8000)} ${content.length > 8000 ? '...(truncated)' : ''}
             for (const logFile of errorLogs) {
                 const logPath = path.join(logsDir, logFile);
                 const log = JSON.parse(await fs.readFile(logPath, 'utf8'));
-                
+
                 console.log('━'.repeat(80));
                 console.log(`Error ${log.errorCode} - ${new Date(log.timestamp).toLocaleString()}`);
                 console.log(`Message: ${log.errorMessage}`);
                 console.log('━'.repeat(80) + '\n');
             }
         } catch (error) {
-            console.error('\n❌ Failed to read logs:', error.message, '\n');
+            console.error('\n Failed to read logs:', error.message, '\n');
         }
     },
 
     async domains() {
         console.log('\n🌐 Fetching Cloudflare Domains & Configuration...\n');
-        
+
         await loadApiToken();
         const manager = new CloudflareManager();
-        
+
         try {
             const overview = await manager.getDomainOverview();
-            
+
             // Display account info
             console.log('━'.repeat(80));
             console.log('📊 ACCOUNT INFORMATION');
@@ -241,10 +241,10 @@ ${content.substring(0, 8000)} ${content.length > 8000 ? '...(truncated)' : ''}
             console.log('━'.repeat(80));
             console.log(`🌐 DOMAINS (${overview.zones.length})`);
             console.log('━'.repeat(80));
-            
+
             for (const zone of overview.zones) {
                 if (zone.error) {
-                    console.log(`\n❌ ${zone.name} - Error: ${zone.error}`);
+                    console.log(`\n ${zone.name} - Error: ${zone.error}`);
                     continue;
                 }
 
@@ -253,7 +253,7 @@ ${content.substring(0, 8000)} ${content.length > 8000 ? '...(truncated)' : ''}
                 console.log(`   Status: ${zone.health?.status || zone.status}`);
                 console.log(`   Plan: ${zone.health?.plan || zone.plan?.name || 'Unknown'}`);
                 console.log(`   Paused: ${zone.health?.paused ? 'Yes' : 'No'}`);
-                
+
                 // Name servers
                 if (zone.health?.nameServers?.length > 0) {
                     console.log(`   Name Servers:`);
@@ -273,7 +273,7 @@ ${content.substring(0, 8000)} ${content.length > 8000 ? '...(truncated)' : ''}
                         if (!recordsByType[record.type]) recordsByType[record.type] = [];
                         recordsByType[record.type].push(record);
                     });
-                    
+
                     Object.keys(recordsByType).sort().forEach(type => {
                         console.log(`      ${type}: ${recordsByType[type].length} record(s)`);
                         recordsByType[type].slice(0, 3).forEach(record => {
@@ -324,20 +324,20 @@ ${content.substring(0, 8000)} ${content.length > 8000 ? '...(truncated)' : ''}
             console.log(`💾 Full report saved to: ${reportPath}\n`);
 
         } catch (error) {
-            console.error('\n❌ Failed to fetch domains:', error.message, '\n');
+            console.error('\n Failed to fetch domains:', error.message, '\n');
             process.exit(1);
         }
     },
 
     async alerts() {
         console.log('\n🔔 Fetching Cloudflare Alerts...\n');
-        
+
         await loadApiToken();
         const manager = new CloudflareManager();
-        
+
         try {
             const alerts = await manager.getAlerts();
-            
+
             if (alerts.length === 0) {
                 console.log('📭 No alerts configured.\n');
                 return;
@@ -351,7 +351,7 @@ ${content.substring(0, 8000)} ${content.length > 8000 ? '...(truncated)' : ''}
                 console.log(`\n${index + 1}. ${alert.name}`);
                 console.log(`   ID: ${alert.id}`);
                 console.log(`   Type: ${alert.alert_type}`);
-                console.log(`   Enabled: ${alert.enabled ? '✅ Yes' : '❌ No'}`);
+                console.log(`   Enabled: ${alert.enabled ? 'es' : ' No'}`);
                 if (alert.description) {
                     console.log(`   Description: ${alert.description}`);
                 }
@@ -362,7 +362,7 @@ ${content.substring(0, 8000)} ${content.length > 8000 ? '...(truncated)' : ''}
 
             console.log('\n');
         } catch (error) {
-            console.error('\n❌ Failed to fetch alerts:', error.message, '\n');
+            console.error('\n Failed to fetch alerts:', error.message, '\n');
             process.exit(1);
         }
     },
@@ -420,11 +420,11 @@ async function main() {
         try {
             await commands[command](...commandArgs);
         } catch (error) {
-            console.error('\n❌ Command failed:', error.message, '\n');
+            console.error('\n Command failed:', error.message, '\n');
             process.exit(1);
         }
     } else {
-        console.error(`\n❌ Unknown command: ${command}\n`);
+        console.error(`\n Unknown command: ${command}\n`);
         console.log('Run "node cli.js help" for available commands.\n');
         process.exit(1);
     }
@@ -432,6 +432,6 @@ async function main() {
 
 // Run CLI
 main().catch(error => {
-    console.error('\n❌ Fatal error:', error.message, '\n');
+    console.error('\n Fatal error:', error.message, '\n');
     process.exit(1);
 });

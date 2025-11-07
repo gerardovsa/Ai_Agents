@@ -90,7 +90,7 @@ class SupabaseClient:
             response.raise_for_status()
             return response
         except requests.exceptions.RequestException as e:
-            print(f"❌ Request failed: {e}")
+            print(f" Request failed: {e}")
             if hasattr(e.response, 'text'):
                 print(f"   Response: {e.response.text}")
             raise
@@ -456,7 +456,7 @@ Examples:
     try:
         if command == 'health':
             result = client.health_check()
-            print(f"✅ Status: {result['status']}")
+            print(f" Status: {result['status']}")
             print(f"🔗 URL: {result['url']}")
             print(f"📡 Accessible: {result['accessible']}")
         
@@ -502,11 +502,11 @@ Examples:
             print(json.dumps(files, indent=2))
         
         else:
-            print(f"❌ Unknown command: {command}")
+            print(f" Unknown command: {command}")
             sys.exit(1)
     
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         sys.exit(1)
 
 

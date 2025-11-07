@@ -43,7 +43,7 @@ def verify_setup():
     
     for filepath in required_files:
         exists = os.path.exists(filepath)
-        status = "✅" if exists else "❌"
+        status = "" if exists else ""
         print(f"{status} {filepath}")
         
         if not exists:
@@ -52,11 +52,11 @@ def verify_setup():
     print()
     
     if not all_exist:
-        print("❌ FAILED - Some files are missing!")
+        print(" FAILED - Some files are missing!")
         print("Please ensure all files were created correctly.")
         return False
     
-    print("✅ All files exist!")
+    print(" All files exist!")
     print()
     
     # Verify imports
@@ -64,16 +64,16 @@ def verify_setup():
     
     try:
         from core.unified_session_manager import UnifiedSessionManager, session_manager
-        print("✅ UnifiedSessionManager imported")
+        print(" UnifiedSessionManager imported")
     except ImportError as e:
-        print(f"❌ Failed to import UnifiedSessionManager: {e}")
+        print(f" Failed to import UnifiedSessionManager: {e}")
         return False
     
     try:
         from core.unified_anthropic_client import UnifiedAnthropicClient
-        print("✅ UnifiedAnthropicClient imported")
+        print(" UnifiedAnthropicClient imported")
     except ImportError as e:
-        print(f"❌ Failed to import UnifiedAnthropicClient: {e}")
+        print(f" Failed to import UnifiedAnthropicClient: {e}")
         return False
     
     print()
@@ -83,19 +83,19 @@ def verify_setup():
     
     try:
         import anthropic
-        print("✅ anthropic installed")
+        print(" anthropic installed")
     except ImportError:
         print("⚠️  anthropic not installed - run: pip install anthropic")
     
     try:
         import pytest
-        print("✅ pytest installed")
+        print(" pytest installed")
     except ImportError:
         print("⚠️  pytest not installed - run: pip install pytest pytest-asyncio")
     
     print()
     print("=" * 60)
-    print("✅ SETUP VERIFICATION COMPLETE")
+    print(" SETUP VERIFICATION COMPLETE")
     print("=" * 60)
     print()
     print("Next steps:")

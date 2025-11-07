@@ -25,10 +25,10 @@ function Test-Endpoint {
         $response = Invoke-WebRequest -Uri $Url -Method $Method -UseBasicParsing -ErrorAction Stop
         
         if ($response.StatusCode -eq 200) {
-            Write-Host "   ✅ PASS - Status 200 OK" -ForegroundColor Green
+            Write-Host "   PASS - Status 200 OK" -ForegroundColor Green
             
             if ($ExpectedContent -and $response.Content -like "*$ExpectedContent*") {
-                Write-Host "   ✅ PASS - Content contains '$ExpectedContent'" -ForegroundColor Green
+                Write-Host "   ASS - Content contains '$ExpectedContent'" -ForegroundColor Green
                 $script:testsPassed += 2
             }
             elseif ($ExpectedContent) {
@@ -44,12 +44,12 @@ function Test-Endpoint {
             Write-Host "   Preview: $preview..." -ForegroundColor Gray
         }
         else {
-            Write-Host "   ❌ FAIL - Status $($response.StatusCode)" -ForegroundColor Red
+            Write-Host "    FAIL - Status $($response.StatusCode)" -ForegroundColor Red
             $script:testsFailed++
         }
     }
     catch {
-        Write-Host "   ❌ FAIL - Error: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "    FAIL - Error: $($_.Exception.Message)" -ForegroundColor Red
         $script:testsFailed++
     }
 }
@@ -98,7 +98,7 @@ try {
 }
 catch {
     if ($_.Exception.Response.StatusCode.Value__ -eq 405) {
-        Write-Host "   ✅ PASS - Endpoint exists (405 Method Not Allowed for GET, needs POST)" -ForegroundColor Green
+        Write-Host "   ASS - Endpoint exists (405 Method Not Allowed for GET, needs POST)" -ForegroundColor Green
         $testsPassed++
     }
     else {
@@ -112,7 +112,7 @@ Write-Host "`n🔍 Testing: Stock API - Streaming Endpoint Exists" -ForegroundCo
 Write-Host "   URL: $baseUrl/api/stock/stream/test-session" -ForegroundColor Gray
 try {
     $response = Invoke-WebRequest -Uri "$baseUrl/api/stock/stream/test-session" -Method GET -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-    Write-Host "   ✅ PASS - Streaming endpoint accessible" -ForegroundColor Green
+    Write-Host "   ASS - Streaming endpoint accessible" -ForegroundColor Green
     $testsPassed++
 }
 catch {
@@ -127,11 +127,11 @@ try {
 }
 catch {
     if ($_.Exception.Response.StatusCode.Value__ -eq 405) {
-        Write-Host "   ✅ PASS - Endpoint exists (405 Method Not Allowed for GET, needs POST)" -ForegroundColor Green
+        Write-Host "   ASS - Endpoint exists (405 Method Not Allowed for GET, needs POST)" -ForegroundColor Green
         $testsPassed++
     }
     elseif ($_.Exception.Response.StatusCode.Value__ -eq 404) {
-        Write-Host "   ❌ FAIL - Agent routes not implemented yet (404)" -ForegroundColor Red
+        Write-Host "    FAIL - Agent routes not implemented yet (404)" -ForegroundColor Red
         $testsFailed++
     }
     else {
@@ -144,8 +144,8 @@ Write-Host "`n" -NoNewline
 Write-Host "=" * 80 -ForegroundColor Cyan
 Write-Host "📊 TEST SUMMARY" -ForegroundColor Cyan
 Write-Host "=" * 80 -ForegroundColor Cyan
-Write-Host "✅ Passed: $testsPassed" -ForegroundColor Green
-Write-Host "❌ Failed: $testsFailed" -ForegroundColor Red
+Write-Host "assed: $testsPassed" -ForegroundColor Green
+Write-Host " Failed: $testsFailed" -ForegroundColor Red
 Write-Host ""
 
 if ($testsFailed -eq 0) {

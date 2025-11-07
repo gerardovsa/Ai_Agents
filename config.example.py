@@ -149,4 +149,4 @@ MICROSOFT_TENANT_ID = os.getenv('MICROSOFT_TENANT_ID', 'common')
 # Google OAuth (uses service account JSON file)
 # Place your service-account.json file in the project root
 
-print("✅ Config loaded (EXAMPLE FILE - add your real keys to config.py)")
+print(" Config loaded (EXAMPLE FILE - add your real keys to config.py)")

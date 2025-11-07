@@ -17,7 +17,7 @@ New-Item -ItemType Directory -Path "docs\archive\kanban" -Force | Out-Null
 New-Item -ItemType Directory -Path "docs\archive\summaries" -Force | Out-Null
 New-Item -ItemType Directory -Path "docs\archive\ui" -Force | Out-Null
 New-Item -ItemType Directory -Path "docs\archive\scripts" -Force | Out-Null
-Write-Host "   ✅ Archive folders created" -ForegroundColor Green
+Write-Host "    Archive folders created" -ForegroundColor Green
 
 # Step 2-8: Archive documentation (combined for speed)
 Write-Host "Steps 2-8: Archiving documentation files..." -ForegroundColor Cyan
@@ -78,7 +78,7 @@ $guideCount += (Get-ChildItem -Path . -Filter "PLATFORM_*.md" -ErrorAction Silen
 $guideCount += (Get-ChildItem -Path . -Filter "SYSTEM_*.md" -ErrorAction SilentlyContinue | ForEach-Object { Move-Item -Path $_.FullName -Destination "docs\archive\summaries\" -Force; $_ } | Measure-Object).Count
 Write-Host "   📦 Guides: $guideCount files" -ForegroundColor Yellow
 
-Write-Host "   ✅ Documentation archived" -ForegroundColor Green
+Write-Host "    Documentation archived" -ForegroundColor Green
 
 # Step 9: Consolidate tests
 Write-Host "Step 9: Consolidating test files..." -ForegroundColor Cyan
@@ -97,7 +97,7 @@ $uiTestCount += (Get-ChildItem -Path "UI" -Filter "grid-test.html" -ErrorAction 
 
 Write-Host "   🧪 Python tests: $testCount files" -ForegroundColor Yellow
 Write-Host "   🧪 UI tests: $uiTestCount files" -ForegroundColor Yellow
-Write-Host "   ✅ Tests consolidated" -ForegroundColor Green
+Write-Host "    Tests consolidated" -ForegroundColor Green
 
 # Step 10: Remove superseded scripts
 Write-Host "Step 10: Removing superseded scripts..." -ForegroundColor Cyan
@@ -119,7 +119,7 @@ foreach ($script in $supersededScripts) {
         Write-Host "   🗑️  Removed: $script" -ForegroundColor Red
     }
 }
-Write-Host "   ✅ $removedCount superseded scripts removed" -ForegroundColor Green
+Write-Host "    $removedCount superseded scripts removed" -ForegroundColor Green
 
 # Step 11: Archive one-time scripts
 Write-Host "Step 11: Archiving one-time scripts..." -ForegroundColor Cyan
@@ -135,7 +135,7 @@ if (Test-Path "table_structure_analysis.py") {
 }
 
 Write-Host "   📦 Scripts: $scriptCount files" -ForegroundColor Yellow
-Write-Host "   ✅ One-time scripts archived" -ForegroundColor Green
+Write-Host "    One-time scripts archived" -ForegroundColor Green
 
 # Step 12: Remove old backups
 Write-Host "Step 12: Removing old backup directories..." -ForegroundColor Cyan
@@ -145,7 +145,7 @@ Get-ChildItem -Path . -Filter "AI_infrastructure_BACKUP_*" -Directory -ErrorActi
     Write-Host "   🗑️  Removed backup: $($_.Name)" -ForegroundColor Red
     $backupCount++
 }
-Write-Host "   ✅ $backupCount backup directories removed" -ForegroundColor Green
+Write-Host "    $backupCount backup directories removed" -ForegroundColor Green
 
 # Step 13: Create archive index
 Write-Host "Step 13: Creating archive index..." -ForegroundColor Cyan
@@ -176,7 +176,7 @@ $currentDate = Get-Date -Format "MMMM dd, yyyy"
 "**ui/** - Files: $uiFilesCount" | Out-File -FilePath "docs\archive\README.md" -Append -Encoding UTF8
 "**scripts/** - Files: $scriptFilesCount" | Out-File -FilePath "docs\archive\README.md" -Append -Encoding UTF8
 
-Write-Host "   ✅ Archive index created" -ForegroundColor Green
+Write-Host "    Archive index created" -ForegroundColor Green
 
 # Step 14: Final cleanup report
 Write-Host ""
@@ -196,7 +196,7 @@ Write-Host "`n📁 Current Root Files:" -ForegroundColor Yellow
 $rootFiles = Get-ChildItem -Path . -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in @('.md', '.py', '.ps1', '.bat', '.txt', '.json', '.yaml', '.yml') }
 Write-Host "   • Total: $($rootFiles.Count)" -ForegroundColor Cyan
 
-Write-Host "`n✅ Workspace is now clean and organized!" -ForegroundColor Green
+Write-Host "`n Workspace is now clean and organized!" -ForegroundColor Green
 Write-Host "`n📝 Next Steps:" -ForegroundColor Yellow
 Write-Host "   1. Review archived files in docs/archive/" -ForegroundColor White
 Write-Host "   2. Commit changes to git" -ForegroundColor White

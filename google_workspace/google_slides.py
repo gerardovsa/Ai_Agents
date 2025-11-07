@@ -24,26 +24,82 @@ SMART BULK ACTIONS:
 
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 from .google_auth_helper import get_service_account_credentials, build_drive_service
 import json
 import time
 
+# Slides API scopes
+SLIDES_SCOPES = [
+    'https://www.googleapis.com/auth/presentations',
+    'https://www.googleapis.com/auth/drive.file'
+]
 
-def _get_slides_service():
-    """Get authenticated Google Slides service"""
-    credentials = get_service_account_credentials()
-    return build('slides', 'v1', credentials=credentials)
+def _get_user_credentials_if_available(user_id, injected_credentials_flag):
+    """Helper to get user OAuth credentials from database
+    
+    Args:
+        user_id: User ID (from _user_id parameter)
+        injected_credentials_flag: Flag indicating credentials should be injected
+    
+    Returns:
+        dict: Credential dictionary or None
+    """
+    if user_id and injected_credentials_flag:
+        try:
+            from AI_infrastructure.auth.user_auth import UserAuthManager
+            auth_manager = UserAuthManager()
+            cred_dict = auth_manager.get_user_google_oauth_credentials(user_id)
+            if cred_dict:
+                print(f"🔑 Using database OAuth credentials for user {user_id}")
+                return cred_dict
+            else:
+                print(f"⚠️ User {user_id} has no Google OAuth credentials in database")
+        except Exception as e:
+            print(f"⚠️ Could not load user credentials: {e}")
+    return None
+
+
+def _get_slides_service(user_id=None, injected_credentials=None):
+    """Get authenticated Google Slides service
+    
+    Args:
+        user_id: User ID for OAuth credentials from database
+        injected_credentials: OAuth credentials dict (from database)
+    
+    Returns:
+        Authenticated Slides service
+    """
+    # If user credentials provided, use those (database OAuth)
+    if user_id and injected_credentials:
+        credentials = Credentials(
+            token=injected_credentials['access_token'],
+            refresh_token=injected_credentials.get('refresh_token'),
+            token_uri=injected_credentials['token_uri'],
+            client_id=injected_credentials['client_id'],
+            client_secret=injected_credentials['client_secret'],
+            scopes=injected_credentials['scopes']
+        )
+        print(f"📊 Building Slides service with user {user_id}'s OAuth credentials")
+        return build('slides', 'v1', credentials=credentials)
+    else:
+        # Fallback to service account (may have permission issues)
+        credentials = get_service_account_credentials(SLIDES_SCOPES)
+        return build('slides', 'v1', credentials=credentials)
 
 
 # ==================== CORE PRESENTATION OPERATIONS ====================
 
-def google_slides_create_presentation(title, template_id=None):
+def google_slides_create_presentation(title, template_id=None, _user_id=None, _injected_credentials=None, **kwargs):
     """
     Create a new Google Slides presentation
     
     Args:
         title (str): Presentation title
         template_id (str): Optional template presentation ID to copy
+        _user_id: User ID for credential injection (from tool registry)
+        _injected_credentials: OAuth credentials flag (from database)
+        **kwargs: Additional parameters
         
     Returns:
         dict: {
@@ -54,8 +110,16 @@ def google_slides_create_presentation(title, template_id=None):
         }
     """
     try:
-        slides_service = _get_slides_service()
-        drive_service = build_drive_service()
+        # Get user OAuth credentials if available
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        
+        if cred_dict:
+            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
+            drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+        else:
+            # Fall back to service account (may have permission issues)
+            slides_service = _get_slides_service()
+            drive_service = build_drive_service()
         
         if template_id:
             # Copy from template
@@ -92,7 +156,7 @@ def google_slides_create_presentation(title, template_id=None):
         url = f"https://docs.google.com/presentation/d/{presentation_id}/edit"
         slide_count = len(presentation.get('slides', []))
         
-        print(f"✅ Presentation shareable and editable: {url}")
+        print(f" Presentation shareable and editable: {url}")
         
         return {
             'presentation_id': presentation_id,
@@ -102,16 +166,17 @@ def google_slides_create_presentation(title, template_id=None):
         }
         
     except Exception as e:
-        print(f"❌ Failed to create presentation: {e}")
+        print(f" Failed to create presentation: {e}")
         raise
 
 
-def google_slides_get_presentation(presentation_id):
+def google_slides_get_presentation(presentation_id, **kwargs):
     """
     Get presentation details
     
     Args:
         presentation_id (str): Presentation ID
+        **kwargs: Credential injection (_user_id, _injected_credentials)
         
     Returns:
         dict: Full presentation object with slides, layouts, masters
@@ -129,13 +194,13 @@ def google_slides_get_presentation(presentation_id):
         return presentation
         
     except Exception as e:
-        print(f"❌ Failed to get presentation: {e}")
+        print(f" Failed to get presentation: {e}")
         raise
 
 
 # ==================== SLIDE OPERATIONS ====================
 
-def google_slides_add_slide(presentation_id, layout='BLANK', index=None):
+def google_slides_add_slide(presentation_id, layout='BLANK', index=None, **kwargs):
     """
     Add a new slide to presentation
     
@@ -145,6 +210,7 @@ def google_slides_add_slide(presentation_id, layout='BLANK', index=None):
                      TITLE_ONLY, SECTION_HEADER, SECTION_TITLE_AND_DESCRIPTION,
                      ONE_COLUMN_TEXT, MAIN_POINT, BIG_NUMBER
         index (int): Position to insert (None = end)
+        **kwargs: Credential injection (_user_id, _injected_credentials)
         
     Returns:
         dict: {
@@ -162,18 +228,19 @@ def google_slides_add_slide(presentation_id, layout='BLANK', index=None):
         ).execute()
         
         # Find the layout master
-        layouts = presentation.get('layouts', {})
+        layouts = presentation.get('layouts', [])
         layout_id = None
         
         # Try to find matching layout
-        for layout_key, layout_obj in layouts.items():
-            if layout.upper() in layout_obj.get('layoutProperties', {}).get('displayName', '').upper():
-                layout_id = layout_key
+        for layout_obj in layouts:
+            layout_props = layout_obj.get('layoutProperties', {})
+            if layout.upper() in layout_props.get('displayName', '').upper():
+                layout_id = layout_obj.get('objectId')
                 break
         
         # Default to first layout if not found
         if not layout_id and layouts:
-            layout_id = list(layouts.keys())[0]
+            layout_id = layouts[0].get('objectId')
         
         requests = [{
             'createSlide': {
@@ -193,7 +260,7 @@ def google_slides_add_slide(presentation_id, layout='BLANK', index=None):
         
         slide_id = response['replies'][0]['createSlide']['objectId']
         
-        print(f"✅ Added slide with layout: {layout}")
+        print(f" Added slide with layout: {layout}")
         
         return {
             'slide_id': slide_id,
@@ -202,11 +269,11 @@ def google_slides_add_slide(presentation_id, layout='BLANK', index=None):
         }
         
     except Exception as e:
-        print(f"❌ Failed to add slide: {e}")
+        print(f" Failed to add slide: {e}")
         raise
 
 
-def google_slides_delete_slide(presentation_id, slide_id):
+def google_slides_delete_slide(presentation_id, slide_id, **kwargs):
     """Delete a slide"""
     try:
         slides_service = _get_slides_service()
@@ -222,16 +289,16 @@ def google_slides_delete_slide(presentation_id, slide_id):
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Deleted slide: {slide_id}")
+        print(f" Deleted slide: {slide_id}")
         
         return {'deleted': True, 'slide_id': slide_id}
         
     except Exception as e:
-        print(f"❌ Failed to delete slide: {e}")
+        print(f" Failed to delete slide: {e}")
         raise
 
 
-def google_slides_duplicate_slide(presentation_id, slide_id):
+def google_slides_duplicate_slide(presentation_id, slide_id, **kwargs):
     """Duplicate a slide"""
     try:
         slides_service = _get_slides_service()
@@ -249,7 +316,7 @@ def google_slides_duplicate_slide(presentation_id, slide_id):
         
         new_slide_id = response['replies'][0]['duplicateObject']['objectId']
         
-        print(f"✅ Duplicated slide: {slide_id} → {new_slide_id}")
+        print(f" Duplicated slide: {slide_id} → {new_slide_id}")
         
         return {
             'original_slide_id': slide_id,
@@ -257,7 +324,7 @@ def google_slides_duplicate_slide(presentation_id, slide_id):
         }
         
     except Exception as e:
-        print(f"❌ Failed to duplicate slide: {e}")
+        print(f" Failed to duplicate slide: {e}")
         raise
 
 
@@ -267,7 +334,7 @@ def google_slides_insert_text(presentation_id, slide_id, text,
                               x=50, y=50, width=600, height=100,
                               font_family='Arial', font_size=14, 
                               bold=False, italic=False, 
-                              color_hex='#000000', alignment='LEFT'):
+                              color_hex='#000000', alignment='LEFT', **kwargs):
     """
     Insert text box with formatting
     
@@ -369,7 +436,7 @@ def google_slides_insert_text(presentation_id, slide_id, text,
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Inserted text: '{text[:50]}...'")
+        print(f" Inserted text: '{text[:50]}...'")
         
         return {
             'text_box_id': text_box_id,
@@ -379,14 +446,14 @@ def google_slides_insert_text(presentation_id, slide_id, text,
         }
         
     except Exception as e:
-        print(f"❌ Failed to insert text: {e}")
+        print(f" Failed to insert text: {e}")
         raise
 
 
 # ==================== IMAGE OPERATIONS ====================
 
 def google_slides_insert_image(presentation_id, slide_id, image_url,
-                               x=50, y=50, width=400, height=300):
+                               x=50, y=50, width=400, height=300, **kwargs):
     """
     Insert image from URL
     
@@ -436,7 +503,7 @@ def google_slides_insert_image(presentation_id, slide_id, image_url,
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Inserted image from: {image_url}")
+        print(f" Inserted image from: {image_url}")
         
         return {
             'image_id': image_id,
@@ -446,7 +513,7 @@ def google_slides_insert_image(presentation_id, slide_id, image_url,
         }
         
     except Exception as e:
-        print(f"❌ Failed to insert image: {e}")
+        print(f" Failed to insert image: {e}")
         raise
 
 
@@ -455,7 +522,7 @@ def google_slides_insert_image(presentation_id, slide_id, image_url,
 def google_slides_insert_shape(presentation_id, slide_id, shape_type='RECTANGLE',
                                x=50, y=50, width=200, height=100,
                                fill_color='#4285F4', border_color='#000000',
-                               border_width=1):
+                               border_width=1, **kwargs):
     """
     Insert shape
     
@@ -540,7 +607,7 @@ def google_slides_insert_shape(presentation_id, slide_id, shape_type='RECTANGLE'
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Inserted shape: {shape_type}")
+        print(f" Inserted shape: {shape_type}")
         
         return {
             'shape_id': shape_id,
@@ -550,7 +617,7 @@ def google_slides_insert_shape(presentation_id, slide_id, shape_type='RECTANGLE'
         }
         
     except Exception as e:
-        print(f"❌ Failed to insert shape: {e}")
+        print(f" Failed to insert shape: {e}")
         raise
 
 
@@ -558,7 +625,7 @@ def google_slides_insert_shape(presentation_id, slide_id, shape_type='RECTANGLE'
 
 def google_slides_insert_table(presentation_id, slide_id, rows, columns,
                                x=50, y=50, width=600, height=400,
-                               data=None):
+                               data=None, **kwargs):
     """
     Insert table
     
@@ -622,7 +689,7 @@ def google_slides_insert_table(presentation_id, slide_id, rows, columns,
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Inserted table: {rows}x{columns}")
+        print(f" Inserted table: {rows}x{columns}")
         
         return {
             'table_id': table_id,
@@ -633,7 +700,7 @@ def google_slides_insert_table(presentation_id, slide_id, rows, columns,
         }
         
     except Exception as e:
-        print(f"❌ Failed to insert table: {e}")
+        print(f" Failed to insert table: {e}")
         raise
 
 
@@ -641,7 +708,7 @@ def google_slides_insert_table(presentation_id, slide_id, rows, columns,
 
 def google_slides_insert_chart_from_sheets(presentation_id, slide_id,
                                            spreadsheet_id, chart_id,
-                                           x=50, y=50, width=500, height=300):
+                                           x=50, y=50, width=500, height=300, **kwargs):
     """
     Insert chart from Google Sheets
     
@@ -689,7 +756,7 @@ def google_slides_insert_chart_from_sheets(presentation_id, slide_id,
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Inserted chart from Sheets")
+        print(f" Inserted chart from Sheets")
         
         return {
             'chart_id': chart_obj_id,
@@ -700,13 +767,13 @@ def google_slides_insert_chart_from_sheets(presentation_id, slide_id,
         }
         
     except Exception as e:
-        print(f"❌ Failed to insert chart: {e}")
+        print(f" Failed to insert chart: {e}")
         raise
 
 
 # ==================== EXPORT OPERATIONS ====================
 
-def google_slides_export_as_pdf(presentation_id):
+def google_slides_export_as_pdf(presentation_id, **kwargs):
     """Export presentation as PDF"""
     try:
         from googleapiclient.http import MediaIoBaseDownload
@@ -726,7 +793,7 @@ def google_slides_export_as_pdf(presentation_id):
         while not done:
             status, done = downloader.next_chunk()
         
-        print(f"✅ Exported presentation as PDF")
+        print(f" Exported presentation as PDF")
         
         return {
             'data': file.getvalue(),
@@ -735,11 +802,11 @@ def google_slides_export_as_pdf(presentation_id):
         }
         
     except Exception as e:
-        print(f"❌ Failed to export as PDF: {e}")
+        print(f" Failed to export as PDF: {e}")
         raise
 
 
-def google_slides_export_as_pptx(presentation_id):
+def google_slides_export_as_pptx(presentation_id, **kwargs):
     """Export presentation as PowerPoint"""
     try:
         from googleapiclient.http import MediaIoBaseDownload
@@ -759,7 +826,7 @@ def google_slides_export_as_pptx(presentation_id):
         while not done:
             status, done = downloader.next_chunk()
         
-        print(f"✅ Exported presentation as PPTX")
+        print(f" Exported presentation as PPTX")
         
         return {
             'data': file.getvalue(),
@@ -768,14 +835,14 @@ def google_slides_export_as_pptx(presentation_id):
         }
         
     except Exception as e:
-        print(f"❌ Failed to export as PPTX: {e}")
+        print(f" Failed to export as PPTX: {e}")
         raise
 
 
 # ==================== SMART BULK ACTIONS ====================
 
 def google_slides_create_pitch_deck(title, company_name, sections_data,
-                                   brand_color='#4285F4', logo_url=None):
+                                   brand_color='#4285F4', logo_url=None, **kwargs):
     """
     🎯 SMART ACTION: Create complete pitch deck with professional formatting
     
@@ -1047,7 +1114,7 @@ Runway: {financials.get('runway', 'N/A')}"""
             color_hex='#333333', alignment='CENTER'
         )
         
-        print(f"✅ Created pitch deck with 11 slides")
+        print(f" Created pitch deck with 11 slides")
         
         return {
             'presentation_id': pres_id,
@@ -1058,12 +1125,12 @@ Runway: {financials.get('runway', 'N/A')}"""
         }
         
     except Exception as e:
-        print(f"❌ Failed to create pitch deck: {e}")
+        print(f" Failed to create pitch deck: {e}")
         raise
 
 
 def google_slides_create_training_presentation(title, course_name, modules_data,
-                                               brand_color='#0F9D58'):
+                                               brand_color='#0F9D58', **kwargs):
     """
     🎯 SMART ACTION: Create training presentation with exercises
     
@@ -1272,7 +1339,7 @@ def google_slides_create_training_presentation(title, course_name, modules_data,
         
         total_slides = 3 + (len(modules_data) * 6)  # Title + Agenda + Summary + (6 slides per module)
         
-        print(f"✅ Created training presentation with {total_slides} slides")
+        print(f" Created training presentation with {total_slides} slides")
         
         return {
             'presentation_id': pres_id,
@@ -1283,12 +1350,12 @@ def google_slides_create_training_presentation(title, course_name, modules_data,
         }
         
     except Exception as e:
-        print(f"❌ Failed to create training presentation: {e}")
+        print(f" Failed to create training presentation: {e}")
         raise
 
 
 def google_slides_create_business_report(title, report_date, sections_data,
-                                         charts_data=None, brand_color='#EA4335'):
+                                         charts_data=None, brand_color='#EA4335', **kwargs):
     """
     🎯 SMART ACTION: Create business report with charts and data
     
@@ -1511,7 +1578,7 @@ def google_slides_create_business_report(title, report_date, sections_data,
         chart_count = len(charts_data) if charts_data else 0
         total_slides = 9 + chart_count
         
-        print(f"✅ Created business report with {total_slides} slides")
+        print(f" Created business report with {total_slides} slides")
         
         return {
             'presentation_id': pres_id,
@@ -1522,7 +1589,7 @@ def google_slides_create_business_report(title, report_date, sections_data,
         }
         
     except Exception as e:
-        print(f"❌ Failed to create business report: {e}")
+        print(f" Failed to create business report: {e}")
         raise
 
 
@@ -1538,7 +1605,8 @@ def google_docs_to_slides_auto_generate(
     include_tables=True,
     max_text_per_slide=300,
     brand_color='#1a73e8',
-    template_id=None
+    template_id=None,
+    **kwargs
 ):
     """
     🎯 SMART ACTION: Auto-generate slides from Google Doc as content is added
@@ -1763,7 +1831,7 @@ def google_docs_to_slides_auto_generate(
         doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
         pres_url = f"https://docs.google.com/presentation/d/{pres_id}/edit"
         
-        print(f"✅ Successfully created presentation with {slide_count} slides!")
+        print(f" Successfully created presentation with {slide_count} slides!")
         print(f"📄 Source Doc: {doc_url}")
         print(f"🎨 Presentation: {pres_url}")
         
@@ -1785,7 +1853,7 @@ def google_docs_to_slides_auto_generate(
         }
         
     except Exception as e:
-        print(f"❌ Failed to convert doc to slides: {e}")
+        print(f" Failed to convert doc to slides: {e}")
         raise
 
 

@@ -18,7 +18,7 @@ def get_render_api_key():
     env_path = Path('.env.master')
     
     if not env_path.exists():
-        print("❌ .env.master file not found")
+        print(" .env.master file not found")
         return None
     
     try:
@@ -26,12 +26,12 @@ def get_render_api_key():
         api_key = env_vars.get('RENDER_API_KEY')
         
         if not api_key:
-            print("❌ RENDER_API_KEY not found in .env.master")
+            print(" RENDER_API_KEY not found in .env.master")
             return None
         
         return api_key
     except Exception as e:
-        print(f"❌ Error reading .env.master: {e}")
+        print(f" Error reading .env.master: {e}")
         return None
 
 def get_service_info(api_key, service_id):
@@ -48,11 +48,11 @@ def get_service_info(api_key, service_id):
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"❌ API Error: {response.status_code}")
+            print(f" API Error: {response.status_code}")
             print(f"   {response.text}")
             return None
     except Exception as e:
-        print(f"❌ Request error: {e}")
+        print(f" Request error: {e}")
         return None
 
 def downgrade_to_free(api_key, service_id):
@@ -73,10 +73,10 @@ def downgrade_to_free(api_key, service_id):
         response = requests.patch(url, headers=headers, json=payload)
         
         if response.status_code == 200:
-            print("✅ Successfully downgraded to free plan")
+            print(" Successfully downgraded to free plan")
             return True
         else:
-            print(f"❌ Downgrade failed: {response.status_code}")
+            print(f" Downgrade failed: {response.status_code}")
             print(f"   {response.text}")
             
             # Try alternative approach via dashboard
@@ -88,7 +88,7 @@ def downgrade_to_free(api_key, service_id):
             
             return False
     except Exception as e:
-        print(f"❌ Request error: {e}")
+        print(f" Request error: {e}")
         return False
 
 def print_free_plan_limitations():
@@ -159,7 +159,7 @@ def main():
     service = get_service_info(api_key, service_id)
     
     if not service:
-        print("❌ Could not fetch service information")
+        print(" Could not fetch service information")
         return 1
     
     current_plan = service.get('plan', 'unknown')
@@ -167,7 +167,7 @@ def main():
     
     # Check if already on free plan
     if current_plan == 'free':
-        print("\n✅ Service is already on free plan!")
+        print("\n Service is already on free plan!")
         return 0
     
     # Print limitations before downgrading
@@ -178,7 +178,7 @@ def main():
     response = input("\n❓ Downgrade to free plan? (y/n): ")
     
     if response.lower() != 'y':
-        print("\n❌ Downgrade cancelled")
+        print("\n Downgrade cancelled")
         return 0
     
     # Perform downgrade
@@ -186,7 +186,7 @@ def main():
     success = downgrade_to_free(api_key, service_id)
     
     if success:
-        print("\n✅ Successfully downgraded to free plan!")
+        print("\n Successfully downgraded to free plan!")
         print("\n💰 Savings: $7/month")
         
         # Print keep-alive solution

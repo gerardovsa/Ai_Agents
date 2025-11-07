@@ -811,19 +811,166 @@ class MicrosoftOneNoteTools:
 # Create global instance (no access token needed - credentials injected per-call)
 microsoft_onenote_tools = MicrosoftOneNoteTools()
 
-# Export all functions at module level for registry access
-onenote_list_notebooks = microsoft_onenote_tools.onenote_list_notebooks
-onenote_get_notebook = microsoft_onenote_tools.onenote_get_notebook
-onenote_create_notebook = microsoft_onenote_tools.onenote_create_notebook
-onenote_list_sections = microsoft_onenote_tools.onenote_list_sections
-onenote_create_section = microsoft_onenote_tools.onenote_create_section
-onenote_list_pages = microsoft_onenote_tools.onenote_list_pages
-onenote_get_page = microsoft_onenote_tools.onenote_get_page
-onenote_create_page = microsoft_onenote_tools.onenote_create_page
-onenote_update_page = microsoft_onenote_tools.onenote_update_page
-onenote_delete_page = microsoft_onenote_tools.onenote_delete_page
-onenote_search_pages = microsoft_onenote_tools.onenote_search_pages
-onenote_smart_meeting_notes = microsoft_onenote_tools.onenote_smart_meeting_notes
-onenote_smart_organize_by_topic = microsoft_onenote_tools.onenote_smart_organize_by_topic
-onenote_smart_extract_tasks = microsoft_onenote_tools.onenote_smart_extract_tasks
-onenote_smart_knowledge_base = microsoft_onenote_tools.onenote_smart_knowledge_base
+# Export all functions at module level
+# Wrappers handle parameter transformation for registry compatibility
+
+def microsoft_onenote_get_notebook(**kwargs):
+    return microsoft_onenote_tools.onenote_get_notebook(**kwargs)
+
+def microsoft_onenote_create_notebook(**kwargs):
+    return microsoft_onenote_tools.onenote_create_notebook(**kwargs)
+
+def microsoft_onenote_list_sections(**kwargs):
+    return microsoft_onenote_tools.onenote_list_sections(**kwargs)
+
+def microsoft_onenote_create_section(**kwargs):
+    return microsoft_onenote_tools.onenote_create_section(**kwargs)
+
+def microsoft_onenote_list_pages(**kwargs):
+    return microsoft_onenote_tools.onenote_list_pages(**kwargs)
+
+def microsoft_onenote_get_page(**kwargs):
+    return microsoft_onenote_tools.onenote_get_page(**kwargs)
+
+def microsoft_onenote_create_page(**kwargs):
+    return microsoft_onenote_tools.onenote_create_page(**kwargs)
+
+def microsoft_onenote_update_page(**kwargs):
+    return microsoft_onenote_tools.onenote_update_page(**kwargs)
+
+def microsoft_onenote_delete_page(**kwargs):
+    return microsoft_onenote_tools.onenote_delete_page(**kwargs)
+
+def microsoft_onenote_search_pages(**kwargs):
+    return microsoft_onenote_tools.onenote_search_pages(**kwargs)
+
+def microsoft_onenote_smart_meeting_notes(**kwargs):
+    return microsoft_onenote_tools.onenote_smart_meeting_notes(**kwargs)
+
+def microsoft_onenote_smart_organize_by_topic(**kwargs):
+    return microsoft_onenote_tools.onenote_smart_organize_by_topic(**kwargs)
+
+def microsoft_onenote_smart_extract_tasks(**kwargs):
+    return microsoft_onenote_tools.onenote_smart_extract_tasks(**kwargs)
+
+def microsoft_onenote_smart_knowledge_base(**kwargs):
+    return microsoft_onenote_tools.onenote_smart_knowledge_base(**kwargs)
+
+
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_list_notebooks(user_id, **kwargs)
+
+def microsoft_onenote_get_notebook(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_get_notebook(user_id, **kwargs)
+
+def microsoft_onenote_create_notebook(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_create_notebook(user_id, **kwargs)
+
+def microsoft_onenote_list_sections(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_list_sections(user_id, **kwargs)
+
+def microsoft_onenote_create_section(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_create_section(user_id, **kwargs)
+
+def microsoft_onenote_list_pages(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_list_pages(user_id, **kwargs)
+
+def microsoft_onenote_get_page(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_get_page(user_id, **kwargs)
+
+def microsoft_onenote_create_page(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_create_page(user_id, **kwargs)
+
+def microsoft_onenote_update_page(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_update_page(user_id, **kwargs)
+
+def microsoft_onenote_delete_page(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_delete_page(user_id, **kwargs)
+
+def microsoft_onenote_search_pages(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_search_pages(user_id, **kwargs)
+
+def microsoft_onenote_smart_meeting_notes(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_smart_meeting_notes(user_id, **kwargs)
+
+def microsoft_onenote_smart_organize_by_topic(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_smart_organize_by_topic(user_id, **kwargs)
+
+def microsoft_onenote_smart_extract_tasks(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_smart_extract_tasks(user_id, **kwargs)
+
+def microsoft_onenote_smart_knowledge_base(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onenote_tools.onenote_smart_knowledge_base(user_id, **kwargs)
+
+
+microsoft_onenote_get_notebook = microsoft_onenote_tools.onenote_get_notebook
+
+microsoft_onenote_create_notebook = microsoft_onenote_tools.onenote_create_notebook
+
+microsoft_onenote_list_sections = microsoft_onenote_tools.onenote_list_sections
+
+microsoft_onenote_create_section = microsoft_onenote_tools.onenote_create_section
+
+microsoft_onenote_list_pages = microsoft_onenote_tools.onenote_list_pages
+
+microsoft_onenote_get_page = microsoft_onenote_tools.onenote_get_page
+
+microsoft_onenote_create_page = microsoft_onenote_tools.onenote_create_page
+
+microsoft_onenote_update_page = microsoft_onenote_tools.onenote_update_page
+
+microsoft_onenote_delete_page = microsoft_onenote_tools.onenote_delete_page
+
+microsoft_onenote_search_pages = microsoft_onenote_tools.onenote_search_pages
+
+microsoft_onenote_smart_meeting_notes = microsoft_onenote_tools.onenote_smart_meeting_notes
+
+microsoft_onenote_smart_organize_by_topic = microsoft_onenote_tools.onenote_smart_organize_by_topic
+
+microsoft_onenote_smart_extract_tasks = microsoft_onenote_tools.onenote_smart_extract_tasks
+
+microsoft_onenote_smart_knowledge_base = microsoft_onenote_tools.onenote_smart_knowledge_base
+

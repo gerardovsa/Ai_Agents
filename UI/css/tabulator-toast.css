@@ -1,0 +1,193 @@
+/**
+ * Toast Notification System Styles
+ * Version: 1.0.0
+ * Last Updated: November 7, 2025
+ * 
+ * Position: Bottom-left as requested
+ */
+
+/* ============================================================================
+   TOAST CONTAINER - Bottom Left Position
+   ============================================================================ */
+
+.toast-container {
+    position: fixed;
+    bottom: var(--space-4, 20px);
+    left: var(--space-4, 20px);
+    z-index: 100000;
+    display: flex;
+    flex-direction: column-reverse;
+    /* Stack from bottom up */
+    gap: var(--space-2, 10px);
+    max-width: 400px;
+    pointer-events: none;
+}
+
+/* ============================================================================
+   TOAST BASE STYLES
+   ============================================================================ */
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3, 12px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    background: var(--card-background, #2d2d2d);
+    border: 1px solid var(--border-default, #444);
+    border-radius: var(--border-radius-md, 6px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 300px;
+    max-width: 400px;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateX(-400px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toast-show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-hide {
+    opacity: 0;
+    transform: translateX(-400px);
+}
+
+/* ============================================================================
+   TOAST CONTENT
+   ============================================================================ */
+
+.toast-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.toast-content {
+    flex: 1;
+    color: var(--text-primary, #ffffff);
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #999);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm, 4px);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    background: var(--hover-overlay, rgba(255, 255, 255, 0.1));
+    color: var(--text-primary, #ffffff);
+}
+
+/* ============================================================================
+   TOAST TYPE VARIANTS
+   ============================================================================ */
+
+/* Success Toast */
+.toast-success {
+    border-left: 4px solid var(--success-color, #28a745);
+}
+
+.toast-success .toast-icon {
+    color: var(--success-color, #28a745);
+}
+
+/* Error Toast */
+.toast-error {
+    border-left: 4px solid var(--error-color, #dc3545);
+}
+
+.toast-error .toast-icon {
+    color: var(--error-color, #dc3545);
+}
+
+/* Warning Toast */
+.toast-warning {
+    border-left: 4px solid var(--warning-color, #ffc107);
+}
+
+.toast-warning .toast-icon {
+    color: var(--warning-color, #ffc107);
+}
+
+/* Info Toast */
+.toast-info {
+    border-left: 4px solid var(--info-color, #17a2b8);
+}
+
+.toast-info .toast-icon {
+    color: var(--info-color, #17a2b8);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .toast-container {
+        bottom: var(--space-2, 10px);
+        left: var(--space-2, 10px);
+        right: var(--space-2, 10px);
+        max-width: none;
+    }
+
+    .toast {
+        min-width: auto;
+        max-width: none;
+    }
+}
+
+/* ============================================================================
+   DARK THEME COMPATIBILITY
+   ============================================================================ */
+
+[data-theme="dark"] .toast {
+    background: #1e1e1e;
+    border-color: #444;
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+.toast:focus-within {
+    outline: 2px solid var(--primary-color, #667eea);
+    outline-offset: 2px;
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-400px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutLeft {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(-400px);
+    }
+}

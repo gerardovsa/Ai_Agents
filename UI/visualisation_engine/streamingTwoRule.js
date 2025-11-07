@@ -59,59 +59,59 @@ let plotlyWindowResizeHandlerRegistered = false;
 // Sidebar visualization state (use global state from sidebar.js)
 // let sidebarVisualizationState = ... // REMOVED - using window.sidebarVisualizationState
 
-// ✅ SIMPLE FIX #1: Robust thinking indicator removal
+// SIMPLE FIX #1: Robust thinking indicator removal
 function removeAllThinkingIndicators(container) {
     if (!container) return;
-    
+
     // Remove by ID
     const thinkingById = container.querySelector('#thinkingIndicator');
     if (thinkingById) {
         thinkingById.remove();
-        console.log('✅ Removed thinking indicator by ID');
+        console.log('emoved thinking indicator by ID');
     }
-    
+
     // Remove by class (backup)
     const thinkingByClass = container.querySelectorAll('.thinking-indicator');
     thinkingByClass.forEach(indicator => {
         indicator.remove();
-        console.log('✅ Removed thinking indicator by class');
+        console.log('emoved thinking indicator by class');
     });
-    
+
     // Remove any element containing "thinking..." text
     const allElements = container.querySelectorAll('*');
     allElements.forEach(el => {
         if (el.textContent && el.textContent.toLowerCase().includes('thinking')) {
             el.remove();
-            console.log('✅ Removed thinking indicator by text content');
+            console.log('emoved thinking indicator by text content');
         }
     });
 }
 
 class TwoRuleStreamProcessor {
     constructor(container) {
-        // ✅ CORE: Single Source of Truth - Raw Buffer
+        // ORE: Single Source of Truth - Raw Buffer
         this.container = container || document.createElement('div');
         this.rawBuffer = '';
         this.bufferPosition = 0;
 
-        // ✅ STATE MACHINE: Delimiter Detection (Black & White States)
+        // TATE MACHINE: Delimiter Detection (Black & White States)
         this.state = 'NORMAL'; // NORMAL | BUFFERING_VISUAL
         this.currentDelimiter = null;
         this.visualBufferStart = 0;
         this.visualBufferEnd = 0;
 
-        // ✅ RENDERING/QUEUE STATE
+        // ENDERING/QUEUE STATE
         this.markdownContainer = null;
         this.loadingIndicator = null;
         this.isReleasing = false;
 
-        // ✅ PACKAGE/QUEUE STORAGE
+        // ACKAGE/QUEUE STORAGE
         this.markdownPackages = [];
         this.visualPackages = [];
         this.nextPackageId = 1;
         this.lastReleasedPosition = 0;
 
-        // ✅ METRICS
+        // ETRICS
         this.stats = {
             chunksProcessed: 0,
             totalProcessingTime: 0,
@@ -120,9 +120,9 @@ class TwoRuleStreamProcessor {
             packagesReleased: 0
         };
     }
-    
+
     /**
-     * ✅ CHUNK PROCESSING: Process and parse a new content chunk
+     * HUNK PROCESSING: Process and parse a new content chunk
      */
     async processChunk(newContent) {
         if (!newContent) return;
@@ -156,9 +156,38 @@ class TwoRuleStreamProcessor {
         this.stats.chunksProcessed++;
         this.stats.totalProcessingTime += (performance.now() - t0);
     }
-    
+
     /**
-     * ✅ NORMAL STATE: Parse and process content in NORMAL state
+     * FORCE FLUSH: Immediately release any buffered markdown content
+     * 🔥 FIX: Called when switching from content_delta to tool_use events
+     * 🛡️ CRITICAL: Don't flush if we're inside an incomplete code fence
+     */
+    forceFlush() {
+        const remainingContent = this.rawBuffer.slice(this.bufferPosition);
+        if (!remainingContent || !remainingContent.trim()) {
+            return; // Nothing to flush
+        }
+
+        // �️ CRITICAL FIX: Check if we're inside an incomplete code block
+        // Count ``` occurrences in the ENTIRE buffer to check current state
+        const allFences = (this.rawBuffer.match(/```/g) || []).length;
+
+        // If odd number of fences, we're currently inside a code block - DON'T FLUSH
+        if (allFences % 2 === 1) {
+            console.log(`🛡️ TWO-RULE: Skipping force flush - currently inside code block (${allFences} total fences, waiting for closing fence)`);
+            return;
+        }
+
+        // Safe to flush - even number of fences means we're NOT in a code block
+        console.log(`🔥 TWO-RULE: Force flushing ${remainingContent.length} buffered chars (${allFences} total fences = ${allFences / 2} complete pairs)`);
+        this.packageMarkdownContent(remainingContent, this.bufferPosition);
+        this.bufferPosition = this.rawBuffer.length;
+        // Release immediately
+        this.releaseReadyPackages();
+    }
+
+    /**
+     * ORMAL STATE: Parse and process content in NORMAL state
      * RULE 1: BLACK AND WHITE - Distinguish between Raw and Visual content
      */
     parseNormalState() {
@@ -171,8 +200,8 @@ class TwoRuleStreamProcessor {
         if (delimiterMatch) {
             // Calculate visual start position BEFORE advancing buffer
             const visualStartPos = this.bufferPosition + delimiterMatch.position;
-            
-            // ✅ CRITICAL FIX: Package any text BEFORE the delimiter
+
+            // RITICAL FIX: Package any text BEFORE the delimiter
             const textBeforeDelimiter = remainingContent.slice(0, delimiterMatch.position);
             if (textBeforeDelimiter.trim()) {
                 const startPos = this.bufferPosition;
@@ -180,7 +209,7 @@ class TwoRuleStreamProcessor {
                 this.bufferPosition += textBeforeDelimiter.length;
                 console.log(`📝 TWO-RULE: Packaged text before delimiter (${textBeforeDelimiter.length} chars at position ${startPos})`);
             }
-            
+
             // Enter visual buffering state
             this.currentDelimiter = {
                 type: delimiterMatch.type,
@@ -217,7 +246,7 @@ class TwoRuleStreamProcessor {
                         target.appendChild(anchor);
                     }
                 }
-            } catch (_) {}
+            } catch (_) { }
 
             // Switch state and present buffering indicator
             this.state = 'BUFFERING_VISUAL';
@@ -278,42 +307,42 @@ class TwoRuleStreamProcessor {
             if (this.hasMarkdownTrigger(content)) return true;
             // Safe line boundary -> release
             if (content.includes('\n')) return true;
-            // Avoid overly large buffered segments
-            if (typeof totalLength === 'number' && totalLength > 200) return true;
+            // 🔥 FIX: Release text between tool calls faster (50 chars instead of 200)
+            if (typeof totalLength === 'number' && totalLength > 50) return true;
             return false;
         } catch (_) {
             // On any error, be conservative and do not release
             return false;
         }
     }
-    
+
     /**
-     * ✅ BUFFERING STATE: Accumulate ALL content until end delimiter found
+     * UFFERING STATE: Accumulate ALL content until end delimiter found
      * RULE 2: BLACK AND WHITE - Everything goes to Visual Type
      */
     parseBufferingState() {
         const contentFromStart = this.rawBuffer.slice(this.visualBufferStart);
         const endDelimiter = this.currentDelimiter.endDelimiter;
-        
+
         const endIndex = contentFromStart.indexOf(endDelimiter);
-        
+
         if (endIndex !== -1) {
             // End delimiter found - package complete visual content
             const visualEndPosition = this.visualBufferStart + endIndex + endDelimiter.length;
             const completeVisualContent = this.rawBuffer.slice(this.visualBufferStart, visualEndPosition);
-            
-            console.log(`✅ TWO-RULE: Visual content complete (${completeVisualContent.length} chars)`);
-            
+
+            console.log(`WO-RULE: Visual content complete (${completeVisualContent.length} chars)`);
+
             this.packageVisualContent(completeVisualContent, this.currentDelimiter.type);
-            
+
             // Switch back to NORMAL state
             this.state = 'NORMAL';
             this.currentDelimiter = null;
             this.bufferPosition = visualEndPosition;
             this.removeBufferingIndicator();
-            
+
             console.log(`🔄 TWO-RULE: STATE CHANGE → NORMAL`);
-            
+
         } else {
             // End delimiter not found yet - continue buffering
             this.bufferPosition = this.rawBuffer.length;
@@ -321,79 +350,79 @@ class TwoRuleStreamProcessor {
             console.log(`⏳ TWO-RULE: Still buffering visual content (${contentFromStart.length} chars)...`);
         }
     }
-    
+
     /**
-     * ✅ PACKAGE CREATION: Create Type 1 (Markdown) content package
+     * ACKAGE CREATION: Create Type 1 (Markdown) content package
      */
     packageMarkdownContent(content, startPosition = null) {
         if (!content.trim()) return;
-        
-        // ✅ SIMPLE FIX #4: Deduplication check for markdown
-        const contentHash = this.generateContentHash({type: 'markdown', content: content});
-        const existingPackage = this.markdownPackages.find(pkg => 
-            pkg.contentHash === contentHash || 
+
+        // IMPLE FIX #4: Deduplication check for markdown
+        const contentHash = this.generateContentHash({ type: 'markdown', content: content });
+        const existingPackage = this.markdownPackages.find(pkg =>
+            pkg.contentHash === contentHash ||
             (pkg.content === content)
         );
-        
+
         if (existingPackage) {
             console.log(`⏭️ Skipping duplicate markdown package`);
             return;
         }
-        
-        // ✅ CRITICAL FIX: Use provided start position or calculate from buffer position
+
+        // RITICAL FIX: Use provided start position or calculate from buffer position
         const actualPosition = startPosition !== null ? startPosition : (this.bufferPosition - content.length);
-        
+
         const pkg = {
             id: this.nextPackageId++,
             type: 'markdown',
             content: content,
             contentHash: contentHash,
-            position: actualPosition, // ✅ FIXED: Use actual stream position
+            position: actualPosition, // IXED: Use actual stream position
             ready: true,
             timestamp: Date.now()
         };
-        
+
         this.markdownPackages.push(pkg);
         this.stats.markdownPackages++;
-        
-        console.log(`📝 TWO-RULE: Markdown package created (ID: ${pkg.id}, position: ${actualPosition}, hash: ${contentHash.substring(0,8)}, ${content.length} chars)`);
+
+        console.log(`📝 TWO-RULE: Markdown package created (ID: ${pkg.id}, position: ${actualPosition}, hash: ${contentHash.substring(0, 8)}, ${content.length} chars)`);
     }
-    
+
     /**
-     * ✅ PACKAGE CREATION: Create Type 2 (Visual) content package
+     * ACKAGE CREATION: Create Type 2 (Visual) content package
      */
     packageVisualContent(content, type) {
-        // ✅ SIMPLE FIX #4: Deduplication check for visual content
-        const contentHash = this.generateContentHash({type: 'visual', content: content});
-        const existingPackage = this.visualPackages.find(pkg => 
-            pkg.contentHash === contentHash || 
+        // IMPLE FIX #4: Deduplication check for visual content
+        const contentHash = this.generateContentHash({ type: 'visual', content: content });
+        const existingPackage = this.visualPackages.find(pkg =>
+            pkg.contentHash === contentHash ||
             (pkg.content === content && pkg.subType === type)
         );
-        
+
         if (existingPackage) {
             console.log(`⏭️ Skipping duplicate visual package (${type})`);
             return;
         }
-        
+
         const pkg = {
             id: this.nextPackageId++,
             type: 'visual',
             subType: type,
             content: content,
-            contentHash: contentHash, // ✅ ADD hash for deduplication
-            position: this.visualBufferStart, // ✅ CORRECT: Use delimiter start position
+            contentHash: contentHash, // DD hash for deduplication
+            position: this.visualBufferStart, // ORRECT: Use delimiter start position
             ready: true,
             timestamp: Date.now()
         };
-        
+
         this.visualPackages.push(pkg);
         this.stats.visualPackages++;
-        
-        console.log(`🎨 TWO-RULE: Visual package created (ID: ${pkg.id}, type: ${type}, position: ${this.visualBufferStart}, hash: ${contentHash.substring(0,8)}, ${content.length} chars)`);
+
+        console.log(`🎨 TWO-RULE: Visual package created (ID: ${pkg.id}, type: ${type}, position: ${this.visualBufferStart}, hash: ${contentHash.substring(0, 8)}, ${content.length} chars)`);
     }
-    
+
     /**
-     * ✅ CONTROLLED RELEASE: Release ready packages in order
+     * ONTROLLED RELEASE: Release ready packages in order
      * Maintains stream sequence and uses append-only rendering
      */
     async releaseReadyPackages() {
@@ -403,14 +432,14 @@ class TwoRuleStreamProcessor {
             return;
         }
         this.isReleasing = true;
-        // ✅ CRITICAL FIX: Don't release packages while buffering visual content
+        // RITICAL FIX: Don't release packages while buffering visual content
         // This prevents raw visual content from appearing in UI
         if (this.state === 'BUFFERING_VISUAL') {
             console.log('⏸️ TWO-RULE: Holding packages during visual buffering');
             this.isReleasing = false;
             return; // Wait until visual content is complete
         }
-        
+
         try {
             const allPackages = [...this.markdownPackages, ...this.visualPackages]
                 .filter(pkg => pkg.ready)
@@ -430,7 +459,7 @@ class TwoRuleStreamProcessor {
                 }
 
                 await this.renderPackage(pkg);
-                
+
                 // Remove from respective array
                 if (pkg.type === 'markdown') {
                     const index = this.markdownPackages.indexOf(pkg);
@@ -439,7 +468,7 @@ class TwoRuleStreamProcessor {
                     const index = this.visualPackages.indexOf(pkg);
                     if (index > -1) this.visualPackages.splice(index, 1);
                 }
-                
+
                 this.lastReleasedPosition = pkg.position + pkg.content.length;
                 this.stats.packagesReleased++;
             }
@@ -447,31 +476,31 @@ class TwoRuleStreamProcessor {
             this.isReleasing = false;
         }
     }
-    
+
     /**
-     * ✅ APPEND-ONLY RENDERING: Render individual package to UI
+     * PPEND-ONLY RENDERING: Render individual package to UI
      * Never re-renders existing content - only appends new packages
      */
     async renderPackage(pkg) {
         try {
             console.log(`🚀 TWO-RULE: Rendering package ${pkg.id} (${pkg.type})`);
-            
+
             if (pkg.type === 'markdown') {
                 await this.renderMarkdownPackage(pkg);
             } else if (pkg.type === 'visual') {
                 await this.renderVisualPackage(pkg);
             }
-            
-            console.log(`✅ TWO-RULE: Package ${pkg.id} rendered successfully`);
-            
+
+            console.log(`WO-RULE: Package ${pkg.id} rendered successfully`);
+
         } catch (error) {
-            console.error(`❌ TWO-RULE: Error rendering package ${pkg.id}:`, error);
+            console.error(` TWO-RULE: Error rendering package ${pkg.id}:`, error);
             this.renderErrorPackage(pkg, error);
         }
     }
-    
+
     /**
-     * ✅ MARKDOWN RENDERING: Render Type 1 content with TRUE text concatenation
+     * ARKDOWN RENDERING: Render Type 1 content with TRUE text concatenation
      * RULE: TYPE 1 content MUST be concatenated as flowing text, NOT fragmented
      */
     async renderMarkdownPackage(pkg) {
@@ -488,16 +517,16 @@ class TwoRuleStreamProcessor {
             this.container.appendChild(this.markdownContainer);
         }
 
-        // ✅ CRITICAL FIX: ALWAYS concatenate TYPE 1 content unless there's a visual break
+        // RITICAL FIX: ALWAYS concatenate TYPE 1 content unless there's a visual break
         // Check if we can append to the last element instead of creating new one
         const lastElement = this.markdownContainer.lastElementChild;
-        const canAppendToPrevious = lastElement && 
-                                    lastElement.className === 'two-rule-markdown-content' &&
-                                    !pkg.content.trim().startsWith('#') && // Don't concat headers
-                                    !this.hasVisualBreakBefore(pkg); // No visual content between this and last
-        
+        const canAppendToPrevious = lastElement &&
+            lastElement.className === 'two-rule-markdown-content' &&
+            !pkg.content.trim().startsWith('#') && // Don't concat headers
+            !this.hasVisualBreakBefore(pkg); // No visual content between this and last
+
         if (canAppendToPrevious) {
-            // ✅ TRUE CONCATENATION: Concatenate RAW text first, then render as one unit
+            // RUE CONCATENATION: Concatenate RAW text first, then render as one unit
             const currentRawText = lastElement.getAttribute('data-raw-text') || '';
             const incoming = pkg.content;
             // If incoming starts with a block token and previous text doesn't end with newline, add one
@@ -512,11 +541,11 @@ class TwoRuleStreamProcessor {
                 }
             }
             newRawText += incoming; // PRESERVE ALL \n formatting
-            
+
             // Store the concatenated raw text
             lastElement.setAttribute('data-raw-text', newRawText);
-            
-            // ✅ PRESERVE loading indicators before re-rendering
+
+            // RESERVE loading indicators before re-rendering
             const loadingIndicators = [];
             if (this.markdownContainer) {
                 const indicators = this.markdownContainer.querySelectorAll('.two-rule-loading-indicator');
@@ -527,18 +556,18 @@ class TwoRuleStreamProcessor {
                     });
                 });
             }
-            
+
             // Re-render the ENTIRE concatenated raw text as one markdown unit
             console.log('🔍 TWO-RULE: Attempting markdown render, marked available?', typeof window.marked);
-            // ❌ LEGACY RENDERING COMMENTED OUT - Causes extra line breaks
+            //  LEGACY RENDERING COMMENTED OUT - Causes extra line breaks
             // if (typeof window.renderEnhancedMarkdown === 'function') {
             //     console.log('📝 TWO-RULE: Using renderEnhancedMarkdown');
             //     lastElement.innerHTML = window.renderEnhancedMarkdown(newRawText);
             // } else 
             if (window.marked && typeof window.marked.parse === 'function') {
                 console.log('📝 TWO-RULE: Using marked.parse for', newRawText.length, 'chars');
-                
-                // ✅ CONFIGURE MARKED FOR BETTER RENDERING
+
+                // ONFIGURE MARKED FOR BETTER RENDERING
                 if (window.marked.setOptions) {
                     window.marked.setOptions({
                         breaks: true,          // Convert newlines to <br>
@@ -550,23 +579,23 @@ class TwoRuleStreamProcessor {
                         mangle: false          // Don't escape email addresses
                     });
                 }
-                
+
                 let rendered = window.marked.parse(newRawText);
-                
-                // ✅ ENHANCE CODE BLOCKS: Add proper styling
-                rendered = rendered.replace(/<pre><code class="language-(\w+)">([\s\S]*?)<\/code><\/pre>/g, 
+
+                // NHANCE CODE BLOCKS: Add proper styling
+                rendered = rendered.replace(/<pre><code class="language-(\w+)">([\s\S]*?)<\/code><\/pre>/g,
                     '<pre class="code-block"><code class="language-$1">$2</code></pre>');
-                
+
                 // Add class to code blocks without language
-                rendered = rendered.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, 
+                rendered = rendered.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g,
                     '<pre class="code-block"><code>$1</code></pre>');
-                
-                // ✅ FIX NESTED LISTS: Ensure proper nesting structure
+
+                // IX NESTED LISTS: Ensure proper nesting structure
                 rendered = rendered.replace(/<\/li>\s*<ol>/g, '<ol>');
                 rendered = rendered.replace(/<\/ol>\s*<\/li>/g, '</ol></li>');
                 rendered = rendered.replace(/<\/li>\s*<ul>/g, '<ul>');
                 rendered = rendered.replace(/<\/ul>\s*<\/li>/g, '</ul></li>');
-                
+
                 // Apply legacy cleaning if available
                 if (typeof cleanMarkdownHTML === 'function') {
                     rendered = cleanMarkdownHTML(rendered);
@@ -579,9 +608,9 @@ class TwoRuleStreamProcessor {
                 const safe = this.escapeHtml(newRawText);
                 lastElement.innerHTML = `<div class="markdown-fallback" style="white-space: pre-wrap;">${safe}</div>`;
             }
-            
-            // ✅ RESTORE loading indicators after re-rendering
-            loadingIndicators.forEach(({element, nextSibling}) => {
+
+            // ESTORE loading indicators after re-rendering
+            loadingIndicators.forEach(({ element, nextSibling }) => {
                 if (nextSibling && nextSibling.parentElement === this.markdownContainer) {
                     this.markdownContainer.insertBefore(element, nextSibling);
                 } else {
@@ -592,17 +621,17 @@ class TwoRuleStreamProcessor {
                     this.loadingIndicator = element;
                 }
             });
-            
+
             console.log(`📝 TWO-RULE: Raw text concatenated and re-rendered (total: ${newRawText.length} chars)`);
-            
+
         } else {
             // Create new content element ONLY when starting fresh or after visual content
             const contentElement = document.createElement('div');
             contentElement.className = 'two-rule-markdown-content';
             contentElement.setAttribute('data-package-id', pkg.id);
             contentElement.setAttribute('data-raw-text', pkg.content); // Store raw text
-            contentElement.setAttribute('data-stream-position', pkg.position.toString()); // ✅ ADD position tracking
-            
+            contentElement.setAttribute('data-stream-position', pkg.position.toString()); // DD position tracking
+
             // Apply initial markdown formatting
             console.log('🔍 TWO-RULE: New markdown block, marked available?', typeof window.marked);
             if (typeof window.renderEnhancedMarkdown === 'function') {
@@ -610,8 +639,8 @@ class TwoRuleStreamProcessor {
                 contentElement.innerHTML = window.renderEnhancedMarkdown(pkg.content);
             } else if (window.marked && typeof window.marked.parse === 'function') {
                 console.log('📝 TWO-RULE: Using marked.parse for', pkg.content.length, 'chars');
-                
-                // ✅ CONFIGURE MARKED FOR BETTER RENDERING
+
+                // ONFIGURE MARKED FOR BETTER RENDERING
                 if (window.marked.setOptions) {
                     window.marked.setOptions({
                         breaks: true,
@@ -623,7 +652,7 @@ class TwoRuleStreamProcessor {
                         mangle: false
                     });
                 }
-                
+
                 const rendered = window.marked.parse(pkg.content);
                 console.log('📝 TWO-RULE: Rendered HTML:', rendered.substring(0, 200));
                 contentElement.innerHTML = rendered;
@@ -633,31 +662,31 @@ class TwoRuleStreamProcessor {
                 const safe = this.escapeHtml(pkg.content);
                 contentElement.innerHTML = `<div class="markdown-fallback" style="white-space: pre-wrap;">${safe}</div>`;
             }
-            
+
             // Store reference to this markdown container for future concatenation
             this.markdownContainer.appendChild(contentElement);
             console.log(`📝 TWO-RULE: New markdown element created (${pkg.content.length} chars)`);
         }
     }
-    
+
     /**
-     * ✅ HELPER: Check if there was a visual break before this markdown package
+     * ELPER: Check if there was a visual break before this markdown package
      */
     hasVisualBreakBefore(pkg) {
         // Check if there were any visual packages rendered since last markdown
         const allPackages = [...this.markdownPackages, ...this.visualPackages]
             .sort((a, b) => a.position - b.position);
-        
+
         const currentIndex = allPackages.findIndex(p => p.id === pkg.id);
         if (currentIndex <= 0) return false;
-        
+
         // Check if previous package was visual
         const previousPackage = allPackages[currentIndex - 1];
         return previousPackage && previousPackage.type === 'visual';
     }
 
     /**
-     * ✅ HELPER: Check if content has significant markdown formatting
+     * ELPER: Check if content has significant markdown formatting
      */
     hasSignificantMarkdown(content) {
         const significantTriggers = [
@@ -670,12 +699,12 @@ class TwoRuleStreamProcessor {
             /^---\s*$/m,            // Horizontal rules
             /\[.*?\]\(.*?\)/,       // Links
         ];
-        
+
         return significantTriggers.some(trigger => trigger.test(content));
     }
-    
+
     /**
-     * ✅ VISUAL RENDERING: Render Type 2 content with visualization engine
+     * ISUAL RENDERING: Render Type 2 content with visualization engine
      */
     async renderVisualPackage(pkg) {
         console.log('🎨 TWO-RULE: renderVisualPackage called', {
@@ -685,30 +714,30 @@ class TwoRuleStreamProcessor {
             contentLength: pkg.content?.length,
             contentPreview: pkg.content?.substring(0, 100)
         });
-        
+
         // Extract inner content (remove delimiters)
         const startDelimiter = this.getStartDelimiter(pkg.subType);
         const endDelimiter = this.getEndDelimiter(pkg.subType);
-        
+
         console.log('🔍 TWO-RULE: Extracting content', {
             startDelimiter,
             endDelimiter,
             startIndex: pkg.content.indexOf(startDelimiter),
             endIndex: pkg.content.lastIndexOf(endDelimiter)
         });
-        
+
         const startIndex = pkg.content.indexOf(startDelimiter) + startDelimiter.length;
         const endIndex = pkg.content.lastIndexOf(endDelimiter);
         const innerContent = pkg.content.slice(startIndex, endIndex).trim();
-        
+
         console.log('📊 TWO-RULE: Extracted inner content', {
             innerContentLength: innerContent.length,
             innerContentPreview: innerContent.substring(0, 200)
         });
-        
-        // ✅ SIMPLE FIX #3: Position-based insertion logic
+
+        // IMPLE FIX #3: Position-based insertion logic
         let vizContainer = null;
-        
+
         // Prefer inserting at an anchor matching data-stream-position
         const anchor = this.container.querySelector(`.two-rule-anchor[data-stream-position="${pkg.position}"]`);
         if (anchor && anchor.parentElement) {
@@ -728,12 +757,12 @@ class TwoRuleStreamProcessor {
         } else if (this.loadingIndicator && this.loadingIndicator.parentElement) {
             // Replace the loading indicator with the visualization container (legacy)
             vizContainer = document.createElement('div');
-            vizContainer.className = 'viz-container'; // ✅ FIXED: Use existing CSS class
+            vizContainer.className = 'viz-container'; // IXED: Use existing CSS class
             vizContainer.setAttribute('data-package-id', pkg.id);
             vizContainer.setAttribute('data-viz-type', pkg.subType);
-            vizContainer.setAttribute('data-stream-position', pkg.position.toString()); // ✅ ADD position tracking
-            
-            // ✅ CRITICAL: Add required content area for visualization engine
+            vizContainer.setAttribute('data-stream-position', pkg.position.toString()); // DD position tracking
+
+            // RITICAL: Add required content area for visualization engine
             const contentArea = document.createElement('div');
             contentArea.className = 'viz-content-area';
             contentArea.style.cssText = `
@@ -742,19 +771,19 @@ class TwoRuleStreamProcessor {
                 min-height: 0;
             `;
             vizContainer.appendChild(contentArea);
-            
+
             // Replace loading indicator with visualization container
             this.loadingIndicator.parentElement.replaceChild(vizContainer, this.loadingIndicator);
             this.loadingIndicator = null;
         } else {
-            // ✅ SIMPLE FIX #3: Position-aware insertion instead of simple appendChild
+            // IMPLE FIX #3: Position-aware insertion instead of simple appendChild
             vizContainer = document.createElement('div');
             vizContainer.className = 'viz-container';
             vizContainer.setAttribute('data-package-id', pkg.id);
             vizContainer.setAttribute('data-viz-type', pkg.subType);
-            vizContainer.setAttribute('data-stream-position', pkg.position.toString()); // ✅ ADD position tracking
-            
-            // ✅ CRITICAL: Add required content area for visualization engine
+            vizContainer.setAttribute('data-stream-position', pkg.position.toString()); // DD position tracking
+
+            // RITICAL: Add required content area for visualization engine
             const contentArea = document.createElement('div');
             contentArea.className = 'viz-content-area';
             contentArea.style.cssText = `
@@ -763,11 +792,11 @@ class TwoRuleStreamProcessor {
                 min-height: 0;
             `;
             vizContainer.appendChild(contentArea);
-            
-            // ✅ SIMPLE FIX #3: Position-aware insertion
+
+            // IMPLE FIX #3: Position-aware insertion
             const existingContainers = this.container.querySelectorAll('.viz-container, .two-rule-markdown-container > div');
             let insertionPoint = null;
-            
+
             // Find where this package should be inserted based on position
             for (let i = 0; i < existingContainers.length; i++) {
                 const containerPos = parseInt(existingContainers[i].getAttribute('data-stream-position') || '0');
@@ -776,7 +805,7 @@ class TwoRuleStreamProcessor {
                     break;
                 }
             }
-            
+
             if (insertionPoint) {
                 this.container.insertBefore(vizContainer, insertionPoint);
                 console.log(`🎯 Inserted visual at position ${pkg.position} before existing content`);
@@ -785,23 +814,23 @@ class TwoRuleStreamProcessor {
                 console.log(`🎯 Appended visual at position ${pkg.position} (last in sequence)`);
             }
         }
-        
-        // ✅ ENSURE DOM is ready before proceeding
+
+        // NSURE DOM is ready before proceeding
         await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // ✅ VALIDATE container is properly attached
+
+        // ALIDATE container is properly attached
         if (!document.contains(vizContainer)) {
-            console.error('❌ TWO-RULE: Container failed to attach to DOM');
-            vizContainer.innerHTML = '<div style="color: red; padding: 20px;">❌ Failed to create visualization container</div>';
+            console.error(' TWO-RULE: Container failed to attach to DOM');
+            vizContainer.innerHTML = '<div style="color: red; padding: 20px;"> Failed to create visualization container</div>';
             return;
         }
-        
-        console.log('✅ TWO-RULE: Container created and attached, calling renderVisualization', {
+
+        console.log('WO-RULE: Container created and attached, calling renderVisualization', {
             containerClass: vizContainer.className,
             hasContentArea: !!vizContainer.querySelector('.viz-content-area'),
             isInDOM: document.contains(vizContainer)
         });
-        
+
         // Render visualization using available engine
         await this.renderVisualization(pkg.subType, innerContent, vizContainer);
 
@@ -841,13 +870,13 @@ class TwoRuleStreamProcessor {
                     parent.appendChild(vizContainer);
                 }
             }
-        } catch (_) {}
-        
+        } catch (_) { }
+
         console.log(`🎨 TWO-RULE: Visual package appended (${pkg.subType}, ${innerContent.length} chars)`);
     }
-    
+
     /**
-     * ✅ VISUALIZATION ENGINE: Render specific visualization type
+     * ISUALIZATION ENGINE: Render specific visualization type
      */
     async renderVisualization(type, content, container) {
         console.log('🎯 TWO-RULE: renderVisualization called', {
@@ -857,23 +886,23 @@ class TwoRuleStreamProcessor {
             containerClass: container?.className,
             hasContentArea: !!container?.querySelector('.viz-content-area')
         });
-        
+
         try {
-            // ✅ CRITICAL FIX: Advanced DOM validation with timing safety
+            // RITICAL FIX: Advanced DOM validation with timing safety
             if (!container) {
                 throw new Error('Container is null');
             }
             if (!document.contains(container)) {
                 throw new Error('Container not attached to DOM');
             }
-            
-            console.log('✅ TWO-RULE: Container validation passed');
-            
-            // ✅ TIMING FIX: Add small delay to ensure DOM stability
+
+            console.log('WO-RULE: Container validation passed');
+
+            // IMING FIX: Add small delay to ensure DOM stability
             await new Promise(resolve => requestAnimationFrame(resolve));
             // Always render into the inner .viz-content-area when available
             const targetContainer = container.querySelector('.viz-content-area') || container;
-            
+
             console.log('🎯 TWO-RULE: Target container selected', {
                 isContentArea: targetContainer.className?.includes('viz-content-area'),
                 targetClass: targetContainer.className
@@ -881,29 +910,29 @@ class TwoRuleStreamProcessor {
 
             // Ensure target container has a measurable size to prevent Plotly/Mermaid hiccups
             await this.ensureContainerReady(targetContainer);
-            
-            console.log('✅ TWO-RULE: Container ready check passed');
-            
-            // ✅ DOUBLE-CHECK: Verify container is still valid after timing delay
+
+            console.log('WO-RULE: Container ready check passed');
+
+            // OUBLE-CHECK: Verify container is still valid after timing delay
             if (!targetContainer || !document.contains(targetContainer)) {
                 throw new Error('Container became invalid after DOM timing check');
             }
-            
-            // ✅ CRITICAL FIX: Validate container exists and is in DOM
+
+            // RITICAL FIX: Validate container exists and is in DOM
             if (!targetContainer || !targetContainer.parentElement) {
                 throw new Error(`Container not available for ${type} visualization`);
             }
-            
-            // ✅ ENSURE CONTAINER IS PROPERLY ATTACHED
+
+            // NSURE CONTAINER IS PROPERLY ATTACHED
             if (!document.contains(targetContainer)) {
                 throw new Error(`Container not attached to DOM for ${type} visualization`);
             }
-            
+
             const chartId = `two-rule-${type}-${Date.now()}`;
-            
+
             // Find available visualization engine
             let engine = null;
-            
+
             if (window.sidebarVisualizationState?.engine && window.sidebarVisualizationState.isInitialized) {
                 engine = window.sidebarVisualizationState.engine;
             } else if (window.vizEngine && window.vizEngine.renderVisualizationDirectly) {
@@ -912,16 +941,16 @@ class TwoRuleStreamProcessor {
                 engine = new window.VisualizationEngine();
                 await engine.init();
             }
-            
+
             if (!engine) {
                 throw new Error('No visualization engine available');
             }
-            
+
             const item = { type: type, content: content };
-            
-            // ✅ CRITICAL FIX: Add DOM validation before rendering
+
+            // RITICAL FIX: Add DOM validation before rendering
             console.log(`🎯 TWO-RULE: Rendering ${type} in container:`, targetContainer.className, 'DOM attached:', document.contains(targetContainer));
-            
+
             // Render with targeted handling for Plotly streaming reliability
             if (type === 'plotly') {
                 const tryRender = async () => {
@@ -940,9 +969,9 @@ class TwoRuleStreamProcessor {
                 while (attempt < maxAttempts) {
                     try {
                         await tryRender();
-                        // ❌ RESIZE DISABLED - Was destroying Plotly charts
+                        //  RESIZE DISABLED - Was destroying Plotly charts
                         // Plotly already renders with responsive config, no resize needed
-                        console.log('✅ TWO-RULE: Plotly rendered, skipping resize (uses responsive config)');
+                        console.log('WO-RULE: Plotly rendered, skipping resize (uses responsive config)');
                         lastError = null;
                         break;
                     } catch (e) {
@@ -969,11 +998,11 @@ class TwoRuleStreamProcessor {
                     await engine.renderVisualization(item, container, chartId);
                 }
             }
-            
+
         } catch (error) {
-            console.error(`❌ TWO-RULE: Visualization rendering failed:`, error);
-            
-            // ✅ CRITICAL FIX: Validate container before setting innerHTML
+            console.error(` TWO-RULE: Visualization rendering failed:`, error);
+
+            // RITICAL FIX: Validate container before setting innerHTML
             if (container && document.contains(container)) {
                 container.innerHTML = `
                     <div class="two-rule-viz-error" style="text-align: center; padding: 20px; color: var(--accent-red);">
@@ -986,7 +1015,7 @@ class TwoRuleStreamProcessor {
                     </div>
                 `;
             } else {
-                console.error('❌ TWO-RULE: Cannot display error - container not in DOM');
+                console.error(' TWO-RULE: Cannot display error - container not in DOM');
             }
         }
     }
@@ -1002,9 +1031,9 @@ class TwoRuleStreamProcessor {
             await new Promise(r => setTimeout(r, 50));
         }
     }
-    
+
     /**
-     * ✅ ERROR HANDLING: Render error package
+     * RROR HANDLING: Render error package
      */
     renderErrorPackage(pkg, error) {
         const errorElement = document.createElement('div');
@@ -1017,17 +1046,17 @@ class TwoRuleStreamProcessor {
             border-radius: 6px;
             color: var(--text-error, #cc0000);
         `;
-        
+
         errorElement.innerHTML = `
-            <strong>❌ Package ${pkg.id} Error (${pkg.type})</strong><br>
+            <strong> Package ${pkg.id} Error (${pkg.type})</strong><br>
             ${error.message}
         `;
-        
+
         this.container.appendChild(errorElement);
     }
-    
+
     /**
-     * ✅ DELIMITER DETECTION: Find visualization start delimiter
+     * ELIMITER DETECTION: Find visualization start delimiter
      */
     findVisualizationStart(content) {
         const patterns = [
@@ -1103,9 +1132,9 @@ class TwoRuleStreamProcessor {
         }
         return maxLen;
     }
-    
+
     /**
-     * ✅ MARKDOWN TRIGGERS: Check if content should trigger markdown release
+     * ARKDOWN TRIGGERS: Check if content should trigger markdown release
      */
     hasMarkdownTrigger(content) {
         const triggers = [
@@ -1118,16 +1147,16 @@ class TwoRuleStreamProcessor {
             /^\d+\. /m,             // Numbered lists
             /^---\s*$/m             // Horizontal rules
         ];
-        
+
         return triggers.some(trigger => trigger.test(content));
     }
-    
+
     /**
-     * ✅ LOADING INDICATORS: Show buffering state
+     * OADING INDICATORS: Show buffering state
      */
     showBufferingIndicator(type) {
         this.removeBufferingIndicator();
-        
+
         this.loadingIndicator = document.createElement('div');
         this.loadingIndicator.className = 'two-rule-loading-indicator';
         this.loadingIndicator.style.cssText = `
@@ -1142,16 +1171,16 @@ class TwoRuleStreamProcessor {
             font-size: 13px;
             margin: 8px 0;
         `;
-        
+
         this.loadingIndicator.innerHTML = `
             <div style="width: 16px; height: 16px; border: 2px solid var(--border-secondary); border-top: 2px solid var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
             <span>Loading ${type.toUpperCase()} visualization...</span>
         `;
-        
-        // ✅ IMPROVED: Append to markdown container if it exists, otherwise main container
+
+        // MPROVED: Append to markdown container if it exists, otherwise main container
         const targetContainer = this.markdownContainer || this.container;
         targetContainer.appendChild(this.loadingIndicator);
-        
+
         // Add CSS animation if not already present
         if (!document.querySelector('#two-rule-spinner')) {
             const style = document.createElement('style');
@@ -1165,9 +1194,9 @@ class TwoRuleStreamProcessor {
             document.head.appendChild(style);
         }
     }
-    
+
     /**
-     * ✅ LOADING INDICATORS: Update buffering progress
+     * OADING INDICATORS: Update buffering progress
      */
     updateBufferingIndicator(bufferSize) {
         if (this.loadingIndicator) {
@@ -1177,9 +1206,9 @@ class TwoRuleStreamProcessor {
             }
         }
     }
-    
+
     /**
-     * ✅ LOADING INDICATORS: Remove buffering indicator
+     * OADING INDICATORS: Remove buffering indicator
      */
     removeBufferingIndicator() {
         if (this.loadingIndicator) {
@@ -1187,13 +1216,13 @@ class TwoRuleStreamProcessor {
             this.loadingIndicator = null;
         }
     }
-    
+
     /**
-     * ✅ FINALIZATION: Handle end of stream
+     * INALIZATION: Handle end of stream
      */
     async finalizeStream() {
         console.log('🏁 TWO-RULE: Finalizing stream');
-        
+
         // Handle any remaining content in NORMAL state
         if (this.state === 'NORMAL' && this.bufferPosition < this.rawBuffer.length) {
             const remainingContent = this.rawBuffer.slice(this.bufferPosition);
@@ -1201,35 +1230,35 @@ class TwoRuleStreamProcessor {
                 this.packageMarkdownContent(remainingContent, this.bufferPosition);
             }
         }
-        
+
         // Handle incomplete visual content in BUFFERING state
         if (this.state === 'BUFFERING_VISUAL') {
             console.warn('⚠️ TWO-RULE: Stream ended with incomplete visual content');
             this.removeBufferingIndicator();
-            
+
             // Package as markdown to avoid losing content
             const incompleteContent = this.rawBuffer.slice(this.visualBufferStart);
             this.packageMarkdownContent(incompleteContent, this.visualBufferStart);
             this.state = 'NORMAL';
         }
-        
+
         // Release any remaining packages
         await this.releaseReadyPackages();
-        
-        // ✅ AGGRESSIVE: Clean up <br> tags around lists in the target container
+
+        // GGRESSIVE: Clean up <br> tags around lists in the target container
         if (this.targetElement && typeof window.removeBreaksAroundLists === 'function') {
             setTimeout(() => {
                 window.removeBreaksAroundLists(this.targetElement);
-                console.log('✅ TWO-RULE: Post-stream <br> cleanup completed');
+                console.log('WO-RULE: Post-stream <br> cleanup completed');
             }, 100);
         }
-        
-        console.log('✅✅✅✅ END OF STREAM - All content processed');
+
+        console.log('ND OF STREAM - All content processed');
         this.logStats();
     }
-    
+
     /**
-     * ✅ UTILITIES: Get delimiter strings
+     * TILITIES: Get delimiter strings
      */
     getStartDelimiter(type) {
         const delimiters = {
@@ -1240,7 +1269,7 @@ class TwoRuleStreamProcessor {
         };
         return delimiters[type] || '';
     }
-    
+
     getEndDelimiter(type) {
         const delimiters = {
             'mermaid': '</MERMAID>',
@@ -1250,44 +1279,44 @@ class TwoRuleStreamProcessor {
         };
         return delimiters[type] || '';
     }
-    
+
     /**
-     * ✅ UTILITIES: HTML escaping
+     * TILITIES: HTML escaping
      */
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-    
+
     /**
-     * ✅ UTILITIES: Generate content hash for deduplication
+     * TILITIES: Generate content hash for deduplication
      */
     generateContentHash(item) {
         const content = typeof item.content === 'string' ? item.content : JSON.stringify(item.content);
         const hashInput = `${item.type}:${content}`;
-        
+
         let hash = 0;
         for (let i = 0; i < hashInput.length; i++) {
             const char = hashInput.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash;
         }
-        
+
         return Math.abs(hash).toString(36);
     }
-    
+
     /**
-     * ✅ ERROR HANDLING: Handle processing errors
+     * RROR HANDLING: Handle processing errors
      */
     handleError(error) {
-        console.error('❌ TWO-RULE: Processing error:', error);
-        
+        console.error(' TWO-RULE: Processing error:', error);
+
         // Reset to safe state
         this.state = 'NORMAL';
         this.currentDelimiter = null;
         this.removeBufferingIndicator();
-        
+
         // Show error message
         const errorElement = document.createElement('div');
         errorElement.className = 'two-rule-system-error';
@@ -1300,20 +1329,20 @@ class TwoRuleStreamProcessor {
             color: var(--text-error, #cc0000);
         `;
         errorElement.innerHTML = `
-            <strong>❌ Two-Rule System Error</strong><br>
+            <strong> Two-Rule System Error</strong><br>
             ${error.message}<br>
             <small>System reset to normal state</small>
         `;
-        
+
         this.container.appendChild(errorElement);
     }
-    
+
     /**
-     * ✅ DEBUGGING: Log performance statistics
+     * EBUGGING: Log performance statistics
      */
     logStats() {
         const avgProcessingTime = this.stats.totalProcessingTime / this.stats.chunksProcessed;
-        
+
         console.log('📊 TWO-RULE: Final Statistics', {
             chunksProcessed: this.stats.chunksProcessed,
             packagesReleased: this.stats.packagesReleased,
@@ -1332,44 +1361,44 @@ class TwoRuleStreamProcessor {
 // =====================================
 
 /**
- * ✅ INTEGRATION: Initialize Two-Rule processor for streaming message
+ * NTEGRATION: Initialize Two-Rule processor for streaming message
  */
 function initializeTwoRuleProcessor(container) {
     console.log('🚀 TWO-RULE: Initializing processor');
-    
+
     globalTwoRuleProcessor = new TwoRuleStreamProcessor(container);
-    
-    console.log('✅ TWO-RULE: Processor initialized');
+
+    console.log('WO-RULE: Processor initialized');
     return globalTwoRuleProcessor;
 }
 
 /**
- * ✅ INTEGRATION: Process streaming content chunk
+ * NTEGRATION: Process streaming content chunk
  */
 async function processTwoRuleStreamingChunk(content) {
     if (!globalTwoRuleProcessor) {
-        console.error('❌ TWO-RULE: Processor not initialized');
+        console.error(' TWO-RULE: Processor not initialized');
         return;
     }
-    
-    // ✅ CRITICAL FIX: Pass FULL content, let processor handle incremental processing
+
+    // RITICAL FIX: Pass FULL content, let processor handle incremental processing
     // The processor will calculate the NEW content internally
     const currentBufferLength = globalTwoRuleProcessor.rawBuffer?.length || 0;
-    
+
     if (content.length <= currentBufferLength) {
         console.log(`📝 TWO-RULE: No new content (current: ${content.length}, buffer: ${currentBufferLength})`);
         return; // No new content
     }
-    
+
     // Extract only the NEW content that hasn't been processed yet
     const newContent = content.slice(currentBufferLength);
     console.log(`📝 TWO-RULE: Processing ${newContent.length} new chars (total: ${content.length})`);
-    
+
     await globalTwoRuleProcessor.processChunk(newContent);
 }
 
 /**
- * ✅ INTEGRATION: Finalize Two-Rule streaming
+ * NTEGRATION: Finalize Two-Rule streaming
  */
 async function finalizeTwoRuleStreaming() {
     if (globalTwoRuleProcessor) {
@@ -1380,7 +1409,7 @@ async function finalizeTwoRuleStreaming() {
 }
 
 /**
- * ✅ INTEGRATION: Reset Two-Rule system
+ * NTEGRATION: Reset Two-Rule system
  */
 function resetTwoRuleSystem() {
     globalTwoRuleProcessor = null;
@@ -1393,21 +1422,21 @@ function resetTwoRuleSystem() {
 // =====================================
 
 /**
- * ✅ MAIN STREAMING: Process streaming response
+ * AIN STREAMING: Process streaming response
  * Complete replacement for processStreamResponse
  */
 async function processStreamResponse(response) {
     // Defensive: mark last activity to now so stale monitors don't immediately trigger
-    try { if (window.streamingState) window.streamingState.lastActivityTs = Date.now(); } catch (_) {}
+    try { if (window.streamingState) window.streamingState.lastActivityTs = Date.now(); } catch (_) { }
     // Validate response
     if (!response || !response.ok) {
-        console.error('❌ Invalid response received:', {
+        console.error(' Invalid response received:', {
             status: response?.status,
             statusText: response?.statusText,
             headers: response?.headers ? Object.fromEntries(response.headers.entries()) : 'No headers'
         });
         if (window.messageManager) {
-            window.messageManager.addMessage(`❌ Server error: ${response?.status} ${response?.statusText}. Please try again.`, false);
+            window.messageManager.addMessage(` Server error: ${response?.status} ${response?.statusText}. Please try again.`, false);
         }
         // Ensure UI/state are not left in loading state
         try {
@@ -1417,14 +1446,14 @@ async function processStreamResponse(response) {
             const messageInput = document.getElementById('messageInput');
             if (sendButton) sendButton.disabled = false;
             if (messageInput) messageInput.disabled = false;
-        } catch (_) {}
+        } catch (_) { }
         return;
     }
 
     if (!response.body) {
-        console.error('❌ Response has no body');
+        console.error(' Response has no body');
         if (window.messageManager) {
-            window.messageManager.addMessage('❌ No response body received. Please try again.', false);
+            window.messageManager.addMessage(' No response body received. Please try again.', false);
         }
         return;
     }
@@ -1464,12 +1493,12 @@ async function processStreamResponse(response) {
             if (chunkCount <= 3) {
                 console.log(`🔍 Chunk ${chunkCount} raw content:`, JSON.stringify(chunk));
             }
-            
+
             const lines = buffer.split('\n');
             buffer = lines.pop() || '';
-            
+
             console.log(`🔍 Processing ${lines.length} lines from chunk ${chunkCount}`);
-            
+
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
                     dataLineCount++;
@@ -1478,11 +1507,11 @@ async function processStreamResponse(response) {
                     try {
                         dataContent = line.slice(6).trim();
                         console.log(`🔍 Data line ${dataLineCount}: "${dataContent.slice(0, 50)}${dataContent.length > 50 ? '...' : ''}"`);
-                        
+
                         if (dataContent && dataContent !== '[DONE]') {
                             const data = JSON.parse(dataContent);
                             console.log('🔍 Parsed data:', data);
-                            
+
                             // Check for content in multiple possible properties
                             let contentToAdd = null;
                             if (data.content) {
@@ -1492,25 +1521,25 @@ async function processStreamResponse(response) {
                             } else if (data.text) {
                                 contentToAdd = data.text;
                             }
-                            
+
                             if (contentToAdd) {
                                 contentChunks++;
                                 fullResponse += contentToAdd;
                                 console.log(`📝 Added content chunk ${contentChunks}: "${contentToAdd.slice(0, 30)}${contentToAdd.length > 30 ? '...' : ''}" (total response: ${fullResponse.length} chars)`);
-                                
+
                                 if (!isStreaming) {
                                     console.log('🎬 Starting Two-Rule streaming message display');
                                     startStreamingMessage();
                                     isStreaming = true;
                                 }
-                                
+
                                 // Use Two-Rule system for content processing
                                 await updateStreamingMessageTwoRule(fullResponse);
                             } else {
                                 console.log('⚠️ Data chunk has no recognized content property:', data);
                                 console.log('🔍 Available properties:', Object.keys(data));
                             }
-                            
+
                             if (data.chatId) {
                                 lastChatId = data.chatId;
                             }
@@ -1542,16 +1571,16 @@ async function processStreamResponse(response) {
                     }
                 }
             }
-            
+
             // Yield control periodically
             if (chunkCount % 25 === 0) {
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
         }
-        
-    // Process remaining buffer content
-    console.log('🔍 Processing remaining buffer:', buffer ? `"${buffer.slice(0, 100)}${buffer.length > 100 ? '...' : ''}"` : 'EMPTY');
-    if (buffer.trim() && buffer.startsWith('data: ')) {
+
+        // Process remaining buffer content
+        console.log('🔍 Processing remaining buffer:', buffer ? `"${buffer.slice(0, 100)}${buffer.length > 100 ? '...' : ''}"` : 'EMPTY');
+        if (buffer.trim() && buffer.startsWith('data: ')) {
             console.log('🔍 Processing final buffer as data line');
             try {
                 const dataContent = buffer.slice(6).trim();
@@ -1559,7 +1588,7 @@ async function processStreamResponse(response) {
                 if (dataContent && dataContent !== '[DONE]') {
                     const data = JSON.parse(dataContent);
                     console.log('🔍 Final buffer parsed data:', data);
-                    
+
                     // Check for content in multiple possible properties
                     let contentToAdd = null;
                     if (data.content) {
@@ -1569,7 +1598,7 @@ async function processStreamResponse(response) {
                     } else if (data.text) {
                         contentToAdd = data.text;
                     }
-                    
+
                     if (contentToAdd) {
                         fullResponse += contentToAdd;
                         console.log('🔍 Added final buffer content, total response now:', fullResponse.length, 'chars');
@@ -1585,7 +1614,7 @@ async function processStreamResponse(response) {
                 console.warn('⚠️ Failed to parse final buffer:', parseError.message);
                 console.log('🔍 Final buffer that failed:', JSON.stringify(buffer));
             }
-    } else if (buffer.trim()) {
+        } else if (buffer.trim()) {
             // Fallback: treat remaining buffer as raw content
             const trimmed = buffer.trim();
             const isControl = trimmed.startsWith('event:') || trimmed.startsWith('id:') || trimmed.startsWith(':');
@@ -1601,14 +1630,14 @@ async function processStreamResponse(response) {
                 console.log('🔍 Final buffer contains SSE control text only');
             }
         }
-        
+
         if (isStreaming) {
             console.log('🏁 Stream ended - finishing Two-Rule message');
-            
+
             if (streamingMessageElement && lastChatId) {
                 streamingMessageElement.setAttribute('data-chat-id', lastChatId);
-                
-                // ✅ CRITICAL FIX: Safe chatIdTracker access
+
+                // RITICAL FIX: Safe chatIdTracker access
                 if (window.messageManager && window.messageManager.chatIdTracker) {
                     if (typeof window.messageManager.chatIdTracker.set === 'function') {
                         window.messageManager.chatIdTracker.set(streamingMessageElement, lastChatId);
@@ -1622,9 +1651,9 @@ async function processStreamResponse(response) {
                     console.warn('⚠️ TWO-RULE: messageManager or chatIdTracker not available');
                 }
             }
-            
+
             finishStreamingMessage();
-    } else if (fullResponse && window.messageManager) {
+        } else if (fullResponse && window.messageManager) {
             console.log('📝 Adding complete message (no streaming UI was shown)');
             window.messageManager.addMessage(fullResponse, false, null, [], null, lastChatId);
         } else {
@@ -1638,20 +1667,20 @@ async function processStreamResponse(response) {
                 totalLength,
                 messageManagerExists: !!window.messageManager
             });
-            
+
             if (window.messageManager) {
-                window.messageManager.addMessage('❌ No response received. Please try again.', false);
+                window.messageManager.addMessage(' No response received. Please try again.', false);
             } else {
-                console.error('❌ No messageManager available to show error message');
+                console.error(' No messageManager available to show error message');
             }
             // If a streaming UI exists (pre-created), close it to avoid lingering spinners
             if (!isStreaming && typeof streamingMessageElement !== 'undefined' && streamingMessageElement) {
                 finishStreamingMessage();
             }
         }
-        
+
     } catch (error) {
-        console.error('❌ Two-Rule streaming processing error:', error);
+        console.error(' Two-Rule streaming processing error:', error);
         console.log('🔍 Error context:', {
             fullResponseLength: fullResponse.length,
             isStreaming,
@@ -1661,13 +1690,13 @@ async function processStreamResponse(response) {
             errorMessage: error.message,
             errorStack: error.stack?.split('\n').slice(0, 5)
         });
-        
+
         if (fullResponse) {
             console.log('🔄 Attempting to recover with partial response...');
             if (isStreaming) {
                 if (streamingMessageElement && lastChatId) {
                     streamingMessageElement.setAttribute('data-chat-id', lastChatId);
-                    // ✅ CRITICAL FIX: Safe chatIdTracker access  
+                    // RITICAL FIX: Safe chatIdTracker access  
                     if (window.messageManager && window.messageManager.chatIdTracker) {
                         if (typeof window.messageManager.chatIdTracker.set === 'function') {
                             window.messageManager.chatIdTracker.set(streamingMessageElement, lastChatId);
@@ -1685,12 +1714,12 @@ async function processStreamResponse(response) {
                 window.messageManager.addMessage(fullResponse, false, null, [], null, lastChatId);
             }
         } else if (window.messageManager) {
-            window.messageManager.addMessage(`❌ Error processing streaming response: ${error.message}. Please try again.`, false);
+            window.messageManager.addMessage(` Error processing streaming response: ${error.message}. Please try again.`, false);
         }
         // Defensive: finalize UI/state on error
         try {
             if (typeof finishStreamingMessage === 'function') finishStreamingMessage();
-        } catch (_) {}
+        } catch (_) { }
         try {
             if (window.currentState) window.currentState.isLoading = false;
             window.messageManager?.hideProcessingToast?.();
@@ -1699,7 +1728,7 @@ async function processStreamResponse(response) {
             if (sendButton) sendButton.disabled = false;
             if (messageInput) messageInput.disabled = false;
             window.updateStatus?.('Ready', 'connected');
-        } catch (_) {}
+        } catch (_) { }
     } finally {
         console.log(`📊 Two-Rule stream processing complete. Final response: ${fullResponse.length} characters`);
         console.log('🔍 Final processing stats:', {
@@ -1713,35 +1742,35 @@ async function processStreamResponse(response) {
         // Ensure loading state isn't left dangling if upstream callers bail early
         try {
             if (window.currentState) window.currentState.isLoading = false;
-        } catch (_) {}
+        } catch (_) { }
     }
 }
 
 /**
- * ✅ STREAMING UPDATE: Update streaming message with Two-Rule system
+ * TREAMING UPDATE: Update streaming message with Two-Rule system
  * Complete replacement for updateStreamingMessageIncremental
  */
 async function updateStreamingMessageTwoRule(content) {
     if (!streamingMessageElement || !content) return;
-    
+
     const streamedContentDiv = streamingMessageElement.querySelector('#streamedContent');
     const thinkingIndicator = streamingMessageElement.querySelector('#thinkingIndicator');
-    
+
     if (!streamedContentDiv) return;
-    
-    // ✅ SIMPLE FIX #1: Always try to remove thinking indicators on ANY real content
+
+    // IMPLE FIX #1: Always try to remove thinking indicators on ANY real content
     if (content.trim() && content.length > 0) {
         removeAllThinkingIndicators(streamingMessageElement);
         streamingState.isFirstContent = false;
         console.log('🎯 Removed thinking indicators, starting Two-Rule content display');
     }
-    
+
     // Initialize Two-Rule processor if not exists
     if (!globalTwoRuleProcessor) {
         globalTwoRuleProcessor = new TwoRuleStreamProcessor(streamedContentDiv);
         console.log('🚀 NEW: Two-Rule ProgressiveStreamProcessor initialized');
     }
-    
+
     // Process content through Two-Rule system
     await processTwoRuleStreamingChunk(content);
 
@@ -1754,7 +1783,7 @@ async function updateStreamingMessageTwoRule(content) {
     } catch (e) {
         console.warn('⚠️ Failed to update data-original-raw during stream:', e);
     }
-    
+
     // Auto-scroll if enabled - using AutoScrollManager API
     if (window.autoScrollManager && window.autoScrollManager.isEnabled()) {
         window.autoScrollManager.scrollDuringStream();
@@ -1762,52 +1791,52 @@ async function updateStreamingMessageTwoRule(content) {
 }
 
 /**
- * ✅ STREAMING START: Initialize streaming message container
+ * TREAMING START: Initialize streaming message container
  * Enhanced version with Two-Rule system support
  */
 function startStreamingMessage() {
     console.log('🎬 Starting Two-Rule progressive streaming message display');
-    
-    // ✅ CRITICAL FIX: Reset streaming state for new message
+
+    // RITICAL FIX: Reset streaming state for new message
     streamingState.isFirstContent = true;
     streamingState.lastProcessedLength = 0;
     streamingState.renderedComponents = [];
-    
+
     // Mark streaming as started - using AutoScrollManager API
     if (window.autoScrollManager) {
         window.autoScrollManager.startStreaming();
         console.log('🔄 Started streaming - auto-scroll enabled for new message');
     }
-    
+
     // Reset Two-Rule system
     resetTwoRuleSystem();
-    
+
     // Remove existing loading message
     const existingLoading = document.getElementById('loadingMessage');
     if (existingLoading) {
         existingLoading.remove();
     }
-    
+
     // Create streaming message element
     streamingMessageElement = document.createElement('div');
     streamingMessageElement.className = 'message assistant';
-    
+
     streamingMessageElement.innerHTML = `<div class="message-avatar"><i class="fa-solid fa-atom ai-message-avatar" title="AI Assistant - Two-Rule Streaming Response"></i></div><div class="message-content-wrapper"><div class="message-bubble assistant-bubble text-${window.currentTextSize || 'normal'}"><button class="collapse-toggle-btn top-right" title="Collapse message"><i class="fa-solid fa-chevron-down"></i></button><div class="message-content"><div id="streamedContent" class="progressive-stream-content two-rule-content"></div></div><button class="collapse-toggle-btn bottom-right" title="Expand message"><i class="fa-solid fa-chevron-up"></i></button></div><div class="message-meta"><div class="message-timestamp">${typeof formatTime === 'function' ? formatTime(Date.now()) : new Date().toLocaleTimeString()}</div><div class="message-actions"><button class="message-action-btn" data-action="voice" title="Read aloud"><i class="fa-solid fa-volume-up"></i></button><button class="message-action-btn" data-action="regenerate" title="Regenerate response"><i class="fa-solid fa-redo"></i></button><button class="copy-btn" title="Copy message"><i class="fas fa-copy"></i></button><button class="message-action-btn print print-btn" title="Print message"><i class="fas fa-print"></i></button><button class="message-action-btn edit" title="Edit message"><i class="fas fa-edit"></i></button><button class="message-action-btn delete" title="Delete message"><i class="fas fa-trash"></i></button></div></div></div>`;
-    
+
     // Setup event listeners
     setupStreamingMessageEventListeners();
-    
+
     // Add to messages container
     const messagesContainer = window.elements?.messagesContainer || document.getElementById('messagesContainer');
     if (messagesContainer) {
         messagesContainer.appendChild(streamingMessageElement);
-        
+
         // Auto-scroll to the new message - using AutoScrollManager
         if (window.autoScrollManager && window.autoScrollManager.isEnabled()) {
             window.autoScrollManager.scrollDuringStream();
         }
     } else {
-        console.error('❌ Messages container not found for streaming message');
+        console.error(' Messages container not found for streaming message');
         return;
     }
 
@@ -1829,27 +1858,27 @@ function startStreamingMessage() {
     } catch (e) {
         console.warn('⚠️ Could not enhance streaming message with Print & Copy module:', e);
     }
-    
+
     // Reset streaming state
     streamingState = {
         isFirstContent: true,
         lastProcessedLength: 0,
-    renderedComponents: [],
-    lastActivityTs: Date.now()
+        renderedComponents: [],
+        lastActivityTs: Date.now()
     };
-    
-    console.log('✅ Two-Rule progressive streaming message container created and ready');
+
+    console.log('wo-Rule progressive streaming message container created and ready');
     // Mark app as streaming-active if state exists
-    try { if (window.currentState) window.currentState.isLoading = true; } catch (_) {}
+    try { if (window.currentState) window.currentState.isLoading = true; } catch (_) { }
     return streamingMessageElement;
 }
 
 /**
- * ✅ EVENT LISTENERS: Setup streaming message event handlers
+ * VENT LISTENERS: Setup streaming message event handlers
  */
 function setupStreamingMessageEventListeners() {
     if (!streamingMessageElement) return;
-    
+
     const copyBtn = streamingMessageElement.querySelector('.copy-btn');
     const editBtn = streamingMessageElement.querySelector('.edit');
     const deleteBtn = streamingMessageElement.querySelector('.delete');
@@ -1857,25 +1886,25 @@ function setupStreamingMessageEventListeners() {
     const collapseBtns = streamingMessageElement.querySelectorAll('.collapse-toggle-btn');
 
     if (copyBtn) {
-        copyBtn.addEventListener('click', function() {
+        copyBtn.addEventListener('click', function () {
             copyMessage(this);
         });
     }
 
     if (editBtn) {
-        editBtn.addEventListener('click', function() {
+        editBtn.addEventListener('click', function () {
             editMessage(this.closest('.message'));
         });
     }
 
     if (deleteBtn) {
-        deleteBtn.addEventListener('click', function() {
+        deleteBtn.addEventListener('click', function () {
             deleteMessage(this.closest('.message'));
         });
     }
 
     if (printBtn) {
-        printBtn.addEventListener('click', function() {
+        printBtn.addEventListener('click', function () {
             if (window.printCopyModule) {
                 window.printCopyModule.printMessage(this.closest('.message'));
             } else {
@@ -1885,36 +1914,36 @@ function setupStreamingMessageEventListeners() {
     }
 
     collapseBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             toggleMessageCollapse(this);
         });
     });
 }
 
 /**
- * ✅ STREAMING FINISH: Complete streaming message processing
+ * TREAMING FINISH: Complete streaming message processing
  */
 function finishStreamingMessage() {
     console.log('🏁 Finishing Two-Rule progressive streaming message');
-    
+
     // Finalize any remaining buffered content
     if (globalTwoRuleProcessor) {
         console.log('🔚 Finalizing Two-Rule stream to handle any remaining content');
         finalizeTwoRuleStreaming();
     }
-    
+
     if (streamingMessageElement) {
         // Remove thinking indicator if still present
         const thinkingIndicator = streamingMessageElement.querySelector('#thinkingIndicator');
         if (thinkingIndicator) {
             thinkingIndicator.remove();
         }
-        
+
         // Enhance message with print/copy capabilities
         if (window.printCopyModule) {
             window.printCopyModule.enhanceNewMessage(streamingMessageElement);
         }
-        
+
         // Update UI counters
         if (window.currentState) {
             window.currentState.messageCounter++;
@@ -1922,25 +1951,25 @@ function finishStreamingMessage() {
         if (window.updateCollapseAllButtonState) {
             window.updateCollapseAllButtonState();
         }
-        
+
         streamingMessageElement = null;
-        console.log('✅ Two-Rule progressive streaming message completed successfully');
+        console.log('wo-Rule progressive streaming message completed successfully');
     }
-    
+
     // Mark streaming as finished - using AutoScrollManager API
     // This will clear temporary pause and reset auto-scroll to default ON
     if (window.autoScrollManager) {
         window.autoScrollManager.finishStreaming();
         console.log('🔄 Finished streaming - auto-scroll reset to default ON');
     }
-    
+
     // Reset streaming state
     streamingState = {
         isFirstContent: true,
         lastProcessedLength: 0,
         renderedComponents: []
     };
-    
+
     resetTwoRuleSystem();
 
     // Ensure app state/input are unlocked after finishing stream
@@ -1963,14 +1992,14 @@ function finishStreamingMessage() {
 // =====================================
 
 /**
- * ✅ LEGACY: Compatibility wrapper for updateStreamingMessageIncremental
+ * EGACY: Compatibility wrapper for updateStreamingMessageIncremental
  */
 async function updateStreamingMessageIncremental(content) {
     return await updateStreamingMessageTwoRule(content);
 }
 
 /**
- * ✅ LEGACY: Compatibility wrapper for updateStreamingMessage
+ * EGACY: Compatibility wrapper for updateStreamingMessage
  */
 function updateStreamingMessage(content) {
     return updateStreamingMessageTwoRule(content);
@@ -1982,35 +2011,35 @@ function updateStreamingMessage(content) {
 // =====================================
 
 /**
- * ✅ MAIN MARKDOWN: Primary markdown rendering function
+ * AIN MARKDOWN: Primary markdown rendering function
  */
 function renderMarkdown(text) {
     if (!text) return '';
-    
+
     // Check for visualizations
-    const hasVisualizations = /<(PLOTLY|MERMAID|GRAPH|CHARTJS)>/i.test(text) || 
-                             /\{\{(PLOTLY|MERMAID|GRAPH|CHARTJS)_START\}\}/i.test(text);
-    
+    const hasVisualizations = /<(PLOTLY|MERMAID|GRAPH|CHARTJS)>/i.test(text) ||
+        /\{\{(PLOTLY|MERMAID|GRAPH|CHARTJS)_START\}\}/i.test(text);
+
     if (hasVisualizations) {
         console.log('🎨 Content has visualizations, using VisualizationEngine...');
-        
+
         if (window.sidebarVisualizationState?.engine && window.sidebarVisualizationState.isInitialized) {
             const containerId = `sidebar-viz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             const vizHtml = `<div id="${containerId}" class="sidebar-viz-content" data-original-viz="${escapeHtml(text)}">${text}</div>`;
-            
+
             setTimeout(async () => {
                 const container = document.getElementById(containerId);
                 if (container) {
                     try {
                         await window.sidebarVisualizationState.engine.renderAll(text, container);
-                        console.log('✅ Sidebar visualization rendered via VisualizationEngine');
-                        
+                        console.log('idebar visualization rendered via VisualizationEngine');
+
                         const vizContainers = container.querySelectorAll('.viz-container');
                         vizContainers.forEach(vizContainer => {
                             vizContainer.setAttribute('data-original-viz', text);
                         });
                     } catch (error) {
-                        console.error('❌ VisualizationEngine rendering failed:', error);
+                        console.error(' VisualizationEngine rendering failed:', error);
                         // Prefer centralized formatter if available; avoid local renderer to prevent interference
                         if (typeof window.renderEnhancedMarkdown === 'function') {
                             container.innerHTML = window.renderEnhancedMarkdown(text);
@@ -2021,7 +2050,7 @@ function renderMarkdown(text) {
                     }
                 }
             }, 10);
-            
+
             return vizHtml;
         } else {
             console.warn('⚠️ VisualizationEngine not ready, using centralized enhanced markdown');
@@ -2042,7 +2071,7 @@ function renderMarkdown(text) {
 }
 
 /**
- * ✅ ENHANCED MARKDOWN: Advanced markdown processing
+ * NHANCED MARKDOWN: Advanced markdown processing
  */
 function renderEnhancedMarkdown(text) {
     let htmlOutput;
@@ -2100,37 +2129,37 @@ function postProcessMarkdownHTML(html) {
 
     let cleaned = html;
 
-    // ✅ CRITICAL FIX: Remove <br> tags before and after <p> tags
+    // RITICAL FIX: Remove <br> tags before and after <p> tags
     cleaned = cleaned.replace(/(?:\s*<br\s*\/?>\s*)+(?=<\s*p\b)/gi, '');
     cleaned = cleaned.replace(/<\/p>\s*(?:<br\s*\/?>\s*)+/gi, '</p>');
-    
-    // ✅ Remove <br> at the very start or end of <p> tags
+
+    // emove <br> at the very start or end of <p> tags
     cleaned = cleaned.replace(/(<p\b[^>]*>)\s*(?:<br\s*\/?>\s*)+/gi, '$1');
     cleaned = cleaned.replace(/(?:<br\s*\/?>\s*)+\s*<\/p>/gi, '</p>');
 
-    // ✅ COMPREHENSIVE: Remove all <br> variations around lists
+    // OMPREHENSIVE: Remove all <br> variations around lists
     cleaned = cleaned.replace(/(?:\s*<br\s*\/?>\s*)+(?=<\s*(ul|ol)\b)/gi, '');
     cleaned = cleaned.replace(/(?:\s*<br\s*\/?>\s*)+(?=<\s*li\b)/gi, '');
     cleaned = cleaned.replace(/<\/(ul|ol)>\s*(?:<br\s*\/?>\s*)+/gi, '<\/$1>');
     cleaned = cleaned.replace(/<\/li>\s*(?:<br\s*\/?>\s*)+/gi, '<\/li>');
     cleaned = cleaned.replace(/<li>\s*(?:<br\s*\/?>\s*)+/gi, '<li>');
     cleaned = cleaned.replace(/(?:<br\s*\/?>\s*)+<\/li>/gi, '<\/li>');
-    
-    // ✅ Remove <br> between </p> and <ul>/<ol>
+
+    // emove <br> between </p> and <ul>/<ol>
     cleaned = cleaned.replace(/<\/p>\s*(?:<br\s*\/?>\s*)+\s*(?=<\s*(ul|ol)\b)/gi, '</p>');
-    
-    // ✅ Remove <br> between </ul>/</ol> and <p>
+
+    // emove <br> between </ul>/</ol> and <p>
     cleaned = cleaned.replace(/<\/(ul|ol)>\s*(?:<br\s*\/?>\s*)+\s*(?=<\s*p\b)/gi, '<\/$1>');
-    
+
     // Remove empty paragraphs with only <br>
     cleaned = cleaned.replace(/<p>\s*(?:<br\s*\/?>\s*)+\s*<\/p>/gi, '');
-    
-    // ✅ NEW: Clean up around bullet spans specifically
+
+    // EW: Clean up around bullet spans specifically
     cleaned = cleaned.replace(/<br\s*\/?>\s*(<span class="mermaid-bullet">)/gi, '$1');
     cleaned = cleaned.replace(/(<\/span>)\s*<br\s*\/?>\s*(<span class="mermaid-bullet">)/gi, '$1$2');
     cleaned = cleaned.replace(/(<span class="mermaid-bullet">[^<]*<\/span>)\s*<br\s*\/?>/gi, '$1');
-    
-    // ✅ NEW: Remove excessive consecutive <br> tags (max 2 for paragraph)
+
+    // EW: Remove excessive consecutive <br> tags (max 2 for paragraph)
     cleaned = cleaned.replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>');
 
     return cleaned;
@@ -2161,25 +2190,25 @@ function requestPlotlyResize(chart) {
     }
     const handle = requestAnimationFrame(() => {
         pendingPlotlyResizeHandles.delete(chart);
-        
-        // ✅ FIX: Check if element is in DOM and visible before resizing
+
+        // IX: Check if element is in DOM and visible before resizing
         if (!document.body.contains(chart)) {
             console.debug('⏭️ Skipping Plotly resize - element not in DOM');
             return;
         }
-        
+
         if (!chart.offsetParent) {
             // Element is not visible (display: none, visibility: hidden, or parent hidden)
             console.debug('⏭️ Skipping Plotly resize - element not visible');
             return;
         }
-        
+
         // Check if chart is actually a Plotly div with data
         if (!chart._fullLayout || !chart.layout) {
             console.debug('⏭️ Skipping Plotly resize - not a valid Plotly chart');
             return;
         }
-        
+
         try {
             window.Plotly.Plots.resize(chart);
         } catch (error) {
@@ -2206,31 +2235,31 @@ function registerGlobalPlotlyResizeHandler() {
 }
 
 /**
- * ✅ LIST PROCESSING: Enhanced list handling
+ * IST PROCESSING: Enhanced list handling
  */
 function processEnhancedLists(text) {
     const lines = text.split('\n');
     const result = [];
     let inList = false;
     let listType = null;
-    
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmed = line.trim();
-        
+
         const unorderedMatch = line.match(/^(\s*)[-*+]\s+(.+)$/);
         const orderedMatch = line.match(/^(\s*)\d+\.\s+(.+)$/);
-        
+
         if (unorderedMatch || orderedMatch) {
             const content = (unorderedMatch || orderedMatch)[2];
             const currentType = unorderedMatch ? 'ul' : 'ol';
-            
+
             if (!inList) {
                 result.push(`<${currentType} class="markdown-list markdown-${currentType}">`);
                 inList = true;
                 listType = currentType;
             }
-            
+
             result.push(`<li class="markdown-list-item">${content}</li>`);
         } else {
             if (inList) {
@@ -2242,7 +2271,7 @@ function processEnhancedLists(text) {
             result.push(line);
         }
     }
-    
+
     if (inList) {
         result.push(`</${listType}>`);
     }
@@ -2251,11 +2280,11 @@ function processEnhancedLists(text) {
 }
 
 /**
- * ✅ CONTENT DETECTION: Check for markdown patterns
+ * ONTENT DETECTION: Check for markdown patterns
  */
 function isMarkdownContent(content) {
     if (!content || typeof content !== 'string') return false;
-    
+
     const markdownIndicators = [
         /^#{1,6}\s/m,           // Headers
         /\*\*.*?\*\*/,          // Bold
@@ -2268,26 +2297,26 @@ function isMarkdownContent(content) {
         /^\>/m,                 // Blockquotes
         /^---\s*$/m             // Horizontal rules
     ];
-    
+
     return markdownIndicators.some(pattern => pattern.test(content));
 }
 
 /**
- * ✅ CONTENT DETECTION: Check for visualization content
+ * ONTENT DETECTION: Check for visualization content
  */
 function hasVisualizationContent(content) {
     if (!content || typeof content !== 'string') return false;
-    
+
     const patterns = [
         /<(PLOTLY|MERMAID|GRAPH|CHARTJS)>/i,
         /\{\{(PLOTLY|MERMAID|GRAPH|CHARTJS)_START\}\}/i
     ];
-    
+
     return patterns.some(pattern => pattern.test(content));
 }
 
 /**
- * ✅ HTML UTILITY: Escape HTML characters
+ * TML UTILITY: Escape HTML characters
  */
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -2300,12 +2329,12 @@ function escapeHtml(text) {
 // =====================================
 
 /**
- * ✅ VIZ ENGINE: Initialize sidebar visualization engine
+ * IZ ENGINE: Initialize sidebar visualization engine
  */
 async function initializeSidebarVisualizationEngine() {
     try {
         console.log('🎨 Initializing Two-Rule compatible visualization engine...');
-        
+
         // Ensure window.sidebarVisualizationState exists (created by sidebar.js)
         if (!window.sidebarVisualizationState) {
             console.warn('⚠️ window.sidebarVisualizationState not found - waiting for sidebar.js to initialize...');
@@ -2314,28 +2343,28 @@ async function initializeSidebarVisualizationEngine() {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 attempts++;
             }
-            
+
             if (!window.sidebarVisualizationState) {
-                console.error('❌ window.sidebarVisualizationState still not available after 2 seconds');
+                console.error(' window.sidebarVisualizationState still not available after 2 seconds');
                 return false;
             }
         }
-        
+
         // Wait for VisualizationEngine class to be available
         let attempts = 0;
         while (!window.VisualizationEngine && attempts < 50) {
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
         }
-        
+
         if (!window.VisualizationEngine) {
-            console.error('❌ VisualizationEngine class not found after 5 seconds');
+            console.error(' VisualizationEngine class not found after 5 seconds');
             console.log('🔍 Make sure visualisation_copy.js is loaded before this file');
             return false;
         }
-        
-        console.log('✅ VisualizationEngine class found, creating instance...');
-        
+
+        console.log('isualizationEngine class found, creating instance...');
+
         window.sidebarVisualizationState.engine = new VisualizationEngine({
             theme: document.body.getAttribute('data-theme') || 'light',
             defaultHeight: 400,
@@ -2343,17 +2372,17 @@ async function initializeSidebarVisualizationEngine() {
             enableExport: true,
             enableResize: true
         });
-        
+
         await window.sidebarVisualizationState.engine.init();
-        
+
         window.sidebarVisualizationState.isInitialized = true;
         window.sidebarVisualizationState.currentTheme = document.body.getAttribute('data-theme') || 'light';
-        
-        console.log('✅ Two-Rule compatible visualization engine initialized successfully');
+
+        console.log('wo-Rule compatible visualization engine initialized successfully');
         return true;
-        
+
     } catch (error) {
-        console.error('❌ Failed to initialize visualization engine:', error);
+        console.error(' Failed to initialize visualization engine:', error);
         console.log('🔄 Will attempt to use global engines during streaming');
         return false;
     }
@@ -2365,7 +2394,7 @@ async function initializeSidebarVisualizationEngine() {
 // =====================================
 
 /**
- * ✅ LEGACY STUBS: Disabled legacy functions for compatibility
+ * EGACY STUBS: Disabled legacy functions for compatibility
  * These functions are disabled and redirect to Two-Rule system
  */
 function processProgressiveUpdate(fullContent, newContent, container) {
@@ -2384,7 +2413,7 @@ function showProgressiveRawText(fullContent, container) {
 }
 
 /**
- * ✅ LEGACY TRACKING: Visualization tracking compatibility
+ * EGACY TRACKING: Visualization tracking compatibility
  */
 let visualizationTracker = {
     renderedVisualizations: new Map(),
@@ -2406,7 +2435,7 @@ function resetVisualizationTracking() {
 }
 
 /**
- * ✅ LEGACY COMPATIBILITY: Stub functions for backward compatibility
+ * EGACY COMPATIBILITY: Stub functions for backward compatibility
  */
 function checkForVisualizationStart(content, fromPosition = 0) {
     console.log('🔄 Legacy checkForVisualizationStart - redirecting to Two-Rule system');
@@ -2445,7 +2474,7 @@ window.updateStreamingMessageTwoRule = updateStreamingMessageTwoRule;
 window.finishStreamingMessage = finishStreamingMessage;
 window.updateStreamingMessage = updateStreamingMessage;
 // Lightweight streaming status for guards
-window.isStreamingActive = function() {
+window.isStreamingActive = function () {
     try {
         return !!(typeof streamingMessageElement !== 'undefined' && streamingMessageElement);
     } catch (_) {
@@ -2507,7 +2536,7 @@ window.updateVisualizationBufferingIndicator = updateVisualizationBufferingIndic
 // NOTE: sidebarVisualizationState is managed by sidebar.js - we just use window.sidebarVisualizationState
 window.visualizationTracker = visualizationTracker;
 
-console.log('✅ COMPLETE TWO-RULE STREAMING SYSTEM LOADED - WITH SIMPLE FIXES APPLIED');
+console.log('OMPLETE TWO-RULE STREAMING SYSTEM LOADED - WITH SIMPLE FIXES APPLIED');
 console.log('🎯 SIMPLE FIX #1: Robust thinking indicator removal implemented');
 console.log('🎯 SIMPLE FIX #2: Line break preservation in markdown rendering');
 console.log('🎯 SIMPLE FIX #3: Position-based visualization insertion logic');

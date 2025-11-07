@@ -31,9 +31,9 @@ Write-Host ""
 Write-Host "=" * 80 -ForegroundColor Cyan
 Write-Host "✨ What to expect:" -ForegroundColor Yellow
 Write-Host "=" * 80 -ForegroundColor Cyan
-Write-Host "✅ HTML UIs load successfully" -ForegroundColor Green
-Write-Host "✅ Stock AI Chat interface visible" -ForegroundColor Green
-Write-Host "✅ File upload buttons work" -ForegroundColor Green
+Write-Host " HTML UIs load successfully" -ForegroundColor Green
+Write-Host " Stock AI Chat interface visible" -ForegroundColor Green
+Write-Host " File upload buttons work" -ForegroundColor Green
 Write-Host "⚠️  Some features may not work yet (missing API endpoints)" -ForegroundColor Yellow
 Write-Host "   - Stock inventory tabs" -ForegroundColor Gray
 Write-Host "   - Invoice processing" -ForegroundColor Gray

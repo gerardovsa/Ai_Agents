@@ -75,10 +75,9 @@ def google_drive_list_files(max_results=10, query=None, order_by=None, page_toke
     try:
         # Get user credentials if available
         if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import CredentialInjector
-            auth_manager = CredentialInjector()
-            cred_dict = auth_manager.get_user_google_oauth_credentials(_user_id)
-            service = _get_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
         else:
             service = _get_drive_service()
         
@@ -104,7 +103,7 @@ def google_drive_list_files(max_results=10, query=None, order_by=None, page_toke
         }
     
     except Exception as e:
-        print(f"❌ Failed to list files: {e}")
+        print(f" Failed to list files: {e}")
         raise
 
 
@@ -120,10 +119,9 @@ def google_drive_get_file(file_id, fields='*', _user_id=None, _injected_credenti
     try:
         # Get user credentials if available
         if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import CredentialInjector
-            auth_manager = CredentialInjector()
-            cred_dict = auth_manager.get_user_google_oauth_credentials(_user_id)
-            service = _get_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
         else:
             service = _get_drive_service()
         
@@ -132,7 +130,7 @@ def google_drive_get_file(file_id, fields='*', _user_id=None, _injected_credenti
         return file
     
     except Exception as e:
-        print(f"❌ Failed to get file: {e}")
+        print(f" Failed to get file: {e}")
         raise
 
 
@@ -167,11 +165,11 @@ def google_drive_upload_file(file_path, name=None, mime_type=None, parent_folder
         return file
     
     except Exception as e:
-        print(f"❌ Failed to upload file: {e}")
+        print(f" Failed to upload file: {e}")
         raise
 
 
-def google_drive_update_file(file_id, file_path=None, name=None, description=None):
+def google_drive_update_file(file_id, file_path=None, name=None, description=None, **kwargs):
     """Update an existing file"""
     try:
         service = _get_drive_service()
@@ -196,7 +194,7 @@ def google_drive_update_file(file_id, file_path=None, name=None, description=Non
         return file
     
     except Exception as e:
-        print(f"❌ Failed to update file: {e}")
+        print(f" Failed to update file: {e}")
         raise
 
 
@@ -216,7 +214,7 @@ def google_drive_delete_file(file_id, _user_id=None, _injected_credentials=None,
         return {'deleted': True, 'file_id': file_id}
     
     except Exception as e:
-        print(f"❌ Failed to delete file: {e}")
+        print(f" Failed to delete file: {e}")
         raise
 
 
@@ -251,11 +249,11 @@ def google_drive_create_folder(name, parent_folder_id=None, _user_id=None, _inje
         return folder
     
     except Exception as e:
-        print(f"❌ Failed to create folder: {e}")
+        print(f" Failed to create folder: {e}")
         raise
 
 
-def google_drive_move_file(file_id, new_parent_folder_id, previous_parent_folder_id=None):
+def google_drive_move_file(file_id, new_parent_folder_id, previous_parent_folder_id=None, **kwargs):
     """Move a file to a different folder"""
     try:
         service = _get_drive_service()
@@ -275,11 +273,11 @@ def google_drive_move_file(file_id, new_parent_folder_id, previous_parent_folder
         return file
     
     except Exception as e:
-        print(f"❌ Failed to move file: {e}")
+        print(f" Failed to move file: {e}")
         raise
 
 
-def google_drive_copy_file(file_id, name=None, parent_folder_id=None):
+def google_drive_copy_file(file_id, name=None, parent_folder_id=None, **kwargs):
     """Copy a file"""
     try:
         service = _get_drive_service()
@@ -299,7 +297,7 @@ def google_drive_copy_file(file_id, name=None, parent_folder_id=None):
         return file
     
     except Exception as e:
-        print(f"❌ Failed to copy file: {e}")
+        print(f" Failed to copy file: {e}")
         raise
 
 
@@ -335,11 +333,11 @@ def google_drive_share_file(file_id, email, role='reader', type='user', _user_id
         return result
     
     except Exception as e:
-        print(f"❌ Failed to share file: {e}")
+        print(f" Failed to share file: {e}")
         raise
 
 
-def google_drive_list_permissions(file_id):
+def google_drive_list_permissions(file_id, **kwargs):
     """List permissions for a file"""
     try:
         service = _get_drive_service()
@@ -357,11 +355,11 @@ def google_drive_list_permissions(file_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to list permissions: {e}")
+        print(f" Failed to list permissions: {e}")
         raise
 
 
-def google_drive_remove_permission(file_id, permission_id):
+def google_drive_remove_permission(file_id, permission_id, **kwargs):
     """Remove a permission from a file"""
     try:
         service = _get_drive_service()
@@ -370,18 +368,18 @@ def google_drive_remove_permission(file_id, permission_id):
         return {'removed': True, 'permission_id': permission_id}
     
     except Exception as e:
-        print(f"❌ Failed to remove permission: {e}")
+        print(f" Failed to remove permission: {e}")
         raise
 
 
 # ==================== SEARCH & ADVANCED ====================
 
-def google_drive_search_files(query, max_results=10):
+def google_drive_search_files(query, max_results=10, **kwargs):
     """Search for files"""
     return google_drive_list_files(max_results=max_results, query=query)
 
 
-def google_drive_export_file(file_id, mime_type):
+def google_drive_export_file(file_id, mime_type, **kwargs):
     """Export a Google Workspace file"""
     try:
         service = _get_drive_service()
@@ -402,11 +400,11 @@ def google_drive_export_file(file_id, mime_type):
         }
     
     except Exception as e:
-        print(f"❌ Failed to export file: {e}")
+        print(f" Failed to export file: {e}")
         raise
 
 
-def google_drive_get_storage_quota():
+def google_drive_get_storage_quota(**kwargs):
     """Get storage quota information"""
     try:
         service = _get_drive_service()
@@ -422,11 +420,11 @@ def google_drive_get_storage_quota():
         }
     
     except Exception as e:
-        print(f"❌ Failed to get storage quota: {e}")
+        print(f" Failed to get storage quota: {e}")
         raise
 
 
-def google_drive_restore_file(file_id):
+def google_drive_restore_file(file_id, **kwargs):
     """Restore a file from trash"""
     try:
         service = _get_drive_service()
@@ -440,5 +438,5 @@ def google_drive_restore_file(file_id):
         return file
     
     except Exception as e:
-        print(f"❌ Failed to restore file: {e}")
+        print(f" Failed to restore file: {e}")
         raise

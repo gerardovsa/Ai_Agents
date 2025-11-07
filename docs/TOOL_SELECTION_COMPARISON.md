@@ -4,7 +4,7 @@
 
 ---
 
-## ❌ **CURRENT SYSTEM (Inefficient)**
+##  **CURRENT SYSTEM (Inefficient)**
 
 ### **What AI Receives:**
 ```
@@ -32,7 +32,7 @@ System sends to AI:
 
 ---
 
-## ✅ **ENHANCED SYSTEM (Efficient)**
+##  **ENHANCED SYSTEM (Efficient)**
 
 ### **What AI Receives:**
 ```
@@ -152,7 +152,7 @@ This proposal outlines...
    → Returns: {"event_id": "xyz789", "meeting_url": "..."}
 
 6. AI responds with formatted results:
-   "✅ I've created your [Professional Proposal](doc_url) and scheduled 
+   " I've created your [Professional Proposal](doc_url) and scheduled 
    a review meeting for November 5 at 2pm. Your team has been invited."
 
 Time: ~8 seconds

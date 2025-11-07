@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "woocommerce_get_orders",
-      "description": "Retrieve orders from WooCommerce store with advanced filtering",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRetrieve orders from WooCommerce store with advanced filtering",
       "platform": "woocommerce",
       "parameters": {
         "status": {
@@ -47,7 +47,7 @@
     },
     {
       "name": "woocommerce_get_order",
-      "description": "Get a single order by ID with complete details",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single order by ID with complete details",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -63,7 +63,7 @@
     },
     {
       "name": "woocommerce_create_order",
-      "description": "Create a new order programmatically",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new order programmatically",
       "platform": "woocommerce",
       "parameters": {
         "payment_method": {
@@ -110,7 +110,7 @@
     },
     {
       "name": "woocommerce_update_order",
-      "description": "Update an order's status, notes, or details",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an order's status, notes, or details",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -146,7 +146,7 @@
     },
     {
       "name": "woocommerce_delete_order",
-      "description": "Delete an order permanently",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete an order permanently",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -168,7 +168,7 @@
     },
     {
       "name": "woocommerce_get_products",
-      "description": "List products from WooCommerce store with advanced filtering",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList products from WooCommerce store with advanced filtering",
       "platform": "woocommerce",
       "parameters": {
         "limit": {
@@ -221,7 +221,7 @@
     },
     {
       "name": "woocommerce_get_product",
-      "description": "Get a single product by ID",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single product by ID",
       "platform": "woocommerce",
       "parameters": {
         "product_id": {
@@ -237,7 +237,7 @@
     },
     {
       "name": "woocommerce_create_product",
-      "description": "Create a new product in WooCommerce",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product in WooCommerce",
       "platform": "woocommerce",
       "parameters": {
         "name": {
@@ -305,7 +305,7 @@
     },
     {
       "name": "woocommerce_update_product",
-      "description": "Update an existing product",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing product",
       "platform": "woocommerce",
       "parameters": {
         "product_id": {
@@ -346,7 +346,7 @@
     },
     {
       "name": "woocommerce_delete_product",
-      "description": "Delete a product",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a product",
       "platform": "woocommerce",
       "parameters": {
         "product_id": {
@@ -368,7 +368,7 @@
     },
     {
       "name": "woocommerce_get_customers",
-      "description": "List customers from store",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList customers from store",
       "platform": "woocommerce",
       "parameters": {
         "limit": {
@@ -406,7 +406,7 @@
     },
     {
       "name": "woocommerce_get_customer",
-      "description": "Get a single customer by ID",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single customer by ID",
       "platform": "woocommerce",
       "parameters": {
         "customer_id": {
@@ -422,7 +422,7 @@
     },
     {
       "name": "woocommerce_create_customer",
-      "description": "Create a new customer",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new customer",
       "platform": "woocommerce",
       "parameters": {
         "email": {
@@ -463,7 +463,7 @@
     },
     {
       "name": "woocommerce_get_categories",
-      "description": "List product categories",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList product categories",
       "platform": "woocommerce",
       "parameters": {
         "limit": {
@@ -480,7 +480,7 @@
     },
     {
       "name": "woocommerce_create_category",
-      "description": "Create a new product category",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product category",
       "platform": "woocommerce",
       "parameters": {
         "name": {
@@ -511,7 +511,7 @@
     },
     {
       "name": "woocommerce_get_coupons",
-      "description": "List discount coupons",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList discount coupons",
       "platform": "woocommerce",
       "parameters": {
         "limit": {
@@ -533,7 +533,7 @@
     },
     {
       "name": "woocommerce_create_coupon",
-      "description": "Create a new discount coupon",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new discount coupon",
       "platform": "woocommerce",
       "parameters": {
         "code": {
@@ -574,7 +574,7 @@
     },
     {
       "name": "woocommerce_get_refunds",
-      "description": "List refunds for an order",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList refunds for an order",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -590,7 +590,7 @@
     },
     {
       "name": "woocommerce_create_refund",
-      "description": "Create a refund for an order",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a refund for an order",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -627,7 +627,7 @@
     },
     {
       "name": "woocommerce_get_reports_sales",
-      "description": "Get sales reports",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet sales reports",
       "platform": "woocommerce",
       "parameters": {
         "period": {
@@ -654,7 +654,7 @@
     },
     {
       "name": "woocommerce_get_reports_top_sellers",
-      "description": "Get top selling products report",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet top selling products report",
       "platform": "woocommerce",
       "parameters": {
         "period": {
@@ -677,7 +677,7 @@
     },
     {
       "name": "woocommerce_get_order_notes",
-      "description": "Get notes for an order",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet notes for an order",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -693,7 +693,7 @@
     },
     {
       "name": "woocommerce_create_order_note",
-      "description": "Add a note to an order",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a note to an order",
       "platform": "woocommerce",
       "parameters": {
         "order_id": {
@@ -720,7 +720,7 @@
     },
     {
       "name": "woocommerce_get_shipping_zones",
-      "description": "List shipping zones",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList shipping zones",
       "platform": "woocommerce",
       "parameters": {},
       "returns": {
@@ -730,7 +730,7 @@
     },
     {
       "name": "woocommerce_get_payment_gateways",
-      "description": "List available payment gateways",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList available payment gateways",
       "platform": "woocommerce",
       "parameters": {},
       "returns": {
@@ -740,7 +740,7 @@
     },
     {
       "name": "woocommerce_get_tax_rates",
-      "description": "List tax rates",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tax rates",
       "platform": "woocommerce",
       "parameters": {
         "class": {
@@ -756,7 +756,7 @@
     },
     {
       "name": "woocommerce_get_webhooks",
-      "description": "List webhooks",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList webhooks",
       "platform": "woocommerce",
       "parameters": {},
       "returns": {
@@ -766,7 +766,7 @@
     },
     {
       "name": "woocommerce_create_webhook",
-      "description": "Create a new webhook",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new webhook",
       "platform": "woocommerce",
       "parameters": {
         "name": {
@@ -792,7 +792,7 @@
     },
     {
       "name": "woocommerce_get_system_status",
-      "description": "Get WooCommerce system status",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet WooCommerce system status",
       "platform": "woocommerce",
       "parameters": {},
       "returns": {

@@ -1,13 +1,55 @@
 """
-User Authentication & Profile Management
-========================================
+FILE: AI_infrastructure/auth/user_auth.py
+PURPOSE: User authentication, profile management, and JWT token handling for multi-tenant system
 
-Multi-tenant system with Gmail OAuth integration
-Each user has their own workspace with isolated data access
+DEPENDENCIES:
+- sqlite3 (built-in) - Database access for user data
+- bcrypt - Password hashing and verification
+- jwt (PyJWT) - JSON Web Token generation and validation
+- dotenv - Load credentials from .env.master file
+- flask - Request/response handling and decorators
+
+EXPORTS:
+- UserAuthManager class:
+  * register_user(email, password, name) -> dict - Create new user account
+  * authenticate_user(email, password) -> dict - Verify credentials and generate JWT
+  * verify_jwt_token(token: str) -> dict - Validate and decode JWT token
+  * get_user_profile(user_id: int) -> dict - Retrieve user information
+  * update_user_profile(user_id: int, **kwargs) -> bool - Update user settings
+  * get_all_users() -> list - Admin function to list all users
+  * require_auth(f) - Flask decorator for protected routes
+
+USED BY:
+- AI_infrastructure/routes/auth_routes.py - Authentication endpoints
+- AI_infrastructure/routes/agent_routes_v4.py - Protected agent endpoints
+- AI_infrastructure/core/agent_worker.py - User identification for tool execution
+- AI_infrastructure/auth/credential_injector.py - User credential retrieval
+
+RELATED FILES:
+- AI_infrastructure/auth/credential_injector.py - Injects user OAuth tokens into tools
+- data/ai_infrastructure.db - User database (users, oauth_tokens tables)
+- .env.master - JWT secret key and database configuration
+
+NOTES:
+- SECURITY: Loads JWT_SECRET from .env.master file (3 levels up from this file)
+- SECURITY: Passwords hashed with bcrypt (cost factor 12)
+- SECURITY: JWT tokens expire after 24 hours by default
+- DATABASE: Uses data/ai_infrastructure.db (users table)
+- ISOLATION: Multi-tenant system - each user has isolated workspace
+- OAUTH: User OAuth tokens stored in oauth_tokens table (platform, access_token, refresh_token)
+- DECORATOR: @require_auth adds user_id to Flask request context
+
+LAST MODIFIED: 2025-11-02 - Added oauth_tokens table support for credential injection
 """
 
 import os
 import sqlite3
+from pathlib import Path
+from dotenv import dotenv_values
+
+# Load credentials from .env.master (in root folder, 3 levels up)
+_ENV_MASTER_PATH = Path(__file__).parent.parent.parent / '.env.master'
+_config = dotenv_values(_ENV_MASTER_PATH)
 import json
 import bcrypt
 import jwt
@@ -22,11 +64,10 @@ class UserAuthManager:
     
     def __init__(self, db_path: str = None):
         if db_path is None:
-            db_path = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)),
-                'ai_infrastructure.db'
-            )
-        self.db_path = db_path
+            # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
+            root_dir = Path(__file__).parent.parent.parent
+            db_path = root_dir / 'data' / 'ai_infrastructure.db'
+        self.db_path = str(db_path)
         self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
         self._init_tables()
     
@@ -146,7 +187,7 @@ class UserAuthManager:
                 )
             ''')
             
-            # ✅ NEW: Platform credentials table (stores API keys/tokens per user per platform)
+            # NEW: Platform credentials table (stores API keys/tokens per user per platform)
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS user_platform_credentials (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,7 +219,7 @@ class UserAuthManager:
             ''')
             
             conn.commit()
-            print("✅ User authentication tables initialized")
+            print("User authentication tables initialized")
     
     def register_user(self, username: str, email: str, password: str, primary_gmail: str = None, role: str = 'user') -> Dict:
         """
@@ -217,7 +258,7 @@ class UserAuthManager:
                 
                 workspace_id = cursor.lastrowid
                 
-                # ✅ AUTO-LINK ALL .ENV GMAIL ACCOUNTS FOR MASTER/ADMIN USERS
+                # AUTO-LINK ALL .ENV GMAIL ACCOUNTS FOR MASTER/ADMIN USERS
                 if role == 'admin':
                     gmail_accounts = self._load_env_gmail_accounts()
                     for gmail_data in gmail_accounts:
@@ -227,11 +268,11 @@ class UserAuthManager:
                             VALUES (?, ?, ?, ?)
                         ''', (user_id, gmail_data['email'], gmail_data['display_name'], gmail_data['is_primary']))
                     
-                    print(f"✅ Auto-linked {len(gmail_accounts)} Gmail accounts from .env.master")
+                    print(f"Auto-linked {len(gmail_accounts)} Gmail accounts from .env.master")
                 
                 conn.commit()
                 
-                print(f"✅ User registered: {username} (ID: {user_id}, Role: {role}, Workspace: {workspace_id})")
+                print(f"User registered: {username} (ID: {user_id}, Role: {role}, Workspace: {workspace_id})")
                 
                 return {
                     'success': True,
@@ -243,13 +284,13 @@ class UserAuthManager:
                 }
                 
         except sqlite3.IntegrityError as e:
-            print(f"❌ Registration failed: {e}")
+            print(f" Registration failed: {e}")
             return {
                 'success': False,
                 'error': 'Username or email already exists'
             }
         except Exception as e:
-            print(f"❌ Registration error: {e}")
+            print(f" Registration error: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -270,7 +311,7 @@ class UserAuthManager:
             'username': user_data.get('username'),
             'email': user_data.get('email'),
             'role': user_data.get('role', 'user'),
-            'exp': datetime.utcnow() + timedelta(days=30)
+            'exp': int((datetime.utcnow() + timedelta(days=30)).timestamp())
         }
         
         token = jwt.encode(token_payload, self.jwt_secret, algorithm='HS256')
@@ -344,12 +385,15 @@ class UserAuthManager:
                 ]
                 
                 # Generate JWT token
+                exp_time = datetime.utcnow() + timedelta(days=30)  # 30-day expiry (1 month)
+                exp_timestamp = int(exp_time.timestamp())
+                
                 token_payload = {
                     'user_id': user_id,
                     'username': username,
                     'email': email,
                     'role': role,
-                    'exp': datetime.utcnow() + timedelta(days=30)  # 30-day expiry (1 month)
+                    'exp': exp_timestamp
                 }
                 
                 token = jwt.encode(token_payload, self.jwt_secret, algorithm='HS256')
@@ -358,7 +402,7 @@ class UserAuthManager:
                 cursor.execute('''
                     INSERT INTO user_sessions (user_id, token, expires_at)
                     VALUES (?, ?, ?)
-                ''', (user_id, token, token_payload['exp']))
+                ''', (user_id, token, exp_time.strftime('%Y-%m-%d %H:%M:%S')))
                 
                 # Update last active
                 cursor.execute('''
@@ -367,7 +411,7 @@ class UserAuthManager:
                 
                 conn.commit()
                 
-                print(f"✅ User logged in: {username}")
+                print(f"User logged in: {username}")
                 
                 return {
                     'success': True,
@@ -384,7 +428,7 @@ class UserAuthManager:
                 }
                 
         except Exception as e:
-            print(f"❌ Login error: {e}")
+            print(f" Login error: {e}")
             return {'success': False, 'error': str(e)}
     
     def verify_token(self, token: str) -> Optional[Dict]:
@@ -407,7 +451,7 @@ class UserAuthManager:
         try:
             print(f"\n📊 STAGE 2.1: JWT Signature Validation")
             payload = jwt.decode(token, self.jwt_secret, algorithms=['HS256'])
-            print(f"   ✅ JWT signature valid")
+            print(f"   JWT signature valid")
             print(f"   User ID: {payload.get('user_id')}")
             print(f"   Email: {payload.get('email')}")
             print(f"   Username: {payload.get('username')}")
@@ -429,16 +473,16 @@ class UserAuthManager:
                 
                 result = cursor.fetchone()
                 if not result:
-                    print(f"   ❌ Token NOT found in database")
+                    print(f"    Token NOT found in database")
                     print(f"   Checking sessions for user_id={payload.get('user_id')}...")
                     cursor.execute('SELECT COUNT(*) FROM user_sessions WHERE user_id = ?', (payload.get('user_id'),))
                     user_sessions = cursor.fetchone()[0]
                     print(f"   User has {user_sessions} session(s) in DB")
-                    print("\n❌ STAGE 2 FAILED: Token not in database")
+                    print("\n STAGE 2 FAILED: Token not in database")
                     print("="*60 + "\n")
                     return None
                 
-                print(f"   ✅ Token found in database")
+                print(f"   Token found in database")
                 user_id, expires_at = result
                 print(f"   User ID from DB: {user_id}")
                 print(f"   Expires at: {expires_at}")
@@ -451,27 +495,27 @@ class UserAuthManager:
                 print(f"   Token expires: {expires_at}")
                 
                 if expires_at <= current_time:
-                    print(f"   ❌ Token EXPIRED: {expires_at} <= {current_time}")
-                    print("\n❌ STAGE 2 FAILED: Token expired")
+                    print(f"    Token EXPIRED: {expires_at} <= {current_time}")
+                    print("\n STAGE 2 FAILED: Token expired")
                     print("="*60 + "\n")
                     return None
                 
-                print(f"   ✅ Token is valid (not expired)")
+                print(f"   Token is valid (not expired)")
             
-            print(f"\n✅ STAGE 2 COMPLETE: Token verified successfully")
+            print(f"\nSTAGE 2 COMPLETE: Token verified successfully")
             print("="*60 + "\n")
             return payload
             
         except jwt.ExpiredSignatureError:
-            print(f"\n❌ STAGE 2 FAILED: Token expired (JWT signature)")
+            print(f"\n STAGE 2 FAILED: Token expired (JWT signature)")
             print("="*60 + "\n")
             return None
         except jwt.InvalidTokenError as e:
-            print(f"\n❌ STAGE 2 FAILED: Invalid token (JWT): {e}")
+            print(f"\n STAGE 2 FAILED: Invalid token (JWT): {e}")
             print("="*60 + "\n")
             return None
         except Exception as e:
-            print(f"\n❌ STAGE 2 FAILED: Token verification error: {e}")
+            print(f"\n STAGE 2 FAILED: Token verification error: {e}")
             import traceback
             traceback.print_exc()
             print("="*60 + "\n")
@@ -520,12 +564,12 @@ class UserAuthManager:
                 
                 conn.commit()
                 
-                print(f"✅ Gmail linked: {gmail_address} → User {user_id}")
+                print(f"Gmail linked: {gmail_address} → User {user_id}")
                 
                 return {'success': True, 'gmail': gmail_address}
                 
         except Exception as e:
-            print(f"❌ Gmail link error: {e}")
+            print(f" Gmail link error: {e}")
             return {'success': False, 'error': str(e)}
     
     def get_user_gmail_accounts(self, user_id: int) -> List[Dict]:
@@ -584,7 +628,13 @@ class UserAuthManager:
                 
                 metadata_json = json.dumps(metadata) if metadata else None
                 
-                # Upsert (insert or update)
+                # ⚠️ DEPRECATED: user_platform_credentials table is deprecated
+                # Use oauth_tokens table instead
+                print("⚠️ WARNING: store_platform_credential() uses deprecated table")
+                print("   Use oauth_tokens table instead (via OAuth routes)")
+                
+                # Upsert (insert or update) - STILL USING OLD TABLE FOR BACKWARD COMPATIBILITY
+                # TODO: Migrate all callers to use oauth_tokens directly
                 cursor.execute('''
                     INSERT INTO user_platform_credentials 
                     (user_id, platform, credential_type, credential_key, credential_value, metadata)
@@ -599,12 +649,12 @@ class UserAuthManager:
                 
                 conn.commit()
                 
-                print(f"✅ Stored {platform} credential for user {user_id}: {credential_key}")
+                print(f"Stored {platform} credential for user {user_id}: {credential_key}")
                 
                 return {'success': True}
                 
         except Exception as e:
-            print(f"❌ Store credential error: {e}")
+            print(f" Store credential error: {e}")
             return {'success': False, 'error': str(e)}
     
     def get_platform_credentials(self, user_id: int, platform: str) -> Dict[str, str]:
@@ -620,6 +670,22 @@ class UserAuthManager:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            
+            # Try oauth_tokens table first (NEW schema)
+            cursor.execute('''
+                SELECT 'access_token' as credential_key, access_token as credential_value
+                FROM oauth_tokens
+                WHERE user_id = ? AND platform = ? AND is_active = 1
+                ORDER BY updated_at DESC
+                LIMIT 1
+            ''', (user_id, platform))
+            
+            oauth_tokens = {row[0]: row[1] for row in cursor.fetchall()}
+            
+            if oauth_tokens:
+                return oauth_tokens
+            
+            # Fallback to old table (DEPRECATED)
             cursor.execute('''
                 SELECT credential_key, credential_value
                 FROM user_platform_credentials
@@ -642,6 +708,22 @@ class UserAuthManager:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            
+            # Try oauth_tokens table first (NEW schema)
+            if credential_key == 'access_token':
+                cursor.execute('''
+                    SELECT access_token
+                    FROM oauth_tokens
+                    WHERE user_id = ? AND platform = ? AND is_active = 1
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                ''', (user_id, platform))
+                
+                row = cursor.fetchone()
+                if row:
+                    return row[0]
+            
+            # Fallback to old table (DEPRECATED)
             cursor.execute('''
                 SELECT credential_value
                 FROM user_platform_credentials
@@ -660,18 +742,27 @@ class UserAuthManager:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            
+            # Get platforms from oauth_tokens table (NEW schema)
             cursor.execute('''
+                SELECT DISTINCT platform
+                FROM oauth_tokens
+                WHERE user_id = ? AND is_active = 1
+                
+                UNION
+                
                 SELECT DISTINCT platform
                 FROM user_platform_credentials
                 WHERE user_id = ? AND is_active = 1
+                
                 ORDER BY platform
-            ''', (user_id,))
+            ''', (user_id, user_id))
             
             return [row[0] for row in cursor.fetchall()]
     
     def get_user_google_oauth_credentials(self, user_id: int) -> Optional[Dict]:
         """
-        Get Google OAuth credentials for user (for agent tool usage)
+        Get Google OAuth credentials for user from oauth_tokens table
         
         Returns dict with:
         - access_token: Current access token
@@ -680,6 +771,7 @@ class UserAuthManager:
         - client_id: OAuth client ID
         - client_secret: OAuth client secret
         - scopes: List of authorized scopes
+        - expires_at: Token expiry timestamp
         
         Returns None if user doesn't have Google OAuth credentials
         """
@@ -688,44 +780,58 @@ class UserAuthManager:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
-                # Get access token
+                # Get OAuth tokens from oauth_tokens table (NEW V2_FIXED schema)
                 cursor.execute('''
-                    SELECT credential_value, metadata
-                    FROM user_platform_credentials
-                    WHERE user_id = ? AND platform = 'google' 
-                    AND credential_type = 'oauth' 
-                    AND credential_key = 'access_token'
+                    SELECT 
+                        access_token,
+                        refresh_token,
+                        token_type,
+                        expires_at,
+                        scope,
+                        granted_scopes,
+                        metadata,
+                        is_valid,
+                        is_active
+                    FROM oauth_tokens
+                    WHERE user_id = ? AND platform = 'google'
                     AND is_active = 1
+                    ORDER BY updated_at DESC
+                    LIMIT 1
                 ''', (user_id,))
                 
-                access_row = cursor.fetchone()
-                if not access_row:
-                    print(f"⚠️ No Google OAuth credentials found for user {user_id}")
+                token_row = cursor.fetchone()
+                if not token_row:
+                    print(f"⚠️ No Google OAuth credentials found for user {user_id} in oauth_tokens table")
                     return None
                 
-                access_token = access_row['credential_value']
-                metadata = json.loads(access_row['metadata']) if access_row['metadata'] else {}
+                access_token = token_row['access_token']
+                refresh_token = token_row['refresh_token']
+                expires_at = token_row['expires_at']
+                scope = token_row['scope'] or token_row['granted_scopes'] or ''
+                metadata = json.loads(token_row['metadata']) if token_row['metadata'] else {}
                 
-                # Get refresh token (optional)
-                cursor.execute('''
-                    SELECT credential_value
-                    FROM user_platform_credentials
-                    WHERE user_id = ? AND platform = 'google' 
-                    AND credential_type = 'oauth' 
-                    AND credential_key = 'refresh_token'
-                    AND is_active = 1
-                ''', (user_id,))
-                
-                refresh_row = cursor.fetchone()
-                refresh_token = refresh_row['credential_value'] if refresh_row else None
-                
-                # Get OAuth config from environment
-                client_id = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
-                client_secret = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
+                # Get OAuth config from .env.master
+                client_id = _config.get('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_CLIENT_ID')
+                client_secret = _config.get('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_CLIENT_SECRET')
                 
                 if not client_id or not client_secret:
-                    print("❌ Google OAuth config not found in environment")
+                    print("❌ Google OAuth config not found in environment (.env.master)")
                     return None
+                
+                # Parse scopes from space-separated string
+                if scope:
+                    scopes = scope.split(' ') if isinstance(scope, str) else scope
+                else:
+                    # Default scopes if none stored
+                    scopes = [
+                        'https://www.googleapis.com/auth/gmail.modify',
+                        'https://www.googleapis.com/auth/calendar',
+                        'https://www.googleapis.com/auth/tasks',
+                        'https://www.googleapis.com/auth/forms.body',
+                        'https://www.googleapis.com/auth/drive.file',
+                        'https://www.googleapis.com/auth/documents',
+                        'https://www.googleapis.com/auth/spreadsheets'
+                    ]
                 
                 credentials = {
                     'access_token': access_token,
@@ -733,22 +839,112 @@ class UserAuthManager:
                     'token_uri': 'https://oauth2.googleapis.com/token',
                     'client_id': client_id,
                     'client_secret': client_secret,
-                    'scopes': [
-                        'https://www.googleapis.com/auth/gmail.modify',
-                        'https://www.googleapis.com/auth/calendar',
-                        'https://www.googleapis.com/auth/tasks',
-                        'https://www.googleapis.com/auth/forms.body',
-                        'https://www.googleapis.com/auth/drive.file'
-                    ],
+                    'scopes': scopes,
+                    'expires_at': expires_at,
                     'user_id': user_id,
                     'metadata': metadata
                 }
                 
-                print(f"✅ Retrieved Google OAuth credentials for user {user_id}")
+                print(f"✅ Retrieved Google OAuth credentials for user {user_id} from oauth_tokens table")
                 return credentials
                 
         except Exception as e:
             print(f"❌ Error retrieving Google OAuth credentials: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def get_user_microsoft_oauth_credentials(self, user_id: int) -> Optional[Dict]:
+        """
+        Get Microsoft 365 OAuth credentials for user from oauth_tokens table
+        
+        Returns dict with:
+        - access_token: Current access token
+        - refresh_token: Refresh token (if available)
+        - token_uri: Microsoft token endpoint
+        - client_id: OAuth client ID
+        - client_secret: OAuth client secret
+        - scopes: List of authorized scopes
+        - expires_at: Token expiry timestamp
+        
+        Returns None if user doesn't have Microsoft OAuth credentials
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                # Get OAuth tokens from oauth_tokens table
+                cursor.execute('''
+                    SELECT 
+                        access_token,
+                        refresh_token,
+                        token_type,
+                        expires_at,
+                        scope,
+                        granted_scopes,
+                        metadata,
+                        is_valid,
+                        is_active
+                    FROM oauth_tokens
+                    WHERE user_id = ? AND platform = 'microsoft'
+                    AND is_active = 1
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                ''', (user_id,))
+                
+                token_row = cursor.fetchone()
+                if not token_row:
+                    print(f"⚠️ No Microsoft OAuth credentials found for user {user_id} in oauth_tokens table")
+                    return None
+                
+                access_token = token_row['access_token']
+                refresh_token = token_row['refresh_token']
+                expires_at = token_row['expires_at']
+                scope = token_row['scope'] or token_row['granted_scopes'] or ''
+                metadata = json.loads(token_row['metadata']) if token_row['metadata'] else {}
+                
+                # Get OAuth config from .env.master
+                client_id = _config.get('MICROSOFT_CLIENT_ID')
+                client_secret = _config.get('MICROSOFT_CLIENT_SECRET')
+                tenant_id = _config.get('MICROSOFT_TENANT_ID', 'common')
+                
+                if not client_id or not client_secret:
+                    print("❌ Microsoft OAuth config not found in environment (.env.master)")
+                    return None
+                
+                # Parse scopes from space-separated string
+                if scope:
+                    scopes = scope.split(' ') if isinstance(scope, str) else scope
+                else:
+                    # Default scopes if none stored
+                    scopes = [
+                        'User.Read',
+                        'Mail.Read',
+                        'Mail.Send',
+                        'Calendars.ReadWrite',
+                        'Tasks.ReadWrite',
+                        'Files.ReadWrite.All'
+                    ]
+                
+                credentials = {
+                    'access_token': access_token,
+                    'refresh_token': refresh_token,
+                    'token_uri': f'https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token',
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'tenant_id': tenant_id,
+                    'scopes': scopes,
+                    'expires_at': expires_at,
+                    'user_id': user_id,
+                    'metadata': metadata
+                }
+                
+                print(f"✅ Retrieved Microsoft OAuth credentials for user {user_id} from oauth_tokens table")
+                return credentials
+                
+        except Exception as e:
+            print(f"❌ Error retrieving Microsoft OAuth credentials: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -765,7 +961,7 @@ def require_auth(f):
         print(f"   Endpoint: {request.method} {request.path}")
         print(f"   Remote IP: {request.remote_addr}")
         
-        # ✅ Allow OPTIONS requests for CORS preflight
+        # Allow OPTIONS requests for CORS preflight
         if request.method == 'OPTIONS':
             print("   ℹ️  OPTIONS request (CORS preflight) - allowing")
             response = jsonify({'status': 'ok'})
@@ -788,13 +984,13 @@ def require_auth(f):
         
         # Require token for ALL requests (no bypass for CLI)
         if not auth_header or not auth_header.startswith('Bearer '):
-            print(f"   ❌ No valid authorization header")
-            print("\n❌ STAGE 3 FAILED: Missing authorization token")
+            print(f"    No valid authorization header")
+            print("\n STAGE 3 FAILED: Missing authorization token")
             print("="*60 + "\n")
             return jsonify({'error': 'No authorization token provided'}), 401
         
         token = auth_header.split(' ')[1]
-        print(f"   ✅ Token extracted from header")
+        print(f"   Token extracted from header")
         print(f"   Token length: {len(token)}")
         print(f"   First 20 chars: {token[:20]}...")
         
@@ -804,7 +1000,7 @@ def require_auth(f):
         user_data = auth_manager.verify_token(token)
         
         if not user_data:
-            print(f"\n❌ STAGE 3 FAILED: Token verification failed")
+            print(f"\n STAGE 3 FAILED: Token verification failed")
             print("="*60 + "\n")
             return jsonify({'error': 'Invalid or expired token'}), 401
         
@@ -812,7 +1008,7 @@ def require_auth(f):
         request.user = user_data
         
         # Log authenticated user
-        print(f"\n✅ STAGE 3 COMPLETE: Authentication successful")
+        print(f"\nSTAGE 3 COMPLETE: Authentication successful")
         print(f"   User: {user_data.get('username')}")
         print(f"   ID: {user_data.get('user_id')}")
         print(f"   Email: {user_data.get('email')}")
@@ -842,30 +1038,39 @@ def require_auth(f):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
-                # Store or update Microsoft tokens
+                # Store or update Microsoft tokens in oauth_tokens table (NEW schema)
                 cursor.execute('''
-                    INSERT OR REPLACE INTO user_platform_credentials
-                    (user_id, platform, credential_type, credential_key, credential_value, metadata, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    INSERT INTO oauth_tokens
+                    (user_id, platform, access_token, refresh_token, expires_at, 
+                     metadata, account_identifier, account_name, is_active, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+                    ON CONFLICT(user_id, platform) DO UPDATE SET
+                        access_token = excluded.access_token,
+                        refresh_token = excluded.refresh_token,
+                        expires_at = excluded.expires_at,
+                        metadata = excluded.metadata,
+                        account_identifier = excluded.account_identifier,
+                        account_name = excluded.account_name,
+                        updated_at = CURRENT_TIMESTAMP
                 ''', (
                     user_id,
-                    'microsoft365',
-                    'oauth',
-                    'access_token',
+                    'microsoft',  # Platform name: 'microsoft' (not 'microsoft365')
                     access_token,
+                    refresh_token,
+                    expires_at,
                     json.dumps({
-                        'refresh_token': refresh_token,
-                        'expires_at': expires_at,
                         'microsoft_id': microsoft_id,
                         'microsoft_email': microsoft_email
-                    })
+                    }),
+                    microsoft_email,  # account_identifier
+                    microsoft_email   # account_name
                 ))
                 
                 conn.commit()
-                print(f"✅ Stored Microsoft tokens for user {user_id}")
+                print(f"Stored Microsoft tokens for user {user_id}")
                 
         except Exception as e:
-            print(f"❌ Failed to store Microsoft tokens: {e}")
+            print(f" Failed to store Microsoft tokens: {e}")
     
     def get_microsoft_tokens(self, user_id: int) -> Optional[Dict]:
         """
@@ -881,33 +1086,44 @@ def require_auth(f):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
+                # Query oauth_tokens table (NEW schema)
                 cursor.execute('''
-                    SELECT credential_value, metadata, created_at
-                    FROM user_platform_credentials
-                    WHERE user_id = ? AND platform = 'microsoft365' AND credential_key = 'access_token'
+                    SELECT access_token, refresh_token, expires_at, metadata, created_at
+                    FROM oauth_tokens
+                    WHERE user_id = ? AND platform = 'microsoft'
+                    AND is_active = 1
+                    ORDER BY updated_at DESC
+                    LIMIT 1
                 ''', (user_id,))
                 
                 row = cursor.fetchone()
                 
                 if row:
                     access_token = row[0]
-                    metadata = json.loads(row[1])
-                    created_at = row[2]
+                    refresh_token = row[1]
+                    expires_at = row[2]
+                    metadata_json = row[3]
+                    created_at = row[4]
+                    
+                    # Parse metadata
+                    metadata = json.loads(metadata_json) if metadata_json else {}
                     
                     return {
                         'access_token': access_token,
+                        'refresh_token': refresh_token,
+                        'expires_at': expires_at,
                         'refresh_token': metadata.get('refresh_token'),
                         'expires_at': metadata.get('expires_at'),
                         'microsoft_id': metadata.get('microsoft_id'),
                         'microsoft_email': metadata.get('microsoft_email'),
-                        'display_name': metadata.get('display_name'),  # ✅ ADDED
+                        'display_name': metadata.get('display_name'),  # ADDED
                         'created_at': created_at
                     }
                 
                 return None
                 
         except Exception as e:
-            print(f"❌ Failed to get Microsoft tokens: {e}")
+            print(f" Failed to get Microsoft tokens: {e}")
             return None
     
     def get_user_by_email(self, email: str) -> Optional[Dict]:
@@ -945,7 +1161,7 @@ def require_auth(f):
                 return None
                 
         except Exception as e:
-            print(f"❌ Failed to get user by email: {e}")
+            print(f" Failed to get user by email: {e}")
             return None
     
     def register(self, username: str, email: str, password: Optional[str] = None, 
@@ -1004,7 +1220,7 @@ def require_auth(f):
                 
                 conn.commit()
                 
-                print(f"✅ User registered: {username} (ID: {user_id}, Provider: {auth_provider})")
+                print(f"User registered: {username} (ID: {user_id}, Provider: {auth_provider})")
                 
                 return {
                     'success': True,
@@ -1018,13 +1234,13 @@ def require_auth(f):
                 }
                 
         except sqlite3.IntegrityError as e:
-            print(f"❌ Registration failed: {e}")
+            print(f" Registration failed: {e}")
             return {
                 'success': False,
                 'error': 'Username or email already exists'
             }
         except Exception as e:
-            print(f"❌ Registration error: {e}")
+            print(f" Registration error: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -1054,12 +1270,15 @@ def require_auth(f):
         # Create JWT token
         expiry = datetime.utcnow() + timedelta(hours=24)
         
+        # Convert expiry to Unix timestamp for JWT
+        exp_timestamp = int(expiry.timestamp()) if isinstance(expiry, datetime) else expiry
+        
         payload = {
             'user_id': user_id,
             'username': username,
             'email': email,
             'role': role,
-            'exp': expiry
+            'exp': exp_timestamp
         }
         
         token = jwt.encode(payload, self.jwt_secret, algorithm='HS256')
@@ -1073,7 +1292,7 @@ def require_auth(f):
             ''', (user_id, token, expiry.isoformat()))
             conn.commit()
         
-        print(f"✅ Created session for user {user_id}")
+        print(f"Created session for user {user_id}")
         return token
     
     def verify_session(self, token: str) -> Optional[Dict]:
@@ -1109,13 +1328,13 @@ def require_auth(f):
             }
             
         except jwt.ExpiredSignatureError:
-            print("❌ Token expired")
+            print(" Token expired")
             return None
         except jwt.InvalidTokenError:
-            print("❌ Invalid token")
+            print(" Invalid token")
             return None
         except Exception as e:
-            print(f"❌ Session verification failed: {e}")
+            print(f" Session verification failed: {e}")
             return None
 
 

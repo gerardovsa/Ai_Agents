@@ -103,14 +103,14 @@ def load_env_master():
     env_path = Path('.env.master')
     
     if not env_path.exists():
-        print("❌ .env.master file not found")
+        print(" .env.master file not found")
         return None
     
     try:
         env_vars = dotenv_values(env_path, encoding='utf-8', errors='ignore')
         return env_vars
     except Exception as e:
-        print(f"❌ Error reading .env.master: {e}")
+        print(f" Error reading .env.master: {e}")
         return None
 
 def main():
@@ -124,7 +124,7 @@ def main():
     if not env_vars:
         return 1
     
-    print(f"   ✅ Loaded {len(env_vars)} environment variables")
+    print(f"    Loaded {len(env_vars)} environment variables")
     
     # Test results
     results = []
@@ -134,7 +134,7 @@ def main():
     anthropic_key = env_vars.get('ANTHROPIC_API_KEY')
     if anthropic_key:
         valid, message = test_anthropic_key(anthropic_key)
-        status = "✅" if valid else "❌"
+        status = "" if valid else ""
         print(f"   {status} Anthropic: {message}")
         results.append({"service": "Anthropic", "valid": valid, "message": message})
     else:
@@ -146,7 +146,7 @@ def main():
     openai_key = env_vars.get('OPENAI_API_KEY')
     if openai_key:
         valid, message = test_openai_key(openai_key)
-        status = "✅" if valid else "❌"
+        status = "" if valid else ""
         print(f"   {status} OpenAI: {message}")
         results.append({"service": "OpenAI", "valid": valid, "message": message})
     else:
@@ -158,7 +158,7 @@ def main():
     deepseek_key = env_vars.get('DEEPSEEK_API_KEY_1')
     if deepseek_key:
         valid, message = test_deepseek_key(deepseek_key)
-        status = "✅" if valid else "❌"
+        status = "" if valid else ""
         print(f"   {status} DeepSeek: {message}")
         results.append({"service": "DeepSeek", "valid": valid, "message": message})
     else:
@@ -171,7 +171,7 @@ def main():
     client_secret = env_vars.get('MICROSOFT_CLIENT_SECRET')
     if client_id and client_secret:
         valid, message = test_microsoft_credentials(client_id, client_secret)
-        status = "✅" if valid else "❌"
+        status = "" if valid else ""
         print(f"   {status} Microsoft: {message}")
         results.append({"service": "Microsoft", "valid": valid, "message": message})
     else:
@@ -187,13 +187,13 @@ def main():
     total_count = len(results)
     
     for result in results:
-        status = "✅" if result['valid'] else "❌"
+        status = "" if result['valid'] else ""
         print(f"   {status} {result['service']}: {result['message']}")
     
     print(f"\n   {valid_count}/{total_count} services validated successfully")
     
     if valid_count == total_count:
-        print("\n✅ All API keys are valid! Ready to deploy.")
+        print("\n All API keys are valid! Ready to deploy.")
         return 0
     else:
         print("\n⚠️  Some API keys are invalid. Fix them before deploying.")

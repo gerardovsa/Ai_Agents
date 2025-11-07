@@ -67,7 +67,7 @@ class AIRenderClient:
         # Initialize Render client
         self.render_client = RenderAPIClient(self.render_api_key) if RenderAPIClient and self.render_api_key else None
         
-        print("✅ AI-Render Integration Client initialized")
+        print(" AI-Render Integration Client initialized")
         print(f"   Render Flask URL: {self.render_flask_url}")
         print(f"   Default AI Provider: {self.default_provider}")
         print(f"   AI Model: {self.ai_model}")
@@ -156,7 +156,7 @@ class AIRenderClient:
         }
         
         payload = {
-            "model": kwargs.get("model", "claude-sonnet-4-20250514"),
+            "model": kwargs.get("model", "claude-sonnet-4-5-20250929"),
             "max_tokens": kwargs.get("max_tokens", self.max_tokens),
             "messages": [
                 {"role": "user", "content": prompt}
@@ -392,8 +392,8 @@ class AIRenderClient:
         })
         
         if service_status.get('success'):
-            print("   ✅ Flask:", service_status['flask']['status'])
-            print("   ✅ Streamlit:", service_status['streamlit']['status'])
+            print("    Flask:", service_status['flask']['status'])
+            print("    Streamlit:", service_status['streamlit']['status'])
         
         # Test 2: DeepSeek AI
         print("\n🤖 Test 2: DeepSeek AI")
@@ -404,9 +404,9 @@ class AIRenderClient:
         })
         
         if deepseek_result.get('success'):
-            print(f"   ✅ Response: {deepseek_result['content'][:100]}...")
+            print(f"    Response: {deepseek_result['content'][:100]}...")
         else:
-            print(f"   ❌ Error: {deepseek_result.get('error')}")
+            print(f"    Error: {deepseek_result.get('error')}")
         
         # Test 3: Claude AI
         print("\n🤖 Test 3: Claude AI")
@@ -417,9 +417,9 @@ class AIRenderClient:
         })
         
         if claude_result.get('success'):
-            print(f"   ✅ Response: {claude_result['content'][:100]}...")
+            print(f"    Response: {claude_result['content'][:100]}...")
         else:
-            print(f"   ❌ Error: {claude_result.get('error')}")
+            print(f"    Error: {claude_result.get('error')}")
         
         # Test 4: Flask connectivity
         print("\n🌐 Test 4: Flask Service Connectivity")
@@ -434,14 +434,14 @@ class AIRenderClient:
                 "name": "Flask Connectivity",
                 "result": flask_test
             })
-            print(f"   ✅ Status: {flask_response.status_code}")
-            print(f"   ✅ Response time: {flask_response.elapsed.total_seconds():.2f}s")
+            print(f"    Status: {flask_response.status_code}")
+            print(f"    Response time: {flask_response.elapsed.total_seconds():.2f}s")
         except Exception as e:
             results["tests"].append({
                 "name": "Flask Connectivity",
                 "result": {"success": False, "error": str(e)}
             })
-            print(f"   ❌ Error: {e}")
+            print(f"    Error: {e}")
         
         print("\n" + "=" * 80)
         print("INTEGRATION TEST COMPLETE")
@@ -488,7 +488,7 @@ def main():
             print(f"\n{result['content']}")
             print(f"\nUsage: {result.get('usage')}")
         else:
-            print(f"\n❌ Error: {result.get('error')}")
+            print(f"\n Error: {result.get('error')}")
         print("=" * 80)
     else:
         parser.print_help()

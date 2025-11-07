@@ -19,7 +19,7 @@ def get_render_api_key():
     env_path = Path('.env.master')
     
     if not env_path.exists():
-        print("❌ .env.master file not found")
+        print(" .env.master file not found")
         return None
     
     try:
@@ -38,12 +38,12 @@ def get_render_api_key():
         api_key = env_vars.get('RENDER_API_KEY')
         
         if not api_key:
-            print("❌ RENDER_API_KEY not found in .env.master")
+            print(" RENDER_API_KEY not found in .env.master")
             return None
         
         return api_key
     except Exception as e:
-        print(f"❌ Error reading .env.master: {e}")
+        print(f" Error reading .env.master: {e}")
         return None
 
 def get_latest_deploy_info(api_key, service_id):
@@ -62,10 +62,10 @@ def get_latest_deploy_info(api_key, service_id):
             deploys = data.get('deploys', data) if isinstance(data, dict) else data
             return deploys
         else:
-            print(f"❌ API Error: {response.status_code}")
+            print(f" API Error: {response.status_code}")
             return None
     except Exception as e:
-        print(f"❌ Request error: {e}")
+        print(f" Request error: {e}")
         return None
 
 def print_deploy_summary(deploys):
@@ -80,9 +80,9 @@ def print_deploy_summary(deploys):
         finished_at = deploy.get('finishedAt', 'not finished')
         
         status_emoji = {
-            'live': '✅',
-            'build_failed': '❌',
-            'update_failed': '❌',
+            'live': '',
+            'build_failed': '',
+            'update_failed': '',
             'build_in_progress': '🔨',
             'canceled': '🚫',
         }.get(status, '❓')
@@ -176,7 +176,7 @@ def main():
     deploys = get_latest_deploy_info(api_key, service_id)
     
     if not deploys:
-        print("❌ Could not fetch deployment information")
+        print(" Could not fetch deployment information")
         return 1
     
     # Print deployment summary

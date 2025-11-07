@@ -33,7 +33,7 @@ class SlackTools:
             blocks=kwargs.get('blocks')
         )
     
-    def delete_message(self, channel, ts):
+    def delete_message(self, channel, ts, **kwargs):
         """Delete message"""
         return self.client.chat_delete(
             channel=channel,
@@ -54,7 +54,7 @@ class SlackTools:
             is_private=kwargs.get('is_private', False)
         )
     
-    def invite_to_channel(self, channel, users):
+    def invite_to_channel(self, channel, users, **kwargs):
         """Invite users to channel"""
         return self.client.conversations_invite(
             channel=channel,
@@ -72,7 +72,7 @@ class SlackTools:
             initial_comment=kwargs.get('initial_comment')
         )
     
-    def add_reaction(self, channel, timestamp, name):
+    def add_reaction(self, channel, timestamp, name, **kwargs):
         """Add reaction to message"""
         return self.client.reactions_add(
             channel=channel,

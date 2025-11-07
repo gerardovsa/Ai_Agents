@@ -5,7 +5,7 @@
   "tools": [
     {
       "name": "google_forms_create_complete_form",
-      "description": "⭐ PREFERRED METHOD: Create a complete Google Form with all questions in ONE operation. Much more efficient than calling create_form + add_question multiple times. Form is automatically shareable.",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ PREFERRED METHOD: Create a complete Google Form with all questions in ONE operation. Much more efficient than calling create_form + add_question multiple times. Form is automatically shareable.",
       "platform": "google_forms",
       "category": "smart_bundled",
       "priority": "high",
@@ -29,7 +29,12 @@
             {
               "type": "multiple_choice",
               "text": "How satisfied are you?",
-              "options": ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied"],
+              "options": [
+                "Very Satisfied",
+                "Satisfied",
+                "Neutral",
+                "Dissatisfied"
+              ],
               "required": true
             },
             {
@@ -66,7 +71,7 @@
     },
     {
       "name": "google_forms_ai_generate_form",
-      "description": "⭐ AI-POWERED: Generate a complete form from natural language description. AI determines appropriate questions, types, and options automatically. Perfect when you're not sure what questions to ask.",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Generate a complete form from natural language description. AI determines appropriate questions, types, and options automatically. Perfect when you're not sure what questions to ask.",
       "platform": "google_forms",
       "category": "ai_powered",
       "priority": "high",
@@ -82,7 +87,13 @@
           "description": "Type of form to generate",
           "required": false,
           "default": "survey",
-          "enum": ["survey", "quiz", "registration", "feedback", "assessment"]
+          "enum": [
+            "survey",
+            "quiz",
+            "registration",
+            "feedback",
+            "assessment"
+          ]
         },
         "shareable": {
           "type": "boolean",
@@ -95,7 +106,10 @@
           "description": "OpenAI model to use",
           "required": false,
           "default": "gpt-4",
-          "enum": ["gpt-4", "gpt-3.5-turbo"]
+          "enum": [
+            "gpt-4",
+            "gpt-3.5-turbo"
+          ]
         }
       },
       "returns": {
@@ -106,7 +120,7 @@
     },
     {
       "name": "google_forms_bulk_create_multiple",
-      "description": "⭐ BULK OPERATION: Create multiple complete forms at once. Most efficient for creating many forms with similar structure (e.g., event registrations for different locations).",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Create multiple complete forms at once. Most efficient for creating many forms with similar structure (e.g., event registrations for different locations).",
       "platform": "google_forms",
       "category": "bulk",
       "priority": "high",
@@ -120,17 +134,41 @@
               "title": "Event Registration - NYC",
               "description": "Register for our NYC conference",
               "questions": [
-                {"type": "text", "text": "Full Name", "required": true},
-                {"type": "text", "text": "Email", "required": true},
-                {"type": "multiple_choice", "text": "Attendance Type", "options": ["In-Person", "Virtual"], "required": true}
+                {
+                  "type": "text",
+                  "text": "Full Name",
+                  "required": true
+                },
+                {
+                  "type": "text",
+                  "text": "Email",
+                  "required": true
+                },
+                {
+                  "type": "multiple_choice",
+                  "text": "Attendance Type",
+                  "options": [
+                    "In-Person",
+                    "Virtual"
+                  ],
+                  "required": true
+                }
               ]
             },
             {
               "title": "Event Registration - LA",
               "description": "Register for our LA summit",
               "questions": [
-                {"type": "text", "text": "Full Name", "required": true},
-                {"type": "text", "text": "Email", "required": true}
+                {
+                  "type": "text",
+                  "text": "Full Name",
+                  "required": true
+                },
+                {
+                  "type": "text",
+                  "text": "Email",
+                  "required": true
+                }
               ]
             }
           ]
@@ -150,7 +188,7 @@
     },
     {
       "name": "google_forms_create_form",
-      "description": "Create a basic Google Form (empty, no questions). NOTE: Use google_forms_create_complete_form instead for better efficiency.",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a basic Google Form (empty, no questions). NOTE: Use google_forms_create_complete_form instead for better efficiency.",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -179,7 +217,7 @@
     },
     {
       "name": "google_forms_batch_add_questions",
-      "description": "⭐ BULK OPERATION: Add multiple questions to a form at once. More efficient than adding questions one by one.",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Add multiple questions to a form at once. More efficient than adding questions one by one.",
       "platform": "google_forms",
       "category": "bulk",
       "priority": "medium",
@@ -194,9 +232,26 @@
           "description": "List of question objects",
           "required": true,
           "example": [
-            {"type": "text", "text": "Question 1", "required": true},
-            {"type": "multiple_choice", "text": "Question 2", "options": ["A", "B", "C"]},
-            {"type": "linear_scale", "text": "Rate this", "low_value": 1, "high_value": 5}
+            {
+              "type": "text",
+              "text": "Question 1",
+              "required": true
+            },
+            {
+              "type": "multiple_choice",
+              "text": "Question 2",
+              "options": [
+                "A",
+                "B",
+                "C"
+              ]
+            },
+            {
+              "type": "linear_scale",
+              "text": "Rate this",
+              "low_value": 1,
+              "high_value": 5
+            }
           ]
         }
       },
@@ -207,7 +262,7 @@
     },
     {
       "name": "google_forms_get_form",
-      "description": "Get form structure, questions, and settings",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet form structure, questions, and settings",
       "platform": "google_forms",
       "category": "basic",
       "priority": "medium",
@@ -225,7 +280,7 @@
     },
     {
       "name": "google_forms_get_responses",
-      "description": "Get all responses from a form",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet all responses from a form",
       "platform": "google_forms",
       "category": "responses",
       "priority": "high",
@@ -243,7 +298,7 @@
     },
     {
       "name": "google_forms_export_responses_csv",
-      "description": "Export form responses as CSV format",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport form responses as CSV format",
       "platform": "google_forms",
       "category": "export",
       "priority": "medium",
@@ -261,7 +316,7 @@
     },
     {
       "name": "google_forms_ai_analyze_responses",
-      "description": "⭐ AI-POWERED: Analyze form responses using AI. Get sentiment, insights, trends, or summary analysis.",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Analyze form responses using AI. Get sentiment, insights, trends, or summary analysis.",
       "platform": "google_forms",
       "category": "ai_powered",
       "priority": "high",
@@ -276,7 +331,13 @@
           "description": "Type of analysis to perform",
           "required": false,
           "default": "summary",
-          "enum": ["summary", "sentiment", "insights", "trends", "recommendations"]
+          "enum": [
+            "summary",
+            "sentiment",
+            "insights",
+            "trends",
+            "recommendations"
+          ]
         },
         "ai_model": {
           "type": "string",
@@ -293,7 +354,7 @@
     },
     {
       "name": "google_forms_clone_form",
-      "description": "Clone an existing form",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nClone an existing form",
       "platform": "google_forms",
       "category": "basic",
       "priority": "medium",
@@ -316,7 +377,7 @@
     },
     {
       "name": "google_forms_delete_form",
-      "description": "Delete a form permanently",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a form permanently",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -334,7 +395,7 @@
     },
     {
       "name": "google_forms_add_text_question",
-      "description": "Add a text question to a form. NOTE: Use google_forms_batch_add_questions for multiple questions.",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a text question to a form. NOTE: Use google_forms_batch_add_questions for multiple questions.",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -375,7 +436,7 @@
     },
     {
       "name": "google_forms_add_multiple_choice",
-      "description": "Add a multiple choice question (single selection). NOTE: Use google_forms_batch_add_questions for multiple questions.",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a multiple choice question (single selection). NOTE: Use google_forms_batch_add_questions for multiple questions.",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -394,7 +455,11 @@
           "type": "array",
           "description": "Answer options",
           "required": true,
-          "example": ["Option 1", "Option 2", "Option 3"]
+          "example": [
+            "Option 1",
+            "Option 2",
+            "Option 3"
+          ]
         },
         "required": {
           "type": "boolean",
@@ -416,7 +481,7 @@
     },
     {
       "name": "google_forms_add_checkbox",
-      "description": "Add a checkbox question (multiple selection)",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a checkbox question (multiple selection)",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -456,7 +521,7 @@
     },
     {
       "name": "google_forms_add_linear_scale",
-      "description": "Add a linear scale rating question (e.g., 1-5 stars)",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a linear scale rating question (e.g., 1-5 stars)",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -515,7 +580,7 @@
     },
     {
       "name": "google_forms_update_info",
-      "description": "Update form title and description",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate form title and description",
       "platform": "google_forms",
       "category": "basic",
       "priority": "low",
@@ -543,7 +608,7 @@
     },
     {
       "name": "google_forms_get_summary_statistics",
-      "description": "Get response statistics and counts",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet response statistics and counts",
       "platform": "google_forms",
       "category": "analytics",
       "priority": "medium",

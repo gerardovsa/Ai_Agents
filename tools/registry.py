@@ -222,7 +222,7 @@ class ToolRegistry:
         """
         Execute a tool with the given parameters.
         
-        ✅ NEW: Supports credential injection for Google Workspace tools
+        NEW: Supports credential injection for Google Workspace tools
         
         Args:
             tool_name: Name of the tool to execute
@@ -259,7 +259,7 @@ class ToolRegistry:
         platform = tool_schema.get('platform')
         impl_module = self.implementations.get(platform)
         
-        # ✅ FIX: Try with "_tools" suffix for Microsoft platforms
+        # FIX: Try with "_tools" suffix for Microsoft platforms
         if not impl_module and platform.startswith('microsoft_'):
             impl_module = self.implementations.get(f"{platform}_tools")
         
@@ -269,7 +269,7 @@ class ToolRegistry:
                 'error': f"Implementation not found for platform: {platform}"
             }
         
-        # ✅ CREDENTIAL INJECTION: Inject user credentials for Google and Microsoft tools
+        # CREDENTIAL INJECTION: Inject user credentials for Google and Microsoft tools
         google_platforms = ['gmail', 'google_calendar', 'google_tasks', 
                            'google_forms', 'google_docs', 'google_sheets',
                            'google_slides', 'google_drive']
@@ -351,7 +351,7 @@ def get_registry() -> ToolRegistry:
 def execute_tool(tool_name: str, **parameters) -> Dict[str, Any]:
     """Execute a tool using the global registry"""
     registry = get_registry()
-    return registry.execute_tool(tool_name, **parameters)
+    return registry.execute_tool(tool_name=tool_name, **parameters)
 
 
 def list_tools(platform: Optional[str] = None) -> List[Dict[str, Any]]:

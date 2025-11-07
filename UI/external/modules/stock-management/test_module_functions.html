@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Management Module - Function Tests</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .test-header {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .test-body {
+            padding: 20px;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #ddd;
+        }
+
+        .test-item.pass {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .test-item.fail {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .test-item.pending {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .test-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+
+        .test-content {
+            flex: 1;
+        }
+
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .test-details {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .btn {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .summary-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .summary-card.pass .summary-value {
+            color: #28a745;
+        }
+
+        .summary-card.fail .summary-value {
+            color: #dc3545;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧪 Stock Management Module - Function Tests</h1>
+        <p class="subtitle">Testing frontend JavaScript module functions and backend API integration</p>
+
+        <!-- Module Loading Tests -->
+        <div class="test-section">
+            <div class="test-header">Module Loading & Initialization</div>
+            <div class="test-body">
+                <div class="test-item pending" id="test-module-loaded">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">Module Script Loaded</div>
+                        <div class="test-details">Check if stock-management.js loaded successfully</div>
+                    </div>
+                </div>
+                <div class="test-item pending" id="test-helpers-loaded">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">Helper Classes Loaded</div>
+                        <div class="test-details">PlotlyChartHelper, SQLViewerHelper, CellEditingHelper</div>
+                    </div>
+                </div>
+                <div class="test-item pending" id="test-module-instance">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">Module Instance Created</div>
+                        <div class="test-details">window.stockModule exists and initialized</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Connection Tests -->
+        <div class="test-section">
+            <div class="test-header">Backend API Connection</div>
+            <div class="test-body">
+                <div class="test-item pending" id="test-api-usage">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">Usage Analytics API</div>
+                        <div class="test-details">/api/stock/usage-analytics</div>
+                    </div>
+                </div>
+                <div class="test-item pending" id="test-api-profit">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">Profit Analysis API</div>
+                        <div class="test-details">/api/stock/profit-analysis</div>
+                    </div>
+                </div>
+                <div class="test-item pending" id="test-api-sql">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">SQL Query API</div>
+                        <div class="test-details">/api/stock/sql-query</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Function Tests -->
+        <div class="test-section">
+            <div class="test-header">Module Methods</div>
+            <div class="test-body">
+                <div class="test-item pending" id="test-method-init">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">initializeSubTabs() Method</div>
+                        <div class="test-details">Initialize all 6 subtabs</div>
+                    </div>
+                </div>
+                <div class="test-item pending" id="test-method-plotly">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">Plotly Chart Methods</div>
+                        <div class="test-details">loadUsageAnalyticsWithChart, loadProfitAnalysisWithChart</div>
+                    </div>
+                </div>
+                <div class="test-item pending" id="test-method-sql">
+                    <div class="test-icon">⏳</div>
+                    <div class="test-content">
+                        <div class="test-name">SQL Viewer Methods</div>
+                        <div class="test-details">executeSQLQuery, clearSQLQuery, loadTableList</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button class="btn" onclick="runAllTests()">🚀 Run All Tests</button>
+            <button class="btn" onclick="location.reload()">🔄 Reset</button>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary" id="summary" style="display: none;">
+            <h3>📊 Test Summary</h3>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-value" id="summary-total">0</div>
+                    <div class="summary-label">Total Tests</div>
+                </div>
+                <div class="summary-card pass">
+                    <div class="summary-value" id="summary-pass">0</div>
+                    <div class="summary-label">Passed</div>
+                </div>
+                <div class="summary-card fail">
+                    <div class="summary-value" id="summary-fail">0</div>
+                    <div class="summary-label">Failed</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="summary-rate">0%</div>
+                    <div class="summary-label">Pass Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Load Module Base Class -->
+    <script>
+        // Mock BaseModule for standalone testing
+        class BaseModule {
+            constructor(moduleId) {
+                this.moduleId = moduleId;
+                this.container = null;
+                this.manifest = null;
+            }
+            async initialize() {
+                console.log('BaseModule.initialize() called');
+            }
+            getSubTabContainer(tabId) {
+                return document.createElement('div');
+            }
+        }
+        window.BaseModule = BaseModule;
+        window.ModuleRegistry = {};
+    </script>
+
+    <!-- Load Stock Management Module -->
+    <script src="stock-management.js"></script>
+
+    <!-- Test Runner -->
+    <script>
+        let testResults = {
+            passed: 0,
+            failed: 0,
+            total: 0
+        };
+
+        function updateTest(testId, pass, details = '') {
+            const testItem = document.getElementById(testId);
+            testItem.className = `test-item ${pass ? 'pass' : 'fail'}`;
+            testItem.querySelector('.test-icon').textContent = pass ? '✓' : '✗';
+            if (details) {
+                testItem.querySelector('.test-details').textContent = details;
+            }
+
+            testResults.total++;
+            if (pass) testResults.passed++;
+            else testResults.failed++;
+        }
+
+        async function runAllTests() {
+            console.log('🧪 Starting test suite...');
+            testResults = { passed: 0, failed: 0, total: 0 };
+
+            // Test 1: Module script loaded
+            const moduleClassExists = typeof StockManagementModule !== 'undefined';
+            updateTest('test-module-loaded', moduleClassExists,
+                moduleClassExists ? 'StockManagementModule class found' : 'Class not defined');
+
+            // Test 2: Helper classes loaded
+            const helpersExist = typeof PlotlyChartHelper !== 'undefined' &&
+                typeof SQLViewerHelper !== 'undefined' &&
+                typeof CellEditingHelper !== 'undefined';
+            updateTest('test-helpers-loaded', helpersExist,
+                helpersExist ? 'All 3 helper classes found' : 'Helper classes missing');
+
+            // Test 3: Module instance
+            let moduleInstance = null;
+            try {
+                moduleInstance = new StockManagementModule('stock-management');
+                await moduleInstance.initialize();
+                window.stockModule = moduleInstance;
+                updateTest('test-module-instance', true, 'Instance created and initialized');
+            } catch (e) {
+                updateTest('test-module-instance', false, `Error: ${e.message}`);
+            }
+
+            // Test 4-6: API Tests
+            const backendUrl = 'http://localhost:5001';
+
+            try {
+                const usageResp = await fetch(`${backendUrl}/api/stock/usage-analytics?days=30`);
+                const usageData = await usageResp.json();
+                updateTest('test-api-usage', usageData.status === 'ok',
+                    `Status: ${usageData.status}, Records: ${usageData.data?.length || 0}`);
+            } catch (e) {
+                updateTest('test-api-usage', false, `Error: ${e.message}`);
+            }
+
+            try {
+                const profitResp = await fetch(`${backendUrl}/api/stock/profit-analysis?days=30`);
+                const profitData = await profitResp.json();
+                updateTest('test-api-profit', profitData.status === 'ok',
+                    `Status: ${profitData.status}, Records: ${profitData.data?.length || 0}`);
+            } catch (e) {
+                updateTest('test-api-profit', false, `Error: ${e.message}`);
+            }
+
+            try {
+                const sqlResp = await fetch(`${backendUrl}/api/stock/sql-query`);
+                const sqlData = await sqlResp.json();
+                updateTest('test-api-sql', sqlData.status === 'ok',
+                    `Status: ${sqlData.status}, Tables: ${sqlData.tables?.length || 0}`);
+            } catch (e) {
+                updateTest('test-api-sql', false, `Error: ${e.message}`);
+            }
+
+            // Test 7-9: Method Tests
+            if (moduleInstance) {
+                const hasInitSubTabs = typeof moduleInstance.initializeSubTabs === 'function';
+                updateTest('test-method-init', hasInitSubTabs,
+                    hasInitSubTabs ? 'Method exists' : 'Method not found');
+
+                const hasPlotlyMethods = typeof moduleInstance.loadUsageAnalyticsWithChart === 'function' &&
+                    typeof moduleInstance.loadProfitAnalysisWithChart === 'function';
+                updateTest('test-method-plotly', hasPlotlyMethods,
+                    hasPlotlyMethods ? 'Both methods exist' : 'Methods not found');
+
+                const hasSQLMethods = typeof moduleInstance.executeSQLQuery === 'function' &&
+                    typeof moduleInstance.clearSQLQuery === 'function' &&
+                    typeof moduleInstance.loadTableList === 'function';
+                updateTest('test-method-sql', hasSQLMethods,
+                    hasSQLMethods ? 'All 3 methods exist' : 'Methods not found');
+            }
+
+            // Show summary
+            showSummary();
+        }
+
+        function showSummary() {
+            const summary = document.getElementById('summary');
+            summary.style.display = 'block';
+
+            document.getElementById('summary-total').textContent = testResults.total;
+            document.getElementById('summary-pass').textContent = testResults.passed;
+            document.getElementById('summary-fail').textContent = testResults.failed;
+
+            const passRate = testResults.total > 0 ?
+                (testResults.passed / testResults.total * 100).toFixed(1) : 0;
+            document.getElementById('summary-rate').textContent = `${passRate}%`;
+
+            console.log('📊 Test Summary:', testResults);
+            console.log(`Pass Rate: ${passRate}%`);
+        }
+    </script>
+</body>
+
+</html>

@@ -13,7 +13,7 @@ import subprocess
 def check_file_exists(filepath, required=True):
     """Check if a file exists"""
     exists = Path(filepath).exists()
-    status = "✅" if exists else ("❌" if required else "⚠️ ")
+    status = "" if exists else ("" if required else "⚠️ ")
     print(f"   {status} {filepath}")
     return exists
 
@@ -65,25 +65,25 @@ def main():
     
     env_exists, key_count = check_env_file()
     if env_exists:
-        print(f"   ✅ .env.master (found {key_count}/3 required keys)")
+        print(f"    .env.master (found {key_count}/3 required keys)")
         if key_count < 3:
             print(f"      ⚠️  Missing some API keys")
             all_good = False
     else:
-        print(f"   ❌ .env.master")
+        print(f"    .env.master")
         all_good = False
     
     # Check git setup
     print("\n🔧 Git Configuration:")
     if check_git_repository():
-        print("   ✅ Git repository initialized")
+        print("    Git repository initialized")
     else:
-        print("   ❌ Git repository not initialized")
+        print("    Git repository not initialized")
         print("      Run: git init")
         all_good = False
     
     if check_git_remote():
-        print("   ✅ Git remote configured")
+        print("    Git remote configured")
     else:
         print("   ⚠️  Git remote not configured")
         print("      You'll need to add: git remote add origin <github-url>")
@@ -103,7 +103,7 @@ def main():
         render_key = os.getenv('RENDER_API_KEY')
     
     if render_key and render_key.startswith('rnd_'):
-        print(f"   ✅ RENDER_API_KEY found")
+        print(f"    RENDER_API_KEY found")
     else:
         print(f"   ⚠️  RENDER_API_KEY not found or invalid")
         print(f"      Get it from: https://dashboard.render.com/u/settings")
@@ -111,10 +111,10 @@ def main():
     # Summary
     print("\n" + "=" * 70)
     if all_good:
-        print("✅ All prerequisites met! Ready to deploy.")
+        print(" All prerequisites met! Ready to deploy.")
         print("\nNext step: python Render_backend/deploy_to_render.py")
     else:
-        print("❌ Some prerequisites missing. Fix issues above before deploying.")
+        print(" Some prerequisites missing. Fix issues above before deploying.")
     print("=" * 70)
     
     return 0 if all_good else 1

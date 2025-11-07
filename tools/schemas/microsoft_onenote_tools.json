@@ -2,7 +2,7 @@
   "platform": "microsoft_onenote",
   "version": "1.0",
   "authentication": "microsoft_oauth",
-  "description": "Note-taking and knowledge management via OneNote notebooks, sections, and pages",
+  "description": "Note-taking and knowledge management via OneNote notebooks, sections, and pages\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "required_scopes": [
     "Notes.ReadWrite.All"
   ],
@@ -12,287 +12,350 @@
   },
   "tools": [
     {
-      "name": "onenote_list_notebooks",
+      "name": "microsoft_onenote_list_notebooks",
       "tier": 2,
       "category": "Notebook Management",
-      "description": "List all OneNote notebooks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_list_notebooks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all OneNote notebooks",
       "parameters": {
-        "limit": {
-          "type": "integer",
-          "required": false,
-          "default": 50,
-          "description": "Maximum notebooks to return"
-        }
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Maximum notebooks to return",
+            "default": 50
+          }
+        },
+        "required": []
       },
       "returns": "Dict with notebooks list (id, name, created, modified, section_count)"
     },
     {
-      "name": "onenote_get_notebook",
+      "name": "microsoft_onenote_get_notebook",
       "tier": 2,
       "category": "Notebook Management",
-      "description": "Get specific notebook details",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_get_notebook', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet specific notebook details",
       "parameters": {
-        "notebook_id": {
-          "type": "string",
-          "required": true,
-          "description": "Notebook ID"
-        }
+        "type": "object",
+        "properties": {
+          "notebook_id": {
+            "type": "string",
+            "description": "Notebook ID"
+          }
+        },
+        "required": [
+          "notebook_id"
+        ]
       },
       "returns": "Dict with notebook details"
     },
     {
-      "name": "onenote_create_notebook",
+      "name": "microsoft_onenote_create_notebook",
       "tier": 3,
       "category": "Notebook Management",
-      "description": "Create new OneNote notebook",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_create_notebook', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate new OneNote notebook",
       "parameters": {
-        "name": {
-          "type": "string",
-          "required": true,
-          "description": "Notebook name"
-        }
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Notebook name"
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "returns": "Dict with new notebook info (id, name, web_url)"
     },
     {
-      "name": "onenote_list_sections",
+      "name": "microsoft_onenote_list_sections",
       "tier": 2,
       "category": "Section Operations",
-      "description": "List sections in notebook",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_list_sections', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList sections in notebook",
       "parameters": {
-        "notebook_id": {
-          "type": "string",
-          "required": true,
-          "description": "Notebook ID"
-        }
+        "type": "object",
+        "properties": {
+          "notebook_id": {
+            "type": "string",
+            "description": "Notebook ID"
+          }
+        },
+        "required": [
+          "notebook_id"
+        ]
       },
       "returns": "Dict with sections list (id, name, created, modified, page_count)"
     },
     {
-      "name": "onenote_create_section",
+      "name": "microsoft_onenote_create_section",
       "tier": 3,
       "category": "Section Operations",
-      "description": "Create new section in notebook",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_create_section', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate new section in notebook",
       "parameters": {
-        "notebook_id": {
-          "type": "string",
-          "required": true,
-          "description": "Notebook ID"
+        "type": "object",
+        "properties": {
+          "notebook_id": {
+            "type": "string",
+            "description": "Notebook ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Section name"
+          }
         },
-        "name": {
-          "type": "string",
-          "required": true,
-          "description": "Section name"
-        }
+        "required": [
+          "notebook_id",
+          "name"
+        ]
       },
       "returns": "Dict with new section info (id, name, web_url)"
     },
     {
-      "name": "onenote_list_pages",
+      "name": "microsoft_onenote_list_pages",
       "tier": 2,
       "category": "Page Management",
-      "description": "List pages in section or all pages",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_list_pages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList pages in section or all pages",
       "parameters": {
-        "section_id": {
-          "type": "string",
-          "required": false,
-          "description": "Optional section ID (omit for all pages)"
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "type": "string",
+            "description": "Optional section ID (omit for all pages)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum pages to return",
+            "default": 50
+          }
         },
-        "limit": {
-          "type": "integer",
-          "required": false,
-          "default": 50,
-          "description": "Maximum pages to return"
-        }
+        "required": []
       },
       "returns": "Dict with pages list (id, title, created, modified, web_url)"
     },
     {
-      "name": "onenote_get_page",
+      "name": "microsoft_onenote_get_page",
       "tier": 2,
       "category": "Page Management",
-      "description": "Get page details and content",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_get_page', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet page details and content",
       "parameters": {
-        "page_id": {
-          "type": "string",
-          "required": true,
-          "description": "Page ID"
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "description": "Page ID"
+          },
+          "include_content": {
+            "type": "boolean",
+            "description": "Include HTML content",
+            "default": true
+          }
         },
-        "include_content": {
-          "type": "boolean",
-          "required": false,
-          "default": true,
-          "description": "Include HTML content"
-        }
+        "required": [
+          "page_id"
+        ]
       },
       "returns": "Dict with page details and HTML content"
     },
     {
-      "name": "onenote_create_page",
+      "name": "microsoft_onenote_create_page",
       "tier": 3,
       "category": "Page Management",
-      "description": "Create new page in section",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_create_page', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate new page in section",
       "parameters": {
-        "section_id": {
-          "type": "string",
-          "required": true,
-          "description": "Section ID"
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "type": "string",
+            "description": "Section ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Page title"
+          },
+          "content_html": {
+            "type": "string",
+            "description": "HTML content for page body"
+          }
         },
-        "title": {
-          "type": "string",
-          "required": true,
-          "description": "Page title"
-        },
-        "content_html": {
-          "type": "string",
-          "required": false,
-          "description": "HTML content for page body"
-        }
+        "required": [
+          "section_id",
+          "title"
+        ]
       },
       "returns": "Dict with new page info (id, title, web_url)"
     },
     {
-      "name": "onenote_update_page",
+      "name": "microsoft_onenote_update_page",
       "tier": 3,
       "category": "Page Management",
-      "description": "Append content to existing page",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_update_page', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nAppend content to existing page",
       "parameters": {
-        "page_id": {
-          "type": "string",
-          "required": true,
-          "description": "Page ID"
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "description": "Page ID"
+          },
+          "content_html": {
+            "type": "string",
+            "description": "HTML content to append"
+          }
         },
-        "content_html": {
-          "type": "string",
-          "required": true,
-          "description": "HTML content to append"
-        }
+        "required": [
+          "page_id",
+          "content_html"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "onenote_delete_page",
+      "name": "microsoft_onenote_delete_page",
       "tier": 3,
       "category": "Page Management",
-      "description": "Delete page",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_delete_page', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete page",
       "parameters": {
-        "page_id": {
-          "type": "string",
-          "required": true,
-          "description": "Page ID to delete"
-        }
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "description": "Page ID to delete"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "onenote_search_pages",
+      "name": "microsoft_onenote_search_pages",
       "tier": 3,
       "category": "Search & Discovery",
-      "description": "Search across all notebooks and pages",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_search_pages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch across all notebooks and pages",
       "parameters": {
-        "query": {
-          "type": "string",
-          "required": true,
-          "description": "Search query"
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum results to return",
+            "default": 50
+          }
         },
-        "limit": {
-          "type": "integer",
-          "required": false,
-          "default": 50,
-          "description": "Maximum results to return"
-        }
+        "required": [
+          "query"
+        ]
       },
       "returns": "Dict with search results (pages matching query)"
     },
     {
-      "name": "onenote_smart_meeting_notes",
+      "name": "microsoft_onenote_smart_meeting_notes",
       "tier": 1,
       "category": "SMART Tools",
-      "description": "SMART: Create structured meeting notes with agenda and action items",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_smart_meeting_notes', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Create structured meeting notes with agenda and action items",
       "parameters": {
-        "notebook_id": {
-          "type": "string",
-          "required": true,
-          "description": "Notebook ID"
+        "type": "object",
+        "properties": {
+          "notebook_id": {
+            "type": "string",
+            "description": "Notebook ID"
+          },
+          "section_name": {
+            "type": "string",
+            "description": "Section name (creates if doesn't exist)",
+            "default": "Meetings"
+          },
+          "meeting_title": {
+            "type": "string",
+            "description": "Meeting title"
+          },
+          "attendees": {
+            "type": "array",
+            "description": "List of attendee names"
+          },
+          "agenda": {
+            "type": "array",
+            "description": "List of agenda items"
+          },
+          "action_items": {
+            "type": "array",
+            "description": "List of action items with owner and due date"
+          }
         },
-        "section_name": {
-          "type": "string",
-          "required": false,
-          "default": "Meetings",
-          "description": "Section name (creates if doesn't exist)"
-        },
-        "meeting_title": {
-          "type": "string",
-          "required": true,
-          "description": "Meeting title"
-        },
-        "attendees": {
-          "type": "array",
-          "required": false,
-          "description": "List of attendee names"
-        },
-        "agenda": {
-          "type": "array",
-          "required": false,
-          "description": "List of agenda items"
-        },
-        "action_items": {
-          "type": "array",
-          "required": false,
-          "description": "List of action items with owner and due date"
-        }
+        "required": [
+          "notebook_id",
+          "meeting_title"
+        ]
       },
       "returns": "Dict with page_id, web_url, and structured note details"
     },
     {
-      "name": "onenote_smart_organize_by_topic",
+      "name": "microsoft_onenote_smart_organize_by_topic",
       "tier": 1,
       "category": "SMART Tools",
-      "description": "SMART: Create organized section structure for knowledge base",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_smart_organize_by_topic', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Create organized section structure for knowledge base",
       "parameters": {
-        "notebook_id": {
-          "type": "string",
-          "required": true,
-          "description": "Notebook ID"
+        "type": "object",
+        "properties": {
+          "notebook_id": {
+            "type": "string",
+            "description": "Notebook ID"
+          },
+          "topics": {
+            "type": "array",
+            "description": "List of topic names to create sections for"
+          }
         },
-        "topics": {
-          "type": "array",
-          "required": true,
-          "description": "List of topic names to create sections for"
-        }
+        "required": [
+          "notebook_id",
+          "topics"
+        ]
       },
       "returns": "Dict with created sections and index page"
     },
     {
-      "name": "onenote_smart_extract_tasks",
+      "name": "microsoft_onenote_smart_extract_tasks",
       "tier": 1,
       "category": "SMART Tools",
-      "description": "SMART: Extract action items from page content",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_smart_extract_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Extract action items from page content",
       "parameters": {
-        "page_id": {
-          "type": "string",
-          "required": true,
-          "description": "Page ID to analyze"
-        }
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "description": "Page ID to analyze"
+          }
+        },
+        "required": [
+          "page_id"
+        ]
       },
       "returns": "Dict with extracted tasks (text, owner, due_date, priority)"
     },
     {
-      "name": "onenote_smart_knowledge_base",
+      "name": "microsoft_onenote_smart_knowledge_base",
       "tier": 1,
       "category": "SMART Tools",
-      "description": "SMART: Create comprehensive knowledge base structure",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_onenote_smart_knowledge_base', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Create comprehensive knowledge base structure",
       "parameters": {
-        "notebook_name": {
-          "type": "string",
-          "required": true,
-          "description": "Knowledge base notebook name"
+        "type": "object",
+        "properties": {
+          "notebook_name": {
+            "type": "string",
+            "description": "Knowledge base notebook name"
+          },
+          "categories": {
+            "type": "array",
+            "description": "List of category dicts with 'name' and 'subcategories'"
+          }
         },
-        "categories": {
-          "type": "array",
-          "required": true,
-          "description": "List of category dicts with 'name' and 'subcategories'"
-        }
+        "required": [
+          "notebook_name",
+          "categories"
+        ]
       },
       "returns": "Dict with notebook_id, sections created, and template pages"
     }

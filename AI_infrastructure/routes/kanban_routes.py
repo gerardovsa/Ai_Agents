@@ -37,7 +37,7 @@ kanban_bp = Blueprint('kanban', __name__, url_prefix='/api/kanban')
 
 # Database paths
 SYNERGY_DB = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'synergy_sessions.db')
-AI_INFRASTRUCTURE_DB = os.path.join(os.path.dirname(__file__), '..', 'ai_infrastructure.db')
+AI_INFRASTRUCTURE_DB = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'ai_infrastructure.db')
 
 
 # ============================================

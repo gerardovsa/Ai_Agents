@@ -40,11 +40,11 @@ def print_step(number, text):
 
 def print_success(text):
     """Print success message"""
-    print(f"{Colors.GREEN}✅ {text}{Colors.END}")
+    print(f"{Colors.GREEN} {text}{Colors.END}")
 
 def print_error(text):
     """Print error message"""
-    print(f"{Colors.RED}❌ {text}{Colors.END}")
+    print(f"{Colors.RED} {text}{Colors.END}")
 
 def print_warning(text):
     """Print warning message"""
@@ -245,7 +245,7 @@ def main():
     
     # Success!
     print_header("🎉 Deployment Complete!")
-    print(f"\n{Colors.GREEN}✅ Your AI Agents platform is now live!{Colors.END}")
+    print(f"\n{Colors.GREEN} Your AI Agents platform is now live!{Colors.END}")
     print(f"\n🌐 Service URL: {service_url}")
     print(f"\n📋 Next steps:")
     print("   1. Update OAuth redirect URLs (instructions above)")

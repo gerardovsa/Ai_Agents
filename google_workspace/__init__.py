@@ -61,10 +61,10 @@ from .google_docs import (
     google_docs_get_suggestions,
     google_docs_create_named_range,
     
-    # Sheets operations  
-    google_sheets_read_data,
-    google_sheets_create,
-    google_sheets_append_data,
+    # Sheets operations - imported from google_sheets module below
+    # google_sheets_read_data,
+    # google_sheets_create,
+    # google_sheets_append_data,
     
     # Charts operations
     google_charts_create,
@@ -218,14 +218,18 @@ from .gmail import (
     gmail_list_available_accounts
 )
 
-# Import Google Sheets functions (from google_docs.py - using Sheets API v4)
-from .google_docs import (
+# Import Google Sheets functions (from google_sheets.py - using Sheets API v4)
+from .google_sheets import (
     google_sheets_create as gsheets_create,
     google_sheets_read_data as gsheets_read,
-    google_sheets_append_data as gsheets_append
+    google_sheets_append_data as gsheets_append,
+    google_sheets_create as google_sheets_create,
+    google_sheets_read_data as google_sheets_read_data,
+    google_sheets_append_data as google_sheets_append_data,
+    google_sheets_create_multiple,
+    google_sheets_format_cells,
+    google_sheets_delete
 )
-
-# Note: gsheets_write not yet implemented in Sheets API - need to add if needed
 
 # Import Google Tasks functions
 from .google_tasks import (

@@ -50,7 +50,7 @@ class StripeTools:
             payment_method=kwargs.get('payment_method')
         )
     
-    def get_customer(self, customer_id):
+    def get_customer(self, customer_id, **kwargs):
         """Get customer details"""
         return stripe.Customer.retrieve(customer_id)
     
@@ -84,7 +84,7 @@ class StripeTools:
             metadata=kwargs.get('metadata', {})
         )
     
-    def list_payment_methods(self, customer_id, type='card'):
+    def list_payment_methods(self, customer_id, type='card', **kwargs):
         """List customer payment methods"""
         return stripe.PaymentMethod.list(
             customer=customer_id,

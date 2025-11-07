@@ -12,8 +12,11 @@ import sqlite3
 from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 import json
+from pathlib import Path
 
-DB_PATH = 'C:/Users/gpoli/GIT/AI_agents/AI_infrastructure/ai_infrastructure.db'
+# Use centralized database path
+root_dir = Path(__file__).parent.parent.parent
+DB_PATH = str(root_dir / 'data' / 'ai_infrastructure.db')
 
 
 def get_user_id_by_email(email: str) -> Optional[int]:
@@ -56,7 +59,7 @@ def get_user_id_by_email(email: str) -> Optional[int]:
         return None
         
     except sqlite3.Error as e:
-        print(f"❌ Database error in get_user_id_by_email: {e}")
+        print(f" Database error in get_user_id_by_email: {e}")
         return None
         
     finally:
@@ -190,7 +193,7 @@ def get_user_emails(user_id: int) -> Dict[str, List[str]]:
         }
         
     except sqlite3.Error as e:
-        print(f"❌ Database error in get_user_emails: {e}")
+        print(f" Database error in get_user_emails: {e}")
         return {'primary': None, 'aliases': []}
         
     finally:
@@ -294,7 +297,7 @@ def get_alias_info(alias_email: str) -> Optional[Dict]:
         }
         
     except sqlite3.Error as e:
-        print(f"❌ Database error in get_alias_info: {e}")
+        print(f" Database error in get_alias_info: {e}")
         return None
         
     finally:
@@ -324,7 +327,7 @@ def count_user_aliases(user_id: int) -> int:
         return result[0] if result else 0
         
     except sqlite3.Error as e:
-        print(f"❌ Database error in count_user_aliases: {e}")
+        print(f" Database error in count_user_aliases: {e}")
         return 0
         
     finally:
@@ -347,4 +350,4 @@ if __name__ == '__main__':
     print(f"test@example.com available: {available}")
     print()
     
-    print("✅ Basic tests completed!")
+    print(" Basic tests completed!")

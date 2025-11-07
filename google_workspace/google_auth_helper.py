@@ -1,8 +1,57 @@
 """
-Google Workspace Authentication Helper
-=======================================
-Unified authentication for Google Workspace APIs (Docs, Drive, Gmail, Calendar, etc.)
-Uses service account credentials from environment variables.
+FILE: google_workspace/google_auth_helper.py
+PURPOSE: Unified Google Workspace API authentication - handles OAuth and service account credentials
+
+DEPENDENCIES:
+- google.oauth2.service_account - Service account authentication (fallback)
+- google.oauth2.credentials - OAuth 2.0 user credentials
+- googleapiclient.discovery.build - Google API client builder
+- google_workspace.oauth_credential_loader.build_service_with_oauth - User OAuth token loader
+- dotenv - Load service account credentials from .env.master
+
+EXPORTS:
+- build_gmail_service(injected_credentials=None) -> Resource - Gmail API v1 client
+- build_drive_service(injected_credentials=None) -> Resource - Drive API v3 client
+- build_docs_service(injected_credentials=None) -> Resource - Docs API v1 client
+- build_sheets_service(injected_credentials=None) -> Resource - Sheets API v4 client
+- build_calendar_service(injected_credentials=None) -> Resource - Calendar API v3 client
+- build_forms_service(injected_credentials=None) -> Resource - Forms API v1 client
+- build_tasks_service(injected_credentials=None) -> Resource - Tasks API v1 client
+- build_slides_service(injected_credentials=None) -> Resource - Slides API v1 client
+- build_meet_service(injected_credentials=None) -> Resource - Meet API v2 client
+- build_analytics_service(injected_credentials=None) -> Resource - Analytics Reporting API v4 client
+
+USED BY:
+- google_workspace/gmail.py - 45 Gmail functions (send, list, search, etc.)
+- google_workspace/google_docs.py - 38 Docs functions (create, update, format, etc.)
+- google_workspace/google_drive.py - 22 Drive functions (upload, download, share, etc.)
+- google_workspace/google_calendar.py - 11 Calendar functions (create event, list, etc.)
+- google_workspace/google_sheets.py - Sheets operations (read, write, format)
+- google_workspace/google_forms.py - 98 Forms functions (create, list, responses)
+- google_workspace/google_tasks.py - 25 Tasks functions (create, list, update)
+- google_workspace/google_slides.py - 19 Slides functions (create, update, present)
+- google_workspace/google_meet.py - 23 Meet functions (create meeting, manage)
+- google_workspace/google_analytics.py - 19 Analytics functions (reports, metrics)
+
+RELATED FILES:
+- google_workspace/oauth_credential_loader.py - Converts oauth_tokens DB records to Google credentials
+- AI_infrastructure/auth/credential_injector.py - Retrieves user OAuth tokens from database
+- data/ai_infrastructure.db - oauth_tokens table (user_id, platform='google', access_token, refresh_token)
+- .env.master - Service account credentials (GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY)
+
+NOTES:
+- AUTHENTICATION PRIORITY:
+  1. User OAuth credentials (from injected_credentials param) ← PREFERRED
+  2. Service account credentials (from .env.master) ← FALLBACK
+- OAUTH FORMAT: injected_credentials = {'access_token': str, 'refresh_token': str, 'token_expiry': str}
+- SERVICE ACCOUNT: Requires GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY in .env.master
+- SCOPES: Each service uses appropriate OAuth scopes (gmail.modify, drive, documents, etc.)
+- TOKEN REFRESH: oauth_credential_loader handles automatic token refresh
+- PERFORMANCE: Services are built per-request (no caching) to use latest credentials
+- ERROR HANDLING: Returns None if authentication fails, tools should handle gracefully
+- MULTI-TENANT: Each user's OAuth token used when available, service account shared otherwise
+
+LAST MODIFIED: 2025-11-02 - Enhanced OAuth integration with oauth_tokens database table
 """
 
 import os
@@ -18,6 +67,15 @@ try:
         load_dotenv(env_master, override=False)  # Don't override if already set
 except ImportError:
     pass  # dotenv not installed, environment should be set externally
+
+# Import OAuth credential loader
+try:
+    from .oauth_credential_loader import build_service_with_oauth
+    HAS_OAUTH_LOADER = True
+    print("[OK] OAuth credential loader available - will use user OAuth credentials")
+except ImportError as e:
+    HAS_OAUTH_LOADER = False
+    print(f"[WARN] OAuth credential loader not available - using service account only (error: {e})")
 
 # Service account credential cache
 _SERVICE_CACHE = {}
@@ -55,7 +113,7 @@ def get_service_account_credentials(scopes):
     
     if not all([service_account_email, service_account_private_key, service_account_private_key_id]):
         raise Exception(
-            "❌ Google Workspace service account not configured!\n\n"
+            " Google Workspace service account not configured!\n\n"
             "Option 1 (Recommended): Use service account JSON file\n"
             "  Set: GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json\n"
             "  Example: GOOGLE_APPLICATION_CREDENTIALS=C:\\Users\\gpoli\\GIT\\AI_agents\\vsa-anythingllm-project-ab7c8caf8c47.json\n\n"
@@ -91,19 +149,45 @@ def get_service_account_credentials(scopes):
     return credentials
 
 
-def build_docs_service(user_id=None, injected_credentials=None):
+def build_docs_service(user_id=None, injected_credentials=None, _user_id=None, **kwargs):
     """Get authenticated Google Docs API service
     
     Args:
         user_id: User ID for OAuth credentials from database
-        injected_credentials: OAuth credentials dict (from database)
+        injected_credentials: OAuth credentials dict (from database - LEGACY)
+        _user_id: Injected user_id from credential_injector (PREFERRED)
+        **kwargs: Additional parameters (catches _injected_credentials flag)
     
     Returns:
         Authenticated Docs service using either user OAuth or service account
     """
-    # If user credentials provided, use them (don't cache per-user services)
+    # Priority 1: Use _user_id from credential injector (NEW METHOD)
+    effective_user_id = _user_id or user_id
+    
+    if effective_user_id and HAS_OAUTH_LOADER:
+        print(f"🔑 [NEW PATH] Building Docs service with user_id={effective_user_id} from oauth_tokens database")
+        
+        scopes = [
+            'https://www.googleapis.com/auth/documents',
+            'https://www.googleapis.com/auth/drive'
+        ]
+        
+        service = build_service_with_oauth(
+            user_id=effective_user_id,
+            service_name='docs',
+            version='v1',
+            scopes=scopes
+        )
+        
+        if service:
+            print(f"✅ Docs service created with user {effective_user_id}'s OAuth credentials from database")
+            return service
+        else:
+            print(f"⚠️  Failed to load OAuth credentials, falling back to service account")
+    
+    # Priority 2: Legacy injected credentials (OLD METHOD)
     if user_id and injected_credentials:
-        print(f"🔑 Building Docs service with user {user_id}'s OAuth credentials")
+        print(f"🔑 [LEGACY PATH] Building Docs service with injected_credentials dict")
         from google.oauth2.credentials import Credentials
         
         scopes = [
@@ -121,10 +205,11 @@ def build_docs_service(user_id=None, injected_credentials=None):
         )
         
         service = build('docs', 'v1', credentials=credentials)
-        print(f"✅ Docs service created with user {user_id}'s credentials")
+        print(f"✅ Docs service created with user {user_id}'s credentials (legacy path)")
         return service
     
-    # Fall back to service account (cached)
+    # Priority 3: Fall back to service account (cached)
+    print(f"⚠️  No user OAuth credentials - using service account")
     cache_key = 'docs_v1'
     
     if cache_key in _SERVICE_CACHE:
@@ -171,7 +256,7 @@ def build_drive_service(user_id=None, injected_credentials=None):
         )
         
         service = build('drive', 'v3', credentials=credentials)
-        print(f"✅ Drive service created with user {user_id}'s credentials")
+        print(f" Drive service created with user {user_id}'s credentials")
         return service
     
     # Fall back to service account (cached)

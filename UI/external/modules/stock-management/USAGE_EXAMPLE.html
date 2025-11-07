@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Table Enhancements - Usage Example</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #58a6ff;
+            margin-bottom: 20px;
+        }
+
+        /* Basic table styling */
+        table {
+            width: 100%;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #161b22;
+            border-bottom: 2px solid #30363d;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+
+        tr:hover {
+            background: #161b22;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #58a6ff;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1><i class="fas fa-boxes"></i> Stock Table with Enhancements</h1>
+
+        <p style="color: #8b949e; margin-bottom: 20px;">
+            This example shows how to integrate TABLE_ENHANCEMENTS.js into your existing tables.
+        </p>
+
+        <!-- Bulk Operations Toolbar -->
+        <div class="bulk-operations-toolbar">
+            <div class="selected-count">
+                <span id="selected-count">0 selected</span>
+            </div>
+            <div class="bulk-actions">
+                <button onclick="stockModule.bulkTagRows(null)" class="btn btn-sm" title="Clear Tags">
+                    <i class="fas fa-tag"></i> Clear
+                </button>
+                <button onclick="stockModule.bulkTagRows('green')" class="btn btn-sm" style="background: #28a745;"
+                    title="Tag Green">
+                    <i class="fas fa-tag"></i> Green
+                </button>
+                <button onclick="stockModule.bulkTagRows('orange')" class="btn btn-sm" style="background: #fd7e14;"
+                    title="Tag Orange">
+                    <i class="fas fa-tag"></i> Orange
+                </button>
+                <button onclick="stockModule.bulkTagRows('red')" class="btn btn-sm" style="background: #dc3545;"
+                    title="Tag Red">
+                    <i class="fas fa-tag"></i> Red
+                </button>
+            </div>
+        </div>
+
+        <!-- Sample Stock Table -->
+        <table id="stock-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="select-all"></th>
+                    <th style="width: 50px;">#</th>
+                    <th style="width: 60px;">Tag</th>
+                    <th>Stock ID</th>
+                    <th>Stock Type</th>
+                    <th>Usage Count</th>
+                    <th>GSM</th>
+                    <th>Dimensions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Sample data will be added by JavaScript -->
+            </tbody>
+        </table>
+
+        <div
+            style="margin-top: 20px; padding: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;">
+            <h3 style="color: #58a6ff; margin-bottom: 12px;">Features Enabled:</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="padding: 4px 0;"><i class="fas fa-check" style="color: #28a745;"></i> Row Tagging (Click tag
+                    button to cycle colors)</li>
+                <li style="padding: 4px 0;"><i class="fas fa-check" style="color: #28a745;"></i> Double-Click Cell Popup
+                    (Try double-clicking any cell)</li>
+                <li style="padding: 4px 0;"><i class="fas fa-check" style="color: #28a745;"></i> Draggable Popups (Drag
+                    popup header to move)</li>
+                <li style="padding: 4px 0;"><i class="fas fa-check" style="color: #28a745;"></i> Bulk Tag Operations
+                    (Select rows + click toolbar buttons)</li>
+                <li style="padding: 4px 0;"><i class="fas fa-check" style="color: #28a745;"></i> Shift+Click Range
+                    Selection (Select row 1, hold Shift, click row 5)</li>
+                <li style="padding: 4px 0;"><i class="fas fa-check" style="color: #28a745;"></i> Row Numbers (#1, #2,
+                    #3...)</li>
+                <li style="padding: 4px 0;"><i class="fas fa-check" style="color: #28a745;"></i> Selection Count
+                    (Updates in toolbar)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Include Enhancement Module -->
+    <script src="TABLE_ENHANCEMENTS.js"></script>
+
+    <script>
+        // Mock stock module (replace with your real StockManagementModule)
+        const stockModule = {
+            showNotification: function (message, type) {
+                console.log(`[${type.toUpperCase()}] ${message}`);
+                alert(message);
+            }
+        };
+
+        // Initialize enhancements
+        StockTableEnhancements.init(stockModule);
+
+        // Generate sample data
+        const sampleStocks = [
+            { id: 16, type: 'Satin 350gsm 320x450mm', usage: 269, gsm: 350, dimensions: '320x450' },
+            { id: 44, type: 'Satin 350gsm 330x483mm', usage: 125, gsm: 350, dimensions: '330x483' },
+            { id: 94, type: 'Knight Linen 350gsm', usage: 107, gsm: 350, dimensions: '320x450' },
+            { id: 38, type: 'Gloss 250gsm', usage: 89, gsm: 250, dimensions: '320x450' },
+            { id: 49, type: 'Uncoated 160gsm', usage: 67, gsm: 160, dimensions: '320x450' },
+            { id: 72, type: 'Matt 200gsm', usage: 54, gsm: 200, dimensions: '320x450' },
+            { id: 23, type: 'Satin 200gsm', usage: 43, gsm: 200, dimensions: '320x450' },
+            { id: 88, type: 'Recycled 120gsm', usage: 32, gsm: 120, dimensions: '320x450' },
+            { id: 102, type: 'Silk 300gsm', usage: 28, gsm: 300, dimensions: '320x450' },
+            { id: 115, type: 'Premium Gloss 350gsm', usage: 19, gsm: 350, dimensions: '320x450' }
+        ];
+
+        // Populate table
+        const tbody = document.querySelector('#stock-table tbody');
+        sampleStocks.forEach((stock, index) => {
+            const tag = stockModule.getRowTag(stock.id);
+            const tr = document.createElement('tr');
+            if (tag) tr.classList.add(`tagged-row-${tag}`);
+
+            tr.innerHTML = `
+                <td style="text-align: center;">
+                    <input type="checkbox" class="stock-checkbox" data-stock-id="${stock.id}">
+                </td>
+                <td style="text-align: center;">${index + 1}</td>
+                <td style="text-align: center;">
+                    <button class="tag-btn ${tag ? 'tag-' + tag : ''}" 
+                            onclick="stockModule.toggleRowTag(event, '${stock.id}')" 
+                            title="Tag Row (Click to cycle)">
+                        <i class="fas fa-tag"></i>
+                    </button>
+                </td>
+                <td data-field="Stock ID"><strong>#${stock.id}</strong></td>
+                <td data-field="Stock Type">${stock.type}</td>
+                <td data-field="Usage Count" style="text-align: right;">${stock.usage.toLocaleString()}</td>
+                <td data-field="GSM" style="text-align: right;">${stock.gsm}</td>
+                <td data-field="Dimensions">${stock.dimensions}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        // Attach enhancements to table
+        const table = document.getElementById('stock-table');
+        stockModule.attachTableEnhancements(table);
+
+        // Select all checkbox
+        document.getElementById('select-all').addEventListener('change', (e) => {
+            const checkboxes = document.querySelectorAll('.stock-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            stockModule.updateSelectionCount();
+        });
+
+        console.log('Stock table enhancements initialized and ready!');
+        console.log('Try:');
+        console.log('1. Click tag button to cycle colors');
+        console.log('2. Double-click any cell to see popup');
+        console.log('3. Select multiple rows with shift+click');
+        console.log('4. Use bulk tag buttons in toolbar');
+    </script>
+</body>
+
+</html>

@@ -1,10 +1,10 @@
 {
   "platform": "google_docs",
-  "description": "Google Sheets API - Create spreadsheets, write/read data, format cells, analyze data",
+  "description": "Google Sheets API - Create spreadsheets, write/read data, format cells, analyze data\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "tools": [
     {
       "name": "google_sheets_create",
-      "description": "🌟 Create a new Google Sheet with optional data and headers. Auto-formats header row (gray background, bold text). Returns shareable link.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_create', ...) - DO NOT call directly!\n\nExample response:\n✅ \"Created: **Sales Report Q4** | ID: `1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA` | URL: https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit | [Open Sales Report Q4](https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit)\"\n\n---\n\n🌟 Create a new Google Sheet with optional data, headers, and MARKDOWN FORMATTING v2.0!\n\n⚠️ IMPORTANT: Markdown formatting is SPECIFIC TO THIS TOOL ONLY (google_sheets_create). Do NOT use this syntax in other tools like google_docs_create, gmail_send_email, etc. This is exclusively for Google Sheets cell formatting.\n\n🎯 HOW IT WORKS:\n1. Set parse_markdown=True to enable formatting\n2. Add markdown codes to your data/headers\n3. Tool converts markdown → Professional Google Sheets formatting\n4. Result: Color-coded, aligned, formatted spreadsheet\n\n⚡ v2.0 SYNTAX (COMPACT - RECOMMENDED - 53% SHORTER!):\n\n📍 ALIGNMENT (parentheses at start of cell):\n  (L)text  → Left-align cell\n  (R)text  → Right-align cell\n  (C)text  → Center-align cell\n  Example: (R)$125,000  → Right-aligned number\n\n🎨 TEXT COLORS (shortened, NO closing tag):\n  [R]text   → Red 🔴 (errors, critical, blocked, negative)\n  [G]text   → Green 🟢 (success, active, complete, positive)\n  [B]text   → Blue 🔵 (info, neutral, standard)\n  [P]text   → Purple 🟣 (special, VIP, important)\n  [GR]text  → Gray ⚫ (inactive, archived, disabled)\n  [BK]text  → Black (default text)\n  Example: [G]Active  → Green text\n\n🎨 BACKGROUND COLORS (curly braces, NO closing tag):\n  {LR}text  → Light red background (errors, alerts, warnings)\n  {LG}text  → Light green background (success, approved, good)\n  {LB}text  → Light blue background (info, neutral, calm)\n  {LP}text  → Light purple background (special, featured)\n  {LGR}text → Light gray background (headers, inactive)\n  Example: {LG}Approved  → Light green background\n\n📏 STACKING ORDER (combine multiple formats):\n  Format order: (ALIGN)[COLOR]{BACKGROUND}text\n  \n  Examples:\n  • (R)[G]{LG}+16%         → Right-aligned, green text, light green bg\n  • (C)[R]{LR}BLOCKED      → Center-aligned, red text, light red bg\n  • (L)[B]Premium Widgets  → Left-aligned, blue text\n  • (R)$125,000            → Right-aligned (no color)\n  • [G]Active              → Green text (no alignment specified)\n\n📝 v1.2 SYNTAX (VERBOSE - STILL SUPPORTED FOR COMPATIBILITY):\n  **bold**                      → Bold text\n  *italic*                      → Italic text\n  # Header                      → Large header (18pt, bold)\n  [RED]text[/RED]               → Red text (verbose with closing tag)\n  [BG:LIGHTGREEN]text[/BG]      → Light green background (verbose)\n  \n  Note: v2.0 and v1.2 can be mixed in same sheet!\n\n🎛️ FORMATTING CONTROL PARAMETERS:\n  • parse_markdown: Enable/disable markdown (default: False)\n  • auto_borders: Auto borders on all cells (default: True)\n\n✅ WHEN TO USE MARKDOWN:\n  ✓ Sales/financial reports (green=profit, red=loss, alignment for numbers)\n  ✓ Status dashboards (color-coded states: active/blocked/pending)\n  ✓ Patient records (priority levels, status indicators)\n  ✓ Inventory alerts (stock levels: ok/low/critical)\n  ✓ Project tracking (task status with visual indicators)\n  ✓ Any spreadsheet needing visual emphasis or professional formatting\n\n💡 QUICK EXAMPLES:\n\n1. Sales Report with v2.0:\n   headers=['(C)# Product', '(R)**Q3**', '(R)**Q4**', '(R)**Change**']\n   data=[\n     ['(L)[G]Premium', '(R)$145K', '(R)$168K', '(R)[G]{LG}+16%'],\n     ['(L)Standard', '(R)$85K', '(R)$78K', '(R)[R]{LR}-8%']\n   ]\n\n2. Status Dashboard:\n   headers=['(L)# Task', '(C)**Status**', '(R)**Priority**']\n   data=[\n     ['(L)API Integration', '(C)[G]{LG}Complete', '(R)High'],\n     ['(L)UI Redesign', '(C)[R]{LR}Blocked', '(R)High']\n   ]\n\n3. Simple Color Coding (v1.2):\n   headers=['# Product', '**Status**']\n   data=[\n     ['Widget Pro', '[GREEN]In Stock[/GREEN]'],\n     ['Widget Lite', '[RED]Out of Stock[/RED]']\n   ]\n\n🎯 CHARACTER SAVINGS:\n  v1.2: [RED]Critical[/RED]    → 21 characters\n  v2.0: [R]Critical             → 11 characters (48% shorter!)\n  \n  v1.2: [BG:LIGHTGREEN]Active[/BG] → 29 characters  \n  v2.0: {LG}Active                   → 10 characters (66% shorter!)\n\n⚠️ REMEMBER: Only use markdown when parse_markdown=True. Default is False for backward compatibility.",
       "platform": "google_docs",
       "parameters": {
         "title": {
@@ -14,23 +14,453 @@
         },
         "headers": {
           "type": "array",
-          "description": "Optional header row (e.g., ['Name', 'Age', 'City'])",
+          "description": "Optional header row. Examples: ['Name', 'Age', 'City'] (plain) OR ['# Patient Name', '**Status**', '**Priority**'] (with markdown). Use markdown for visual hierarchy and emphasis.",
           "required": false
         },
         "data": {
           "type": "array",
-          "description": "Optional 2D array of data (e.g., [['John', 25, 'NYC'], ['Jane', 30, 'LA']])",
+          "description": "Optional 2D array of data. Examples: [['John', 25, 'NYC']] (plain) OR [['**John Doe**', '[GREEN]Active[/GREEN]', '**High**']] (with markdown). Use markdown for emphasis, colors, and formatting.",
           "required": false
+        },
+        "parse_markdown": {
+          "type": "boolean",
+          "description": "Enable markdown formatting (default: False). Set to True to convert markdown syntax into professional Google Sheets formatting. Creates color-coded, formatted spreadsheets automatically. 96% time savings vs manual formatting. Use for dashboards, reports, status boards, and any sheet needing visual emphasis.",
+          "required": false,
+          "default": false
+        },
+        "header_row_background": {
+          "type": "boolean",
+          "description": "Apply gray background to header row (default: True). Set to False to control header formatting entirely with markdown (e.g., use [BG:LIGHTBLUE] for custom header backgrounds). Only applies when headers are provided.",
+          "required": false,
+          "default": true
+        },
+        "auto_borders": {
+          "type": "boolean",
+          "description": "Automatically add borders to all cells (default: True). Set to False for borderless sheets. Borders help create professional-looking tables and improve readability.",
+          "required": false,
+          "default": true
         }
       },
       "returns": {
         "type": "object",
-        "description": "Created spreadsheet with ID, shareable URL, title, and rows written"
-      }
+        "description": "Created spreadsheet with ID, shareable URL, title, rows written, and markdown_parsed status"
+      },
+      "examples": [
+        {
+          "description": "Plain spreadsheet (no markdown)",
+          "parameters": {
+            "title": "Contact List",
+            "headers": [
+              "Name",
+              "Email",
+              "Phone"
+            ],
+            "data": [
+              [
+                "John Doe",
+                "john@example.com",
+                "555-1234"
+              ]
+            ],
+            "parse_markdown": false
+          }
+        },
+        {
+          "description": "Sales dashboard with color-coded performance",
+          "parameters": {
+            "title": "Q4 Sales Performance",
+            "headers": [
+              "# Product",
+              "**Q3 Sales**",
+              "**Q4 Sales**",
+              "**Change**"
+            ],
+            "data": [
+              [
+                "**Premium Line**",
+                "$145,000",
+                "$168,000",
+                "[GREEN]+16%[/GREEN]"
+              ],
+              [
+                "Standard Line",
+                "$85,000",
+                "$78,000",
+                "[RED]-8%[/RED]"
+              ],
+              [
+                "**Accessories**",
+                "$42,000",
+                "$51,000",
+                "[GREEN]+21%[/GREEN]"
+              ]
+            ],
+            "parse_markdown": true
+          }
+        },
+        {
+          "description": "Patient status board with priority indicators",
+          "parameters": {
+            "title": "Patient Status - ER",
+            "headers": [
+              "# Patient ID",
+              "**Name**",
+              "**Status**",
+              "**Priority**"
+            ],
+            "data": [
+              [
+                "P001",
+                "**Dr. Smith**",
+                "[GREEN]Stable[/GREEN]",
+                "Low"
+              ],
+              [
+                "P002",
+                "Doe, Jane",
+                "[RED]Critical[/RED]",
+                "**HIGH**"
+              ],
+              [
+                "P003",
+                "Johnson, B.",
+                "[YELLOW]Monitoring[/YELLOW]",
+                "Medium"
+              ]
+            ],
+            "parse_markdown": true
+          }
+        },
+        {
+          "description": "Inventory alerts with stock level indicators",
+          "parameters": {
+            "title": "Stock Level Dashboard",
+            "headers": [
+              "# SKU",
+              "**Product**",
+              "**Current Stock**",
+              "**Status**",
+              "**Action**"
+            ],
+            "data": [
+              [
+                "WDG-001",
+                "**Premium Widget**",
+                "250",
+                "[GREEN]OK[/GREEN]",
+                "*Normal*"
+              ],
+              [
+                "WDG-002",
+                "Standard Widget",
+                "15",
+                "[RED]LOW[/RED]",
+                "**Reorder Now**"
+              ],
+              [
+                "ACC-101",
+                "Accessories",
+                "75",
+                "[YELLOW]Watch[/YELLOW]",
+                "*Monitor*"
+              ]
+            ],
+            "parse_markdown": true
+          }
+        },
+        {
+          "description": "NEW FEATURE: Background colors and custom header control",
+          "parameters": {
+            "title": "Project Status with Background Highlights",
+            "headers": [
+              "[BG:LIGHTBLUE]**Project Name**[/BG]",
+              "[BG:LIGHTBLUE]**Status**[/BG]",
+              "[BG:LIGHTBLUE]**Priority**[/BG]"
+            ],
+            "data": [
+              [
+                "**API Integration**",
+                "[BG:LIGHTGREEN][GREEN]Complete[/GREEN][/BG]",
+                "High"
+              ],
+              [
+                "Database Migration",
+                "[BG:LIGHTYELLOW][ORANGE]In Progress[/ORANGE][/BG]",
+                "High"
+              ],
+              [
+                "UI Redesign",
+                "[BG:LIGHTRED][RED]Blocked[/RED][/BG]",
+                "Medium"
+              ]
+            ],
+            "parse_markdown": true,
+            "auto_borders": true
+          }
+        },
+        {
+          "description": "Minimal formatting: No auto-styles, full AI control",
+          "parameters": {
+            "title": "Custom Styled Report",
+            "headers": [
+              "Name",
+              "Email",
+              "Status"
+            ],
+            "data": [
+              [
+                "**John Doe**",
+                "john@example.com",
+                "[GREEN]Active[/GREEN]"
+              ],
+              [
+                "Jane Smith",
+                "jane@example.com",
+                "[GRAY]Inactive[/GRAY]"
+              ]
+            ],
+            "parse_markdown": true,
+            "auto_borders": false
+          }
+        },
+        {
+          "description": "v2.0 EXAMPLE: Financial report with alignment and shortened codes (53% shorter!)",
+          "parameters": {
+            "title": "Q4 Sales Report - v2.0 Syntax",
+            "headers": [
+              "(C)# Product",
+              "(R)**Q3**",
+              "(R)**Q4**",
+              "(R)**Change**"
+            ],
+            "data": [
+              [
+                "(L)[G]Premium Widgets",
+                "(R)$145K",
+                "(R)$168K",
+                "(R)[G]{LG}+16%"
+              ],
+              [
+                "(L)Standard Widgets",
+                "(R)$85K",
+                "(R)$78K",
+                "(R)[R]{LR}-8%"
+              ],
+              [
+                "(L)[GR]Discontinued Items",
+                "(R)[GR]$12K",
+                "(R)[GR]$0",
+                "(R)[BK]{LGR}-100%"
+              ]
+            ],
+            "parse_markdown": true,
+            "auto_borders": true
+          }
+        },
+        {
+          "description": "v2.0 EXAMPLE: Status board with alignment and compact colors",
+          "parameters": {
+            "title": "Project Status - Compact Syntax",
+            "headers": [
+              "(L)Project",
+              "(C)Status",
+              "(R)Priority"
+            ],
+            "data": [
+              [
+                "(L)**API Migration**",
+                "(C)[G]{LG}Complete",
+                "(R)[P]Critical"
+              ],
+              [
+                "(L)Database Upgrade",
+                "(C)[B]{LB}In Progress",
+                "(R)High"
+              ],
+              [
+                "(L)UI Redesign",
+                "(C)[R]{LR}Blocked",
+                "(R)[R]Urgent"
+              ]
+            ],
+            "parse_markdown": true
+          }
+        },
+        {
+          "description": "v2.0 EXAMPLE: Inventory with right-aligned numbers",
+          "parameters": {
+            "title": "Stock Levels - Aligned Data",
+            "headers": [
+              "(L)# SKU",
+              "(L)Product",
+              "(R)Quantity",
+              "(C)Status"
+            ],
+            "data": [
+              [
+                "(L)WDG-001",
+                "(L)Premium Widget",
+                "(R)1,250",
+                "(C)[G]{LG}In Stock"
+              ],
+              [
+                "(L)WDG-002",
+                "(L)Standard Widget",
+                "(R)45",
+                "(C)[R]{LR}Low Stock"
+              ],
+              [
+                "(L)ACC-101",
+                "(L)Accessories",
+                "(R)875",
+                "(C)[G]{LG}In Stock"
+              ]
+            ],
+            "parse_markdown": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_create_multiple",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_create_multiple', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK CREATION: Create multiple Google Sheets at once (2-50 sheets). Much more efficient than creating sheets one by one. Supports v2.0 markdown syntax with alignment and shortened codes. Perfect for regional reports, department dashboards, or multi-entity tracking.",
+      "platform": "google_docs",
+      "parameters": {
+        "spreadsheets_config": {
+          "type": "array",
+          "description": "List of spreadsheet configurations. Each config is an object with: title (required), headers (optional), data (optional), parse_markdown (optional, default false), auto_borders (optional, default true)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with 'spreadsheets' array (each with spreadsheet_id, url, title, rows_written, markdown_parsed), 'total_created' count, and 'total_rows_written' sum"
+      },
+      "examples": [
+        {
+          "description": "Create regional sales reports with v2.0 syntax",
+          "parameters": {
+            "spreadsheets_config": [
+              {
+                "title": "Q1 Sales - NYC Region",
+                "headers": [
+                  "(C)# Product",
+                  "(R)**Revenue**",
+                  "(R)**Change**"
+                ],
+                "data": [
+                  [
+                    "(L)[G]Premium Widgets",
+                    "(R)$145K",
+                    "(R)[G]{LG}+16%"
+                  ],
+                  [
+                    "(L)Standard Widgets",
+                    "(R)$85K",
+                    "(R)[R]{LR}-8%"
+                  ]
+                ],
+                "parse_markdown": true
+              },
+              {
+                "title": "Q1 Sales - LA Region",
+                "headers": [
+                  "(C)# Product",
+                  "(R)**Revenue**",
+                  "(R)**Change**"
+                ],
+                "data": [
+                  [
+                    "(L)[G]Premium Widgets",
+                    "(R)$168K",
+                    "(R)[G]{LG}+22%"
+                  ],
+                  [
+                    "(L)Standard Widgets",
+                    "(R)$92K",
+                    "(R)[G]{LG}+5%"
+                  ]
+                ],
+                "parse_markdown": true
+              },
+              {
+                "title": "Q1 Sales - Chicago Region",
+                "headers": [
+                  "(C)# Product",
+                  "(R)**Revenue**",
+                  "(R)**Change**"
+                ],
+                "data": [
+                  [
+                    "(L)[G]Premium Widgets",
+                    "(R)$132K",
+                    "(R)[G]{LG}+12%"
+                  ],
+                  [
+                    "(L)Standard Widgets",
+                    "(R)$78K",
+                    "(R)[R]{LR}-3%"
+                  ]
+                ],
+                "parse_markdown": true
+              }
+            ]
+          }
+        },
+        {
+          "description": "Create department status boards (minimal data)",
+          "parameters": {
+            "spreadsheets_config": [
+              {
+                "title": "Engineering Team Status",
+                "headers": [
+                  "(L)Project",
+                  "(C)Status",
+                  "(R)Owner"
+                ],
+                "data": [
+                  [
+                    "(L)**API Migration**",
+                    "(C)[G]{LG}Complete",
+                    "(R)Alice"
+                  ],
+                  [
+                    "(L)Database Upgrade",
+                    "(C)[B]{LB}In Progress",
+                    "(R)Bob"
+                  ]
+                ],
+                "parse_markdown": true
+              },
+              {
+                "title": "Marketing Team Status",
+                "headers": [
+                  "(L)Campaign",
+                  "(C)Status",
+                  "(R)Budget"
+                ],
+                "data": [
+                  [
+                    "(L)**Q1 Launch**",
+                    "(C)[G]{LG}Active",
+                    "(R)$50K"
+                  ],
+                  [
+                    "(L)Brand Refresh",
+                    "(C)[R]{LR}Blocked",
+                    "(R)$30K"
+                  ]
+                ],
+                "parse_markdown": true
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "google_sheets_append_data",
-      "description": "Append data to existing Google Sheet. Automatically finds last row and appends below existing data.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_append_data', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend data to existing Google Sheet. Automatically finds last row and appends below existing data.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheet_id": {
@@ -57,7 +487,7 @@
     },
     {
       "name": "google_sheets_read_data",
-      "description": "Read data from Google Sheet. Returns 2D array of values.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_read_data', ...) - DO NOT call directly!\n\nExample response:\n✅ \"Read 45 rows from **Sales Report 2024** (ID: `1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA` | URL: https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit)\nData: [show actual data read]\"\n\n❌ \"Failed to read spreadsheet ID: `1H7RpwSDHUF8hRpL0hjWEqCjvAkr-5wDAWHDOYySVaIc` - 404 Error: Not found or not shared with your account\"\n\n---\n\nRead data from Google Sheet. Returns 2D array of values.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheet_id": {

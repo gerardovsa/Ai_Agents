@@ -11,6 +11,7 @@ import openai
 import requests
 import json
 from typing import Dict, List, Optional, Callable, Any, Literal
+from pathlib import Path
 import sys
 import os
 
@@ -20,19 +21,44 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'Quote_Ca
 # TODO: Uncomment when tool_use_agent is available
 # from tool_use_agent import ToolUseAgent
 
-# Placeholder for ToolUseAgent - replace with actual implementation when available
+# REAL Tool Execution using Registry_V3
 class ToolUseAgent:
     """
-    Placeholder for tool execution agent
-    Replace this with actual tool_use_agent when the module is available
+    Real tool execution agent using Registry_V3
+    Executes tools from the 584-tool registry
     """
     def __init__(self, config_path=None):
         self.config_path = config_path
-        self.tools = []
+        
+        # Import and initialize registry
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'tools'))
+        from registry_v3 import get_registry
+        self.registry = get_registry()
+        self.tools = list(self.registry.tools.keys())
+        
+        print(f"[ToolUseAgent] Initialized with {len(self.tools)} tools from registry_v3")
+    
+    def _get_tool_definitions(self):
+        """Get tool definitions in Anthropic format"""
+        return self.registry.get_anthropic_tools()
     
     def execute_tool(self, tool_name, tool_input):
-        """Placeholder tool execution"""
-        return {"status": "Tool execution not implemented", "tool": tool_name}
+        """Execute a tool from the registry"""
+        try:
+            print(f"[ToolUseAgent] Executing tool: {tool_name}")
+            print(f"[ToolUseAgent] Input: {json.dumps(tool_input, indent=2)}")
+            
+            result = self.registry.execute_tool(tool_name=tool_name, **tool_input)
+            
+            print(f"[ToolUseAgent] Result: {str(result)[:200]}...")
+            return result
+            
+        except Exception as e:
+            error_msg = f"Tool execution failed: {str(e)}"
+            print(f"[ToolUseAgent] ERROR: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return {"error": error_msg, "tool": tool_name}
 
 
 class UnifiedAIClient:
@@ -59,9 +85,12 @@ class UnifiedAIClient:
         Args:
             config_path: Path to database-config.json
         """
-        # Load config
-        with open(config_path, 'r') as f:
-            self.config = json.load(f)
+        # Load config (handle UTF-8 BOM)
+        with open(config_path, 'r', encoding='utf-8-sig') as f:
+            content = f.read()
+            if not content or len(content) == 0:
+                raise ValueError(f"Config file is empty: {config_path}")
+            self.config = json.loads(content)
         
         # Initialize all providers
         self._init_anthropic()
@@ -77,15 +106,21 @@ class UnifiedAIClient:
         print(f"  - OpenAI: {self.openai_model}")
     
     def _init_anthropic(self):
-        """Initialize Anthropic Claude client"""
+        """Initialize Anthropic Claude client with increased timeout"""
         # Try environment variable first, then config file
         api_key = os.environ.get('ANTHROPIC_API_KEY') or self.config.get('AI', {}).get('AnthropicAPIKey', '')
         if api_key:
-            self.anthropic_client = Anthropic(api_key=api_key)
+            # Increase timeout to 120 seconds (from default 60s) to handle SSL handshake delays
+            self.anthropic_client = Anthropic(
+                api_key=api_key,
+                timeout=120.0,  # Increased from default 60s
+                max_retries=3   # Retry up to 3 times on network errors
+            )
+            print("[UnifiedAIClient] Anthropic client initialized with 120s timeout, 3 max retries")
         else:
             self.anthropic_client = None
             print("⚠️  Warning: No Anthropic API key found. Set ANTHROPIC_API_KEY environment variable.")
-        self.anthropic_model = self.config.get('AI', {}).get('Model', 'claude-sonnet-4-20250514')
+        self.anthropic_model = self.config.get('AI', {}).get('Model', 'claude-sonnet-4-5-20250929')
     
     def _init_deepseek(self):
         """Initialize DeepSeek client"""
@@ -102,6 +137,43 @@ class UnifiedAIClient:
             openai.api_key = openai_key
         self.openai_model = self.config.get('AI', {}).get('OpenAIModel', 'gpt-4o-mini')
     
+    def _get_tool_usage_instructions(self) -> str:
+        """Load tool usage instructions from prompt file"""
+        try:
+            prompt_path = Path(__file__).parent.parent / 'prompts' / 'tool_usage_system_prompt.md'
+            if prompt_path.exists():
+                with open(prompt_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+        except Exception as e:
+            print(f"Warning: Could not load tool usage prompt: {e}")
+        
+        # Fallback instructions with server tools documentation
+        return """You have access to 584+ tools across multiple platforms including Google Workspace, Microsoft 365, and business tools. ALWAYS use these tools to complete user requests. Never say you cannot do something - use the available tools.
+
+SERVER TOOLS (Always Available):
+- **web_search**: Real-time web search to find current information, news, pricing, standards, or any up-to-date data. Returns search results with URLs, titles, and content snippets. Use this when you need current information not in your knowledge cutoff.
+- **web_fetch**: Fetch and analyze content from specific URLs. Retrieves full document content including PDFs and web pages with citations enabled. Use this when you need to read a specific document or webpage.
+
+WHEN TO USE SERVER TOOLS:
+✅ Use web_search when user asks about:
+   - Current events, news, trends
+   - Latest pricing or market data
+   - Technical standards or specifications
+   - "What's the latest..." or "Find information about..."
+   
+✅ Use web_fetch when user asks to:
+   - Analyze a specific URL or document
+   - Read content from a webpage
+   - Extract information from a PDF link
+   - "Analyze this article at..." or "What does this page say..."
+
+IMPORTANT: You can use both server tools AND client tools in the same conversation. For example:
+1. Use web_search to find current information
+2. Use gmail_send_email to send that information to someone
+3. Use google_docs_create_document to save the findings
+
+Always explain what you're doing when using these tools so the user understands your process."""
+    
     def get_system_prompt(self, ui_context: str, agent_id: Optional[str] = None) -> str:
         """
         Get system prompt for UI context
@@ -113,20 +185,23 @@ class UnifiedAIClient:
         Returns:
             System prompt string
         """
+        # Load tool usage instructions
+        tool_usage_prompt = self._get_tool_usage_instructions()
+        
         if ui_context == 'stock_chat':
-            return self._get_stock_chat_prompt()
+            return tool_usage_prompt + "\n\n" + self._get_stock_chat_prompt()
         
         elif ui_context == 'data_agent_chat':
-            return self._get_data_agent_prompt()
+            return tool_usage_prompt + "\n\n" + self._get_data_agent_prompt()
         
         elif ui_context == 'single_viewer':
-            return self._get_single_viewer_prompt()
+            return tool_usage_prompt + "\n\n" + self._get_single_viewer_prompt()
         
         elif ui_context == 'triple_agent':
-            return self._get_triple_agent_prompt(agent_id)
+            return tool_usage_prompt + "\n\n" + self._get_triple_agent_prompt(agent_id)
         
         # Default fallback
-        return "You are a helpful AI assistant with access to database and business tools."
+        return tool_usage_prompt + "\n\nYou are a helpful AI assistant with access to database and business tools."
     
     def process_streaming(
         self,
@@ -204,18 +279,117 @@ class UnifiedAIClient:
         # Add to conversation
         conversation.append(user_message)
         
-        # Get tool definitions
-        tools = self.tool_agent.get_tool_definitions()
+        # Get tool definitions from registry_v3
+        from tools import registry_v3
+        registry = registry_v3.get_registry()
+        client_tools = registry.get_anthropic_tools()
         
-        # Stream with Anthropic
+        # Add ToolUseAgent tools if available
+        try:
+            tool_agent_tools = self.tool_agent._get_tool_definitions()
+            print(f"[UnifiedAIClient] Loaded {len(tool_agent_tools)} ToolUseAgent tools")
+            client_tools.extend(tool_agent_tools)
+        except:
+            pass
+        
+        # Validate and fix client tools
+        validated_tools = []
+        invalid_count = 0
+        
+        for idx, tool in enumerate(client_tools):
+            is_valid, errors = self._validate_tool_schema(tool, idx)
+            
+            if not is_valid:
+                # Try to fix
+                fixed_tool = self._fix_tool_schema(tool)
+                is_fixed, remaining_errors = self._validate_tool_schema(fixed_tool, idx)
+                
+                if is_fixed:
+                    validated_tools.append(fixed_tool)
+                else:
+                    invalid_count += 1
+            else:
+                validated_tools.append(tool)
+        
+        if invalid_count > 0:
+            print(f"⚠️  [UnifiedAIClient] Skipped {invalid_count} invalid tools in streaming mode")
+        
+        # Add server tools
+        server_tools = []
+        
+        # Web Search server tool
+        server_tools.append({
+            "type": "web_search_20250305",
+            "name": "web_search",
+            "user_location": {
+                "type": "approximate",
+                "city": "Brisbane",
+                "region": "Queensland",
+                "country": "AU",
+                "timezone": "Australia/Brisbane"
+            },
+            "max_uses": 5
+        })
+        
+        # Web Fetch server tool (BETA) - enabled by default
+        enable_web_fetch = session_data.get('enable_web_fetch', True)
+        if enable_web_fetch:
+            server_tools.append({
+                "type": "web_fetch_20250910",
+                "name": "web_fetch",
+                "max_uses": 10,
+                "citations": {"enabled": True},
+                "max_content_tokens": 100000
+            })
+        
+        all_tools = validated_tools + server_tools
+        print(f"[UnifiedAIClient] Total tools: {len(all_tools)} ({len(validated_tools)} client + {len(server_tools)} server)")
+        
+        # ✅ FIX: Validate and reorder assistant message content blocks
+        # Anthropic API requirement: If thinking blocks exist, first block MUST be thinking
+        for msg in conversation:
+            if msg['role'] == 'assistant' and isinstance(msg.get('content'), list):
+                # Check if message has thinking blocks
+                has_thinking = any(block.get('type') == 'thinking' for block in msg['content'])
+                
+                if has_thinking and len(msg['content']) > 0:
+                    first_block = msg['content'][0]
+                    
+                    # If first block is NOT thinking, reorder
+                    if first_block.get('type') != 'thinking':
+                        print(f"⚠️  [UnifiedAIClient] Reordering content blocks - moving thinking to first position")
+                        
+                        # Extract thinking blocks and other blocks
+                        thinking_blocks = [b for b in msg['content'] if b.get('type') == 'thinking']
+                        other_blocks = [b for b in msg['content'] if b.get('type') != 'thinking']
+                        
+                        # Reorder: thinking first, then others
+                        msg['content'] = thinking_blocks + other_blocks
+                        print(f"✅ [UnifiedAIClient] Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks")
+        
+        # Stream with Anthropic (WITH Extended Thinking + Interleaved Thinking + Server Tools)
         assistant_message = {'role': 'assistant', 'content': []}
+        
+        # Beta headers
+        beta_headers = ["interleaved-thinking-2025-05-14"]
+        if enable_web_fetch:
+            beta_headers.append("web-fetch-2025-09-10")
         
         with self.anthropic_client.messages.stream(
             model=self.anthropic_model,
             max_tokens=12000,
             system=system_prompt,
             messages=conversation,
-            tools=tools
+            tools=all_tools,
+            # ✅ Extended Thinking: Internal reasoning blocks
+            thinking={
+                "type": "enabled",
+                "budget_tokens": session_data.get('thinking_budget', 5000)
+            },
+            # ✅ Beta headers: Interleaved Thinking + Web Fetch
+            extra_headers={
+                "anthropic-beta": ",".join(beta_headers)
+            }
         ) as stream:
             for event in stream:
                 # Convert to SSE format
@@ -226,8 +400,15 @@ class UnifiedAIClient:
                 
                 # Build assistant message
                 if event.type == 'content_block_start':
-                    if event.content_block.type == 'text':
+                    # Handle thinking blocks
+                    if event.content_block.type == 'thinking':
+                        assistant_message['content'].append({'type': 'thinking', 'thinking': ''})
+                    
+                    # Handle text blocks
+                    elif event.content_block.type == 'text':
                         assistant_message['content'].append({'type': 'text', 'text': ''})
+                    
+                    # Handle CLIENT tool_use
                     elif event.content_block.type == 'tool_use':
                         assistant_message['content'].append({
                             'type': 'tool_use',
@@ -235,17 +416,111 @@ class UnifiedAIClient:
                             'name': event.content_block.name,
                             'input': {}
                         })
+                    
+                    # SERVER TOOL: server_tool_use
+                    elif event.content_block.type == 'server_tool_use':
+                        assistant_message['content'].append({
+                            'type': 'server_tool_use',
+                            'id': event.content_block.id,
+                            'name': event.content_block.name,
+                            'input': {}
+                        })
+                        print(f"[SERVER TOOL] {event.content_block.name} initiated")
+                    
+                    # SERVER TOOL: web_search_tool_result
+                    elif event.content_block.type == 'web_search_tool_result':
+                        result_block = {
+                            'type': 'web_search_tool_result',
+                            'tool_use_id': event.content_block.tool_use_id,
+                            'content': []
+                        }
+                        # Preserve search results with encrypted content
+                        if hasattr(event.content_block, 'content'):
+                            for result in event.content_block.content:
+                                result_block['content'].append({
+                                    'type': 'web_search_result',
+                                    'url': result.url,
+                                    'title': result.title,
+                                    'encrypted_content': result.encrypted_content,
+                                    'page_age': getattr(result, 'page_age', None)
+                                })
+                        assistant_message['content'].append(result_block)
+                        print(f"[SERVER TOOL] web_search returned {len(result_block['content'])} results")
+                    
+                    # SERVER TOOL: web_fetch_tool_result
+                    elif event.content_block.type == 'web_fetch_tool_result':
+                        result_block = {
+                            'type': 'web_fetch_tool_result',
+                            'tool_use_id': event.content_block.tool_use_id,
+                            'content': {}
+                        }
+                        # Preserve fetch results with content
+                        if hasattr(event.content_block, 'content'):
+                            content = event.content_block.content
+                            result_block['content'] = {
+                                'type': 'web_fetch_result',
+                                'url': content.url,
+                                'content': {
+                                    'type': 'document',
+                                    'source': content.content.source,
+                                    'title': getattr(content.content, 'title', None),
+                                    'citations': getattr(content.content, 'citations', None)
+                                },
+                                'retrieved_at': content.retrieved_at
+                            }
+                        assistant_message['content'].append(result_block)
+                        print(f"[SERVER TOOL] web_fetch returned content from {result_block['content'].get('url', 'unknown')}")
                 
                 elif event.type == 'content_block_delta':
-                    if event.delta.type == 'text_delta':
+                    if event.delta.type == 'thinking_delta':
+                        # Accumulate thinking content
+                        assistant_message['content'][-1]['thinking'] += event.delta.thinking
+                    
+                    elif event.delta.type == 'text_delta':
                         assistant_message['content'][-1]['text'] += event.delta.text
+                    
                     elif event.delta.type == 'input_json_delta':
-                        # Accumulate tool input
-                        pass
+                        # Accumulate tool input (client and server)
+                        if assistant_message['content']:
+                            last_block = assistant_message['content'][-1]
+                            if last_block['type'] in ['tool_use', 'server_tool_use']:
+                                # Parse JSON delta and merge into input
+                                try:
+                                    import json
+                                    partial_input = json.loads(event.delta.partial_json)
+                                    last_block['input'].update(partial_input)
+                                except:
+                                    pass  # Partial JSON, wait for more chunks
+                    
+                    # Handle citations in text blocks
+                    elif hasattr(event.delta, 'citations') and event.delta.citations:
+                        if assistant_message['content']:
+                            last_block = assistant_message['content'][-1]
+                            if last_block['type'] == 'text':
+                                if 'citations' not in last_block:
+                                    last_block['citations'] = []
+                                last_block['citations'].extend(event.delta.citations)
         
-        # Handle tool use
-        if any(block['type'] == 'tool_use' for block in assistant_message['content']):
+        # Handle CLIENT tool use (server tools are already executed by Anthropic API)
+        server_tools = ['web_search', 'web_fetch']
+        
+        # Only handle CLIENT tools (not server tools)
+        client_tool_blocks = [
+            block for block in assistant_message['content']
+            if block['type'] == 'tool_use' and block.get('name') not in server_tools
+        ]
+        
+        if client_tool_blocks:
             assistant_message = self._handle_tool_use(assistant_message, sse_callback)
+        
+        # Log server tool execution
+        server_tool_blocks = [
+            block for block in assistant_message['content']
+            if block['type'] == 'server_tool_use'
+        ]
+        if server_tool_blocks:
+            tool_names = [block['name'] for block in server_tool_blocks]
+            print(f"[SERVER TOOLS] {len(server_tool_blocks)} server tools executed: {', '.join(tool_names)}")
         
         # Add to conversation
         conversation.append(assistant_message)
@@ -340,7 +615,7 @@ class UnifiedAIClient:
                     except:
                         pass
         
-        # ✅ Add to conversation (Anthropic format for consistency)
+        #  Add to conversation (Anthropic format for consistency)
         # DeepSeek doesn't support thinking blocks, but we preserve the format
         conversation.append({'role': 'user', 'content': [{'type': 'text', 'text': prompt}]})
         # NOTE: DeepSeek responses are text-only (no thinking/tool_use support)
@@ -410,7 +685,7 @@ class UnifiedAIClient:
                         'index': 0
                     })
         
-        # ✅ Add to conversation (Anthropic format for consistency)
+        #  Add to conversation (Anthropic format for consistency)
         # OpenAI doesn't support thinking blocks, but we preserve the format
         conversation.append({'role': 'user', 'content': [{'type': 'text', 'text': prompt}]})
         # NOTE: OpenAI responses are text-only (no thinking/tool_use support)
@@ -419,8 +694,18 @@ class UnifiedAIClient:
         return conversation
     
     def _convert_anthropic_event_to_sse(self, event) -> Optional[Dict]:
-        """Convert Anthropic event to SSE format (SAME AS BEFORE)"""
+        """
+        Convert Anthropic event to SSE format
         
+        Handles:
+        - text_delta: Regular text content
+        - thinking_delta: Extended thinking content
+        - server_tool_use: Web search/fetch requests
+        - web_search_tool_result: Web search results
+        - web_fetch_tool_result: Web fetch results
+        """
+        
+        # Text deltas
         if event.type == 'content_block_delta':
             if event.delta.type == 'text_delta':
                 return {
@@ -429,6 +714,7 @@ class UnifiedAIClient:
                     'index': event.index
                 }
         
+        # Thinking deltas
         elif hasattr(event, 'delta') and hasattr(event.delta, 'type'):
             if event.delta.type == 'thinking_delta':
                 return {
@@ -437,7 +723,119 @@ class UnifiedAIClient:
                     'index': event.index
                 }
         
+        # Server tool use (web_search, web_fetch)
+        elif event.type == 'content_block_start':
+            if hasattr(event, 'content_block'):
+                block = event.content_block
+                
+                # Server tool use
+                if block.type == 'server_tool_use':
+                    return {
+                        'type': 'server_tool_use',
+                        'id': block.id,
+                        'name': block.name,
+                        'input': getattr(block, 'input', {}),
+                        'index': event.index
+                    }
+                
+                # Web search results
+                elif block.type == 'web_search_tool_result':
+                    return {
+                        'type': 'web_search_tool_result',
+                        'tool_use_id': block.tool_use_id,
+                        'content': getattr(block, 'content', []),
+                        'index': event.index
+                    }
+                
+                # Web fetch results
+                elif block.type == 'web_fetch_tool_result':
+                    return {
+                        'type': 'web_fetch_tool_result',
+                        'tool_use_id': block.tool_use_id,
+                        'content': getattr(block, 'content', {}),
+                        'index': event.index
+                    }
+        
         return None
+    
+    def _validate_tool_schema(self, tool: dict, index: int) -> tuple[bool, list[str]]:
+        """
+        Validate tool schema matches Anthropic API format
+        
+        Returns: (is_valid, list_of_errors)
+        """
+        errors = []
+        
+        # Check required fields
+        if 'name' not in tool:
+            errors.append(f"Tool #{index}: Missing 'name' field")
+            return False, errors
+        
+        tool_name = tool['name']
+        
+        # Server tools (have 'type' field with versioned name)
+        if 'type' in tool and tool['type'].startswith(('web_search_', 'web_fetch_', 'bash_', 'computer_', 'text_editor_')):
+            # Server tools don't need input_schema
+            return True, []
+        
+        # Client tools must have input_schema
+        if 'input_schema' not in tool:
+            # Check if has old 'parameters' field
+            if 'parameters' in tool:
+                errors.append(f"Tool #{index} '{tool_name}': Has 'parameters' instead of 'input_schema'")
+            else:
+                errors.append(f"Tool #{index} '{tool_name}': Missing 'input_schema'")
+            return False, errors
+        
+        schema = tool['input_schema']
+        
+        # input_schema must be a dict
+        if not isinstance(schema, dict):
+            errors.append(f"Tool #{index} '{tool_name}': input_schema must be object/dict")
+            return False, errors
+        
+        # input_schema must have type: "object"
+        if 'type' not in schema:
+            errors.append(f"Tool #{index} '{tool_name}': input_schema missing 'type' field")
+        elif schema['type'] != 'object':
+            errors.append(f"Tool #{index} '{tool_name}': input_schema.type must be 'object'")
+        
+        # input_schema must have properties
+        if 'properties' not in schema:
+            errors.append(f"Tool #{index} '{tool_name}': input_schema missing 'properties'")
+        
+        # required field must be array if present
+        if 'required' in schema:
+            if not isinstance(schema['required'], list):
+                errors.append(f"Tool #{index} '{tool_name}': input_schema.required must be array")
+        
+        return len(errors) == 0, errors
+    
+    def _fix_tool_schema(self, tool: dict) -> dict:
+        """
+        Attempt to fix common tool schema issues
+        
+        Returns: fixed tool
+        """
+        fixed = tool.copy()
+        
+        # Fix 1: Convert 'parameters' to 'input_schema'
+        if 'parameters' in fixed and 'input_schema' not in fixed:
+            fixed['input_schema'] = fixed.pop('parameters')
+        
+        # Fix 2: Ensure input_schema has type: "object"
+        if 'input_schema' in fixed and isinstance(fixed['input_schema'], dict):
+            if 'type' not in fixed['input_schema']:
+                fixed['input_schema']['type'] = 'object'
+        
+        # Fix 3: Ensure required is array
+        if 'input_schema' in fixed and isinstance(fixed['input_schema'], dict):
+            schema = fixed['input_schema']
+            if 'required' in schema and not isinstance(schema['required'], list):
+                if isinstance(schema['required'], str):
+                    schema['required'] = [schema['required']]
+        
+        return fixed
     
     def _handle_tool_use(self, assistant_message: Dict, sse_callback: Optional[Callable]) -> Dict:
         """Execute server-side tools"""
@@ -465,41 +863,387 @@ class UnifiedAIClient:
         
         return assistant_message
     
-    # System prompts (same as unified_anthropic_client.py)
+    def create_message(
+        self,
+        messages: List[Dict],
+        provider: Literal['anthropic', 'deepseek', 'openai'] = 'anthropic',
+        model: Optional[str] = None,
+        max_tokens: int = 4000,
+        system: Optional[str] = None,
+        tools: Optional[List] = None,
+        enable_thinking: bool = True,
+        thinking_budget: int = 5000,
+        enable_web_search: bool = True,
+        enable_web_fetch: bool = False
+    ) -> Dict:
+        """
+        Create a non-streaming message with Extended Thinking + Server Tools
+        
+        Args:
+            messages: List of message dicts with 'role' and 'content'
+            provider: AI provider to use
+            model: Model name (uses default if not specified)
+            max_tokens: Maximum tokens in response
+            system: Optional system prompt
+            tools: Optional tool definitions (client tools)
+            enable_thinking: Enable Extended Thinking (default: True)
+            thinking_budget: Token budget for thinking (default: 5000)
+            enable_web_search: Enable web_search server tool (default: True)
+            enable_web_fetch: Enable web_fetch server tool BETA (default: False)
+        
+        Returns:
+            Response dict with 'content' field
+        """
+        if provider == 'anthropic':
+            if not self.anthropic_client:
+                raise ValueError("Anthropic client not initialized. Set ANTHROPIC_API_KEY.")
+            
+            # Use specified model or default
+            model = model or self.anthropic_model
+            
+            # Validate and fix client tools
+            client_tools = tools or []
+            validated_tools = []
+            invalid_count = 0
+            
+            for idx, tool in enumerate(client_tools):
+                is_valid, errors = self._validate_tool_schema(tool, idx)
+                
+                if not is_valid:
+                    print(f"⚠️  Tool #{idx} '{tool.get('name', 'UNKNOWN')}' validation failed:")
+                    for error in errors:
+                        print(f"    {error}")
+                    
+                    # Try to fix
+                    fixed_tool = self._fix_tool_schema(tool)
+                    is_fixed, remaining_errors = self._validate_tool_schema(fixed_tool, idx)
+                    
+                    if is_fixed:
+                        print(f"    ✅ Auto-fixed!")
+                        validated_tools.append(fixed_tool)
+                    else:
+                        print(f"    ❌ Could not fix - SKIPPING tool")
+                        invalid_count += 1
+                else:
+                    validated_tools.append(tool)
+            
+            if invalid_count > 0:
+                print(f"⚠️  Skipped {invalid_count} invalid tools")
+            
+            # Add server tools
+            server_tools = []
+            
+            # Web Search server tool
+            if enable_web_search:
+                server_tools.append({
+                    "type": "web_search_20250305",
+                    "name": "web_search",
+                    "user_location": {
+                        "type": "approximate",
+                        "city": "Brisbane",
+                        "region": "Queensland",
+                        "country": "AU",
+                        "timezone": "Australia/Brisbane"
+                    },
+                    "max_uses": 5
+                })
+            
+            # Web Fetch server tool (BETA)
+            if enable_web_fetch:
+                server_tools.append({
+                    "type": "web_fetch_20250910",
+                    "name": "web_fetch",
+                    "max_uses": 10,
+                    "citations": {"enabled": True},
+                    "max_content_tokens": 100000
+                })
+            
+            all_tools = validated_tools + server_tools
+            print(f"[UnifiedAIClient] create_message: {len(all_tools)} total tools ({len(validated_tools)} client + {len(server_tools)} server)")
+            
+            # ✅ CRITICAL FIX: Reorder assistant message content blocks BEFORE API call
+            # Anthropic API requirement: If thinking blocks exist, first block MUST be thinking
+            for idx, msg in enumerate(messages):
+                if msg['role'] == 'assistant' and isinstance(msg.get('content'), list):
+                    # Check if message has thinking blocks
+                    has_thinking = any(block.get('type') == 'thinking' for block in msg['content'])
+                    
+                    if has_thinking and len(msg['content']) > 0:
+                        first_block = msg['content'][0]
+                        
+                        # Debug logging for first 3 messages
+                        if idx < 3:
+                            print(f"[UnifiedAIClient.create_message] Message {idx} ({msg['role']}): {len(msg['content'])} blocks")
+                            print(f"[UnifiedAIClient.create_message]   First block type: {first_block.get('type')}")
+                            if has_thinking:
+                                print(f"[UnifiedAIClient.create_message]   Has thinking blocks: YES")
+                        
+                        # If first block is NOT thinking, reorder
+                        if first_block.get('type') != 'thinking':
+                            print(f"[UnifiedAIClient.create_message] 🔧 Reordering message {idx} - moving thinking to first position")
+                            
+                            # Extract thinking blocks and other blocks
+                            thinking_blocks = [b for b in msg['content'] if b.get('type') == 'thinking']
+                            other_blocks = [b for b in msg['content'] if b.get('type') != 'thinking']
+                            
+                            # Reorder: thinking first, then others
+                            msg['content'] = thinking_blocks + other_blocks
+                            print(f"[UnifiedAIClient.create_message] ✅ Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks")
+                            print(f"[UnifiedAIClient.create_message]   New first block: {msg['content'][0].get('type')}")
+            
+            # Prepare API parameters
+            api_params = {
+                "model": model,
+                "max_tokens": max_tokens,
+                "system": system or "You are a helpful AI assistant.",
+                "messages": messages,
+                "tools": all_tools
+            }
+            
+            # Add Extended Thinking
+            if enable_thinking:
+                api_params["thinking"] = {
+                    "type": "enabled",
+                    "budget_tokens": thinking_budget
+                }
+            
+            # Add beta headers
+            extra_headers = {}
+            if enable_thinking:
+                extra_headers["anthropic-beta"] = "interleaved-thinking-2025-05-14"
+            
+            if enable_web_fetch:
+                if extra_headers.get("anthropic-beta"):
+                    extra_headers["anthropic-beta"] += ",web-fetch-2025-09-10"
+                else:
+                    extra_headers["anthropic-beta"] = "web-fetch-2025-09-10"
+            
+            if extra_headers:
+                api_params["extra_headers"] = extra_headers
+            
+            # Call Anthropic API
+            response = self.anthropic_client.messages.create(**api_params)
+            
+            # Debug: Print raw response
+            print(f"\n[DEBUG] Raw response from Anthropic:")
+            print(f"  Stop reason: {response.stop_reason}")
+            print(f"  Content blocks: {len(response.content)}")
+            for i, block in enumerate(response.content):
+                print(f"  Block {i}: type={block.type}")
+                if block.type == 'tool_use':
+                    print(f"    id={getattr(block, 'id', 'MISSING')}")
+                    print(f"    name={getattr(block, 'name', 'MISSING')}")
+                    print(f"    input={getattr(block, 'input', 'MISSING')}")
+            
+            # Convert to expected format
+            content_blocks = []
+            for block in response.content:
+                block_dict = {'type': block.type}
+                
+                # Add text field if present
+                if hasattr(block, 'text'):
+                    block_dict['text'] = block.text
+                
+                # Add thinking field and signature if present (BOTH required for Extended Thinking)
+                if hasattr(block, 'thinking'):
+                    block_dict['thinking'] = block.thinking
+                    # CRITICAL: signature field is REQUIRED when passing thinking blocks back to API
+                    if hasattr(block, 'signature'):
+                        block_dict['signature'] = block.signature
+                
+                # Add tool_use fields if present
+                if block.type == 'tool_use':
+                    # These fields MUST exist for tool_use blocks
+                    block_dict['id'] = getattr(block, 'id', None)
+                    block_dict['name'] = getattr(block, 'name', None)
+                    block_dict['input'] = getattr(block, 'input', {})
+                    
+                    # Warn if critical fields are missing
+                    if not block_dict['name']:
+                        print(f"⚠️  WARNING: tool_use block missing 'name' field!")
+                        print(f"    Block attributes: {dir(block)}")
+                
+                content_blocks.append(block_dict)
+            
+            return {
+                'id': response.id,
+                'type': response.type,
+                'role': response.role,
+                'content': content_blocks,
+                'model': response.model,
+                'stop_reason': response.stop_reason,
+                'usage': {
+                    'input_tokens': response.usage.input_tokens,
+                    'output_tokens': response.usage.output_tokens
+                }
+            }
+        
+        elif provider == 'deepseek':
+            # Convert to OpenAI format
+            openai_messages = []
+            if system:
+                openai_messages.append({'role': 'system', 'content': system})
+            
+            for msg in messages:
+                content = msg.get('content', '')
+                if isinstance(content, list):
+                    # Extract text from content blocks
+                    text_parts = [block.get('text', '') for block in content if block.get('type') == 'text']
+                    content = ''.join(text_parts)
+                openai_messages.append({'role': msg['role'], 'content': content})
+            
+            # Call DeepSeek API
+            headers = {
+                'Authorization': f'Bearer {self.deepseek_api_key}',
+                'Content-Type': 'application/json'
+            }
+            
+            payload = {
+                'model': model or self.deepseek_model,
+                'messages': openai_messages,
+                'max_tokens': max_tokens
+            }
+            
+            response = requests.post(
+                f"{self.deepseek_base_url}/chat/completions",
+                headers=headers,
+                json=payload
+            )
+            
+            response.raise_for_status()
+            result = response.json()
+            
+            # Convert to Anthropic-like format
+            return {
+                'id': result.get('id', ''),
+                'type': 'message',
+                'role': 'assistant',
+                'content': [
+                    {
+                        'type': 'text',
+                        'text': result['choices'][0]['message']['content']
+                    }
+                ],
+                'model': result.get('model', ''),
+                'stop_reason': result['choices'][0].get('finish_reason', 'end_turn'),
+                'usage': result.get('usage', {})
+            }
+        
+        elif provider == 'openai':
+            # Convert to OpenAI format
+            openai_messages = []
+            if system:
+                openai_messages.append({'role': 'system', 'content': system})
+            
+            for msg in messages:
+                content = msg.get('content', '')
+                if isinstance(content, list):
+                    # Extract text from content blocks
+                    text_parts = [block.get('text', '') for block in content if block.get('type') == 'text']
+                    content = ''.join(text_parts)
+                openai_messages.append({'role': msg['role'], 'content': content})
+            
+            # Call OpenAI API
+            response = openai.ChatCompletion.create(
+                model=model or self.openai_model,
+                messages=openai_messages,
+                max_tokens=max_tokens
+            )
+            
+            # Convert to Anthropic-like format
+            return {
+                'id': response.id,
+                'type': 'message',
+                'role': 'assistant',
+                'content': [
+                    {
+                        'type': 'text',
+                        'text': response.choices[0].message.content
+                    }
+                ],
+                'model': response.model,
+                'stop_reason': response.choices[0].finish_reason,
+                'usage': {
+                    'input_tokens': response.usage.prompt_tokens,
+                    'output_tokens': response.usage.completion_tokens
+                }
+            }
+        
+        else:
+            raise ValueError(f"Unknown provider: {provider}")
+    
+    # System prompts (updated with Extended Thinking and Web Search capabilities)
     def _get_stock_chat_prompt(self) -> str:
         """System prompt for Stock AI Chat"""
         return """You are a Stock Management AI Assistant with expertise in inventory, supplier relationships, and pricing.
 
-Your role is to help manage stock inventory, analyze usage patterns, process invoices, and optimize purchasing decisions.
+**ADVANCED CAPABILITIES:**
+✅ Extended Thinking: Use internal reasoning blocks to analyze before acting (users don't see this)
+✅ Interleaved Thinking: Think between tool calls to validate results and plan next steps
+✅ Web Search: Search the web for current pricing, supplier contacts, product specs, market data
+✅ 641 Tools: Registry tools (584) + Printing business tools (57)
 
-You have access to:
-- Stock inventory database (unified_stocks, extracted_jobs)
-- Quote calculator tools
-- SQL query execution
+**YOUR TOOLS:**
+- Stock inventory database (unified_stocks, extracted_jobs, job_stocks)
+- Quote calculator tools (7 calculators: business cards, flyers, books, etc.)
+- SQL query execution (50+ predefined queries)
 - Invoice processing (document analysis with PDFs and images)
+- Web search (real-time supplier pricing, contacts, specifications)
+- Google Workspace, Microsoft 365, WooCommerce, Stripe, etc.
+
+**WORKFLOW:**
+1. Think internally about the request (use thinking blocks)
+2. Search web if you need current information
+3. Execute tools to gather data
+4. Think between tool calls to validate and plan
+5. Provide clear, actionable response
 
 Communication style:
 - Professional and data-driven
 - Use tables for structured data
 - Suggest actionable next steps
-- Always compare to database when processing invoices"""
+- Always compare to database when processing invoices
+- Use web search for current market prices"""
     
     def _get_data_agent_prompt(self) -> str:
         """System prompt for Data Agent Chat"""
         return """You are a Data Analysis AI Assistant with expertise in business intelligence and SQL.
 
-Your role is to help analyze business data, generate insights, and answer complex queries about the printing business.
+**ADVANCED CAPABILITIES:**
+✅ Extended Thinking: Use internal reasoning to analyze data patterns and plan queries
+✅ Interleaved Thinking: Validate query results before drawing conclusions
+✅ Web Search: Research industry benchmarks, competitor data, market trends
+✅ 585+ Tools: Full platform integration + business intelligence tools
 
-You have access to:
-- Complete SQL Server database (production data)
-- Business intelligence tools
-- Advanced analytics capabilities
+**YOUR TOOLS (YOU MUST USE THESE):**
+- Complete SQL Server database (production data from In House Print)
+- 50+ predefined SQL queries (sales, customers, operations, metrics)
+- 7 quote calculators (business cards, flyers, books, corflute, booklets)
+- Web search (industry data, benchmarks, competitor analysis)
+- Google Workspace, Microsoft 365, E-commerce platforms
+- WooCommerce, Stripe, Twilio, Slack, GitHub integration
+- Advanced analytics and visualization capabilities
+
+**IMPORTANT - TOOL USAGE RULES:**
+1. When the user asks you to test something, USE THE ACTUAL TOOL (don't just describe it)
+2. When asked about tools, you can list them, but if asked to TEST or USE a tool, call it
+3. Always execute tools when requested - tools are ACTIVE and WORKING
+4. Tool results will be returned to you automatically - wait for and use them
+5. If a tool requires parameters, use reasonable defaults or ask the user
+
+**WORKFLOW:**
+1. Think through the analysis approach  
+2. **EXECUTE tools** to query database, test connections, etc (don't just describe)
+3. Think between tool calls to validate and refine
+4. Use web search for external context if needed
+5. Present insights with actionable recommendations
 
 Communication style:
 - Analytical and insight-driven
 - Use visualizations when helpful
 - Explain trends and patterns
-- Provide actionable recommendations"""
+- Provide actionable recommendations
+- ACTUALLY EXECUTE TOOLS when requested (critical!)"""
     
     def _get_single_viewer_prompt(self) -> str:
         """System prompt for Single Viewer"""

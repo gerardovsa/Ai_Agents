@@ -45,7 +45,7 @@ class AIAgentRenderDeploy:
         self.render_client = RenderAPIClient(self.render_api_key) if RenderAPIClient and self.render_api_key else None
         self.ai_client = AIRenderClient() if AIRenderClient else None
         
-        print("✅ AI Agent Render Deployment initialized")
+        print(" AI Agent Render Deployment initialized")
         print(f"   Flask URL: {self.flask_url}")
         print(f"   Streamlit URL: {self.streamlit_url}")
     
@@ -83,9 +83,9 @@ class AIAgentRenderDeploy:
             results["categories"][category] = result
             
             if result["success"]:
-                print(f"   ✅ {result['tools_available']} tools available")
+                print(f"    {result['tools_available']} tools available")
             else:
-                print(f"   ❌ Error: {result.get('error')}")
+                print(f"    Error: {result.get('error')}")
         
         print("\n" + "=" * 80)
         print("TOOL VERIFICATION COMPLETE")
@@ -149,7 +149,7 @@ class AIAgentRenderDeploy:
         
         models = [
             ("deepseek", "deepseek-chat"),
-            ("claude", "claude-sonnet-4-20250514"),
+            ("claude", "claude-sonnet-4-5-20250929"),
             ("openai", "gpt-4")
         ]
         
@@ -164,20 +164,20 @@ class AIAgentRenderDeploy:
                 )
                 
                 if result.get("success"):
-                    print(f"   ✅ Success: {result['content'][:50]}...")
+                    print(f"    Success: {result['content'][:50]}...")
                     results["models"][provider] = {
                         "success": True,
                         "response_length": len(result["content"]),
                         "model": result.get("model")
                     }
                 else:
-                    print(f"   ❌ Failed: {result.get('error')}")
+                    print(f"    Failed: {result.get('error')}")
                     results["models"][provider] = {
                         "success": False,
                         "error": result.get("error")
                     }
             except Exception as e:
-                print(f"   ❌ Exception: {e}")
+                print(f"    Exception: {e}")
                 results["models"][provider] = {
                     "success": False,
                     "error": str(e)
@@ -246,12 +246,12 @@ class AIAgentRenderDeploy:
                 }
                 
                 if success:
-                    print(f"   ✅ Response time: {response.elapsed.total_seconds():.2f}s")
+                    print(f"    Response time: {response.elapsed.total_seconds():.2f}s")
                 else:
-                    print(f"   ❌ Failed: {response.status_code}")
+                    print(f"    Failed: {response.status_code}")
                 
             except Exception as e:
-                print(f"   ❌ Error: {e}")
+                print(f"    Error: {e}")
                 results["endpoints"][name] = {
                     "success": False,
                     "error": str(e)
@@ -290,8 +290,8 @@ class AIAgentRenderDeploy:
         if self.render_client:
             service_status = self.ai_client.check_render_services()
             results["tests"]["render_services"] = service_status
-            print(f"   ✅ Flask: {service_status.get('flask', {}).get('status')}")
-            print(f"   ✅ Streamlit: {service_status.get('streamlit', {}).get('status')}")
+            print(f"    Flask: {service_status.get('flask', {}).get('status')}")
+            print(f"    Streamlit: {service_status.get('streamlit', {}).get('status')}")
         else:
             print("   ⚠️  Render client not available")
         
@@ -316,7 +316,7 @@ class AIAgentRenderDeploy:
         
         # Overall summary
         print("\n📊 OVERALL RESULTS:")
-        print(f"   Render Services: {'✅ Working' if results['tests'].get('render_services', {}).get('success') else '❌ Failed'}")
+        print(f"   Render Services: {' Working' if results['tests'].get('render_services', {}).get('success') else ' Failed'}")
         
         ai_success = sum(1 for m in results["tests"]["ai_models"]["models"].values() if m.get("success"))
         print(f"   AI Models: {ai_success}/3 working")
@@ -351,16 +351,16 @@ class AIAgentRenderDeploy:
         flask_service = self.render_client.get_flask_service()
         
         if not flask_service:
-            print("❌ Flask service not found on Render")
+            print(" Flask service not found on Render")
             return {"success": False, "error": "Flask service not found"}
         
-        print(f"✅ Found Flask service: {flask_service['name']}")
+        print(f" Found Flask service: {flask_service['name']}")
         
         # Trigger deployment
         print("\n🚀 Triggering deployment...")
         try:
             deploy_result = self.render_client.trigger_deploy(flask_service['id'])
-            print(f"✅ Deploy triggered: {deploy_result.get('id')}")
+            print(f" Deploy triggered: {deploy_result.get('id')}")
             
             return {
                 "success": True,
@@ -369,7 +369,7 @@ class AIAgentRenderDeploy:
                 "service_name": flask_service['name']
             }
         except Exception as e:
-            print(f"❌ Deploy failed: {e}")
+            print(f" Deploy failed: {e}")
             return {"success": False, "error": str(e)}
 
 

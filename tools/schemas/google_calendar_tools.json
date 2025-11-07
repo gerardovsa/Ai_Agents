@@ -1,10 +1,10 @@
 {
   "platform": "google_calendar",
-  "description": "Google Calendar API - Complete calendar and event management tools",
+  "description": "Google Calendar API - Complete calendar and event management tools\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "tools": [
     {
       "name": "google_calendar_list_calendars",
-      "description": "List all calendars accessible by the user",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_list_calendars', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all calendars accessible by the user",
       "platform": "google_calendar",
       "parameters": {
         "show_hidden": {
@@ -21,7 +21,7 @@
     },
     {
       "name": "google_calendar_get_calendar",
-      "description": "Get details of a specific calendar",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_get_calendar', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a specific calendar",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -37,7 +37,7 @@
     },
     {
       "name": "google_calendar_create_event",
-      "description": "Create a new calendar event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_create_event', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new calendar event",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -111,7 +111,7 @@
     },
     {
       "name": "google_calendar_update_event",
-      "description": "Update an existing calendar event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_update_event', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing calendar event",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -169,7 +169,7 @@
     },
     {
       "name": "google_calendar_delete_event",
-      "description": "Delete a calendar event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_delete_event', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a calendar event",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -197,7 +197,7 @@
     },
     {
       "name": "google_calendar_list_events",
-      "description": "List events in a calendar with filters",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_list_events', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList events in a calendar with filters",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -247,7 +247,7 @@
     },
     {
       "name": "google_calendar_get_event",
-      "description": "Get details of a specific event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_get_event', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a specific event",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -269,7 +269,7 @@
     },
     {
       "name": "google_calendar_check_availability",
-      "description": "Check free/busy information for calendars",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_check_availability', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck free/busy information for calendars",
       "platform": "google_calendar",
       "parameters": {
         "time_min": {
@@ -301,7 +301,7 @@
     },
     {
       "name": "google_calendar_quick_add",
-      "description": "Create event from natural language text",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_quick_add', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate event from natural language text",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -329,7 +329,7 @@
     },
     {
       "name": "google_calendar_move_event",
-      "description": "Move event to another calendar",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_move_event', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove event to another calendar",
       "platform": "google_calendar",
       "parameters": {
         "source_calendar_id": {
@@ -361,7 +361,7 @@
     },
     {
       "name": "google_calendar_add_reminder",
-      "description": "Add or update reminders for an event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_add_reminder', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd or update reminders for an event",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -391,7 +391,10 @@
           "parameters": {
             "event_id": "abc123",
             "reminders": [
-              {"method": "email", "minutes": 1440}
+              {
+                "method": "email",
+                "minutes": 1440
+              }
             ]
           }
         }
@@ -399,7 +402,7 @@
     },
     {
       "name": "google_calendar_get_colors",
-      "description": "Get available calendar and event colors",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_get_colors', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet available calendar and event colors",
       "platform": "google_calendar",
       "parameters": {},
       "returns": {

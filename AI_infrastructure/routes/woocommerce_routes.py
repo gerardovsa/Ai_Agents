@@ -125,7 +125,7 @@ def get_orders():
         })
         
     except Exception as e:
-        print(f"❌ Error in get_orders: {e}")
+        print(f" Error in get_orders: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -145,7 +145,7 @@ def get_order(order_id):
         })
         
     except Exception as e:
-        print(f"❌ Error in get_order: {e}")
+        print(f" Error in get_order: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -178,7 +178,7 @@ def get_products():
         })
         
     except Exception as e:
-        print(f"❌ Error in get_products: {e}")
+        print(f" Error in get_products: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -203,7 +203,7 @@ def get_customers():
         })
         
     except Exception as e:
-        print(f"❌ Error in get_customers: {e}")
+        print(f" Error in get_customers: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -226,7 +226,7 @@ def get_sales_report():
         })
         
     except Exception as e:
-        print(f"❌ Error in get_sales_report: {e}")
+        print(f" Error in get_sales_report: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -250,7 +250,7 @@ def get_top_sellers():
         })
         
     except Exception as e:
-        print(f"❌ Error in get_top_sellers: {e}")
+        print(f" Error in get_top_sellers: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -271,7 +271,7 @@ def get_system_status():
         })
         
     except Exception as e:
-        print(f"❌ Error in get_system_status: {e}")
+        print(f" Error in get_system_status: {e}")
         return jsonify({'error': str(e)}), 500
 
 

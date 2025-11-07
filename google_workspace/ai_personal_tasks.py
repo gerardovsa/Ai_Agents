@@ -36,11 +36,16 @@ from google_workspace.google_tasks import (
 # Configuration
 AI_TASKLIST_NAME = "🤖 AI Agent Tasks"
 AI_TASKLIST_ID = None  # Will be set on first use
+DEFAULT_USER_ID = 1  # Default to user_id=1 for database OAuth
 
 
-def _get_or_create_ai_tasklist():
+def _get_or_create_ai_tasklist(_user_id=None, **kwargs):
     """
     Get or create the AI's dedicated task list.
+    
+    Args:
+        _user_id: User ID for database OAuth (default: 1)
+        **kwargs: Additional credential injection parameters
     
     Returns:
         str: Task list ID for AI Agent Tasks
@@ -50,22 +55,25 @@ def _get_or_create_ai_tasklist():
     if AI_TASKLIST_ID:
         return AI_TASKLIST_ID
     
+    # Use provided user_id or default to 1
+    user_id = _user_id or kwargs.get('user_id') or DEFAULT_USER_ID
+    
     # Check if AI task list already exists
-    result = google_tasks_list_task_lists()
+    result = google_tasks_list_task_lists(_user_id=user_id, _injected_credentials=True)
     
     if result.get('success'):
         for tasklist in result.get('task_lists', []):
             if tasklist['title'] == AI_TASKLIST_NAME:
                 AI_TASKLIST_ID = tasklist['id']
-                print(f"✅ Found existing AI task list: {AI_TASKLIST_ID}")
+                print(f" Found existing AI task list: {AI_TASKLIST_ID}")
                 return AI_TASKLIST_ID
     
     # Create new AI task list
     print(f"📝 Creating new AI task list: {AI_TASKLIST_NAME}")
-    result = google_tasks_create_task_list(title=AI_TASKLIST_NAME)
+    result = google_tasks_create_task_list(title=AI_TASKLIST_NAME, _user_id=user_id, _injected_credentials=True)
     
     if result.get('success'):
-        AI_TASKLIST_ID = result['task_list']['id']
+        AI_TASKLIST_ID = result['task_list_id']  # Fixed: use task_list_id instead of task_list.id
         print(f"✅ Created AI task list: {AI_TASKLIST_ID}")
         return AI_TASKLIST_ID
     
@@ -73,7 +81,7 @@ def _get_or_create_ai_tasklist():
 
 
 def ai_create_task(title: str, notes: str = None, due_date: str = None, 
-                   priority: str = "medium") -> Dict[str, Any]:
+                   priority: str = "medium", _user_id: int = None, **kwargs) -> Dict[str, Any]:
     """
     🤖 AI creates a task for itself.
     
@@ -88,6 +96,8 @@ def ai_create_task(title: str, notes: str = None, due_date: str = None,
         notes: Detailed notes/context (optional)
         due_date: Due date in ISO format YYYY-MM-DD (optional)
         priority: Priority level - "high", "medium", "low" (default: "medium")
+        _user_id: User ID for OAuth credentials (default: 1)
+        **kwargs: Additional credential injection parameters
     
     Returns:
         dict: Task creation result with task ID
@@ -102,7 +112,8 @@ def ai_create_task(title: str, notes: str = None, due_date: str = None,
         )
     """
     try:
-        tasklist_id = _get_or_create_ai_tasklist()
+        user_id = _user_id or kwargs.get('user_id') or DEFAULT_USER_ID
+        tasklist_id = _get_or_create_ai_tasklist(_user_id=user_id, **kwargs)
         
         # Add priority emoji to title
         priority_emoji = {
@@ -120,18 +131,21 @@ def ai_create_task(title: str, notes: str = None, due_date: str = None,
         enhanced_notes += f"\n\n---\nCreated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         
         result = google_tasks_create_task(
-            tasklist_id=tasklist_id,
+            task_list_id=tasklist_id,
             title=enhanced_title,
             notes=enhanced_notes,
-            due=due_date
+            due=due_date,
+            _user_id=user_id,
+            _injected_credentials=True
         )
         
         if result.get('success'):
             print(f"✅ AI created task: {enhanced_title}")
             return {
                 'success': True,
-                'task_id': result['task']['id'],
+                'task_id': result['task_id'],
                 'title': enhanced_title,
+                'task': result,
                 'message': f"AI task created: {title}"
             }
         
@@ -147,7 +161,7 @@ def ai_create_task(title: str, notes: str = None, due_date: str = None,
         }
 
 
-def ai_list_my_tasks(show_completed: bool = False, limit: int = 20) -> Dict[str, Any]:
+def ai_list_my_tasks(show_completed: bool = False, limit: int = 20, _user_id: int = None, **kwargs) -> Dict[str, Any]:
     """
     🤖 AI lists its own tasks.
     
@@ -160,6 +174,8 @@ def ai_list_my_tasks(show_completed: bool = False, limit: int = 20) -> Dict[str,
     Args:
         show_completed: Include completed tasks (default: False)
         limit: Maximum number of tasks to return (default: 20)
+        _user_id: User ID for OAuth credentials (default: 1)
+        **kwargs: Additional credential injection parameters
     
     Returns:
         dict: List of AI's tasks with details
@@ -170,17 +186,19 @@ def ai_list_my_tasks(show_completed: bool = False, limit: int = 20) -> Dict[str,
         print(f"I have {len(tasks['tasks'])} pending tasks")
     """
     try:
-        tasklist_id = _get_or_create_ai_tasklist()
+        user_id = _user_id or kwargs.get('user_id') or DEFAULT_USER_ID
+        task_list_id = _get_or_create_ai_tasklist(_user_id=user_id, **kwargs)
         
         result = google_tasks_list_tasks(
-            tasklist_id=tasklist_id,
+            task_list_id=task_list_id,
             show_completed=show_completed,
-            max_results=limit
+            _user_id=user_id,
+            _injected_credentials=True
         )
         
         if result.get('success'):
             tasks = result.get('tasks', [])
-            print(f"✅ AI has {len(tasks)} tasks")
+            print(f" AI has {len(tasks)} tasks")
             
             return {
                 'success': True,
@@ -202,7 +220,7 @@ def ai_list_my_tasks(show_completed: bool = False, limit: int = 20) -> Dict[str,
 
 
 def ai_update_task(task_id: str, title: str = None, notes: str = None, 
-                   due_date: str = None, status: str = None) -> Dict[str, Any]:
+                   due_date: str = None, status: str = None, _user_id: int = None, **kwargs) -> Dict[str, Any]:
     """
     🤖 AI updates one of its tasks.
     
@@ -230,23 +248,26 @@ def ai_update_task(task_id: str, title: str = None, notes: str = None,
         )
     """
     try:
-        tasklist_id = _get_or_create_ai_tasklist()
+        user_id = _user_id or kwargs.get('user_id') or DEFAULT_USER_ID
+        tasklist_id = _get_or_create_ai_tasklist(_user_id=user_id, **kwargs)
         
         # Add update timestamp to notes
         if notes:
             notes += f"\n\n---\nUpdated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         
         result = google_tasks_update_task(
-            tasklist_id=tasklist_id,
+            task_list_id=tasklist_id,
             task_id=task_id,
             title=title,
             notes=notes,
             due=due_date,
-            status=status
+            status=status,
+            _user_id=user_id,
+            _injected_credentials=True
         )
         
         if result.get('success'):
-            print(f"✅ AI updated task: {task_id}")
+            print(f" AI updated task: {task_id}")
             return {
                 'success': True,
                 'task_id': task_id,
@@ -265,7 +286,7 @@ def ai_update_task(task_id: str, title: str = None, notes: str = None,
         }
 
 
-def ai_complete_task(task_id: str, completion_notes: str = None) -> Dict[str, Any]:
+def ai_complete_task(task_id: str, completion_notes: str = None, _user_id: int = None, **kwargs) -> Dict[str, Any]:
     """
     🤖 AI marks one of its tasks as complete.
     
@@ -289,7 +310,8 @@ def ai_complete_task(task_id: str, completion_notes: str = None) -> Dict[str, An
         )
     """
     try:
-        tasklist_id = _get_or_create_ai_tasklist()
+        user_id = _user_id or kwargs.get('user_id') or DEFAULT_USER_ID
+        tasklist_id = _get_or_create_ai_tasklist(_user_id=user_id, **kwargs)
         
         # Add completion notes if provided
         if completion_notes:
@@ -299,12 +321,14 @@ def ai_complete_task(task_id: str, completion_notes: str = None) -> Dict[str, An
             )
         
         result = google_tasks_complete_task(
-            tasklist_id=tasklist_id,
-            task_id=task_id
+            task_list_id=tasklist_id,
+            task_id=task_id,
+            _user_id=user_id,
+            _injected_credentials=True
         )
         
         if result.get('success'):
-            print(f"✅ AI completed task: {task_id}")
+            print(f" AI completed task: {task_id}")
             return {
                 'success': True,
                 'task_id': task_id,
@@ -323,7 +347,7 @@ def ai_complete_task(task_id: str, completion_notes: str = None) -> Dict[str, An
         }
 
 
-def ai_organize_tasks() -> Dict[str, Any]:
+def ai_organize_tasks(_user_id: int = None, **kwargs) -> Dict[str, Any]:
     """
     🤖 AI organizes its tasks by priority.
     
@@ -341,15 +365,18 @@ def ai_organize_tasks() -> Dict[str, Any]:
         print(f"Organized {result['tasks_organized']} tasks by priority")
     """
     try:
-        tasklist_id = _get_or_create_ai_tasklist()
+        user_id = _user_id or kwargs.get('user_id') or DEFAULT_USER_ID
+        tasklist_id = _get_or_create_ai_tasklist(_user_id=user_id, **kwargs)
         
         result = google_tasks_smart_organize_by_priority(
-            tasklist_id=tasklist_id
+            task_list_id=tasklist_id,
+            _user_id=user_id,
+            _injected_credentials=True
         )
         
         if result.get('success'):
             count = result.get('tasks_organized', 0)
-            print(f"✅ AI organized {count} tasks by priority")
+            print(f" AI organized {count} tasks by priority")
             return {
                 'success': True,
                 'tasks_organized': count,
@@ -369,7 +396,7 @@ def ai_organize_tasks() -> Dict[str, Any]:
 
 
 def ai_create_project_tasks(project_name: str, task_list: List[str], 
-                            due_date: str = None, priority: str = "high") -> Dict[str, Any]:
+                            due_date: str = None, priority: str = "high", _user_id: int = None, **kwargs) -> Dict[str, Any]:
     """
     🤖 AI creates multiple related tasks for a project.
     
@@ -428,7 +455,7 @@ def ai_create_project_tasks(project_name: str, task_list: List[str],
             if result.get('success'):
                 created_tasks.append(result)
         
-        print(f"✅ AI created {len(created_tasks)} tasks for project: {project_name}")
+        print(f" AI created {len(created_tasks)} tasks for project: {project_name}")
         
         return {
             'success': True,
@@ -445,7 +472,7 @@ def ai_create_project_tasks(project_name: str, task_list: List[str],
         }
 
 
-def ai_check_pending_work() -> Dict[str, Any]:
+def ai_check_pending_work(_user_id: int = None, **kwargs) -> Dict[str, Any]:
     """
     🤖 AI checks what work is pending from previous sessions.
     
@@ -497,7 +524,7 @@ def ai_check_pending_work() -> Dict[str, Any]:
             'message': f"AI has {len(tasks)} pending tasks ({len(high_priority)} high priority, {len(overdue)} overdue)"
         }
         
-        print(f"✅ {summary['message']}")
+        print(f" {summary['message']}")
         
         return summary
         
@@ -528,3 +555,5 @@ if __name__ == "__main__":
     # AI checks pending work
     pending = ai_check_pending_work()
     print(f"\nPending work: {pending}")
+
+

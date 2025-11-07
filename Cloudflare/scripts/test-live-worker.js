@@ -63,32 +63,32 @@ async function testWorkerDeployment() {
     // Test 1: Workers.dev URL
     console.log('📍 Test 1: Workers.dev URL');
     console.log(`   URL: https://${WORKER_DEV_URL}/health`);
-    
+
     const test1 = await testEndpoint(WORKER_DEV_URL, '/health');
-    
+
     if (test1.error) {
-        console.log(`   ❌ Failed: ${test1.error}`);
+        console.log(`    Failed: ${test1.error}`);
     } else {
-        console.log(`   ✅ Status: ${test1.statusCode}`);
+        console.log(`    Status: ${test1.statusCode}`);
         console.log(`   📦 Response: ${test1.body}`);
         console.log(`   🔧 CF-Ray: ${test1.headers['cf-ray'] || 'N/A'}`);
     }
-    
+
     console.log('\n' + '━'.repeat(80) + '\n');
 
     // Test 2: Custom Domain
     console.log('📍 Test 2: Custom Domain');
     console.log(`   URL: https://${CUSTOM_DOMAIN}/health`);
-    
+
     const test2 = await testEndpoint(CUSTOM_DOMAIN, '/health');
-    
+
     if (test2.error) {
-        console.log(`   ❌ Failed: ${test2.error}`);
+        console.log(`    Failed: ${test2.error}`);
         console.log('\n   ⚠️  This means the route is NOT configured yet!');
         console.log('   📋 You need to add the route manually in Cloudflare Dashboard');
     } else {
-        console.log(`   ✅ Status: ${test2.statusCode}`);
-        
+        console.log(`    Status: ${test2.statusCode}`);
+
         if (test2.statusCode === 200) {
             console.log(`   📦 Response: ${test2.body}`);
             console.log(`   🔧 CF-Ray: ${test2.headers['cf-ray'] || 'N/A'}`);
@@ -102,23 +102,23 @@ async function testWorkerDeployment() {
             console.log(`   📦 Response: ${test2.body}`);
         }
     }
-    
+
     console.log('\n' + '━'.repeat(80) + '\n');
 
     // Test 3: Backend connectivity (from local machine)
     console.log('📍 Test 3: Backend Server (Direct)');
     console.log(`   URL: http://34.143.73.2`);
-    
+
     // Note: Can't test HTTP from HTTPS node script easily, skip this
     console.log('   ⏭️  Skipped (requires HTTP client)');
-    
+
     console.log('\n' + '━'.repeat(80) + '\n');
 
     // Summary
     console.log('📊 SUMMARY:\n');
-    
+
     if (test1.statusCode === 200 && test2.statusCode === 200) {
-        console.log('✅ Worker is deployed and route is configured correctly!');
+        console.log(' Worker is deployed and route is configured correctly!');
         console.log('🎉 Your Chrome extension should work now!\n');
     } else if (test1.statusCode === 200 && test2.statusCode !== 200) {
         console.log('⚠️  Worker is deployed but route is NOT configured');
@@ -131,13 +131,13 @@ async function testWorkerDeployment() {
         console.log('6. Select zone: valorsynergysuite.com');
         console.log('7. Click "Add Route"\n');
     } else {
-        console.log('❌ Worker deployment issue detected');
+        console.log(' Worker deployment issue detected');
         console.log('🔧 Check Cloudflare Dashboard for more details\n');
     }
 }
 
 // Run
 testWorkerDeployment().catch(error => {
-    console.error('❌ Fatal error:', error);
+    console.error(' Fatal error:', error);
     process.exit(1);
 });

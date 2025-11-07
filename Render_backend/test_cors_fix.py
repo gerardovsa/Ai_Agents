@@ -44,19 +44,19 @@ try:
     allow_origin = response.headers.get('access-control-allow-origin', 'NOT SET')
     print(f"\n📊 RESULT:")
     if allow_origin == STREAMLIT_URL:
-        print(f"   ✅ SUCCESS! Flask allows Streamlit Render origin")
-        print(f"   ✅ Streamlit on Render CAN connect to Flask")
+        print(f"    SUCCESS! Flask allows Streamlit Render origin")
+        print(f"    Streamlit on Render CAN connect to Flask")
     elif allow_origin == '*':
-        print(f"   ✅ SUCCESS! Flask allows all origins")
+        print(f"    SUCCESS! Flask allows all origins")
     else:
-        print(f"   ❌ FAILED! Flask returned: {allow_origin}")
-        print(f"   ❌ Expected: {STREAMLIT_URL}")
+        print(f"    FAILED! Flask returned: {allow_origin}")
+        print(f"    Expected: {STREAMLIT_URL}")
         print(f"\n🔍 Possible Issues:")
         print(f"      1. Deploy didn't pick up CORS changes")
         print(f"      2. Flask is still using old cached code")
         print(f"      3. CORS configuration error")
         
 except Exception as e:
-    print(f"   ❌ ERROR: {e}")
+    print(f"    ERROR: {e}")
 
 print("\n" + "=" * 80)

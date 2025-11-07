@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "github_create_repo",
-      "description": "Create a new GitHub repository",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new GitHub repository",
       "platform": "github",
       "parameters": {
         "name": {
@@ -31,7 +31,7 @@
     },
     {
       "name": "github_commit_file",
-      "description": "Commit a file to a GitHub repository",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCommit a file to a GitHub repository",
       "platform": "github",
       "parameters": {
         "repo": {
@@ -62,7 +62,7 @@
     },
     {
       "name": "github_create_pr",
-      "description": "Create a pull request",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a pull request",
       "platform": "github",
       "parameters": {
         "repo": {
@@ -98,7 +98,7 @@
     },
     {
       "name": "github_get_issues",
-      "description": "List issues from a repository",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList issues from a repository",
       "platform": "github",
       "parameters": {
         "repo": {

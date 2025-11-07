@@ -84,12 +84,18 @@ class MicrosoftExcelTools:
             response.raise_for_status()
             workbook_data = response.json()
             
+            # Make workbook shareable and editable by default
+            workbook_id = workbook_data['id']
+            share_result = self._make_file_shareable(workbook_id, **kwargs)
+            
             return {
-                "workbook_id": workbook_data['id'],
+                "workbook_id": workbook_id,
                 "name": workbook_data['name'],
                 "web_url": workbook_data.get('webUrl', ''),
                 "created_datetime": workbook_data.get('createdDateTime', ''),
-                "size": workbook_data.get('size', 0)
+                "size": workbook_data.get('size', 0),
+                "shareable": share_result.get('success', False),
+                "share_link": share_result.get('share_link', '')
             }
             
         except requests.exceptions.RequestException as e:
@@ -1146,6 +1152,44 @@ class MicrosoftExcelTools:
             
         except Exception as e:
             return {"error": f"Failed to create financial report: {str(e)}"}
+    
+    def _make_file_shareable(self, file_id: str, **kwargs) -> Dict[str, Any]:
+        """
+        Make a file shareable with anonymous edit access
+        
+        Args:
+            file_id: The ID of the file to share
+            **kwargs: Credential injection
+        
+        Returns:
+            Dict with success status and share_link
+        """
+        try:
+            # Get credentials
+            access_token = kwargs.get('access_token')
+            if not access_token:
+                return {"success": False, "error": "access_token required"}
+            
+            # Create sharing link with edit permissions
+            url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/createLink"
+            headers = self._get_headers(access_token)
+            
+            payload = {
+                "type": "edit",
+                "scope": "anonymous"
+            }
+            
+            response = requests.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            
+            return {
+                "success": True,
+                "share_link": data.get('link', {}).get('webUrl', '')
+            }
+        except Exception as e:
+            # Don't fail the entire operation if sharing fails
+            return {"success": False, "error": str(e)}
 
 # ========================================
 # GLOBAL INSTANCE & MODULE-LEVEL EXPORTS
@@ -1154,27 +1198,254 @@ class MicrosoftExcelTools:
 # Create global instance (no access token needed - credentials injected per-call)
 microsoft_excel_tools = MicrosoftExcelTools()
 
-# Export all functions at module level for registry access
-excel_create_workbook = microsoft_excel_tools.excel_create_workbook
-excel_get_workbook = microsoft_excel_tools.excel_get_workbook
-excel_list_workbooks = microsoft_excel_tools.excel_list_workbooks
-excel_delete_workbook = microsoft_excel_tools.excel_delete_workbook
-excel_list_worksheets = microsoft_excel_tools.excel_list_worksheets
-excel_add_worksheet = microsoft_excel_tools.excel_add_worksheet
-excel_rename_worksheet = microsoft_excel_tools.excel_rename_worksheet
-excel_delete_worksheet = microsoft_excel_tools.excel_delete_worksheet
-excel_get_range = microsoft_excel_tools.excel_get_range
-excel_update_range = microsoft_excel_tools.excel_update_range
-excel_clear_range = microsoft_excel_tools.excel_clear_range
-excel_insert_rows = microsoft_excel_tools.excel_insert_rows
-excel_delete_rows = microsoft_excel_tools.excel_delete_rows
-excel_set_formula = microsoft_excel_tools.excel_set_formula
-excel_calculate = microsoft_excel_tools.excel_calculate
-excel_create_chart = microsoft_excel_tools.excel_create_chart
-excel_list_charts = microsoft_excel_tools.excel_list_charts
-excel_sort_range = microsoft_excel_tools.excel_sort_range
-excel_filter_range = microsoft_excel_tools.excel_filter_range
-excel_smart_import_csv = microsoft_excel_tools.excel_smart_import_csv
-excel_smart_data_analysis = microsoft_excel_tools.excel_smart_data_analysis
-excel_smart_create_pivot = microsoft_excel_tools.excel_smart_create_pivot
-excel_smart_financial_report = microsoft_excel_tools.excel_smart_financial_report
+# Export all functions at module level
+# Wrappers handle parameter transformation for registry compatibility
+
+def microsoft_excel_get_workbook(**kwargs):
+    return microsoft_excel_tools.excel_get_workbook(**kwargs)
+
+def microsoft_excel_list_workbooks(**kwargs):
+    return microsoft_excel_tools.excel_list_workbooks(**kwargs)
+
+def microsoft_excel_delete_workbook(**kwargs):
+    return microsoft_excel_tools.excel_delete_workbook(**kwargs)
+
+def microsoft_excel_list_worksheets(**kwargs):
+    return microsoft_excel_tools.excel_list_worksheets(**kwargs)
+
+def microsoft_excel_add_worksheet(**kwargs):
+    return microsoft_excel_tools.excel_add_worksheet(**kwargs)
+
+def microsoft_excel_rename_worksheet(**kwargs):
+    return microsoft_excel_tools.excel_rename_worksheet(**kwargs)
+
+def microsoft_excel_delete_worksheet(**kwargs):
+    return microsoft_excel_tools.excel_delete_worksheet(**kwargs)
+
+def microsoft_excel_get_range(**kwargs):
+    return microsoft_excel_tools.excel_get_range(**kwargs)
+
+def microsoft_excel_update_range(**kwargs):
+    return microsoft_excel_tools.excel_update_range(**kwargs)
+
+def microsoft_excel_clear_range(**kwargs):
+    return microsoft_excel_tools.excel_clear_range(**kwargs)
+
+def microsoft_excel_insert_rows(**kwargs):
+    return microsoft_excel_tools.excel_insert_rows(**kwargs)
+
+def microsoft_excel_delete_rows(**kwargs):
+    return microsoft_excel_tools.excel_delete_rows(**kwargs)
+
+def microsoft_excel_set_formula(**kwargs):
+    return microsoft_excel_tools.excel_set_formula(**kwargs)
+
+def microsoft_excel_calculate(**kwargs):
+    return microsoft_excel_tools.excel_calculate(**kwargs)
+
+def microsoft_excel_create_chart(**kwargs):
+    return microsoft_excel_tools.excel_create_chart(**kwargs)
+
+def microsoft_excel_list_charts(**kwargs):
+    return microsoft_excel_tools.excel_list_charts(**kwargs)
+
+def microsoft_excel_sort_range(**kwargs):
+    return microsoft_excel_tools.excel_sort_range(**kwargs)
+
+def microsoft_excel_filter_range(**kwargs):
+    return microsoft_excel_tools.excel_filter_range(**kwargs)
+
+def microsoft_excel_smart_import_csv(**kwargs):
+    return microsoft_excel_tools.excel_smart_import_csv(**kwargs)
+
+def microsoft_excel_smart_data_analysis(**kwargs):
+    return microsoft_excel_tools.excel_smart_data_analysis(**kwargs)
+
+def microsoft_excel_smart_create_pivot(**kwargs):
+    return microsoft_excel_tools.excel_smart_create_pivot(**kwargs)
+
+def microsoft_excel_smart_financial_report(**kwargs):
+    return microsoft_excel_tools.excel_smart_financial_report(**kwargs)
+
+
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_create_workbook(user_id, **kwargs)
+
+def microsoft_excel_get_workbook(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_get_workbook(user_id, **kwargs)
+
+def microsoft_excel_list_workbooks(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_list_workbooks(user_id, **kwargs)
+
+def microsoft_excel_delete_workbook(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_delete_workbook(user_id, **kwargs)
+
+def microsoft_excel_list_worksheets(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_list_worksheets(user_id, **kwargs)
+
+def microsoft_excel_add_worksheet(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_add_worksheet(user_id, **kwargs)
+
+def microsoft_excel_rename_worksheet(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_rename_worksheet(user_id, **kwargs)
+
+def microsoft_excel_delete_worksheet(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_delete_worksheet(user_id, **kwargs)
+
+def microsoft_excel_get_range(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_get_range(user_id, **kwargs)
+
+def microsoft_excel_update_range(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_update_range(user_id, **kwargs)
+
+def microsoft_excel_clear_range(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_clear_range(user_id, **kwargs)
+
+def microsoft_excel_insert_rows(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_insert_rows(user_id, **kwargs)
+
+def microsoft_excel_delete_rows(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_delete_rows(user_id, **kwargs)
+
+def microsoft_excel_set_formula(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_set_formula(user_id, **kwargs)
+
+def microsoft_excel_calculate(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_calculate(user_id, **kwargs)
+
+def microsoft_excel_create_chart(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_create_chart(user_id, **kwargs)
+
+def microsoft_excel_list_charts(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_list_charts(user_id, **kwargs)
+
+def microsoft_excel_sort_range(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_sort_range(user_id, **kwargs)
+
+def microsoft_excel_filter_range(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_filter_range(user_id, **kwargs)
+
+def microsoft_excel_smart_import_csv(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_smart_import_csv(user_id, **kwargs)
+
+def microsoft_excel_smart_data_analysis(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_smart_data_analysis(user_id, **kwargs)
+
+def microsoft_excel_smart_create_pivot(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_smart_create_pivot(user_id, **kwargs)
+
+def microsoft_excel_smart_financial_report(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_excel_tools.excel_smart_financial_report(user_id, **kwargs)
+
+
+microsoft_excel_get_workbook = microsoft_excel_tools.excel_get_workbook
+
+microsoft_excel_list_workbooks = microsoft_excel_tools.excel_list_workbooks
+
+microsoft_excel_delete_workbook = microsoft_excel_tools.excel_delete_workbook
+
+microsoft_excel_list_worksheets = microsoft_excel_tools.excel_list_worksheets
+
+microsoft_excel_add_worksheet = microsoft_excel_tools.excel_add_worksheet
+
+microsoft_excel_rename_worksheet = microsoft_excel_tools.excel_rename_worksheet
+
+microsoft_excel_delete_worksheet = microsoft_excel_tools.excel_delete_worksheet
+
+microsoft_excel_get_range = microsoft_excel_tools.excel_get_range
+
+microsoft_excel_update_range = microsoft_excel_tools.excel_update_range
+
+microsoft_excel_clear_range = microsoft_excel_tools.excel_clear_range
+
+microsoft_excel_insert_rows = microsoft_excel_tools.excel_insert_rows
+
+microsoft_excel_delete_rows = microsoft_excel_tools.excel_delete_rows
+
+microsoft_excel_set_formula = microsoft_excel_tools.excel_set_formula
+
+microsoft_excel_calculate = microsoft_excel_tools.excel_calculate
+
+microsoft_excel_create_chart = microsoft_excel_tools.excel_create_chart
+
+microsoft_excel_list_charts = microsoft_excel_tools.excel_list_charts
+
+microsoft_excel_sort_range = microsoft_excel_tools.excel_sort_range
+
+microsoft_excel_filter_range = microsoft_excel_tools.excel_filter_range
+
+microsoft_excel_smart_import_csv = microsoft_excel_tools.excel_smart_import_csv
+
+microsoft_excel_smart_data_analysis = microsoft_excel_tools.excel_smart_data_analysis
+
+microsoft_excel_smart_create_pivot = microsoft_excel_tools.excel_smart_create_pivot
+
+microsoft_excel_smart_financial_report = microsoft_excel_tools.excel_smart_financial_report
+

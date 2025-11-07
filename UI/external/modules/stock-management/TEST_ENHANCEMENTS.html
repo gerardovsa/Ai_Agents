@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Management - Test Enhanced Features</title>
+
+    <!-- Plotly CDN -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Module CSS -->
+    <link rel="stylesheet" href="stock-management.css">
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #0078d4;
+            margin-bottom: 10px;
+        }
+
+        .status-banner {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+
+        .test-section h2 {
+            color: #1e293b;
+            margin-top: 0;
+        }
+
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #006cbe;
+        }
+
+        .chart-area {
+            margin: 20px 0;
+            min-height: 400px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 15px;
+        }
+
+        .sql-editor {
+            width: 100%;
+            min-height: 150px;
+            font-family: 'Courier New', monospace;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .results-table th {
+            background: #f1f5f9;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #e2e8f0;
+        }
+
+        .results-table td {
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .results-table td[contenteditable="true"]:hover {
+            background: #fef3c7;
+            cursor: text;
+        }
+
+        .success-highlight {
+            animation: successFlash 2s ease-in-out;
+        }
+
+        @keyframes successFlash {
+
+            0%,
+            100% {
+                background: transparent;
+            }
+
+            50% {
+                background: #d1fae5;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>🧪 Stock Management - Enhanced Features Test Page</h1>
+
+        <div class="status-banner">
+            <strong>✓ Enhanced Features Loaded</strong><br>
+            Plotly.js, SQL Viewer, and Inline Editing are ready to test.
+        </div>
+
+        <!-- TEST 1: Plotly Charts -->
+        <div class="test-section">
+            <h2>1. Plotly Charts Test</h2>
+            <p>Test interactive charts with real stock data.</p>
+
+            <button onclick="testUsageChart()">Test Usage Analytics Chart</button>
+            <button onclick="testProfitChart()">Test Profit Analysis Chart</button>
+            <button onclick="testReorderChart()">Test Reorder Alerts Chart</button>
+
+            <div id="test-chart-area" class="chart-area"></div>
+        </div>
+
+        <!-- TEST 2: SQL Viewer -->
+        <div class="test-section">
+            <h2>2. SQL Viewer Test</h2>
+            <p>Execute SQL queries against stock database.</p>
+
+            <textarea id="test-sql-editor" class="sql-editor">SELECT * FROM unified_stocks LIMIT 10</textarea>
+            <br>
+            <button onclick="executeSQLQuery()">Execute Query</button>
+            <button onclick="showTables()">Show Tables</button>
+
+            <div id="test-sql-results"></div>
+        </div>
+
+        <!-- TEST 3: Inline Editing -->
+        <div class="test-section">
+            <h2>3. Inline Cell Editing Test</h2>
+            <p>Click any cell in the results table to edit. Changes save automatically.</p>
+
+            <button onclick="loadEditableData()">Load Stock Data for Editing</button>
+
+            <div id="test-edit-results"></div>
+        </div>
+    </div>
+
+    <!-- Load Enhanced Module -->
+    <script>
+        // Mock minimal BaseModule for testing
+        class BaseModule {
+            constructor(moduleId) {
+                this.moduleId = moduleId;
+            }
+            async initialize() {
+                console.log('[BaseModule] Initialized');
+            }
+        }
+
+        // Backend URL
+        const BACKEND_URL = 'http://localhost:5001';
+
+        // ================================================================
+        // TEST 1: Plotly Charts
+        // ================================================================
+
+        async function testUsageChart() {
+            console.log('[TEST] Loading usage analytics...');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/stock/usage-analytics?days=90`);
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    const trace = {
+                        x: result.data.map(row => `#${row.StockID}`),
+                        y: result.data.map(row => row.usage_count || 0),
+                        type: 'bar',
+                        marker: { color: '#3b82f6' }
+                    };
+
+                    const layout = {
+                        title: 'Top Stock Usage (90 Days)',
+                        xaxis: { title: 'Stock ID' },
+                        yaxis: { title: 'Usage Count' },
+                        height: 400
+                    };
+
+                    Plotly.newPlot('test-chart-area', [trace], layout);
+                    console.log('[TEST] ✓ Usage chart rendered');
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Failed to load data: ' + error.message);
+            }
+        }
+
+        async function testProfitChart() {
+            console.log('[TEST] Loading profit analysis...');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/stock/profit-analysis?days=90`);
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    const trace1 = {
+                        x: result.data.map(row => `#${row.stock_id}`),
+                        y: result.data.map(row => row.gross_profit || 0),
+                        type: 'bar',
+                        name: 'Gross Profit',
+                        marker: { color: '#10b981' }
+                    };
+
+                    const trace2 = {
+                        x: result.data.map(row => `#${row.stock_id}`),
+                        y: result.data.map(row => row.margin_percent || 0),
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Margin %',
+                        yaxis: 'y2',
+                        marker: { color: '#f59e0b' }
+                    };
+
+                    const layout = {
+                        title: 'Profit Analysis',
+                        xaxis: { title: 'Stock ID' },
+                        yaxis: { title: 'Gross Profit ($)' },
+                        yaxis2: {
+                            title: 'Margin (%)',
+                            overlaying: 'y',
+                            side: 'right'
+                        },
+                        height: 450
+                    };
+
+                    Plotly.newPlot('test-chart-area', [trace1, trace2], layout);
+                    console.log('[TEST] ✓ Profit chart rendered');
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Failed to load data: ' + error.message);
+            }
+        }
+
+        async function testReorderChart() {
+            console.log('[TEST] Loading reorder alerts...');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/stock/reorder-dashboard`);
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    const summary = result.summary;
+                    const data = [{
+                        values: [summary.critical, summary.moderate, summary.upcoming],
+                        labels: ['Critical', 'Moderate', 'Upcoming'],
+                        type: 'pie',
+                        marker: { colors: ['#ef4444', '#f59e0b', '#3b82f6'] }
+                    }];
+
+                    const layout = {
+                        title: 'Stock Reorder Alerts',
+                        height: 350
+                    };
+
+                    Plotly.newPlot('test-chart-area', data, layout);
+                    console.log('[TEST] ✓ Reorder chart rendered');
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Failed to load data: ' + error.message);
+            }
+        }
+
+        // ================================================================
+        // TEST 2: SQL Viewer
+        // ================================================================
+
+        async function executeSQLQuery() {
+            const query = document.getElementById('test-sql-editor').value;
+            console.log('[TEST] Executing SQL:', query);
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/stock/sql-query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    displaySQLResults(result);
+                    console.log('[TEST] ✓ Query executed:', result.row_count, 'rows');
+                } else {
+                    document.getElementById('test-sql-results').innerHTML =
+                        `<div style="color: red; padding: 10px;">Error: ${result.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('test-sql-results').innerHTML =
+                    `<div style="color: red; padding: 10px;">Failed: ${error.message}</div>`;
+            }
+        }
+
+        function displaySQLResults(result) {
+            const resultsDiv = document.getElementById('test-sql-results');
+
+            let html = `
+                <div style="padding: 10px; background: #d1fae5; margin: 10px 0; border-radius: 4px;">
+                    ✓ Query executed: ${result.row_count} rows in ${result.execution_time_ms}ms
+                </div>
+            `;
+
+            if (result.data && result.data.length > 0) {
+                const columns = result.columns || Object.keys(result.data[0]);
+
+                html += '<table class="results-table"><thead><tr>';
+                columns.forEach(col => html += `<th>${col}</th>`);
+                html += '</tr></thead><tbody>';
+
+                result.data.forEach((row, idx) => {
+                    html += '<tr>';
+                    columns.forEach(col => {
+                        const value = row[col] !== null ? row[col] : 'NULL';
+                        html += `<td contenteditable="true" data-row="${idx}" data-column="${col}">${value}</td>`;
+                    });
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        async function showTables() {
+            console.log('[TEST] Loading tables...');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/stock/sql-query`);
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    let info = 'Available Tables:\n\n';
+                    result.tables.forEach(table => {
+                        const cols = result.table_info[table];
+                        info += `${table}:\n`;
+                        cols.forEach(col => {
+                            info += `  - ${col.name} (${col.type})\n`;
+                        });
+                        info += '\n';
+                    });
+                    alert(info);
+                    console.log('[TEST] ✓ Tables loaded:', result.tables.length);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Failed: ' + error.message);
+            }
+        }
+
+        // ================================================================
+        // TEST 3: Inline Editing
+        // ================================================================
+
+        async function loadEditableData() {
+            document.getElementById('test-sql-editor').value =
+                'SELECT stock_id, stock_type_name, cost_per_thousand, supplier_name FROM unified_stocks LIMIT 5';
+            await executeSQLQuery();
+
+            // Add blur event listeners to editable cells
+            setTimeout(() => {
+                document.querySelectorAll('td[contenteditable="true"]').forEach(cell => {
+                    cell.addEventListener('blur', handleCellEdit);
+                });
+            }, 100);
+        }
+
+        async function handleCellEdit(event) {
+            const cell = event.target;
+            const column = cell.dataset.column;
+            const newValue = cell.textContent.trim();
+
+            console.log('[TEST] Cell edit:', column, '=', newValue);
+
+            // Get stock_id from first cell in row
+            const row = cell.closest('tr');
+            const stockId = row.cells[0].textContent;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/stock/update-cell`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        table: 'unified_stocks',
+                        column: column,
+                        value: newValue,
+                        where_column: 'stock_id',
+                        where_value: stockId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    cell.classList.add('success-highlight');
+                    console.log('[TEST] ✓ Cell updated successfully');
+                } else {
+                    alert('Update failed: ' + result.message);
+                }
+            } catch (error) {
+                alert('Update failed: ' + error.message);
+            }
+        }
+
+        // ================================================================
+        // INIT
+        // ================================================================
+
+        console.log('%c✓ Enhanced Features Test Page Loaded', 'color: green; font-size: 16px; font-weight: bold');
+        console.log('Plotly version:', Plotly.version);
+        console.log('Backend URL:', BACKEND_URL);
+    </script>
+</body>
+
+</html>

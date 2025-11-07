@@ -50,7 +50,7 @@ def google_analytics_list_accounts():
         }
     
     except Exception as e:
-        print(f"❌ Failed to list accounts: {e}")
+        print(f" Failed to list accounts: {e}")
         raise
 
 
@@ -73,7 +73,7 @@ def google_analytics_list_properties(account_id=None):
         }
     
     except Exception as e:
-        print(f"❌ Failed to list properties: {e}")
+        print(f" Failed to list properties: {e}")
         raise
 
 
@@ -104,7 +104,7 @@ def google_analytics_get_realtime_report(property_id, metrics=None, dimensions=N
         return response
     
     except Exception as e:
-        print(f"❌ Failed to get realtime report: {e}")
+        print(f" Failed to get realtime report: {e}")
         raise
 
 
@@ -135,7 +135,7 @@ def google_analytics_run_report(property_id, start_date, end_date, metrics, dime
         return response
     
     except Exception as e:
-        print(f"❌ Failed to run report: {e}")
+        print(f" Failed to run report: {e}")
         raise
 
 

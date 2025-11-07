@@ -91,7 +91,7 @@ class TaskCardManager:
         status_emoji = {
             'active': '🟢',
             'paused': '⏸️',
-            'completed': '✅'
+            'completed': ''
         }.get(summary['status'], '⚪')
         notes_lines.append(f"{status_emoji} {summary['status'].title()} • Last active: {time_ago}")
         
@@ -287,22 +287,22 @@ TAGS: email, marketing, campaign, q4, personalization, bulk_send
 KEY DIFFERENCES:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FULL CONTEXT (sessions.db):
-✅ Complete conversation (every word)
-✅ Full activity log (50+ entries)
-✅ All document URLs and details
-✅ Timestamped events
-✅ Searchable, queryable
-✅ AI can reference exact messages
-✅ No API limits
+ Complete conversation (every word)
+ Full activity log (50+ entries)
+ All document URLs and details
+ Timestamped events
+ Searchable, queryable
+ AI can reference exact messages
+ No API limits
 
 CLEAN CARD (Google Tasks):
-✅ Just the essentials for humans
-✅ Quick overview at a glance
-✅ Recent activity (last 3)
-✅ Summary stats only
-✅ Links back to full data via session_id
-✅ Clean Kanban visualization
-✅ Accessible from any device
+ Just the essentials for humans
+ Quick overview at a glance
+ Recent activity (last 3)
+ Summary stats only
+ Links back to full data via session_id
+ Clean Kanban visualization
+ Accessible from any device
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BENEFIT: Best of both worlds!

@@ -2,53 +2,87 @@
 Google Calendar API Implementation
 Handles calendar events, scheduling, and reminders
 
-Authentication: Uses OAuth 2.0 for personal Calendar access
-Mode: Supports 'desktop' (local testing) and 'web' (production deployment)
+Authentication: Uses database OAuth ONLY (oauth_tokens table)
 """
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from datetime import datetime
 
-try:
-    # Import OAuth manager for personal Calendar access
-    from google_workspace.oauth_manager import build_calendar_oauth_service
-    HAS_CALENDAR_API = True
-except ImportError:
-    HAS_CALENDAR_API = False
-    print("⚠️ Google Calendar API dependencies not available")
+HAS_CALENDAR_API = True
 
-def _get_service(user_email=None):
+def _get_service(user_email=None, _user_id=None, _injected_credentials=None):
     """
-    Get authenticated Google Calendar API service using OAuth 2.0
+    Get authenticated Google Calendar API service using DATABASE OAuth
     
     Args:
-        user_email: Optional user email for multi-user deployments
+        user_email: (Deprecated) Not used
+        _user_id: User ID for database OAuth lookup (REQUIRED)
+        _injected_credentials: Flag for credential injection (REQUIRED)
     
     Returns:
         Authenticated Calendar service
+        
+    Raises:
+        Exception: If database OAuth credentials not available
     """
-    if not HAS_CALENDAR_API:
-        raise Exception("Google Calendar API not available - install google-api-python-client")
-    # Use OAuth authentication (personal Calendar access)
-    return build_calendar_oauth_service(user_email=user_email)
+    if _user_id and _injected_credentials:
+        from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+        return create_google_service_with_user_credentials(
+            user_id=_user_id,
+            service_name='calendar',
+            version='v3'
+        )
+    
+    # No credentials provided - throw clear error
+    raise Exception(
+        "❌ Google Calendar requires database OAuth!\n\n"
+        "File-based OAuth is no longer supported.\n"
+        "All credentials must be in: data/ai_infrastructure.db (oauth_tokens table)\n\n"
+        "To authenticate:\n"
+        "1. Visit: http://localhost:5001/auth/google/login\n"
+        "2. Sign in and grant permissions\n"
+        "3. Credentials will be saved to database\n\n"
+        f"Received: _user_id={_user_id}, _injected_credentials={_injected_credentials}\n"
+    )
 
 class GoogleCalendarTools:
-    def __init__(self, credentials_path=None, token_path=None, user_email=None):
+    def __init__(self, credentials_path=None, token_path=None, user_email=None,
+                 _user_id=None, _injected_credentials=None):
         """
-        Initialize Google Calendar API client
+        Initialize Google Calendar API client with DATABASE OAuth
         
         Args:
-            credentials_path: Deprecated (OAuth manager handles this)
-            token_path: Deprecated (OAuth manager handles this)
-            user_email: Optional user email for multi-user deployments
+            credentials_path: (Deprecated) Not used
+            token_path: (Deprecated) Not used
+            user_email: (Deprecated) Not used
+            _user_id: User ID for database OAuth credential lookup (REQUIRED)
+            _injected_credentials: Flag to use database OAuth credentials (REQUIRED)
         """
         self.user_email = user_email
+        self._user_id = _user_id
+        self._injected_credentials = _injected_credentials
         
-    def _get_service(self):
-        """Get or create Calendar API service using OAuth"""
-        return _get_service(user_email=self.user_email)
+    def _get_service(self, **kwargs):
+        """Get Calendar API service using DATABASE OAuth credentials ONLY"""
+        if not self._user_id or not self._injected_credentials:
+            raise Exception(
+                "❌ Google Calendar OAuth credentials required!\n"
+                "File-based OAuth (credentials_desktop.json) is no longer supported.\n"
+                "To authenticate, visit: http://localhost:5001/auth/google/login"
+            )
+        
+        from pathlib import Path
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+        
+        return create_google_service_with_user_credentials(
+            user_id=self._user_id,
+            service_name='calendar',
+            version='v3'
+        )
     
-    def list_calendars(self, show_hidden=False):
+    def list_calendars(self, show_hidden=False, **kwargs):
         """List all calendars"""
         service = self._get_service()
         calendars = service.calendarList().list(
@@ -110,7 +144,7 @@ class GoogleCalendarTools:
             sendNotifications=kwargs.get('send_notifications', True)
         ).execute()
     
-    def delete_event(self, calendar_id='primary', event_id=None, send_notifications=True):
+    def delete_event(self, calendar_id='primary', event_id=None, send_notifications=True, **kwargs):
         """Delete calendar event"""
         service = self._get_service()
         return service.events().delete(
@@ -132,7 +166,7 @@ class GoogleCalendarTools:
             q=kwargs.get('search_query')
         ).execute()
     
-    def check_availability(self, time_min, time_max, calendar_ids, timezone='UTC'):
+    def check_availability(self, time_min, time_max, calendar_ids, timezone='UTC', **kwargs):
         """Check free/busy information"""
         service = self._get_service()
         body = {
@@ -144,26 +178,26 @@ class GoogleCalendarTools:
         return service.freebusy().query(body=body).execute()
 
 # Export tool functions
-def google_calendar_list_calendars(**kwargs):
-    tools = GoogleCalendarTools()
+def google_calendar_list_calendars(_user_id=None, _injected_credentials=None, **kwargs):
+    tools = GoogleCalendarTools(_user_id=_user_id, _injected_credentials=_injected_credentials)
     return tools.list_calendars(**kwargs)
 
-def google_calendar_create_event(**kwargs):
-    tools = GoogleCalendarTools()
+def google_calendar_create_event(_user_id=None, _injected_credentials=None, **kwargs):
+    tools = GoogleCalendarTools(_user_id=_user_id, _injected_credentials=_injected_credentials)
     return tools.create_event(**kwargs)
 
-def google_calendar_update_event(**kwargs):
-    tools = GoogleCalendarTools()
+def google_calendar_update_event(_user_id=None, _injected_credentials=None, **kwargs):
+    tools = GoogleCalendarTools(_user_id=_user_id, _injected_credentials=_injected_credentials)
     return tools.update_event(**kwargs)
 
-def google_calendar_delete_event(**kwargs):
-    tools = GoogleCalendarTools()
+def google_calendar_delete_event(_user_id=None, _injected_credentials=None, **kwargs):
+    tools = GoogleCalendarTools(_user_id=_user_id, _injected_credentials=_injected_credentials)
     return tools.delete_event(**kwargs)
 
-def google_calendar_list_events(**kwargs):
-    tools = GoogleCalendarTools()
+def google_calendar_list_events(_user_id=None, _injected_credentials=None, **kwargs):
+    tools = GoogleCalendarTools(_user_id=_user_id, _injected_credentials=_injected_credentials)
     return tools.list_events(**kwargs)
 
-def google_calendar_check_availability(**kwargs):
-    tools = GoogleCalendarTools()
+def google_calendar_check_availability(_user_id=None, _injected_credentials=None, **kwargs):
+    tools = GoogleCalendarTools(_user_id=_user_id, _injected_credentials=_injected_credentials)
     return tools.check_availability(**kwargs)

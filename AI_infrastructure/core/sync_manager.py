@@ -58,9 +58,9 @@ class KanbanSyncManager:
                     'complete': ai_complete_task,
                     'get': ai_get_task
                 }
-                logger.info("✅ Google Tasks manager loaded")
+                logger.info(" Google Tasks manager loaded")
             except ImportError as e:
-                logger.error(f"❌ Failed to load Google Tasks: {e}")
+                logger.error(f" Failed to load Google Tasks: {e}")
                 self._tasks_mgr = None
         return self._tasks_mgr
     
@@ -74,7 +74,7 @@ class KanbanSyncManager:
                 logger.warning("⚠️ Google Calendar integration not yet implemented")
                 self._calendar_mgr = None
             except ImportError as e:
-                logger.error(f"❌ Failed to load Google Calendar: {e}")
+                logger.error(f" Failed to load Google Calendar: {e}")
                 self._calendar_mgr = None
         return self._calendar_mgr
     
@@ -105,7 +105,7 @@ class KanbanSyncManager:
         try:
             # 1. Update database (source of truth)
             self.db.update_session_column(session_id, new_column)
-            logger.info(f"✅ Updated database: {session_id} → {new_column}")
+            logger.info(f" Updated database: {session_id} → {new_column}")
             
             # 2. Get session data
             session = self.db.get_session(session_id)
@@ -125,9 +125,9 @@ class KanbanSyncManager:
                     # Mark task as completed
                     result = self.tasks['complete'](google_task_id)
                     if result.get('success'):
-                        logger.info(f"✅ Marked Google Task as completed")
+                        logger.info(f" Marked Google Task as completed")
                     else:
-                        logger.error(f"❌ Failed to complete Google Task: {result.get('error')}")
+                        logger.error(f" Failed to complete Google Task: {result.get('error')}")
                 else:
                     # Update task (reopen if needed)
                     # Note: Google Tasks API doesn't have explicit "reopen"
@@ -142,7 +142,7 @@ class KanbanSyncManager:
                     title=card['title'],
                     notes=card['notes']
                 )
-                logger.info(f"✅ Updated Google Task card content")
+                logger.info(f" Updated Google Task card content")
             
             # 5. Update last_synced timestamp
             self._update_sync_timestamp(session_id)
@@ -152,7 +152,7 @@ class KanbanSyncManager:
             if session.get('due_date'):
                 calendar_result = self.sync_to_calendar(session_id)
             
-            logger.info(f"✅ Sync complete: Kanban → Database → Google Tasks")
+            logger.info(f" Sync complete: Kanban → Database → Google Tasks")
             
             return {
                 'success': True, 
@@ -161,7 +161,7 @@ class KanbanSyncManager:
             }
             
         except Exception as e:
-            logger.error(f"❌ Sync failed: {e}")
+            logger.error(f" Sync failed: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -208,7 +208,7 @@ class KanbanSyncManager:
                 # Move to done column
                 self.db.update_session_column(session_id, 'done')
                 # TODO: Add update_session_status method to database
-                logger.info(f"✅ Moved session to 'done' column")
+                logger.info(f" Moved session to 'done' column")
                 
             elif task_status == 'needsAction':
                 # Ensure not in done column
@@ -225,7 +225,7 @@ class KanbanSyncManager:
             # 5. Update last_synced timestamp
             self._update_sync_timestamp(session_id)
             
-            logger.info(f"✅ Sync complete: Google Tasks → Database → Kanban")
+            logger.info(f" Sync complete: Google Tasks → Database → Kanban")
             
             return {
                 'success': True, 
@@ -235,7 +235,7 @@ class KanbanSyncManager:
             }
             
         except Exception as e:
-            logger.error(f"❌ Sync failed: {e}")
+            logger.error(f" Sync failed: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -276,7 +276,7 @@ class KanbanSyncManager:
             }
             
         except Exception as e:
-            logger.error(f"❌ Calendar sync failed: {e}")
+            logger.error(f" Calendar sync failed: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -332,13 +332,13 @@ class KanbanSyncManager:
                     synced.append(session_id)
                     
                 except Exception as e:
-                    logger.error(f"❌ Error syncing {session.get('session_id')}: {e}")
+                    logger.error(f" Error syncing {session.get('session_id')}: {e}")
                     errors.append({
                         'session_id': session.get('session_id'),
                         'error': str(e)
                     })
             
-            logger.info(f"✅ Bulk sync complete: {len(synced)} synced, {len(errors)} errors")
+            logger.info(f" Bulk sync complete: {len(synced)} synced, {len(errors)} errors")
             
             return {
                 'success': True,
@@ -348,7 +348,7 @@ class KanbanSyncManager:
             }
             
         except Exception as e:
-            logger.error(f"❌ Bulk sync failed: {e}")
+            logger.error(f" Bulk sync failed: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -403,7 +403,7 @@ class KanbanSyncManager:
                 )
                 
         except Exception as e:
-            logger.error(f"❌ Conflict resolution failed: {e}")
+            logger.error(f" Conflict resolution failed: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -451,7 +451,7 @@ class KanbanSyncManager:
                 # Link in database
                 self.db.link_google_task(session_id, task_id)
                 
-                logger.info(f"✅ Created Google Task: {task_id}")
+                logger.info(f" Created Google Task: {task_id}")
                 
                 return {
                     'success': True,
@@ -459,11 +459,11 @@ class KanbanSyncManager:
                     'task': result.get('task')
                 }
             else:
-                logger.error(f"❌ Failed to create task: {result.get('error')}")
+                logger.error(f" Failed to create task: {result.get('error')}")
                 return result
                 
         except Exception as e:
-            logger.error(f"❌ Task creation failed: {e}")
+            logger.error(f" Task creation failed: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -489,7 +489,7 @@ class KanbanSyncManager:
                 result = cursor.fetchone()
                 return result[0] if result else None
         except Exception as e:
-            logger.error(f"❌ Failed to find session: {e}")
+            logger.error(f" Failed to find session: {e}")
             return None
     
     def _update_sync_timestamp(self, session_id: str):
@@ -509,7 +509,7 @@ class KanbanSyncManager:
                 """, (datetime.now().isoformat(), session_id))
                 conn.commit()
         except Exception as e:
-            logger.error(f"❌ Failed to update sync timestamp: {e}")
+            logger.error(f" Failed to update sync timestamp: {e}")
     
     def _build_calendar_description(self, session: Dict[str, Any]) -> str:
         """

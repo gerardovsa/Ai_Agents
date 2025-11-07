@@ -11,12 +11,12 @@ class CloudflareManager {
         this.accountId = options.accountId || 'd31a1c9ec65f373f4008216c30b071cc';
         // Use the AI_AGENT token if available, fallback to API_TOKEN
         this.apiToken = options.apiToken || process.env.CLOUDFLARE_AI_AGENT_TOKEN || process.env.CLOUDFLARE_API_TOKEN;
-        
+
         if (!this.apiToken) {
-            throw new Error('❌ API token is required. Set CLOUDFLARE_AI_AGENT_TOKEN or CLOUDFLARE_API_TOKEN environment variable.');
+            throw new Error(' API token is required. Set CLOUDFLARE_AI_AGENT_TOKEN or CLOUDFLARE_API_TOKEN environment variable.');
         }
-        
-        console.log('✅ Cloudflare Manager initialized');
+
+        console.log('Cloudflare Manager initialized');
     }
 
     /**
@@ -25,7 +25,7 @@ class CloudflareManager {
     async makeRequest(path, method = 'GET', data = null) {
         return new Promise((resolve, reject) => {
             const requestData = data ? JSON.stringify(data) : null;
-            
+
             const options = {
                 hostname: 'api.cloudflare.com',
                 port: 443,
@@ -53,16 +53,16 @@ class CloudflareManager {
                 res.on('end', () => {
                     try {
                         const response = JSON.parse(body);
-                        
+
                         if (response.success) {
-                            console.log('✅ Request successful');
+                            console.log('equest successful');
                             resolve(response);
                         } else {
-                            console.error('❌ API Error:', response.errors);
+                            console.error(' API Error:', response.errors);
                             reject(new Error(`API Error: ${response.errors?.[0]?.message || 'Unknown error'}`));
                         }
                     } catch (error) {
-                        console.error('❌ Parse error:', error);
+                        console.error(' Parse error:', error);
                         console.error('Response:', body);
                         reject(error);
                     }
@@ -70,7 +70,7 @@ class CloudflareManager {
             });
 
             req.on('error', (error) => {
-                console.error('❌ Request failed:', error);
+                console.error(' Request failed:', error);
                 reject(error);
             });
 
@@ -87,13 +87,13 @@ class CloudflareManager {
      */
     async listZones() {
         console.log('🔧 Fetching zones (domains)...');
-        
+
         try {
             const response = await this.makeRequest(`/client/v4/zones?account.id=${this.accountId}&per_page=50`);
-            console.log(`✅ Found ${response.result.length} zone(s)`);
+            console.log(`ound ${response.result.length} zone(s)`);
             return response.result;
         } catch (error) {
-            console.error('❌ Failed to fetch zones:', error.message);
+            console.error(' Failed to fetch zones:', error.message);
             throw error;
         }
     }
@@ -103,12 +103,12 @@ class CloudflareManager {
      */
     async getZoneDetails(zoneId) {
         console.log(`🔧 Fetching zone details for ${zoneId}...`);
-        
+
         try {
             const response = await this.makeRequest(`/client/v4/zones/${zoneId}`);
             return response.result;
         } catch (error) {
-            console.error('❌ Failed to fetch zone details:', error.message);
+            console.error(' Failed to fetch zone details:', error.message);
             throw error;
         }
     }
@@ -118,13 +118,13 @@ class CloudflareManager {
      */
     async getDNSRecords(zoneId) {
         console.log(`🔧 Fetching DNS records for zone ${zoneId}...`);
-        
+
         try {
             const response = await this.makeRequest(`/client/v4/zones/${zoneId}/dns_records?per_page=100`);
-            console.log(`✅ Found ${response.result.length} DNS record(s)`);
+            console.log(`ound ${response.result.length} DNS record(s)`);
             return response.result;
         } catch (error) {
-            console.error('❌ Failed to fetch DNS records:', error.message);
+            console.error(' Failed to fetch DNS records:', error.message);
             throw error;
         }
     }
@@ -134,12 +134,12 @@ class CloudflareManager {
      */
     async getZoneSettings(zoneId) {
         console.log(`🔧 Fetching settings for zone ${zoneId}...`);
-        
+
         try {
             const response = await this.makeRequest(`/client/v4/zones/${zoneId}/settings`);
             return response.result;
         } catch (error) {
-            console.error('❌ Failed to fetch zone settings:', error.message);
+            console.error(' Failed to fetch zone settings:', error.message);
             throw error;
         }
     }
@@ -149,13 +149,13 @@ class CloudflareManager {
      */
     async getAlerts() {
         console.log('🔧 Fetching account alerts...');
-        
+
         try {
             const response = await this.makeRequest(`/client/v4/accounts/${this.accountId}/alerting/v3/policies`);
-            console.log(`✅ Found ${response.result?.length || 0} alert(s)`);
+            console.log(`ound ${response.result?.length || 0} alert(s)`);
             return response.result || [];
         } catch (error) {
-            console.error('❌ Failed to fetch alerts:', error.message);
+            console.error(' Failed to fetch alerts:', error.message);
             // Return empty array if alerts endpoint fails
             return [];
         }
@@ -166,14 +166,14 @@ class CloudflareManager {
      */
     async getZoneAnalytics(zoneId, since = -10080) {
         console.log(`🔧 Fetching analytics for zone ${zoneId}...`);
-        
+
         try {
             const response = await this.makeRequest(
                 `/client/v4/zones/${zoneId}/analytics/dashboard?since=${since}`
             );
             return response.result;
         } catch (error) {
-            console.error('❌ Failed to fetch analytics:', error.message);
+            console.error(' Failed to fetch analytics:', error.message);
             return null;
         }
     }
@@ -183,12 +183,12 @@ class CloudflareManager {
      */
     async getAccountInfo() {
         console.log('🔧 Fetching account information...');
-        
+
         try {
             const response = await this.makeRequest(`/client/v4/accounts/${this.accountId}`);
             return response.result;
         } catch (error) {
-            console.error('❌ Failed to fetch account info:', error.message);
+            console.error(' Failed to fetch account info:', error.message);
             throw error;
         }
     }
@@ -198,7 +198,7 @@ class CloudflareManager {
      */
     async getZoneHealth(zoneId) {
         console.log(`🔧 Checking zone health for ${zoneId}...`);
-        
+
         try {
             const [details, settings] = await Promise.all([
                 this.getZoneDetails(zoneId),
@@ -218,7 +218,7 @@ class CloudflareManager {
 
             return health;
         } catch (error) {
-            console.error('❌ Failed to check zone health:', error.message);
+            console.error(' Failed to check zone health:', error.message);
             throw error;
         }
     }
@@ -228,11 +228,11 @@ class CloudflareManager {
      */
     async getDomainOverview() {
         console.log('📊 Generating comprehensive domain overview...\n');
-        
+
         try {
             // Get zones
             const zones = await this.listZones();
-            
+
             if (zones.length === 0) {
                 return {
                     zones: [],
@@ -273,7 +273,7 @@ class CloudflareManager {
                 alerts: await this.getAlerts()
             };
         } catch (error) {
-            console.error('❌ Failed to generate overview:', error.message);
+            console.error(' Failed to generate overview:', error.message);
             throw error;
         }
     }

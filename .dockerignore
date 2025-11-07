@@ -1,0 +1,219 @@
+# ========================================
+# AI Agents Platform - Docker Ignore File
+# ========================================
+# Excludes unnecessary files from Docker image
+# Reduces build time and image size
+# Prevents secrets from being copied to container
+
+# ========================================
+# Git & Version Control
+# ========================================
+.git
+.gitignore
+.github
+.gitattributes
+
+# ========================================
+# Python Cache & Build Artifacts
+# ========================================
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+.nox/
+*.cover
+.hypothesis/
+
+# ========================================
+# Environment & Secrets (CRITICAL)
+# ========================================
+# NEVER include these in Docker image
+.env
+.env.master
+.env.*
+.env.local
+.env.production
+.env.development
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*.env
+
+# ========================================
+# Credentials & Keys (CRITICAL)
+# ========================================
+config.py
+**/service-account*.json
+**/azure_ad_app_config.json
+**/credentials*.json
+**/*_credentials*.json
+**/client_secret*.json
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+
+# ========================================
+# IDE & Editor Files
+# ========================================
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ========================================
+# Operating System Files
+# ========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# ========================================
+# Logs
+# ========================================
+*.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================================
+# Database Files (Local Only)
+# ========================================
+# These are created at runtime in the container
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.sqlite
+AI_infrastructure/*.db
+AI_infrastructure/data/*.db
+
+# ========================================
+# Documentation & Markdown
+# ========================================
+# Exclude most documentation to reduce image size
+# Keep only essential README
+docs/
+docs/archive/
+*.md
+!README.md
+!CHANGELOG.md
+
+# ========================================
+# Testing & Development
+# ========================================
+testing_tools/
+test_*.py
+*_test.py
+tests/
+.pytest_cache/
+coverage.xml
+.coverage
+
+# ========================================
+# Scripts (Not Needed in Production)
+# ========================================
+scripts/testing/
+scripts/maintenance/
+scripts/setup/
+*.bat
+*.ps1
+BISTART.bat
+BISTOP.bat
+CHAT.bat
+
+# ========================================
+# Render Backend Tools (Not Needed in Container)
+# ========================================
+Render_backend/
+deploy_*.py
+monitor_*.py
+test_deployment.py
+check_prerequisites.py
+
+# ========================================
+# UI Files (If Backend-Only Deployment)
+# ========================================
+# Uncomment if deploying backend only
+# UI/
+# *.html
+# *.css
+# *.js
+
+# ========================================
+# Temporary Files
+# ========================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
+
+# ========================================
+# Large Files & Archives
+# ========================================
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# ========================================
+# Node.js (If Any Frontend Tools)
+# ========================================
+node_modules/
+package-lock.json
+yarn.lock
+
+# ========================================
+# CI/CD (Not Needed in Container)
+# ========================================
+.github/workflows/
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
+
+# ========================================
+# Jupyter Notebooks
+# ========================================
+*.ipynb
+.ipynb_checkpoints
+
+# ========================================
+# Media Files (Usually Not Needed)
+# ========================================
+*.mp4
+*.avi
+*.mov
+*.mp3
+*.wav
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+# Exception: Keep logos/icons if needed
+!logo.png
+!favicon.ico

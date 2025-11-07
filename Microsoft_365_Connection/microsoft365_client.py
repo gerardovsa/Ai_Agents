@@ -682,6 +682,117 @@ class Microsoft365Client:
         logger.info(f"Marked email {message_id} as read")
         return True
     
+    def get_email_by_id_parsed(self, message_id: str, include_attachments: bool = True) -> Dict[str, Any]:
+        """
+        Get email with AI-OPTIMIZED parsing (clean text, parsed attachments)
+        
+        This is the Outlook/Microsoft 365 equivalent of Gmail's gmail_get_message_parsed().
+        Uses the universal email parser from AI_infrastructure.
+        
+        Args:
+            message_id: Email message ID
+            include_attachments: Whether to download and parse attachments
+        
+        Returns:
+            {
+                'id': str,
+                'thread_id': str (conversationId),
+                'from': {'name': str, 'email': str},
+                'to': [{'name': str, 'email': str}],
+                'subject': str,
+                'date': str (ISO format),
+                'body_text': str (clean text, HTML converted),
+                'attachments': [
+                    {
+                        'filename': str,
+                        'content_type': str,
+                        'size_bytes': int,
+                        'parsed_content': str (PDF/Word/Excel as text)
+                    }
+                ],
+                'token_estimate': int
+            }
+        """
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent / 'AI_infrastructure'))
+        from core.email_parser import UniversalEmailParser
+        
+        # Get message with attachments if requested
+        if include_attachments:
+            expand = '$expand=attachments'
+        else:
+            expand = ''
+        
+        endpoint = f'/me/messages/{message_id}'
+        if expand:
+            endpoint += f'?{expand}'
+        
+        raw_message = self._make_request('GET', endpoint)
+        
+        # Parse using universal parser
+        parser = UniversalEmailParser()
+        parsed = parser.parse_outlook_message(
+            raw_message,
+            download_attachments=include_attachments
+        )
+        
+        return parsed
+    
+    def get_thread_parsed(self, 
+                          conversation_id: str,
+                          max_messages: int = 20) -> Dict[str, Any]:
+        """
+        Get email thread/conversation with timeline and parsed content
+        
+        This is the Outlook equivalent of Gmail's gmail_get_thread_parsed().
+        
+        Args:
+            conversation_id: Conversation ID (thread ID)
+            max_messages: Max messages to fetch
+        
+        Returns:
+            {
+                'thread_id': str,
+                'subject': str,
+                'participants': [{'name': str, 'email': str}],
+                'start_date': str,
+                'last_date': str,
+                'message_count': int,
+                'messages': [
+                    {
+                        'position': 1,
+                        'from': {'name': str, 'email': str},
+                        'date': str,
+                        'body_text': str (preview),
+                        'full_message_id': str
+                    }
+                ],
+                'token_estimate': int
+            }
+        """
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent / 'AI_infrastructure'))
+        from core.email_parser import UniversalEmailParser
+        
+        # Get all messages in conversation
+        endpoint = f'/me/messages?$filter=conversationId eq \'{conversation_id}\'&$top={max_messages}&$orderby=receivedDateTime asc'
+        response = self._make_request('GET', endpoint)
+        messages = response.get('value', [])
+        
+        # Parse each message
+        parser = UniversalEmailParser()
+        parsed_messages = [
+            parser.parse_outlook_message(msg, download_attachments=False)
+            for msg in messages
+        ]
+        
+        # Build timeline
+        timeline = parser.parse_email_thread_timeline(parsed_messages)
+        
+        return timeline
+    
     def move_email_to_folder(self, message_id: str, folder_name: str) -> Dict[str, Any]:
         """
         Move email to different folder

@@ -36,7 +36,7 @@ def run_tests():
     print("=" * 60)
     
     if result.returncode == 0:
-        print("✅ ALL TESTS PASSED")
+        print(" ALL TESTS PASSED")
         print("=" * 60)
         print()
         print("Next steps:")
@@ -45,7 +45,7 @@ def run_tests():
         print("3. Migrate when ready")
         return 0
     else:
-        print("❌ SOME TESTS FAILED")
+        print(" SOME TESTS FAILED")
         print("=" * 60)
         print()
         print("Please fix failing tests before migration.")
@@ -75,11 +75,11 @@ def run_tests_with_coverage():
     print("=" * 60)
     
     if result.returncode == 0:
-        print("✅ ALL TESTS PASSED")
+        print(" ALL TESTS PASSED")
         print("=" * 60)
         return 0
     else:
-        print("❌ SOME TESTS FAILED")
+        print(" SOME TESTS FAILED")
         print("=" * 60)
         return 1
 

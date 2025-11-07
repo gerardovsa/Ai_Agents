@@ -37,7 +37,7 @@ def print_microsoft_instructions(service_url):
     print("   - Check 'Access tokens' is enabled")
     print("   - Supported account types: 'Accounts in any organizational directory'")
     
-    print(f"\n✅ Microsoft redirect URI to add:")
+    print(f"\n Microsoft redirect URI to add:")
     print(f"   {redirect_uri}")
 
 def print_google_instructions(service_url):
@@ -69,7 +69,7 @@ def print_google_instructions(service_url):
     print("   - Check authorized JavaScript origins include your domain")
     print("   - Ensure OAuth consent screen is configured")
     
-    print(f"\n✅ Google redirect URI to add:")
+    print(f"\n Google redirect URI to add:")
     print(f"   {redirect_uri}")
 
 def print_testing_instructions(service_url):
@@ -152,7 +152,7 @@ def main():
     print("📋 Quick Summary")
     print("=" * 70)
     
-    print("\n✅ Redirect URIs to add:")
+    print("\n Redirect URIs to add:")
     print(f"   Microsoft: {service_url}/api/auth/microsoft/callback")
     print(f"   Google: {service_url}/api/auth/google/callback")
     

@@ -1,11 +1,11 @@
 {
   "platform": "gmail",
   "version": "2.0",
-  "description": "Gmail API - Complete email management with SMART bundled tools for AI-powered composition, bulk operations, inbox organization, and intelligent processing",
+  "description": "Gmail API - Complete email management with SMART bundled tools for AI-powered composition, bulk operations, inbox organization, and intelligent processing.\n\n⚠️ CRITICAL: ALL Gmail tools MUST be called through the execute_tool meta-tool. DO NOT call Gmail tools directly. If you try to call a Gmail tool directly, you will receive an authentication error. Always use: execute_tool(tool_name='gmail_xxx', ...parameters)",
   "tools": [
     {
       "name": "gmail_ai_smart_compose_and_send",
-      "description": "🤖 SMART TOOL: AI-powered email composition and sending in ONE call. Takes natural language prompt, generates professional email, and sends or creates draft. Optionally creates Google Calendar events from email content. Use this instead of manually writing emails.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_ai_smart_compose_and_send', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🤖 SMART TOOL: AI-powered email composition and sending in ONE call. Takes natural language prompt, generates professional email, and sends or creates draft. Optionally creates Google Calendar events from email content. Use this instead of manually writing emails.",
       "platform": "gmail",
       "category": "smart_bundled",
       "parameters": {
@@ -71,7 +71,7 @@
     },
     {
       "name": "gmail_smart_bulk_send_personalized",
-      "description": "📧 SMART TOOL: Send personalized bulk emails with mail merge in ONE call. Each recipient gets customized email with their specific data ({{name}}, {{order_id}}, etc.). Perfect for mass outreach, reports, invoices, onboarding.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_smart_bulk_send_personalized', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n📧 SMART TOOL: Send personalized bulk emails with mail merge in ONE call. Each recipient gets customized email with their specific data ({{name}}, {{order_id}}, etc.). Perfect for mass outreach, reports, invoices, onboarding.",
       "platform": "gmail",
       "category": "smart_bundled",
       "parameters": {
@@ -125,7 +125,7 @@
     },
     {
       "name": "gmail_smart_bulk_read_summarize_prioritize",
-      "description": "📖 SMART TOOL: Bulk read, summarize, and prioritize emails in ONE call. AI analyzes multiple emails, generates summaries, assigns priority scores (1-5), recommends actions, and optionally creates Google Spreadsheet with results. Perfect for inbox triage.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_smart_bulk_read_summarize_prioritize', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n📖 SMART TOOL: Bulk read, summarize, and prioritize emails in ONE call. AI analyzes multiple emails, generates summaries, assigns priority scores (1-5), recommends actions, and optionally creates Google Spreadsheet with results. Perfect for inbox triage.",
       "platform": "gmail",
       "category": "smart_bundled",
       "parameters": {
@@ -177,7 +177,7 @@
     },
     {
       "name": "gmail_smart_auto_reply_draft_creator",
-      "description": "💬 SMART TOOL: Auto-generate reply drafts for multiple emails in ONE call. AI analyzes emails and creates appropriate responses based on content and response type. Creates drafts for review or returns generated text.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_smart_auto_reply_draft_creator', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n💬 SMART TOOL: Auto-generate reply drafts for multiple emails in ONE call. AI analyzes emails and creates appropriate responses based on content and response type. Creates drafts for review or returns generated text.",
       "platform": "gmail",
       "category": "smart_bundled",
       "parameters": {
@@ -225,7 +225,7 @@
     },
     {
       "name": "gmail_smart_inbox_organizer_cleaner",
-      "description": "🗂️ SMART TOOL: Organize, clean, and auto-filter inbox in ONE call. Creates labels, applies filters, archives old emails, deletes spam, and organizes messages automatically. Perfect for inbox zero workflows.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_smart_inbox_organizer_cleaner', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🗂️ SMART TOOL: Organize, clean, and auto-filter inbox in ONE call. Creates labels, applies filters, archives old emails, deletes spam, and organizes messages automatically. Perfect for inbox zero workflows.",
       "platform": "gmail",
       "category": "smart_bundled",
       "parameters": {
@@ -282,7 +282,7 @@
     },
     {
       "name": "gmail_send_email",
-      "description": "Send an email with attachments and HTML formatting",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_send_email', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an email with attachments and HTML formatting",
       "platform": "gmail",
       "category": "basic",
       "parameters": {
@@ -317,187 +317,323 @@
     },
     {
       "name": "gmail_create_draft",
-      "description": "Create a draft email",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_create_draft', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a draft email",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_send_draft",
-      "description": "Send an existing draft",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_send_draft', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an existing draft",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_list_messages",
-      "description": "List messages in mailbox",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_list_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList messages in mailbox",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_get_message",
-      "description": "Get a specific message by ID",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_get_message', ...) - DO NOT call directly!\n\nGet a specific message by ID. Returns message metadata (from, to, subject, date, snippet) by default. Use format='full' only when user explicitly asks for full email content/body.\n\nWARNING: format='full' returns large data (HTML body, headers, attachments). Use 'metadata' for browsing multiple emails.",
       "platform": "gmail",
-      "category": "basic"
+      "category": "basic",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Gmail message ID to retrieve",
+          "required": true
+        },
+        "format": {
+          "type": "string",
+          "description": "Response format: 'metadata' (subject/from/to/date/snippet - RECOMMENDED for browsing), 'minimal' (IDs only), 'full' (complete message with body - LARGE, use sparingly)",
+          "required": false,
+          "default": "metadata"
+        }
+      },
+      "returns": {
+        "id": "string",
+        "threadId": "string",
+        "snippet": "string (preview text)",
+        "from": "string (sender email)",
+        "to": "string (recipient)",
+        "subject": "string",
+        "date": "string",
+        "labelIds": "array (if format=metadata)",
+        "payload": "object (if format=full - LARGE DATA WARNING)"
+      }
+    },
+    {
+      "name": "gmail_get_message_parsed",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_get_message_parsed', ...) - DO NOT call directly!\n\nGet message with AI-OPTIMIZED parsing (clean text, parsed attachments). THIS IS THE RECOMMENDED METHOD when you need full email content.\n\nWhat this does:\n- Fetches full email content\n- Converts HTML to clean text\n- Parses attachments (PDF/Word/Excel) into text\n- Returns structured JSON OR PDF (for Claude document API)\n\nOutput formats:\n- 'json' (default): Returns structured data (1-2k tokens vs 50k!)\n- 'pdf': Returns PDF bytes ready for Claude document API with smart header/footer detection\n\nUse this instead of gmail_get_message(format='full') when:\n- User wants to analyze email content\n- User asks about attachments\n- User needs to understand conversation context\n\nDo NOT use this for:\n- Browsing/listing emails (use gmail_list_messages)\n- Quick previews (use gmail_get_message with format='metadata')",
+      "platform": "gmail",
+      "category": "basic",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Gmail message ID to retrieve and parse",
+          "required": true
+        },
+        "include_attachments": {
+          "type": "boolean",
+          "description": "Whether to download and parse attachments (default: true). Set to false for faster responses if attachments not needed.",
+          "required": false,
+          "default": true
+        },
+        "output_format": {
+          "type": "string",
+          "description": "Output format: 'json' (default, structured data) or 'pdf' (for Claude document API with header/footer detection)",
+          "required": false,
+          "default": "json",
+          "enum": [
+            "json",
+            "pdf"
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Parsed message with clean text",
+        "properties": {
+          "id": "string (message ID)",
+          "thread_id": "string",
+          "from": "object {name: str, email: str}",
+          "to": "array of {name: str, email: str}",
+          "subject": "string",
+          "date": "string (ISO format)",
+          "body_text": "string (clean text, HTML converted)",
+          "attachments": "array of {filename: str, content_type: str, size_bytes: int, parsed_content: str}",
+          "token_estimate": "int (rough token count for AI context)"
+        }
+      },
+      "examples": [
+        {
+          "description": "Get email with full content and attachments parsed",
+          "parameters": {
+            "message_id": "msg_abc123",
+            "include_attachments": true
+          }
+        },
+        {
+          "description": "Get email without attachments (faster)",
+          "parameters": {
+            "message_id": "msg_xyz789",
+            "include_attachments": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "gmail_get_thread_parsed",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_get_thread_parsed', ...) - DO NOT call directly!\n\nGet entire email thread with conversation timeline and parsed content. Use this when user asks to:\n- 'Show me the conversation'\n- 'What's the email thread about?'\n- 'Read this email chain'\n- 'Understand the context'\n\nOutput formats:\n- 'json' (default): Returns structured timeline with message previews\n- 'pdf': Returns comprehensive PDF with entire thread, all messages, and attachments (RECOMMENDED for Claude analysis)\n\nPDF format benefits:\n- Entire thread in context\n- Smart header/footer detection (extracts text from signatures/logos)\n- All attachments inline\n- Preserves conversation flow\n- ~7k tokens per 3 pages\n\nFor full content of individual messages, use gmail_get_message_parsed with the message IDs from the timeline.",
+      "platform": "gmail",
+      "category": "basic",
+      "parameters": {
+        "thread_id": {
+          "type": "string",
+          "description": "Gmail thread ID (from gmail_list_messages or gmail_get_message)",
+          "required": true
+        },
+        "max_messages": {
+          "type": "integer",
+          "description": "Maximum number of messages to fetch (default: 20)",
+          "required": false,
+          "default": 20
+        },
+        "output_format": {
+          "type": "string",
+          "description": "Output format: 'json' (default, timeline structure) or 'pdf' (comprehensive PDF for Claude document API)",
+          "required": false,
+          "default": "json",
+          "enum": [
+            "json",
+            "pdf"
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Thread timeline with conversation flow",
+        "properties": {
+          "thread_id": "string",
+          "subject": "string",
+          "participants": "array of {name: str, email: str}",
+          "start_date": "string (ISO format)",
+          "last_date": "string (ISO format)",
+          "message_count": "int",
+          "messages": "array of {position: int, from: object, date: str, body_text: str (preview), full_message_id: str}",
+          "token_estimate": "int"
+        }
+      },
+      "examples": [
+        {
+          "description": "Get thread conversation timeline",
+          "parameters": {
+            "thread_id": "thread_12345",
+            "max_messages": 20
+          }
+        }
+      ]
     },
     {
       "name": "gmail_get_attachment",
-      "description": "Download email attachment",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_get_attachment', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload email attachment",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_delete_message",
-      "description": "Delete a message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_delete_message', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a message",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_modify_message",
-      "description": "Modify message labels",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_modify_message', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nModify message labels",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_mark_as_read",
-      "description": "Mark message as read",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_mark_as_read', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark message as read",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_mark_as_unread",
-      "description": "Mark message as unread",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_mark_as_unread', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark message as unread",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_archive_message",
-      "description": "Archive a message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_archive_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nArchive a message",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_unarchive_message",
-      "description": "Unarchive a message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_unarchive_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nUnarchive a message",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_list_labels",
-      "description": "List all labels",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_list_labels', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all labels",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_create_label",
-      "description": "Create a new label",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_create_label', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new label",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_update_label",
-      "description": "Update label properties",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_update_label', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate label properties",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_delete_label",
-      "description": "Delete a label",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_delete_label', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a label",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_create_filter",
-      "description": "Create email filter",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_create_filter', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate email filter",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_list_filters",
-      "description": "List all filters",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_list_filters', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all filters",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_delete_filter",
-      "description": "Delete a filter",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_delete_filter', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a filter",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_get_profile",
-      "description": "Get Gmail profile info",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_get_profile', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Gmail profile info",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_search_messages",
-      "description": "Search messages with query",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_search_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch messages with query",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_batch_delete",
-      "description": "Delete multiple messages",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_batch_delete', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete multiple messages",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_batch_modify",
-      "description": "Modify multiple messages",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_batch_modify', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nModify multiple messages",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_watch_mailbox",
-      "description": "Set up mailbox watch",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_watch_mailbox', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSet up mailbox watch",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_stop_watch",
-      "description": "Stop mailbox watch",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_stop_watch', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nStop mailbox watch",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_get_thread",
-      "description": "Get email thread",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_get_thread', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet email thread",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_list_threads",
-      "description": "List email threads",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_list_threads', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList email threads",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_trash_thread",
-      "description": "Move thread to trash",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_trash_thread', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove thread to trash",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_get_history",
-      "description": "Get mailbox history",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_get_history', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet mailbox history",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_send_email_smtp",
-      "description": "Send email via SMTP",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_send_email_smtp', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend email via SMTP",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_send_email_smtp_html",
-      "description": "Send HTML email via SMTP",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_send_email_smtp_html', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend HTML email via SMTP",
       "platform": "gmail",
       "category": "basic"
     },
     {
       "name": "gmail_list_available_accounts",
-      "description": "List configured email accounts",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_list_available_accounts', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList configured email accounts",
       "platform": "gmail",
       "category": "basic"
     }

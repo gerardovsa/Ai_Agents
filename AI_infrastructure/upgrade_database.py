@@ -8,8 +8,11 @@ import sqlite3
 import json
 from datetime import datetime
 import os
+from pathlib import Path
 
-DB_PATH = 'C:/Users/gpoli/GIT/AI_agents/AI_infrastructure/data/sessions.db'
+# CORRECT: Use data/sessions.db (not AI_infrastructure/data/sessions.db)
+root_dir = Path(__file__).parent.parent
+DB_PATH = str(root_dir / 'data' / 'sessions.db')
 
 def upgrade_database():
     """Upgrade database schema to support enhanced thread/message management"""
@@ -131,7 +134,7 @@ def upgrade_database():
                 CREATE INDEX IF NOT EXISTS {index_name}
                 ON {table_name}({column_name})
             ''')
-            print(f"  ✅ Index {index_name} created")
+            print(f"   Index {index_name} created")
         except Exception as e:
             print(f"  ⚠️  Index {index_name} already exists or error: {e}")
     
@@ -149,10 +152,10 @@ def upgrade_database():
             VALUES ('default', 'Default Workspace', 'Automatically created workspace for existing sessions')
         ''')
         workspace_id = cursor.lastrowid
-        print(f"  ✅ Default workspace created (ID: {workspace_id})")
+        print(f"   Default workspace created (ID: {workspace_id})")
     else:
         workspace_id = workspace[0]
-        print(f"  ✅ Using existing default workspace (ID: {workspace_id})")
+        print(f"   Using existing default workspace (ID: {workspace_id})")
     
     # Migrate existing sessions to messages
     cursor.execute("SELECT session_id, conversation, created_at FROM sessions WHERE conversation IS NOT NULL")
@@ -182,7 +185,7 @@ def upgrade_database():
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             print(f"  ⚠️  Could not migrate session {session_id}: {e}")
     
-    print(f"  ✅ Migrated {migrated_count} messages from {len(sessions_to_migrate)} sessions")
+    print(f"   Migrated {migrated_count} messages from {len(sessions_to_migrate)} sessions")
     
     # ========== CREATE VIEWS FOR EASY QUERYING ==========
     print("\n👁️  Creating views...")
@@ -209,7 +212,7 @@ def upgrade_database():
         LEFT JOIN users u ON m.user_id = u.id
         ORDER BY m.created_at DESC
     ''')
-    print("  ✅ View v_messages_with_context created")
+    print("   View v_messages_with_context created")
     
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS v_thread_summary AS
@@ -230,12 +233,12 @@ def upgrade_database():
         GROUP BY t.id, t.thread_slug, t.name, t.created_at, t.updated_at, w.name
         ORDER BY t.updated_at DESC
     ''')
-    print("  ✅ View v_thread_summary created")
+    print("   View v_thread_summary created")
     
     conn.commit()
     conn.close()
     
-    print("\n✅ Database upgrade complete!")
+    print("\n Database upgrade complete!")
     print("\n📊 New Structure:")
     print("  - workspaces: Organize threads into workspaces")
     print("  - threads: Conversation threads with metadata")
@@ -261,7 +264,7 @@ def verify_upgrade():
     for table in tables:
         cursor.execute(f"SELECT COUNT(*) FROM {table}")
         count = cursor.fetchone()[0]
-        print(f"  ✅ {table}: {count} rows")
+        print(f"   {table}: {count} rows")
     
     conn.close()
 
@@ -279,6 +282,6 @@ if __name__ == '__main__':
         print("\n✨ All done! Your database is now ready for enhanced thread management.")
         
     except Exception as e:
-        print(f"\n❌ Upgrade failed: {e}")
+        print(f"\n Upgrade failed: {e}")
         import traceback
         traceback.print_exc()

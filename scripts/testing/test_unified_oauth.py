@@ -33,7 +33,7 @@ input("Press ENTER to start unified authentication...")
 try:
     from google_workspace.oauth_manager import authenticate_all_services
     
-    # ✅ ONE FUNCTION CALL = ALL SERVICES AUTHENTICATED
+    #  ONE FUNCTION CALL = ALL SERVICES AUTHENTICATED
     services = authenticate_all_services(mode='desktop')
     
     print("\n" + "="*70)
@@ -45,11 +45,11 @@ try:
     try:
         gmail = services['gmail']
         profile = gmail.users().getProfile(userId='me').execute()
-        print(f"   ✅ Gmail: {profile['emailAddress']}")
+        print(f"    Gmail: {profile['emailAddress']}")
         print(f"   📊 Messages: {profile['messagesTotal']:,}")
         print(f"   🧵 Threads: {profile['threadsTotal']:,}")
     except Exception as e:
-        print(f"   ❌ Gmail failed: {e}")
+        print(f"    Gmail failed: {e}")
     
     # Test Calendar
     print("\n2️⃣  Testing Calendar...")
@@ -57,11 +57,11 @@ try:
         calendar = services['calendar']
         calendars = calendar.calendarList().list().execute()
         cal_count = len(calendars.get('items', []))
-        print(f"   ✅ Calendar: {cal_count} calendars found")
+        print(f"    Calendar: {cal_count} calendars found")
         for cal in calendars.get('items', [])[:3]:
             print(f"      • {cal.get('summary', 'Unnamed')}")
     except Exception as e:
-        print(f"   ❌ Calendar failed: {e}")
+        print(f"    Calendar failed: {e}")
     
     # Test Tasks
     print("\n3️⃣  Testing Tasks...")
@@ -69,19 +69,19 @@ try:
         tasks = services['tasks']
         task_lists = tasks.tasklists().list().execute()
         task_count = len(task_lists.get('items', []))
-        print(f"   ✅ Tasks: {task_count} task lists found")
+        print(f"    Tasks: {task_count} task lists found")
         for tl in task_lists.get('items', []):
             print(f"      • {tl.get('title', 'Unnamed')}")
     except Exception as e:
-        print(f"   ❌ Tasks failed: {e}")
+        print(f"    Tasks failed: {e}")
     
     # Test Forms
     print("\n4️⃣  Testing Forms...")
     try:
         forms = services['forms']
-        print(f"   ✅ Forms: Service ready (requires form ID to test)")
+        print(f"    Forms: Service ready (requires form ID to test)")
     except Exception as e:
-        print(f"   ❌ Forms failed: {e}")
+        print(f"    Forms failed: {e}")
     
     print("\n" + "="*70)
     print("🎉 SUCCESS! ALL SERVICES WORKING WITH UNIFIED TOKEN")
@@ -109,7 +109,7 @@ gmail = build_gmail_oauth_service()  # No popup if unified token exists!
 """)
     
 except Exception as e:
-    print(f"\n❌ Unified authentication failed: {e}")
+    print(f"\n Unified authentication failed: {e}")
     import traceback
     traceback.print_exc()
     

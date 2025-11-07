@@ -42,11 +42,11 @@ function makeRequest(method, path, data = null) {
         });
 
         req.on('error', reject);
-        
+
         if (data) {
             req.write(JSON.stringify(data));
         }
-        
+
         req.end();
     });
 }
@@ -58,19 +58,19 @@ async function checkExistingRoute() {
     console.log('🔍 Checking for existing routes...');
     try {
         const routes = await makeRequest('GET', `/zones/${ZONE_ID}/workers/routes`);
-        
+
         const existingRoute = routes.find(r => r.pattern === 'mustcare.valorsynergysuite.com/*');
-        
+
         if (existingRoute) {
-            console.log('✅ Route already exists:');
+            console.log('Route already exists:');
             console.log(JSON.stringify(existingRoute, null, 2));
             return existingRoute;
         }
-        
+
         console.log('📋 Found', routes.length, 'existing routes');
         return null;
     } catch (error) {
-        console.error('❌ Failed to check routes:', error.message);
+        console.error(' Failed to check routes:', error.message);
         return null;
     }
 }
@@ -80,30 +80,30 @@ async function checkExistingRoute() {
  */
 async function addRoute() {
     console.log('🚀 Adding route for mustcare.valorsynergysuite.com...\n');
-    
+
     // First check if route exists
     const existing = await checkExistingRoute();
     if (existing) {
-        console.log('\n✅ Route already configured - nothing to do!');
+        console.log('\noute already configured - nothing to do!');
         return;
     }
-    
+
     // Add new route
     console.log('\n📝 Creating new route...');
     const routeData = {
         pattern: 'mustcare.valorsynergysuite.com/*',
         script: 'mustcare-worker'
     };
-    
+
     try {
         const result = await makeRequest('POST', `/zones/${ZONE_ID}/workers/routes`, routeData);
-        
-        console.log('\n✅ Route added successfully!');
+
+        console.log('\noute added successfully!');
         console.log(JSON.stringify(result, null, 2));
         console.log('\n🎉 Your Worker is now live at: https://mustcare.valorsynergysuite.com');
         console.log('🔧 Test health endpoint: https://mustcare.valorsynergysuite.com/health');
     } catch (error) {
-        console.error('\n❌ Failed to add route:', error.message);
+        console.error('\n Failed to add route:', error.message);
         console.log('\n📋 Manual Steps:');
         console.log('1. Go to: https://dash.cloudflare.com/' + ACCOUNT_ID + '/workers-and-pages');
         console.log('2. Click on "mustcare-worker"');
@@ -117,6 +117,6 @@ async function addRoute() {
 
 // Run
 addRoute().catch(error => {
-    console.error('❌ Fatal error:', error);
+    console.error(' Fatal error:', error);
     process.exit(1);
 });

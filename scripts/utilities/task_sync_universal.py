@@ -464,7 +464,7 @@ def create_google_task_with_checklist(kanban_card: Dict, google_tasks_client) ->
             )
             subtask_ids.append(subtask['id'])
     
-    logger.info(f"✅ Created Google Task with {len(subtask_ids)} subtasks: {main_task['id']}")
+    logger.info(f" Created Google Task with {len(subtask_ids)} subtasks: {main_task['id']}")
     
     return {
         'main_task': main_task,
@@ -495,7 +495,7 @@ def create_microsoft_todo_task(kanban_card: Dict, microsoft_client) -> Dict:
         **ms_task_data
     )
     
-    logger.info(f"✅ Created Microsoft To Do task: {ms_task['id']}")
+    logger.info(f" Created Microsoft To Do task: {ms_task['id']}")
     
     return ms_task
 
@@ -528,7 +528,7 @@ def update_google_task_from_kanban(kanban_card: Dict, google_task_id: str,
     
     # TODO: Handle subtask updates (requires fetching existing subtasks)
     
-    logger.info(f"✅ Updated Google Task: {google_task_id}")
+    logger.info(f" Updated Google Task: {google_task_id}")
     return updated_task
 
 
@@ -556,7 +556,7 @@ def update_microsoft_todo_from_kanban(kanban_card: Dict, ms_task_id: str,
         **update_data
     )
     
-    logger.info(f"✅ Updated Microsoft To Do task: {ms_task_id}")
+    logger.info(f" Updated Microsoft To Do task: {ms_task_id}")
     return updated_task
 
 

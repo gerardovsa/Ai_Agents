@@ -78,6 +78,20 @@ def get_stock_database_path() -> str:
     return str(stock_db)
 
 
+def get_sessions_database_path() -> str:
+    """
+    Get path to sessions database (sessions.db)
+    
+    CORRECT DATABASE for threads, user data, credentials, OAuth tokens
+    
+    Returns:
+        Absolute path to sessions.db
+    """
+    # Sessions database location (CORRECT for threads)
+    sessions_db = Path(__file__).parent.parent.parent / 'data' / 'sessions.db'
+    return str(sessions_db)
+
+
 def execute_sql_server_query(server: str, database: str, query: str, params: Optional[tuple] = None) -> List[Dict]:
     """
     Execute SQL Server query and return results as list of dicts

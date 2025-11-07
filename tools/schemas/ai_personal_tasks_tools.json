@@ -1,10 +1,10 @@
 {
   "platform": "ai_personal_tasks",
-  "description": "AI Personal Task Management - Enables AI to create and manage its own tasks in Google Tasks for persistent memory and work tracking",
+  "description": "AI Personal Task Management - Enables AI to create and manage its own tasks in Google Tasks for persistent memory and work tracking\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "tools": [
     {
       "name": "ai_create_task",
-      "description": "🤖 AI creates a task for itself to remember something. Use this when you need to: remember something for later, track multi-step work, set a reminder for follow-up, or maintain context across conversations. The AI has its own dedicated Google Tasks list.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_create_task', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🤖 AI creates a task for itself to remember something. Use this when you need to: remember something for later, track multi-step work, set a reminder for follow-up, or maintain context across conversations. The AI has its own dedicated Google Tasks list.",
       "platform": "ai_personal_tasks",
       "parameters": {
         "title": {
@@ -46,7 +46,7 @@
     },
     {
       "name": "ai_list_my_tasks",
-      "description": "🤖 AI lists its own tasks to check what it's working on. Use this at the start of conversations to resume previous work, or anytime to review pending tasks. Shows tasks from AI's dedicated Google Tasks list.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_list_my_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 AI lists its own tasks to check what it's working on. Use this at the start of conversations to resume previous work, or anytime to review pending tasks. Shows tasks from AI's dedicated Google Tasks list.",
       "platform": "ai_personal_tasks",
       "parameters": {
         "show_completed": {
@@ -78,7 +78,7 @@
     },
     {
       "name": "ai_update_task",
-      "description": "🤖 AI updates one of its tasks with new information or progress. Use this to: add progress notes, change due dates, update task details, or add new findings.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_update_task', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n🤖 AI updates one of its tasks with new information or progress. Use this to: add progress notes, change due dates, update task details, or add new findings.",
       "platform": "ai_personal_tasks",
       "parameters": {
         "task_id": {
@@ -122,7 +122,7 @@
     },
     {
       "name": "ai_complete_task",
-      "description": "🤖 AI marks one of its tasks as complete. Use this when work is finished, project is done, or issue is resolved. Optionally add completion notes.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_complete_task', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 AI marks one of its tasks as complete. Use this when work is finished, project is done, or issue is resolved. Optionally add completion notes.",
       "platform": "ai_personal_tasks",
       "parameters": {
         "task_id": {
@@ -151,7 +151,7 @@
     },
     {
       "name": "ai_organize_tasks",
-      "description": "🤖 AI organizes its tasks by priority using AI analysis. Use this to: prioritize workload, reorder tasks by importance, or focus on high-priority items. AI analyzes task content to determine urgency.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_organize_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 AI organizes its tasks by priority using AI analysis. Use this to: prioritize workload, reorder tasks by importance, or focus on high-priority items. AI analyzes task content to determine urgency.",
       "platform": "ai_personal_tasks",
       "parameters": {},
       "returns": {
@@ -168,7 +168,7 @@
     },
     {
       "name": "ai_create_project_tasks",
-      "description": "🤖 AI creates multiple related tasks for a project in one call. Use this for: breaking down complex work, tracking multi-step projects, or creating project plans. All tasks linked to parent project.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_create_project_tasks', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🤖 AI creates multiple related tasks for a project in one call. Use this for: breaking down complex work, tracking multi-step projects, or creating project plans. All tasks linked to parent project.",
       "platform": "ai_personal_tasks",
       "parameters": {
         "project_name": {
@@ -207,7 +207,7 @@
     },
     {
       "name": "ai_check_pending_work",
-      "description": "🤖 AI checks what work is pending from previous sessions. Use this at START of conversations to resume work. Returns summary with high-priority items, overdue tasks, and priorities.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_check_pending_work', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 AI checks what work is pending from previous sessions. Use this at START of conversations to resume work. Returns summary with high-priority items, overdue tasks, and priorities.",
       "platform": "ai_personal_tasks",
       "parameters": {},
       "returns": {

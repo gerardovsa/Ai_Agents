@@ -10,12 +10,12 @@ Write-Host ""
 $envFile = "C:\Users\gpoli\GIT\AI_agents\.env.master"
 
 if (!(Test-Path $envFile)) {
-    Write-Host "❌ .env.master file not found at:" -ForegroundColor Red
+    Write-Host " .env.master file not found at:" -ForegroundColor Red
     Write-Host "   $envFile" -ForegroundColor Yellow
     exit 1
 }
 
-Write-Host "✅ Found .env.master file" -ForegroundColor Green
+Write-Host " Found .env.master file" -ForegroundColor Green
 Write-Host ""
 
 # Check current Microsoft credentials
@@ -29,20 +29,23 @@ $hasClientSecret = $envContent -match "MICROSOFT_CLIENT_SECRET="
 $hasTenantId = $envContent -match "MICROSOFT_TENANT_ID="
 
 if ($hasClientId) {
-    Write-Host "✅ MICROSOFT_CLIENT_ID is set" -ForegroundColor Green
-} else {
-    Write-Host "❌ MICROSOFT_CLIENT_ID is NOT set" -ForegroundColor Red
+    Write-Host " MICROSOFT_CLIENT_ID is set" -ForegroundColor Green
+}
+else {
+    Write-Host " MICROSOFT_CLIENT_ID is NOT set" -ForegroundColor Red
 }
 
 if ($hasClientSecret) {
-    Write-Host "✅ MICROSOFT_CLIENT_SECRET is set" -ForegroundColor Green
-} else {
-    Write-Host "❌ MICROSOFT_CLIENT_SECRET is NOT set" -ForegroundColor Red
+    Write-Host " MICROSOFT_CLIENT_SECRET is set" -ForegroundColor Green
+}
+else {
+    Write-Host " MICROSOFT_CLIENT_SECRET is NOT set" -ForegroundColor Red
 }
 
 if ($hasTenantId) {
-    Write-Host "✅ MICROSOFT_TENANT_ID is set" -ForegroundColor Green
-} else {
+    Write-Host " MICROSOFT_TENANT_ID is set" -ForegroundColor Green
+}
+else {
     Write-Host "⚠️  MICROSOFT_TENANT_ID is NOT set (will use 'common')" -ForegroundColor Yellow
 }
 
@@ -112,10 +115,11 @@ MICROSOFT_TENANT_ID=$tenantId
         
         Add-Content -Path $envFile -Value $newConfig
         
-        Write-Host "✅ Credentials added successfully!" -ForegroundColor Green
+        Write-Host " Credentials added successfully!" -ForegroundColor Green
         Write-Host ""
         
-    } else {
+    }
+    else {
         Write-Host ""
         Write-Host "⚠️  Skipped credential setup" -ForegroundColor Yellow
         Write-Host "   You can manually add to .env.master:" -ForegroundColor Gray
@@ -148,5 +152,5 @@ Write-Host ""
 Write-Host "📖 For detailed instructions, see:" -ForegroundColor Cyan
 Write-Host "   C:\Users\gpoli\GIT\AI_agents\MICROSOFT_365_LOGIN_SETUP_GUIDE.md" -ForegroundColor Gray
 Write-Host ""
-Write-Host "✅ Setup script complete!" -ForegroundColor Green
+Write-Host " Setup script complete!" -ForegroundColor Green
 Write-Host ""
