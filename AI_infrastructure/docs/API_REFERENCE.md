@@ -581,10 +581,10 @@ session_manager.cleanup_inactive_sessions(hours=24)
 ### 5. Reuse Anthropic Client
 
 ```python
-# ✅ GOOD - Reuse singleton
+#  GOOD - Reuse singleton
 anthropic_client = init_anthropic_client(config_path)
 
-# ❌ BAD - Creating new client each time
+#  BAD - Creating new client each time
 client = Anthropic(api_key=...)  # Avoid!
 ```
 

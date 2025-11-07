@@ -53,10 +53,20 @@ class MicrosoftTodoTools:
             
             response.raise_for_status()
             
-            if response.status_code == 204:
+            # Some endpoints return 204 No Content or 202 Accepted with empty body
+            if response.status_code in (202, 204):
                 return {'success': True}
             
-            return {'success': True, 'data': response.json()}
+            # Some endpoints return empty response on success
+            if not response.text or response.text.strip() == '':
+                return {'success': True}
+            
+            try:
+                return {'success': True, 'data': response.json()}
+            except ValueError as json_error:
+                # Response was successful but not JSON (e.g., empty body)
+                print(f"[WARNING] Microsoft Todo - Response not JSON: {response.status_code}, body length: {len(response.text)}")
+                return {'success': True, 'data': None}
             
         except requests.exceptions.HTTPError as e:
             error_msg = str(e)
@@ -599,7 +609,7 @@ class MicrosoftTodoTools:
         }
     
     def _generate_workload_recommendations(self, workload: Dict, overloaded: List, 
-                                          underutilized: List, unassigned: List) -> List[str]:
+                                          underutilized: List, unassigned: List, **kwargs) -> List[str]:
         """Generate workload balancing recommendations"""
         recommendations = []
         
@@ -719,5 +729,159 @@ class MicrosoftTodoTools:
         }
 
 
+# ========================================
+# GLOBAL INSTANCE & MODULE-LEVEL EXPORTS
+# ========================================
+
 # Create global instance
 microsoft_todo_tools = MicrosoftTodoTools()
+
+# Export all functions at module level
+# Wrappers handle parameter transformation for registry compatibility
+
+def microsoft_todo_create_task(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_create_task(user_id, **kwargs)
+
+def microsoft_todo_update_task(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_update_task(user_id, **kwargs)
+
+def microsoft_todo_complete_task(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_complete_task(user_id, **kwargs)
+
+def microsoft_todo_delete_task(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_delete_task(user_id, **kwargs)
+
+def microsoft_todo_create_list(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_create_list(user_id, **kwargs)
+
+def microsoft_todo_list_lists(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_list_lists(user_id, **kwargs)
+
+def microsoft_todo_smart_daily_digest(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_smart_daily_digest(user_id, **kwargs)
+
+def microsoft_todo_smart_recurring_tasks(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_smart_recurring_tasks(user_id, **kwargs)
+
+def microsoft_todo_export_tasks(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_export_tasks(user_id, **kwargs)
+
+
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_list_tasks(user_id, **kwargs)
+
+def microsoft_todo_create_task(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_create_task(user_id, **kwargs)
+
+def microsoft_todo_update_task(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_update_task(user_id, **kwargs)
+
+def microsoft_todo_complete_task(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_complete_task(user_id, **kwargs)
+
+def microsoft_todo_delete_task(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_delete_task(user_id, **kwargs)
+
+def microsoft_todo_create_list(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_create_list(user_id, **kwargs)
+
+def microsoft_todo_list_lists(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_list_lists(user_id, **kwargs)
+
+def microsoft_todo_smart_daily_digest(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_smart_daily_digest(user_id, **kwargs)
+
+def microsoft_todo_smart_recurring_tasks(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_smart_recurring_tasks(user_id, **kwargs)
+
+def microsoft_todo_export_tasks(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_todo_tools.todo_export_tasks(user_id, **kwargs)
+
+
+microsoft_todo_create_task = microsoft_todo_tools.todo_create_task
+
+microsoft_todo_update_task = microsoft_todo_tools.todo_update_task
+
+microsoft_todo_complete_task = microsoft_todo_tools.todo_complete_task
+
+microsoft_todo_delete_task = microsoft_todo_tools.todo_delete_task
+
+microsoft_todo_create_list = microsoft_todo_tools.todo_create_list
+
+microsoft_todo_list_lists = microsoft_todo_tools.todo_list_lists
+
+microsoft_todo_smart_daily_digest = microsoft_todo_tools.todo_smart_daily_digest
+
+microsoft_todo_smart_recurring_tasks = microsoft_todo_tools.todo_smart_recurring_tasks
+
+microsoft_todo_export_tasks = microsoft_todo_tools.todo_export_tasks
+
+
+# Microsoft Planner functions
+planner_list_plans = microsoft_todo_tools.planner_list_plans
+planner_create_plan = microsoft_todo_tools.planner_create_plan
+planner_list_buckets = microsoft_todo_tools.planner_list_buckets
+planner_create_bucket = microsoft_todo_tools.planner_create_bucket
+planner_list_tasks = microsoft_todo_tools.planner_list_tasks
+planner_create_task = microsoft_todo_tools.planner_create_task
+planner_update_task = microsoft_todo_tools.planner_update_task
+planner_assign_task = microsoft_todo_tools.planner_assign_task
+planner_add_checklist = microsoft_todo_tools.planner_add_checklist
+planner_smart_sprint_setup = microsoft_todo_tools.planner_smart_sprint_setup
+planner_smart_team_workload = microsoft_todo_tools.planner_smart_team_workload
+planner_get_plan_progress = microsoft_todo_tools.planner_get_plan_progress

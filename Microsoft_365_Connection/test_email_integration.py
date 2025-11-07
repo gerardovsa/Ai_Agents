@@ -136,18 +136,18 @@ class Office365EmailTester:
             server.quit()
             
             logger.info("✓ SMTP connection successful!")
-            print("\n✅ TEST 1 PASSED - SMTP connection working")
+            print("\n TEST 1 PASSED - SMTP connection working")
             return True
             
         except smtplib.SMTPAuthenticationError as e:
             logger.error(f"✗ Authentication failed: {e}")
             logger.error("Check username/password or enable 'App Passwords' in Office 365")
-            print("\n❌ TEST 1 FAILED - Authentication error")
+            print("\n TEST 1 FAILED - Authentication error")
             return False
             
         except Exception as e:
             logger.error(f"✗ SMTP connection failed: {e}")
-            print("\n❌ TEST 1 FAILED - Connection error")
+            print("\n TEST 1 FAILED - Connection error")
             return False
     
     def send_test_email_smtp(self, to_address: str) -> bool:
@@ -242,13 +242,13 @@ Automated Notification Service
             server.quit()
             
             logger.info("✓ Test email sent successfully!")
-            print(f"\n✅ TEST 2 PASSED - Email sent to {to_address}")
+            print(f"\n TEST 2 PASSED - Email sent to {to_address}")
             print(f"   Check inbox for test message")
             return True
             
         except Exception as e:
             logger.error(f"✗ Failed to send test email: {e}")
-            print("\n❌ TEST 2 FAILED - Email sending error")
+            print("\n TEST 2 FAILED - Email sending error")
             return False
     
     def send_job_completion_notification(self, 
@@ -358,12 +358,12 @@ Automated Notification System
             server.quit()
             
             logger.info("✓ Job completion notification sent successfully!")
-            print(f"\n✅ TEST 3 PASSED - Notification sent to {to_address}")
+            print(f"\n TEST 3 PASSED - Notification sent to {to_address}")
             return True
             
         except Exception as e:
             logger.error(f"✗ Failed to send notification: {e}")
-            print("\n❌ TEST 3 FAILED - Notification sending error")
+            print("\n TEST 3 FAILED - Notification sending error")
             return False
     
     def run_all_tests(self, test_email: str) -> Dict[str, bool]:
@@ -413,7 +413,7 @@ Automated Notification System
         total = len(results)
         
         for test_name, result in results.items():
-            status = "✅ PASS" if result else "❌ FAIL"
+            status = " PASS" if result else " FAIL"
             print(f"{status} - {test_name.replace('_', ' ').title()}")
         
         print(f"\nResults: {passed}/{total} tests passed")
@@ -452,7 +452,7 @@ def main():
         if email and password:
             tester.set_credentials(email, password)
         else:
-            print("\n❌ Credentials required. Exiting...")
+            print("\n Credentials required. Exiting...")
             return
     
     # Prompt for test email
@@ -467,7 +467,7 @@ def main():
     
     # Provide guidance based on results
     if all(results.values()):
-        print("\n✅ SUCCESS - Email integration is fully operational!")
+        print("\n SUCCESS - Email integration is fully operational!")
         print("\nNext steps:")
         print("1. Add Email config to database-config.json (see example below)")
         print("2. Integrate email notifications into job workflow")

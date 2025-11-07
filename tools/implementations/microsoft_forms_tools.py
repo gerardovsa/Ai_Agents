@@ -619,17 +619,144 @@ class MicrosoftFormsTools:
 # Create global instance (no access token needed - credentials injected per-call)
 microsoft_forms_tools = MicrosoftFormsTools()
 
-# Export all functions at module level for registry access
-forms_list_forms = microsoft_forms_tools.forms_list_forms
-forms_get_form = microsoft_forms_tools.forms_get_form
-forms_create_form = microsoft_forms_tools.forms_create_form
-forms_delete_form = microsoft_forms_tools.forms_delete_form
-forms_add_question = microsoft_forms_tools.forms_add_question
-forms_list_questions = microsoft_forms_tools.forms_list_questions
-forms_get_responses = microsoft_forms_tools.forms_get_responses
-forms_export_responses = microsoft_forms_tools.forms_export_responses
-forms_get_statistics = microsoft_forms_tools.forms_get_statistics
-forms_smart_create_survey = microsoft_forms_tools.forms_smart_create_survey
-forms_smart_satisfaction_survey = microsoft_forms_tools.forms_smart_satisfaction_survey
-forms_smart_analyze_responses = microsoft_forms_tools.forms_smart_analyze_responses
-forms_smart_export_to_excel = microsoft_forms_tools.forms_smart_export_to_excel
+# Export all functions at module level
+# Wrappers handle parameter transformation for registry compatibility
+
+def microsoft_forms_get_form(**kwargs):
+    return microsoft_forms_tools.forms_get_form(**kwargs)
+
+def microsoft_forms_create_form(**kwargs):
+    return microsoft_forms_tools.forms_create_form(**kwargs)
+
+def microsoft_forms_delete_form(**kwargs):
+    return microsoft_forms_tools.forms_delete_form(**kwargs)
+
+def microsoft_forms_add_question(**kwargs):
+    return microsoft_forms_tools.forms_add_question(**kwargs)
+
+def microsoft_forms_list_questions(**kwargs):
+    return microsoft_forms_tools.forms_list_questions(**kwargs)
+
+def microsoft_forms_get_responses(**kwargs):
+    return microsoft_forms_tools.forms_get_responses(**kwargs)
+
+def microsoft_forms_export_responses(**kwargs):
+    return microsoft_forms_tools.forms_export_responses(**kwargs)
+
+def microsoft_forms_get_statistics(**kwargs):
+    return microsoft_forms_tools.forms_get_statistics(**kwargs)
+
+def microsoft_forms_smart_create_survey(**kwargs):
+    return microsoft_forms_tools.forms_smart_create_survey(**kwargs)
+
+def microsoft_forms_smart_satisfaction_survey(**kwargs):
+    return microsoft_forms_tools.forms_smart_satisfaction_survey(**kwargs)
+
+def microsoft_forms_smart_analyze_responses(**kwargs):
+    return microsoft_forms_tools.forms_smart_analyze_responses(**kwargs)
+
+def microsoft_forms_smart_export_to_excel(**kwargs):
+    return microsoft_forms_tools.forms_smart_export_to_excel(**kwargs)
+
+
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_list_forms(user_id, **kwargs)
+
+def microsoft_forms_get_form(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_get_form(user_id, **kwargs)
+
+def microsoft_forms_create_form(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_create_form(user_id, **kwargs)
+
+def microsoft_forms_delete_form(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_delete_form(user_id, **kwargs)
+
+def microsoft_forms_add_question(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_add_question(user_id, **kwargs)
+
+def microsoft_forms_list_questions(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_list_questions(user_id, **kwargs)
+
+def microsoft_forms_get_responses(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_get_responses(user_id, **kwargs)
+
+def microsoft_forms_export_responses(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_export_responses(user_id, **kwargs)
+
+def microsoft_forms_get_statistics(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_get_statistics(user_id, **kwargs)
+
+def microsoft_forms_smart_create_survey(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_smart_create_survey(user_id, **kwargs)
+
+def microsoft_forms_smart_satisfaction_survey(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_smart_satisfaction_survey(user_id, **kwargs)
+
+def microsoft_forms_smart_analyze_responses(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_smart_analyze_responses(user_id, **kwargs)
+
+def microsoft_forms_smart_export_to_excel(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_forms_tools.forms_smart_export_to_excel(user_id, **kwargs)
+
+
+microsoft_forms_get_form = microsoft_forms_tools.forms_get_form
+
+microsoft_forms_create_form = microsoft_forms_tools.forms_create_form
+
+microsoft_forms_delete_form = microsoft_forms_tools.forms_delete_form
+
+microsoft_forms_add_question = microsoft_forms_tools.forms_add_question
+
+microsoft_forms_list_questions = microsoft_forms_tools.forms_list_questions
+
+microsoft_forms_get_responses = microsoft_forms_tools.forms_get_responses
+
+microsoft_forms_export_responses = microsoft_forms_tools.forms_export_responses
+
+microsoft_forms_get_statistics = microsoft_forms_tools.forms_get_statistics
+
+microsoft_forms_smart_create_survey = microsoft_forms_tools.forms_smart_create_survey
+
+microsoft_forms_smart_satisfaction_survey = microsoft_forms_tools.forms_smart_satisfaction_survey
+
+microsoft_forms_smart_analyze_responses = microsoft_forms_tools.forms_smart_analyze_responses
+
+microsoft_forms_smart_export_to_excel = microsoft_forms_tools.forms_smart_export_to_excel
+

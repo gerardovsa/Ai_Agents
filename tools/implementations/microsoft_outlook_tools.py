@@ -40,6 +40,10 @@ class MicrosoftOutlookTools:
         """Make HTTP request to Microsoft Graph API"""
         url = f"{self.graph_api_base}{endpoint}"
         
+        print(f"\n[MICROSOFT OUTLOOK] Making {method} request to: {endpoint}")
+        if data:
+            print(f"[MICROSOFT OUTLOOK] Request data keys: {list(data.keys())}")
+        
         try:
             if method == 'GET':
                 response = requests.get(url, headers=self._get_headers(**kwargs), params=params)
@@ -52,13 +56,25 @@ class MicrosoftOutlookTools:
             else:
                 return {'success': False, 'error': f'Unsupported HTTP method: {method}'}
             
+            print(f"[MICROSOFT OUTLOOK] Response status: {response.status_code}")
+            print(f"[MICROSOFT OUTLOOK] Response body length: {len(response.text)}")
+            
             response.raise_for_status()
             
-            # Some endpoints return 204 No Content
-            if response.status_code == 204:
+            # Some endpoints return 204 No Content or 202 Accepted with empty body
+            if response.status_code in (202, 204):
                 return {'success': True}
             
-            return {'success': True, 'data': response.json()}
+            # Some endpoints return empty response on success
+            if not response.text or response.text.strip() == '':
+                return {'success': True}
+            
+            try:
+                return {'success': True, 'data': response.json()}
+            except ValueError as json_error:
+                # Response was successful but not JSON (e.g., empty body)
+                print(f"[WARNING] Response not JSON: {response.status_code}, body length: {len(response.text)}")
+                return {'success': True, 'data': None}
             
         except requests.exceptions.HTTPError as e:
             error_msg = str(e)
@@ -76,8 +92,60 @@ class MicrosoftOutlookTools:
                           bcc: List[str] = None, importance: str = 'normal',
                           attachments: List[Dict] = None, 
                           request_read_receipt: bool = False, **kwargs) -> Dict:
-        """Send an email via Outlook"""
+        """
+        TEMPORARILY DISABLED: Send an email via Outlook
         
+        CURRENT BEHAVIOR: Saves email as draft instead of sending
+        This is a temporary measure - the email will be saved to your Outlook Drafts folder
+        for manual review and sending.
+        """
+        
+        print(f"\n[MICROSOFT OUTLOOK] outlook_send_email called (SAVING AS DRAFT):")
+        print(f"  - To: {to}")
+        print(f"  - Subject: {subject}")
+        print(f"  - Has credentials in kwargs: {'access_token' in kwargs}")
+        if 'access_token' in kwargs:
+            token = kwargs['access_token']
+            print(f"  - Token length: {len(token) if token else 0}")
+        
+        # Helper to parse recipients - handle both string and list inputs
+        def parse_recipients(recipients):
+            if isinstance(recipients, str):
+                # Check if it's a string representation of a Python list (e.g., "['email@example.com']")
+                if recipients.startswith('[') and recipients.endswith(']'):
+                    try:
+                        # Try to evaluate it safely as a list
+                        import ast
+                        evaluated = ast.literal_eval(recipients)
+                        if isinstance(evaluated, list):
+                            # Recursively parse the evaluated list
+                            return parse_recipients(evaluated)
+                    except (ValueError, SyntaxError):
+                        # If evaluation fails, treat as single email
+                        pass
+                
+                # Normal string - split by comma and clean up
+                return [addr.strip() for addr in recipients.split(',') if addr.strip()]
+            elif isinstance(recipients, list):
+                # If list, flatten and handle string items
+                result = []
+                for item in recipients:
+                    if isinstance(item, str):
+                        result.append(item.strip())
+                    elif isinstance(item, dict) and 'emailAddress' in item:
+                        result.append(item['emailAddress'].get('address', ''))
+                return [r for r in result if r]
+            return []
+        
+        # Parse all recipient fields
+        to_emails = parse_recipients(to)
+        cc_emails = parse_recipients(cc) if cc else []
+        bcc_emails = parse_recipients(bcc) if bcc else []
+        
+        if not to_emails:
+            return {'success': False, 'error': 'At least one recipient is required in "to" field'}
+        
+        # MODIFIED: Create draft instead of sending
         message = {
             'subject': subject,
             'importance': importance,
@@ -85,14 +153,14 @@ class MicrosoftOutlookTools:
                 'contentType': body_type.upper() if body_type == 'html' else 'Text',
                 'content': body
             },
-            'toRecipients': [{'emailAddress': {'address': email}} for email in to]
+            'toRecipients': [{'emailAddress': {'address': email}} for email in to_emails]
         }
         
-        if cc:
-            message['ccRecipients'] = [{'emailAddress': {'address': email}} for email in cc]
+        if cc_emails:
+            message['ccRecipients'] = [{'emailAddress': {'address': email}} for email in cc_emails]
         
-        if bcc:
-            message['bccRecipients'] = [{'emailAddress': {'address': email}} for email in bcc]
+        if bcc_emails:
+            message['bccRecipients'] = [{'emailAddress': {'address': email}} for email in bcc_emails]
         
         if request_read_receipt:
             message['isReadReceiptRequested'] = True
@@ -107,15 +175,31 @@ class MicrosoftOutlookTools:
                     'contentBytes': att.get('content')  # Should be base64 encoded
                 })
         
-        result = self._make_request('POST', '/me/sendMail', {'message': message}, **kwargs)
+        # MODIFIED: Save as draft instead of sending
+        result = self._make_request('POST', '/me/messages', message, **kwargs)
         
         if result['success']:
+            draft = result.get('data', {})
             return {
                 'success': True,
-                'message': f'Email sent to {len(to)} recipient(s)',
-                'recipients': to
+                'message': f'⚠️ EMAIL SAVED AS DRAFT (not sent) - {len(to_emails)} recipient(s)',
+                'note': 'This email was saved to your Outlook Drafts folder for manual review and sending.',
+                'recipients': to_emails,
+                'draft_id': draft.get('id'),
+                'action_required': 'Please open Outlook and send this email manually from your Drafts folder.'
             }
         return result
+        
+        # COMMENTED OUT: Original send implementation
+        # result = self._make_request('POST', '/me/sendMail', {'message': message}, **kwargs)
+        # 
+        # if result['success']:
+        #     return {
+        #         'success': True,
+        #         'message': f'Email sent to {len(to_emails)} recipient(s)',
+        #         'recipients': to_emails
+        #     }
+        # return result
     
     def outlook_smart_bulk_send_personalized(self, subject_template: str, body_template: str,
                                             recipients: List[Dict], importance: str = 'normal',
@@ -170,6 +254,10 @@ class MicrosoftOutlookTools:
                              unread_only: bool = False, **kwargs) -> Dict:
         """List messages from a folder"""
         
+        # Ensure max_results is an integer (Claude sends strings)
+        if isinstance(max_results, str):
+            max_results = int(max_results)
+        
         params = {
             '$top': min(max_results, 500),
             '$orderby': order_by,
@@ -217,6 +305,10 @@ class MicrosoftOutlookTools:
                                has_attachments: bool = None, date_from: str = None,
                                date_to: str = None, max_results: int = 50, **kwargs) -> Dict:
         """Advanced message search"""
+        
+        # Ensure max_results is an integer (Claude sends strings)
+        if isinstance(max_results, str):
+            max_results = int(max_results)
         
         filters = []
         
@@ -340,7 +432,7 @@ class MicrosoftOutlookTools:
             }
         return result
     
-    def outlook_list_folders(self) -> Dict:
+    def outlook_list_folders(self, **kwargs) -> Dict:
         """List all mail folders"""
         
         result = self._make_request('GET', '/me/mailFolders', **kwargs)
@@ -689,7 +781,145 @@ class MicrosoftOutlookTools:
                 'content': attachment.get('contentBytes')  # Base64 encoded
             }
         return result
+    
+    def outlook_create_inbox_rule(self, display_name: str, conditions: Dict, actions: Dict, **kwargs) -> Dict:
+        """
+        Create an automatic inbox rule (server-side filtering)
+        
+        Args:
+            display_name: Rule name
+            conditions: Rule conditions (e.g., {'fromAddresses': [{'emailAddress': {'address': 'sender@example.com'}}]})
+            actions: Actions to perform (e.g., {'moveToFolder': 'folder-id'})
+        
+        Returns:
+            Dict with success status and rule details
+        """
+        payload = {
+            'displayName': display_name,
+            'sequence': 1,
+            'isEnabled': True,
+            'conditions': conditions,
+            'actions': actions
+        }
+        
+        result = self._make_request('POST', '/me/mailFolders/inbox/messageRules', data=payload, **kwargs)
+        
+        if result['success']:
+            rule = result['data']
+            return {
+                'success': True,
+                'rule_id': rule.get('id'),
+                'display_name': rule.get('displayName'),
+                'is_enabled': rule.get('isEnabled'),
+                'conditions': rule.get('conditions'),
+                'actions': rule.get('actions')
+            }
+        return result
+    
+    def outlook_list_inbox_rules(self, **kwargs) -> Dict:
+        """
+        List all inbox rules configured for the mailbox
+        
+        Returns:
+            Dict with list of rules
+        """
+        result = self._make_request('GET', '/me/mailFolders/inbox/messageRules', **kwargs)
+        
+        if result['success']:
+            rules = result['data'].get('value', [])
+            return {
+                'success': True,
+                'count': len(rules),
+                'rules': [{
+                    'rule_id': r.get('id'),
+                    'display_name': r.get('displayName'),
+                    'sequence': r.get('sequence'),
+                    'is_enabled': r.get('isEnabled'),
+                    'conditions': r.get('conditions'),
+                    'actions': r.get('actions')
+                } for r in rules]
+            }
+        return result
 
+
+# ========================================
+# GLOBAL INSTANCE & MODULE-LEVEL EXPORTS
+# ========================================
 
 # Create global instance
 microsoft_outlook_tools = MicrosoftOutlookTools()
+
+# Export all functions at module level
+# Wrappers handle parameter transformation for registry compatibility
+
+def microsoft_outlook_smart_bulk_send_personalized(**kwargs):
+    return microsoft_outlook_tools.outlook_smart_bulk_send_personalized(**kwargs)
+
+def microsoft_outlook_list_messages(**kwargs):
+    # Convert string parameters to integers (Claude sends everything as strings in JSON)
+    if 'max_results' in kwargs and isinstance(kwargs['max_results'], str):
+        kwargs['max_results'] = int(kwargs['max_results'])
+    return microsoft_outlook_tools.outlook_list_messages(**kwargs)
+
+def microsoft_outlook_get_message(**kwargs):
+    return microsoft_outlook_tools.outlook_get_message(**kwargs)
+
+def microsoft_outlook_search_messages(**kwargs):
+    return microsoft_outlook_tools.outlook_search_messages(**kwargs)
+
+def microsoft_outlook_mark_as_read(**kwargs):
+    return microsoft_outlook_tools.outlook_mark_as_read(**kwargs)
+
+def microsoft_outlook_move_message(**kwargs):
+    return microsoft_outlook_tools.outlook_move_message(**kwargs)
+
+def microsoft_outlook_delete_message(**kwargs):
+    return microsoft_outlook_tools.outlook_delete_message(**kwargs)
+
+def microsoft_outlook_create_folder(**kwargs):
+    return microsoft_outlook_tools.outlook_create_folder(**kwargs)
+
+def microsoft_outlook_list_folders(**kwargs):
+    return microsoft_outlook_tools.outlook_list_folders(**kwargs)
+
+def microsoft_outlook_create_draft(**kwargs):
+    return microsoft_outlook_tools.outlook_create_draft(**kwargs)
+
+def microsoft_outlook_send_draft(**kwargs):
+    return microsoft_outlook_tools.outlook_send_draft(**kwargs)
+
+def microsoft_outlook_reply_to_message(**kwargs):
+    return microsoft_outlook_tools.outlook_reply_to_message(**kwargs)
+
+def microsoft_outlook_forward_message(**kwargs):
+    return microsoft_outlook_tools.outlook_forward_message(**kwargs)
+
+def microsoft_outlook_add_category(**kwargs):
+    return microsoft_outlook_tools.outlook_add_category(**kwargs)
+
+def microsoft_outlook_flag_message(**kwargs):
+    return microsoft_outlook_tools.outlook_flag_message(**kwargs)
+
+def microsoft_outlook_smart_organize_inbox(**kwargs):
+    return microsoft_outlook_tools.outlook_smart_organize_inbox(**kwargs)
+
+def microsoft_outlook_smart_email_summary(**kwargs):
+    return microsoft_outlook_tools.outlook_smart_email_summary(**kwargs)
+
+def microsoft_outlook_smart_follow_up_reminder(**kwargs):
+    return microsoft_outlook_tools.outlook_smart_follow_up_reminder(**kwargs)
+
+def microsoft_outlook_get_attachments(**kwargs):
+    return microsoft_outlook_tools.outlook_get_attachments(**kwargs)
+
+def microsoft_outlook_download_attachment(**kwargs):
+    return microsoft_outlook_tools.outlook_download_attachment(**kwargs)
+
+def microsoft_outlook_create_inbox_rule(**kwargs):
+    return microsoft_outlook_tools.outlook_create_inbox_rule(**kwargs)
+
+def microsoft_outlook_list_inbox_rules(**kwargs):
+    return microsoft_outlook_tools.outlook_list_inbox_rules(**kwargs)
+
+def microsoft_outlook_send_email(**kwargs):
+    return microsoft_outlook_tools.outlook_send_email(**kwargs)

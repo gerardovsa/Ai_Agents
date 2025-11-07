@@ -1,20 +1,30 @@
 """
-Google Workspace OAuth Manager
-===============================
-Unified OAuth 2.0 authentication for personal data APIs (Gmail, Calendar, Forms, etc.)
+⚠️⚠️⚠️ DEPRECATED FILE - DO NOT USE ⚠️⚠️⚠️
 
-Supports:
-- Desktop mode: Browser popup authentication (local testing)
-- Web mode: Redirect-based authentication (Render deployment)
-- Multi-service: Single OAuth flow for multiple APIs
-- Token management: Automatic refresh, caching
+This file contains DEPRECATED file-based OAuth code that is NO LONGER SUPPORTED.
 
-Usage:
-    # Desktop mode (local testing)
-    service = build_oauth_service('gmail', mode='desktop')
-    
-    # Web mode (Render deployment)
-    service = build_oauth_service('gmail', mode='web', user_email='user@example.com')
+❌ REMOVED FEATURES:
+- credentials_desktop.json - File does not exist in production
+- credentials_web.json - File does not exist in production  
+- token_*.json files - Not used anymore
+- File-based OAuth flows - Completely removed
+
+✅ USE INSTEAD:
+All Google Workspace tools now use DATABASE OAuth ONLY.
+
+To authenticate:
+1. Visit: http://localhost:5001/auth/google/login
+2. Sign in with your Google account
+3. Tokens stored in: data/ai_infrastructure.db → oauth_tokens table
+4. Tools automatically use database credentials via credential_injector
+
+This file is kept ONLY for historical reference and test script compatibility.
+All functions in this file will raise deprecation warnings.
+
+For current OAuth implementation, see:
+- AI_infrastructure/routes/google_auth_routes.py (OAuth flow)
+- AI_infrastructure/auth/credential_injector.py (Credential injection)
+- google_workspace/google_tasks.py (Example of database OAuth usage)
 """
 
 import os
@@ -22,6 +32,7 @@ import json
 from pathlib import Path
 from typing import Optional, List, Dict
 from dotenv import load_dotenv
+import warnings
 
 # Load environment variables
 env_master = Path(__file__).parent.parent / '.env.master'
@@ -70,7 +81,7 @@ SCOPES = {
     ]
 }
 
-# ✅ UNIFIED SCOPES: All services in one OAuth flow
+#  UNIFIED SCOPES: All services in one OAuth flow
 UNIFIED_SCOPES = [
     # Gmail
     'https://www.googleapis.com/auth/gmail.modify',
@@ -112,6 +123,13 @@ def get_oauth_config(service_name: str = None) -> dict:
     """
     mode = os.getenv('GOOGLE_OAUTH_MODE', 'desktop').lower()
     
+    # ⚠️ DEPRECATED: File-based OAuth is being phased out
+    # Use credential_injector.py for database OAuth instead
+    print("⚠️ WARNING: oauth_manager.py file-based OAuth is DEPRECATED")
+    print("   Use AI_infrastructure/auth/credential_injector.py instead")
+    print("   Database OAuth via oauth_tokens table (no credential files needed)")
+    print("   See FIX_13_GOOGLE_WORKSPACE_OAUTH_DATABASE.md for migration guide")
+    
     config = {
         'mode': mode,
         'service_name': service_name or 'unified'
@@ -119,9 +137,10 @@ def get_oauth_config(service_name: str = None) -> dict:
     
     if mode == 'desktop':
         # Desktop mode: Single credentials file for all services
+        # ⚠️ DEPRECATED: credentials_desktop.json doesn't exist in production
         config['credentials_file'] = os.getenv(
             'GOOGLE_OAUTH_CREDENTIALS_FILE_DESKTOP',
-            'credentials_desktop.json'
+            'credentials_desktop.json'  # ← FILE DOESN'T EXIST - Use database OAuth!
         )
         
         if service_name:
@@ -137,9 +156,10 @@ def get_oauth_config(service_name: str = None) -> dict:
                 'token_unified_desktop.json'
             )
     else:  # web mode
+        # ⚠️ DEPRECATED: credentials_web.json doesn't exist in production
         config['credentials_file'] = os.getenv(
             'GOOGLE_OAUTH_CREDENTIALS_FILE_WEB',
-            'credentials_web.json'
+            'credentials_web.json'  # ← FILE DOESN'T EXIST - Use database OAuth!
         )
         
         if service_name:
@@ -161,23 +181,33 @@ def get_oauth_config(service_name: str = None) -> dict:
 
 def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[str] = None) -> dict:
     """
-    🎯 UNIFIED AUTHENTICATION: Authenticate ALL services with ONE browser popup
+    ⚠️ DEPRECATED - Use database OAuth instead
     
-    This is the recommended method for initial setup. User grants permission to
-    Gmail, Calendar, Tasks, and Forms all at once, then the same token is used
-    for all services.
+    This function uses file-based OAuth which is NO LONGER SUPPORTED.
+    
+    Use instead:
+    1. Authenticate via: http://localhost:5001/auth/google/login
+    2. Credentials stored in database automatically
+    3. Tools use credential_injector for OAuth
     
     Args:
-        mode: 'desktop' or 'web' (defaults to GOOGLE_OAUTH_MODE env var)
-        user_email: User email for multi-user deployments (web mode only)
+        mode: Ignored - file-based OAuth deprecated
+        user_email: Ignored - file-based OAuth deprecated
     
     Returns:
-        dict: {
-            'gmail': service,
-            'calendar': service,
-            'tasks': service,
-            'forms': service,
-            'token_file': 'path/to/token.json'
+        Raises DeprecationWarning
+    """
+    warnings.warn(
+        "authenticate_all_services() is DEPRECATED. "
+        "File-based OAuth (credentials_desktop.json) is no longer supported. "
+        "Use database OAuth via: http://localhost:5001/auth/google/login",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    raise NotImplementedError(
+        "❌ File-based OAuth is no longer supported.\n"
+        "To authenticate, visit: http://localhost:5001/auth/google/login"
+    )
         }
     
     Example:
@@ -218,7 +248,7 @@ def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[s
             print(f"   📂 Loading existing unified token...")
             try:
                 credentials = Credentials.from_authorized_user_file(token_file, UNIFIED_SCOPES)
-                print(f"   ✅ Token loaded successfully")
+                print(f"    Token loaded successfully")
             except Exception as e:
                 print(f"   ⚠️ Failed to load token: {e}")
                 credentials = None
@@ -229,7 +259,7 @@ def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[s
                 print(f"   🔄 Refreshing expired token...")
                 try:
                     credentials.refresh(Request())
-                    print(f"   ✅ Token refreshed successfully")
+                    print(f"    Token refreshed successfully")
                 except Exception as e:
                     print(f"   ⚠️ Token refresh failed: {e}")
                     credentials = None
@@ -237,10 +267,10 @@ def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[s
             if not credentials:
                 print(f"\n   🔐 Starting UNIFIED OAuth flow...")
                 print(f"   📋 User will grant permission to ALL services at once:")
-                print(f"      ✅ Gmail (read, send, modify)")
-                print(f"      ✅ Calendar (read, create, update)")
-                print(f"      ✅ Tasks (read, create, update)")
-                print(f"      ✅ Forms (create, read responses)")
+                print(f"       Gmail (read, send, modify)")
+                print(f"       Calendar (read, create, update)")
+                print(f"       Tasks (read, create, update)")
+                print(f"       Forms (create, read responses)")
                 print(f"\n   🌐 Browser will open automatically...\n")
                 
                 flow = InstalledAppFlow.from_client_secrets_file(
@@ -248,7 +278,7 @@ def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[s
                     UNIFIED_SCOPES
                 )
                 credentials = flow.run_local_server(port=0)
-                print(f"\n   ✅ Authentication successful!")
+                print(f"\n    Authentication successful!")
                 
                 # Save unified token
                 with open(token_file, 'w') as token:
@@ -265,10 +295,10 @@ def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[s
             'token_file': token_file
         }
         
-        print(f"   ✅ Gmail service ready")
-        print(f"   ✅ Calendar service ready")
-        print(f"   ✅ Tasks service ready")
-        print(f"   ✅ Forms service ready")
+        print(f"    Gmail service ready")
+        print(f"    Calendar service ready")
+        print(f"    Tasks service ready")
+        print(f"    Forms service ready")
         print("\n" + "="*70)
         print("🎉 ALL SERVICES AUTHENTICATED SUCCESSFULLY!")
         print("="*70 + "\n")
@@ -282,17 +312,34 @@ def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[s
 
 def build_oauth_service(service_name: str, mode: Optional[str] = None, user_email: Optional[str] = None):
     """
-    Build OAuth-authenticated Google API service
+    ⚠️ DEPRECATED - Use database OAuth instead
     
-    NOTE: If unified token exists, it will be used automatically!
-    This means you only need to authenticate once for all services.
+    This function uses file-based OAuth which is NO LONGER SUPPORTED.
+    
+    Use instead:
+    1. Authenticate via: http://localhost:5001/auth/google/login
+    2. Use service-specific functions (e.g. build_gmail_service, build_tasks_service)
+    3. Tools automatically use credential_injector
     
     Args:
-        service_name: 'gmail', 'calendar', 'forms', 'drive', 'tasks'
-        mode: 'desktop' or 'web' (defaults to GOOGLE_OAUTH_MODE env var)
-        user_email: User email for multi-user deployments (web mode only)
+        service_name: Ignored - file-based OAuth deprecated
+        mode: Ignored - file-based OAuth deprecated
+        user_email: Ignored - file-based OAuth deprecated
     
     Returns:
+        Raises NotImplementedError
+    """
+    warnings.warn(
+        f"build_oauth_service('{service_name}') is DEPRECATED. "
+        "File-based OAuth is no longer supported. "
+        "Use database OAuth via: http://localhost:5001/auth/google/login",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    raise NotImplementedError(
+        f"❌ File-based OAuth is no longer supported for {service_name}.\n"
+        "To authenticate, visit: http://localhost:5001/auth/google/login"
+    )
         Authenticated Google API service
     
     Examples:
@@ -315,7 +362,7 @@ def build_oauth_service(service_name: str, mode: Optional[str] = None, user_emai
         print(f"🔄 Using cached {service_name} service ({config['mode']} mode)")
         return _OAUTH_SERVICE_CACHE[cache_key]
     
-    # ✅ FIRST: Check if unified token exists
+    #  FIRST: Check if unified token exists
     unified_config = get_oauth_config(service_name=None)
     unified_token_file = unified_config['token_file']
     
@@ -334,7 +381,7 @@ def build_oauth_service(service_name: str, mode: Optional[str] = None, user_emai
             # Build service
             service = build(service_name, API_VERSIONS[service_name], credentials=credentials)
             _OAUTH_SERVICE_CACHE[cache_key] = service
-            print(f"   ✅ {service_name.title()} service ready (unified auth)")
+            print(f"    {service_name.title()} service ready (unified auth)")
             return service
             
         except Exception as e:
@@ -356,7 +403,7 @@ def build_oauth_service(service_name: str, mode: Optional[str] = None, user_emai
     
     # Cache service
     _OAUTH_SERVICE_CACHE[cache_key] = service
-    print(f"   ✅ Google {service_name.title()} service ready ({config['mode']} mode)")
+    print(f"    Google {service_name.title()} service ready ({config['mode']} mode)")
     
     return service
 
@@ -374,7 +421,7 @@ def _build_oauth_service_desktop(service_name: str, config: dict):
         print(f"   📂 Loading existing token from: {token_file}")
         try:
             credentials = Credentials.from_authorized_user_file(token_file, SCOPES[service_name])
-            print(f"   ✅ Token loaded successfully")
+            print(f"    Token loaded successfully")
         except Exception as e:
             print(f"   ⚠️ Failed to load token: {e}")
             credentials = None
@@ -385,7 +432,7 @@ def _build_oauth_service_desktop(service_name: str, config: dict):
             print(f"   🔄 Refreshing expired token...")
             try:
                 credentials.refresh(Request())
-                print(f"   ✅ Token refreshed successfully")
+                print(f"    Token refreshed successfully")
             except Exception as e:
                 print(f"   ⚠️ Token refresh failed: {e}")
                 credentials = None
@@ -397,7 +444,7 @@ def _build_oauth_service_desktop(service_name: str, config: dict):
                 SCOPES[service_name]
             )
             credentials = flow.run_local_server(port=0)
-            print(f"   ✅ Authentication successful!")
+            print(f"    Authentication successful!")
             
             # Save token
             with open(token_file, 'w') as token:
@@ -442,35 +489,41 @@ def _build_oauth_service_web(service_name: str, config: dict, user_email: Option
         # Save refreshed token
         with open(token_file, 'w') as token:
             token.write(credentials.to_json())
-        print(f"   ✅ Token refreshed and saved")
+        print(f"    Token refreshed and saved")
     
     # Build service
     service = build(service_name, API_VERSIONS[service_name], credentials=credentials)
     return service
 
 # ==================== CONVENIENCE FUNCTIONS ====================
+# ⚠️ ALL DEPRECATED - Use database OAuth instead
 
 def build_gmail_oauth_service(mode: Optional[str] = None, user_email: Optional[str] = None):
-    """Build OAuth-authenticated Gmail service"""
-    return build_oauth_service('gmail', mode=mode, user_email=user_email)
+    """⚠️ DEPRECATED - Use database OAuth via credential_injector"""
+    warnings.warn("build_gmail_oauth_service() is DEPRECATED. Use database OAuth.", DeprecationWarning, stacklevel=2)
+    raise NotImplementedError("❌ File-based OAuth is no longer supported. Visit: http://localhost:5001/auth/google/login")
 
 def build_calendar_oauth_service(mode: Optional[str] = None, user_email: Optional[str] = None):
-    """Build OAuth-authenticated Calendar service"""
-    return build_oauth_service('calendar', mode=mode, user_email=user_email)
+    """⚠️ DEPRECATED - Use database OAuth via credential_injector"""
+    warnings.warn("build_calendar_oauth_service() is DEPRECATED. Use database OAuth.", DeprecationWarning, stacklevel=2)
+    raise NotImplementedError("❌ File-based OAuth is no longer supported. Visit: http://localhost:5001/auth/google/login")
 
 def build_forms_oauth_service(mode: Optional[str] = None, user_email: Optional[str] = None):
-    """Build OAuth-authenticated Forms service"""
-    return build_oauth_service('forms', mode=mode, user_email=user_email)
+    """⚠️ DEPRECATED - Use database OAuth via credential_injector"""
+    warnings.warn("build_forms_oauth_service() is DEPRECATED. Use database OAuth.", DeprecationWarning, stacklevel=2)
+    raise NotImplementedError("❌ File-based OAuth is no longer supported. Visit: http://localhost:5001/auth/google/login")
 
 def build_drive_oauth_service(mode: Optional[str] = None, user_email: Optional[str] = None):
-    """Build OAuth-authenticated Drive service"""
-    return build_oauth_service('drive', mode=mode, user_email=user_email)
+    """⚠️ DEPRECATED - Use database OAuth via credential_injector"""
+    warnings.warn("build_drive_oauth_service() is DEPRECATED. Use database OAuth.", DeprecationWarning, stacklevel=2)
+    raise NotImplementedError("❌ File-based OAuth is no longer supported. Visit: http://localhost:5001/auth/google/login")
 
 # ==================== TOKEN MANAGEMENT ====================
+# ⚠️ ALL DEPRECATED - Token files no longer used
 
 def check_oauth_status(service_name: str, user_email: Optional[str] = None) -> dict:
     """
-    Check OAuth authentication status for a service
+    ⚠️ DEPRECATED - Use database OAuth status instead
     
     Returns:
         {
@@ -526,7 +579,7 @@ if __name__ == "__main__":
     service_name = sys.argv[1].lower()
     
     if service_name not in SCOPES:
-        print(f"❌ Unknown service: {service_name}")
+        print(f" Unknown service: {service_name}")
         print(f"Available services: {', '.join(SCOPES.keys())}")
         sys.exit(1)
     
@@ -535,7 +588,7 @@ if __name__ == "__main__":
     
     try:
         service = build_oauth_service(service_name, mode='desktop')
-        print(f"\n✅ {service_name.title()} OAuth authentication successful!")
+        print(f"\n {service_name.title()} OAuth authentication successful!")
         
         # Test API call
         print(f"\n🧪 Testing API call...")
@@ -548,13 +601,13 @@ if __name__ == "__main__":
             print(f"   Calendars: {len(calendars.get('items', []))}")
         elif service_name == 'forms':
             # Forms requires a form ID, so just verify service works
-            print(f"   ✅ Service initialized successfully")
+            print(f"    Service initialized successfully")
         elif service_name == 'drive':
             files = service.files().list(pageSize=5).execute()
             print(f"   Recent files: {len(files.get('files', []))}")
         
-        print(f"\n✅ All tests passed for {service_name.title()}!")
+        print(f"\n All tests passed for {service_name.title()}!")
         
     except Exception as e:
-        print(f"\n❌ OAuth test failed: {e}")
+        print(f"\n OAuth test failed: {e}")
         sys.exit(1)

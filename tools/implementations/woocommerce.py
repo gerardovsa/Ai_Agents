@@ -29,10 +29,10 @@ except ImportError:
     wc_secret = (os.getenv('WC_CONSUMER_SECRET') or 
                  os.getenv('WOOCOMMERCE_CONSUMER_SECRET'))
 
-print(f"🔧 WooCommerce API Configuration:")
+print(f"[CONFIG] WooCommerce API Configuration:")
 print(f"   URL: {wc_url}")
-print(f"   Consumer Key: {'✅ SET' if wc_key else '❌ MISSING'}")
-print(f"   Consumer Secret: {'✅ SET' if wc_secret else '❌ MISSING'}")
+print(f"   Consumer Key: {'[SET]' if wc_key else '[MISSING]'}")
+print(f"   Consumer Secret: {'[SET]' if wc_secret else '[MISSING]'}")
 
 # Initialize WooCommerce API
 wcapi = API(

@@ -98,7 +98,7 @@ def sync_to_google_tasks():
         
         # Execute tool via registry
         result = tool_registry.execute_tool(
-            'google_tasks_create_task',
+            tool_name='google_tasks_create_task',
             title=google_task['title'],
             notes=google_task.get('notes', ''),
             due=google_task.get('due'),
@@ -212,7 +212,7 @@ def sync_to_microsoft_todo():
         if ms_task.get('categories'):
             params['categories'] = ms_task['categories']
         
-        result = tool_registry.execute_tool('todo_create_task', **params)
+        result = tool_registry.execute_tool(tool_name='todo_create_task', **params)
         
         if not result.get('success'):
             return jsonify({'error': f'Failed to create Microsoft To Do task: {result.get("error")}'}), 500
@@ -353,7 +353,7 @@ def _create_google_calendar_event(kanban_card, user_email, cursor):
         if kanban_card.get('location'):
             params['location'] = kanban_card['location']
         
-        result = tool_registry.execute_tool('google_calendar_create_event', **params)
+        result = tool_registry.execute_tool(tool_name='google_calendar_create_event', **params)
         
         if not result.get('success'):
             return {'success': False, 'error': f'Failed to create Calendar event: {result.get("error")}'}
@@ -480,7 +480,7 @@ def _sync_to_google_tasks_internal(kanban_card, user_email, cursor):
         return {'success': False, 'error': 'Google Tasks tool not available'}
     
     result = tool_registry.execute_tool(
-        'google_tasks_create_task',
+        tool_name='google_tasks_create_task',
         title=google_task['title'],
         notes=google_task.get('notes', ''),
         due=google_task.get('due'),
@@ -530,7 +530,7 @@ def _sync_to_microsoft_todo_internal(kanban_card, user_email, cursor):
     if ms_task.get('categories'):
         params['categories'] = ms_task['categories']
     
-    result = tool_registry.execute_tool('todo_create_task', **params)
+    result = tool_registry.execute_tool(tool_name='todo_create_task', **params)
     
     if not result.get('success'):
         return {'success': False, 'error': f'Failed to create Microsoft To Do task: {result.get("error")}'}

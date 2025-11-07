@@ -55,4 +55,4 @@ while i < len(lines):
 with open('microsoft_word_tools.py', 'w', encoding='utf-8') as f:
     f.writelines(output_lines)
 
-print('✅ Added **kwargs to all word_ functions')
+print(' Added **kwargs to all word_ functions')

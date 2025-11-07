@@ -39,11 +39,11 @@ function makeRequest(method, path, data = null) {
         });
 
         req.on('error', reject);
-        
+
         if (data) {
             req.write(JSON.stringify(data));
         }
-        
+
         req.end();
     });
 }
@@ -57,16 +57,16 @@ async function deleteARecord() {
 
     try {
         const result = await makeRequest('DELETE', `/zones/${ZONE_ID}/dns_records/${RECORD_ID}`);
-        
-        console.log('✅ DNS A record deleted successfully!');
+
+        console.log('DNS A record deleted successfully!');
         console.log(`   Record ID: ${result.id}\n`);
         console.log('━'.repeat(80) + '\n');
         console.log('🎉 NOW the Worker will handle all requests!');
         console.log('🔧 Test it: https://mustcare.valorsynergysuite.com/health');
         console.log('⏱️  Wait 30-60 seconds for DNS propagation\n');
-        
+
     } catch (error) {
-        console.error('❌ Failed:', error.message);
+        console.error(' Failed:', error.message);
         console.log('\n📋 Manual Steps:');
         console.log('1. Go to: https://dash.cloudflare.com/d31a1c9ec65f373f4008216c30b071cc/valorsynergysuite.com/dns');
         console.log('2. Find the A record for "mustcare.valorsynergysuite.com → 34.143.73.2"');
@@ -77,6 +77,6 @@ async function deleteARecord() {
 }
 
 deleteARecord().catch(error => {
-    console.error('❌ Fatal error:', error);
+    console.error(' Fatal error:', error);
     process.exit(1);
 });

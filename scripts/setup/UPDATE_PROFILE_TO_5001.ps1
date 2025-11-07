@@ -52,7 +52,7 @@ Set-Content $profilePath $updatedContent -Encoding UTF8
 
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "  ✅ UPDATE COMPLETE!" -ForegroundColor Green
+Write-Host "   UPDATE COMPLETE!" -ForegroundColor Green
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Replacements made: $replacementCount" -ForegroundColor Yellow

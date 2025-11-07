@@ -12,7 +12,7 @@ const ZONE_ID = 'd575f903247d1653725514134aedc208'; // valorsynergysuite.com
 async function makeRequest(path, method = 'GET', data = null) {
     return new Promise((resolve, reject) => {
         const requestData = data ? JSON.stringify(data) : null;
-        
+
         const options = {
             hostname: 'api.cloudflare.com',
             port: 443,
@@ -34,11 +34,11 @@ async function makeRequest(path, method = 'GET', data = null) {
             res.on('end', () => {
                 try {
                     const response = JSON.parse(body);
-                    resolve({ 
-                        success: response.success, 
-                        result: response.result, 
+                    resolve({
+                        success: response.success,
+                        result: response.result,
                         errors: response.errors,
-                        status: res.statusCode 
+                        status: res.statusCode
                     });
                 } catch (error) {
                     reject(error);
@@ -65,24 +65,24 @@ async function resetWorker() {
             console.log('⚠️  Cannot access routes:', routes.errors);
             console.log('\n💡 Manual fix needed - see instructions below.\n');
         } else if (routes.result.length === 0) {
-            console.log('✅ No routes found - Worker may already be disabled\n');
+            console.log(' No routes found - Worker may already be disabled\n');
         } else {
-            console.log(`✅ Found ${routes.result.length} route(s):\n`);
-            
+            console.log(` Found ${routes.result.length} route(s):\n`);
+
             // Step 2: Delete each route
             console.log('📋 Step 2: Removing routes...\n');
             for (const route of routes.result) {
                 console.log(`   Deleting: ${route.pattern} (ID: ${route.id})`);
-                
+
                 const deleteResult = await makeRequest(
                     `/client/v4/zones/${ZONE_ID}/workers/routes/${route.id}`,
                     'DELETE'
                 );
 
                 if (deleteResult.success) {
-                    console.log(`   ✅ Deleted successfully\n`);
+                    console.log(`    Deleted successfully\n`);
                 } else {
-                    console.log(`   ❌ Failed:`, deleteResult.errors, '\n');
+                    console.log(`    Failed:`, deleteResult.errors, '\n');
                 }
             }
         }
@@ -90,26 +90,26 @@ async function resetWorker() {
         // Step 3: Try to delete the Worker script
         console.log('━'.repeat(80));
         console.log('\n📋 Step 3: Attempting to delete Worker script...\n');
-        
+
         const deleteWorker = await makeRequest(
             `/client/v4/accounts/${ACCOUNT_ID}/workers/scripts/mustcare-worker`,
             'DELETE'
         );
 
         if (deleteWorker.success) {
-            console.log('✅ Worker script deleted!\n');
+            console.log(' Worker script deleted!\n');
         } else {
             console.log('⚠️  Could not delete Worker script:', deleteWorker.errors, '\n');
         }
 
         console.log('━'.repeat(80));
         console.log('\n🎯 RESET COMPLETE\n');
-        console.log('✅ Worker routes removed (if any existed)');
-        console.log('✅ Traffic now goes directly to your server\n');
+        console.log(' Worker routes removed (if any existed)');
+        console.log(' Traffic now goes directly to your server\n');
         console.log('🧪 Test your site: https://mustcare.valorsynergysuite.com\n');
 
     } catch (error) {
-        console.error('\n❌ Error:', error.message, '\n');
+        console.error('\n Error:', error.message, '\n');
     }
 
     // Final instructions

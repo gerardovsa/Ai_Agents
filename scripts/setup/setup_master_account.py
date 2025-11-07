@@ -58,7 +58,7 @@ def setup_master_account():
                     primary_marker = " [PRIMARY]" if is_primary else ""
                     print(f"   - {email} ({display_name}){primary_marker}")
             
-            print("\n✅ Master account is ready to use!")
+            print("\n Master account is ready to use!")
             print("\nTo login:")
             print("  Username: admin (or gerardo@vetsuccessacademy.com)")
             print("  Password: [your password]\n")
@@ -74,11 +74,11 @@ def setup_master_account():
     password = os.getenv('WORK_PASSWORD')
     
     if not password:
-        print("\n❌ WORK_PASSWORD not found in .env.master!")
+        print("\n WORK_PASSWORD not found in .env.master!")
         print("   Please add WORK_PASSWORD to your .env.master file")
         return
     
-    print("✅ Using password from WORK_PASSWORD environment variable")
+    print(" Using password from WORK_PASSWORD environment variable")
     
     # Register
     result = user_auth_manager.register_user(
@@ -86,11 +86,11 @@ def setup_master_account():
         email='gerardo@vetsuccessacademy.com',
         password=password,
         primary_gmail='gerardo@vetsuccessacademy.com',
-        role='admin'  # ✅ Master account - auto-links all .env Gmail accounts
+        role='admin'  #  Master account - auto-links all .env Gmail accounts
     )
     
     if result['success']:
-        print(f"\n✅ Master account created successfully!")
+        print(f"\n Master account created successfully!")
         print(f"   User ID: {result['user_id']}")
         print(f"   Workspace ID: {result['workspace_id']}")
         print(f"   Role: {result['role']}")
@@ -115,7 +115,7 @@ def setup_master_account():
         print("  POST http://localhost:5001/api/auth/login")
         print()
     else:
-        print(f"\n❌ Registration failed: {result.get('error')}")
+        print(f"\n Registration failed: {result.get('error')}")
 
 
 if __name__ == '__main__':

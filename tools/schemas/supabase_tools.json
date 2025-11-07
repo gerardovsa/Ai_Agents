@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "supabase_query",
-      "description": "Query data from a Supabase table with optional filters, sorting, and joins",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nQuery data from a Supabase table with optional filters, sorting, and joins",
       "platform": "supabase",
       "parameters": {
         "table": {
@@ -59,7 +59,9 @@
           "parameters": {
             "table": "users",
             "select": "*",
-            "filters": {"status": "active"},
+            "filters": {
+              "status": "active"
+            },
             "limit": 100,
             "order_by": "created_at.desc"
           }
@@ -76,7 +78,7 @@
     },
     {
       "name": "supabase_insert",
-      "description": "Insert new data into a Supabase table (single or bulk)",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert new data into a Supabase table (single or bulk)",
       "platform": "supabase",
       "parameters": {
         "table": {
@@ -128,8 +130,14 @@
           "parameters": {
             "table": "products",
             "data": [
-              {"name": "Product 1", "price": 19.99},
-              {"name": "Product 2", "price": 29.99}
+              {
+                "name": "Product 1",
+                "price": 19.99
+              },
+              {
+                "name": "Product 2",
+                "price": 29.99
+              }
             ]
           }
         }
@@ -137,7 +145,7 @@
     },
     {
       "name": "supabase_update",
-      "description": "Update existing records in a Supabase table",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate existing records in a Supabase table",
       "platform": "supabase",
       "parameters": {
         "table": {
@@ -171,15 +179,20 @@
           "description": "Update user status",
           "parameters": {
             "table": "users",
-            "data": {"status": "inactive", "updated_at": "now()"},
-            "filters": {"id": 123}
+            "data": {
+              "status": "inactive",
+              "updated_at": "now()"
+            },
+            "filters": {
+              "id": 123
+            }
           }
         }
       ]
     },
     {
       "name": "supabase_delete",
-      "description": "Delete records from a Supabase table",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete records from a Supabase table",
       "platform": "supabase",
       "parameters": {
         "table": {
@@ -208,14 +221,16 @@
           "description": "Delete user by ID",
           "parameters": {
             "table": "users",
-            "filters": {"id": 123}
+            "filters": {
+              "id": 123
+            }
           }
         }
       ]
     },
     {
       "name": "supabase_rpc",
-      "description": "Call a PostgreSQL stored procedure or function",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCall a PostgreSQL stored procedure or function",
       "platform": "supabase",
       "parameters": {
         "function_name": {
@@ -238,14 +253,17 @@
           "description": "Call custom analytics function",
           "parameters": {
             "function_name": "get_user_analytics",
-            "params": {"user_id": 123, "period": "30d"}
+            "params": {
+              "user_id": 123,
+              "period": "30d"
+            }
           }
         }
       ]
     },
     {
       "name": "supabase_count",
-      "description": "Count rows in a table with optional filters",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCount rows in a table with optional filters",
       "platform": "supabase",
       "parameters": {
         "table": {
@@ -272,7 +290,7 @@
     },
     {
       "name": "supabase_auth_signup",
-      "description": "Create a new user account with email and password",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate a new user account with email and password",
       "platform": "supabase",
       "parameters": {
         "email": {
@@ -298,7 +316,7 @@
     },
     {
       "name": "supabase_auth_signin",
-      "description": "Sign in an existing user with email and password",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSign in an existing user with email and password",
       "platform": "supabase",
       "parameters": {
         "email": {
@@ -319,7 +337,7 @@
     },
     {
       "name": "supabase_auth_signout",
-      "description": "Sign out the current user",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSign out the current user",
       "platform": "supabase",
       "parameters": {
         "scope": {
@@ -336,7 +354,7 @@
     },
     {
       "name": "supabase_auth_get_user",
-      "description": "Get the current authenticated user",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet the current authenticated user",
       "platform": "supabase",
       "parameters": {},
       "returns": {
@@ -346,7 +364,7 @@
     },
     {
       "name": "supabase_auth_update_user",
-      "description": "Update user metadata or password",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate user metadata or password",
       "platform": "supabase",
       "parameters": {
         "updates": {
@@ -362,7 +380,7 @@
     },
     {
       "name": "supabase_auth_reset_password",
-      "description": "Send password reset email",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSend password reset email",
       "platform": "supabase",
       "parameters": {
         "email": {
@@ -383,7 +401,7 @@
     },
     {
       "name": "supabase_auth_invite_user",
-      "description": "Invite a user via email (admin only)",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nInvite a user via email (admin only)",
       "platform": "supabase",
       "parameters": {
         "email": {
@@ -404,7 +422,7 @@
     },
     {
       "name": "supabase_storage_upload",
-      "description": "Upload a file to Supabase Storage",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nUpload a file to Supabase Storage",
       "platform": "supabase",
       "parameters": {
         "bucket": {
@@ -441,7 +459,7 @@
     },
     {
       "name": "supabase_storage_download",
-      "description": "Download a file from Supabase Storage",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload a file from Supabase Storage",
       "platform": "supabase",
       "parameters": {
         "bucket": {
@@ -467,7 +485,7 @@
     },
     {
       "name": "supabase_storage_delete",
-      "description": "Delete a file from Supabase Storage",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a file from Supabase Storage",
       "platform": "supabase",
       "parameters": {
         "bucket": {
@@ -488,7 +506,7 @@
     },
     {
       "name": "supabase_storage_list",
-      "description": "List files in a storage bucket",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList files in a storage bucket",
       "platform": "supabase",
       "parameters": {
         "bucket": {
@@ -522,7 +540,7 @@
     },
     {
       "name": "supabase_storage_get_public_url",
-      "description": "Get public URL for a file",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet public URL for a file",
       "platform": "supabase",
       "parameters": {
         "bucket": {
@@ -549,7 +567,7 @@
     },
     {
       "name": "supabase_storage_create_signed_url",
-      "description": "Create a signed URL for temporary file access",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a signed URL for temporary file access",
       "platform": "supabase",
       "parameters": {
         "bucket": {
@@ -575,7 +593,7 @@
     },
     {
       "name": "supabase_storage_move",
-      "description": "Move a file within or between buckets",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove a file within or between buckets",
       "platform": "supabase",
       "parameters": {
         "from_bucket": {
@@ -606,7 +624,7 @@
     },
     {
       "name": "supabase_realtime_subscribe",
-      "description": "Subscribe to realtime changes on a table",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSubscribe to realtime changes on a table",
       "platform": "supabase",
       "parameters": {
         "table": {
@@ -638,7 +656,7 @@
     },
     {
       "name": "supabase_create_bucket",
-      "description": "Create a new storage bucket",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new storage bucket",
       "platform": "supabase",
       "parameters": {
         "bucket_name": {
@@ -670,7 +688,7 @@
     },
     {
       "name": "supabase_list_buckets",
-      "description": "List all storage buckets",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all storage buckets",
       "platform": "supabase",
       "parameters": {},
       "returns": {
@@ -680,7 +698,7 @@
     },
     {
       "name": "supabase_delete_bucket",
-      "description": "Delete a storage bucket",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a storage bucket",
       "platform": "supabase",
       "parameters": {
         "bucket_name": {
@@ -696,7 +714,7 @@
     },
     {
       "name": "supabase_get_schema",
-      "description": "Get database schema information",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet database schema information",
       "platform": "supabase",
       "parameters": {
         "schema": {

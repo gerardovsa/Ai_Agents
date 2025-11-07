@@ -19,7 +19,7 @@ import logging
 import sys
 import jwt
 
-sys.path.append('C:/Users/gpoli/GIT/AI_agents/AI_infrastructure')
+# No sys.path.append needed - utils is in same parent directory
 from utils.email_alias_helpers import (
     get_user_id_by_email,
     add_email_alias,
@@ -34,9 +34,12 @@ logger = logging.getLogger(__name__)
 account_linking_bp = Blueprint('account_linking', __name__, url_prefix='/api/account')
 
 def get_db_connection():
-    """Get database connection"""
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ai_infrastructure.db')
-    conn = sqlite3.connect(db_path)
+    """Get database connection to ai_infrastructure.db in data/ folder (CORRECT LOCATION)"""
+    from pathlib import Path
+    # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
+    root_dir = Path(__file__).parent.parent.parent
+    db_path = root_dir / 'data' / 'ai_infrastructure.db'
+    conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -47,10 +50,10 @@ def verify_jwt_token(token):
         payload = jwt.decode(token, secret_key, algorithms=['HS256'])
         return payload
     except jwt.ExpiredSignatureError:
-        logger.error("❌ Token expired")
+        logger.error(" Token expired")
         return None
     except jwt.InvalidTokenError as e:
-        logger.error(f"❌ Invalid token: {e}")
+        logger.error(f" Invalid token: {e}")
         return None
 
 def init_account_linking_tables():
@@ -99,7 +102,7 @@ def init_account_linking_tables():
     
     conn.commit()
     conn.close()
-    logger.info("✅ Account linking tables initialized")
+    logger.info(" Account linking tables initialized")
 
 # Initialize tables on module load
 init_account_linking_tables()
@@ -178,7 +181,7 @@ def get_link_status():
         })
         
     except Exception as e:
-        logger.error(f"❌ Error getting link status: {e}")
+        logger.error(f" Error getting link status: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -233,7 +236,7 @@ def initiate_link():
         })
         
     except Exception as e:
-        logger.error(f"❌ Error initiating link: {e}")
+        logger.error(f" Error initiating link: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -298,7 +301,7 @@ def confirm_link():
         session.pop('account_link_token', None)
         session.pop('linking_user_id', None)
         
-        logger.info(f"✅ Linked account {secondary_email} to primary user {primary_user_id}")
+        logger.info(f" Linked account {secondary_email} to primary user {primary_user_id}")
         
         return jsonify({
             'success': True,
@@ -308,7 +311,7 @@ def confirm_link():
         })
         
     except Exception as e:
-        logger.error(f"❌ Error confirming link: {e}")
+        logger.error(f" Error confirming link: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -361,7 +364,7 @@ def unlink_account():
         conn.commit()
         conn.close()
         
-        logger.info(f"✅ Unlinked account {linked_email} from user {user_id}")
+        logger.info(f" Unlinked account {linked_email} from user {user_id}")
         
         return jsonify({
             'success': True,
@@ -369,7 +372,7 @@ def unlink_account():
         })
         
     except Exception as e:
-        logger.error(f"❌ Error unlinking account: {e}")
+        logger.error(f" Error unlinking account: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -441,7 +444,7 @@ def set_primary_email():
         conn.commit()
         conn.close()
         
-        logger.info(f"✅ Changed primary email from {old_primary_email} to {new_primary_email}")
+        logger.info(f" Changed primary email from {old_primary_email} to {new_primary_email}")
         
         return jsonify({
             'success': True,
@@ -451,7 +454,7 @@ def set_primary_email():
         })
         
     except Exception as e:
-        logger.error(f"❌ Error setting primary email: {e}")
+        logger.error(f" Error setting primary email: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -484,10 +487,10 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
         ''', (to_user_id, from_user_id))
         logger.info(f"🔑 Migrated {cursor.rowcount} sessions")
         
-        logger.info(f"✅ Data migration from user {from_user_id} to {to_user_id} complete")
+        logger.info(f" Data migration from user {from_user_id} to {to_user_id} complete")
         
     except Exception as e:
-        logger.error(f"❌ Error migrating user data: {e}")
+        logger.error(f" Error migrating user data: {e}")
         raise
 
 
@@ -510,7 +513,7 @@ def get_user_from_token(auth_header):
         
         return payload.get('user_id')
     except Exception as e:
-        logger.error(f"❌ Error decoding token: {e}")
+        logger.error(f" Error decoding token: {e}")
         return None
 
 
@@ -551,7 +554,7 @@ def get_primary_user_id(user_id):
         return user_id
         
     except Exception as e:
-        logger.error(f"❌ Error getting primary user: {e}")
+        logger.error(f" Error getting primary user: {e}")
         return user_id
 
 
@@ -575,7 +578,7 @@ def get_current_user_from_token():
         
         return payload, None
     except Exception as e:
-        logger.error(f"❌ Token verification error: {e}")
+        logger.error(f" Token verification error: {e}")
         return None, {'error': 'Token verification failed'}
 
 
@@ -616,7 +619,7 @@ def get_linked_emails():
         }), 200
         
     except Exception as e:
-        logger.error(f"❌ Error getting linked emails: {e}")
+        logger.error(f" Error getting linked emails: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -668,7 +671,7 @@ def link_oauth_email():
                 'error': message
             }), 400
         
-        logger.info(f"✅ Linked {email} to user {user_id}")
+        logger.info(f" Linked {email} to user {user_id}")
         
         return jsonify({
             'success': True,
@@ -680,7 +683,7 @@ def link_oauth_email():
         }), 200
         
     except Exception as e:
-        logger.error(f"❌ Error linking OAuth email: {e}")
+        logger.error(f" Error linking OAuth email: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -724,7 +727,7 @@ def unlink_email_alias(email):
                 'error': message
             }), 400
         
-        logger.info(f"✅ Unlinked {email} from user {user_id}")
+        logger.info(f" Unlinked {email} from user {user_id}")
         
         return jsonify({
             'success': True,
@@ -732,7 +735,7 @@ def unlink_email_alias(email):
         }), 200
         
     except Exception as e:
-        logger.error(f"❌ Error unlinking email: {e}")
+        logger.error(f" Error unlinking email: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

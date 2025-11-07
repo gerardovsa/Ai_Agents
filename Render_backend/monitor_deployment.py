@@ -20,7 +20,7 @@ def get_render_api_key():
     env_path = Path('.env.master')
     
     if not env_path.exists():
-        print("❌ .env.master file not found")
+        print(" .env.master file not found")
         return None
     
     try:
@@ -39,12 +39,12 @@ def get_render_api_key():
         api_key = env_vars.get('RENDER_API_KEY')
         
         if not api_key:
-            print("❌ RENDER_API_KEY not found in .env.master")
+            print(" RENDER_API_KEY not found in .env.master")
             return None
         
         return api_key
     except Exception as e:
-        print(f"❌ Error reading .env.master: {e}")
+        print(f" Error reading .env.master: {e}")
         return None
 
 def get_service_status(api_key, service_id):
@@ -61,11 +61,11 @@ def get_service_status(api_key, service_id):
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"❌ API Error: {response.status_code}")
+            print(f" API Error: {response.status_code}")
             print(f"   {response.text}")
             return None
     except Exception as e:
-        print(f"❌ Request error: {e}")
+        print(f" Request error: {e}")
         return None
 
 def get_latest_deploy(api_key, service_id):
@@ -112,10 +112,10 @@ def get_status_emoji(status):
         'build_in_progress': '🔨',
         'update_in_progress': '🔄',
         'pre_deploy_in_progress': '⚙️',
-        'live': '✅',
+        'live': '',
         'deactivated': '⏸️',
-        'build_failed': '❌',
-        'update_failed': '❌',
+        'build_failed': '',
+        'update_failed': '',
         'canceled': '🚫',
     }
     return status_map.get(status, '❓')
@@ -165,7 +165,7 @@ def monitor_deployment(api_key, service_id, check_interval=10):
                 print("\n" + "=" * 70)
                 
                 if current_status == 'live':
-                    print("✅ Deployment Successful!")
+                    print(" Deployment Successful!")
                     
                     # Get service URL
                     service = get_service_status(api_key, service_id)
@@ -179,7 +179,7 @@ def monitor_deployment(api_key, service_id, check_interval=10):
                     
                     return 0
                 else:
-                    print(f"❌ Deployment Failed: {current_status}")
+                    print(f" Deployment Failed: {current_status}")
                     print(f"\n📋 Next steps:")
                     print(f"   1. Check logs: python Render_backend/fetch_logs.py")
                     print(f"   2. View dashboard: https://dashboard.render.com/web/{service_id}")

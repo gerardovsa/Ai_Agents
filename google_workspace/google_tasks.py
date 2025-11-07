@@ -21,9 +21,6 @@ from typing import List, Dict, Optional, Any
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from google.oauth2.credentials import Credentials
-    from google.auth.transport.requests import Request
-    from google_auth_oauthlib.flow import InstalledAppFlow
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
 except ImportError:
@@ -35,209 +32,52 @@ SCOPES = ['https://www.googleapis.com/auth/tasks']
 
 # ==================== SERVICE INITIALIZATION ====================
 
-def build_tasks_service():
+def build_tasks_service(_user_id=None, _injected_credentials=None, **kwargs):
     """
-    Build and return Google Tasks API service.
-    Supports both desktop (local) and web (deployed) OAuth flows.
+    Build and return Google Tasks API service using DATABASE OAuth ONLY.
     
-    Environment variables:
-    - GOOGLE_TASKS_OAUTH_MODE: 'desktop' (local testing) or 'web' (Render deployment)
-    - GOOGLE_TASKS_CREDENTIALS_FILE_DESKTOP: Desktop app credentials
-    - GOOGLE_TASKS_TOKEN_FILE_DESKTOP: Desktop token storage
-    - GOOGLE_TASKS_CREDENTIALS_FILE_WEB: Web app credentials
-    - GOOGLE_TASKS_TOKEN_FILE_WEB: Web token storage
+    Args:
+        _user_id: User ID for database OAuth credential lookup (REQUIRED)
+        _injected_credentials: Flag to use database OAuth credentials (REQUIRED)
     
     Returns:
         Google Tasks service object
-    """
-    # Get OAuth mode from environment
-    oauth_mode = os.getenv('GOOGLE_TASKS_OAUTH_MODE', 'desktop').lower()
-    
-    print(f"🔑 Google Tasks OAuth Mode: {oauth_mode}")
-    
-    if oauth_mode == 'desktop':
-        return _build_tasks_service_desktop()
-    elif oauth_mode == 'web':
-        return _build_tasks_service_web()
-    else:
-        # Fallback to legacy single-file mode
-        print(f"⚠️  Unknown OAuth mode '{oauth_mode}', using legacy single-file mode")
-        return _build_tasks_service_legacy()
-
-
-def _build_tasks_service_desktop():
-    """
-    Desktop app OAuth flow (opens local browser).
-    Used for local development and testing.
-    """
-    creds = None
-    
-    # Get paths from environment or use defaults
-    token_path = Path(os.getenv('GOOGLE_TASKS_TOKEN_FILE_DESKTOP', 
-                                str(Path(__file__).parent.parent / 'token_desktop.json')))
-    credentials_path = Path(os.getenv('GOOGLE_TASKS_CREDENTIALS_FILE_DESKTOP',
-                                     str(Path(__file__).parent.parent / 'credentials_desktop.json')))
-    
-    # Get scopes from environment
-    scopes_env = os.getenv('GOOGLE_TASKS_SCOPES', 'https://www.googleapis.com/auth/tasks')
-    scopes = [s.strip() for s in scopes_env.split(',')]
-    
-    print(f"   Credentials: {credentials_path}")
-    print(f"   Token: {token_path}")
-    print(f"   Scopes: {scopes}")
-    
-    # Load existing token
-    if token_path.exists():
-        creds = Credentials.from_authorized_user_file(str(token_path), scopes)
-        print(f"   ✅ Loaded existing token")
-    
-    # Refresh or get new credentials
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            print(f"   🔄 Refreshing expired token...")
-            creds.refresh(Request())
-            print(f"   ✅ Token refreshed")
-        else:
-            if not credentials_path.exists():
-                raise FileNotFoundError(
-                    f"❌ Desktop credentials not found: {credentials_path}\n\n"
-                    f"📋 Setup Instructions:\n"
-                    f"1. Go to: https://console.cloud.google.com/apis/credentials\n"
-                    f"2. Select project: vsa-anythingllm-project\n"
-                    f"3. Click 'Create Credentials' → 'OAuth 2.0 Client ID'\n"
-                    f"4. Application type: 'Desktop app'\n"
-                    f"5. Download JSON and save as: {credentials_path}\n"
-                )
-            print(f"   🔐 Starting OAuth flow (browser will open)...")
-            flow = InstalledAppFlow.from_client_secrets_file(str(credentials_path), scopes)
-            creds = flow.run_local_server(port=0)
-            print(f"   ✅ Authentication successful!")
         
-        # Save credentials
-        with open(token_path, 'w') as token:
-            token.write(creds.to_json())
-        print(f"   💾 Token saved to: {token_path}")
-    
-    # Build and return service
-    service = build('tasks', 'v1', credentials=creds)
-    print(f"   ✅ Google Tasks service ready (desktop mode)")
-    return service
-
-
-def _build_tasks_service_web():
+    Raises:
+        Exception: If _user_id or _injected_credentials not provided
     """
-    Web app OAuth flow (for deployed Render app).
-    Requires stored credentials from OAuth callback.
-    """
-    creds = None
-    
-    # Get paths from environment
-    token_path = Path(os.getenv('GOOGLE_TASKS_TOKEN_FILE_WEB',
-                                str(Path(__file__).parent.parent / 'token_web.json')))
-    credentials_path = Path(os.getenv('GOOGLE_TASKS_CREDENTIALS_FILE_WEB',
-                                     str(Path(__file__).parent.parent / 'credentials_web.json')))
-    
-    # Get scopes
-    scopes_env = os.getenv('GOOGLE_TASKS_SCOPES', 'https://www.googleapis.com/auth/tasks')
-    scopes = [s.strip() for s in scopes_env.split(',')]
-    
-    print(f"   Credentials: {credentials_path}")
-    print(f"   Token: {token_path}")
-    print(f"   Scopes: {scopes}")
-    
-    # Load existing token
-    if token_path.exists():
-        creds = Credentials.from_authorized_user_file(str(token_path), scopes)
-        print(f"   ✅ Loaded existing token")
-    else:
-        print(f"   ❌ No token found. User needs to authenticate via web OAuth.")
-        print(f"   👉 Visit: http://localhost:4000/oauth/tasks/start")
-        print(f"   👉 Or on Render: https://your-app.onrender.com/oauth/tasks/start")
-        raise FileNotFoundError(
-            "Google Tasks authentication required. "
-            "User must authenticate via /oauth/tasks/start endpoint."
+    if _user_id and _injected_credentials:
+        from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+        return create_google_service_with_user_credentials(
+            user_id=_user_id,
+            service_name='tasks',
+            version='v1'
         )
     
-    # Refresh if expired
-    if creds and creds.expired and creds.refresh_token:
-        print(f"   🔄 Refreshing expired token...")
-        creds.refresh(Request())
-        with open(token_path, 'w') as token:
-            token.write(creds.to_json())
-        print(f"   ✅ Token refreshed")
-    
-    # Build and return service
-    service = build('tasks', 'v1', credentials=creds)
-    print(f"   ✅ Google Tasks service ready (web mode)")
-    return service
+    # No credentials provided - throw clear error
+    raise Exception(
+        "❌ Google Tasks requires database OAuth!\n\n"
+        "File-based OAuth is no longer supported.\n"
+        "All credentials must be in: data/ai_infrastructure.db (oauth_tokens table)\n\n"
+        "To authenticate:\n"
+        "1. Visit: http://localhost:5001/auth/google/login\n"
+        "2. Sign in and grant permissions\n"
+        "3. Credentials will be saved to database\n\n"
+        f"Received: _user_id={_user_id}, _injected_credentials={_injected_credentials}\n"
+    )
 
 
-def _build_tasks_service_legacy():
-    """
-    Legacy single-file OAuth flow (backward compatibility).
-    Uses GOOGLE_TASKS_CREDENTIALS_FILE and GOOGLE_TASKS_TOKEN_FILE.
-    """
-    creds = None
-    
-    # Get paths from environment or use defaults
-    token_path = Path(os.getenv('GOOGLE_TASKS_TOKEN_FILE', 
-                                str(Path(__file__).parent.parent / 'token.json')))
-    credentials_path = Path(os.getenv('GOOGLE_TASKS_CREDENTIALS_FILE',
-                                     str(Path(__file__).parent.parent / 'credentials.json')))
-    
-    # Get scopes from environment
-    scopes_env = os.getenv('GOOGLE_TASKS_SCOPES', 'https://www.googleapis.com/auth/tasks')
-    scopes = [s.strip() for s in scopes_env.split(',')]
-    
-    print(f"   Token file: {token_path}")
-    print(f"   Credentials file: {credentials_path}")
-    print(f"   Scopes: {scopes}")
-    
-    # Load existing token
-    if token_path.exists():
-        creds = Credentials.from_authorized_user_file(str(token_path), scopes)
-        print(f"   ✅ Loaded existing token from: {token_path}")
-    
-    # Refresh or get new credentials
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            print(f"   🔄 Refreshing expired token...")
-            creds.refresh(Request())
-            print(f"   ✅ Token refreshed successfully")
-        else:
-            if not credentials_path.exists():
-                raise FileNotFoundError(
-                    f"❌ credentials.json not found at {credentials_path}\n\n"
-                    f"📋 Setup Instructions:\n"
-                    f"1. Go to: https://console.cloud.google.com/apis/credentials\n"
-                    f"2. Select project: vsa-anythingllm-project\n"
-                    f"3. Click 'Create Credentials' → 'OAuth 2.0 Client ID'\n"
-                    f"4. Application type: 'Desktop app'\n"
-                    f"5. Name it: 'AI Agents - Google Tasks'\n"
-                    f"6. Download JSON file and save as: {credentials_path}\n"
-                    f"7. Set in .env: GOOGLE_TASKS_CREDENTIALS_FILE={credentials_path}\n"
-                )
-            print(f"   🔐 Starting OAuth authentication flow...")
-            flow = InstalledAppFlow.from_client_secrets_file(str(credentials_path), scopes)
-            creds = flow.run_local_server(port=0)
-            print(f"   ✅ Authentication successful!")
-        
-        # Save credentials
-        with open(token_path, 'w') as token:
-            token.write(creds.to_json())
-        print(f"   💾 Token saved to: {token_path}")
-    
-    # Build and return service
-    service = build('tasks', 'v1', credentials=creds)
-    print(f"   ✅ Google Tasks service ready (legacy mode)")
-    return service
 
 
 # ==================== TASK LIST OPERATIONS ====================
 
-def google_tasks_list_task_lists():
+def google_tasks_list_task_lists(_user_id=None, _injected_credentials=None, **kwargs):
     """
     List all task lists.
+    
+    Args:
+        _user_id: User ID for database OAuth credential lookup
+        _injected_credentials: Flag to use database OAuth credentials
     
     Returns:
         dict: {
@@ -252,7 +92,7 @@ def google_tasks_list_task_lists():
         }
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         results = service.tasklists().list().execute()
         task_lists = results.get('items', [])
         
@@ -264,7 +104,7 @@ def google_tasks_list_task_lists():
         return {'error': str(e), 'success': False}
 
 
-def google_tasks_create_task_list(title):
+def google_tasks_create_task_list(title, _user_id=None, _injected_credentials=None, **kwargs):
     """
     Create a new task list.
     
@@ -275,7 +115,7 @@ def google_tasks_create_task_list(title):
         dict: Created task list with id, title, updated
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         task_list = {
             'title': title
         }
@@ -292,7 +132,7 @@ def google_tasks_create_task_list(title):
         return {'error': str(e), 'success': False}
 
 
-def google_tasks_get_task_list(task_list_id):
+def google_tasks_get_task_list(task_list_id, _user_id=None, _injected_credentials=None, **kwargs):
     """
     Get a specific task list.
     
@@ -303,7 +143,7 @@ def google_tasks_get_task_list(task_list_id):
         dict: Task list details
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         result = service.tasklists().get(tasklist=task_list_id).execute()
         
         return {
@@ -316,7 +156,7 @@ def google_tasks_get_task_list(task_list_id):
         return {'error': str(e), 'success': False}
 
 
-def google_tasks_delete_task_list(task_list_id):
+def google_tasks_delete_task_list(task_list_id, _user_id=None, _injected_credentials=None, **kwargs):
     """
     Delete a task list.
     
@@ -327,7 +167,7 @@ def google_tasks_delete_task_list(task_list_id):
         dict: Success status
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         service.tasklists().delete(tasklist=task_list_id).execute()
         
         return {
@@ -340,7 +180,7 @@ def google_tasks_delete_task_list(task_list_id):
 
 # ==================== TASK OPERATIONS ====================
 
-def google_tasks_list_tasks(task_list_id='@default', show_completed=False, show_hidden=False):
+def google_tasks_list_tasks(task_list_id='@default', show_completed=False, show_hidden=False, _user_id=None, _injected_credentials=None, **kwargs):
     """
     List tasks in a task list.
     
@@ -357,7 +197,7 @@ def google_tasks_list_tasks(task_list_id='@default', show_completed=False, show_
         }
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         results = service.tasks().list(
             tasklist=task_list_id,
             showCompleted=show_completed,
@@ -376,7 +216,7 @@ def google_tasks_list_tasks(task_list_id='@default', show_completed=False, show_
         return {'error': str(e), 'success': False}
 
 
-def google_tasks_create_task(title, task_list_id='@default', notes=None, due=None, parent=None):
+def google_tasks_create_task(title, task_list_id='@default', notes=None, due=None, parent=None, _user_id=None, _injected_credentials=None, **kwargs):
     """
     Create a new task.
     
@@ -391,7 +231,7 @@ def google_tasks_create_task(title, task_list_id='@default', notes=None, due=Non
         dict: Created task with id, title, status, etc.
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         task = {
             'title': title
@@ -423,7 +263,7 @@ def google_tasks_create_task(title, task_list_id='@default', notes=None, due=Non
 
 
 def google_tasks_update_task(task_id, task_list_id='@default', title=None, notes=None, 
-                             status=None, due=None):
+                             status=None, due=None, **kwargs):
     """
     Update an existing task.
     
@@ -439,7 +279,7 @@ def google_tasks_update_task(task_id, task_list_id='@default', title=None, notes
         dict: Updated task
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         # Get current task
         task = service.tasks().get(tasklist=task_list_id, task=task_id).execute()
@@ -473,7 +313,7 @@ def google_tasks_update_task(task_id, task_list_id='@default', title=None, notes
         return {'error': str(e), 'success': False}
 
 
-def google_tasks_complete_task(task_id, task_list_id='@default'):
+def google_tasks_complete_task(task_id, task_list_id='@default', _user_id=None, _injected_credentials=None, **kwargs):
     """
     Mark a task as completed.
     
@@ -485,7 +325,7 @@ def google_tasks_complete_task(task_id, task_list_id='@default'):
         dict: Updated task with completed status
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         task = service.tasks().get(tasklist=task_list_id, task=task_id).execute()
         task['status'] = 'completed'
@@ -507,7 +347,7 @@ def google_tasks_complete_task(task_id, task_list_id='@default'):
         return {'error': str(e), 'success': False}
 
 
-def google_tasks_delete_task(task_id, task_list_id='@default'):
+def google_tasks_delete_task(task_id, task_list_id='@default', _user_id=None, _injected_credentials=None, **kwargs):
     """
     Delete a task.
     
@@ -519,7 +359,7 @@ def google_tasks_delete_task(task_id, task_list_id='@default'):
         dict: Success status
     """
     try:
-        service = build_tasks_service()
+        service = build_tasks_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         service.tasks().delete(tasklist=task_list_id, task=task_id).execute()
         
         return {
@@ -533,7 +373,7 @@ def google_tasks_delete_task(task_id, task_list_id='@default'):
 # ==================== SMART BUNDLED TOOLS ====================
 
 def google_tasks_smart_create_project(project_name, tasks_list, task_list_id='@default', 
-                                     due_date=None):
+                                     due_date=None, **kwargs):
     """
     🤖 SMART TOOL: Create a complete project with multiple tasks in ONE call.
     
@@ -594,7 +434,7 @@ def google_tasks_smart_create_project(project_name, tasks_list, task_list_id='@d
             if subtask_result.get('success'):
                 subtasks.append(subtask_result)
         
-        print(f"✅ Project created with {len(subtasks)} subtasks")
+        print(f" Project created with {len(subtasks)} subtasks")
         
         return {
             'project_task_id': parent_id,
@@ -608,7 +448,7 @@ def google_tasks_smart_create_project(project_name, tasks_list, task_list_id='@d
         return {'error': str(e), 'success': False}
 
 
-def google_tasks_smart_bulk_complete(task_ids, task_list_id='@default'):
+def google_tasks_smart_bulk_complete(task_ids, task_list_id='@default', _user_id=None, _injected_credentials=None, **kwargs):
     """
     🤖 SMART TOOL: Complete multiple tasks in ONE call.
     
@@ -649,7 +489,7 @@ def google_tasks_smart_bulk_complete(task_ids, task_list_id='@default'):
                     'error': result.get('error')
                 })
         
-        print(f"✅ Completed {len(completed_tasks)}/{len(task_ids)} tasks")
+        print(f" Completed {len(completed_tasks)}/{len(task_ids)} tasks")
         
         return {
             'total_tasks': len(task_ids),
@@ -664,7 +504,7 @@ def google_tasks_smart_bulk_complete(task_ids, task_list_id='@default'):
         return {'error': str(e), 'success': False}
 
 
-def google_tasks_smart_organize_by_priority(task_list_id='@default'):
+def google_tasks_smart_organize_by_priority(task_list_id='@default', _user_id=None, _injected_credentials=None, **kwargs):
     """
     🤖 SMART TOOL: Organize tasks by detecting priority keywords and updating them.
     
@@ -730,7 +570,7 @@ def google_tasks_smart_organize_by_priority(task_list_id='@default'):
                     title=new_title
                 )
         
-        print(f"✅ Organized {len(tasks)} tasks: {len(high_priority)} high, {len(medium_priority)} medium, {len(low_priority)} low")
+        print(f" Organized {len(tasks)} tasks: {len(high_priority)} high, {len(medium_priority)} medium, {len(low_priority)} low")
         
         return {
             'tasks_analyzed': len(tasks),

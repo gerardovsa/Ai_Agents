@@ -373,7 +373,7 @@ def main():
     args = parser.parse_args()
     
     if not args.api_key:
-        print("❌ Error: API key required. Set RENDER_API_KEY or use --api-key")
+        print(" Error: API key required. Set RENDER_API_KEY or use --api-key")
         return
     
     client = RenderAPIClient(args.api_key)
@@ -390,21 +390,21 @@ def main():
             if service:
                 client.print_service_summary(service['id'])
             else:
-                print(f"❌ Service '{args.service_name}' not found")
+                print(f" Service '{args.service_name}' not found")
         
         elif args.flask:
             service = client.get_flask_service()
             if service:
                 client.print_service_summary(service['id'])
             else:
-                print("❌ Flask service not found")
+                print(" Flask service not found")
         
         elif args.streamlit:
             service = client.get_streamlit_service()
             if service:
                 client.print_service_summary(service['id'])
             else:
-                print("❌ Streamlit service not found")
+                print(" Streamlit service not found")
         
         elif args.deploys:
             deploys = client.list_deploys(args.deploys, limit=10)
@@ -422,25 +422,25 @@ def main():
         elif args.restart:
             print(f"🔄 Restarting service {args.restart}...")
             result = client.restart_service(args.restart)
-            print(f"✅ Deploy triggered: {result.get('deploy', {}).get('id')}")
+            print(f" Deploy triggered: {result.get('deploy', {}).get('id')}")
         
         elif args.deploy:
             if not args.service:
-                print("❌ Error: --service required with --deploy")
+                print(" Error: --service required with --deploy")
                 return
             print(f"🚀 Deploying {args.service}...")
             result = client.trigger_deploy(args.service, clear_cache=args.clear_cache)
-            print(f"✅ Deploy triggered: {result.get('deploy', {}).get('id')}")
+            print(f" Deploy triggered: {result.get('deploy', {}).get('id')}")
         
         else:
             parser.print_help()
     
     except requests.HTTPError as e:
-        print(f"❌ API Error: {e}")
+        print(f" API Error: {e}")
         if e.response is not None:
             print(f"Response: {e.response.text}")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
 
 
 if __name__ == '__main__':

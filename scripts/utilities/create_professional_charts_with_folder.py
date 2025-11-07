@@ -82,7 +82,7 @@ def get_or_create_reports_folder(folder_name="AI Agent Reports", parent_folder_i
         if folders:
             # Use existing folder
             folder = folders[0]
-            print(f"✅ Using existing folder: {folder['name']} ({folder['id']})")
+            print(f" Using existing folder: {folder['name']} ({folder['id']})")
             return {
                 'folder_id': folder['id'],
                 'folder_name': folder['name'],
@@ -103,7 +103,7 @@ def get_or_create_reports_folder(folder_name="AI Agent Reports", parent_folder_i
                 }
             ).execute()
             
-            print(f"✅ Created folder: {folder['name']} ({folder['id']})")
+            print(f" Created folder: {folder['name']} ({folder['id']})")
             return {
                 'folder_id': folder['id'],
                 'folder_name': folder['name'],
@@ -111,7 +111,7 @@ def get_or_create_reports_folder(folder_name="AI Agent Reports", parent_folder_i
             }
     
     except Exception as e:
-        print(f"❌ Failed to get/create folder: {e}")
+        print(f" Failed to get/create folder: {e}")
         raise
 
 

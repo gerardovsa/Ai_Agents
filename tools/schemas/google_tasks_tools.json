@@ -1,10 +1,10 @@
 {
   "platform": "google_tasks",
-  "description": "Google Tasks API - Create, manage, and organize tasks and task lists",
+  "description": "Google Tasks API - Create, manage, and organize tasks and task lists\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "tools": [
     {
       "name": "google_tasks_smart_create_project",
-      "description": "🤖 SMART TOOL: Create a complete project with parent task and multiple subtasks in ONE call. Perfect for organizing work into manageable chunks. Use this instead of creating tasks one by one. Examples: 'Create project for website launch with 5 tasks', 'Set up marketing campaign with multiple deliverables', 'Plan event with task breakdown'",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_smart_create_project', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🤖 SMART TOOL: Create a complete project with parent task and multiple subtasks in ONE call. Perfect for organizing work into manageable chunks. Use this instead of creating tasks one by one. Examples: 'Create project for website launch with 5 tasks', 'Set up marketing campaign with multiple deliverables', 'Plan event with task breakdown'",
       "platform": "google_tasks",
       "category": "smart_bundled",
       "parameters": {
@@ -46,7 +46,7 @@
     },
     {
       "name": "google_tasks_smart_bulk_complete",
-      "description": "🤖 SMART TOOL: Complete multiple tasks in ONE call. Efficiently marks many tasks as done simultaneously. Use this instead of completing tasks individually. Examples: 'Complete all tasks from yesterday', 'Mark 10 tasks as done', 'Finish all high-priority items'",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_smart_bulk_complete', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 SMART TOOL: Complete multiple tasks in ONE call. Efficiently marks many tasks as done simultaneously. Use this instead of completing tasks individually. Examples: 'Complete all tasks from yesterday', 'Mark 10 tasks as done', 'Finish all high-priority items'",
       "platform": "google_tasks",
       "category": "smart_bundled",
       "parameters": {
@@ -77,7 +77,7 @@
     },
     {
       "name": "google_tasks_smart_organize_by_priority",
-      "description": "🤖 SMART TOOL: Automatically analyze and organize tasks by priority in ONE call. Detects urgency keywords (urgent, ASAP, critical, important) and adds [HIGH]/[MEDIUM]/[LOW] prefixes. Use this to quickly prioritize your task list. Examples: 'Organize my tasks', 'Prioritize everything', 'Sort by urgency'",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_smart_organize_by_priority', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 SMART TOOL: Automatically analyze and organize tasks by priority in ONE call. Detects urgency keywords (urgent, ASAP, critical, important) and adds [HIGH]/[MEDIUM]/[LOW] prefixes. Use this to quickly prioritize your task list. Examples: 'Organize my tasks', 'Prioritize everything', 'Sort by urgency'",
       "platform": "google_tasks",
       "category": "smart_bundled",
       "parameters": {
@@ -103,7 +103,7 @@
     },
     {
       "name": "google_tasks_list_task_lists",
-      "description": "List all task lists in the account",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_list_task_lists', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all task lists in the account",
       "platform": "google_tasks",
       "parameters": {},
       "returns": {
@@ -113,7 +113,7 @@
     },
     {
       "name": "google_tasks_create_task_list",
-      "description": "Create a new task list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_create_task_list', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new task list",
       "platform": "google_tasks",
       "parameters": {
         "title": {
@@ -129,7 +129,7 @@
     },
     {
       "name": "google_tasks_get_task_list",
-      "description": "Get details of a specific task list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_get_task_list', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a specific task list",
       "platform": "google_tasks",
       "parameters": {
         "task_list_id": {
@@ -145,7 +145,7 @@
     },
     {
       "name": "google_tasks_delete_task_list",
-      "description": "Delete a task list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_delete_task_list', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a task list",
       "platform": "google_tasks",
       "parameters": {
         "task_list_id": {
@@ -161,7 +161,7 @@
     },
     {
       "name": "google_tasks_list_tasks",
-      "description": "List tasks in a task list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_list_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tasks in a task list",
       "platform": "google_tasks",
       "parameters": {
         "task_list_id": {
@@ -187,7 +187,7 @@
     },
     {
       "name": "google_tasks_create_task",
-      "description": "Create a new task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_create_task', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new task",
       "platform": "google_tasks",
       "parameters": {
         "title": {
@@ -223,7 +223,7 @@
     },
     {
       "name": "google_tasks_update_task",
-      "description": "Update an existing task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_update_task', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing task",
       "platform": "google_tasks",
       "parameters": {
         "task_id": {
@@ -264,7 +264,7 @@
     },
     {
       "name": "google_tasks_complete_task",
-      "description": "Mark a task as completed",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_complete_task', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark a task as completed",
       "platform": "google_tasks",
       "parameters": {
         "task_id": {
@@ -285,7 +285,7 @@
     },
     {
       "name": "google_tasks_delete_task",
-      "description": "Delete a task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_delete_task', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a task",
       "platform": "google_tasks",
       "parameters": {
         "task_id": {

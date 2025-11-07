@@ -24,13 +24,13 @@ try:
     print("   Testing API call: users().getProfile()...")
     profile = service.users().getProfile(userId='me').execute()
     
-    print(f"\n   ✅ Gmail OAuth Success!")
+    print(f"\n    Gmail OAuth Success!")
     print(f"   📧 Email: {profile['emailAddress']}")
     print(f"   📊 Total messages: {profile['messagesTotal']}")
     print(f"   🧵 Total threads: {profile['threadsTotal']}")
     
 except Exception as e:
-    print(f"\n   ❌ Gmail OAuth Failed: {e}")
+    print(f"\n    Gmail OAuth Failed: {e}")
     import traceback
     traceback.print_exc()
 
@@ -46,13 +46,13 @@ try:
     print("   Testing API call: calendarList().list()...")
     calendars = service.calendarList().list().execute()
     
-    print(f"\n   ✅ Calendar OAuth Success!")
+    print(f"\n    Calendar OAuth Success!")
     print(f"   📅 Calendars found: {len(calendars.get('items', []))}")
     for cal in calendars.get('items', [])[:3]:  # Show first 3
         print(f"      - {cal.get('summary', 'Unnamed')}")
     
 except Exception as e:
-    print(f"\n   ❌ Calendar OAuth Failed: {e}")
+    print(f"\n    Calendar OAuth Failed: {e}")
     import traceback
     traceback.print_exc()
 
@@ -65,23 +65,23 @@ try:
     print("   Using existing Tasks OAuth...")
     result = google_tasks_list_task_lists()
     
-    print(f"\n   ✅ Tasks OAuth Success!")
-    print(f"   ✅ Task lists found: {result['total']}")
+    print(f"\n    Tasks OAuth Success!")
+    print(f"    Task lists found: {result['total']}")
     for task_list in result['task_lists']:
         print(f"      - {task_list['title'] or '(Unnamed)'}")
     
 except Exception as e:
-    print(f"\n   ❌ Tasks OAuth Failed: {e}")
+    print(f"\n    Tasks OAuth Failed: {e}")
     import traceback
     traceback.print_exc()
 
 print("\n" + "="*70)
-print("✅ OAUTH AUTHENTICATION TEST COMPLETE")
+print(" OAUTH AUTHENTICATION TEST COMPLETE")
 print("="*70)
 print("\n📋 Summary:")
-print("   - Gmail: OAuth 2.0 ✅")
-print("   - Calendar: OAuth 2.0 ✅")
-print("   - Tasks: OAuth 2.0 ✅ (already working)")
+print("   - Gmail: OAuth 2.0 ")
+print("   - Calendar: OAuth 2.0 ")
+print("   - Tasks: OAuth 2.0  (already working)")
 print("\n🚀 Ready for multi-user SaaS deployment!")
 print("   Each subscriber will authenticate their own Google account")
 print("\n📝 Next Steps:")

@@ -683,7 +683,7 @@
                         localStorage.setItem('remember_me', 'true');
                     }
 
-                    showAlert('✅ Sign in successful! Redirecting...', 'success');
+                    showAlert(' Sign in successful! Redirecting...', 'success');
                     
                     // Show OAuth status
                     document.getElementById('oauth-status').classList.add('show');
@@ -693,13 +693,13 @@
                         window.location.href = '/dashboard';
                     }, 2000);
                 } else {
-                    showAlert(`❌ ${result.error || 'Sign in failed'}`, 'error');
+                    showAlert(` ${result.error || 'Sign in failed'}`, 'error');
                     button.disabled = false;
                     button.innerHTML = originalText;
                 }
             } catch (error) {
                 console.error('Sign in error:', error);
-                showAlert('❌ Network error. Please try again.', 'error');
+                showAlert(' Network error. Please try again.', 'error');
                 button.disabled = false;
                 button.innerHTML = originalText;
             }
@@ -718,7 +718,7 @@
                 const confirmPassword = document.getElementById('signup-confirm-password').value;
                 
                 if (password !== confirmPassword) {
-                    showAlert('❌ Passwords do not match', 'error');
+                    showAlert(' Passwords do not match', 'error');
                     return;
                 }
 
@@ -745,7 +745,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showAlert('✅ Account created! Please sign in.', 'success');
+                    showAlert(' Account created! Please sign in.', 'success');
                     
                     // Reset form
                     e.target.reset();
@@ -757,13 +757,13 @@
                         document.getElementById('signin-email').value = data.username;
                     }, 2000);
                 } else {
-                    showAlert(`❌ ${result.error || 'Sign up failed'}`, 'error');
+                    showAlert(` ${result.error || 'Sign up failed'}`, 'error');
                     button.disabled = false;
                     button.innerHTML = originalText;
                 }
             } catch (error) {
                 console.error('Sign up error:', error);
-                showAlert('❌ Network error. Please try again.', 'error');
+                showAlert(' Network error. Please try again.', 'error');
                 button.disabled = false;
                 button.innerHTML = originalText;
             }
@@ -778,7 +778,7 @@
                 window.location.href = `${API_BASE_URL}/api/oauth/workspace/start?mode=signin`;
             } catch (error) {
                 console.error('Google sign in error:', error);
-                showAlert('❌ Could not connect to Google', 'error');
+                showAlert(' Could not connect to Google', 'error');
             }
         }
 
@@ -791,7 +791,7 @@
                 window.location.href = `${API_BASE_URL}/api/oauth/workspace/start?mode=signup`;
             } catch (error) {
                 console.error('Google sign up error:', error);
-                showAlert('❌ Could not connect to Google', 'error');
+                showAlert(' Could not connect to Google', 'error');
             }
         }
 
@@ -833,10 +833,10 @@
             const error = urlParams.get('error');
 
             if (success) {
-                showAlert(`✅ ${success}`, 'success');
+                showAlert(` ${success}`, 'success');
                 document.getElementById('oauth-status').classList.add('show');
             } else if (error) {
-                showAlert(`❌ ${error}`, 'error');
+                showAlert(` ${error}`, 'error');
             }
         });
     </script>

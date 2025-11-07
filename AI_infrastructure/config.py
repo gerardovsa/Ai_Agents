@@ -13,21 +13,16 @@ class Config:
     
     # Base paths
     BASE_DIR = Path(__file__).parent  # AI_infrastructure folder
+    ROOT_DIR = BASE_DIR.parent  # AI_agents folder
+    DATA_DIR = ROOT_DIR / 'data'  # Centralized data folder
     
-    # Database config - use local path if G_Folder doesn't exist
-    try:
-        G_FOLDER = BASE_DIR.parent.parent / 'G_Folder'
-        if not G_FOLDER.exists():
-            # Fallback to AI_infrastructure/data
-            DB_CONFIG_PATH = BASE_DIR / 'data' / 'database-config.json'
-        else:
-            DB_CONFIG_PATH = G_FOLDER / 'config' / 'database-config.json'
-    except:
-        # Final fallback
-        DB_CONFIG_PATH = BASE_DIR / 'data' / 'database-config.json'
+    # Database config - ALWAYS use AI_agents/data/ for this project
+    DB_CONFIG_PATH = DATA_DIR / 'database-config.json'
     
-    # Session database
-    SESSION_DB_PATH = BASE_DIR / 'data' / 'sessions.db'
+    # All databases in centralized data folder
+    SESSION_DB_PATH = DATA_DIR / 'sessions.db'
+    AI_INFRASTRUCTURE_DB_PATH = DATA_DIR / 'ai_infrastructure.db'
+    SYNERGY_DB_PATH = DATA_DIR / 'synergy_sessions.db'
     
     # Flask settings
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')

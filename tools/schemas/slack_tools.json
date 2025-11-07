@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "slack_post_message",
-      "description": "Post a message to a channel or user",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPost a message to a channel or user",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -55,7 +55,7 @@
     },
     {
       "name": "slack_update_message",
-      "description": "Update an existing message",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing message",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -86,7 +86,7 @@
     },
     {
       "name": "slack_delete_message",
-      "description": "Delete a message",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a message",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -107,7 +107,7 @@
     },
     {
       "name": "slack_get_message_permalink",
-      "description": "Get permanent link to a message",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet permanent link to a message",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -128,7 +128,7 @@
     },
     {
       "name": "slack_list_channels",
-      "description": "List all public channels in workspace",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all public channels in workspace",
       "platform": "slack",
       "parameters": {
         "exclude_archived": {
@@ -151,7 +151,7 @@
     },
     {
       "name": "slack_create_channel",
-      "description": "Create a new public or private channel",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new public or private channel",
       "platform": "slack",
       "parameters": {
         "name": {
@@ -178,7 +178,7 @@
     },
     {
       "name": "slack_archive_channel",
-      "description": "Archive a channel",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nArchive a channel",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -194,7 +194,7 @@
     },
     {
       "name": "slack_unarchive_channel",
-      "description": "Unarchive a channel",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nUnarchive a channel",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -210,7 +210,7 @@
     },
     {
       "name": "slack_invite_to_channel",
-      "description": "Invite users to a channel",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nInvite users to a channel",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -231,7 +231,7 @@
     },
     {
       "name": "slack_kick_from_channel",
-      "description": "Remove user from channel",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRemove user from channel",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -252,7 +252,7 @@
     },
     {
       "name": "slack_get_channel_info",
-      "description": "Get channel information",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet channel information",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -274,7 +274,7 @@
     },
     {
       "name": "slack_get_channel_history",
-      "description": "Get message history from channel",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet message history from channel",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -306,7 +306,7 @@
     },
     {
       "name": "slack_list_users",
-      "description": "List all users in workspace",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all users in workspace",
       "platform": "slack",
       "parameters": {
         "limit": {
@@ -329,7 +329,7 @@
     },
     {
       "name": "slack_get_user_info",
-      "description": "Get user profile information",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet user profile information",
       "platform": "slack",
       "parameters": {
         "user": {
@@ -351,7 +351,7 @@
     },
     {
       "name": "slack_set_user_status",
-      "description": "Set custom status for bot user",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSet custom status for bot user",
       "platform": "slack",
       "parameters": {
         "status_text": {
@@ -377,7 +377,7 @@
     },
     {
       "name": "slack_upload_file",
-      "description": "Upload a file to Slack",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nUpload a file to Slack",
       "platform": "slack",
       "parameters": {
         "channels": {
@@ -418,7 +418,7 @@
     },
     {
       "name": "slack_get_file_info",
-      "description": "Get file information",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet file information",
       "platform": "slack",
       "parameters": {
         "file": {
@@ -434,7 +434,7 @@
     },
     {
       "name": "slack_delete_file",
-      "description": "Delete a file",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a file",
       "platform": "slack",
       "parameters": {
         "file": {
@@ -450,7 +450,7 @@
     },
     {
       "name": "slack_add_reaction",
-      "description": "Add emoji reaction to a message",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd emoji reaction to a message",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -476,7 +476,7 @@
     },
     {
       "name": "slack_remove_reaction",
-      "description": "Remove emoji reaction from message",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nRemove emoji reaction from message",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -502,7 +502,7 @@
     },
     {
       "name": "slack_get_workspace_info",
-      "description": "Get workspace/team information",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet workspace/team information",
       "platform": "slack",
       "parameters": {},
       "returns": {
@@ -512,7 +512,7 @@
     },
     {
       "name": "slack_search_messages",
-      "description": "Search messages in workspace",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch messages in workspace",
       "platform": "slack",
       "parameters": {
         "query": {
@@ -540,7 +540,7 @@
     },
     {
       "name": "slack_set_channel_topic",
-      "description": "Set channel topic",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSet channel topic",
       "platform": "slack",
       "parameters": {
         "channel": {
@@ -561,7 +561,7 @@
     },
     {
       "name": "slack_set_channel_purpose",
-      "description": "Set channel purpose/description",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSet channel purpose/description",
       "platform": "slack",
       "parameters": {
         "channel": {

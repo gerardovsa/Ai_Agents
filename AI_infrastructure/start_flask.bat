@@ -11,7 +11,7 @@ REM Check Python
 echo ✓ Checking Python...
 python --version
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Python not found! Please install Python 3.x
+    echo  Python not found! Please install Python 3.x
     pause
     exit /b 1
 )
@@ -21,14 +21,14 @@ echo ✓ Installing dependencies...
 pip install -r requirements.txt --quiet
 
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Failed to install dependencies!
+    echo  Failed to install dependencies!
     pause
     exit /b 1
 )
 
 echo.
 echo ================================================================================
-echo ✅ DEPENDENCIES INSTALLED
+echo  DEPENDENCIES INSTALLED
 echo ================================================================================
 echo.
 echo Installed packages:

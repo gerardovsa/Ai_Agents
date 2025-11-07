@@ -151,7 +151,7 @@ class SessionOrchestrator:
         self.sessions[session_id] = session
         self.user_sessions[user_id].append(session_id)
         
-        print(f"✅ Created session: {session_id}")
+        print(f" Created session: {session_id}")
         print(f"   Title: {title}")
         print(f"   User: {user_id}")
         
@@ -257,7 +257,7 @@ class SessionOrchestrator:
             if next_steps:
                 session.next_steps = next_steps
             
-            print(f"✅ Created task for session {session_id}")
+            print(f" Created task for session {session_id}")
             print(f"   Task: {task_title}")
             print(f"   Task ID: {task_id}")
             print(f"   Due: {due_date or 'No deadline'}")

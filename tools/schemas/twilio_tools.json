@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "twilio_send_sms",
-      "description": "Send an SMS message",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an SMS message",
       "platform": "twilio",
       "parameters": {
         "to": {
@@ -40,7 +40,7 @@
     },
     {
       "name": "twilio_get_message",
-      "description": "Get SMS message details and status",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet SMS message details and status",
       "platform": "twilio",
       "parameters": {
         "message_sid": {
@@ -56,7 +56,7 @@
     },
     {
       "name": "twilio_list_messages",
-      "description": "List sent and received messages",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList sent and received messages",
       "platform": "twilio",
       "parameters": {
         "to": {
@@ -88,7 +88,7 @@
     },
     {
       "name": "twilio_make_call",
-      "description": "Make an outbound voice call",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMake an outbound voice call",
       "platform": "twilio",
       "parameters": {
         "to": {
@@ -130,7 +130,7 @@
     },
     {
       "name": "twilio_get_call",
-      "description": "Get call details and status",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet call details and status",
       "platform": "twilio",
       "parameters": {
         "call_sid": {
@@ -146,7 +146,7 @@
     },
     {
       "name": "twilio_list_calls",
-      "description": "List voice calls",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList voice calls",
       "platform": "twilio",
       "parameters": {
         "to": {
@@ -178,7 +178,7 @@
     },
     {
       "name": "twilio_update_call",
-      "description": "Update an in-progress call (redirect, modify, cancel)",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an in-progress call (redirect, modify, cancel)",
       "platform": "twilio",
       "parameters": {
         "call_sid": {
@@ -209,7 +209,7 @@
     },
     {
       "name": "twilio_send_whatsapp",
-      "description": "Send a WhatsApp message",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend a WhatsApp message",
       "platform": "twilio",
       "parameters": {
         "to": {
@@ -240,7 +240,7 @@
     },
     {
       "name": "twilio_create_video_room",
-      "description": "Create a video conferencing room",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a video conferencing room",
       "platform": "twilio",
       "parameters": {
         "unique_name": {
@@ -279,7 +279,7 @@
     },
     {
       "name": "twilio_get_video_room",
-      "description": "Get video room details",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet video room details",
       "platform": "twilio",
       "parameters": {
         "room_sid": {
@@ -295,7 +295,7 @@
     },
     {
       "name": "twilio_list_video_rooms",
-      "description": "List video rooms",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList video rooms",
       "platform": "twilio",
       "parameters": {
         "status": {
@@ -317,7 +317,7 @@
     },
     {
       "name": "twilio_complete_video_room",
-      "description": "End a video room session",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nEnd a video room session",
       "platform": "twilio",
       "parameters": {
         "room_sid": {
@@ -333,7 +333,7 @@
     },
     {
       "name": "twilio_list_phone_numbers",
-      "description": "List purchased phone numbers",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList purchased phone numbers",
       "platform": "twilio",
       "parameters": {
         "phone_number": {
@@ -354,7 +354,7 @@
     },
     {
       "name": "twilio_search_available_numbers",
-      "description": "Search for available phone numbers to purchase",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch for available phone numbers to purchase",
       "platform": "twilio",
       "parameters": {
         "country_code": {
@@ -392,7 +392,7 @@
     },
     {
       "name": "twilio_purchase_number",
-      "description": "Purchase a phone number",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nPurchase a phone number",
       "platform": "twilio",
       "parameters": {
         "phone_number": {
@@ -413,7 +413,7 @@
     },
     {
       "name": "twilio_sendgrid_send_email",
-      "description": "Send email via SendGrid (Twilio)",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend email via SendGrid (Twilio)",
       "platform": "twilio",
       "parameters": {
         "to": {

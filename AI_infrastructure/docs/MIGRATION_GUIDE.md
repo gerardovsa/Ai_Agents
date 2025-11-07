@@ -31,12 +31,12 @@
 - Unified SSE streaming via `/api/stream/<session_id>`
 
 ### Benefits
-✅ **Simpler code**: 1 session manager instead of 4 dicts  
-✅ **Better performance**: Reuse Anthropic client (avoid re-initialization)  
-✅ **Persistence**: Sessions survive server restarts (SQLite)  
-✅ **Thread-safe**: Proper Queue and Lock management  
-✅ **Maintainable**: System prompts in one place  
-✅ **Testable**: Complete test suite included
+ **Simpler code**: 1 session manager instead of 4 dicts  
+ **Better performance**: Reuse Anthropic client (avoid re-initialization)  
+ **Persistence**: Sessions survive server restarts (SQLite)  
+ **Thread-safe**: Proper Queue and Lock management  
+ **Maintainable**: System prompts in one place  
+ **Testable**: Complete test suite included
 
 ---
 
@@ -50,7 +50,7 @@ cd C:\Users\gpoli\GIT\In_House_SQL\G_Folder
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 Copy-Item -Path "." -Destination "../G_Folder_BACKUP_$timestamp" -Recurse -Exclude @("__pycache__", "*.pyc", ".venv")
 
-Write-Host "✅ Backup created: G_Folder_BACKUP_$timestamp"
+Write-Host " Backup created: G_Folder_BACKUP_$timestamp"
 ```
 
 ### 2. Backup Flask App
@@ -61,7 +61,7 @@ cd C:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\AI_Quote_Agent\web_
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 Copy-Item flask_triple_agent_app.py "flask_triple_agent_app_BACKUP_$timestamp.py"
 
-Write-Host "✅ Flask app backed up"
+Write-Host " Flask app backed up"
 ```
 
 ### 3. Verify Tests Pass
@@ -189,7 +189,7 @@ from core.unified_anthropic_client import init_anthropic_client
 config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'database-config.json')
 anthropic_client = init_anthropic_client(config_path)
 
-print("[FlaskApp] ✅ Unified AI infrastructure initialized")
+print("[FlaskApp]  Unified AI infrastructure initialized")
 ```
 
 ### Step 2: Replace Stock Chat Endpoint
@@ -339,7 +339,7 @@ cd C:\Users\gpoli\GIT\In_House_SQL\G_Folder
 
 Watch for initialization message:
 ```
-[FlaskApp] ✅ Unified AI infrastructure initialized
+[FlaskApp]  Unified AI infrastructure initialized
 [SessionManager] Initialized with database: sessions.db
 [AnthropicClient] Initialized with model: claude-sonnet-4-5-20250929
 ```
@@ -468,16 +468,16 @@ Check for any errors in Flask console:
 
 Migration is successful when:
 
-✅ All 4 UIs work correctly (Stock Chat, Data Agent, Triple Agent, Single Viewer)  
-✅ SSE streaming works (messages appear incrementally)  
-✅ File uploads work (PDFs, images)  
-✅ Charts render (Plotly)  
-✅ Diagrams render (Mermaid)  
-✅ Sessions persist across restarts  
-✅ No errors in Flask console  
-✅ Performance is same or better  
-✅ Database `sessions.db` created and populated  
-✅ Only ONE Anthropic client initialized (check console)
+ All 4 UIs work correctly (Stock Chat, Data Agent, Triple Agent, Single Viewer)  
+ SSE streaming works (messages appear incrementally)  
+ File uploads work (PDFs, images)  
+ Charts render (Plotly)  
+ Diagrams render (Mermaid)  
+ Sessions persist across restarts  
+ No errors in Flask console  
+ Performance is same or better  
+ Database `sessions.db` created and populated  
+ Only ONE Anthropic client initialized (check console)
 
 ---
 

@@ -31,13 +31,13 @@ def test_health_endpoint(base_url):
         
         if response.status_code == 200:
             data = response.json()
-            print(f"   ✅ Health: {data.get('status', 'unknown')}")
+            print(f"    Health: {data.get('status', 'unknown')}")
             return True, data
         else:
-            print(f"   ❌ Health endpoint failed: {response.status_code}")
+            print(f"    Health endpoint failed: {response.status_code}")
             return False, None
     except Exception as e:
-        print(f"   ❌ Health endpoint error: {e}")
+        print(f"    Health endpoint error: {e}")
         return False, None
 
 def test_api_status(base_url):
@@ -50,13 +50,13 @@ def test_api_status(base_url):
         if response.status_code == 200:
             data = response.json()
             tools_count = data.get('tools_count', 0)
-            print(f"   ✅ API Status: {tools_count} tools loaded")
+            print(f"    API Status: {tools_count} tools loaded")
             return True, data
         else:
-            print(f"   ❌ API status failed: {response.status_code}")
+            print(f"    API status failed: {response.status_code}")
             return False, None
     except Exception as e:
-        print(f"   ❌ API status error: {e}")
+        print(f"    API status error: {e}")
         return False, None
 
 def test_tool_list(base_url):
@@ -69,13 +69,13 @@ def test_tool_list(base_url):
         if response.status_code == 200:
             data = response.json()
             tools = data.get('tools', [])
-            print(f"   ✅ Tools endpoint: {len(tools)} tools available")
+            print(f"    Tools endpoint: {len(tools)} tools available")
             return True, data
         else:
-            print(f"   ❌ Tools endpoint failed: {response.status_code}")
+            print(f"    Tools endpoint failed: {response.status_code}")
             return False, None
     except Exception as e:
-        print(f"   ❌ Tools endpoint error: {e}")
+        print(f"    Tools endpoint error: {e}")
         return False, None
 
 def test_cors(base_url):
@@ -92,13 +92,13 @@ def test_cors(base_url):
         }
         
         if cors_headers['Access-Control-Allow-Origin']:
-            print(f"   ✅ CORS configured: {cors_headers['Access-Control-Allow-Origin']}")
+            print(f"    CORS configured: {cors_headers['Access-Control-Allow-Origin']}")
             return True, cors_headers
         else:
             print(f"   ⚠️  CORS headers not found")
             return False, None
     except Exception as e:
-        print(f"   ❌ CORS test error: {e}")
+        print(f"    CORS test error: {e}")
         return False, None
 
 def test_response_time(base_url):
@@ -112,18 +112,18 @@ def test_response_time(base_url):
         
         if response.status_code == 200:
             if elapsed < 1.0:
-                print(f"   ✅ Response time: {elapsed:.2f}s (excellent)")
+                print(f"    Response time: {elapsed:.2f}s (excellent)")
             elif elapsed < 3.0:
-                print(f"   ✅ Response time: {elapsed:.2f}s (good)")
+                print(f"    Response time: {elapsed:.2f}s (good)")
             else:
                 print(f"   ⚠️  Response time: {elapsed:.2f}s (slow)")
             
             return True, elapsed
         else:
-            print(f"   ❌ Response test failed: {response.status_code}")
+            print(f"    Response test failed: {response.status_code}")
             return False, None
     except Exception as e:
-        print(f"   ❌ Response time error: {e}")
+        print(f"    Response time error: {e}")
         return False, None
 
 def test_database_connection(base_url):
@@ -138,16 +138,16 @@ def test_database_connection(base_url):
             db_status = data.get('database', {}).get('status', 'unknown')
             
             if db_status == 'connected':
-                print(f"   ✅ Database: Connected")
+                print(f"    Database: Connected")
                 return True, data
             else:
                 print(f"   ⚠️  Database: {db_status}")
                 return False, None
         else:
-            print(f"   ❌ Database test failed: {response.status_code}")
+            print(f"    Database test failed: {response.status_code}")
             return False, None
     except Exception as e:
-        print(f"   ❌ Database test error: {e}")
+        print(f"    Database test error: {e}")
         return False, None
 
 def main():
@@ -195,13 +195,13 @@ def main():
     total = len(results)
     
     for test_name, success in results:
-        status = "✅" if success else "❌"
+        status = "" if success else ""
         print(f"   {status} {test_name}")
     
     print(f"\n   {passed}/{total} tests passed")
     
     if passed == total:
-        print("\n✅ All tests passed! Deployment is healthy.")
+        print("\n All tests passed! Deployment is healthy.")
         print("\n📋 Next steps:")
         print("   1. Update OAuth redirect URLs:")
         print("      python Render_backend/update_oauth_redirects.py")

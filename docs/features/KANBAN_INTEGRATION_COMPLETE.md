@@ -510,11 +510,11 @@ async function monitorProgress(sessionId) {
         const status = await response.json();
         
         if (status.status === 'completed') {
-            console.log('✅ Task completed!');
+            console.log(' Task completed!');
             console.log('Result:', status.agent_result);
             clearInterval(interval);
         } else if (status.status === 'failed') {
-            console.error('❌ Task failed:', status.error);
+            console.error(' Task failed:', status.error);
             clearInterval(interval);
         } else {
             console.log('🔄 In progress:', status.progress);
@@ -554,7 +554,7 @@ async function batchProcess(tasks) {
         )
     );
     
-    console.log(`✅ ${sessions.length} tasks assigned to agents`);
+    console.log(` ${sessions.length} tasks assigned to agents`);
 }
 ```
 
@@ -669,4 +669,4 @@ curl http://localhost:4000/api/agent/data-agent/status
 
 **Last Updated:** October 29, 2025  
 **Version:** 2.0.0  
-**Status:** ✅ Production Ready
+**Status:**  Production Ready

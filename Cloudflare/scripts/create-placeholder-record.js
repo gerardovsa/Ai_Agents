@@ -38,11 +38,11 @@ function makeRequest(method, path, data = null) {
         });
 
         req.on('error', reject);
-        
+
         if (data) {
             req.write(JSON.stringify(data));
         }
-        
+
         req.end();
     });
 }
@@ -62,8 +62,8 @@ async function createPlaceholderRecord() {
 
     try {
         const result = await makeRequest('POST', `/zones/${ZONE_ID}/dns_records`, recordData);
-        
-        console.log('✅ Placeholder A record created successfully!');
+
+        console.log('Placeholder A record created successfully!');
         console.log(`   ${result.name} → ${result.content}`);
         console.log(`   Proxied: ${result.proxied ? '🟠 YES (ORANGE CLOUD)' : '⚪ NO'}`);
         console.log(`   Record ID: ${result.id}\n`);
@@ -71,12 +71,12 @@ async function createPlaceholderRecord() {
         console.log('🎉 Worker route will now handle all traffic!');
         console.log('🔧 Test it: https://mustcare.valorsynergysuite.com/');
         console.log('⏱️  Wait 10-30 seconds for DNS propagation\n');
-        
+
     } catch (error) {
-        console.error('❌ Failed:', error.message);
-        
+        console.error(' Failed:', error.message);
+
         if (error.message.includes('already exists')) {
-            console.log('\n✅ A record already exists - this is fine!');
+            console.log('\n record already exists - this is fine!');
             console.log('   The Worker route should be handling traffic\n');
         } else {
             console.log('\n📋 Manual Steps:');
@@ -92,6 +92,6 @@ async function createPlaceholderRecord() {
 }
 
 createPlaceholderRecord().catch(error => {
-    console.error('❌ Fatal error:', error);
+    console.error(' Fatal error:', error);
     process.exit(1);
 });

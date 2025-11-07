@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "google_forms_create_form",
-      "description": "Create a new Google Form",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Form",
       "platform": "google_forms",
       "parameters": {
         "title": {
@@ -25,7 +25,7 @@
     },
     {
       "name": "google_forms_get_form",
-      "description": "Get form structure and questions",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet form structure and questions",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -41,7 +41,7 @@
     },
     {
       "name": "google_forms_add_question",
-      "description": "Add question to form",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd question to form",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -83,7 +83,7 @@
     },
     {
       "name": "google_forms_add_multiple_choice",
-      "description": "Add multiple choice question",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd multiple choice question",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -121,7 +121,7 @@
     },
     {
       "name": "google_forms_add_text_question",
-      "description": "Add short or long text question",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd short or long text question",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -154,7 +154,7 @@
     },
     {
       "name": "google_forms_add_linear_scale",
-      "description": "Add linear scale question (1-5, 0-10, etc.)",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd linear scale question (1-5, 0-10, etc.)",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -201,7 +201,7 @@
     },
     {
       "name": "google_forms_update_question",
-      "description": "Update existing question",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate existing question",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -237,7 +237,7 @@
     },
     {
       "name": "google_forms_delete_question",
-      "description": "Delete question from form",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete question from form",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -258,7 +258,7 @@
     },
     {
       "name": "google_forms_get_responses",
-      "description": "Get all form responses",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet all form responses",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -279,7 +279,7 @@
     },
     {
       "name": "google_forms_get_response",
-      "description": "Get specific response",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet specific response",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -300,7 +300,7 @@
     },
     {
       "name": "google_forms_delete_response",
-      "description": "Delete form response",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete form response",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -321,7 +321,7 @@
     },
     {
       "name": "google_forms_update_settings",
-      "description": "Update form settings",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate form settings",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -372,7 +372,7 @@
     },
     {
       "name": "google_forms_export_responses_csv",
-      "description": "Export responses to CSV",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport responses to CSV",
       "platform": "google_forms",
       "parameters": {
         "form_id": {
@@ -388,7 +388,7 @@
     },
     {
       "name": "google_forms_create_quiz",
-      "description": "Create quiz with answer key and point values",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate quiz with answer key and point values",
       "platform": "google_forms",
       "parameters": {
         "title": {
@@ -416,7 +416,7 @@
     },
     {
       "name": "google_forms_add_quiz_question",
-      "description": "Add quiz question with correct answer and points",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd quiz question with correct answer and points",
       "platform": "google_forms",
       "parameters": {
         "form_id": {

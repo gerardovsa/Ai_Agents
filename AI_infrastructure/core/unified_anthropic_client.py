@@ -473,7 +473,7 @@ Always provide data-driven insights with actionable recommendations."""
                     # Execute tool using NEW ToolRegistry (281 tools)
                     if self.tool_registry:
                         result = self.tool_registry.execute_tool(
-                            content.name,
+                            tool_name=content.name,
                             **content.input
                         )
                     else:

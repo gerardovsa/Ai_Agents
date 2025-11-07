@@ -21,24 +21,24 @@ class MermaidFontController {
             'huge': { value: 22, label: 'Huge', icon: '📈', scale: 1.4 },
             'giant': { value: 26, label: 'Giant', icon: '📐', scale: 1.6 }
         };
-        
+
         this.injectCSS();
     }
-    
+
     // 1.1.2
     injectCSS() {
         if (document.getElementById('mermaid-font-controller-css')) return;
-        
+
         const style = document.createElement('style');
         style.id = 'mermaid-font-controller-css';
         style.textContent = `
-            /* ✅ CSS Variables for font control */
+            /* CSS Variables for font control */
             :root {
                 --mermaid-active-font-size: 10px;
                 --mermaid-container-scale: 1.8;
             }
             
-            /* ✅ Font size data attributes */
+            /* ont size data attributes */
             .viz-container[data-font-size="10"] { --mermaid-active-font-size: 10px; --mermaid-container-scale: 0.8; }
             .viz-container[data-font-size="12"] { --mermaid-active-font-size: 12px; --mermaid-container-scale: 0.9; }
             .viz-container[data-font-size="14"] { --mermaid-active-font-size: 14px; --mermaid-container-scale: 1.0; }
@@ -47,7 +47,7 @@ class MermaidFontController {
             .viz-container[data-font-size="22"] { --mermaid-active-font-size: 22px; --mermaid-container-scale: 1.4; }
             .viz-container[data-font-size="26"] { --mermaid-active-font-size: 26px; --mermaid-container-scale: 1.6; }
             
-            /* ✅ UPDATED: Isolated Mermaid text targeting */
+            /* PDATED: Isolated Mermaid text targeting */
             .mermaid text,
             .mermaid tspan,
             .mermaid .nodeLabel,
@@ -59,7 +59,7 @@ class MermaidFontController {
                 heght: auto !important;
             }
             
-            /* ✅ UPDATED: Isolated HTML formatting classes */
+            /* PDATED: Isolated HTML formatting classes */
             .mermaid svg text .mermaid-bold,
             .mermaid text .mermaid-bold,
             .mermaid tspan .mermaid-bold {
@@ -110,19 +110,19 @@ class MermaidFontController {
                 font-family: inherit !important;
             }
             
-            /* ✅ Compact bullets inside Mermaid HTML labels */
+            /* ompact bullets inside Mermaid HTML labels */
             .mermaid .mermaid-bullet {
                 display: block !important;
                 line-height: 1.2 !important;
                 margin: 0.5px 0 !important;
             }
 
-            /* ✅ Bullet-only spacing fix: hide BR right after a bullet to avoid double spacing */
+            /* ullet-only spacing fix: hide BR right after a bullet to avoid double spacing */
             .mermaid .mermaid-bullet + br.mermaid-br {
                 display: none !important;
             }
 
-            /* ✅ Prevent host container CSS (e.g., message-bubble pre-wrap) from affecting label HTML */
+            /* revent host container CSS (e.g., message-bubble pre-wrap) from affecting label HTML */
             .mermaid foreignObject div,
             .mermaid foreignObject p,
             .mermaid foreignObject span,
@@ -132,7 +132,7 @@ class MermaidFontController {
                 padding: 0 !important;
             }
             
-            /* ✅ Container scaling */
+            /* ontainer scaling */
             .mermaid rect.node,
             .mermaid circle.node {
                 transform: scale(var(--mermaid-container-scale)) !important;
@@ -142,54 +142,54 @@ class MermaidFontController {
         `;
         document.head.appendChild(style);
     }
-    
+
     // 1.1.3
     setFontSize(container, sizeName) {
         const sizeConfig = this.availableSizes[sizeName];
         if (!sizeConfig) return;
-        
+
         // Remove old classes
         Object.keys(this.availableSizes).forEach(size => {
             container.classList.remove(`font-${size}`);
         });
-        
+
         // Add new class and data
         container.classList.add(`font-${sizeName}`);
         container.setAttribute('data-font-size', sizeConfig.value.toString());
         container.setAttribute('data-font-name', sizeName);
-        
+
         // Update CSS variables
         container.style.setProperty('--mermaid-active-font-size', `${sizeConfig.value}px`);
         container.style.setProperty('--mermaid-container-scale', sizeConfig.scale.toString());
-        
+
         this.saveUserPreference(sizeName);
         this.showNotification(`Font size: ${sizeConfig.label} (${sizeConfig.value}px)`, 'success');
-        
+
         return sizeConfig;
     }
-    
+
     // 1.1.4
     getCurrentSize(container) {
         return container.getAttribute('data-font-name') || this.defaultSize;
     }
-    
+
     // 1.1.5
     cycleFontSize(container, direction = 'up') {
         const currentSize = this.getCurrentSize(container);
         const sizeNames = Object.keys(this.availableSizes);
         const currentIndex = sizeNames.indexOf(currentSize);
-        
+
         let newIndex;
         if (direction === 'up') {
             newIndex = currentIndex < sizeNames.length - 1 ? currentIndex + 1 : 0;
         } else {
             newIndex = currentIndex > 0 ? currentIndex - 1 : sizeNames.length - 1;
         }
-        
+
         const newSize = sizeNames[newIndex];
         return this.setFontSize(container, newSize);
     }
-    
+
     // 1.1.6
     saveUserPreference(sizeName) {
         try {
@@ -198,7 +198,7 @@ class MermaidFontController {
             console.warn('Could not save font preference:', e);
         }
     }
-    
+
     // 1.1.7
     loadUserPreference() {
         try {
@@ -207,13 +207,13 @@ class MermaidFontController {
             return this.defaultSize;
         }
     }
-    
+
     // 1.1.8
     applyUserPreference(container) {
         const preferredSize = this.loadUserPreference();
         this.setFontSize(container, preferredSize);
     }
-    
+
     // 1.1.9
     showNotification(message, type = 'info') {
         if (window.vizEngine && window.vizEngine.showNotification) {
@@ -411,7 +411,7 @@ function hardenSvgForExport(svgEl, { theme = 'light' } = {}) {
                 el.style.fill = '#ffffff';
                 el.style.stroke = isDark ? '#6b7280' : '#b3b3b3';
                 el.style.strokeWidth = '1.2px';
-            } catch(_e) {}
+            } catch (_e) { }
         });
         // 2) Remove fills from edge paths to prevent wedge artifacts
         svgEl.querySelectorAll('g.edgePath path').forEach(p => {
@@ -422,7 +422,7 @@ function hardenSvgForExport(svgEl, { theme = 'light' } = {}) {
                 const stroke = p.getAttribute('stroke') || (isDark ? '#7d8590' : '#6b7280');
                 p.setAttribute('stroke', stroke);
                 p.style.stroke = stroke;
-            } catch(_e) {}
+            } catch (_e) { }
         });
         // 3) Arrowhead marker cleanup
         // First, set a safe baseline
@@ -430,7 +430,7 @@ function hardenSvgForExport(svgEl, { theme = 'light' } = {}) {
             try {
                 m.setAttribute('stroke', 'none');
                 m.style.stroke = 'none';
-            } catch(_e) {}
+            } catch (_e) { }
         });
         // Then, for each path that references a marker, use its stroke color for the marker fill
         const refAttrs = ['marker-end', 'marker-mid', 'marker-start'];
@@ -453,7 +453,7 @@ function hardenSvgForExport(svgEl, { theme = 'light' } = {}) {
                         m.style.stroke = 'none';
                     });
                 });
-            } catch(_e) {}
+            } catch (_e) { }
         });
     } catch (e) {
         console.warn('⚠️ hardenSvgForExport failed:', e);
@@ -481,7 +481,7 @@ function expandLabelContainerWidthForExport(svgEl, { padding = 12 } = {}) {
                 const inner = fo.querySelector('div, span, p') || fo.firstElementChild;
                 const gbr = inner?.getBoundingClientRect?.();
                 innerWidth = Math.ceil(gbr?.width || inner?.scrollWidth || fo.getBBox?.().width || 0);
-            } catch(_e) {}
+            } catch (_e) { }
             if (innerWidth > 0) {
                 const targetW = innerWidth + padding * 2;
                 if (targetW > width) {
@@ -526,7 +526,7 @@ class PlotlySpacingController {
                 gridSpacing: { nticks: 12 }
             },
             'normal': {
-                name: 'Normal', 
+                name: 'Normal',
                 margin: { l: 80, r: 60, t: 50, b: 80, pad: 10 },
                 bargap: 0.15,
                 bargroupgap: 0.05,
@@ -548,19 +548,19 @@ class PlotlySpacingController {
             }
         };
     }
-    
+
     // 1.2.2
     applySpacingPreset(plotlyData, presetName = 'normal') {
         const preset = this.spacingPresets[presetName];
         if (!preset) return;
-        
+
         // Apply margin settings
         plotlyData.layout.margin = { ...plotlyData.layout.margin, ...preset.margin };
-        
+
         // Apply bar spacing
         plotlyData.layout.bargap = preset.bargap;
         plotlyData.layout.bargroupgap = preset.bargroupgap;
-        
+
         // Apply grid spacing
         if (plotlyData.layout.xaxis) {
             plotlyData.layout.xaxis.nticks = preset.gridSpacing.nticks;
@@ -568,16 +568,16 @@ class PlotlySpacingController {
         if (plotlyData.layout.yaxis) {
             plotlyData.layout.yaxis.nticks = preset.gridSpacing.nticks - 2;
         }
-        
-        console.log(`✅ Applied ${preset.name} spacing preset`);
+
+        console.log(`pplied ${preset.name} spacing preset`);
     }
-    
+
     // 1.2.3
     setBarSpacing(plotlyData, bargap = 0.15, bargroupgap = 0.05) {
         plotlyData.layout.bargap = Math.max(0, Math.min(1, bargap));
         plotlyData.layout.bargroupgap = Math.max(0, Math.min(1, bargroupgap));
     }
-    
+
     // 1.2.4
     setMargins(plotlyData, margins = {}) {
         plotlyData.layout.margin = {
@@ -585,17 +585,17 @@ class PlotlySpacingController {
             ...margins
         };
     }
-    
+
     // 1.2.5
     setGridDensity(plotlyData, density = 'normal') {
         const densities = {
             'sparse': { x: 6, y: 5 },
-            'normal': { x: 10, y: 8 }, 
+            'normal': { x: 10, y: 8 },
             'dense': { x: 15, y: 12 }
         };
-        
+
         const config = densities[density] || densities.normal;
-        
+
         if (plotlyData.layout.xaxis) {
             plotlyData.layout.xaxis.nticks = config.x;
         }
@@ -618,8 +618,8 @@ class VisualizationEngine {
     // 2.1.1
     constructor(options = {}) {
         this.options = {
-            theme: 'light', // ✅ FIXED: Changed from 'dark' to 'light' for default theme
-            defaultHeight: 'auto', // ✅ CHANGED: Fixed 600px → auto for dynamic sizing
+            theme: 'light', // IXED: Changed from 'dark' to 'light' for default theme
+            defaultHeight: 'auto', // HANGED: Fixed 600px → auto for dynamic sizing
             enableInteractivity: true,
             enableExport: true,
             enableResize: true,
@@ -658,30 +658,30 @@ class VisualizationEngine {
         this.isInitialized = false;
         this.loadingPromises = new Map();
         this.renderCount = 0;
-        
+
         this.resizeObserver = null;
         this.animationFrameId = null;
         this.pendingResizes = new Set();
-        
+
         this.layoutState = {
             containerDimensions: new Map(),
             responsiveBreakpoint: 'desktop',
             currentTheme: this.options.theme,
             isRendering: false
         };
-        
+
         this.init();
     }
 
     // 2.1.2
     async init() {
         if (this.isInitialized) return;
-        
+
         try {
             console.log('🎨 Initializing UNIFIED Visualization Engine V1.19 - NO LOADING STATES...');
-            
+
             await this.loadFontAwesome();
-            
+
             this.loadLibrariesAsync();
             this.setupLightweightObservation();
             this.setupResponsiveDesign();
@@ -690,12 +690,12 @@ class VisualizationEngine {
             this.setupJSONFileHandling();
             this.setupTooltipPositioning();
             this.initializeMermaidFontController();
-            
+
             this.isInitialized = true;
-            console.log('✅ UNIFIED Visualization Engine V1.19 initialized - NO LOADING STATES!');
-            
+            console.log('NIFIED Visualization Engine V1.19 initialized - NO LOADING STATES!');
+
         } catch (error) {
-            console.error('❌ Failed to initialize UNIFIED Visualization Engine V1.19:', error);
+            console.error(' Failed to initialize UNIFIED Visualization Engine V1.19:', error);
             throw error;
         }
     }
@@ -716,24 +716,24 @@ class VisualizationEngine {
             link.rel = 'stylesheet';
             link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
             link.crossOrigin = 'anonymous';
-            
+
             link.onload = () => {
-                console.log('✅ FontAwesome loaded successfully');
+                console.log('ontAwesome loaded successfully');
                 if (document.body) {
                     document.body.classList.add('fa-loaded');
                 }
                 this.addIconFallbackStyles();
                 resolve();
             };
-            
+
             link.onerror = () => {
                 console.warn('⚠️ FontAwesome failed to load, using fallback icons');
                 this.addIconFallbackStyles();
                 resolve();
             };
-            
+
             document.head.appendChild(link);
-            
+
             setTimeout(() => {
                 if (!link.sheet && !document.body.classList.contains('fa-loaded')) {
                     console.warn('⚠️ FontAwesome load timeout, using fallback icons');
@@ -748,9 +748,9 @@ class VisualizationEngine {
     initializeMermaidFontController() {
         try {
             window.mermaidFontController = new MermaidFontController();
-            console.log('✅ Mermaid font controller initialized');
+            console.log('ermaid font controller initialized');
         } catch (error) {
-            console.error('❌ Failed to initialize Mermaid font controller:', error);
+            console.error(' Failed to initialize Mermaid font controller:', error);
         }
     }
 
@@ -782,7 +782,7 @@ class VisualizationEngine {
         .viz-action-btn i.fas.fa-print::before { content: "🖨"; }
         .viz-action-btn i.fas.fa-download::before { content: "⬇"; }
         `;
-        
+
         const fallbackStyle = document.createElement('style');
         fallbackStyle.id = 'icon-fallback-styles';
         fallbackStyle.textContent = iconFallbackCSS;
@@ -840,25 +840,25 @@ class VisualizationEngine {
         return new Promise((resolve, reject) => {
             let attempts = 0;
             const maxAttempts = 50;
-            
+
             const checkLibrary = () => {
                 attempts++;
-                
+
                 if (window[libraryName]) {
-                    console.log(`✅ ${libraryName} library found`);
+                    console.log(`{libraryName} library found`);
                     resolve();
                     return;
                 }
-                
+
                 if (attempts >= maxAttempts) {
                     console.warn(`⚠️ ${libraryName} library not found after waiting`);
                     reject(new Error(`${libraryName} library not loaded`));
                     return;
                 }
-                
+
                 setTimeout(checkLibrary, 100);
             };
-            
+
             checkLibrary();
         });
     }
@@ -866,17 +866,17 @@ class VisualizationEngine {
     // 2.2.4 - ENHANCED: Better Mermaid initialization like ALTERNATIVE file
     async loadMermaid() {
         await this.waitForLibrary('mermaid');
-        
+
         if (window.mermaid) {
-            // ✅ ENHANCED: More comprehensive Mermaid configuration
+            // NHANCED: More comprehensive Mermaid configuration
             mermaid.initialize({
                 startOnLoad: false,
                 theme: this.options.theme === 'dark' ? 'dark' : 'default',
-                securityLevel: 'loose', // ✅ Allow HTML labels
-                htmlLabels: true, // ✅ Enable HTML content in nodes
+                securityLevel: 'loose', // llow HTML labels
+                htmlLabels: true, // nable HTML content in nodes
                 flowchart: {
                     useMaxWidth: true,
-                    htmlLabels: true // ✅ Specifically enable for flowcharts
+                    htmlLabels: true // pecifically enable for flowcharts
                 },
                 themeVariables: {
                     primaryColor: this.options.colorScheme.primary,
@@ -884,7 +884,7 @@ class VisualizationEngine {
                     primaryBorderColor: this.options.colorScheme.accent,
                     lineColor: this.options.colorScheme.secondary
                 },
-                // ✅ NEW: Better error handling
+                // EW: Better error handling
                 logLevel: 'error',
                 suppressErrorRendering: true
             });
@@ -912,12 +912,12 @@ class VisualizationEngine {
     // 2.3.1
     injectUnifiedStyles() {
         const isDark = this.options.theme === 'dark';
-        const seamlessBg = isDark ? '#0d1117' : '#ffffff';
+        const seamlessBg = 'transparent'; /* 🎨 TRANSPARENT: Works in both light and dark mode */
         const textColor = isDark ? this.options.colorScheme.text : '#24292f';
         const borderColor = isDark ? '#30363d' : '#d0d7de';
-        
+
         const styles = `
-        /* ✅ SIMPLIFIED: Containers without loading states */
+        /* IMPLIFIED: Containers without loading states */
         .viz-container {
             position: relative;
             display: block;
@@ -929,11 +929,11 @@ class VisualizationEngine {
             overflow: visible;
             z-index: auto;
             box-sizing: border-box;
-            height: auto; /* ✅ INCREASED: 300px → 450px to prevent truncation */
+            height: auto; /* NCREASED: 300px → 450px to prevent truncation */
             padding-top: 20px;
         }
 
-        /* ✅ Direct content area - auto-size to its content; hide when empty to avoid gaps */
+        /* irect content area - auto-size to its content; hide when empty to avoid gaps */
         .viz-content-area {
             position: relative;
             width: 100%;
@@ -980,7 +980,7 @@ class VisualizationEngine {
             background: linear-gradient(90deg, rgba(255,122,0,0.45), rgba(255,122,0,0.85), rgba(255,122,0,0.45));
         }
 
-        /* ✅ Action bar styling */
+        /* ction bar styling */
         .viz-action-bar {
             position: absolute;
             top: -10px;
@@ -1033,7 +1033,7 @@ class VisualizationEngine {
             background: #FF7A00;                  /* 🔑 Orange hover */
         }
 
-        /* ✅ Icon rendering with FontAwesome support */
+        /* con rendering with FontAwesome support */
         .viz-action-btn i {
             font-size: 12px;
             color: white;                         /* 🔑 White icons */
@@ -1048,7 +1048,7 @@ class VisualizationEngine {
             font-weight: 900;
         }
 
-        /* ✅ Default icon color: brand primary (subtle) inside viz action bar */
+        /* efault icon color: brand primary (subtle) inside viz action bar */
         .viz-action-bar .viz-action-btn i,
         .viz-action-bar .viz-action-btn .fa-solid,
         .viz-action-bar .viz-action-btn .fa-regular,
@@ -1067,7 +1067,7 @@ class VisualizationEngine {
             font-size: 12px;
         }
 
-        /* ✅ Hide Unicode fallback when FontAwesome is loaded */
+        /* ide Unicode fallback when FontAwesome is loaded */
         .fa-loaded .viz-action-btn i.fas {
             text-indent: -9999px;
             overflow: hidden;
@@ -1103,12 +1103,12 @@ class VisualizationEngine {
             color: white !important;              /* 🔑 White icons on hover */
         }
 
-        /* ✅ Hide default Plotly modebar */
+        /* ide default Plotly modebar */
         .plotly-container .modebar {
             display: none !important;
         }
 
-        /* ✅ Dropdown styling */
+        /* ropdown styling */
         .chart-type-switcher,
         .export-options-switcher,
         .color-theme-switcher,
@@ -1139,7 +1139,7 @@ class VisualizationEngine {
             box-sizing: border-box !important;
         }
 
-        /* ✅ Font size menu styling */
+        /* ont size menu styling */
         .font-size-menu {
             position: absolute;
             top: 35px;
@@ -1180,7 +1180,7 @@ class VisualizationEngine {
             color: white !important;
         }
 
-        /* ✅ Default clamp for Mermaid in Two-Rule containers to prevent oversized blocks */
+        /* efault clamp for Mermaid in Two-Rule containers to prevent oversized blocks */
         .viz-container[data-viz-type="mermaid"] .viz-content-area {
             max-height: 500px;
             overflow: auto;
@@ -1197,7 +1197,7 @@ class VisualizationEngine {
             }
         }
 
-        /* ✅ Theme variables with vibrant accent colors */
+        /* heme variables with vibrant accent colors */
         [data-theme="dark"] {
             --button-border-color: #30363d;
             --button-icon-color: #9ca3af;
@@ -1234,12 +1234,12 @@ class VisualizationEngine {
             --border-primary: #d0d7de;
         }
 
-        /* ✅ Visualization container styles */
+        /* isualization container styles */
         .plotly-container {
             background: ${seamlessBg} !important;
             border-radius: 8px;
             color: ${textColor} !important;
-            min-height: 300px; /* ✅ REDUCED: 500px → 300px for auto-sizing */
+            min-height: 300px; /* EDUCED: 500px → 300px for auto-sizing */
             padding: 10px;
             position: relative;
             overflow: visible;
@@ -1272,16 +1272,16 @@ class VisualizationEngine {
             text-align: center;
             position: relative;
             overflow: visible;
-            height: auto; /* ✅ REDUCED: 500px → 300px for auto-sizing */
+            height: auto; /* EDUCED: 500px → 300px for auto-sizing */
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
             max-width: 100%;
-            min-width: 600px; /* ✅ ENHANCED: Minimum width for Mermaid diagrams */
+            min-width: 600px; /* NHANCED: Minimum width for Mermaid diagrams */
         }
 
-        /* ✅ NEW: Expanded Mermaid containers for complex diagrams */
+        /* EW: Expanded Mermaid containers for complex diagrams */
         .mermaid-container.mermaid-expanded {
             max-width: 95vw !important;
             min-width: 800px !important;
@@ -1295,7 +1295,7 @@ class VisualizationEngine {
             overflow: visible;
         }
 
-        /* ✅ NEW: Fullscreen Mermaid viewer */
+        /* EW: Fullscreen Mermaid viewer */
         .mermaid-fullscreen-overlay {
             position: fixed;
             top: 0;
@@ -1416,10 +1416,10 @@ class VisualizationEngine {
             align-items: center;
             justify-content: center;
             width: 100%;
-            height: auto; /* ✅ REDUCED: 500px → 300px for auto-sizing */
+            height: auto; /* EDUCED: 500px → 300px for auto-sizing */
         }
 
-        /* ✅ Error display */
+        /* rror display */
         .viz-error {
             text-align: center;
             padding: 40px 20px;
@@ -1441,7 +1441,7 @@ class VisualizationEngine {
             opacity: 0.8;
         }
 
-        /* ✅ Notifications */
+        /* otifications */
         .viz-notification {
             position: fixed;
             top: 20px;
@@ -1461,7 +1461,7 @@ class VisualizationEngine {
         .viz-notification.info { background: var(--accent-blue); }
         .viz-notification.warning { background: var(--accent-orange); }
 
-        /* ✅ FIXED: Compact text content styling - no excessive spacing */
+        /* IXED: Compact text content styling - no excessive spacing */
         .viz-text-content {
             margin: 6px 0;
             line-height: 1.4;
@@ -1527,7 +1527,7 @@ class VisualizationEngine {
             font-style: italic;
         }
 
-        /* ✅ Responsive design */
+        /* esponsive design */
         @media (max-width: 768px) {
             .viz-action-btn {
                 width: 24px;
@@ -1589,7 +1589,7 @@ class VisualizationEngine {
         styleSheet.textContent = styles;
         document.head.appendChild(styleSheet);
 
-        console.log(`✅ Unified styles injected - NO LOADING STATES`);
+        console.log(`nified styles injected - NO LOADING STATES`);
     }
 
     // 2.3.2
@@ -1598,7 +1598,7 @@ class VisualizationEngine {
             if (this.animationFrameId) {
                 cancelAnimationFrame(this.animationFrameId);
             }
-            
+
             this.animationFrameId = requestAnimationFrame(() => {
                 this.handleSimpleResize(entries);
             });
@@ -1620,7 +1620,7 @@ class VisualizationEngine {
                     this.handleBreakpointChange(breakpoint);
                 }
             });
-            
+
             if (mediaQuery.matches) {
                 this.layoutState.responsiveBreakpoint = breakpoint;
             }
@@ -1656,12 +1656,12 @@ class VisualizationEngine {
             if (e.target.classList.contains('viz-action-btn')) {
                 const button = e.target;
                 const tooltip = window.getComputedStyle(button, '::after');
-                
+
                 const rect = button.getBoundingClientRect();
-                
+
                 const tooltipX = rect.left + (rect.width / 2);
                 const tooltipY = rect.bottom + 10;
-                
+
                 button.style.setProperty('--tooltip-x', tooltipX + 'px');
                 button.style.setProperty('--tooltip-y', tooltipY + 'px');
             }
@@ -1677,10 +1677,10 @@ class VisualizationEngine {
         document.addEventListener('drop', (e) => {
             e.preventDefault();
             const files = Array.from(e.dataTransfer.files);
-            const jsonFiles = files.filter(file => 
+            const jsonFiles = files.filter(file =>
                 file.type === 'application/json' || file.name.endsWith('.json')
             );
-            
+
             if (jsonFiles.length > 0) {
                 this.handleJSONFiles(jsonFiles);
             }
@@ -1693,28 +1693,28 @@ class VisualizationEngine {
             try {
                 const content = await this.readFileAsText(file);
                 const jsonData = JSON.parse(content);
-                
+
                 const chartType = this.detectChartType(jsonData);
-                
+
                 console.log(`📁 Loaded JSON file: ${file.name} as ${chartType}`);
-                
+
                 let container = document.querySelector('.viz-main-container');
                 if (!container) {
                     container = document.createElement('div');
                     container.className = 'viz-main-container';
                     document.body.appendChild(container);
                 }
-                
+
                 const vizContainer = this.createVisualizationContainer(chartType);
                 vizContainer.setAttribute('data-source', file.name);
                 container.appendChild(vizContainer);
-                
+
                 await this.renderVisualization({
                     type: chartType,
                     ...jsonData,
                     fileName: file.name
                 }, vizContainer, `json-${Date.now()}`);
-                
+
             } catch (error) {
                 console.error(`Error processing ${file.name}:`, error);
             }
@@ -1726,19 +1726,19 @@ class VisualizationEngine {
         if (jsonData.data && Array.isArray(jsonData.data) && jsonData.layout) {
             return 'plotly';
         }
-        
+
         if (jsonData.type && jsonData.data && (jsonData.data.labels || jsonData.data.datasets)) {
             return 'chartjs';
         }
-        
+
         if (jsonData.chartType && (jsonData.data || jsonData.dataTable)) {
             return 'google';
         }
-        
+
         if (Array.isArray(jsonData) && jsonData.length > 0) {
             return 'plotly';
         }
-        
+
         return 'plotly';
     }
 
@@ -1752,11 +1752,11 @@ class VisualizationEngine {
         });
     }
 
-/**
- * =============================================================================
- * SECTION 3: CONTENT PARSING & PROCESSING
- * =============================================================================
- */
+    /**
+     * =============================================================================
+     * SECTION 3: CONTENT PARSING & PROCESSING
+     * =============================================================================
+     */
 
     // 3.1.1
     parseContent(content) {
@@ -1765,7 +1765,7 @@ class VisualizationEngine {
         }
 
         const items = [];
-        
+
         const patterns = {
             plotly: /<PLOTLY>([\s\S]*?)<\/PLOTLY>/g,
             google: /<GRAPH>([\s\S]*?)<\/GRAPH>/g,
@@ -1782,7 +1782,7 @@ class VisualizationEngine {
         Object.entries(patterns).forEach(([patternKey, pattern]) => {
             let match;
             pattern.lastIndex = 0;
-            
+
             while ((match = pattern.exec(content)) !== null) {
                 let baseType;
                 if (patternKey.includes('plotly')) baseType = 'plotly';
@@ -1790,7 +1790,7 @@ class VisualizationEngine {
                 else if (patternKey.includes('google')) baseType = 'google';
                 else if (patternKey.includes('chartjs')) baseType = 'chartjs';
                 else baseType = patternKey;
-                
+
                 matches.push({
                     type: baseType,
                     content: match[1].trim(),
@@ -1816,22 +1816,22 @@ class VisualizationEngine {
 
             try {
                 if (match.type === 'mermaid') {
-                    items.push({ 
-                        type: 'mermaid', 
+                    items.push({
+                        type: 'mermaid',
                         content: match.content,
                         delimiter: match.delimiter
                     });
                 } else {
-                    // ✅ USE NEW SAFE JSON PARSING
+                    // SE NEW SAFE JSON PARSING
                     try {
                         const parsedContent = this.safeJSONParse(match.content);
-                        items.push({ 
-                            type: match.type, 
+                        items.push({
+                            type: match.type,
                             ...parsedContent,
                             delimiter: match.delimiter
                         });
                     } catch (safeParseError) {
-                        console.error('❌ Safe JSON parsing failed:', safeParseError);
+                        console.error(' Safe JSON parsing failed:', safeParseError);
                         items.push({
                             type: 'error',
                             content: `Error parsing ${match.type} visualization: ${safeParseError.message}`,
@@ -1841,7 +1841,7 @@ class VisualizationEngine {
                     }
                 }
             } catch (error) {
-                console.error(`❌ Error processing ${match.type} content:`, error);
+                console.error(` Error processing ${match.type} content:`, error);
                 items.push({
                     type: 'error',
                     content: `Error processing ${match.type} visualization: ${error.message}`,
@@ -1873,7 +1873,7 @@ class VisualizationEngine {
     createVisualizationContainer(type) {
         const container = document.createElement('div');
         container.className = `viz-container ${type}-container`;
-        
+
         container.innerHTML = `
             <div class="viz-content-area">
                 <!-- Content renders directly here -->
@@ -1911,7 +1911,7 @@ class VisualizationEngine {
             if (event && handle.releasePointerCapture) {
                 try {
                     handle.releasePointerCapture(event.pointerId);
-                } catch (_) {}
+                } catch (_) { }
             }
             const target = container || contentArea;
             if (typeof window.ensurePlotlyResponsive === 'function') {
@@ -1937,7 +1937,7 @@ class VisualizationEngine {
             if (handle.setPointerCapture) {
                 try {
                     handle.setPointerCapture(event.pointerId);
-                } catch (_) {}
+                } catch (_) { }
             }
             document.addEventListener('pointermove', updateHeight);
             document.addEventListener('pointerup', endResize);
@@ -1949,7 +1949,7 @@ class VisualizationEngine {
     createInlineContainer(type) {
         const container = document.createElement('div');
         container.className = `viz-container ${type}-container`;
-        
+
         if (type === 'text') {
             container.style.position = 'relative';
             container.style.display = 'block';
@@ -1965,7 +1965,7 @@ class VisualizationEngine {
             container.style.width = '100%';
             container.style.margin = `${this.options.spacing.visualizationMargin}px 0`;
         }
-        
+
         return container;
     }
 
@@ -2005,7 +2005,7 @@ class VisualizationEngine {
             console.log('🔄 Streaming mode enabled for container:', container.id);
         }
     }
-    
+
     // 3.3.2
     disableStreamingMode(container) {
         if (container) {
@@ -2013,12 +2013,12 @@ class VisualizationEngine {
             console.log('⏹️ Streaming mode disabled for container:', container.id);
         }
     }
-    
+
     // 3.3.3
     isStreamingMode(container) {
         return container && container.hasAttribute('data-streaming');
     }
-    
+
     // 3.3.4
     clearContentHashes(container) {
         if (container) {
@@ -2034,12 +2034,12 @@ class VisualizationEngine {
     getExistingContainerStates(container) {
         const states = [];
         const existingVizContainers = container.querySelectorAll('.viz-container');
-        
+
         existingVizContainers.forEach((vizContainer, index) => {
             const contentArea = vizContainer.querySelector('.viz-content-area');
             const contentHash = vizContainer.getAttribute('data-content-hash');
             const vizType = vizContainer.className.match(/(\w+)-container/)?.[1];
-            
+
             states.push({
                 index,
                 container: vizContainer,
@@ -2048,10 +2048,10 @@ class VisualizationEngine {
                 hasContent: !!contentArea?.innerHTML.trim()
             });
         });
-        
+
         return states;
     }
-    
+
     // 3.3.6
     createIncrementalRenderPlan(newItems, existingStates) {
         const plan = {
@@ -2059,18 +2059,18 @@ class VisualizationEngine {
             existingItems: [],
             updatedItems: []
         };
-        
+
         let vizIndex = 0;
-        
+
         newItems.forEach((item, itemIndex) => {
             if (item.type === 'text') {
                 plan.newItems.push(item);
                 return;
             }
-            
+
             const newHash = this.generateContentHash(item);
             const existingState = existingStates[vizIndex];
-            
+
             if (!existingState) {
                 plan.newItems.push(item);
             } else if (existingState.contentHash === newHash) {
@@ -2090,33 +2090,33 @@ class VisualizationEngine {
             } else {
                 plan.newItems.push(item);
             }
-            
+
             vizIndex++;
         });
-        
+
         return plan;
     }
-    
+
     // 3.3.7
     generateContentHash(item) {
         const content = typeof item.content === 'string' ? item.content : JSON.stringify(item.content);
         const hashInput = `${item.type}:${content}`;
-        
+
         let hash = 0;
         for (let i = 0; i < hashInput.length; i++) {
             const char = hashInput.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash;
         }
-        
+
         return Math.abs(hash).toString(36);
     }
 
-/**
- * =============================================================================
- * SECTION 4: MAIN RENDERING SYSTEM
- * =============================================================================
- */
+    /**
+     * =============================================================================
+     * SECTION 4: MAIN RENDERING SYSTEM
+     * =============================================================================
+     */
 
     // 4.1.1
     async renderAll(content, container, options = {}) {
@@ -2131,10 +2131,10 @@ class VisualizationEngine {
 
         const renderingKey = `rendering-${containerId}`;
         if (container.hasAttribute('data-rendering') || this.activeRenders?.has(renderingKey)) {
-            console.warn('❌ Render already in progress for container:', containerId);
+            console.warn(' Render already in progress for container:', containerId);
             return;
         }
-        
+
         if (!this.activeRenders) {
             this.activeRenders = new Set();
         }
@@ -2144,11 +2144,11 @@ class VisualizationEngine {
         try {
             await this.init();
             const newItems = this.parseContent(content);
-            
+
             const isStreaming = options.streaming || container.hasAttribute('data-streaming');
-            
+
             console.log(`🎯 RenderAll: ${isStreaming ? 'STREAMING' : 'FULL'} mode for ${containerId} with ${newItems.length} items`);
-            
+
             if (isStreaming) {
                 console.log(`🔄 Smart streaming render: ${newItems.length} items for ${containerId}`);
                 await this.renderItemsIncrementally(newItems, container, containerId);
@@ -2163,10 +2163,10 @@ class VisualizationEngine {
                 this.resizeObserver.observe(container);
             }
 
-            console.log(`✅ Rendered ${newItems.length} items successfully in ${containerId} (${isStreaming ? 'streaming' : 'full'} mode)`);
+            console.log(`endered ${newItems.length} items successfully in ${containerId} (${isStreaming ? 'streaming' : 'full'} mode)`);
 
         } catch (error) {
-            console.error('❌ Error rendering visualizations:', error);
+            console.error(' Error rendering visualizations:', error);
             this.showError(container, error.message);
             throw error;
         } finally {
@@ -2180,9 +2180,9 @@ class VisualizationEngine {
         for (let i = 0; i < items.length; i++) {
             try {
                 const item = items[i];
-                
+
                 if (item.type === 'text') {
-                    // ✅ FIXED: Use renderEnhancedMarkdown directly
+                    // IXED: Use renderEnhancedMarkdown directly
                     await this.renderTextUsingEnhancedMarkdown(item, container);
                 } else {
                     const vizContainer = this.createVisualizationContainer(item.type);
@@ -2190,13 +2190,13 @@ class VisualizationEngine {
                         vizContainer.setAttribute('data-delimiter', item.delimiter);
                     }
                     container.appendChild(vizContainer);
-                    
+
                     await this.renderVisualizationDirectly(item, vizContainer, `${containerId}-${i}`);
                 }
             } catch (error) {
-                console.error(`❌ Error rendering item ${i}:`, error);
-                
-                // ✅ IMPROVED: Continue rendering other items even if one fails
+                console.error(` Error rendering item ${i}:`, error);
+
+                // MPROVED: Continue rendering other items even if one fails
                 const errorContainer = document.createElement('div');
                 errorContainer.style.cssText = `
                     margin: 8px 0;
@@ -2220,17 +2220,17 @@ class VisualizationEngine {
     async renderItemsIncrementally(newItems, container, containerId) {
         const existingContainers = this.getExistingContainerStates(container);
         const renderPlan = this.createIncrementalRenderPlan(newItems, existingContainers);
-        
+
         console.log(`📊 Incremental render plan:`, {
             total: newItems.length,
             new: renderPlan.newItems.length,
             existing: renderPlan.existingItems.length,
             updated: renderPlan.updatedItems.length
         });
-        
+
         for (const item of renderPlan.newItems) {
             if (item.type === 'text') {
-                // ✅ FIXED: Use renderEnhancedMarkdown directly
+                // IXED: Use renderEnhancedMarkdown directly
                 await this.renderTextUsingEnhancedMarkdown(item, container);
             } else {
                 const vizContainer = this.createVisualizationContainer(item.type);
@@ -2239,18 +2239,18 @@ class VisualizationEngine {
                 }
                 vizContainer.setAttribute('data-content-hash', this.generateContentHash(item));
                 container.appendChild(vizContainer);
-                
+
                 await this.renderVisualizationDirectly(item, vizContainer, `${containerId}-${Date.now()}`);
             }
         }
-        
+
         for (const item of renderPlan.updatedItems) {
             const existingContainer = container.querySelector(`[data-content-hash="${item.oldHash}"]`);
             if (existingContainer) {
                 console.log(`🔄 Updating existing ${item.type} container`);
                 const newHash = this.generateContentHash(item);
                 existingContainer.setAttribute('data-content-hash', newHash);
-                
+
                 const contentArea = existingContainer.querySelector('.viz-content-area');
                 if (contentArea) {
                     contentArea.innerHTML = '';
@@ -2262,23 +2262,23 @@ class VisualizationEngine {
 
     // 4.1.4
     async renderVisualizationDirectly(item, container, chartId) {
-        // ✅ CRITICAL: DOM validation before any processing
+        // RITICAL: DOM validation before any processing
         if (!container) {
             throw new Error('Container is null - cannot render visualization');
         }
         if (!document.contains(container)) {
             throw new Error('Container is not attached to DOM - cannot render visualization');
         }
-        
+
         const contentArea = container.querySelector('.viz-content-area');
-        
-        // ✅ CRITICAL: Ensure content area exists
+
+        // RITICAL: Ensure content area exists
         if (!contentArea) {
             throw new Error('Content area not found in container - cannot render visualization');
         }
 
         this.attachResizeHandle(contentArea);
-        
+
         try {
             switch (item.type) {
                 case 'plotly':
@@ -2319,11 +2319,11 @@ class VisualizationEngine {
     }
 
 
-    // ✅ NEW: Simple wrapper to use renderEnhancedMarkdown consistently
+    // EW: Simple wrapper to use renderEnhancedMarkdown consistently
     async renderTextUsingEnhancedMarkdown(item, container) {
         let content = item.content;
-        
-        // ❌ LEGACY renderEnhancedMarkdown COMMENTED OUT - Use triple_agent clean markdown
+
+        //  LEGACY renderEnhancedMarkdown COMMENTED OUT - Use triple_agent clean markdown
         // if (window && typeof window.renderEnhancedMarkdown === 'function') {
         //     content = window.renderEnhancedMarkdown(content);
         // } else {
@@ -2333,8 +2333,8 @@ class VisualizationEngine {
         //                     .replace(/\n\n/g, '<br><br>')
         //                     .replace(/\n/g, '<br>');
         // }
-        
-        // ✅ USE TRIPLE-AGENT CLEAN MARKDOWN (NO EXTRA LINE BREAKS)
+
+        // SE TRIPLE-AGENT CLEAN MARKDOWN (NO EXTRA LINE BREAKS)
         if (window.marked && typeof window.marked.parse === 'function') {
             content = window.marked.parse(content);
             // Apply cleanMarkdownHTML if available (preserves code blocks)
@@ -2345,8 +2345,8 @@ class VisualizationEngine {
             console.warn('marked.js not available, using plain text');
             // Escape HTML for safety
             content = content.replace(/&/g, '&amp;')
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;');
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
         }
 
         const textDiv = document.createElement('div');
@@ -2360,49 +2360,49 @@ class VisualizationEngine {
             white-space: normal;
             word-wrap: break-word;
         `;
-        
+
         container.appendChild(textDiv);
-        console.log('✅ Text rendered using triple-agent clean markdown (consistent with streaming)');
+        console.log('ext rendered using triple-agent clean markdown (consistent with streaming)');
     }
 
 
 
 
-/*
-    // 4.1.5
-    async renderTextDirectly(item, container) {
-        let content = item.content;
-        
-        // ✅ CRITICAL FIX: Don't process line breaks here - let the main renderer handle it
-        if (window.marked && isMarkdownContent(content)) {
-            // Use centralized markdown renderer when available for consistency with chat bubbles
-            if (typeof window.renderEnhancedMarkdown === 'function') {
-                content = window.renderEnhancedMarkdown(content);
-            } else if (typeof marked !== 'undefined' && marked.parse) {
-                content = marked.parse(content);
-            } else {
-                content = (content || '').replace(/\n/g, '<br>');
+    /*
+        // 4.1.5
+        async renderTextDirectly(item, container) {
+            let content = item.content;
+            
+           /  RITICAL FIX: Don't process line breaks here - let the main renderer handle it
+            if (window.marked && isMarkdownContent(content)) {
+                // Use centralized markdown renderer when available for consistency with chat bubbles
+                if (typeof window.renderEnhancedMarkdown === 'function') {
+                    content = window.renderEnhancedMarkdown(content);
+                } else if (typeof marked !== 'undefined' && marked.parse) {
+                    content = marked.parse(content);
+                } else {
+                    content = (content || '').replace(/\n/g, '<br>');
+                }
+            } else if (typeof renderMarkdown === 'function' && isMarkdownContent(content)) {
+                content = renderMarkdown(content);
             }
-        } else if (typeof renderMarkdown === 'function' && isMarkdownContent(content)) {
-            content = renderMarkdown(content);
+    
+            const textDiv = document.createElement('div');
+            textDiv.className = 'viz-text-content';
+            textDiv.innerHTML = content;
+            textDiv.style.cssText = `
+                margin: 6px 0;
+                line-height: 1.4;
+                color: var(--text-primary);
+                text-align: left;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            `;
+            
+            container.appendChild(textDiv);
         }
-
-        const textDiv = document.createElement('div');
-        textDiv.className = 'viz-text-content';
-        textDiv.innerHTML = content;
-        textDiv.style.cssText = `
-            margin: 6px 0;
-            line-height: 1.4;
-            color: var(--text-primary);
-            text-align: left;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        `;
-        
-        container.appendChild(textDiv);
-    }
-
-*/
+    
+    */
 
 
     // 4.2.1
@@ -2428,9 +2428,9 @@ class VisualizationEngine {
                     throw new Error(`Unknown visualization type: ${item.type}`);
             }
 
-            this.charts.set(chartId, { 
-                item, 
-                container, 
+            this.charts.set(chartId, {
+                item,
+                container,
                 type: item.type,
                 createdAt: Date.now()
             });
@@ -2441,27 +2441,27 @@ class VisualizationEngine {
         }
     }
 
-/**
- * =============================================================================
- * SECTION 5: PLOTLY CHART RENDERING
- * =============================================================================
- */
+    /**
+     * =============================================================================
+     * SECTION 5: PLOTLY CHART RENDERING
+     * =============================================================================
+     */
 
     // 5.1.1
     async renderPlotlyDirectly(item, contentArea, chartId) {
         if (!window.Plotly) {
             throw new Error('Plotly library not loaded');
         }
-        
-        // ✅ CRITICAL: DOM validation before any DOM manipulation
+
+        // RITICAL: DOM validation before any DOM manipulation
         if (!contentArea) {
             throw new Error('Content area is null - cannot render Plotly');
         }
         if (!document.contains(contentArea)) {
             throw new Error('Content area is not attached to DOM - cannot render Plotly');
         }
-        
-        // ✅ TIMING SAFETY: Add micro-delay to ensure DOM stability
+
+        // IMING SAFETY: Add micro-delay to ensure DOM stability
         await new Promise(resolve => requestAnimationFrame(resolve));
 
         console.log(`🎯 Direct Plotly render for: ${chartId}`);
@@ -2472,41 +2472,41 @@ class VisualizationEngine {
         plotDiv.style.cssText = `
             width: 100%;
             min-width: 400px;
-            height: 500px;                   // ✅ 500px height for proper margins
+            height: 500px;                   // 00px height for proper margins
             position: relative;
             display: block;
             margin: 0 auto;
             border-radius: 6px;
             background: transparent;
-            z-index: 10;                     // ✅ NORMAL: Reasonable z-index
-            overflow: visible;               // ✅ Ensure content isn't clipped
+            z-index: 10;                     // ORMAL: Reasonable z-index
+            overflow: visible;               // nsure content isn't clipped
         `;
-        
-        // ✅ CRITICAL: Triple-check DOM validity right before manipulation
+
+        // RITICAL: Triple-check DOM validity right before manipulation
         if (!contentArea || !document.contains(contentArea)) {
             throw new Error('Content area became invalid before appendChild - DOM timing issue');
         }
-        
+
         contentArea.appendChild(plotDiv);
 
         let plotlyData;
         try {
             if (typeof item.content === 'string') {
-                // ✅ USE NEW SAFE JSON PARSING
+                // SE NEW SAFE JSON PARSING
                 plotlyData = this.safeJSONParse(item.content);
             } else if (item.data && item.layout) {
                 plotlyData = item;
             } else {
                 plotlyData = item.content;
             }
-            
+
             this.applyEnhancedPlotlyTheme(plotlyData);
-            
+
         } catch (error) {
-            console.error('❌ PLOTLY JSON Parse Error:', error);
-            console.error('❌ Original content type:', typeof item.content);
-            console.error('❌ Original content preview:', typeof item.content === 'string' ? item.content.substring(0, 200) : 'Non-string content');
-            
+            console.error(' PLOTLY JSON Parse Error:', error);
+            console.error(' Original content type:', typeof item.content);
+            console.error(' Original content preview:', typeof item.content === 'string' ? item.content.substring(0, 200) : 'Non-string content');
+
             throw new Error(`Plotly data parsing failed: ${error.message}`);
         }
 
@@ -2517,18 +2517,18 @@ class VisualizationEngine {
         };
 
         try {
-            // ✅ Validate plotlyData structure before rendering
+            // alidate plotlyData structure before rendering
             if (!plotlyData || !plotlyData.data || !Array.isArray(plotlyData.data)) {
                 throw new Error('Invalid Plotly data structure: missing or invalid data array');
             }
-            
-            // ✅ Check for common data issues (respect orientation and categories)
-            // ✅ SKIP validation for non-Cartesian chart types (polar, 3D, geo, etc.)
+
+            // heck for common data issues (respect orientation and categories)
+            // KIP validation for non-Cartesian chart types (polar, 3D, geo, etc.)
             plotlyData.data.forEach((trace, index) => {
                 const type = (trace.type || 'scatter').toLowerCase();
                 const orientation = (trace.orientation || 'v').toLowerCase();
-                
-                // ✅ SKIP CARTESIAN VALIDATION for polar, 3D, geo, ternary, and hierarchical charts
+
+                // KIP CARTESIAN VALIDATION for polar, 3D, geo, ternary, and hierarchical charts
                 const nonCartesianTypes = [
                     'scatter3d', 'surface', 'mesh3d', 'cone', 'streamtube', 'volume', 'isosurface',
                     'scatterpolar', 'scatterpolargl', 'barpolar', 'radar',
@@ -2536,9 +2536,9 @@ class VisualizationEngine {
                     'scatterternary',
                     'sankey', 'sunburst', 'treemap', 'icicle', 'funnelarea', 'pie'
                 ];
-                
+
                 if (nonCartesianTypes.includes(type)) {
-                    console.log(`✅ Skipping Cartesian validation for ${type} chart (trace ${index})`);
+                    console.log(`kipping Cartesian validation for ${type} chart (trace ${index})`);
                     return; // Skip validation for non-Cartesian types
                 }
 
@@ -2605,7 +2605,7 @@ class VisualizationEngine {
                     }
                 }
             });
-            
+
             await window.Plotly.newPlot(chartId, plotlyData.data, plotlyData.layout, config);
 
             const normalizedPlotlyData = JSON.parse(JSON.stringify(plotlyData));
@@ -2627,17 +2627,17 @@ class VisualizationEngine {
             if (typeof window.ensurePlotlyResponsive === 'function') {
                 window.ensurePlotlyResponsive(vizContainer || plotDiv);
             }
-            
+
             setTimeout(() => {
                 this.setupClickableLegend(plotDiv);
             }, 800);
-            
-            console.log('✅ Plotly chart rendered successfully:', chartId);
-            
+
+            console.log('lotly chart rendered successfully:', chartId);
+
         } catch (error) {
-            console.error('❌ Error in Plotly.newPlot:', error);
-            console.error('❌ Plotly data that failed:', JSON.stringify(plotlyData, null, 2));
-            
+            console.error(' Error in Plotly.newPlot:', error);
+            console.error(' Plotly data that failed:', JSON.stringify(plotlyData, null, 2));
+
             // Show user-friendly error message
             plotDiv.innerHTML = `
                 <div style="padding: 20px; text-align: center; color: #f85149; background: rgba(248, 81, 73, 0.1); border: 1px solid #f85149; border-radius: 6px;">
@@ -2646,7 +2646,7 @@ class VisualizationEngine {
                     ${error.message.includes('JSON') ? '<p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.8;">Check console for detailed JSON structure</p>' : ''}
                 </div>
             `;
-            
+
             throw error;
         }
     }
@@ -2659,18 +2659,18 @@ class VisualizationEngine {
         }
 
         const isDark = this.options.theme === 'dark';
-        const bgColor = isDark ? '#0d1117' : '#ffffff';
-        const textColor = isDark ? '#e6edf3' : '#24292f';
-        const gridColor = isDark ? '#30363d' : '#e1e4e8';
-        
+        const bgColor = 'rgba(0,0,0,0)'; /* 🎨 TRANSPARENT: Works in both light and dark mode */
+        const textColor = isDark ? '#ffffff' : '#24292f'; /* 🎨 WHITE TEXT in dark mode */
+        const gridColor = isDark ? 'rgba(255,255,255,0.15)' : '#e1e4e8'; /* 🎨 WHITE GRIDLINES (15% opacity) in dark mode */
+
         plotlyData.layout = plotlyData.layout || {};
-        
-        // ✅ DETECT CHART TYPE: Determine if chart uses Cartesian, Polar, 3D, or other coordinate system
+
+        // ETECT CHART TYPE: Determine if chart uses Cartesian, Polar, 3D, or other coordinate system
         const chartTypes = new Set();
         if (plotlyData.data && Array.isArray(plotlyData.data)) {
             plotlyData.data.forEach(trace => {
                 const type = (trace.type || 'scatter').toLowerCase();
-                
+
                 // Categorize chart types
                 if (['scatter3d', 'surface', 'mesh3d', 'cone', 'streamtube', 'volume', 'isosurface'].includes(type)) {
                     chartTypes.add('3d');
@@ -2690,27 +2690,27 @@ class VisualizationEngine {
         } else {
             chartTypes.add('cartesian'); // Default fallback
         }
-        
+
         console.log('🔍 Detected chart types:', Array.from(chartTypes));
-        
-        // ✅ REPOSITIONED LEGEND: Bottom-left as requested
+
+        // EPOSITIONED LEGEND: Bottom-left as requested
         const safeLegend = {
-            orientation: 'h',                 // ✅ CHANGED: Vertical instead of horizontal
-            x: 0.0,                        // ✅ POSITIONED: Left side, outside plot area
-            y: -0.3,                         // ✅ POSITIONED: Below plot area
-            bgcolor: bgColor,
-            bordercolor: gridColor,
+            orientation: 'h',                 // HANGED: Vertical instead of horizontal
+            x: 0.0,                        // OSITIONED: Left side, outside plot area
+            y: -0.3,                         // OSITIONED: Below plot area
+            bgcolor: 'rgba(0,0,0,0)',     /* 🎨 TRANSPARENT background */
+            bordercolor: gridColor,        /* 🎨 Uses theme gridColor (white in dark, gray in light) */
             borderwidth: 1,
             font: {
                 family: this.options.fontFamily,
                 size: 11,
-                color: textColor
+                color: textColor           /* 🎨 Uses theme textColor (white in dark, black in light) */
             },
             xanchor: 'left',
             yanchor: 'top'
         };
 
-        // ✅ BASE LAYOUT: Apply universal settings for all chart types
+        // ASE LAYOUT: Apply universal settings for all chart types
         const baseLayout = {
             autosize: true,
             font: {
@@ -2731,17 +2731,17 @@ class VisualizationEngine {
                 }
             }
         };
-        
-        // ✅ CONDITIONAL LAYOUT: Apply coordinate-system-specific settings
+
+        // ONDITIONAL LAYOUT: Apply coordinate-system-specific settings
         if (chartTypes.has('polar')) {
-            // ✅ POLAR CHARTS: Radar, polar scatter, polar bar
+            // OLAR CHARTS: Radar, polar scatter, polar bar
             console.log('🎯 Applying POLAR theme (radar/polar charts)');
-            
+
             plotlyData.layout = {
                 ...baseLayout,
                 ...plotlyData.layout,
-                
-                // ✅ POLAR-SPECIFIC: Preserve and enhance polar configuration
+
+                // OLAR-SPECIFIC: Preserve and enhance polar configuration
                 polar: {
                     bgcolor: bgColor,
                     ...plotlyData.layout.polar,
@@ -2750,7 +2750,7 @@ class VisualizationEngine {
                         gridcolor: gridColor,
                         linecolor: gridColor,
                         tickcolor: gridColor,
-                        tickfont: { 
+                        tickfont: {
                             color: textColor,
                             size: 11
                         },
@@ -2760,16 +2760,16 @@ class VisualizationEngine {
                         gridcolor: gridColor,
                         linecolor: gridColor,
                         tickcolor: gridColor,
-                        tickfont: { 
+                        tickfont: {
                             color: textColor,
                             size: 11
                         },
                         ...plotlyData.layout.polar?.angularaxis
                     }
                 },
-                
-                // ✅ POLAR MARGINS: Different margin requirements
-                margin: { 
+
+                // OLAR MARGINS: Different margin requirements
+                margin: {
                     l: 80,
                     r: 80,
                     t: 80,
@@ -2779,16 +2779,16 @@ class VisualizationEngine {
                 height: 700                /* 🔑 INCREASED: 500 → 700px for polar charts */
                 /* 🔑 NO WIDTH: Let autosize expand to full container width */
             };
-            
+
         } else if (chartTypes.has('3d')) {
-            // ✅ 3D CHARTS: Surface, mesh3d, scatter3d
+            // D CHARTS: Surface, mesh3d, scatter3d
             console.log('🎯 Applying 3D theme');
-            
+
             plotlyData.layout = {
                 ...baseLayout,
                 ...plotlyData.layout,
-                
-                // ✅ 3D-SPECIFIC: Scene configuration
+
+                // D-SPECIFIC: Scene configuration
                 scene: {
                     bgcolor: bgColor,
                     ...plotlyData.layout.scene,
@@ -2814,7 +2814,7 @@ class VisualizationEngine {
                         ...plotlyData.layout.scene?.zaxis
                     }
                 },
-                margin: { 
+                margin: {
                     l: 60,
                     r: 60,
                     t: 80,
@@ -2824,20 +2824,20 @@ class VisualizationEngine {
                 height: 700                /* 🔑 INCREASED: 500 → 700px for 3D charts */
                 /* 🔑 NO WIDTH: Let autosize expand to full container width */
             };
-            
+
         } else if (chartTypes.has('geo')) {
-            // ✅ GEO CHARTS: Map-based visualizations
+            // EO CHARTS: Map-based visualizations
             console.log('🎯 Applying GEO theme');
-            
+
             plotlyData.layout = {
                 ...baseLayout,
                 ...plotlyData.layout,
-                
+
                 geo: {
                     bgcolor: bgColor,
                     ...plotlyData.layout.geo
                 },
-                margin: { 
+                margin: {
                     l: 40,
                     r: 40,
                     t: 80,
@@ -2847,20 +2847,20 @@ class VisualizationEngine {
                 height: 700                /* 🔑 INCREASED: 500 → 700px for geo charts */
                 /* 🔑 NO WIDTH: Let autosize expand to full container width */
             };
-            
+
         } else if (chartTypes.has('ternary')) {
-            // ✅ TERNARY CHARTS: Ternary plots
+            // ERNARY CHARTS: Ternary plots
             console.log('🎯 Applying TERNARY theme');
-            
+
             plotlyData.layout = {
                 ...baseLayout,
                 ...plotlyData.layout,
-                
+
                 ternary: {
                     bgcolor: bgColor,
                     ...plotlyData.layout.ternary
                 },
-                margin: { 
+                margin: {
                     l: 80,
                     r: 80,
                     t: 80,
@@ -2870,16 +2870,16 @@ class VisualizationEngine {
                 height: 700                /* 🔑 INCREASED: 500 → 700px for ternary charts */
                 /* 🔑 NO WIDTH: Let autosize expand to full container width */
             };
-            
+
         } else if (chartTypes.has('hierarchical')) {
-            // ✅ HIERARCHICAL CHARTS: Sankey, sunburst, treemap, pie
+            // IERARCHICAL CHARTS: Sankey, sunburst, treemap, pie
             console.log('🎯 Applying HIERARCHICAL theme (pie, sunburst, etc.)');
-            
+
             plotlyData.layout = {
                 ...baseLayout,
                 ...plotlyData.layout,
-                
-                margin: { 
+
+                margin: {
                     l: 40,
                     r: 40,
                     t: 80,
@@ -2889,38 +2889,38 @@ class VisualizationEngine {
                 height: 700                /* 🔑 INCREASED: 500 → 700px for hierarchical charts */
                 /* 🔑 NO WIDTH: Let autosize expand to full container width */
             };
-            
+
         } else {
-            // ✅ CARTESIAN CHARTS: Bar, line, scatter, box, histogram, etc.
+            // ARTESIAN CHARTS: Bar, line, scatter, box, histogram, etc.
             console.log('🎯 Applying CARTESIAN theme (bar, line, scatter, etc.)');
-            
+
             plotlyData.layout = {
                 ...baseLayout,
                 ...plotlyData.layout,
-                
-                // ✅ OPTIMIZED MARGINS: Prevent text truncation and ensure proper spacing
-                margin: { 
+
+                // PTIMIZED MARGINS: Prevent text truncation and ensure proper spacing
+                margin: {
                     l: 90,
                     r: 80,
                     t: 80,
                     b: 120,
                     pad: 0
                 },
-                
+
                 height: 700,                /* 🔑 INCREASED: 500 → 700px for cartesian charts */
                 /* 🔑 NO WIDTH: Let autosize expand to full container width */
-                
-                // ✅ BAR SPACING: Control bar chart gaps
+
+                // AR SPACING: Control bar chart gaps
                 bargap: 0.15,
                 bargroupgap: 0.05,
-                
-                // ✅ CARTESIAN AXES: Full axis configuration
+
+                // ARTESIAN AXES: Full axis configuration
                 xaxis: {
                     ...plotlyData.layout.xaxis,
                     gridcolor: gridColor,
                     linecolor: gridColor,
                     tickcolor: gridColor,
-                    tickfont: { 
+                    tickfont: {
                         color: textColor,
                         size: 12
                     },
@@ -2946,13 +2946,13 @@ class VisualizationEngine {
                         }
                     }
                 },
-                
+
                 yaxis: {
                     ...plotlyData.layout.yaxis,
                     gridcolor: gridColor,
                     linecolor: gridColor,
                     tickcolor: gridColor,
-                    tickfont: { 
+                    tickfont: {
                         color: textColor,
                         size: 12
                     },
@@ -2978,118 +2978,118 @@ class VisualizationEngine {
                         }
                     }
                 },
-                
-                // ✅ ANNOTATION SPACING: Control text annotation positioning
+
+                // NNOTATION SPACING: Control text annotation positioning
                 annotations: plotlyData.layout.annotations || []
             };
         }
-        
-        console.log('✅ Enhanced Plotly theme applied with coordinate-system-aware configuration');
+
+        console.log('nhanced Plotly theme applied with coordinate-system-aware configuration');
     }
 
     // 5.1.3
     setupClickableLegend(plotDiv) {
         try {
             if (!plotDiv) {
-                return; // ✅ SILENT: Just return, don't log warning
+                return; // ILENT: Just return, don't log warning
             }
 
-            // ✅ BETTER: Check multiple ways to find element
+            // ETTER: Check multiple ways to find element
             let actualElement = plotDiv;
             if (typeof plotDiv === 'string') {
                 actualElement = document.getElementById(plotDiv);
             }
-            
+
             if (!actualElement || !document.contains(actualElement)) {
-                return; // ✅ SILENT: Element not in DOM yet, just return
+                return; // ILENT: Element not in DOM yet, just return
             }
 
-            // ✅ ENHANCED: Wait for Plotly with shorter timeout
+            // NHANCED: Wait for Plotly with shorter timeout
             const waitForPlotlyReady = (attempts = 0) => {
-                const maxAttempts = 10; // ✅ REDUCED: Shorter wait time
-                
+                const maxAttempts = 10; // EDUCED: Shorter wait time
+
                 if (attempts >= maxAttempts) {
-                    return; // ✅ SILENT: Stop trying quietly
+                    return; // ILENT: Stop trying quietly
                 }
 
                 // Check if element still exists and has Plotly data
-                if (!document.contains(actualElement) || 
-                    !actualElement._fullLayout || 
+                if (!document.contains(actualElement) ||
+                    !actualElement._fullLayout ||
                     !actualElement.data ||
                     !Array.isArray(actualElement.data)) {
-                    
+
                     setTimeout(() => waitForPlotlyReady(attempts + 1), 100);
                     return;
                 }
 
-                // ✅ SUCCESS: Setup legend if not already done
+                // UCCESS: Setup legend if not already done
                 try {
                     if (actualElement._legendSetup) {
                         return; // Already set up
                     }
-                    
-                    actualElement.on('plotly_legenddoubleclick', function(data) {
+
+                    actualElement.on('plotly_legenddoubleclick', function (data) {
                         try {
                             if (!data || typeof data.curveNumber !== 'number') {
                                 return false;
                             }
 
                             const traceIndex = data.curveNumber;
-                            
+
                             if (!actualElement.data || traceIndex >= actualElement.data.length) {
                                 return false;
                             }
 
-                            const currentVisibility = actualElement.data.map(trace => 
+                            const currentVisibility = actualElement.data.map(trace =>
                                 trace.visible !== false ? true : trace.visible
                             );
-                            const newVisibility = currentVisibility.map((visible, i) => 
+                            const newVisibility = currentVisibility.map((visible, i) =>
                                 i === traceIndex ? true : 'legendonly'
                             );
-                            
+
                             window.Plotly.restyle(actualElement, 'visible', newVisibility).catch(() => {
-                                // ✅ SILENT: Handle error silently
+                                // ILENT: Handle error silently
                             });
-                            
+
                             return false;
                         } catch (error) {
                             return false;
                         }
                     });
-                    
+
                     actualElement._legendSetup = true;
-                    
+
                 } catch (error) {
-                    // ✅ SILENT: Setup failed, no logging
+                    // ILENT: Setup failed, no logging
                 }
             };
 
             waitForPlotlyReady();
-            
+
         } catch (error) {
-            // ✅ SILENT: Handle all errors silently
+            // ILENT: Handle all errors silently
         }
     }
 
     // 5.1.4
     enhanceAxisTitles(plotlyData) {
         if (!plotlyData || !plotlyData.layout) return;
-        
+
         // Detect common units based on data patterns
         const detectUnits = (title, values, axisType) => {
             if (!title || typeof title !== 'string') return title;
             if (title.includes('(') && title.includes(')')) return title; // Already has units
-            
+
             // Check for common metric prefixes in the title
             const lowerTitle = title.toLowerCase();
-            
+
             // Determine units based on patterns in data and title
             if (values && Array.isArray(values)) {
                 // Check data patterns
                 const max = Math.max(...values.filter(v => typeof v === 'number'));
                 const min = Math.min(...values.filter(v => typeof v === 'number'));
                 const allInteger = values.every(v => typeof v === 'number' && Number.isInteger(v));
-                
+
                 // Unit mapping based on title keywords and data characteristics
                 const unitMap = [
                     // Financial metrics
@@ -3113,7 +3113,7 @@ class VisualizationEngine {
                     // Frequency
                     { test: () => /frequency|hz|khz|mhz|ghz/i.test(lowerTitle), unit: 'Hz' }
                 ];
-                
+
                 // Find the first matching unit pattern
                 for (const { test, unit } of unitMap) {
                     if (test()) {
@@ -3121,22 +3121,22 @@ class VisualizationEngine {
                     }
                 }
             }
-            
+
             // Default unit mappings for axis types
             if (axisType === 'xaxis' && /date|time|month|year|day|week/i.test(lowerTitle)) {
                 return title; // No units for time axes
             } else if (axisType === 'yaxis' && !title.includes('unit')) {
                 return `${title} (units)`; // Generic units for y-axis
             }
-            
+
             return title; // No change if no pattern detected
         };
-        
+
         // Process x-axis
         if (plotlyData.layout.xaxis) {
             if (typeof plotlyData.layout.xaxis.title === 'string') {
                 plotlyData.layout.xaxis.title = {
-                    text: detectUnits(plotlyData.layout.xaxis.title, 
+                    text: detectUnits(plotlyData.layout.xaxis.title,
                         plotlyData.data?.[0]?.x, 'xaxis')
                 };
             } else if (plotlyData.layout.xaxis.title?.text) {
@@ -3146,12 +3146,12 @@ class VisualizationEngine {
                 );
             }
         }
-        
+
         // Process y-axis
         if (plotlyData.layout.yaxis) {
             if (typeof plotlyData.layout.yaxis.title === 'string') {
                 plotlyData.layout.yaxis.title = {
-                    text: detectUnits(plotlyData.layout.yaxis.title, 
+                    text: detectUnits(plotlyData.layout.yaxis.title,
                         plotlyData.data?.[0]?.y, 'yaxis')
                 };
             } else if (plotlyData.layout.yaxis.title?.text) {
@@ -3161,12 +3161,12 @@ class VisualizationEngine {
                 );
             }
         }
-        
+
         // Process secondary y-axis if it exists
         if (plotlyData.layout.yaxis2) {
             if (typeof plotlyData.layout.yaxis2.title === 'string') {
                 plotlyData.layout.yaxis2.title = {
-                    text: detectUnits(plotlyData.layout.yaxis2.title, 
+                    text: detectUnits(plotlyData.layout.yaxis2.title,
                         plotlyData.data?.find(d => d.yaxis === 'y2')?.y, 'yaxis')
                 };
             } else if (plotlyData.layout.yaxis2.title?.text) {
@@ -3189,12 +3189,12 @@ class VisualizationEngine {
         const switcher = document.createElement('div');
         switcher.className = 'chart-type-switcher';
         switcher.style.right = '120px'; // Position it properly
-        
+
         const compatibleTypes = this.getCompatibleChartTypes(plotlyData.data[0]);
-        
+
         const select = document.createElement('select');
         select.className = 'chart-type-select';
-        
+
         compatibleTypes.forEach(({ value, label, icon }) => {
             const option = document.createElement('option');
             option.value = value;
@@ -3204,24 +3204,24 @@ class VisualizationEngine {
             }
             select.appendChild(option);
         });
-        
+
         select.onchange = (e) => {
             const newType = e.target.value;
             this.smartChartTypeChange(plotlyData, chartId, newType);
-            // ✅ DON'T auto-remove - let it stay open
+            // ON'T auto-remove - let it stay open
         };
-        
+
         switcher.appendChild(select);
         container.appendChild(switcher);
-        
-        // ✅ FIX: Only remove when clicking outside
+
+        // IX: Only remove when clicking outside
         const handleClickOutside = (e) => {
             if (!switcher.contains(e.target) && !e.target.closest('[data-function="chartType"]')) {
                 switcher.remove();
                 document.removeEventListener('click', handleClickOutside);
             }
         };
-        
+
         // Add slight delay to prevent immediate closure
         setTimeout(() => {
             document.addEventListener('click', handleClickOutside);
@@ -3231,37 +3231,37 @@ class VisualizationEngine {
     // 5.2.2
     getCompatibleChartTypes(trace) {
         if (!trace) return [{ value: 'scatter', label: 'Line Chart', icon: '📈' }];
-        
+
         // Always allow these core types regardless of current state
         const coreTypes = [
             { value: 'scatter', label: 'Line/Scatter', icon: '📈' },
             { value: 'bar', label: 'Bar Chart', icon: '📊' },
             { value: 'pie', label: 'Pie Chart', icon: '🥧' }
         ];
-        
+
         // Additional types based on data availability
         const additionalTypes = [
             { value: 'histogram', label: 'Histogram', icon: '📊' },
             { value: 'box', label: 'Box Plot', icon: '📦' }
         ];
-        
+
         return [...coreTypes, ...additionalTypes];
     }
 
     // 5.2.3
     smartChartTypeChange(plotlyData, chartId, newType) {
         if (!window.Plotly) {
-            this.showNotification('❌ Plotly not available', 'error');
+            this.showNotification(' Plotly not available', 'error');
             return;
         }
-        
+
         try {
             const newData = JSON.parse(JSON.stringify(plotlyData.data));
-            
+
             newData.forEach(trace => {
                 const originalType = trace.type;
                 trace.type = newType;
-                
+
                 switch (newType) {
                     case 'pie':
                         if (trace.y && !trace.values) {
@@ -3272,9 +3272,9 @@ class VisualizationEngine {
                             delete trace.mode;
                         }
                         break;
-                        
+
                     case 'histogram':
-                        // ✅ FIXED: Proper histogram configuration
+                        // IXED: Proper histogram configuration
                         if (trace.y && !trace.x) {
                             trace.x = trace.y;  // Use Y data as X for histogram
                             delete trace.y;
@@ -3282,8 +3282,8 @@ class VisualizationEngine {
                             // If both x and y exist, use x for histogram
                             delete trace.y;
                         }
-                        
-                        // ✅ CRITICAL: Histogram-specific settings
+
+                        // RITICAL: Histogram-specific settings
                         delete trace.mode;
                         trace.nbinsx = 20;           // Number of bins
                         trace.histnorm = '';         // Don't normalize (show counts)
@@ -3296,7 +3296,7 @@ class VisualizationEngine {
                             }
                         };
                         break;
-                        
+
                     case 'box':
                         if (!trace.y && trace.x) {
                             trace.y = trace.x;
@@ -3304,7 +3304,7 @@ class VisualizationEngine {
                         }
                         delete trace.mode;
                         break;
-                        
+
                     case 'scatter':
                         if (trace.values && !trace.y) {
                             trace.y = trace.values;
@@ -3314,7 +3314,7 @@ class VisualizationEngine {
                         }
                         trace.mode = trace.mode || 'lines+markers';
                         break;
-                        
+
                     case 'bar':
                         if (trace.values && !trace.y) {
                             trace.y = trace.values;
@@ -3326,10 +3326,10 @@ class VisualizationEngine {
                         break;
                 }
             });
-            
-            // ✅ ENHANCED: Layout adjustments for different chart types
+
+            // NHANCED: Layout adjustments for different chart types
             let layoutUpdates = {};
-            
+
             if (newType === 'histogram') {
                 layoutUpdates = {
                     'xaxis.title': 'Value',
@@ -3343,17 +3343,17 @@ class VisualizationEngine {
                     'bargroupgap': 0.1
                 };
             }
-            
+
             // Update the chart
             Plotly.react(chartId, newData, { ...plotlyData.layout, ...layoutUpdates });
             this.showNotification(`📊 Chart changed to ${this.getChartTypeName(newType)}`, 'success');
-            
+
             // Update stored data
             plotlyData.data = newData;
-            
+
         } catch (error) {
             console.error('Error changing chart type:', error);
-            this.showNotification('❌ Failed to change chart type', 'error');
+            this.showNotification(' Failed to change chart type', 'error');
         }
     }
 
@@ -3362,7 +3362,7 @@ class VisualizationEngine {
         const names = {
             'scatter': 'Line/Scatter Plot',
             'bar': 'Bar Chart',
-            'pie': 'Pie Chart', 
+            'pie': 'Pie Chart',
             'histogram': 'Histogram',
             'box': 'Box Plot'
         };
@@ -3372,21 +3372,21 @@ class VisualizationEngine {
     // 5.3.1
     activatePlotlyTool(chartId, tool) {
         if (!window.Plotly) return;
-        
+
         const plotDiv = document.getElementById(chartId);
         if (!plotDiv) return;
-        
-        switch(tool) {
+
+        switch (tool) {
             case 'zoom':
-                Plotly.relayout(chartId, {'dragmode': 'zoom'});
+                Plotly.relayout(chartId, { 'dragmode': 'zoom' });
                 this.showNotification('🔍 Zoom mode activated - drag to zoom', 'info');
                 break;
             case 'pan':
-                Plotly.relayout(chartId, {'dragmode': 'pan'});
+                Plotly.relayout(chartId, { 'dragmode': 'pan' });
                 this.showNotification('✋ Pan mode activated - drag to move', 'info');
                 break;
             case 'select':
-                Plotly.relayout(chartId, {'dragmode': 'select'});
+                Plotly.relayout(chartId, { 'dragmode': 'select' });
                 this.showNotification('👆 Select mode activated - drag to select', 'info');
                 break;
         }
@@ -3395,7 +3395,7 @@ class VisualizationEngine {
     // 5.3.2
     resetPlotlyView(chartId) {
         if (!window.Plotly) return;
-        
+
         const plotDiv = document.getElementById(chartId);
         if (plotDiv) {
             Plotly.relayout(chartId, {
@@ -3410,13 +3410,13 @@ class VisualizationEngine {
     // 5.3.3
     addTrendLine(chartId, plotlyData) {
         if (!window.Plotly || !plotlyData.data[0]) return;
-        
+
         const trace = plotlyData.data[0];
         if (!trace.x || !trace.y) return;
-        
+
         // Calculate linear regression
         const regression = this.calculateLinearRegression(trace.x, trace.y);
-        
+
         const trendTrace = {
             x: trace.x,
             y: regression.trendY,
@@ -3430,7 +3430,7 @@ class VisualizationEngine {
                 dash: 'dash'
             }
         };
-        
+
         Plotly.addTraces(chartId, trendTrace);
         this.showNotification(`📈 Trend line added (R² = ${regression.r2.toFixed(3)})`, 'success');
     }
@@ -3442,30 +3442,30 @@ class VisualizationEngine {
         const sumY = y.reduce((a, b) => a + b, 0);
         const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
         const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
-        
+
         const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
         const intercept = (sumY - slope * sumX) / n;
-        
+
         const trendY = x.map(xi => slope * xi + intercept);
-        
+
         // Calculate R²
         const meanY = sumY / n;
         const totalSumSquares = y.reduce((sum, yi) => sum + Math.pow(yi - meanY, 2), 0);
         const residualSumSquares = y.reduce((sum, yi, i) => sum + Math.pow(yi - trendY[i], 2), 0);
         const r2 = 1 - (residualSumSquares / totalSumSquares);
-        
+
         return { trendY, slope, intercept, r2 };
     }
 
     // 5.3.5
     showStatistics(plotlyData) {
         if (!plotlyData.data[0] || !plotlyData.data[0].y) return;
-        
+
         const data = plotlyData.data[0].y.filter(v => typeof v === 'number');
         if (data.length === 0) return;
-        
+
         const stats = this.calculateComprehensiveStatistics(data);
-        
+
         // Create modal overlay
         const overlay = document.createElement('div');
         overlay.id = 'stats-modal-overlay';
@@ -3483,7 +3483,7 @@ class VisualizationEngine {
             backdrop-filter: blur(2px);
             animation: fadeIn 0.2s ease;
         `;
-        
+
         const modal = document.createElement('div');
         modal.style.cssText = `
             background: var(--bg-secondary);
@@ -3500,7 +3500,7 @@ class VisualizationEngine {
             animation: slideIn 0.3s ease;
             transform-origin: center;
         `;
-        
+
         modal.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; font-size: 18px;">
@@ -3545,8 +3545,8 @@ class VisualizationEngine {
                 </div>
             </div>
         `;
-        
-        // ✅ Add CSS animations
+
+        // dd CSS animations
         const style = document.createElement('style');
         style.textContent = `
             @keyframes fadeIn {
@@ -3567,18 +3567,18 @@ class VisualizationEngine {
             }
         `;
         document.head.appendChild(style);
-        
+
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
-        
-        // ✅ FIXED: Proper close handlers
+
+        // IXED: Proper close handlers
         const closeBtn = modal.querySelector('#stats-close-btn');
-        
+
         const closeModal = () => {
             // Animate out
             overlay.style.animation = 'fadeOut 0.2s ease forwards';
             modal.style.animation = 'slideOut 0.2s ease forwards';
-            
+
             setTimeout(() => {
                 if (overlay.parentNode) {
                     overlay.remove();
@@ -3588,23 +3588,23 @@ class VisualizationEngine {
                 }
             }, 200);
         };
-        
-        // ✅ CLICK OUTSIDE TO CLOSE
+
+        // LICK OUTSIDE TO CLOSE
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 console.log('Clicked outside modal - closing');
                 closeModal();
             }
         });
-        
-        // ✅ CLOSE BUTTON
+
+        // LOSE BUTTON
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             console.log('Close button clicked');
             closeModal();
         });
-        
-        // ✅ ESC KEY TO CLOSE
+
+        // SC KEY TO CLOSE
         const handleEsc = (e) => {
             if (e.key === 'Escape') {
                 console.log('ESC key pressed - closing');
@@ -3613,13 +3613,13 @@ class VisualizationEngine {
             }
         };
         document.addEventListener('keydown', handleEsc);
-        
-        // ✅ PREVENT MODAL CONTENT CLICKS FROM CLOSING
+
+        // REVENT MODAL CONTENT CLICKS FROM CLOSING
         modal.addEventListener('click', (e) => {
             e.stopPropagation();
         });
-        
-        console.log('✅ Statistics modal opened with close handlers');
+
+        console.log('tatistics modal opened with close handlers');
     }
 
     // 5.3.6
@@ -3628,12 +3628,12 @@ class VisualizationEngine {
         const count = data.length;
         const sum = data.reduce((a, b) => a + b, 0);
         const mean = sum / count;
-        
+
         // Median
-        const median = count % 2 === 0 
+        const median = count % 2 === 0
             ? (sorted[count / 2 - 1] + sorted[count / 2]) / 2
             : sorted[Math.floor(count / 2)];
-        
+
         // Mode
         const frequency = {};
         let maxFreq = 0;
@@ -3646,18 +3646,18 @@ class VisualizationEngine {
             }
         });
         mode = maxFreq > 1 ? mode : null;
-        
+
         // Variance and Standard Deviation
         const variance = data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / count;
         const stdDev = Math.sqrt(variance);
-        
+
         // Quartiles
         const q1Index = Math.floor(count * 0.25);
         const q3Index = Math.floor(count * 0.75);
         const q1 = sorted[q1Index];
         const q3 = sorted[q3Index];
         const iqr = q3 - q1;
-        
+
         return {
             count,
             mean,
@@ -3677,13 +3677,13 @@ class VisualizationEngine {
     // 5.4.1
     toggleAnimation(chartId, plotlyData) {
         if (!window.Plotly) return;
-        
+
         const plotDiv = document.getElementById(chartId);
         if (!plotDiv) return;
-        
+
         // Check if animation is already running
         const isAnimating = plotDiv.getAttribute('data-animating') === 'true';
-        
+
         if (isAnimating) {
             // Stop animation
             if (this._animationInterval) {
@@ -3694,20 +3694,20 @@ class VisualizationEngine {
             this.showNotification('⏹️ Animation stopped', 'info');
             return;
         }
-        
+
         // Start animation - create frame-by-frame animation effect
         const data = plotlyData.data[0];
         if (!data || !data.x || !data.y) {
-            this.showNotification('❌ This chart type cannot be animated', 'error');
+            this.showNotification(' This chart type cannot be animated', 'error');
             return;
         }
-        
+
         const originalData = JSON.parse(JSON.stringify(data));
         const steps = 30; // Number of animation frames
-        
+
         let frame = 0;
         plotDiv.setAttribute('data-animating', 'true');
-        
+
         this._animationInterval = setInterval(() => {
             // Animate by gradually revealing data points
             const pointsToShow = Math.floor((frame / steps) * originalData.x.length);
@@ -3716,7 +3716,7 @@ class VisualizationEngine {
                 x: originalData.x.slice(0, pointsToShow),
                 y: originalData.y.slice(0, pointsToShow)
             };
-            
+
             Plotly.animate(chartId, {
                 data: [animatedData],
                 traces: [0],
@@ -3725,9 +3725,9 @@ class VisualizationEngine {
                 transition: { duration: 100, easing: 'cubic-in-out' },
                 frame: { duration: 100 }
             });
-            
+
             frame = (frame + 1) % (steps + 10); // Add pause at the end
-            
+
             // Reset animation after completion
             if (frame === 0) {
                 Plotly.animate(chartId, {
@@ -3737,27 +3737,27 @@ class VisualizationEngine {
                 });
             }
         }, 200);
-        
+
         this.showNotification('▶️ Animation started', 'success');
     }
 
     // 5.4.2
     toggle3DView(chartId, plotlyData) {
         if (!window.Plotly) {
-            this.showNotification('❌ Plotly library not loaded', 'error');
+            this.showNotification(' Plotly library not loaded', 'error');
             return;
         }
-        
+
         const plotDiv = document.getElementById(chartId);
         if (!plotDiv) {
-            this.showNotification('❌ Chart element not found', 'error');
+            this.showNotification(' Chart element not found', 'error');
             return;
         }
-        
+
         try {
             // Check if already in 3D mode
             const is3D = plotDiv.getAttribute('data-3d') === 'true';
-            
+
             if (is3D) {
                 // Switch back to 2D
                 const original2DData = JSON.parse(plotDiv.getAttribute('data-original') || '{}');
@@ -3769,29 +3769,29 @@ class VisualizationEngine {
                 }
                 return;
             }
-            
+
             // Save original data
             plotDiv.setAttribute('data-original', JSON.stringify({
                 data: plotlyData.data,
                 layout: plotlyData.layout
             }));
-            
+
             // Create a simple 3D surface
             const size = 20;
-            const xValues = Array.from({length: size}, (_, i) => i - size/2);
-            const yValues = Array.from({length: size}, (_, i) => i - size/2);
-            
+            const xValues = Array.from({ length: size }, (_, i) => i - size / 2);
+            const yValues = Array.from({ length: size }, (_, i) => i - size / 2);
+
             const zValues = [];
             for (let i = 0; i < size; i++) {
                 const row = [];
                 for (let j = 0; j < size; j++) {
                     const x = xValues[i];
                     const y = yValues[j];
-                    row.push(5 * Math.sin(Math.sqrt(x*x + y*y) / 2));
+                    row.push(5 * Math.sin(Math.sqrt(x * x + y * y) / 2));
                 }
                 zValues.push(row);
             }
-            
+
             const data3D = [{
                 type: 'surface',
                 x: xValues,
@@ -3802,12 +3802,12 @@ class VisualizationEngine {
                     z: { show: true, usecolormap: true, highlightcolor: "#42f462" }
                 }
             }];
-            
+
             // Get theme colors
             const isDark = this.options.theme === 'dark';
             const bgColor = isDark ? '#0d1117' : '#ffffff';
             const textColor = isDark ? '#e6edf3' : '#24292f';
-            
+
             const layout3D = {
                 title: 'Interactive 3D Surface',
                 scene: {
@@ -3819,27 +3819,27 @@ class VisualizationEngine {
                 font: { color: textColor },
                 margin: { l: 0, r: 0, b: 0, t: 40, pad: 0 }
             };
-            
+
             Plotly.react(chartId, data3D, layout3D);
             plotDiv.setAttribute('data-3d', 'true');
             this.showNotification('🧊 Switched to 3D view', 'success');
-            
+
         } catch (err) {
             console.error('3D view error:', err);
-            this.showNotification('❌ Error creating 3D view', 'error');
+            this.showNotification(' Error creating 3D view', 'error');
         }
     }
 
     // 5.4.3
     toggleAnnotations(chartId) {
         if (!window.Plotly) return;
-        
+
         const plotDiv = document.getElementById(chartId);
         if (!plotDiv) return;
-        
+
         // Check if annotations are enabled
         const hasAnnotations = plotDiv.getAttribute('data-annotations') === 'true';
-        
+
         if (hasAnnotations) {
             // Remove annotations
             Plotly.relayout(chartId, {
@@ -3849,23 +3849,23 @@ class VisualizationEngine {
             this.showNotification('📝 Annotations removed', 'info');
             return;
         }
-        
+
         // Get current data
         const data = plotDiv.data?.[0];
         if (!data || !data.x || !data.y) {
-            this.showNotification('❌ This chart cannot be annotated', 'error');
+            this.showNotification(' This chart cannot be annotated', 'error');
             return;
         }
-        
+
         // Create annotations for important points
         const annotations = [];
-        
+
         // Find local maxima and minima
         for (let i = 1; i < data.y.length - 1; i++) {
-            const prev = data.y[i-1];
+            const prev = data.y[i - 1];
             const curr = data.y[i];
-            const next = data.y[i+1];
-            
+            const next = data.y[i + 1];
+
             // Local maximum
             if (curr > prev && curr > next) {
                 annotations.push({
@@ -3881,7 +3881,7 @@ class VisualizationEngine {
                     font: { size: 10 }
                 });
             }
-            
+
             // Local minimum
             if (curr < prev && curr < next) {
                 annotations.push({
@@ -3898,7 +3898,7 @@ class VisualizationEngine {
                 });
             }
         }
-        
+
         // Add start and end points
         annotations.push({
             x: data.x[0],
@@ -3912,10 +3912,10 @@ class VisualizationEngine {
             borderwidth: 1,
             font: { size: 10 }
         });
-        
+
         annotations.push({
-            x: data.x[data.x.length-1],
-            y: data.y[data.y.length-1],
+            x: data.x[data.x.length - 1],
+            y: data.y[data.y.length - 1],
             text: 'End',
             arrowhead: 2,
             ax: 30,
@@ -3925,25 +3925,25 @@ class VisualizationEngine {
             borderwidth: 1,
             font: { size: 10 }
         });
-        
+
         // Limit to at most 10 annotations to avoid cluttering
         if (annotations.length > 10) {
             annotations.splice(2, annotations.length - 8);
         }
-        
+
         Plotly.relayout(chartId, {
             'annotations': annotations
         });
-        
+
         plotDiv.setAttribute('data-annotations', 'true');
         this.showNotification('📝 Added annotations to key points', 'success');
     }
 
-/**
- * =============================================================================
- * SECTION 6: MERMAID DIAGRAM RENDERING
- * =============================================================================
- */
+    /**
+     * =============================================================================
+     * SECTION 6: MERMAID DIAGRAM RENDERING
+     * =============================================================================
+     */
 
     // 6.1.1
     // 6.1.1 - ENHANCED: Mermaid rendering with enhanced height management + compatibility
@@ -3951,16 +3951,16 @@ class VisualizationEngine {
         if (!window.mermaid) {
             throw new Error('Mermaid library not loaded');
         }
-        
-        // ✅ CRITICAL: DOM validation before any DOM manipulation
+
+        // RITICAL: DOM validation before any DOM manipulation
         if (!contentArea) {
             throw new Error('Content area is null - cannot render Mermaid');
         }
         if (!document.contains(contentArea)) {
             throw new Error('Content area is not attached to DOM - cannot render Mermaid');
         }
-        
-        // ✅ TIMING SAFETY: Add micro-delay to ensure DOM stability
+
+        // IMING SAFETY: Add micro-delay to ensure DOM stability
         await new Promise(resolve => requestAnimationFrame(resolve));
 
         console.log(`🎯 Enhanced Mermaid render with improved approach: ${chartId}`);
@@ -3968,8 +3968,8 @@ class VisualizationEngine {
         const mermaidDiv = document.createElement('div');
         mermaidDiv.id = chartId;
         mermaidDiv.className = 'mermaid';
-        
-        // ✅ MERMAID CONTAINER: Normal document flow, no absolute positioning
+
+        // ERMAID CONTAINER: Normal document flow, no absolute positioning
         mermaidDiv.style.cssText = `
             width: 100%;
             min-height: 200px;
@@ -3980,18 +3980,18 @@ class VisualizationEngine {
             padding: 20px;
             margin: 20px 0;
         `;
-        
-        // ✅ CRITICAL: Triple-check DOM validity right before manipulation
+
+        // RITICAL: Triple-check DOM validity right before manipulation
         if (!contentArea || !document.contains(contentArea)) {
             throw new Error('Content area became invalid before appendChild - DOM timing issue');
         }
-        
+
         contentArea.appendChild(mermaidDiv);
 
         try {
             const isDark = this.options.theme === 'dark';
-            
-            // ✅ ENHANCED: Comprehensive Mermaid configuration with enhanced settings
+
+            // NHANCED: Comprehensive Mermaid configuration with enhanced settings
             mermaid.initialize({
                 startOnLoad: false,
                 theme: isDark ? 'dark' : 'base',
@@ -3999,8 +3999,8 @@ class VisualizationEngine {
                 htmlLabels: true,
                 maxTextSize: 50000,
                 maxEdges: 2000,
-                
-                // ✅ Enhanced: Enhanced spacing configuration
+
+                // nhanced: Enhanced spacing configuration
                 flowchart: {
                     htmlLabels: true,
                     useMaxWidth: true,
@@ -4014,7 +4014,7 @@ class VisualizationEngine {
                     textHeight: 20,           // Slightly smaller text height assumption (was 24)
                     lineHeight: 1.3           // REDUCED: Line height multiplier (was 1.6)
                 },
-                
+
                 themeVariables: {
                     primaryColor: isDark ? '#404040' : '#f0f0f0',
                     primaryTextColor: isDark ? '#e6edf3' : '#24292f',
@@ -4025,66 +4025,66 @@ class VisualizationEngine {
                     nodeTextColor: isDark ? '#e6edf3' : '#24292f',
                     nodeBkg: isDark ? '#404040' : '#f0f0f0',
                     nodeBorder: isDark ? '#666666' : '#cccccc',
-                    
+
                     // Padding variables
                     nodePadding: '8px',       // REDUCED: was 20px
                     nodeMargin: '12px',       // Slightly reduced outer margin
                     edgeMargin: '8px'
                 },
-                
+
                 fontFamily: '"Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                 logLevel: 'error',
                 suppressErrorRendering: true
             });
 
-            // ✅ ENHANCED: Universal content transformation (handles both formats)
+            // NHANCED: Universal content transformation (handles both formats)
             let mermaidContent = this.transformMermaidContentToHTML(item.content);
-            
-            // ✅ STORE: Original content for direction toggle
+
+            // TORE: Original content for direction toggle
             const vizContainer = contentArea.closest('.viz-container');
             if (vizContainer) {
                 vizContainer.setAttribute('data-original-content', item.content);
                 vizContainer.setAttribute('data-chart-id', chartId);
             }
-            
+
             console.log('🎯 Enhanced Mermaid transformation applied:', mermaidContent.substring(0, 200) + '...');
 
             const renderPromise = mermaid.render(`mermaid-${chartId}`, mermaidContent);
-            const timeoutPromise = new Promise((_, reject) => 
+            const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Mermaid rendering timeout')), 15000)
             );
-            
+
             const { svg } = await Promise.race([renderPromise, timeoutPromise]);
-            
+
             if (!svg || svg.trim() === '') {
                 throw new Error('Mermaid returned empty SVG');
             }
-            
+
             mermaidDiv.innerHTML = svg;
-            
-            // ✅ Enhanced: Dynamic height calculation based on actual content
+
+            // nhanced: Dynamic height calculation based on actual content
             const svgElement = mermaidDiv.querySelector('svg');
             if (svgElement) {
                 this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
-                
-                // ✅ Enhanced: Dynamic height adjustment for wide diagrams
+
+                // nhanced: Dynamic height adjustment for wide diagrams
                 setTimeout(() => {
                     const bbox = svgElement.getBBox();
                     if (bbox && bbox.width > bbox.height * 3) {
                         // For very wide diagrams, ensure minimum height
-                        const minHeight = Math.max(400, bbox.height * 1.4);  // ✅ 40% more than baseline
+                        const minHeight = Math.max(400, bbox.height * 1.4);  // 0% more than baseline
                         svgElement.style.minHeight = minHeight + 'px';
                         console.log(`📏 Adjusted SVG height to ${minHeight}px for wide diagram`);
                     }
 
-                    // ✅ NEW: Auto-expand container for large/complex diagrams
+                    // EW: Auto-expand container for large/complex diagrams
                     const mermaidContainer = vizContainer.querySelector('.mermaid-container');
                     if (mermaidContainer && bbox) {
-                        const isWideOrComplex = bbox.width > 800 || 
-                                                bbox.height > 600 || 
-                                                item.content.length > 500 ||
-                                                (item.content.match(/-->/g) || []).length > 15;
-                        
+                        const isWideOrComplex = bbox.width > 800 ||
+                            bbox.height > 600 ||
+                            item.content.length > 500 ||
+                            (item.content.match(/-->/g) || []).length > 15;
+
                         if (isWideOrComplex) {
                             mermaidContainer.classList.add('mermaid-expanded');
                             console.log('📏 Auto-expanded Mermaid container for complex diagram');
@@ -4092,17 +4092,17 @@ class VisualizationEngine {
                     }
                 }, 100);
             }
-            
+
             if (vizContainer) {
                 vizContainer.setAttribute('data-color-theme', 'default');
                 vizContainer.setAttribute('data-font-size', '14');
                 this.addMermaidUnifiedActionBar(vizContainer, item.content, chartId);
             }
-            
-            console.log('✅ Enhanced Mermaid with improved approach rendered successfully');
-            
+
+            console.log('nhanced Mermaid with improved approach rendered successfully');
+
         } catch (error) {
-            console.error('❌ Enhanced Mermaid rendering error:', error);
+            console.error(' Enhanced Mermaid rendering error:', error);
             this.showMermaidError(mermaidDiv, error, item.content);
         }
     }
@@ -4125,16 +4125,16 @@ class VisualizationEngine {
             justify-content: center;
             text-align: center;
         `;
-        
+
         container.appendChild(mermaidDiv);
 
         try {
             const isDark = this.options.theme === 'dark';
-            
-            // ✅ ENHANCED: Initialize with default color theme
+
+            // NHANCED: Initialize with default color theme
             const defaultTheme = this.getMermaidColorThemes().default;
-            
-            // ✅ ENHANCED: Comprehensive Mermaid configuration for better node sizing
+
+            // NHANCED: Comprehensive Mermaid configuration for better node sizing
             mermaid.initialize({
                 startOnLoad: false,
                 theme: isDark ? 'dark' : 'base',
@@ -4142,7 +4142,7 @@ class VisualizationEngine {
                 htmlLabels: true,
                 maxTextSize: 50000,
                 maxEdges: 2000,
-                
+
                 // Conservative spacing configuration (restored to prior working values)
                 flowchart: {
                     htmlLabels: true,
@@ -4158,27 +4158,27 @@ class VisualizationEngine {
                     textHeight: 20,
                     lineHeight: 1.6
                 },
-                
-                // ✅ ENHANCED: Better theme variables
+
+                // NHANCED: Better theme variables
                 themeVariables: {
                     primaryColor: isDark ? '#404040' : '#f0f0f0',
                     primaryTextColor: isDark ? '#e6edf3' : '#24292f',
                     primaryBorderColor: isDark ? '#666666' : '#cccccc',
                     lineColor: isDark ? '#7d8590' : '#656d76',
                     backgroundColor: isDark ? '#0d1117' : '#ffffff',
-                    
+
                     // Text and node sizing variables (keep conservative defaults)
                     textColor: isDark ? '#e6edf3' : '#24292f',
                     nodeTextColor: isDark ? '#e6edf3' : '#24292f',
                     nodeBkg: isDark ? '#404040' : '#f0f0f0',
                     nodeBorder: isDark ? '#666666' : '#cccccc',
-                    
+
                     // Padding and spacing variables
                     nodePadding: '15px',
                     nodeMargin: '8px',
                     edgeMargin: '8px'
                 },
-                
+
                 fontFamily: '"Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                 logLevel: 'error',
                 suppressErrorRendering: true
@@ -4186,20 +4186,20 @@ class VisualizationEngine {
 
             const { svg } = await mermaid.render(`mermaid-${chartId}`, item.content);
             mermaidDiv.innerHTML = svg;
-            
-            // ✅ NEW: Auto-expand container for large/complex diagrams
+
+            // EW: Auto-expand container for large/complex diagrams
             const renderedSvg = mermaidDiv.querySelector('svg');
             if (renderedSvg) {
                 setTimeout(() => {
                     const bbox = renderedSvg.getBBox();
                     const mermaidContainer = container.querySelector('.mermaid-container');
-                    
+
                     if (mermaidContainer && bbox) {
-                        const isWideOrComplex = bbox.width > 800 || 
-                                                bbox.height > 600 || 
-                                                item.content.length > 500 ||
-                                                (item.content.match(/-->/g) || []).length > 15;
-                        
+                        const isWideOrComplex = bbox.width > 800 ||
+                            bbox.height > 600 ||
+                            item.content.length > 500 ||
+                            (item.content.match(/-->/g) || []).length > 15;
+
                         if (isWideOrComplex) {
                             mermaidContainer.classList.add('mermaid-expanded');
                             console.log('📏 Auto-expanded Mermaid container for complex diagram (renderMermaid)');
@@ -4207,192 +4207,192 @@ class VisualizationEngine {
                     }
                 }, 100);
             }
-            
+
             // Remove custom SVG post-processing - let Mermaid render with its native sizing
             // and theming. Post-processing was causing oversized node boxes and
             // unexpected artifacts. If we need theme adjustments later we should
             // perform them inside Mermaid's themeVariables only.
-            
+
             // Set default color theme attribute
             container.setAttribute('data-color-theme', 'default');
-            
+
             this.addMermaidUnifiedActionBar(container, item.content, chartId);
-            
+
         } catch (error) {
             console.error('Mermaid rendering error:', error);
             mermaidDiv.innerHTML = `<p style="color: var(--text-primary);">Error rendering diagram: ${error.message}</p>`;
         }
     }
 
-    // ✅ ENHANCED: 6.1.3 Comprehensive HTML transformation like ALTERNATIVE file
+    // NHANCED: 6.1.3 Comprehensive HTML transformation like ALTERNATIVE file
     // 6.1.2 - FIXED: Universal Mermaid content transformation (no conflicts)
     transformMermaidContentToHTML(content) {
         if (!content || typeof content !== 'string') return content;
-        
+
         try {
             console.log('🔄 FIXED Mermaid transformation starting...');
-            
-            // ✅ STEP 1: Handle direct \n in the content
+
+            // TEP 1: Handle direct \n in the content
             let transformedContent = content.replace(/\\n/g, '\n');
-            
-            // ✅ NEW: STEP 1.5: Fix Gantt chart syntax issues when needed
+
+            // EW: STEP 1.5: Fix Gantt chart syntax issues when needed
             if (transformedContent.trim().startsWith('gantt')) {
                 // Check for known problematic patterns that cause 'taskData' errors
-                const hasProblematicSections = transformedContent.includes('section') && 
+                const hasProblematicSections = transformedContent.includes('section') &&
                     (transformedContent.match(/section.*:/g) ||               // Any section with colon (common cause)
-                     transformedContent.match(/section.*[^\w\s:\-]/g) || 
-                     transformedContent.includes('taskData') ||
-                     transformedContent.match(/section.*:.*-.*-/g) ||
-                     transformedContent.match(/section.*:.*\s+\S+/g));       // Extra content after section names
-                
+                        transformedContent.match(/section.*[^\w\s:\-]/g) ||
+                        transformedContent.includes('taskData') ||
+                        transformedContent.match(/section.*:.*-.*-/g) ||
+                        transformedContent.match(/section.*:.*\s+\S+/g));       // Extra content after section names
+
                 if (hasProblematicSections) {
                     console.log('🔄 Detected problematic Gantt section patterns, applying fixes...');
                     transformedContent = this.fixGanttSyntax(transformedContent);
                 } else {
-                    console.log('✅ Gantt chart syntax appears clean, skipping fixes');
+                    console.log('antt chart syntax appears clean, skipping fixes');
                 }
             }
-            
-            // ✅ NEW: STEP 1.6: Fix subgraph spacing issues
+
+            // EW: STEP 1.6: Fix subgraph spacing issues
             if (transformedContent.includes('subgraph')) {
                 console.log('🔄 Fixing subgraph spacing...');
                 transformedContent = this.fixSubgraphSpacing(transformedContent);
             }
-            
-            // ✅ STEP 2: FIXED node label processor (no conflicts)
+
+            // TEP 2: FIXED node label processor (no conflicts)
             function processNodeLabel(label) {
                 // Skip if already processed
-                if (label.includes('mermaid-br') || label.includes('mermaid-bold') || 
+                if (label.includes('mermaid-br') || label.includes('mermaid-bold') ||
                     label.includes('mermaid-italic') || label.includes('mermaid-code')) {
-                    console.log('✅ Label already processed, skipping');
+                    console.log('abel already processed, skipping');
                     return label;
                 }
-                
+
                 let processedLabel = label;
-                
-                // ✅ STEP 1: Clean numeric values and special chars FIRST
+
+                // TEP 1: Clean numeric values and special chars FIRST
                 processedLabel = processedLabel
                     .replace(/\b(\d{1,3}),(\d{3})\b/g, '$1$2')
                     .replace(/\b(\d{1,3}),(\d{3}),(\d{3})\b/g, '$1$2$3')
                     .replace(/×/g, '&times;')
                     .replace(/÷/g, '&divide;')
                     .replace(/±/g, '&plusmn;');
-                
-                // ✅ STEP 2: Process bullets BEFORE line breaks (critical!)
+
+                // TEP 2: Process bullets BEFORE line breaks (critical!)
                 processedLabel = processedLabel
                     .replace(/^\s*[•·▪▫]\s+(.+)$/gm, '<span class="mermaid-bullet">• $1</span>')
                     .replace(/^\s*[-]\s+(?!>)(.+)$/gm, '<span class="mermaid-bullet">• $1</span>')
                     .replace(/^\s*\d+\.\s+(.+)$/gm, '<span class="mermaid-bullet">1. $1</span>');
-                
-                // ✅ STEP 3: Process formatting (bold, italic, code)
+
+                // TEP 3: Process formatting (bold, italic, code)
                 if (!processedLabel.includes('<strong') && !processedLabel.includes('<b>')) {
                     processedLabel = processedLabel.replace(/\*\*(.*?)\*\*/g, '<strong class="mermaid-bold">$1</strong>');
                 }
                 processedLabel = processedLabel
-                    .replace(/<(strong|b)(?![^>]*class\s*=\s*["\'][^"\']*mermaid[^"\']*["\'])[^>]*>(.*?)<\/(strong|b)>/gi, 
-                             '<strong class="mermaid-bold">$2</strong>');
-                
+                    .replace(/<(strong|b)(?![^>]*class\s*=\s*["\'][^"\']*mermaid[^"\']*["\'])[^>]*>(.*?)<\/(strong|b)>/gi,
+                        '<strong class="mermaid-bold">$2</strong>');
+
                 if (!processedLabel.includes('<em') && !processedLabel.includes('<i>')) {
                     processedLabel = processedLabel.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em class="mermaid-italic">$1</em>');
                 }
                 processedLabel = processedLabel
-                    .replace(/<(em|i)(?![^>]*class\s*=\s*["\'][^"\']*mermaid[^"\']*["\'])[^>]*>(.*?)<\/(em|i)>/gi, 
-                             '<em class="mermaid-italic">$2</em>');
-                
+                    .replace(/<(em|i)(?![^>]*class\s*=\s*["\'][^"\']*mermaid[^"\']*["\'])[^>]*>(.*?)<\/(em|i)>/gi,
+                        '<em class="mermaid-italic">$2</em>');
+
                 if (!processedLabel.includes('<code')) {
                     processedLabel = processedLabel.replace(/`(.*?)`/g, '<code class="mermaid-code">$1</code>');
                 }
                 processedLabel = processedLabel
-                    .replace(/<code(?![^>]*class\s*=\s*["\'][^"\']*mermaid[^"\']*["\'])[^>]*>(.*?)<\/code>/gi, 
-                             '<code class="mermaid-code">$1</code>');
-                
-                // ✅ STEP 4: Now convert line breaks (ONLY ONCE!)
+                    .replace(/<code(?![^>]*class\s*=\s*["\'][^"\']*mermaid[^"\']*["\'])[^>]*>(.*?)<\/code>/gi,
+                        '<code class="mermaid-code">$1</code>');
+
+                // TEP 4: Now convert line breaks (ONLY ONCE!)
                 // Temporarily protect bullet spans
                 const bulletLines = [];
                 processedLabel = processedLabel.replace(/(<span class="mermaid-bullet">.*?<\/span>)/g, (match) => {
                     bulletLines.push(match);
                     return `__BULLET_${bulletLines.length - 1}__`;
                 });
-                
+
                 // Convert line breaks - normalize first, then convert once
                 processedLabel = processedLabel
                     .replace(/\\n/g, '\n')  // Normalize escaped newlines
                     .replace(/\n/g, '<br class="mermaid-br"/>');  // Convert ONCE
-                
+
                 // Restore bullet lines
                 processedLabel = processedLabel.replace(/__BULLET_(\d+)__/g, (match, index) => {
                     return bulletLines[parseInt(index)];
                 });
-                
-                // ✅ STEP 5: Final cleanup - remove any <br> around bullets
+
+                // TEP 5: Final cleanup - remove any <br> around bullets
                 processedLabel = processedLabel
                     .replace(/<br\s+class=["']mermaid-br["']\s*\/?>\s*(<span class="mermaid-bullet">)/gi, '$1')
                     .replace(/(<span class="mermaid-bullet">[^<]*<\/span>)\s*<br\s+class=["']mermaid-br["']\s*\/?>/gi, '$1');
-                
-                // ✅ STEP 6: Preserve special characters
+
+                // TEP 6: Preserve special characters
                 processedLabel = processedLabel
                     .replace(/\$([0-9,]+)/g, '$$1')
                     .replace(/([0-9]+)%/g, '$1%')
                     .replace(/@([a-zA-Z0-9_]+)/g, '@$1');
-                
+
                 return processedLabel;
             }
-            
-            // ✅ STEP 3: Process different node types (FIXED - no conflicts)
-            
+
+            // TEP 3: Process different node types (FIXED - no conflicts)
+
             // Process [square bracket] nodes
-            transformedContent = transformedContent.replace(/\[([^\[\]]*(?:\[[^\]]*\][^\[\]]*)*)\]/gs, function(match, label) {
+            transformedContent = transformedContent.replace(/\[([^\[\]]*(?:\[[^\]]*\][^\[\]]*)*)\]/gs, function (match, label) {
                 return `[${processNodeLabel(label)}]`;
             });
-            
+
             // Process {{curly bracket}} nodes  
-            transformedContent = transformedContent.replace(/\{\{([^{}]*(?:\{[^}]*\}[^{}]*)*)\}\}/gs, function(match, label) {
+            transformedContent = transformedContent.replace(/\{\{([^{}]*(?:\{[^}]*\}[^{}]*)*)\}\}/gs, function (match, label) {
                 return `{{${processNodeLabel(label)}}}`;
             });
-            
+
             // Process [[double square bracket]] nodes
-            transformedContent = transformedContent.replace(/\[\[([^\[\]]*(?:\[[^\]]*\][^\[\]]*)*)\]\]/gs, function(match, label) {
+            transformedContent = transformedContent.replace(/\[\[([^\[\]]*(?:\[[^\]]*\][^\[\]]*)*)\]\]/gs, function (match, label) {
                 return `[[${processNodeLabel(label)}]]`;
             });
-            
+
             // Process (parenthesis) nodes - but skip edge labels
-            transformedContent = transformedContent.replace(/\(([^()]*(?:\([^)]*\)[^()]*)*)\)/gs, function(match, label) {
+            transformedContent = transformedContent.replace(/\(([^()]*(?:\([^)]*\)[^()]*)*)\)/gs, function (match, label) {
                 // Skip if this looks like an edge with a label, not a node
                 if (match.includes('-->') || match.includes('---') || match.includes('-.->')) {
                     return match;
                 }
                 return `(${processNodeLabel(label)})`;
             });
-            
+
             // Handle quoted node labels
             transformedContent = transformedContent.replace(/(\w+)\["([^"]*)"\]/g, (match, nodeId, nodeContent) => {
                 const processedContent = processNodeLabel(nodeContent);
                 return `${nodeId}["${processedContent}"]`;
             });
-            
-            console.log('✅ FIXED Mermaid transformation completed without conflicts');
+
+            console.log('IXED Mermaid transformation completed without conflicts');
             return transformedContent;
-            
+
         } catch (error) {
-            console.error('❌ Error in FIXED Mermaid content transformation:', error);
+            console.error(' Error in FIXED Mermaid content transformation:', error);
             console.error('Content that caused error:', content);
             return content || 'graph TD\nA[Error in processing]';
         }
     }
 
-    // ✅ NEW: Comprehensive JSON normalization and repair
+    // EW: Comprehensive JSON normalization and repair
     normalizeAndRepairJSON(jsonString) {
         console.log('🔧 Normalizing JSON content...');
-        
+
         if (!jsonString || typeof jsonString !== 'string') {
             throw new Error('Invalid JSON input: not a string');
         }
-        
+
         let normalizedJson = jsonString;
-        
+
         try {
-            // ✅ STEP 1: Fix common number formatting issues
-            
+            // TEP 1: Fix common number formatting issues
+
             // Fix arrays with +/- numbers: [-2, +2, +3] -> [-2, 2, 3]
             normalizedJson = normalizedJson.replace(/:\s*\[\s*([+-]?\d+(?:\.\d+)?(?:\s*,\s*[+-]?\d+(?:\.\d+)?)*)\s*\]/g, (match, numbers) => {
                 const cleanNumbers = numbers
@@ -4405,129 +4405,129 @@ class VisualizationEngine {
                     .join(', ');
                 return `: [${cleanNumbers}]`;
             });
-            
+
             // Fix individual number values: "value": +123 -> "value": 123
             normalizedJson = normalizedJson.replace(/:\s*\+(\d+(?:\.\d+)?)/g, ': $1');
-            
-            // ✅ STEP 2: Fix object property formatting
+
+            // TEP 2: Fix object property formatting
             normalizedJson = normalizedJson.replace(/,\s*\+(\d)/g, ', $1'); // Fix: , +2 -> , 2
             normalizedJson = normalizedJson.replace(/\[\s*\+(\d)/g, '[$1');   // Fix: [+2 -> [2
-            
-            // ✅ STEP 3: Preserve display text (don't modify text intended for display)
+
+            // TEP 3: Preserve display text (don't modify text intended for display)
             // Text arrays should keep their + signs for display purposes
             const textMatches = [];
             normalizedJson = normalizedJson.replace(/"text":\s*\[[^\]]+\]/g, (match, offset) => {
                 textMatches.push({ match, offset });
                 return `__TEXT_PLACEHOLDER_${textMatches.length - 1}__`;
             });
-            
-            // ✅ STEP 4: More aggressive number cleanup
+
+            // TEP 4: More aggressive number cleanup
             normalizedJson = normalizedJson
                 .replace(/\+(\d+(?:\.\d+)?)/g, '$1')  // Remove all remaining + signs before numbers
                 .replace(/([+-]?\d+(?:\.\d+)?)\s*,/g, '$1,') // Clean spacing around commas
                 .replace(/,\s*([+-]?\d+(?:\.\d+)?)/g, ', $1'); // Ensure proper spacing after commas
-            
-            // ✅ STEP 5: Restore preserved text content
+
+            // TEP 5: Restore preserved text content
             textMatches.forEach((item, index) => {
                 normalizedJson = normalizedJson.replace(`__TEXT_PLACEHOLDER_${index}__`, item.match);
             });
-            
-            // ✅ STEP 6: Final JSON structure validation
+
+            // TEP 6: Final JSON structure validation
             normalizedJson = normalizedJson
                 .replace(/,\s*}/g, '}')      // Remove trailing commas before }
                 .replace(/,\s*\]/g, ']')     // Remove trailing commas before ]
                 .replace(/\s+/g, ' ')        // Normalize whitespace
                 .trim();
-            
+
             console.log('🔧 JSON normalization completed');
             return normalizedJson;
-            
+
         } catch (error) {
-            console.error('❌ Error during JSON normalization:', error);
+            console.error(' Error during JSON normalization:', error);
             throw new Error(`JSON normalization failed: ${error.message}`);
         }
     }
 
-    // ✅ NEW: Safe JSON parsing with multiple fallback strategies
+    // EW: Safe JSON parsing with multiple fallback strategies
     safeJSONParse(jsonString) {
         if (!jsonString) {
             throw new Error('Empty JSON string provided');
         }
-        
+
         // Strategy 1: Try direct parsing
         try {
             return JSON.parse(jsonString);
         } catch (directError) {
             // Try normalization without warning for expected +/- notation
         }
-        
+
         // Strategy 2: Try with normalization
         try {
             const normalizedJson = this.normalizeAndRepairJSON(jsonString);
             return JSON.parse(normalizedJson);
         } catch (normalizedError) {
-            console.error('❌ Normalized JSON parsing also failed:', normalizedError.message);
-            
+            console.error(' Normalized JSON parsing also failed:', normalizedError.message);
+
             // Strategy 3: Log detailed info for debugging
-            console.error('❌ Original JSON snippet:', jsonString.substring(0, 200) + '...');
-            console.error('❌ JSON length:', jsonString.length);
-            
+            console.error(' Original JSON snippet:', jsonString.substring(0, 200) + '...');
+            console.error(' JSON length:', jsonString.length);
+
             throw new Error(`All JSON parsing strategies failed. Original error: ${directError.message}, Normalized error: ${normalizedError.message}`);
         }
     }
 
-    // ✅ NEW: Fix Gantt chart syntax issues
+    // EW: Fix Gantt chart syntax issues
     fixGanttSyntax(content) {
         console.log('🔧 Applying Gantt chart syntax fixes...');
         console.log('🔧 Original content length:', content.length, 'characters');
-        
+
         let fixedContent = content;
-        
+
         try {
-            // ✅ CRITICAL PRE-FIX: Handle the specific "taskData" error
+            // RITICAL PRE-FIX: Handle the specific "taskData" error
             // This error suggests the parser is seeing unexpected content after section names
-            
+
             // Split into lines for processing
             const lines = fixedContent.split('\n');
             const fixedLines = [];
             let inGantt = false;
-            
+
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
-                
+
                 // Track if we're in a gantt section
                 if (line.startsWith('gantt')) {
                     inGantt = true;
                     fixedLines.push(line);
                     continue;
                 }
-                
+
                 // Skip empty lines (but preserve them)
                 if (!line) {
                     fixedLines.push('');
                     continue;
                 }
-                
-                // ✅ CRITICAL FIX: More comprehensive section line handling  
+
+                // RITICAL FIX: More comprehensive section line handling  
                 if (line.startsWith('section') && inGantt) {
                     console.log('🔧 Processing section line:', line);
-                    
+
                     // Extract section name
                     let sectionName = line.replace(/^section\s*/, '').trim();
-                    
-                    // ✅ ENHANCED PROBLEM DETECTION: More aggressive detection for 'taskData' errors
+
+                    // NHANCED PROBLEM DETECTION: More aggressive detection for 'taskData' errors
                     const hasProblems = sectionName.includes(':') ||         // Any colon (common cause)
-                                       sectionName.match(/[^\w\s:\-]/) || 
-                                       sectionName.includes('--') ||
-                                       sectionName.includes('taskData') ||
-                                       sectionName.match(/:\s+\S+/) ||       // Extra content after colon
-                                       sectionName.length > 50 ||            // Very long section names
-                                       sectionName.match(/\s{3,}/);          // Multiple consecutive spaces
-                    
+                        sectionName.match(/[^\w\s:\-]/) ||
+                        sectionName.includes('--') ||
+                        sectionName.includes('taskData') ||
+                        sectionName.match(/:\s+\S+/) ||       // Extra content after colon
+                        sectionName.length > 50 ||            // Very long section names
+                        sectionName.match(/\s{3,}/);          // Multiple consecutive spaces
+
                     if (hasProblems) {
                         console.log('🔧 Section has syntax issues, cleaning:', sectionName);
-                        
-                        // ✅ ENHANCED CLEANING: Aggressive cleaning for 'taskData' errors
+
+                        // NHANCED CLEANING: Aggressive cleaning for 'taskData' errors
                         sectionName = sectionName
                             .replace(/[^\w\s:\-]/g, ' ')     // Replace problematic chars with spaces
                             .replace(/[-]{2,}/g, ' ')        // Replace multiple dashes with spaces  
@@ -4537,76 +4537,76 @@ class VisualizationEngine {
                             .replace(/\s*-+\s*$/, '')        // Remove any trailing dash patterns
                             .replace(/\s+/g, ' ')            // Normalize multiple spaces
                             .trim();
-                        
-                        // ✅ ADDITIONAL: Truncate very long section names
+
+                        // DDITIONAL: Truncate very long section names
                         if (sectionName.length > 30) {
                             sectionName = sectionName.substring(0, 30).trim();
                             console.log('🔧 Truncated long section name:', sectionName);
                         }
-                        
-                        // ✅ FALLBACK: If still problematic, create simple section name
+
+                        // ALLBACK: If still problematic, create simple section name
                         if (!sectionName || sectionName.length === 0) {
                             const sectionCount = fixedLines.filter(l => l.trim().startsWith('section')).length + 1;
                             sectionName = `Phase ${sectionCount}`;
                             console.warn('⚠️ Created safe fallback section name:', sectionName);
                         }
-                        
+
                         // Reconstruct section line
                         line = `section ${sectionName}`;
                         console.log('🔧 Fixed section line:', line);
                     } else {
-                        console.log('✅ Section line is clean, keeping as-is:', line);
+                        console.log('ection line is clean, keeping as-is:', line);
                     }
-                    
+
                     fixedLines.push(line);
                     continue;
                 }
-                
-                // ✅ FIX 1: Ensure proper task syntax format
+
+                // IX 1: Ensure proper task syntax format
                 // Look for task lines (not gantt, title, dateFormat, section, or comment lines)
                 if (line && inGantt &&
-                    !line.startsWith('gantt') && 
-                    !line.startsWith('title') && 
-                    !line.startsWith('dateFormat') && 
-                    !line.startsWith('section') && 
+                    !line.startsWith('gantt') &&
+                    !line.startsWith('title') &&
+                    !line.startsWith('dateFormat') &&
+                    !line.startsWith('section') &&
                     !line.startsWith('%') &&
                     !line.startsWith('--') &&
                     line.includes(':')) {
-                    
+
                     console.log('🔧 Processing task line:', line);
-                    
-                    // ✅ FIX 2: Ensure task format is: Task Name :status, id, start, duration
+
+                    // IX 2: Ensure task format is: Task Name :status, id, start, duration
                     // Split by first colon to separate name from definition
                     const colonIndex = line.indexOf(':');
                     if (colonIndex > 0) {
                         const taskName = line.substring(0, colonIndex).trim();
                         const taskDef = line.substring(colonIndex + 1).trim();
-                        
-                        // ✅ FIX 3: Clean up common syntax issues
+
+                        // IX 3: Clean up common syntax issues
                         let cleanedDef = taskDef;
-                        
-                        // ✅ CRITICAL: If task definition is missing, create a valid one
+
+                        // RITICAL: If task definition is missing, create a valid one
                         if (!cleanedDef || cleanedDef === '') {
                             // Create a basic task definition
                             const taskId = taskName.toLowerCase().replace(/[^a-z0-9]/g, '');
                             cleanedDef = `task${i}, ${taskId}, 1d`;
                             console.log('🔧 Created missing task definition:', cleanedDef);
                         }
-                        
+
                         // Fix spacing around commas
                         cleanedDef = cleanedDef.replace(/\s*,\s*/g, ', ');
-                        
+
                         // Split the definition parts
                         const parts = cleanedDef.split(',').map(p => p.trim());
-                        
+
                         if (parts.length >= 1) {
-                            // ✅ ENHANCED: Better task definition reconstruction
+                            // NHANCED: Better task definition reconstruction
                             let status = '';
                             let id = '';
                             let startDate = '';
                             let duration = '';
-                            
-                            // ✅ FIX: Determine if first part is a status or ID
+
+                            // IX: Determine if first part is a status or ID
                             const firstPart = parts[0].trim();
                             if (firstPart.match(/^(active|done|crit|milestone)$/)) {
                                 // First part is a status
@@ -4621,11 +4621,11 @@ class VisualizationEngine {
                                 startDate = parts.length > 1 ? parts[1].trim() : '';
                                 duration = parts.length > 2 ? parts[2].trim() : '';
                             }
-                            
-                            // ✅ Clean and validate each part
+
+                            // lean and validate each part
                             // Clean ID format (no spaces, alphanumeric + underscore)
                             id = id.replace(/[^a-zA-Z0-9_]/g, '') || `task${i}`;
-                            
+
                             // Validate start date or 'after' reference
                             if (startDate) {
                                 if (startDate.match(/\d{4}-\d{2}-\d{2}/)) {
@@ -4645,22 +4645,22 @@ class VisualizationEngine {
                                     }
                                 }
                             }
-                            
+
                             // Ensure duration format
                             if (duration && !duration.includes('d') && !duration.includes('h')) {
                                 if (duration.match(/^\d+$/)) {
                                     duration = `${duration}d`;
                                 }
                             }
-                            
-                            // ✅ CRITICAL: Reconstruct with proper Gantt syntax
+
+                            // RITICAL: Reconstruct with proper Gantt syntax
                             // Format: TaskName : [status,] id, start, duration
                             const defParts = [];
                             if (status) defParts.push(status);
                             if (id) defParts.push(id);
                             if (startDate) defParts.push(startDate);
                             if (duration) defParts.push(duration);
-                            
+
                             if (defParts.length >= 2) { // At minimum need id and one other part
                                 cleanedDef = defParts.join(', ');
                             } else {
@@ -4669,17 +4669,17 @@ class VisualizationEngine {
                                 console.warn(`⚠️ Created fallback task definition for: ${taskName}`);
                             }
                         }
-                        
+
                         // Reconstruct the line with proper format
                         line = `    ${taskName} : ${cleanedDef}`;
                         console.log('🔧 Fixed task line:', line);
                     }
-                    
+
                     fixedLines.push(line);
                     continue;
                 }
-                
-                // ✅ FIX 4: Handle other gantt directives  
+
+                // IX 4: Handle other gantt directives  
                 if (inGantt && (line.startsWith('title') || line.startsWith('dateFormat') || line.startsWith('%'))) {
                     // Ensure proper indentation and format
                     if (line.startsWith('dateFormat')) {
@@ -4691,7 +4691,7 @@ class VisualizationEngine {
                     fixedLines.push(`    ${line}`);
                     continue;
                 }
-                
+
                 // For all other lines in gantt context, add basic indentation
                 if (inGantt && line && !line.startsWith('    ')) {
                     fixedLines.push(`    ${line}`);
@@ -4699,41 +4699,41 @@ class VisualizationEngine {
                     fixedLines.push(line);
                 }
             }
-            
+
             const result = fixedLines.join('\n');
             console.log('🔧 Fixed Gantt content:', result);
             return result;
-            
+
         } catch (error) {
-            console.error('❌ Error fixing Gantt syntax:', error);
+            console.error(' Error fixing Gantt syntax:', error);
             return content; // Return original if fixing fails
         }
     }
 
-    // ✅ NEW: Fix subgraph spacing and layout issues
+    // EW: Fix subgraph spacing and layout issues
     fixSubgraphSpacing(content) {
         console.log('🔧 Applying subgraph spacing fixes...');
-        
+
         let fixedContent = content;
-        
+
         try {
             // Split into lines for processing
             const lines = fixedContent.split('\n');
             const fixedLines = [];
-            
+
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i];
                 const trimmedLine = line.trim();
-                
-                // ✅ FIX 1: Add spacing after subgraph declarations
+
+                // IX 1: Add spacing after subgraph declarations
                 if (trimmedLine.startsWith('subgraph ')) {
                     fixedLines.push(line);
                     // Add an empty line after subgraph title for better spacing
                     fixedLines.push('');
                     continue;
                 }
-                
-                // ✅ FIX 2: Add spacing before 'end' statements
+
+                // IX 2: Add spacing before 'end' statements
                 if (trimmedLine === 'end') {
                     // Add empty line before 'end' for better separation
                     if (fixedLines.length > 0 && fixedLines[fixedLines.length - 1].trim() !== '') {
@@ -4744,40 +4744,40 @@ class VisualizationEngine {
                     fixedLines.push('');
                     continue;
                 }
-                
-                // ✅ FIX 3: Ensure proper spacing for node declarations with HTML content
+
+                // IX 3: Ensure proper spacing for node declarations with HTML content
                 if (trimmedLine.includes('[') && trimmedLine.includes('div style')) {
                     // For nodes with HTML content, ensure proper spacing
                     fixedLines.push('');
                     fixedLines.push(line);
                     continue;
                 }
-                
+
                 fixedLines.push(line);
             }
-            
+
             fixedContent = fixedLines.join('\n');
-            
-            // ✅ FIX 4: Clean up multiple consecutive empty lines (but keep some for spacing)
+
+            // IX 4: Clean up multiple consecutive empty lines (but keep some for spacing)
             fixedContent = fixedContent.replace(/\n\s*\n\s*\n\s*\n/g, '\n\n\n');
-            
-            // ✅ FIX 5: Add CSS-like margin hints for better subgraph rendering
+
+            // IX 5: Add CSS-like margin hints for better subgraph rendering
             // This won't change the syntax but may help with rendering engine spacing
             fixedContent = fixedContent.replace(
-                /subgraph\s+"([^"]+)"/g, 
+                /subgraph\s+"([^"]+)"/g,
                 (match, title) => {
                     // Keep original but add spacing hints in a way that doesn't break syntax
                     return `subgraph "${title}"`;
                 }
             );
-            
-            console.log('✅ Subgraph spacing fixes applied');
+
+            console.log('ubgraph spacing fixes applied');
             console.log('Fixed content preview:', fixedContent.substring(0, 300) + '...');
-            
+
             return fixedContent;
-            
+
         } catch (error) {
-            console.error('❌ Error fixing subgraph spacing:', error);
+            console.error(' Error fixing subgraph spacing:', error);
             return content; // Return original if fixing fails
         }
     }
@@ -4812,41 +4812,41 @@ class VisualizationEngine {
         } catch (e) {
             console.warn('⚠️ Font clamp pass skipped:', e);
         }
-        
-        // ✅ ENHANCED: Better text styling that preserves dynamic sizing
+
+        // NHANCED: Better text styling that preserves dynamic sizing
         const textElements = svgElement.querySelectorAll('text, tspan');
         textElements.forEach(text => {
             text.setAttribute('fill', isDark ? '#e6edf3' : '#24292f');
             text.setAttribute('font-weight', '500');
             text.setAttribute('font-family', '"Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
-            // ✅ CRITICAL: Don't override font-size - let Mermaid handle it naturally
+            // RITICAL: Don't override font-size - let Mermaid handle it naturally
         });
-        
-        // ✅ Enhanced: Intelligent node sizing based on actual content
+
+        // nhanced: Intelligent node sizing based on actual content
         const rects = svgElement.querySelectorAll('rect');
         rects.forEach(rect => {
             const width = parseFloat(rect.getAttribute('width') || 0);
             const height = parseFloat(rect.getAttribute('height') || 0);
-            
+
             if (width > 10 && height > 10) {
                 // Allow label-container rects to expand height to avoid clipping, but avoid heavy styling/width changes
                 const cls = (rect.getAttribute('class') || '').toLowerCase();
                 const isLabelContainerRect = cls.includes('label-container');
-                // ✅ Enhanced: Find associated text content for this rect
+                // nhanced: Find associated text content for this rect
                 const rectX = parseFloat(rect.getAttribute('x') || 0);
                 const rectY = parseFloat(rect.getAttribute('y') || 0);
                 const rectCenterX = rectX + width / 2;
                 const rectCenterY = rectY + height / 2;
-                
+
                 // Find text elements within or near this rectangle
                 let maxTextHeight = 0;
                 let lineCount = 1;
                 let hasHtmlContent = false;
                 let contentComplexity = 1;
-                let averageFontSize = 14; // ✅ DEFAULT: Fallback font size
+                let averageFontSize = 14; // EFAULT: Fallback font size
                 let fontSizeCount = 0;
-                
-                // ✅ NEW: Accurate bounds measurement using getBBox to prevent bottom clipping
+
+                // EW: Accurate bounds measurement using getBBox to prevent bottom clipping
                 let measuredTop = Number.POSITIVE_INFINITY;
                 let measuredBottom = Number.NEGATIVE_INFINITY;
                 let measuredLeft = Number.POSITIVE_INFINITY;
@@ -4875,46 +4875,46 @@ class VisualizationEngine {
                 textElements.forEach(text => {
                     const textX = parseFloat(text.getAttribute('x') || 0);
                     const textY = parseFloat(text.getAttribute('y') || 0);
-                    
+
                     // Check if text is within or near this rectangle
-                    if (Math.abs(textX - rectCenterX) < width * 1.5 && 
+                    if (Math.abs(textX - rectCenterX) < width * 1.5 &&
                         Math.abs(textY - rectCenterY) < height * 2.5) {
-                        
+
                         const textContent = text.textContent || '';
                         const fontSize = parseFloat(text.getAttribute('font-size') || 14);
-                        
-                        // ✅ TRACK: Accumulate font sizes for average calculation
+
+                        // RACK: Accumulate font sizes for average calculation
                         averageFontSize = ((averageFontSize * fontSizeCount) + fontSize) / (fontSizeCount + 1);
                         fontSizeCount++;
-                        
-                        // ✅ FIXED: Comprehensive line break detection
+
+                        // IXED: Comprehensive line break detection
                         const allLineBreaks = [
                             (textContent.match(/<br[^>]*>/gi) || []).length,  // All <br> variants
                             (textContent.match(/\n/g) || []).length,          // Newlines
                             (textContent.match(/\\n/g) || []).length          // Escaped newlines
                         ];
                         const explicitLines = Math.max(...allLineBreaks) + 1;
-                        
-                        // ✅ FIXED: More realistic character wrapping (15 chars per line in narrow nodes)
+
+                        // IXED: More realistic character wrapping (15 chars per line in narrow nodes)
                         const estimatedLineWidth = Math.max(15, Math.min(40, width / 8)); // Dynamic based on node width
                         const naturalLines = Math.ceil(textContent.replace(/<[^>]*>/g, '').length / estimatedLineWidth);
-                        
-                        // ✅ FIXED: Add explicit + natural lines for HTML content, not max
-                        const totalLines = hasHtmlContent ? 
+
+                        // IXED: Add explicit + natural lines for HTML content, not max
+                        const totalLines = hasHtmlContent ?
                             explicitLines + Math.ceil(naturalLines * 0.3) : // HTML: Add some natural wrapping
                             Math.max(explicitLines, naturalLines);          // Plain text: Use max
-                        
+
                         lineCount = Math.max(lineCount, totalLines);
                         maxTextHeight = Math.max(maxTextHeight, fontSize * totalLines * 1.4);
-                        
-                        // ✅ Enhanced: Check for complex content
-                        if (textContent.includes('<') || textContent.includes('&') || 
+
+                        // nhanced: Check for complex content
+                        if (textContent.includes('<') || textContent.includes('&') ||
                             textContent.includes('mermaid-') || textContent.length > 50) {
                             hasHtmlContent = true;
                             contentComplexity = Math.max(contentComplexity, textContent.length / 30);
                         }
 
-                        // ✅ NEW: Measure actual text bbox if it overlaps the rect area
+                        // EW: Measure actual text bbox if it overlaps the rect area
                         try {
                             if (text.getBBox) {
                                 const bbox = text.getBBox();
@@ -4930,7 +4930,7 @@ class VisualizationEngine {
                     }
                 });
 
-                // ✅ NEW: Also include foreignObject contents when present (HTML labels)
+                // EW: Also include foreignObject contents when present (HTML labels)
                 try {
                     const foNodes = svgElement.querySelectorAll('foreignObject');
                     foNodes.forEach(fo => {
@@ -4957,7 +4957,7 @@ class VisualizationEngine {
                                                 const gbr = inner.getBoundingClientRect?.();
                                                 innerH = Math.max(inner?.scrollHeight || 0, gbr?.height || 0);
                                             }
-                                        } catch {}
+                                        } catch { }
                                         const effHeight = Math.max(foBBox.height, innerH || 0);
                                         if (innerH) foInnerHeights.set(fo, innerH);
                                         considerBounds({ x: foBBox.x, y: foBBox.y, width: foBBox.width, height: effHeight });
@@ -4965,16 +4965,16 @@ class VisualizationEngine {
                                     }
                                 }
                             }
-                        } catch {}
+                        } catch { }
                     });
-                } catch {}
-                
-                // ✅ Enhanced: Calculate required padding based on content complexity
+                } catch { }
+
+                // nhanced: Calculate required padding based on content complexity
                 const basePadding = 10; // REDUCED overall base padding
                 const complexityMultiplier = Math.min(1.5, Math.max(1.0, contentComplexity * 0.2));
                 const lineHeightMultiplier = 1.3; // REDUCED line height multiplier
-                
-                // ✅ FIXED: Proper height scaling that doesn't underestimate
+
+                // IXED: Proper height scaling that doesn't underestimate
                 let heightMultiplier = 1;
                 if (lineCount > 1) {
                     // Calmer scaling: 1.2x base + 0.45x per additional line
@@ -4983,11 +4983,11 @@ class VisualizationEngine {
                 if (hasHtmlContent) {
                     heightMultiplier *= 1.2; // Smaller bump for HTML content
                 }
-                
+
                 const horizontalPadding = basePadding * Math.max(1, width / 120);
                 const verticalPadding = basePadding * heightMultiplier * complexityMultiplier;
-                
-                // ✅ FIXED: Much more realistic height calculation
+
+                // IXED: Much more realistic height calculation
                 let newWidth = isLabelContainerRect ? width : (width + horizontalPadding);
                 let newHeightHeuristic = Math.max(
                     height + verticalPadding,
@@ -4996,25 +4996,25 @@ class VisualizationEngine {
                     lineCount * averageFontSize * 1.4 + basePadding,
                     60 // Lower absolute minimum to avoid giant nodes
                 );
-                
-                // ✅ NEW: Use measured bounds to guarantee no bottom clipping
+
+                // EW: Use measured bounds to guarantee no bottom clipping
                 let newY = rectY;
                 if (measuredAny && isFinite(measuredTop) && isFinite(measuredBottom)) {
                     // Top/bottom padding tuned to avoid clipping descenders on the last line
                     const topPad = Math.max(6, basePadding * 0.9);
                     const bottomClipFudge = Math.max(10, averageFontSize * 0.8) + (lineCount > 1 ? Math.min(14, (lineCount - 1) * 1.6) : 0) + (hasHtmlContent ? 4 : 0);
                     const bottomPad = Math.max(basePadding * 1.1, bottomClipFudge);
-                    
+
                     // Prefer expanding downward; only move up if content starts above current top
                     newY = Math.min(rectY, measuredTop - topPad);
                     // For label-container rects, do not move Y to avoid vertical drift
                     const newYUsed = isLabelContainerRect ? rectY : newY;
                     const measuredHeightNeed = (measuredBottom + bottomPad) - newYUsed;
                     const newHeightMeasured = Math.max(height + (rectY - newYUsed), measuredHeightNeed);
-                    
+
                     // Combine with heuristic to be safe, never shrink
                     var newHeight = Math.max(newHeightHeuristic, newHeightMeasured, height);
-                    
+
                     rect.setAttribute('y', isFinite(newYUsed) ? newYUsed.toString() : rectY.toString());
                     rect.setAttribute('height', isFinite(newHeight) ? newHeight.toString() : height.toString());
                 } else {
@@ -5022,21 +5022,21 @@ class VisualizationEngine {
                     var newHeight = newHeightHeuristic;
                     rect.setAttribute('height', isFinite(newHeight) ? newHeight.toString() : height.toString());
                 }
-                // ✅ Clamp to safe positive sizes
+                // lamp to safe positive sizes
                 if (!isFinite(newWidth)) newWidth = width || 1;
                 if (!isFinite(newHeight)) newHeight = height || 1;
                 newWidth = Math.max(1, newWidth);
                 newHeight = Math.max(1, newHeight);
                 rect.setAttribute('width', newWidth.toString());
-                
-                // ✅ Enhanced: Center the expanded rectangle
+
+                // nhanced: Center the expanded rectangle
                 const x = parseFloat(rect.getAttribute('x') || 0);
                 const y = parseFloat(rect.getAttribute('y') || 0);
                 // Keep x centered. Do NOT shift y upward anymore; height was already adjusted to include bottom padding.
                 const safeX = isLabelContainerRect ? x : (isFinite(x - horizontalPadding / 2) ? (x - horizontalPadding / 2) : x);
                 rect.setAttribute('x', safeX.toString());
 
-                // ✅ SAFE SYNC: If this is the label-container rect, increase its foreignObject height to fit content
+                // AFE SYNC: If this is the label-container rect, increase its foreignObject height to fit content
                 if (isLabelContainerRect) {
                     try {
                         const rectH = parseFloat(rect.getAttribute('height') || '0');
@@ -5060,7 +5060,7 @@ class VisualizationEngine {
                                     const gbr = inner.getBoundingClientRect?.();
                                     innerH = Math.max(inner?.scrollHeight || 0, gbr?.height || 0);
                                 }
-                            } catch {}
+                            } catch { }
                             foMeasuredInnerH = innerH || 0;
                             const currentFoH = parseFloat(fo.getAttribute('height') || '0') || 0;
 
@@ -5166,56 +5166,56 @@ class VisualizationEngine {
                 }
 
                 // Keep labels managed by Mermaid; only adjust node rect sizes
-                
-                // ✅ Enhanced: Enhanced styling
+
+                // nhanced: Enhanced styling
                 if (!isLabelContainerRect) {
                     rect.setAttribute('stroke', isDark ? '#666666' : '#cccccc');
                     rect.setAttribute('stroke-width', '1.2');
                 }
-                
+
                 console.log(`📏 Rect adjusted - lines=${lineCount}, measured=${measuredAny}, complexity=${contentComplexity.toFixed(1)}, height=${height}→${newHeight}`);
             }
         });
-        
-        // ✅ Enhanced: Enhanced other shapes
+
+        // nhanced: Enhanced other shapes
         const circles = svgElement.querySelectorAll('circle');
         circles.forEach(circle => {
             const radius = parseFloat(circle.getAttribute('r') || 0);
             if (radius > 5) {
-                // ✅ Enhanced: Expand circles slightly for better text fit
+                // nhanced: Expand circles slightly for better text fit
                 circle.setAttribute('r', (radius * 1.2).toString());
             }
             circle.setAttribute('stroke', isDark ? '#666666' : '#cccccc');
             circle.setAttribute('stroke-width', '1.5');
         });
-        
+
         const polygons = svgElement.querySelectorAll('polygon');
         polygons.forEach(polygon => {
             polygon.setAttribute('stroke', isDark ? '#666666' : '#cccccc');
             polygon.setAttribute('stroke-width', '1.5');
         });
-        
-        // ✅ NEW: Enhanced subgraph spacing and styling
+
+        // EW: Enhanced subgraph spacing and styling
         this.applySubgraphSpacingStyles(svgElement, isDark);
-        
-        // ✅ FINAL GUARD: Sanitize any negative/NaN dimensions from upstream quirks
+
+        // INAL GUARD: Sanitize any negative/NaN dimensions from upstream quirks
         svgElement.querySelectorAll('rect').forEach(r => {
             let w = parseFloat(r.getAttribute('width') || '0');
             let h = parseFloat(r.getAttribute('height') || '0');
             if (!isFinite(w) || w <= 0) { r.setAttribute('width', Math.max(1, isFinite(w) ? w : 1).toString()); }
             if (!isFinite(h) || h <= 0) { r.setAttribute('height', Math.max(1, isFinite(h) ? h : 1).toString()); }
         });
-        
-        console.log('✅ Simplified post-processing completed');
+
+        console.log('implified post-processing completed');
     }
 
-    // ✅ NEW: Apply specific styling fixes for subgraph spacing
+    // EW: Apply specific styling fixes for subgraph spacing
     applySubgraphSpacingStyles(svgElement, isDark) {
         console.log('🎨 Applying subgraph spacing styles...');
         console.log('🔍 SVG element structure:', svgElement.outerHTML.substring(0, 500));
-        
+
         try {
-            // ✅ ENHANCED: Find subgraph elements using multiple selector strategies
+            // NHANCED: Find subgraph elements using multiple selector strategies
             const potentialSubgraphs = [
                 ...svgElement.querySelectorAll('g.cluster'),
                 ...svgElement.querySelectorAll('g[id*="cluster"]'),
@@ -5225,34 +5225,34 @@ class VisualizationEngine {
                 ...svgElement.querySelectorAll('g.subgraph'),
                 ...svgElement.querySelectorAll('g[id*="subgraph"]')
             ];
-            
+
             console.log(`🔍 Found ${potentialSubgraphs.length} potential subgraph elements`);
-            
-            // ✅ ENHANCED: Apply spacing to all subgraph-related elements
+
+            // NHANCED: Apply spacing to all subgraph-related elements
             potentialSubgraphs.forEach((element, index) => {
                 console.log(`🔧 Processing subgraph element ${index}:`, element.tagName, element.className.baseVal || element.className, element.id);
-                
+
                 if (element.tagName === 'g') {
                     // Handle group elements (containers)
                     const transform = element.getAttribute('transform');
                     if (transform) {
                         console.log('🔧 Original transform:', transform);
-                        
+
                         const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
                         if (translateMatch) {
                             const x = parseFloat(translateMatch[1]);
                             const y = parseFloat(translateMatch[2]);
-                            
+
                             // Add extra spacing between subgraphs
                             const extraSpacing = index > 0 ? 40 : 20;
                             const newY = y + extraSpacing;
                             const newTransform = transform.replace(/translate\([^)]+\)/, `translate(${x}, ${newY})`);
-                            
+
                             element.setAttribute('transform', newTransform);
                             console.log('🔧 Updated transform:', newTransform);
                         }
                     }
-                    
+
                     // Find and enhance child rectangles (subgraph backgrounds)
                     const rects = element.querySelectorAll('rect');
                     rects.forEach(rect => {
@@ -5262,13 +5262,13 @@ class VisualizationEngine {
                         rect.setAttribute('stroke-width', '1');
                         rect.setAttribute('rx', '6');
                         rect.setAttribute('ry', '6');
-                        
+
                         // Expand padding
                         const width = parseFloat(rect.getAttribute('width') || 0);
                         const height = parseFloat(rect.getAttribute('height') || 0);
                         const x = parseFloat(rect.getAttribute('x') || 0);
                         const y = parseFloat(rect.getAttribute('y') || 0);
-                        
+
                         const newW = Math.max(1, isFinite(width + 20) ? (width + 20) : width || 1);
                         const newH = Math.max(1, isFinite(height + 30) ? (height + 30) : height || 1);
                         rect.setAttribute('width', newW.toString());
@@ -5276,7 +5276,7 @@ class VisualizationEngine {
                         rect.setAttribute('x', (x - 10).toString());
                         rect.setAttribute('y', (y - 15).toString());
                     });
-                    
+
                 } else if (element.tagName === 'rect') {
                     // Handle direct rectangle elements
                     element.setAttribute('fill', isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)');
@@ -5286,16 +5286,16 @@ class VisualizationEngine {
                     element.setAttribute('ry', '6');
                 }
             });
-            
-            // ✅ ENHANCED: Find and enhance subgraph titles using multiple strategies
+
+            // NHANCED: Find and enhance subgraph titles using multiple strategies
             const allText = svgElement.querySelectorAll('text');
             const titleTexts = [];
-            
+
             allText.forEach(text => {
                 const textContent = (text.textContent || '').trim();
                 const textLength = textContent.length;
-                
-                // ✅ ENHANCED: Better subgraph title detection
+
+                // NHANCED: Better subgraph title detection
                 // Look for actual subgraph titles, not node content
                 const isSubgraphTitle = (
                     // Check for common subgraph naming patterns
@@ -5314,36 +5314,36 @@ class VisualizationEngine {
                         (textContent.includes('Balanced') && !textContent.includes('<'))
                     )) ||
                     // Look for text that appears to be titles based on structure
-                    (text.getAttribute('text-anchor') === 'middle' && 
-                     textLength > 8 && 
-                     !textContent.includes('<') && // Exclude HTML content 
-                     !textContent.includes('•') &&  // Exclude bullet points
-                     !textContent.includes('Mon-Fri')) // Exclude schedule content
+                    (text.getAttribute('text-anchor') === 'middle' &&
+                        textLength > 8 &&
+                        !textContent.includes('<') && // Exclude HTML content 
+                        !textContent.includes('•') &&  // Exclude bullet points
+                        !textContent.includes('Mon-Fri')) // Exclude schedule content
                 );
-                
+
                 if (isSubgraphTitle) {
                     titleTexts.push(text);
                     console.log(`🔍 Detected subgraph title: "${textContent}"`);
                 }
             });
-            
+
             console.log(`🔍 Found ${titleTexts.length} potential subgraph title texts`);
-            
-            // ✅ CRITICAL FIX: Position subgraph titles at the top of their containers
+
+            // RITICAL FIX: Position subgraph titles at the top of their containers
             titleTexts.forEach((text, index) => {
                 console.log(`🔧 Processing subgraph title ${index}: "${text.textContent}"`);
-                
-                // ✅ ENHANCED: Find the associated subgraph container more accurately
+
+                // NHANCED: Find the associated subgraph container more accurately
                 let parentContainer = null;
-                
+
                 // Strategy 1: Look for direct parent cluster
                 parentContainer = text.closest('g.cluster') || text.closest('g[id*="cluster"]') || text.closest('g[id*="subgraph"]');
-                
+
                 // Strategy 2: If not found, look for nearby cluster by position
                 if (!parentContainer) {
                     const textY = parseFloat(text.getAttribute('y') || 0);
                     const textX = parseFloat(text.getAttribute('x') || 0);
-                    
+
                     const clusters = svgElement.querySelectorAll('g.cluster, g[id*="cluster"], g[id*="subgraph"]');
                     clusters.forEach(cluster => {
                         const clusterRect = cluster.querySelector('rect');
@@ -5352,7 +5352,7 @@ class VisualizationEngine {
                             const rectX = parseFloat(clusterRect.getAttribute('x') || 0);
                             const rectWidth = parseFloat(clusterRect.getAttribute('width') || 0);
                             const rectHeight = parseFloat(clusterRect.getAttribute('height') || 0);
-                            
+
                             // Check if title is within or near the cluster bounds
                             if (textX >= rectX - 50 && textX <= rectX + rectWidth + 50 &&
                                 textY >= rectY - 100 && textY <= rectY + rectHeight + 50) {
@@ -5362,46 +5362,46 @@ class VisualizationEngine {
                         }
                     });
                 }
-                
+
                 if (parentContainer) {
                     // Find the background rectangle of this subgraph
                     const backgroundRect = parentContainer.querySelector('rect');
-                    
+
                     if (backgroundRect) {
                         const rectX = parseFloat(backgroundRect.getAttribute('x') || 0);
                         const rectY = parseFloat(backgroundRect.getAttribute('y') || 0);
                         const rectWidth = parseFloat(backgroundRect.getAttribute('width') || 0);
-                        
-                        // ✅ CRITICAL: Position title ABOVE the subgraph box, not inside
+
+                        // RITICAL: Position title ABOVE the subgraph box, not inside
                         const titleX = rectX + (rectWidth / 2); // Center horizontally
                         const titleY = rectY - 10; // Position ABOVE the box (negative offset)
-                        
+
                         text.setAttribute('x', titleX.toString());
                         text.setAttribute('y', titleY.toString());
                         text.setAttribute('text-anchor', 'middle');
                         text.setAttribute('dominant-baseline', 'bottom'); // Align bottom of text to position
-                        
+
                         console.log(`🔧 Repositioned title "${text.textContent}" to (${titleX}, ${titleY}) - ABOVE subgraph`);
-                        
-                        // ✅ CRITICAL: Expand the subgraph box upward to accommodate the title
+
+                        // RITICAL: Expand the subgraph box upward to accommodate the title
                         const newRectY = titleY - 25; // Make room for title
                         const newRectHeight = (parseFloat(backgroundRect.getAttribute('height') || 0)) + Math.abs(rectY - newRectY);
-                        
+
                         backgroundRect.setAttribute('y', newRectY.toString());
                         backgroundRect.setAttribute('height', newRectHeight.toString());
-                        
+
                         console.log(`🔧 Expanded subgraph box: y=${newRectY}, height=${newRectHeight}`);
                     }
                 } else {
                     console.warn(`⚠️ Could not find parent container for title: "${text.textContent}"`);
                 }
-                
-                // ✅ Enhance title styling
+
+                // nhance title styling
                 text.setAttribute('font-weight', 'bold');
                 text.setAttribute('font-size', '14');
                 text.setAttribute('fill', isDark ? '#e6edf3' : '#24292f');
-                
-                // ✅ Add a subtle background to make titles more visible
+
+                // dd a subtle background to make titles more visible
                 try {
                     const textBBox = text.getBBox ? text.getBBox() : {
                         x: parseFloat(text.getAttribute('x') || 0) - 50,
@@ -5409,7 +5409,7 @@ class VisualizationEngine {
                         width: text.textContent.length * 8, // Estimate width
                         height: 16
                     };
-                    
+
                     const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                     bgRect.setAttribute('x', (textBBox.x - 5).toString());
                     bgRect.setAttribute('y', (textBBox.y - 2).toString());
@@ -5420,7 +5420,7 @@ class VisualizationEngine {
                     bgRect.setAttribute('stroke-width', '1');
                     bgRect.setAttribute('rx', '4');
                     bgRect.setAttribute('ry', '4');
-                    
+
                     // Insert background before the text
                     if (text.parentNode) {
                         text.parentNode.insertBefore(bgRect, text);
@@ -5430,14 +5430,14 @@ class VisualizationEngine {
                     console.warn('⚠️ Could not add background for title:', bboxError.message);
                 }
             });
-            
-            // ✅ ENHANCED: Try to inject CSS for additional styling
+
+            // NHANCED: Try to inject CSS for additional styling
             let styleElement = svgElement.querySelector('style');
             if (!styleElement) {
                 styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
                 svgElement.insertBefore(styleElement, svgElement.firstChild);
             }
-            
+
             const additionalStyles = `
                 .cluster { 
                     margin: 30px 0 !important; 
@@ -5469,26 +5469,26 @@ class VisualizationEngine {
                     font-weight: bold !important;
                 }
             `;
-            
+
             styleElement.textContent = (styleElement.textContent || '') + additionalStyles;
-            
-            // ✅ CRITICAL: Adjust SVG viewBox to accommodate titles positioned above subgraphs
+
+            // RITICAL: Adjust SVG viewBox to accommodate titles positioned above subgraphs
             const viewBox = svgElement.getAttribute('viewBox');
             if (viewBox) {
                 const [x, y, width, height] = viewBox.split(' ').map(Number);
-                
+
                 // Expand viewBox upward and increase overall height to accommodate titles
                 const newY = y - 50; // Extend upward for titles
                 const newHeight = height + 100; // Add extra space for titles and spacing
-                
+
                 svgElement.setAttribute('viewBox', `${x} ${newY} ${width} ${newHeight}`);
                 console.log(`🔧 Adjusted SVG viewBox to accommodate subgraph titles: ${x} ${newY} ${width} ${newHeight}`);
             }
-            
-            console.log('✅ Subgraph spacing styles applied successfully');
-            
+
+            console.log('ubgraph spacing styles applied successfully');
+
         } catch (error) {
-            console.error('❌ Error applying subgraph spacing styles:', error);
+            console.error(' Error applying subgraph spacing styles:', error);
         }
     }
 
@@ -5496,7 +5496,7 @@ class VisualizationEngine {
     addMermaidUnifiedActionBar(container, diagramContent, chartId) {
         const actionBar = document.createElement('div');
         actionBar.className = 'viz-action-bar';
-        
+
         actionBar.innerHTML = `
             <button class="viz-action-btn" data-action="copy" title="Copy Code" data-function="copyMermaidCode">
                 <i class="fas fa-copy">⧉</i>
@@ -5530,7 +5530,7 @@ class VisualizationEngine {
                 <i class="fas fa-download">⬇</i>
             </button>
         `;
-        
+
         container.appendChild(actionBar);
         this.setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId);
     }
@@ -5538,110 +5538,110 @@ class VisualizationEngine {
     // 6.2.2
     // 6.2.2 - FIXED: Better parameter handling and error checking
     // 6.2.2 - FIXED: Better container identification and export handling
-setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
-    const buttons = actionBar.querySelectorAll('.viz-action-btn');
-    
-    buttons.forEach(button => {
-        const functionName = button.getAttribute('data-function');
-        
-        button.addEventListener('click', (e) => {
-            e.stopPropagation();
-            
-            // ✅ FIXED: Always find the closest viz-container for exports
-            const vizContainer = button.closest('.viz-container') || container;
-            
-            console.log('🔍 Mermaid button clicked:', {
-                functionName,
-                hasVizContainer: !!vizContainer,
-                hasVizContentArea: !!vizContainer?.querySelector('.viz-content-area'),
-                hasSvg: !!vizContainer?.querySelector('svg'),
-                diagramContentLength: diagramContent?.length,
-                chartId
+    setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
+        const buttons = actionBar.querySelectorAll('.viz-action-btn');
+
+        buttons.forEach(button => {
+            const functionName = button.getAttribute('data-function');
+
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                // FIXED: Always find the closest viz-container for exports
+                const vizContainer = button.closest('.viz-container') || container;
+
+                console.log('🔍 Mermaid button clicked:', {
+                    functionName,
+                    hasVizContainer: !!vizContainer,
+                    hasVizContentArea: !!vizContainer?.querySelector('.viz-content-area'),
+                    hasSvg: !!vizContainer?.querySelector('svg'),
+                    diagramContentLength: diagramContent?.length,
+                    chartId
+                });
+
+                switch (functionName) {
+                    case 'copyMermaidCode':
+                        this.copyMermaidCode(diagramContent);
+                        break;
+
+                    // Font size controls...
+                    case 'fontSizeDown':
+                        window.mermaidFontController.cycleFontSize(vizContainer, 'down');
+                        this.updateFontButtonStates(vizContainer, actionBar);
+                        // FIX: Re-render fullscreen if it's open
+                        this.reRenderFullscreenIfOpen(vizContainer, diagramContent, chartId);
+                        break;
+
+                    case 'fontSizeUp':
+                        window.mermaidFontController.cycleFontSize(vizContainer, 'up');
+                        this.updateFontButtonStates(vizContainer, actionBar);
+                        // FIX: Re-render fullscreen if it's open
+                        this.reRenderFullscreenIfOpen(vizContainer, diagramContent, chartId);
+                        break;
+
+                    case 'fontSizeMenu':
+                        this.showFontSizeMenu(vizContainer, button);
+                        break;
+
+                    case 'toggleDirection':
+                        this.toggleMermaidDirection(vizContainer, diagramContent, chartId);
+                        // FIX: Re-render fullscreen if it's open
+                        this.reRenderFullscreenIfOpen(vizContainer, diagramContent, chartId);
+                        break;
+                    case 'colorThemes':
+                        this.toggleMermaidColorThemes(vizContainer, diagramContent, chartId);
+                        // FIX: Re-render fullscreen if it's open
+                        this.reRenderFullscreenIfOpen(vizContainer, diagramContent, chartId);
+                        break;
+                    case 'fullscreenView':
+                        this.openMermaidFullscreen(vizContainer, diagramContent, chartId);
+                        break;
+                    case 'exportOptions':
+                        // FIXED: Use the vizContainer and ensure we have content
+                        const contentToExport = diagramContent ||
+                            vizContainer.getAttribute('data-original-content') ||
+                            '';
+                        console.log('📤 Export options for viz-container:', {
+                            hasContent: !!contentToExport,
+                            contentLength: contentToExport.length,
+                            hasVizContentArea: !!vizContainer.querySelector('.viz-content-area'),
+                            hasSvg: !!vizContainer.querySelector('svg')
+                        });
+
+                        if (!contentToExport) {
+                            this.showNotification(' No diagram content available for export', 'error');
+                            return;
+                        }
+
+                        this.toggleMermaidExportOptions(vizContainer, contentToExport, chartId);
+                        break;
+                }
             });
-            
-            switch(functionName) {
-                case 'copyMermaidCode':
-                    this.copyMermaidCode(diagramContent);
-                    break;
-                
-                // Font size controls...
-                case 'fontSizeDown':
-                    window.mermaidFontController.cycleFontSize(vizContainer, 'down');
-                    this.updateFontButtonStates(vizContainer, actionBar);
-                    // ✅ FIX: Re-render fullscreen if it's open
-                    this.reRenderFullscreenIfOpen(vizContainer, diagramContent, chartId);
-                    break;
-                    
-                case 'fontSizeUp':
-                    window.mermaidFontController.cycleFontSize(vizContainer, 'up');
-                    this.updateFontButtonStates(vizContainer, actionBar);
-                    // ✅ FIX: Re-render fullscreen if it's open
-                    this.reRenderFullscreenIfOpen(vizContainer, diagramContent, chartId);
-                    break;
-                    
-                case 'fontSizeMenu':
-                    this.showFontSizeMenu(vizContainer, button);
-                    break;
-                
-                case 'toggleDirection':
-                    this.toggleMermaidDirection(vizContainer, diagramContent, chartId);
-                    // ✅ FIX: Re-render fullscreen if it's open
-                    this.reRenderFullscreenIfOpen(vizContainer, diagramContent, chartId);
-                    break;
-                case 'colorThemes':
-                    this.toggleMermaidColorThemes(vizContainer, diagramContent, chartId);
-                    // ✅ FIX: Re-render fullscreen if it's open  
-                    this.reRenderFullscreenIfOpen(vizContainer, diagramContent, chartId);
-                    break;
-                case 'fullscreenView':
-                    this.openMermaidFullscreen(vizContainer, diagramContent, chartId);
-                    break;
-                case 'exportOptions':
-                    // ✅ FIXED: Use the vizContainer and ensure we have content
-                    const contentToExport = diagramContent || 
-                                          vizContainer.getAttribute('data-original-content') || 
-                                          '';
-                    console.log('📤 Export options for viz-container:', {
-                        hasContent: !!contentToExport,
-                        contentLength: contentToExport.length,
-                        hasVizContentArea: !!vizContainer.querySelector('.viz-content-area'),
-                        hasSvg: !!vizContainer.querySelector('svg')
-                    });
-                    
-                    if (!contentToExport) {
-                        this.showNotification('❌ No diagram content available for export', 'error');
-                        return;
-                    }
-                    
-                    this.toggleMermaidExportOptions(vizContainer, contentToExport, chartId);
-                    break;
-            }
         });
-    });
-    
-    // ✅ Apply user font preference on load
-    if (window.mermaidFontController) {
-        window.mermaidFontController.applyUserPreference(container);
-        this.updateFontButtonStates(container, actionBar);
+
+        // Apply user font preference on load
+        if (window.mermaidFontController) {
+            window.mermaidFontController.applyUserPreference(container);
+            this.updateFontButtonStates(container, actionBar);
+        }
     }
-}
 
     // 6.3.1
-    // ✅ ALSO UPDATE: Direction toggle for consistency
+    // LSO UPDATE: Direction toggle for consistency
     async toggleMermaidDirection(container, diagramContent, chartId) {
         console.log('🔄 Toggling Mermaid direction...');
-        
+
         try {
             const originalContent = container.getAttribute('data-original-content');
             if (!originalContent) {
-                console.error('❌ No original content stored');
+                console.error(' No original content stored');
                 return;
             }
-            
-            // ✅ BETTER DETECTION: More robust direction detection
+
+            // ETTER DETECTION: More robust direction detection
             let currentDirection = 'TD';
             const contentUpper = originalContent.toUpperCase();
-            
+
             if (contentUpper.includes('GRAPH LR') || contentUpper.includes('FLOWCHART LR')) {
                 currentDirection = 'LR';
             } else if (contentUpper.includes('GRAPH TD') || contentUpper.includes('FLOWCHART TD')) {
@@ -5651,22 +5651,22 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
             } else if (contentUpper.includes('GRAPH BT') || contentUpper.includes('FLOWCHART BT')) {
                 currentDirection = 'BT';
             }
-            
+
             // Toggle direction - simple TD ↔ LR
             let newDirection = currentDirection === 'TD' ? 'LR' : 'TD';
-            
+
             console.log(`🔄 Changing direction from ${currentDirection} to ${newDirection}`);
-            
-            // ✅ TRANSFORM: Better content transformation
+
+            // RANSFORM: Better content transformation
             let newContent = this.transformMermaidDirection(originalContent, newDirection);
             console.log('🔄 Transformed content:', newContent.substring(0, 100) + '...');
-            
+
             // Apply HTML transformation
             newContent = this.transformMermaidContentToHTML(newContent);
-            
-            // ✅ ENHANCED: Try multiple selectors to find mermaid content
+
+            // NHANCED: Try multiple selectors to find mermaid content
             let mermaidDiv = container.querySelector('.mermaid');
-            
+
             // If not found directly, try within viz-content areas
             if (!mermaidDiv) {
                 const vizContent = container.querySelector('.viz-content, .viz-content-area');
@@ -5674,19 +5674,19 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
                     mermaidDiv = vizContent.querySelector('.mermaid');
                 }
             }
-            
+
             // Still not found? Try finding any element with mermaid id pattern
             if (!mermaidDiv) {
                 mermaidDiv = container.querySelector('[id*="mermaid"], [class*="mermaid"]');
             }
-            
+
             if (!mermaidDiv) {
                 // Try alternative selectors
                 const svgElement = container.querySelector('svg');
                 const vizElement = container.querySelector('.viz-content');
                 const allChildren = Array.from(container.children);
-                
-                console.error('❌ Mermaid div not found. Container info:');
+
+                console.error(' Mermaid div not found. Container info:');
                 console.log('Container class:', container.className);
                 console.log('Container id:', container.id);
                 console.log('Container tag:', container.tagName);
@@ -5700,7 +5700,7 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
                 })));
                 console.log('Has SVG:', !!svgElement);
                 console.log('Has viz-content:', !!vizElement);
-                
+
                 // If we have SVG directly, try to find/create a proper mermaid wrapper
                 if (svgElement && !mermaidDiv) {
                     console.log('🔧 Found SVG without mermaid wrapper, creating wrapper...');
@@ -5714,101 +5714,101 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
                         align-items: center;
                         justify-content: center;
                     `;
-                    
+
                     // Move SVG into wrapper
                     svgElement.parentNode.insertBefore(wrapper, svgElement);
                     wrapper.appendChild(svgElement);
-                    mermaidDiv = wrapper; // ✅ CRITICAL FIX: Set the reference to the created wrapper
-                    console.log('✅ Created mermaid wrapper for existing SVG');
+                    mermaidDiv = wrapper; // RITICAL FIX: Set the reference to the created wrapper
+                    console.log('reated mermaid wrapper for existing SVG');
                 } else {
                     // Try looking deeper in the structure
                     const vizContent = container.querySelector('.viz-content, .viz-content-area');
                     const directSvg = container.querySelector('svg');
-                    
+
                     console.log('🔍 Searching for alternative structures...');
                     console.log('Found viz-content:', !!vizContent);
                     console.log('Found direct SVG:', !!directSvg);
-                    
+
                     if (vizContent) {
                         const vizMermaid = vizContent.querySelector('.mermaid');
                         if (vizMermaid) {
-                            console.log('✅ Found mermaid in viz-content, using that');
+                            console.log('ound mermaid in viz-content, using that');
                             // Update container reference to point to the correct element
                             return this.toggleMermaidDirection(vizContent.parentElement, diagramContent, chartId);
                         }
                     }
                 }
             }
-            
+
             // If we still don't have a mermaid div at this point, there's a structure issue
             if (!mermaidDiv) {
-                this.showNotification('❌ Cannot find Mermaid diagram to toggle direction. Structure may be incompatible.', 'error');
+                this.showNotification(' Cannot find Mermaid diagram to toggle direction. Structure may be incompatible.', 'error');
                 return;
             }
-            
+
             // Re-render
             const isDark = this.options.theme === 'dark';
             const fontSize = parseInt(container.getAttribute('data-font-size') || '14');
-            
+
             mermaid.initialize({
                 startOnLoad: false,
                 theme: isDark ? 'dark' : 'base',
                 securityLevel: 'loose',
                 htmlLabels: true,
                 fontSize: fontSize,
-                flowchart: { 
-                    htmlLabels: true, 
+                flowchart: {
+                    htmlLabels: true,
                     padding: Math.max(25, fontSize * 1.4),
                     nodeSpacing: Math.max(80, fontSize * 4.5),
                     rankSpacing: Math.max(80, fontSize * 4.5),
                     diagramPadding: Math.max(35, fontSize * 2.0)
                 }
             });
-            
+
             // Use the found/created mermaidDiv directly
             const newChartId = `${chartId}-${newDirection}-${Date.now()}`;
             const { svg } = await mermaid.render(newChartId, newContent);
-            
+
             if (svg) {
                 mermaidDiv.innerHTML = svg;
-                
-                // ✅ CRITICAL FIX: Always apply post-processing after direction change
+
+                // RITICAL FIX: Always apply post-processing after direction change
                 const svgElement = mermaidDiv.querySelector('svg');
                 if (svgElement) {
                     console.log('🔧 Applying consistent post-processing for direction change...');
-                    
-                    // ✅ STEP 1: Apply intelligent node sizing
+
+                    // TEP 1: Apply intelligent node sizing
                     this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
-                    
-                    // ✅ STEP 2: Apply current theme colors
+
+                    // TEP 2: Apply current theme colors
                     const currentTheme = container.getAttribute('data-color-theme') || 'default';
                     const colorThemes = this.getMermaidColorThemes();
                     const selectedTheme = colorThemes[currentTheme] || colorThemes.default;
                     this.applyMermaidThemeColors(svgElement, selectedTheme, container);
-                    
-                    console.log('✅ Direction change post-processing complete');
+
+                    console.log('irection change post-processing complete');
                 }
-                
+
                 // Update stored content
                 const updatedOriginalContent = this.transformMermaidDirection(originalContent, newDirection);
                 container.setAttribute('data-original-content', updatedOriginalContent);
-                
+
                 const directionNames = {
                     'TD': 'Top → Down',
                     'LR': 'Left → Right'
                 };
-                
+
                 this.showNotification(`🔄 Direction: ${directionNames[newDirection]} with consistent sizing`, 'success');
-                
-                // ✅ Update fullscreen if open
+
+                // pdate fullscreen if open
                 if (window.reRenderFullscreenIfOpen) {
                     window.reRenderFullscreenIfOpen();
                 }
             }
 
         } catch (error) {
-            console.error('❌ Error toggling Mermaid direction:', error);
-            this.showNotification('❌ Failed to change direction', 'error');
+            console.error(' Error toggling Mermaid direction:', error);
+            this.showNotification(' Failed to change direction', 'error');
         }
     }
 
@@ -5816,19 +5816,19 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
     // 6.3.2
     transformMermaidDirection(content, newDirection) {
         if (!content || typeof content !== 'string') return content;
-        
+
         let transformed = content;
-        
-        // ✅ COMPREHENSIVE: Handle all possible direction patterns
+
+        // OMPREHENSIVE: Handle all possible direction patterns
         const patterns = [
             /graph\s+(TD|LR|RL|BT|TB)/gi,
             /flowchart\s+(TD|LR|RL|BT|TB)/gi,
             /^graph\s*$/gim,
             /^flowchart\s*$/gim
         ];
-        
+
         let foundPattern = false;
-        
+
         patterns.forEach(pattern => {
             if (pattern.test(transformed)) {
                 foundPattern = true;
@@ -5841,12 +5841,12 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
                 });
             }
         });
-        
+
         // If no pattern found, add it
         if (!foundPattern) {
             const lines = transformed.split('\n');
             const firstLine = lines[0].trim();
-            
+
             if (firstLine === 'graph' || firstLine === 'flowchart') {
                 lines[0] = `${firstLine} ${newDirection}`;
                 transformed = lines.join('\n');
@@ -5854,7 +5854,7 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
                 transformed = `graph ${newDirection}\n${transformed}`;
             }
         }
-        
+
         return transformed;
     }
 
@@ -5880,7 +5880,7 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
             min-width: 160px;
         `;
-        
+
         const select = document.createElement('select');
         select.className = 'color-theme-select';
         select.style.cssText = `
@@ -5894,10 +5894,10 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
             width: 100% !important;
             box-sizing: border-box !important;
         `;
-        
+
         const colorThemes = this.getMermaidColorThemes();
         const currentTheme = container.getAttribute('data-color-theme') || 'default';
-        
+
         Object.entries(colorThemes).forEach(([key, theme]) => {
             const option = document.createElement('option');
             option.value = key;
@@ -5907,370 +5907,370 @@ setupMermaidButtonHandlers(actionBar, container, diagramContent, chartId) {
             }
             select.appendChild(option);
         });
-        
+
         select.onchange = (e) => {
             const newTheme = e.target.value;
             this.applyMermaidColorTheme(container, diagramContent, chartId, newTheme);
             container.setAttribute('data-color-theme', newTheme);
             // Don't remove dropdown - let it stay open like chart type
-            
-            // ✅ Update fullscreen if open
+
+            // pdate fullscreen if open
             if (window.reRenderFullscreenIfOpen) {
                 window.reRenderFullscreenIfOpen();
             }
         };
-        
+
         switcher.appendChild(select);
         container.appendChild(switcher);
-        
-        // ✅ Click outside to close
+
+        // lick outside to close
         const handleClickOutside = (e) => {
             if (!switcher.contains(e.target) && !e.target.closest('[data-function="colorThemes"]')) {
                 switcher.remove();
                 document.removeEventListener('click', handleClickOutside);
             }
         };
-        
+
         setTimeout(() => {
             document.addEventListener('click', handleClickOutside);
         }, 100);
     }
 
-    
-// 6.4.2 - FIXED: Consistent node sizing for UI and exports
-async applyMermaidColorTheme(container, diagramContent, chartId, themeName) {
-    if (!window.mermaid) return;
-    
-    try {
-        const colorThemes = this.getMermaidColorThemes();
-        const selectedTheme = colorThemes[themeName] || colorThemes.default;
-        const isDark = this.options.theme === 'dark';
-        
-        console.log(`🎨 Applying ${selectedTheme.name} theme to Mermaid diagram`);
-        
-        // ✅ FIXED: Proper Mermaid theme configuration with enhanced text contrast
-        const themeConfig = {
-            startOnLoad: false,
-            theme: isDark ? 'dark' : 'base',
-            themeVariables: {
-                // Core theme
-                primaryColor: selectedTheme.colors.fillType0,
-                primaryTextColor: '#ffffff',  // Force white text for maximum contrast
-                primaryBorderColor: '#333333',
-                lineColor: isDark ? '#7d8590' : '#656d76',
-                
-                // Background colors
-                backgroundColor: isDark ? '#0d1117' : '#ffffff',
-                mainBkg: selectedTheme.colors.fillType0,
-                secondBkg: selectedTheme.colors.fillType1,
-                tertiaryColor: selectedTheme.colors.fillType2,
-                
-                // ✅ CRITICAL: Direct color assignments for different node types
-                cScale0: selectedTheme.colors.fillType0,
-                cScale1: selectedTheme.colors.fillType1,
-                cScale2: selectedTheme.colors.fillType2,
-                cScale3: selectedTheme.colors.fillType3,
-                cScale4: selectedTheme.colors.fillType4,
-                cScale5: selectedTheme.colors.fillType5,
-                cScale6: selectedTheme.colors.fillType6,
-                cScale7: selectedTheme.colors.fillType7,
-                
-                // ✅ FLOWCHART specific colors
-                fillType0: selectedTheme.colors.fillType0,
-                fillType1: selectedTheme.colors.fillType1,
-                fillType2: selectedTheme.colors.fillType2,
-                fillType3: selectedTheme.colors.fillType3,
-                fillType4: selectedTheme.colors.fillType4,
-                fillType5: selectedTheme.colors.fillType5,
-                fillType6: selectedTheme.colors.fillType6,
-                fillType7: selectedTheme.colors.fillType7,
-                
-                // ✅ ENHANCED: Force white text on all elements for maximum readability
-                textColor: '#ffffff',
-                nodeTextColor: '#ffffff',
-                classText: '#ffffff',
-                labelTextColor: '#ffffff',
-                taskTextColor: '#ffffff',
-                activeTaskTextColor: '#ffffff',
-                signalTextColor: '#ffffff',
-                actorTextColor: '#ffffff',
-                pieTitleTextColor: '#ffffff',
-                pieSectionTextColor: '#ffffff',
-                pieLegendTextColor: '#ffffff',
-                
-                // ✅ NODE specific colors with strong borders
-                nodeBkg: selectedTheme.colors.fillType0,
-                nodeBorder: '#333333',
-                
-                // ✅ CLUSTER colors
-                clusterBkg: selectedTheme.colors.fillType1,
-                clusterBorder: '#333333',
-                
-                // ✅ ADDITIONAL flowchart colors
-                defaultLinkColor: '#666666',
-                titleColor: '#ffffff',
-                edgeLabelBackground: isDark ? '#21262d' : '#ffffff',
-                
-                // ✅ SECTION colors for sequence diagrams
-                sectionBkgColor: selectedTheme.colors.fillType0,
-                altSectionBkgColor: selectedTheme.colors.fillType1,
-                
-                // ✅ ACTOR colors for sequence diagrams  
-                actorBkg: selectedTheme.colors.fillType2,
-                actorBorder: '#333333',
-                actorLineColor: '#666666',
-                
-                // ✅ SIGNAL colors
-                signalColor: '#ffffff',
-                
-                // ✅ LABEL colors
-                labelBoxBkgColor: selectedTheme.colors.fillType5,
-                labelBoxBorderColor: '#333333'
-            },
-            
-            // ✅ ENHANCED: Better font configuration
-            fontFamily: '"Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            fontSize: parseInt(container.getAttribute('data-font-size') || '14'),
-            
-            // ✅ ENHANCED: Flowchart improvements for better text fit
-            flowchart: {
-                htmlLabels: true,
-                curve: 'basis',
-                padding: 25,
-                nodeSpacing: 80,
-                rankSpacing: 80,
-                diagramPadding: 35,
-                // Additional spacing controls
-                edgePadding: 20,
-                nodePadding: 8,     // REDUCED
-                textHeight: 18,
-                lineHeight: 1.3
-            }
-        };
-        
-        // ✅ REINITIALIZE Mermaid with new theme
-        mermaid.initialize(themeConfig);
 
-        // ✅ GENERATE new unique ID to force re-render
-        const newId = `mermaid-${chartId}-${themeName}-${Date.now()}`;
-        
-        // ✅ RE-RENDER with new configuration
-        const { svg } = await mermaid.render(newId, diagramContent);
-        
-        const mermaidDiv = container.querySelector('.mermaid');
-        if (mermaidDiv) {
-            mermaidDiv.innerHTML = svg;
-            
-            // ✅ CRITICAL FIX: Always apply post-processing after re-render
-            const svgElement = mermaidDiv.querySelector('svg');
-            if (svgElement) {
-                console.log('🔧 Applying consistent post-processing for theme change...');
-                
-                // ✅ STEP 1: Apply intelligent node sizing (same as initial render)
-                this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
-                
-                // ✅ STEP 2: Apply theme-specific colors AFTER sizing
-                this.applyMermaidThemeColors(svgElement, selectedTheme, container);
-                
-                console.log('✅ Post-processing complete - UI and export sizes will match');
+    // 6.4.2 - FIXED: Consistent node sizing for UI and exports
+    async applyMermaidColorTheme(container, diagramContent, chartId, themeName) {
+        if (!window.mermaid) return;
+
+        try {
+            const colorThemes = this.getMermaidColorThemes();
+            const selectedTheme = colorThemes[themeName] || colorThemes.default;
+            const isDark = this.options.theme === 'dark';
+
+            console.log(`🎨 Applying ${selectedTheme.name} theme to Mermaid diagram`);
+
+            // FIXED: Proper Mermaid theme configuration with enhanced text contrast
+            const themeConfig = {
+                startOnLoad: false,
+                theme: isDark ? 'dark' : 'base',
+                themeVariables: {
+                    // Core theme
+                    primaryColor: selectedTheme.colors.fillType0,
+                    primaryTextColor: '#ffffff',  // Force white text for maximum contrast
+                    primaryBorderColor: '#333333',
+                    lineColor: isDark ? '#7d8590' : '#656d76',
+
+                    // Background colors
+                    backgroundColor: isDark ? '#0d1117' : '#ffffff',
+                    mainBkg: selectedTheme.colors.fillType0,
+                    secondBkg: selectedTheme.colors.fillType1,
+                    tertiaryColor: selectedTheme.colors.fillType2,
+
+                    // CRITICAL: Direct color assignments for different node types
+                    cScale0: selectedTheme.colors.fillType0,
+                    cScale1: selectedTheme.colors.fillType1,
+                    cScale2: selectedTheme.colors.fillType2,
+                    cScale3: selectedTheme.colors.fillType3,
+                    cScale4: selectedTheme.colors.fillType4,
+                    cScale5: selectedTheme.colors.fillType5,
+                    cScale6: selectedTheme.colors.fillType6,
+                    cScale7: selectedTheme.colors.fillType7,
+
+                    // FLOWCHART specific colors
+                    fillType0: selectedTheme.colors.fillType0,
+                    fillType1: selectedTheme.colors.fillType1,
+                    fillType2: selectedTheme.colors.fillType2,
+                    fillType3: selectedTheme.colors.fillType3,
+                    fillType4: selectedTheme.colors.fillType4,
+                    fillType5: selectedTheme.colors.fillType5,
+                    fillType6: selectedTheme.colors.fillType6,
+                    fillType7: selectedTheme.colors.fillType7,
+
+                    // ENHANCED: Force white text on all elements for maximum readability
+                    textColor: '#ffffff',
+                    nodeTextColor: '#ffffff',
+                    classText: '#ffffff',
+                    labelTextColor: '#ffffff',
+                    taskTextColor: '#ffffff',
+                    activeTaskTextColor: '#ffffff',
+                    signalTextColor: '#ffffff',
+                    actorTextColor: '#ffffff',
+                    pieTitleTextColor: '#ffffff',
+                    pieSectionTextColor: '#ffffff',
+                    pieLegendTextColor: '#ffffff',
+
+                    // NODE specific colors with strong borders
+                    nodeBkg: selectedTheme.colors.fillType0,
+                    nodeBorder: '#333333',
+
+                    // CLUSTER colors
+                    clusterBkg: selectedTheme.colors.fillType1,
+                    clusterBorder: '#333333',
+
+                    // ADDITIONAL flowchart colors
+                    defaultLinkColor: '#666666',
+                    titleColor: '#ffffff',
+                    edgeLabelBackground: isDark ? '#21262d' : '#ffffff',
+
+                    // SECTION colors for sequence diagrams
+                    sectionBkgColor: selectedTheme.colors.fillType0,
+                    altSectionBkgColor: selectedTheme.colors.fillType1,
+
+                    // ACTOR colors for sequence diagrams
+                    actorBkg: selectedTheme.colors.fillType2,
+                    actorBorder: '#333333',
+                    actorLineColor: '#666666',
+
+                    // SIGNAL colors
+                    signalColor: '#ffffff',
+
+                    // LABEL colors
+                    labelBoxBkgColor: selectedTheme.colors.fillType5,
+                    labelBoxBorderColor: '#333333'
+                },
+
+                // ENHANCED: Better font configuration
+                fontFamily: '"Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                fontSize: parseInt(container.getAttribute('data-font-size') || '14'),
+
+                // ENHANCED: Flowchart improvements for better text fit
+                flowchart: {
+                    htmlLabels: true,
+                    curve: 'basis',
+                    padding: 25,
+                    nodeSpacing: 80,
+                    rankSpacing: 80,
+                    diagramPadding: 35,
+                    // Additional spacing controls
+                    edgePadding: 20,
+                    nodePadding: 8,     // REDUCED
+                    textHeight: 18,
+                    lineHeight: 1.3
+                }
+            };
+
+            // REINITIALIZE Mermaid with new theme
+            mermaid.initialize(themeConfig);
+
+            // GENERATE new unique ID to force re-render
+            const newId = `mermaid-${chartId}-${themeName}-${Date.now()}`;
+
+            // RE-RENDER with new configuration
+            const { svg } = await mermaid.render(newId, diagramContent);
+
+            const mermaidDiv = container.querySelector('.mermaid');
+            if (mermaidDiv) {
+                mermaidDiv.innerHTML = svg;
+
+                // CRITICAL FIX: Always apply post-processing after re-render
+                const svgElement = mermaidDiv.querySelector('svg');
+                if (svgElement) {
+                    console.log('🔧 Applying consistent post-processing for theme change...');
+
+                    // STEP 1: Apply intelligent node sizing (same as initial render)
+                    this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
+
+                    // STEP 2: Apply theme-specific colors AFTER sizing
+                    this.applyMermaidThemeColors(svgElement, selectedTheme, container);
+
+                    console.log('✅ Post-processing complete - UI and export sizes will match');
+                }
+
+                this.showNotification(`🎨 Applied ${selectedTheme.name} color theme`, 'success');
+            } else {
+                console.error('Mermaid div not found');
             }
-            
-            this.showNotification(`🎨 Applied ${selectedTheme.name} color theme`, 'success');
-        } else {
-            console.error('Mermaid div not found');
+
+        } catch (error) {
+            console.error('Error applying color theme:', error);
+            this.showNotification('❌ Failed to apply color theme', 'error');
         }
-        
-    } catch (error) {
-        console.error('Error applying color theme:', error);
-        this.showNotification('❌ Failed to apply color theme', 'error');
     }
-}
 
-// ✅ NEW: Separated color application for better organization
-applyMermaidThemeColors(svgElement, selectedTheme, container) {
-    console.log('🎨 Applying theme colors to enhanced nodes...');
-    
-    // Find and color rectangles (boxes/nodes)
-    const rects = svgElement.querySelectorAll('rect');
-    console.log(`Found ${rects.length} rectangles to color`);
-    
-    rects.forEach((rect, index) => {
-        // Skip very small rects (likely borders or decorations)
-        const width = parseFloat(rect.getAttribute('width') || 0);
-        const height = parseFloat(rect.getAttribute('height') || 0);
-        
-        if (width > 10 && height > 10) {
+    // NEW: Separated color application for better organization
+    applyMermaidThemeColors(svgElement, selectedTheme, container) {
+        console.log('🎨 Applying theme colors to enhanced nodes...');
+
+        // Find and color rectangles (boxes/nodes)
+        const rects = svgElement.querySelectorAll('rect');
+        console.log(`Found ${rects.length} rectangles to color`);
+
+        rects.forEach((rect, index) => {
+            // Skip very small rects (likely borders or decorations)
+            const width = parseFloat(rect.getAttribute('width') || 0);
+            const height = parseFloat(rect.getAttribute('height') || 0);
+
+            if (width > 10 && height > 10) {
+                const colorIndex = index % Object.keys(selectedTheme.colors).length;
+                const colorKeys = Object.keys(selectedTheme.colors);
+                const color = selectedTheme.colors[colorKeys[colorIndex]];
+
+                rect.setAttribute('fill', color);
+                rect.setAttribute('stroke', '#333333');
+                rect.setAttribute('stroke-width', '2');
+
+                console.log(`Applied color ${color} to enhanced rect ${index} (${width}x${height})`);
+            }
+        });
+
+        // Color circles (for flowchart circles, decision points)
+        const circles = svgElement.querySelectorAll('circle');
+        circles.forEach((circle, index) => {
+            const radius = parseFloat(circle.getAttribute('r') || 0);
+            if (radius > 5) {
+                const colorIndex = index % Object.keys(selectedTheme.colors).length;
+                const colorKeys = Object.keys(selectedTheme.colors);
+                const color = selectedTheme.colors[colorKeys[colorIndex]];
+
+                circle.setAttribute('fill', color);
+                circle.setAttribute('stroke', '#333333');
+                circle.setAttribute('stroke-width', '2');
+            }
+        });
+
+        // Color polygons (for diamond shapes, etc.)
+        const polygons = svgElement.querySelectorAll('polygon');
+        polygons.forEach((polygon, index) => {
             const colorIndex = index % Object.keys(selectedTheme.colors).length;
             const colorKeys = Object.keys(selectedTheme.colors);
             const color = selectedTheme.colors[colorKeys[colorIndex]];
-            
-            rect.setAttribute('fill', color);
-            rect.setAttribute('stroke', '#333333');
-            rect.setAttribute('stroke-width', '2');
-            
-            console.log(`Applied color ${color} to enhanced rect ${index} (${width}x${height})`);
-        }
-    });
-    
-    // Color circles (for flowchart circles, decision points)
-    const circles = svgElement.querySelectorAll('circle');
-    circles.forEach((circle, index) => {
-        const radius = parseFloat(circle.getAttribute('r') || 0);
-        if (radius > 5) {
-            const colorIndex = index % Object.keys(selectedTheme.colors).length;
-            const colorKeys = Object.keys(selectedTheme.colors);
-            const color = selectedTheme.colors[colorKeys[colorIndex]];
-            
-            circle.setAttribute('fill', color);
-            circle.setAttribute('stroke', '#333333');
-            circle.setAttribute('stroke-width', '2');
-        }
-    });
-    
-    // Color polygons (for diamond shapes, etc.)
-    const polygons = svgElement.querySelectorAll('polygon');
-    polygons.forEach((polygon, index) => {
-        const colorIndex = index % Object.keys(selectedTheme.colors).length;
-        const colorKeys = Object.keys(selectedTheme.colors);
-        const color = selectedTheme.colors[colorKeys[colorIndex]];
-        
-        polygon.setAttribute('fill', color);
-        polygon.setAttribute('stroke', '#333333');
-        polygon.setAttribute('stroke-width', '2');
-    });
-    
-    // ✅ ENHANCED: Force maximum text visibility (preserve enhanced font sizes)
-    const textElements = svgElement.querySelectorAll('text, tspan');
-    const fontSize = parseInt(container.getAttribute('data-font-size') || '14');
-    textElements.forEach(text => {
-        // ✅ PRESERVE existing font-size from post-processing
-        const currentFontSize = text.getAttribute('font-size') || fontSize.toString();
-        text.setAttribute('fill', '#ffffff');
-        text.setAttribute('font-weight', '700');
-        text.setAttribute('font-size', currentFontSize); // Keep enhanced size
-        text.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.8)';
-    });
-    
-    // ✅ COLOR paths/lines with better visibility
-    const paths = svgElement.querySelectorAll('path');
-    paths.forEach(path => {
-        if (path.getAttribute('stroke') && path.getAttribute('stroke') !== 'none') {
-            path.setAttribute('stroke', '#666666');
-            path.setAttribute('stroke-width', '2');
-        }
-    });
-}
 
-// ✅ ALSO UPDATE: Font size change method for consistency
-async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
-    try {
-        // Store new size
-        container.setAttribute('data-font-size', fontSize.toString());
-        
-        // Get current theme and apply with new font size
-        const currentTheme = container.getAttribute('data-color-theme') || 'default';
-        const colorThemes = this.getMermaidColorThemes();
-        const selectedTheme = colorThemes[currentTheme] || colorThemes.default;
-        const isDark = this.options.theme === 'dark';
-        
-        // Enhanced theme configuration with custom font size
-        const themeConfig = {
-            startOnLoad: false,
-            theme: isDark ? 'dark' : 'base',
-            themeVariables: {
-                // Enhanced text colors for better contrast
-                primaryColor: selectedTheme.colors.fillType0,
-                primaryTextColor: '#ffffff',
-                primaryBorderColor: '#333333',
-                lineColor: isDark ? '#7d8590' : '#656d76',
-                
-                // Background and node colors
-                backgroundColor: isDark ? '#0d1117' : '#ffffff',
-                mainBkg: selectedTheme.colors.fillType0,
-                secondBkg: selectedTheme.colors.fillType1,
-                
-                // All fillType colors from selected theme
-                ...selectedTheme.colors,
-                
-                // Text colors - force white for maximum contrast
-                textColor: '#ffffff',
-                nodeTextColor: '#ffffff',
-                classText: '#ffffff',
-                labelTextColor: '#ffffff',
-                taskTextColor: '#ffffff',
-                activeTaskTextColor: '#ffffff',
-                signalTextColor: '#ffffff',
-                actorTextColor: '#ffffff',
-                pieTitleTextColor: '#ffffff',
-                pieSectionTextColor: '#ffffff',
-                pieLegendTextColor: '#ffffff',
-                
-                // Node styles
-                nodeBkg: selectedTheme.colors.fillType0,
-                nodeBorder: '#333333',
-                clusterBkg: selectedTheme.colors.fillType1,
-                clusterBorder: '#333333',
-                
-                // Actor styles for sequence diagrams
-                actorBkg: selectedTheme.colors.fillType2,
-                actorBorder: '#333333',
-                actorLineColor: '#666666'
-            },
-            
-            // ✅ ENHANCED: Custom font configuration
-            fontFamily: '"Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            fontSize: fontSize,
-            
-            // ✅ NODE-SPECIFIC font sizes and spacing
-            flowchart: {
-                htmlLabels: true,
-                curve: 'basis',
-                padding: Math.max(25, fontSize * 1.4),        // ✅ SCALE with font size
-                nodeSpacing: Math.max(80, fontSize * 4.5),    // ✅ SCALE with font size
-                rankSpacing: Math.max(80, fontSize * 4.5),    // ✅ SCALE with font size
-                diagramPadding: Math.max(35, fontSize * 2.0), // ✅ SCALE with font size
-                edgePadding: Math.max(20, fontSize * 1.2),
-                nodePadding: Math.max(8, fontSize * 0.5),
-                textHeight: fontSize * 1.2,
-                lineHeight: 1.3
+            polygon.setAttribute('fill', color);
+            polygon.setAttribute('stroke', '#333333');
+            polygon.setAttribute('stroke-width', '2');
+        });
+
+        // ENHANCED: Force maximum text visibility (preserve enhanced font sizes)
+        const textElements = svgElement.querySelectorAll('text, tspan');
+        const fontSize = parseInt(container.getAttribute('data-font-size') || '14');
+        textElements.forEach(text => {
+            // PRESERVE existing font-size from post-processing
+            const currentFontSize = text.getAttribute('font-size') || fontSize.toString();
+            text.setAttribute('fill', '#ffffff');
+            text.setAttribute('font-weight', '700');
+            text.setAttribute('font-size', currentFontSize); // Keep enhanced size
+            text.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.8)';
+        });
+
+        // COLOR paths/lines with better visibility
+        const paths = svgElement.querySelectorAll('path');
+        paths.forEach(path => {
+            if (path.getAttribute('stroke') && path.getAttribute('stroke') !== 'none') {
+                path.setAttribute('stroke', '#666666');
+                path.setAttribute('stroke-width', '2');
             }
-        };
-        
-        // Reinitialize Mermaid with new configuration
-        mermaid.initialize(themeConfig);
-        
-        // Generate new unique ID
-        const newId = `mermaid-${chartId}-font${fontSize}-${Date.now()}`;
-        
-        // Re-render diagram
-        const { svg } = await mermaid.render(newId, diagramContent);
-        
-        const mermaidDiv = container.querySelector('.mermaid');
-        if (mermaidDiv) {
-            mermaidDiv.innerHTML = svg;
-            
-            // ✅ CRITICAL FIX: Always apply post-processing after font size change
-            const svgElement = mermaidDiv.querySelector('svg');
-            if (svgElement) {
-                console.log(`🔧 Applying consistent post-processing for font size ${fontSize}px...`);
-                
-                // ✅ STEP 1: Apply intelligent node sizing with new font size
-                this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
-                
-                // ✅ STEP 2: Apply current theme colors AFTER sizing
-                this.applyMermaidThemeColors(svgElement, selectedTheme, container);
-                
-                console.log('✅ Font size post-processing complete - UI and export sizes will match');
-            }
-            
-            this.showNotification(`🔤 Font size: ${fontSize}px applied with consistent sizing`, 'success');
-        }
-        
-    } catch (error) {
-        console.error('Error changing font size:', error);
-        this.showNotification('❌ Failed to change font size', 'error');
+        });
     }
-}
+
+    // ALSO UPDATE: Font size change method for consistency
+    async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
+        try {
+            // Store new size
+            container.setAttribute('data-font-size', fontSize.toString());
+
+            // Get current theme and apply with new font size
+            const currentTheme = container.getAttribute('data-color-theme') || 'default';
+            const colorThemes = this.getMermaidColorThemes();
+            const selectedTheme = colorThemes[currentTheme] || colorThemes.default;
+            const isDark = this.options.theme === 'dark';
+
+            // Enhanced theme configuration with custom font size
+            const themeConfig = {
+                startOnLoad: false,
+                theme: isDark ? 'dark' : 'base',
+                themeVariables: {
+                    // Enhanced text colors for better contrast
+                    primaryColor: selectedTheme.colors.fillType0,
+                    primaryTextColor: '#ffffff',
+                    primaryBorderColor: '#333333',
+                    lineColor: isDark ? '#7d8590' : '#656d76',
+
+                    // Background and node colors
+                    backgroundColor: isDark ? '#0d1117' : '#ffffff',
+                    mainBkg: selectedTheme.colors.fillType0,
+                    secondBkg: selectedTheme.colors.fillType1,
+
+                    // All fillType colors from selected theme
+                    ...selectedTheme.colors,
+
+                    // Text colors - force white for maximum contrast
+                    textColor: '#ffffff',
+                    nodeTextColor: '#ffffff',
+                    classText: '#ffffff',
+                    labelTextColor: '#ffffff',
+                    taskTextColor: '#ffffff',
+                    activeTaskTextColor: '#ffffff',
+                    signalTextColor: '#ffffff',
+                    actorTextColor: '#ffffff',
+                    pieTitleTextColor: '#ffffff',
+                    pieSectionTextColor: '#ffffff',
+                    pieLegendTextColor: '#ffffff',
+
+                    // Node styles
+                    nodeBkg: selectedTheme.colors.fillType0,
+                    nodeBorder: '#333333',
+                    clusterBkg: selectedTheme.colors.fillType1,
+                    clusterBorder: '#333333',
+
+                    // Actor styles for sequence diagrams
+                    actorBkg: selectedTheme.colors.fillType2,
+                    actorBorder: '#333333',
+                    actorLineColor: '#666666'
+                },
+
+                // ENHANCED: Custom font configuration
+                fontFamily: '"Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                fontSize: fontSize,
+
+                // NODE-SPECIFIC font sizes and spacing
+                flowchart: {
+                    htmlLabels: true,
+                    curve: 'basis',
+                    padding: Math.max(25, fontSize * 1.4),       // SCALE with font size
+                    nodeSpacing: Math.max(80, fontSize * 4.5),   // SCALE with font size
+                    rankSpacing: Math.max(80, fontSize * 4.5),   // SCALE with font size
+                    diagramPadding: Math.max(35, fontSize * 2.0),// SCALE with font size
+                    edgePadding: Math.max(20, fontSize * 1.2),
+                    nodePadding: Math.max(8, fontSize * 0.5),
+                    textHeight: fontSize * 1.2,
+                    lineHeight: 1.3
+                }
+            };
+
+            // Reinitialize Mermaid with new configuration
+            mermaid.initialize(themeConfig);
+
+            // Generate new unique ID
+            const newId = `mermaid-${chartId}-font${fontSize}-${Date.now()}`;
+
+            // Re-render diagram
+            const { svg } = await mermaid.render(newId, diagramContent);
+
+            const mermaidDiv = container.querySelector('.mermaid');
+            if (mermaidDiv) {
+                mermaidDiv.innerHTML = svg;
+
+                // CRITICAL FIX: Always apply post-processing after font size change
+                const svgElement = mermaidDiv.querySelector('svg');
+                if (svgElement) {
+                    console.log(`🔧 Applying consistent post-processing for font size ${fontSize}px...`);
+
+                    // STEP 1: Apply intelligent node sizing with new font size
+                    this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
+
+                    // STEP 2: Apply current theme colors AFTER sizing
+                    this.applyMermaidThemeColors(svgElement, selectedTheme, container);
+
+                    console.log('✅ Font size post-processing complete - UI and export sizes will match');
+                }
+
+                this.showNotification(`🔤 Font size: ${fontSize}px applied with consistent sizing`, 'success');
+            }
+
+        } catch (error) {
+            console.error('Error changing font size:', error);
+            this.showNotification(' Failed to change font size', 'error');
+        }
+    }
 
 
     // 6.4.3
@@ -6281,7 +6281,7 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
                 name: 'Soft Pastels',
                 icon: '🔷',
                 colors: {
-                    // ✅ FIXED: Much paler, pastel colors for better readability
+                    // IXED: Much paler, pastel colors for better readability
                     fillType0: '#E8F4FD', // Very pale blue
                     fillType1: '#F0F9F0', // Very pale green  
                     fillType2: '#FFF9E6', // Very pale orange
@@ -6384,7 +6384,7 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
             existing.remove();
             return;
         }
-        
+
         const menu = document.createElement('div');
         menu.className = 'font-size-menu';
         menu.style.cssText = `
@@ -6400,9 +6400,9 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             min-width: 180px;
         `;
-        
+
         const currentSize = window.mermaidFontController.getCurrentSize(container);
-        
+
         Object.entries(window.mermaidFontController.availableSizes).forEach(([sizeName, config]) => {
             const item = document.createElement('button');
             item.className = `font-menu-item ${sizeName === currentSize ? 'active' : ''}`;
@@ -6421,32 +6421,32 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
                 justify-content: space-between;
                 transition: all 0.2s ease;
             `;
-            
+
             item.innerHTML = `
                 <span>${config.icon} ${config.label}</span>
                 <span style="font-size: 10px; opacity: 0.8;">${config.value}px</span>
             `;
-            
+
             item.addEventListener('click', () => {
                 window.mermaidFontController.setFontSize(container, sizeName);
                 menu.remove();
                 this.updateFontButtonStates(container, triggerButton.closest('.viz-action-bar'));
-                // ✅ FIX: Re-render fullscreen if it's open
+                // IX: Re-render fullscreen if it's open
                 this.reRenderFullscreenIfOpen(container, container.getAttribute('data-original-content'), container.getAttribute('data-chart-id'));
             });
-            
+
             menu.appendChild(item);
         });
-        
+
         container.appendChild(menu);
-        
+
         const closeMenu = (e) => {
             if (!menu.contains(e.target) && e.target !== triggerButton) {
                 menu.remove();
                 document.removeEventListener('click', closeMenu);
             }
         };
-        
+
         setTimeout(() => document.addEventListener('click', closeMenu), 100);
     }
 
@@ -6454,24 +6454,24 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
     updateFontButtonStates(container, actionBar) {
         const currentSize = window.mermaidFontController.getCurrentSize(container);
         const sizeConfig = window.mermaidFontController.availableSizes[currentSize];
-        
+
         const fontMenuBtn = actionBar.querySelector('[data-function="fontSizeMenu"]');
         if (fontMenuBtn && sizeConfig) {
             fontMenuBtn.title = `Font: ${sizeConfig.label} (${sizeConfig.value}px)`;
             fontMenuBtn.innerHTML = `<i class="fas fa-text-height">${sizeConfig.icon}</i>`;
         }
-        
+
         const sizeNames = Object.keys(window.mermaidFontController.availableSizes);
         const currentIndex = sizeNames.indexOf(currentSize);
-        
+
         const fontDownBtn = actionBar.querySelector('[data-function="fontSizeDown"]');
         const fontUpBtn = actionBar.querySelector('[data-function="fontSizeUp"]');
-        
+
         if (fontDownBtn) {
             fontDownBtn.disabled = currentIndex === 0;
             fontDownBtn.style.opacity = currentIndex === 0 ? '0.5' : '1';
         }
-        
+
         if (fontUpBtn) {
             fontUpBtn.disabled = currentIndex === sizeNames.length - 1;
             fontUpBtn.style.opacity = currentIndex === sizeNames.length - 1 ? '0.5' : '1';
@@ -6500,7 +6500,7 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
             min-width: 120px;
         `;
-        
+
         const select = document.createElement('select');
         select.className = 'font-size-select';
         select.style.cssText = `
@@ -6514,7 +6514,7 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
             width: 100% !important;
             box-sizing: border-box !important;
         `;
-        
+
         // Font size options
         const fontSizes = [
             { value: '10', label: '10px - Tiny' },
@@ -6525,9 +6525,9 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
             { value: '20', label: '20px - Extra Large' },
             { value: '24', label: '24px - Huge' }
         ];
-        
+
         const currentSize = container.getAttribute('data-font-size') || '14';
-        
+
         fontSizes.forEach(({ value, label }) => {
             const option = document.createElement('option');
             option.value = value;
@@ -6537,30 +6537,30 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
             }
             select.appendChild(option);
         });
-        
+
         select.onchange = async (e) => {
             const newSize = parseInt(e.target.value);
             await this.applyMermaidFontSize(container, diagramContent, chartId, newSize);
             // Keep dropdown open for easy size comparison
         };
-        
+
         switcher.appendChild(select);
         container.appendChild(switcher);
-        
-        // ✅ Click outside to close
+
+        // lick outside to close
         const handleClickOutside = (e) => {
             if (!switcher.contains(e.target) && !e.target.closest('[data-function="toggleFontSize"]')) {
                 switcher.remove();
                 document.removeEventListener('click', handleClickOutside);
             }
         };
-        
+
         setTimeout(() => {
             document.addEventListener('click', handleClickOutside);
         }, 100);
     }
 
-        
+
     // 6.6.1 - FIXED: Better error handling and parameter validation
     toggleMermaidExportOptions(container, diagramContent, chartId) {
         const existing = container.querySelector('.export-options-switcher');
@@ -6569,10 +6569,10 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
             return;
         }
 
-        // ✅ VALIDATION: Check if we have content to export
+        // ALIDATION: Check if we have content to export
         if (!diagramContent || diagramContent.trim() === '') {
-            console.error('❌ No diagram content available for export');
-            this.showNotification('❌ No diagram content to export', 'error');
+            console.error(' No diagram content available for export');
+            this.showNotification(' No diagram content to export', 'error');
             return;
         }
 
@@ -6598,13 +6598,13 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
             gap: 4px;
             min-width: 200px;
         `;
-        
+
         const exportFormats = [
             { value: 'png', label: 'PNG', icon: '🖼️', title: 'Export as PNG Image' },
             { value: 'svg', label: 'SVG', icon: '◻️', title: 'Export as SVG Vector' },
             { value: 'mermaid', label: 'Code', icon: '💾', title: 'Export Mermaid Code' }
         ];
-        
+
         exportFormats.forEach(({ value, label, icon, title }) => {
             const button = document.createElement('button');
             button.className = 'export-format-btn';
@@ -6624,7 +6624,7 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
                 transition: all 0.2s ease;
                 line-height: 1.2;
             `;
-            
+
             // Hover effect
             button.onmouseenter = () => {
                 button.style.background = 'var(--bg-tertiary) !important';
@@ -6634,44 +6634,44 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
                 button.style.background = 'var(--bg-primary) !important';
                 button.style.borderColor = 'var(--border-primary) !important';
             };
-            
+
             button.onclick = async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const format = button.value;
                 console.log('🎯 Export format selected:', format);
-                
+
                 // Disable button during export
                 button.disabled = true;
                 button.style.opacity = '0.6';
                 button.innerHTML = `⏳<br><span style="font-size: 10px;">Wait...</span>`;
-                
+
                 try {
-                    console.log('🔄 Calling exportMermaidChart with:', { 
-                        hasContainer: !!container, 
+                    console.log('🔄 Calling exportMermaidChart with:', {
+                        hasContainer: !!container,
                         contentLength: diagramContent.length,
-                        format 
+                        format
                     });
-                    
+
                     await this.exportMermaidChart(container, diagramContent, format);
                     switcher.remove();
                 } catch (error) {
-                    console.error('❌ Export failed:', error);
-                    this.showNotification('❌ Export failed: ' + error.message, 'error');
-                    
+                    console.error(' Export failed:', error);
+                    this.showNotification(' Export failed: ' + error.message, 'error');
+
                     // Restore button on error
                     button.disabled = false;
                     button.style.opacity = '1';
                     button.innerHTML = `${icon}<br><span style="font-size: 10px;">${label}</span>`;
                 }
             };
-            
+
             switcher.appendChild(button);
         });
-        
+
         container.appendChild(switcher);
-        
+
         // Click outside to close
         const handleClickOutside = (e) => {
             if (!switcher.contains(e.target) && !e.target.closest('[data-function="exportOptions"]')) {
@@ -6679,7 +6679,7 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
                 document.removeEventListener('click', handleClickOutside);
             }
         };
-        
+
         setTimeout(() => {
             document.addEventListener('click', handleClickOutside);
         }, 100);
@@ -6689,257 +6689,65 @@ async applyMermaidFontSize(container, diagramContent, chartId, fontSize) {
     async exportMermaidChart(container, diagramContent, format) {
         const timestamp = new Date().toISOString().slice(0, 16).replace(/[:]/g, '-');
         const filename = `mermaid-${timestamp}`;
-        
-        console.log('🎯 exportMermaidChart called:', { 
-            format, 
-            filename, 
+
+        console.log('🎯 exportMermaidChart called:', {
+            format,
+            filename,
             hasContainer: !!container,
             contentLength: diagramContent?.length || 0
         });
-        
-        // ✅ VALIDATION: Check parameters
+
+        // ALIDATION: Check parameters
         if (!container) {
-            console.error('❌ No container provided');
-            this.showNotification('❌ Export failed: No container', 'error');
+            console.error(' No container provided');
+            this.showNotification(' Export failed: No container', 'error');
             return;
         }
-        
+
         if (!diagramContent || diagramContent.trim() === '') {
-            console.error('❌ No diagram content provided');
-            this.showNotification('❌ Export failed: No diagram content', 'error');
+            console.error(' No diagram content provided');
+            this.showNotification(' Export failed: No diagram content', 'error');
             return;
         }
-        
+
         try {
             switch (format) {
                 case 'png':
                     console.log('📷 Starting FIXED PNG export...');
                     await this.exportMermaidToPNGFixed(container, filename);
                     break;
-                    
+
                 case 'svg':
                     console.log('📊 Starting FIXED SVG export...');
                     await this.exportMermaidToSVGFixed(container, filename);
                     break;
-                    
+
                 case 'mermaid':
                     console.log('💾 Starting Mermaid code export...');
                     this.downloadFile(diagramContent, `${filename}.mmd`, 'text/plain');
-                    this.showNotification('✅ Mermaid code exported', 'success');
+                    this.showNotification('ermaid code exported', 'success');
                     break;
-                    
+
                 default:
-                    console.error('❌ Unknown export format:', format);
-                    this.showNotification('❌ Unknown export format', 'error');
+                    console.error(' Unknown export format:', format);
+                    this.showNotification(' Unknown export format', 'error');
             }
         } catch (error) {
-            console.error('❌ Mermaid export error:', error);
-            this.showNotification('❌ Export failed: ' + error.message, 'error');
+            console.error(' Mermaid export error:', error);
+            this.showNotification(' Export failed: ' + error.message, 'error');
         }
     }
 
     // (Removed V5-specific export CSS embedding helper to align with V4 behavior)
 
-    // ✅ COMPLETELY NEW: Fixed SVG export that preserves UI styling
-        // ✅ COMPLETELY NEW: Fixed SVG export that preserves UI styling
-    // ✅ COMPLETELY FIXED: SVG export that preserves exact UI display
-async exportMermaidToSVGFixed(container, filename) {
-    console.log('📊 exportMermaidToSVGFixed - Using WORKING test UI approach for SVG export');
-    
-    try {
-        // ✅ STEP 1: Get the SVG element (same as working test UI)
-        const vizContentArea = container.querySelector('.viz-content-area');
-        if (!vizContentArea) {
-            console.error('❌ No viz-content-area found in container');
-            this.showNotification('❌ No content area found to export', 'error');
-            return;
-        }
+    // OMPLETELY NEW: Fixed SVG export that preserves UI styling
+    //  COLETELY NEW: Fixed SVG export that preserves UI styling
+    // OMPLETELY FIXED: SVG export that preserves exact UI display
+    async exportMermaidToSVGFixed(container, filename) {
+        console.log('📊 exportMermaidToSVGFixed - Using WORKING test UI approach for SVG export');
 
-        const renderedSvg = vizContentArea.querySelector('svg');
-        if (!renderedSvg) {
-            console.error('❌ No SVG element found in viz-content-area');
-            this.showNotification('❌ No diagram found to export', 'error');
-            return;
-        }
-
-        console.log('✅ Found SVG for SVG export');
-        
-    // ✅ STEP 2: Clone and apply post-processing (working test UI approach)
-        const clonedSvg = renderedSvg.cloneNode(true);
-        
-    // Apply post-processing to SVG export (this was the missing piece!)
-        const isDark = document.documentElement.classList.contains('dark');
-        this.applySimplifiedMermaidPostProcessing(clonedSvg, isDark);
-    // Note: Hardening helpers remain disabled; we only add a minimal CSS snippet later
-    //       to normalize bullet BRs for export without changing live chat rendering.
-        console.log('🎨 Applied UI post-processing to SVG export');
-        
-        const svgRect = renderedSvg.getBoundingClientRect();
-        const displayedWidth = svgRect.width;
-        const displayedHeight = svgRect.height;
-        
-        console.log('📐 SVG export dimensions from UI:', { displayedWidth, displayedHeight });
-        
-        // ✅ STEP 3: Copy styles (working test UI approach)
-        const originalElements = renderedSvg.querySelectorAll('*');
-        const clonedElements = clonedSvg.querySelectorAll('*');
-        
-        Array.from(renderedSvg.attributes).forEach(attr => {
-            clonedSvg.setAttribute(attr.name, attr.value);
-        });
-        
-        originalElements.forEach((originalEl, index) => {
-            const clonedEl = clonedElements[index];
-            if (!clonedEl) return;
-            
-            Array.from(originalEl.attributes).forEach(attr => {
-                clonedEl.setAttribute(attr.name, attr.value);
-            });
-            
-            const computedStyle = window.getComputedStyle(originalEl);
-            const criticalProps = [
-                'width', 'height', 'x', 'y', 'cx', 'cy', 'r', 'rx', 'ry',
-                'fill', 'stroke', 'stroke-width', 'stroke-dasharray',
-                'font-family', 'font-size', 'font-weight', 'font-style',
-                'text-anchor', 'dominant-baseline', 'alignment-baseline',
-                'opacity', 'visibility', 'display', 'transform'
-            ];
-            
-            const styleProps = [];
-            criticalProps.forEach(prop => {
-                let value = computedStyle.getPropertyValue(prop);
-                if (value && value !== 'none' && value !== 'auto' && value !== 'normal' && value !== '') {
-                    // ✅ Font size reduction for export while keeping nodes same size
-                    if (prop === 'font-size' && originalEl.tagName.toLowerCase() === 'text') {
-                        const fontSize = parseFloat(value);
-                        if (!isNaN(fontSize)) {
-                            const reducedSize = fontSize * 0.9; // 10% reduction
-                            value = `${reducedSize}px`;
-                            console.log(`📝 SVG Export font size reduced: ${fontSize}px → ${reducedSize}px`);
-                        }
-                    }
-                    styleProps.push(`${prop}: ${value}`);
-                }
-            });
-            
-            if (styleProps.length > 0) {
-                const existingStyle = clonedEl.getAttribute('style') || '';
-                clonedEl.setAttribute('style', existingStyle + (existingStyle ? '; ' : '') + styleProps.join('; '));
-            }
-        });
-        
-        // ✅ STEP 4: Set proper SVG export attributes (working test UI approach)
-        clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-        clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-        clonedSvg.setAttribute('width', displayedWidth);
-        clonedSvg.setAttribute('height', displayedHeight);
-        
-        // Preserve current viewBox
-        const originalViewBox = renderedSvg.getAttribute('viewBox');
-        if (originalViewBox) {
-            clonedSvg.setAttribute('viewBox', originalViewBox);
-        } else {
-            const bbox = renderedSvg.getBBox();
-            if (bbox && bbox.width > 0 && bbox.height > 0) {
-                clonedSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-            }
-        }
-        
-        // ✅ STEP 5: Add background and proper styling (working test UI approach)
-        clonedSvg.setAttribute('style', `
-            background: white;
-            font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            width: ${displayedWidth}px;
-            height: ${displayedHeight}px;
-        `);
-        
-        // ✅ STEP 5.5: Export-only bullet spacing fix (hide/remove <br> between bullets)
-        // Explanation:
-        // - Exports are generated from a cloned SVG to avoid side-effects.
-        // - We embed a compact CSS (MermaidExportCSS) to hide BRs after bullet spans and
-        //   also programmatically strip any stray BR nodes around bullets. This prevents
-        //   the "empty line between bullets" issue in exported images.
         try {
-            // Embed CSS that hides BRs between bullet spans inside FO content
-            if (typeof window.MermaidExportCSS === 'function') {
-                const css = window.MermaidExportCSS();
-                if (css) embedStyleIntoSvg(clonedSvg, css);
-            }
-            // Also strip explicit <br class="mermaid-br"> siblings around bullet spans to avoid empty lines
-            stripBreaksAroundBullets(clonedSvg);
-            console.log('✅ Applied export-only bullet BR cleanup for SVG');
-        } catch (e) {
-            console.warn('⚠️ Failed export-only bullet cleanup (SVG):', e);
-        }
-
-        // ✅ STEP 6: Create and download SVG file (working test UI approach)
-        const serializer = new XMLSerializer();
-        let svgData = serializer.serializeToString(clonedSvg);
-        
-        // Add XML declaration for better compatibility
-        svgData = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-${svgData}`;
-        
-        console.log('📊 UI-exact SVG data prepared with working test UI approach');
-        
-        // Download the file
-        this.downloadFile(svgData, `${filename}.svg`, 'image/svg+xml');
-        this.showNotification('✅ Mermaid exported as SVG with working test UI approach', 'success');
-        
-    } catch (error) {
-        console.error('❌ SVG export error:', error);
-        this.showNotification('❌ SVG export failed: ' + error.message, 'error');
-        throw error;
-    }
-}
-
-    // 6.6.3 - FIXED: Better error handling for file download
-    downloadFile(content, filename, mimeType) {
-        console.log('📥 downloadFile called:', { 
-            contentLength: content?.length || 0, 
-            filename, 
-            mimeType 
-        });
-        
-        try {
-            if (!content) {
-                throw new Error('No content to download');
-            }
-            
-            const blob = new Blob([content], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            
-            link.href = url;
-            link.download = filename;
-            link.style.display = 'none';
-            
-            document.body.appendChild(link);
-            
-            console.log('🔽 Triggering download...', { href: link.href, download: link.download });
-            link.click();
-            
-            // Cleanup
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            console.log('✅ Download triggered successfully');
-            
-        } catch (error) {
-            console.error('❌ Download file error:', error);
-            this.showNotification('❌ Download failed: ' + error.message, 'error');
-            throw error;
-        }
-    }
-
-    // 6.6.4 ✅ COMPLETELY FIXED: Simple PNG export using html2canvas (like Plotly)
-    // ✅ COMPLETELY FIXED: PNG export using the EXACT approach from working test UI
-    async exportMermaidToPNGFixed(container, filename) {
-        console.log('🚀 exportMermaidToPNGFixed - Using WORKING test UI approach');
-        
-        try {
-            // ✅ STEP 1: Get the SVG element (same as working test UI)
+            // STEP 1: Get the SVG element (same as working test UI)
             const vizContentArea = container.querySelector('.viz-content-area');
             if (!vizContentArea) {
                 console.error('❌ No viz-content-area found in container');
@@ -6954,60 +6762,252 @@ ${svgData}`;
                 return;
             }
 
-            console.log('✅ Found SVG for PNG export');
-            
-            // ✅ STEP 2: Get COMPLETE SVG bounds using getBBox() (working test UI approach)
+            console.log('✅ Found SVG for SVG export');
+
+            // STEP 2: Clone and apply post-processing (working test UI approach)
+            const clonedSvg = renderedSvg.cloneNode(true);
+
+            // Apply post-processing to SVG export (this was the missing piece!)
+            const isDark = document.documentElement.classList.contains('dark');
+            this.applySimplifiedMermaidPostProcessing(clonedSvg, isDark);
+            // Note: Hardening helpers remain disabled; we only add a minimal CSS snippet later
+            //       to normalize bullet BRs for export without changing live chat rendering.
+            console.log('🎨 Applied UI post-processing to SVG export');
+
+            const svgRect = renderedSvg.getBoundingClientRect();
+            const displayedWidth = svgRect.width;
+            const displayedHeight = svgRect.height;
+
+            console.log('📐 SVG export dimensions from UI:', { displayedWidth, displayedHeight });
+
+            // STEP 3: Copy styles (working test UI approach)
+            const originalElements = renderedSvg.querySelectorAll('*');
+            const clonedElements = clonedSvg.querySelectorAll('*');
+
+            Array.from(renderedSvg.attributes).forEach(attr => {
+                clonedSvg.setAttribute(attr.name, attr.value);
+            });
+
+            originalElements.forEach((originalEl, index) => {
+                const clonedEl = clonedElements[index];
+                if (!clonedEl) return;
+
+                Array.from(originalEl.attributes).forEach(attr => {
+                    clonedEl.setAttribute(attr.name, attr.value);
+                });
+
+                const computedStyle = window.getComputedStyle(originalEl);
+                const criticalProps = [
+                    'width', 'height', 'x', 'y', 'cx', 'cy', 'r', 'rx', 'ry',
+                    'fill', 'stroke', 'stroke-width', 'stroke-dasharray',
+                    'font-family', 'font-size', 'font-weight', 'font-style',
+                    'text-anchor', 'dominant-baseline', 'alignment-baseline',
+                    'opacity', 'visibility', 'display', 'transform'
+                ];
+
+                const styleProps = [];
+                criticalProps.forEach(prop => {
+                    let value = computedStyle.getPropertyValue(prop);
+                    if (value && value !== 'none' && value !== 'auto' && value !== 'normal' && value !== '') {
+                        // Font size reduction for export while keeping nodes same size
+                        if (prop === 'font-size' && originalEl.tagName.toLowerCase() === 'text') {
+                            const fontSize = parseFloat(value);
+                            if (!isNaN(fontSize)) {
+                                const reducedSize = fontSize * 0.9; // 10% reduction
+                                value = `${reducedSize}px`;
+                                console.log(`📝 SVG Export font size reduced: ${fontSize}px → ${reducedSize}px`);
+                            }
+                        }
+                        styleProps.push(`${prop}: ${value}`);
+                    }
+                });
+
+                if (styleProps.length > 0) {
+                    const existingStyle = clonedEl.getAttribute('style') || '';
+                    clonedEl.setAttribute('style', existingStyle + (existingStyle ? '; ' : '') + styleProps.join('; '));
+                }
+            });
+
+            // STEP 4: Set proper SVG export attributes (working test UI approach)
+            clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            clonedSvg.setAttribute('width', displayedWidth);
+            clonedSvg.setAttribute('height', displayedHeight);
+
+            // Preserve current viewBox
+            const originalViewBox = renderedSvg.getAttribute('viewBox');
+            if (originalViewBox) {
+                clonedSvg.setAttribute('viewBox', originalViewBox);
+            } else {
+                const bbox = renderedSvg.getBBox();
+                if (bbox && bbox.width > 0 && bbox.height > 0) {
+                    clonedSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+                }
+            }
+
+            // STEP 5: Add background and proper styling (working test UI approach)
+            clonedSvg.setAttribute('style', `
+            background: white;
+            font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            width: ${displayedWidth}px;
+            height: ${displayedHeight}px;
+        `);
+
+            // STEP 5.5: Export-only bullet spacing fix (hide/remove <br> between bullets)
+            // Explanation:
+            // - Exports are generated from a cloned SVG to avoid side-effects.
+            // - We embed a compact CSS (MermaidExportCSS) to hide BRs after bullet spans and
+            //   also programmatically strip any stray BR nodes around bullets. This prevents
+            //   the "empty line between bullets" issue in exported images.
+            try {
+                // Embed CSS that hides BRs between bullet spans inside FO content
+                if (typeof window.MermaidExportCSS === 'function') {
+                    const css = window.MermaidExportCSS();
+                    if (css) embedStyleIntoSvg(clonedSvg, css);
+                }
+                // Also strip explicit <br class="mermaid-br"> siblings around bullet spans to avoid empty lines
+                stripBreaksAroundBullets(clonedSvg);
+                console.log('✅ Applied export-only bullet BR cleanup for SVG');
+            } catch (e) {
+                console.warn('⚠️ Failed export-only bullet cleanup (SVG):', e);
+            }
+
+            // STEP 6: Create and download SVG file (working test UI approach)
+            const serializer = new XMLSerializer();
+            let svgData = serializer.serializeToString(clonedSvg);
+
+            // Add XML declaration for better compatibility
+            svgData = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+${svgData}`;
+
+            console.log('📊 UI-exact SVG data prepared with working test UI approach');
+
+            // Download the file
+            this.downloadFile(svgData, `${filename}.svg`, 'image/svg+xml');
+            this.showNotificati(' ermaid exported as SVG with working test UI approach', 'success');
+
+        } catch (error) {
+            console.error(' SVG export error:', error);
+            this.showNotification(' SVG export failed: ' + error.message, 'error');
+            throw error;
+        }
+    }
+
+    // 6.6.3 - FIXED: Better error handling for file download
+    downloadFile(content, filename, mimeType) {
+        console.log('📥 downloadFile called:', {
+            contentLength: content?.length || 0,
+            filename,
+            mimeType
+        });
+
+        try {
+            if (!content) {
+                throw new Error('No content to download');
+            }
+
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+
+            document.body.appendChild(link);
+
+            console.log('🔽 Triggering download...', { href: link.href, download: link.download });
+            link.click();
+
+            // Cleanup
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            console.log('ownload triggered successfully');
+
+        } catch (error) {
+            console.error(' Download file error:', error);
+            this.showNotification(' Download failed: ' + error.message, 'error');
+            throw error;
+        }
+    }
+
+    // 6.6.4 OMPLETELY FIXED: Simple PNG export using html2canvas (like Plotly)
+    // OMPLETELY FIXED: PNG export using the EXACT approach from working test UI
+    async exportMermaidToPNGFixed(container, filename) {
+        console.log('🚀 exportMermaidToPNGFixed - Using WORKING test UI approach');
+
+        try {
+            // TEP 1: Get the SVG element (same as working test UI)
+            const vizContentArea = container.querySelector('.viz-content-area');
+            if (!vizContentArea) {
+                console.error(' No viz-content-area found in container');
+                this.showNotification(' No content area found to export', 'error');
+                return;
+            }
+
+            const renderedSvg = vizContentArea.querySelector('svg');
+            if (!renderedSvg) {
+                console.error(' No SVG element found in viz-content-area');
+                this.showNotification(' No diagram found to export', 'error');
+                return;
+            }
+
+            console.log('ound SVG for PNG export');
+
+            // TEP 2: Get COMPLETE SVG bounds using getBBox() (working test UI approach)
             const svgBBox = renderedSvg.getBBox();
             const contentX = svgBBox.x;
             const contentY = svgBBox.y;
             const contentWidth = svgBBox.width;
             const contentHeight = svgBBox.height;
-            
+
             console.log(`📏 Content bounds: ${contentX},${contentY} ${contentWidth}x${contentHeight}`);
-            
+
             // Add padding around content
             const padding = 20;
             const exportX = contentX - padding;
             const exportY = contentY - padding;
             const exportWidth = contentWidth + (padding * 2);
             const exportHeight = contentHeight + (padding * 2);
-            
+
             console.log(`� Export bounds: ${exportX},${exportY} ${exportWidth}x${exportHeight}`);
-            
-            // ✅ STEP 3: Create clean clone (working test UI approach)
+
+            // TEP 3: Create clean clone (working test UI approach)
             const clonedSvg = renderedSvg.cloneNode(true);
-            
-            // ✅ CRITICAL: Remove transform attributes (working test UI fix)
+
+            // RITICAL: Remove transform attributes (working test UI fix)
             clonedSvg.removeAttribute('transform');
             clonedSvg.style.transform = '';
-            
+
             // Apply post-processing to match working SVG export
             const isDark = document.documentElement.classList.contains('dark');
             this.applySimplifiedMermaidPostProcessing(clonedSvg, isDark);
             // Note: Other export hardening helpers remain disabled; we inject only minimal
             //       CSS later to normalize bullet BRs specifically for export.
             console.log('🎨 Applied UI post-processing to clean SVG clone');
-            
-            // ✅ STEP 4: Copy styles (working test UI approach)
+
+            // TEP 4: Copy styles (working test UI approach)
             const originalElements = renderedSvg.querySelectorAll('*');
             const clonedElements = clonedSvg.querySelectorAll('*');
-            
+
             Array.from(renderedSvg.attributes).forEach(attr => {
                 if (attr.name !== 'transform') { // Skip transform attributes
                     clonedSvg.setAttribute(attr.name, attr.value);
                 }
             });
-            
+
             originalElements.forEach((originalEl, index) => {
                 const clonedEl = clonedElements[index];
                 if (!clonedEl) return;
-                
+
                 Array.from(originalEl.attributes).forEach(attr => {
                     if (attr.name !== 'transform') { // Skip transform attributes
                         clonedEl.setAttribute(attr.name, attr.value);
                     }
                 });
-                
+
                 const computedStyle = window.getComputedStyle(originalEl);
                 const criticalProps = [
                     'width', 'height', 'x', 'y', 'cx', 'cy', 'r', 'rx', 'ry',
@@ -7017,12 +7017,12 @@ ${svgData}`;
                     'opacity', 'visibility', 'display'
                     // Removed 'transform' from critical props (working test UI fix)
                 ];
-                
+
                 const styleProps = [];
                 criticalProps.forEach(prop => {
                     let value = computedStyle.getPropertyValue(prop);
                     if (value && value !== 'none' && value !== 'auto' && value !== 'normal' && value !== '') {
-                        // ✅ Font size reduction for export while keeping nodes same size
+                        // ont size reduction for export while keeping nodes same size
                         if (prop === 'font-size' && originalEl.tagName.toLowerCase() === 'text') {
                             const fontSize = parseFloat(value);
                             if (!isNaN(fontSize)) {
@@ -7034,7 +7034,7 @@ ${svgData}`;
                         styleProps.push(`${prop}: ${value}`);
                     }
                 });
-                
+
                 if (styleProps.length > 0) {
                     const existingStyle = clonedEl.getAttribute('style') || '';
                     // Remove any transform styles (working test UI fix)
@@ -7042,16 +7042,16 @@ ${svgData}`;
                     clonedEl.setAttribute('style', cleanStyle + (cleanStyle ? '; ' : '') + styleProps.join('; '));
                 }
             });
-            
-            // ✅ STEP 5: Set dimensions and viewBox (working test UI approach)
+
+            // TEP 5: Set dimensions and viewBox (working test UI approach)
             clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
             clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
             clonedSvg.setAttribute('width', exportWidth);
             clonedSvg.setAttribute('height', exportHeight);
-            
-            // ✅ CRITICAL: Set viewBox to capture all content (working test UI approach)
+
+            // RITICAL: Set viewBox to capture all content (working test UI approach)
             clonedSvg.setAttribute('viewBox', `${exportX} ${exportY} ${exportWidth} ${exportHeight}`);
-            
+
             clonedSvg.setAttribute('style', `
                 background: white;
                 font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -7059,8 +7059,8 @@ ${svgData}`;
                 height: ${exportHeight}px;
                 transform: none;
             `);
-            
-            // ✅ STEP 5.5: Export-only bullet spacing fix (hide/remove <br> between bullets)
+
+            // TEP 5.5: Export-only bullet spacing fix (hide/remove <br> between bullets)
             // Explanation:
             // - Before rasterizing the cloned SVG to PNG, embed minimal CSS and strip BRs
             //   around `.mermaid-bullet` so the PNG has compact bullets like the chat UI.
@@ -7071,43 +7071,43 @@ ${svgData}`;
                     if (css) embedStyleIntoSvg(clonedSvg, css);
                 }
                 stripBreaksAroundBullets(clonedSvg);
-                console.log('✅ Applied export-only bullet BR cleanup for PNG (SVG->PNG path)');
+                console.log('pplied export-only bullet BR cleanup for PNG (SVG->PNG path)');
             } catch (e) {
                 console.warn('⚠️ Failed export-only bullet cleanup (PNG path):', e);
             }
 
-            // ✅ STEP 6: Convert to PNG (working test UI approach)
+            // TEP 6: Convert to PNG (working test UI approach)
             const serializer = new XMLSerializer();
             const svgString = serializer.serializeToString(clonedSvg);
-            
+
             // Create high-quality canvas using COMPLETE content dimensions
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const scale = 2; // Reasonable scale for quality
-            
+
             canvas.width = exportWidth * scale;
             canvas.height = exportHeight * scale;
             canvas.style.width = exportWidth + 'px';
             canvas.style.height = exportHeight + 'px';
-            
+
             ctx.scale(scale, scale);
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, exportWidth, exportHeight);
-            
+
             // Convert SVG to data URL (working test UI approach)
             const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
-            
+
             const self = this;
             return new Promise((resolve, reject) => {
                 const img = new Image();
-                
-                img.onload = function() {
+
+                img.onload = function () {
                     try {
                         console.log('🖼️ Complete SVG loaded, drawing full content to PNG canvas...');
-                        
+
                         // Draw the complete content
                         ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
-                        
+
                         canvas.toBlob(blob => {
                             if (blob && blob.size > 0) {
                                 const url = URL.createObjectURL(blob);
@@ -7115,51 +7115,51 @@ ${svgData}`;
                                 link.href = url;
                                 link.download = `${filename}.png`;
                                 link.style.display = 'none';
-                                
+
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
                                 URL.revokeObjectURL(url);
-                                
-                                self.showNotification(`✅ PNG exported with complete content (${exportWidth}x${exportHeight} @ ${scale}x quality)`, 'success');
-                                console.log(`✅ Complete PNG export completed (${exportWidth}x${exportHeight} @ ${scale}x quality)`);
+
+                                self.showNotification(`NG exported with complete content (${exportWidth}x${exportHeight} @ ${scale}x quality)`, 'success');
+                                console.log(`omplete PNG export completed (${exportWidth}x${exportHeight} @ ${scale}x quality)`);
                                 resolve();
-                                
+
                             } else {
-                                console.log('❌ Complete PNG Canvas toBlob failed');
+                                console.log(' Complete PNG Canvas toBlob failed');
                                 console.log('🔄 Method 1 failed, trying Method 2...');
                                 self.exportMermaidToPNGMethod2(container, filename).then(resolve).catch(reject);
                             }
                         }, 'image/png', 0.98);
-                        
+
                     } catch (drawError) {
-                        console.log(`❌ Complete PNG drawing error: ${drawError.message}`);
+                        console.log(` Complete PNG drawing error: ${drawError.message}`);
                         console.log('🔄 Method 1 failed, trying Method 2...');
                         self.exportMermaidToPNGMethod2(container, filename).then(resolve).catch(reject);
                     }
                 };
-                
-                img.onerror = function(error) {
-                    console.log(`❌ Complete SVG image load error: ${error}`);
+
+                img.onerror = function (error) {
+                    console.log(` Complete SVG image load error: ${error}`);
                     console.log('🔄 Method 1 failed, trying Method 2...');
                     self.exportMermaidToPNGMethod2(container, filename).then(resolve).catch(reject);
                 };
-                
+
                 console.log('🔄 Loading complete SVG with full content bounds...');
                 img.src = svgDataUrl;
             });
-            
+
         } catch (error) {
-            console.error('❌ Method 1 PNG export error:', error);
+            console.error(' Method 1 PNG export error:', error);
             console.log('🔄 Method 1 failed, trying Method 2...');
             return this.exportMermaidToPNGMethod2(container, filename);
         }
     }
 
-    // ✅ NEW: Method 2 - html2canvas direct capture
+    // EW: Method 2 - html2canvas direct capture
     async exportMermaidToPNGMethod2(container, filename) {
         console.log('🚀 exportMermaidToPNGMethod2 - Method 2: Direct html2canvas');
-        
+
         try {
             const vizContentArea = container.querySelector('.viz-content-area');
             if (!vizContentArea) {
@@ -7173,7 +7173,7 @@ ${svgData}`;
             }
 
             console.log('� Using html2canvas for direct capture...');
-            
+
             const canvas = await html2canvas(vizContentArea, {
                 backgroundColor: '#ffffff',
                 scale: 3, // High quality
@@ -7207,7 +7207,7 @@ ${svgData}`;
                                     }
                                 });
                             });
-                            console.log('✅ Applied export-only bullet BR cleanup in html2canvas clone');
+                            console.log('pplied export-only bullet BR cleanup in html2canvas clone');
                         } catch (e) {
                             console.warn('⚠️ Failed bullet BR cleanup in html2canvas clone:', e);
                         }
@@ -7223,14 +7223,14 @@ ${svgData}`;
                         link.href = url;
                         link.download = `${filename}.png`;
                         link.style.display = 'none';
-                        
+
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
                         URL.revokeObjectURL(url);
-                        
-                        this.showNotification('✅ PNG exported via html2canvas (Method 2)', 'success');
-                        console.log('✅ Method 2 PNG export completed successfully');
+
+                        this.showNotification('NG exported via html2canvas (Method 2)', 'success');
+                        console.log('ethod 2 PNG export completed successfully');
                         resolve();
                     } else {
                         console.log('🔄 Method 2 failed, trying Method 3...');
@@ -7240,40 +7240,40 @@ ${svgData}`;
             });
 
         } catch (error) {
-            console.error('❌ Method 2 error:', error);
+            console.error(' Method 2 error:', error);
             console.log('🔄 Method 2 failed, trying Method 3...');
             return this.exportMermaidToPNGMethod3(container, filename);
         }
     }
 
-    // ✅ NEW: Method 3 - Fallback to SVG export
+    // EW: Method 3 - Fallback to SVG export
     async exportMermaidToPNGMethod3(container, filename) {
         console.log('🚀 exportMermaidToPNGMethod3 - Method 3: SVG fallback');
-        
+
         try {
             console.log('🔄 All PNG methods failed, exporting as SVG...');
             await this.exportMermaidToSVGFixed(container, filename);
             this.showNotification('⚠️ PNG export failed, saved as SVG instead', 'warning');
         } catch (svgError) {
-            console.error('❌ All export methods failed:', svgError);
-            this.showNotification('❌ All export methods failed - please try again', 'error');
+            console.error(' All export methods failed:', svgError);
+            this.showNotification(' All export methods failed - please try again', 'error');
         }
     }
 
-    // ✅ ENHANCED: Improved fallback PNG export with comprehensive options based on online research
+    // NHANCED: Improved fallback PNG export with comprehensive options based on online research
     async exportMermaidToPNGFallback(container, filename) {
         console.log('🔄 Using enhanced fallback PNG export method...');
-        
+
         try {
             const vizContentArea = container.querySelector('.viz-content-area');
             if (!vizContentArea) {
                 throw new Error('No content area found to export');
             }
 
-            // ✅ BEST PRACTICE: Try html2canvas first (most reliable for complex DOM)
+            // EST PRACTICE: Try html2canvas first (most reliable for complex DOM)
             if (window.html2canvas) {
                 console.log('📸 Attempting html2canvas export with optimized settings...');
-                
+
                 const canvas = await html2canvas(vizContentArea, {
                     backgroundColor: '#ffffff',
                     scale: 3, // Higher quality for better export
@@ -7283,7 +7283,7 @@ ${svgData}`;
                     logging: false,
                     removeContainer: true,
                     imageTimeout: 15000,
-                    // ✅ RESEARCH FINDING: Better cross-browser compatibility
+                    // ESEARCH FINDING: Better cross-browser compatibility
                     onclone: (clonedDoc) => {
                         // Ensure all fonts are loaded in cloned document
                         const clonedVizArea = clonedDoc.querySelector('.viz-content-area');
@@ -7301,13 +7301,13 @@ ${svgData}`;
                             link.href = url;
                             link.download = `${filename}.png`;
                             link.style.display = 'none';
-                            
+
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
                             URL.revokeObjectURL(url);
-                            
-                            this.showNotification('✅ Mermaid exported as PNG using html2canvas', 'success');
+
+                            this.showNotification('ermaid exported as PNG using html2canvas', 'success');
                             resolve();
                         } else {
                             reject(new Error('html2canvas failed to create valid blob'));
@@ -7316,29 +7316,29 @@ ${svgData}`;
                 });
             }
 
-            // ✅ FALLBACK 2: Direct DOM-to-Canvas if html2canvas unavailable
+            // ALLBACK 2: Direct DOM-to-Canvas if html2canvas unavailable
             console.log('🔄 html2canvas not available, trying DOM-to-Canvas...');
             await this.exportViaDOMToCanvas(vizContentArea, filename);
 
         } catch (error) {
-            console.error('❌ Enhanced fallback PNG export error:', error);
-            
-            // ✅ FINAL FALLBACK: SVG export with user notification
+            console.error(' Enhanced fallback PNG export error:', error);
+
+            // INAL FALLBACK: SVG export with user notification
             try {
                 console.log('🔄 All PNG methods failed, exporting as SVG...');
                 await this.exportMermaidToSVGFixed(container, filename);
                 this.showNotification('⚠️ PNG export failed, saved as SVG instead', 'warning');
             } catch (svgError) {
-                console.error('❌ All export methods failed:', svgError);
-                this.showNotification('❌ All export methods failed - please try again', 'error');
+                console.error(' All export methods failed:', svgError);
+                this.showNotification(' All export methods failed - please try again', 'error');
             }
         }
     }
 
-    // ✅ NEW: Additional fallback method for DOM-to-Canvas export
+    // EW: Additional fallback method for DOM-to-Canvas export
     async exportViaDOMToCanvas(vizContentArea, filename) {
         console.log('🎨 Attempting direct DOM-to-Canvas export...');
-        
+
         const svgElement = vizContentArea.querySelector('svg');
         if (!svgElement) {
             throw new Error('No SVG element found for DOM-to-Canvas export');
@@ -7348,21 +7348,21 @@ ${svgData}`;
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const scale = 2;
-        
+
         canvas.width = rect.width * scale;
         canvas.height = rect.height * scale;
         ctx.scale(scale, scale);
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, rect.width, rect.height);
 
-        // ✅ RESEARCH FINDING: Use serialized SVG data URL approach
+        // ESEARCH FINDING: Use serialized SVG data URL approach
         const serializer = new XMLSerializer();
         const svgString = serializer.serializeToString(svgElement);
         const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
-        
+
         return new Promise((resolve, reject) => {
             const img = new Image();
-            
+
             img.onload = () => {
                 try {
                     ctx.drawImage(img, 0, 0, rect.width, rect.height);
@@ -7373,13 +7373,13 @@ ${svgData}`;
                             link.href = url;
                             link.download = `${filename}.png`;
                             link.style.display = 'none';
-                            
+
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
                             URL.revokeObjectURL(url);
-                            
-                            this.showNotification('✅ Mermaid exported via DOM-to-Canvas method', 'success');
+
+                            this.showNotification('ermaid exported via DOM-to-Canvas method', 'success');
                             resolve();
                         } else {
                             reject(new Error('DOM-to-Canvas failed to create valid blob'));
@@ -7389,13 +7389,13 @@ ${svgData}`;
                     reject(drawError);
                 }
             };
-            
+
             img.onerror = () => reject(new Error('Failed to load SVG for DOM-to-Canvas'));
             img.src = svgDataUrl;
         });
     }
 
-    // ✅ ENHANCED: Direct SVG to Canvas conversion with improved error handling
+    // NHANCED: Direct SVG to Canvas conversion with improved error handling
     async svgToCanvas(svgElement, filename) {
         const self = this; // Store reference to this for use in callbacks
         return new Promise((resolve, reject) => {
@@ -7404,52 +7404,52 @@ ${svgData}`;
                 const bbox = svgElement.getBBox();
                 const svgWidth = parseInt(svgElement.getAttribute('width')) || bbox.width || 800;
                 const svgHeight = parseInt(svgElement.getAttribute('height')) || bbox.height || 600;
-                
+
                 console.log('🎨 Enhanced SVG to Canvas conversion:', { svgWidth, svgHeight, bbox });
-                
+
                 // Create a canvas with high DPI
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 const scale = 3; // Higher resolution for better quality
-                
+
                 canvas.width = svgWidth * scale;
                 canvas.height = svgHeight * scale;
                 ctx.scale(scale, scale);
-                
+
                 // Fill white background
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, svgWidth, svgHeight);
-                
+
                 // Clone and prepare SVG for export
                 const clonedSvg = svgElement.cloneNode(true);
                 clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
                 clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
                 clonedSvg.setAttribute('width', svgWidth);
                 clonedSvg.setAttribute('height', svgHeight);
-                
-                // ✅ RESEARCH FINDING: Better SVG serialization
+
+                // ESEARCH FINDING: Better SVG serialization
                 const serializer = new XMLSerializer();
                 const svgString = serializer.serializeToString(clonedSvg);
                 const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
-                
+
                 const img = new Image();
-                
-                // ✅ ENHANCED: Better CORS handling
+
+                // NHANCED: Better CORS handling
                 img.crossOrigin = 'anonymous';
                 img.setAttribute('crossorigin', 'anonymous');
-                
-                img.onload = function() {
+
+                img.onload = function () {
                     try {
-                        // ✅ RESEARCH FINDING: Test canvas for taint
+                        // ESEARCH FINDING: Test canvas for taint
                         try {
                             ctx.getImageData(0, 0, 1, 1);
                         } catch (testError) {
                             reject(new Error('Canvas tainted before drawing SVG'));
                             return;
                         }
-                        
+
                         ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
-                        
+
                         // Test again after drawing
                         try {
                             ctx.getImageData(0, 0, 1, 1);
@@ -7457,7 +7457,7 @@ ${svgData}`;
                             reject(new Error('Canvas tainted after drawing SVG'));
                             return;
                         }
-                        
+
                         canvas.toBlob(blob => {
                             if (blob && blob.size > 0) {
                                 const url = URL.createObjectURL(blob);
@@ -7465,30 +7465,30 @@ ${svgData}`;
                                 link.href = url;
                                 link.download = `${filename}.png`;
                                 link.style.display = 'none';
-                                
+
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
                                 URL.revokeObjectURL(url);
-                                
-                                self.showNotification('✅ Mermaid exported via enhanced SVG-to-Canvas', 'success');
+
+                                self.showNotification('ermaid exported via enhanced SVG-to-Canvas', 'success');
                                 resolve();
                             } else {
                                 reject(new Error('Failed to create PNG blob from SVG'));
                             }
                         }, 'image/png', 0.98);
-                        
+
                     } catch (drawError) {
                         reject(drawError);
                     }
                 };
-                
-                img.onerror = function(error) {
+
+                img.onerror = function (error) {
                     reject(new Error('Failed to load SVG image for canvas conversion'));
                 };
-                
+
                 img.src = svgDataUrl;
-                
+
             } catch (error) {
                 reject(error);
             }
@@ -7502,14 +7502,14 @@ ${svgData}`;
             this.showNotification('📋 Mermaid code copied to clipboard', 'success');
         } catch (err) {
             console.error('Failed to copy:', err);
-            this.showNotification('❌ Failed to copy code', 'error');
+            this.showNotification(' Failed to copy code', 'error');
         }
     }
 
     // 6.6.4
     showMermaidError(mermaidDiv, error, originalContent) {
         const errorMessage = error.message || 'Unknown error';
-        
+
         mermaidDiv.innerHTML = `
             <div style="
                 padding: 20px; 
@@ -7547,27 +7547,27 @@ ${svgData}`;
         `;
     }
 
-/**
- * =============================================================================
- * SECTION 7: OTHER CHART TYPES
- * =============================================================================
- */
+    /**
+     * =============================================================================
+     * SECTION 7: OTHER CHART TYPES
+     * =============================================================================
+     */
 
     // 7.1.1
     async renderGoogleChartDirectly(item, contentArea, chartId) {
         if (!window.google || !window.google.visualization) {
             throw new Error('Google Charts library not loaded');
         }
-        
-        // ✅ CRITICAL: DOM validation before any DOM manipulation
+
+        // RITICAL: DOM validation before any DOM manipulation
         if (!contentArea) {
             throw new Error('Content area is null - cannot render Google Chart');
         }
         if (!document.contains(contentArea)) {
             throw new Error('Content area is not attached to DOM - cannot render Google Chart');
         }
-        
-        // ✅ TIMING SAFETY: Add micro-delay to ensure DOM stability
+
+        // IMING SAFETY: Add micro-delay to ensure DOM stability
         await new Promise(resolve => requestAnimationFrame(resolve));
 
         const chartDiv = document.createElement('div');
@@ -7579,36 +7579,36 @@ ${svgData}`;
             display: block;
             margin: 0 auto;
         `;
-        
-        // ✅ CRITICAL: Triple-check DOM validity right before manipulation
+
+        // RITICAL: Triple-check DOM validity right before manipulation
         if (!contentArea || !document.contains(contentArea)) {
             throw new Error('Content area became invalid before appendChild - DOM timing issue');
         }
-        
+
         contentArea.appendChild(chartDiv);
 
         const data = google.visualization.arrayToDataTable(item.data || item.dataTable);
         const ChartConstructor = google.visualization[item.chartType];
-        
+
         if (!ChartConstructor) {
             throw new Error(`Unsupported Google Chart type: ${item.chartType}`);
         }
 
         const chart = new ChartConstructor(chartDiv);
         const isDark = this.options.theme === 'dark';
-        
+
         const options = {
             ...item.options,
             fontName: this.options.fontFamily,
             backgroundColor: isDark ? '#0d1117' : '#ffffff',
             chartArea: { left: '10%', top: '15%', width: '75%', height: '70%' },
-            legend: { 
+            legend: {
                 position: 'bottom',
                 alignment: 'center',
-                textStyle: { 
+                textStyle: {
                     fontSize: 12,
                     color: isDark ? '#e6edf3' : '#24292f'
-                } 
+                }
             },
             height: this.options.defaultHeight,
             titleTextStyle: {
@@ -7625,7 +7625,7 @@ ${svgData}`;
         };
 
         chart.draw(data, options);
-        
+
         const vizContainer = contentArea.closest('.viz-container');
         if (vizContainer) {
             this.addUnifiedActionBar(vizContainer, item, chartId, 'google');
@@ -7647,31 +7647,31 @@ ${svgData}`;
             display: block;
             margin: 0 auto;
         `;
-        
+
         container.appendChild(chartDiv);
 
         const data = google.visualization.arrayToDataTable(item.data || item.dataTable);
         const ChartConstructor = google.visualization[item.chartType];
-        
+
         if (!ChartConstructor) {
             throw new Error(`Unsupported Google Chart type: ${item.chartType}`);
         }
 
         const chart = new ChartConstructor(chartDiv);
         const isDark = this.options.theme === 'dark';
-        
+
         const options = {
             ...item.options,
             fontName: this.options.fontFamily,
             backgroundColor: isDark ? '#0d1117' : '#ffffff',
             chartArea: { left: '10%', top: '15%', width: '75%', height: '70%' },
-            legend: { 
+            legend: {
                 position: 'bottom',
                 alignment: 'center',
-                textStyle: { 
+                textStyle: {
                     fontSize: 12,
                     color: isDark ? '#e6edf3' : '#24292f'
-                } 
+                }
             },
             height: this.options.defaultHeight,
             titleTextStyle: {
@@ -7688,8 +7688,8 @@ ${svgData}`;
         };
 
         chart.draw(data, options);
-        
-        // ✅ UNIFIED: Add unified action bar for Google Charts
+
+        // NIFIED: Add unified action bar for Google Charts
         this.addUnifiedActionBar(container, item, chartId, 'google');
     }
 
@@ -7698,16 +7698,16 @@ ${svgData}`;
         if (!window.Chart) {
             throw new Error('Chart.js library not loaded');
         }
-        
-        // ✅ CRITICAL: DOM validation before any DOM manipulation
+
+        // RITICAL: DOM validation before any DOM manipulation
         if (!contentArea) {
             throw new Error('Content area is null - cannot render Chart.js');
         }
         if (!document.contains(contentArea)) {
             throw new Error('Content area is not attached to DOM - cannot render Chart.js');
         }
-        
-        // ✅ TIMING SAFETY: Add micro-delay to ensure DOM stability
+
+        // IMING SAFETY: Add micro-delay to ensure DOM stability
         await new Promise(resolve => requestAnimationFrame(resolve));
 
         const canvas = document.createElement('canvas');
@@ -7719,15 +7719,15 @@ ${svgData}`;
             display: block;
             margin: 0 auto;
         `;
-        
-        // ✅ CRITICAL: Triple-check DOM validity right before manipulation
+
+        // RITICAL: Triple-check DOM validity right before manipulation
         if (!contentArea || !document.contains(contentArea)) {
             throw new Error('Content area became invalid before appendChild - DOM timing issue');
         }
-        
+
         contentArea.appendChild(canvas);
 
-        const config = typeof item.content === 'string' ? 
+        const config = typeof item.content === 'string' ?
             JSON.parse(item.content) : item.content;
 
         const isDark = this.options.theme === 'dark';
@@ -7744,7 +7744,7 @@ ${svgData}`;
         }
 
         new Chart(canvas, config);
-        
+
         const vizContainer = contentArea.closest('.viz-container');
         if (vizContainer) {
             this.addUnifiedActionBar(vizContainer, item, chartId, 'chartjs');
@@ -7766,10 +7766,10 @@ ${svgData}`;
             display: block;
             margin: 0 auto;
         `;
-        
+
         container.appendChild(canvas);
 
-        const config = typeof item.content === 'string' ? 
+        const config = typeof item.content === 'string' ?
             JSON.parse(item.content) : item.content;
 
         const isDark = this.options.theme === 'dark';
@@ -7786,8 +7786,8 @@ ${svgData}`;
         }
 
         new Chart(canvas, config);
-        
-        // ✅ UNIFIED: Add unified action bar for Chart.js
+
+        // NIFIED: Add unified action bar for Chart.js
         this.addUnifiedActionBar(container, item, chartId, 'chartjs');
     }
 
@@ -7831,7 +7831,7 @@ ${svgData}`;
 
     // 7.3.2
     styleTable(table) {
-        // ✅ Table-level styles
+        // able-level styles
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
         table.style.margin = '20px 0';
@@ -7840,32 +7840,32 @@ ${svgData}`;
         table.style.textAlign = 'left';
         table.style.marginLeft = '0';
         table.style.marginRight = 'auto';
-        table.style.border = '2px solid #6e7681'; // ✅ MEDIUM GRAY OUTER BORDER
-        
-        // ✅ NEW: Style table headers (th elements)
+        table.style.border = '2px solid #6e7681'; // EDIUM GRAY OUTER BORDER
+
+        // EW: Style table headers (th elements)
         const headers = table.querySelectorAll('th');
         headers.forEach(th => {
-            th.style.border = '1px solid #484f58'; // ✅ LIGHTER GRAY BORDERS
+            th.style.border = '1px solid #484f58'; // IGHTER GRAY BORDERS
             th.style.padding = '12px 16px';
             th.style.backgroundColor = '#161b22';
             th.style.color = '#e6edf3';
             th.style.fontWeight = '600';
             th.style.textAlign = 'left';
             th.style.fontSize = '14px';
-            th.style.borderBottom = '2px solid #6e7681'; // ✅ MEDIUM GRAY BOTTOM BORDER
+            th.style.borderBottom = '2px solid #6e7681'; // EDIUM GRAY BOTTOM BORDER
         });
-        
-        // ✅ NEW: Style table cells (td elements)
+
+        // EW: Style table cells (td elements)
         const cells = table.querySelectorAll('td');
         cells.forEach(td => {
-            td.style.border = '1px solid #484f58'; // ✅ LIGHTER GRAY BORDERS
+            td.style.border = '1px solid #484f58'; // IGHTER GRAY BORDERS
             td.style.padding = '10px 16px';
             td.style.color = '#e6edf3';
             td.style.fontSize = '13px';
             td.style.lineHeight = '1.5';
         });
-        
-        // ✅ NEW: Alternating row colors (stripe pattern)
+
+        // EW: Alternating row colors (stripe pattern)
         const rows = table.querySelectorAll('tbody tr');
         rows.forEach((tr, idx) => {
             if (idx % 2 === 0) {
@@ -7879,15 +7879,15 @@ ${svgData}`;
     // 7.3.3
     processSeparatorRows(table) {
         const rows = table.querySelectorAll('tr');
-        
+
         // Skip the header row
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             const cells = row.querySelectorAll('td');
-            
+
             // Check if this is a separator row (all cells contain primarily dashes or separator chars)
             let isSeparatorRow = true;
-            
+
             cells.forEach(cell => {
                 const text = cell.textContent.trim();
                 // Check if cell contains primarily separator characters (dashes, underscores, or |)
@@ -7895,15 +7895,15 @@ ${svgData}`;
                     isSeparatorRow = false;
                 }
             });
-            
+
             if (isSeparatorRow) {
                 // Apply separator styling
                 row.classList.add('table-separator-row');
-                
+
                 // Replace cells with a single cell spanning all columns
                 const columnCount = cells.length;
                 row.innerHTML = '';
-                
+
                 const separatorCell = document.createElement('td');
                 separatorCell.setAttribute('colspan', columnCount.toString());
                 separatorCell.classList.add('table-separator-cell');
@@ -7913,17 +7913,17 @@ ${svgData}`;
         }
     }
 
-/**
- * =============================================================================
- * SECTION 8: ACTION BAR & USER INTERACTIONS
- * =============================================================================
- */
+    /**
+     * =============================================================================
+     * SECTION 8: ACTION BAR & USER INTERACTIONS
+     * =============================================================================
+     */
 
     // 8.1.1
     addUnifiedActionBar(container, plotlyData, chartId, chartType = 'plotly') {
         const actionBar = document.createElement('div');
         actionBar.className = 'viz-action-bar';
-        
+
         actionBar.innerHTML = `
             <!-- CORE BUTTONS -->
             <button class="viz-action-btn" data-action="copy" title="Copy Data" data-function="copyData">
@@ -7979,10 +7979,10 @@ ${svgData}`;
                 <i class="fas fa-download"></i>
             </button>
         `;
-        
+
         container.appendChild(actionBar);
         this.setupUnifiedButtonHandlers(actionBar, container, plotlyData, chartId);
-        
+
         return actionBar;
     }
 
@@ -8014,68 +8014,68 @@ ${svgData}`;
 
             return null;
         };
-        
+
         buttons.forEach(button => {
             const functionName = button.getAttribute('data-function');
-            
+
             button.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const targetChartId = resolveChartId();
                 const dataForAction = resolvePlotlyData();
-                
-                switch(functionName) {
+
+                switch (functionName) {
                     case 'copyData':
                         if (!dataForAction) {
-                            this.showNotification('❌ Chart data not available yet', 'error');
+                            this.showNotification(' Chart data not available yet', 'error');
                             return;
                         }
                         this.copyChartData(dataForAction);
                         break;
                     case 'chartType':
                         if (!dataForAction) {
-                            this.showNotification('❌ Chart data not available yet', 'error');
+                            this.showNotification(' Chart data not available yet', 'error');
                             return;
                         }
                         this.toggleChartTypeSwitcher(container, dataForAction, targetChartId);
                         break;
                     case 'exportOptions':
                         if (!dataForAction) {
-                            this.showNotification('❌ Chart data not available yet', 'error');
+                            this.showNotification(' Chart data not available yet', 'error');
                             return;
                         }
                         this.toggleExportOptions(container, dataForAction, targetChartId);
                         break;
                     case 'plotlyZoom':
                         if (!targetChartId) {
-                            this.showNotification('❌ Chart not ready for interaction', 'error');
+                            this.showNotification(' Chart not ready for interaction', 'error');
                             return;
                         }
                         this.activatePlotlyTool(targetChartId, 'zoom');
                         break;
                     case 'plotlyPan':
                         if (!targetChartId) {
-                            this.showNotification('❌ Chart not ready for interaction', 'error');
+                            this.showNotification(' Chart not ready for interaction', 'error');
                             return;
                         }
                         this.activatePlotlyTool(targetChartId, 'pan');
                         break;
                     case 'plotlyReset':
                         if (!targetChartId) {
-                            this.showNotification('❌ Chart not ready for interaction', 'error');
+                            this.showNotification(' Chart not ready for interaction', 'error');
                             return;
                         }
                         this.resetPlotlyView(targetChartId);
                         break;
-                    case 'addTrend':  // ✅ NEW: Add trend line
+                    case 'addTrend':  // EW: Add trend line
                         if (!dataForAction || !targetChartId) {
-                            this.showNotification('❌ Chart data not available yet', 'error');
+                            this.showNotification(' Chart data not available yet', 'error');
                             return;
                         }
                         this.addTrendLine(targetChartId, dataForAction);
                         break;
                     case 'showStats':
                         if (!dataForAction) {
-                            this.showNotification('❌ Chart data not available yet', 'error');
+                            this.showNotification(' Chart data not available yet', 'error');
                             return;
                         }
                         this.showStatistics(dataForAction);
@@ -8088,10 +8088,10 @@ ${svgData}`;
                         break;
                     case 'shareChart':
                         if (!targetChartId) {
-                            this.showNotification('❌ Chart not ready for sharing', 'error');
+                            this.showNotification(' Chart not ready for sharing', 'error');
                             return;
                         }
-                        this.shareChartAsPNG(container, dataForAction, targetChartId);  // ✅ NEW: Share as PNG
+                        this.shareChartAsPNG(container, dataForAction, targetChartId);  // EW: Share as PNG
                         break;
                     case 'printChart':
                         this.printChart(container);
@@ -8126,7 +8126,7 @@ ${svgData}`;
             gap: 4px;
             flex-wrap: wrap;
         `;
-        
+
         const exportFormats = [
             { value: 'png', label: 'PNG', icon: '🖼️', title: 'Export as PNG Image' },
             { value: 'svg', label: 'SVG', icon: '◻️', title: 'Export as SVG Vector' },
@@ -8134,7 +8134,7 @@ ${svgData}`;
             { value: 'csv', label: 'CSV', icon: '📊', title: 'Export Data as CSV' },
             { value: 'json', label: 'JSON', icon: '💾', title: 'Export Data as JSON' }
         ];
-        
+
         exportFormats.forEach(({ value, label, icon, title }) => {
             const button = document.createElement('button');
             button.className = 'export-format-btn';
@@ -8156,7 +8156,7 @@ ${svgData}`;
                 line-height: 1.1;
                 margin: 1px;
             `;
-            
+
             button.onmouseenter = () => {
                 button.style.background = 'var(--bg-tertiary) !important';
                 button.style.borderColor = 'var(--accent-blue) !important';
@@ -8165,16 +8165,16 @@ ${svgData}`;
                 button.style.background = 'var(--bg-primary) !important';
                 button.style.borderColor = 'var(--border-primary) !important';
             };
-            
+
             button.onclick = async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const format = button.value;
                 button.disabled = true;
                 button.style.opacity = '0.6';
                 button.innerHTML = `⏳<br><span style="font-size: 9px;">Wait</span>`;
-                
+
                 try {
                     let chartType = 'unknown';
                     if (container.querySelector('.plotly-graph-div')) {
@@ -8184,43 +8184,43 @@ ${svgData}`;
                     } else if (container.querySelector('canvas')) {
                         chartType = 'chartjs';
                     }
-                    
+
                     await this.exportChart(container, plotlyData, chartType, format);
                     switcher.remove();
                 } catch (error) {
-                    console.error('❌ Export failed:', error);
-                    this.showNotification('❌ Export failed: ' + error.message, 'error');
-                    
+                    console.error(' Export failed:', error);
+                    this.showNotification(' Export failed: ' + error.message, 'error');
+
                     button.disabled = false;
                     button.style.opacity = '1';
                     button.innerHTML = `${icon}<br><span style="font-size: 9px;">${label}</span>`;
                 }
             };
-            
+
             switcher.appendChild(button);
         });
-        
+
         container.appendChild(switcher);
-        
+
         const handleClickOutside = (e) => {
             if (!switcher.contains(e.target) && !e.target.closest('[data-function="exportOptions"]')) {
                 switcher.remove();
                 document.removeEventListener('click', handleClickOutside);
             }
         };
-        
+
         setTimeout(() => {
             document.addEventListener('click', handleClickOutside);
         }, 100);
     }
 
-    // ✅ FIXED: Plotly export with better fallback handling
+    // IXED: Plotly export with better fallback handling
     async exportChart(container, chartData, chartType, format) {
         const timestamp = new Date().toISOString().slice(0, 16).replace(/[:]/g, '-');
         const filename = `chart-${timestamp}`;
-        
+
         console.log('🔄 Export triggered:', { format, chartType, hasChartData: !!chartData });
-        
+
         try {
             switch (format) {
                 case 'png':
@@ -8228,11 +8228,11 @@ ${svgData}`;
                     if (chartType === 'plotly' && window.Plotly) {
                         const plotlyDiv = container.querySelector('.plotly-graph-div');
                         console.log('📊 Plotly export:', { hasPlotlyDiv: !!plotlyDiv, hasPlotly: !!window.Plotly });
-                        
+
                         if (plotlyDiv) {
                             console.log('⬇️ Starting Plotly download...', format);
                             try {
-                                // ✅ FIXED: Better Plotly export options
+                                // IXED: Better Plotly export options
                                 await Plotly.downloadImage(plotlyDiv, {
                                     format: format,
                                     filename: filename,
@@ -8241,12 +8241,12 @@ ${svgData}`;
                                     scale: 2,
                                     imageDataOnly: false
                                 });
-                                
-                                this.showNotification(`✅ Chart exported as ${format.toUpperCase()}`, 'success');
+
+                                this.showNotification(`hart exported as ${format.toUpperCase()}`, 'success');
                             } catch (plotlyError) {
-                                console.error('❌ Plotly.downloadImage failed:', plotlyError);
-                                
-                                // ✅ IMPROVED FALLBACK: Try alternative methods
+                                console.error(' Plotly.downloadImage failed:', plotlyError);
+
+                                // MPROVED FALLBACK: Try alternative methods
                                 if (format === 'png') {
                                     try {
                                         console.log('🔄 Trying html2canvas fallback...');
@@ -8255,7 +8255,7 @@ ${svgData}`;
                                             scale: 2,
                                             logging: false
                                         });
-                                        
+
                                         canvas.toBlob(blob => {
                                             if (blob) {
                                                 const url = URL.createObjectURL(blob);
@@ -8266,12 +8266,12 @@ ${svgData}`;
                                                 link.click();
                                                 document.body.removeChild(link);
                                                 URL.revokeObjectURL(url);
-                                                this.showNotification('✅ Chart exported as PNG (fallback)', 'success');
+                                                this.showNotification('hart exported as PNG (fallback)', 'success');
                                             }
                                         }, 'image/png');
                                     } catch (fallbackError) {
-                                        console.error('❌ html2canvas fallback also failed:', fallbackError);
-                                        this.showNotification('❌ PNG export failed, try SVG or print-to-PDF', 'error');
+                                        console.error(' html2canvas fallback also failed:', fallbackError);
+                                        this.showNotification(' PNG export failed, try SVG or print-to-PDF', 'error');
                                     }
                                 } else if (format === 'svg') {
                                     // SVG fallback: Extract from DOM
@@ -8280,23 +8280,23 @@ ${svgData}`;
                                         if (svgElement) {
                                             const svgData = new XMLSerializer().serializeToString(svgElement);
                                             this.downloadFile(svgData, `${filename}.svg`, 'image/svg+xml');
-                                            this.showNotification('✅ Chart exported as SVG (fallback)', 'success');
+                                            this.showNotification('hart exported as SVG (fallback)', 'success');
                                         } else {
-                                            this.showNotification('❌ No SVG found in chart', 'error');
+                                            this.showNotification(' No SVG found in chart', 'error');
                                         }
                                     } catch (svgError) {
-                                        console.error('❌ SVG fallback failed:', svgError);
-                                        this.showNotification('❌ SVG export failed', 'error');
+                                        console.error(' SVG fallback failed:', svgError);
+                                        this.showNotification(' SVG export failed', 'error');
                                     }
                                 }
                             }
                         } else {
-                            console.error('❌ No plotly div found in container');
-                            this.showNotification('❌ Chart not ready for export', 'error');
+                            console.error(' No plotly div found in container');
+                            this.showNotification(' Chart not ready for export', 'error');
                         }
-                    } 
-                    
-                    // ✅ MERMAID EXPORT: Use the new fixed methods
+                    }
+
+                    // ERMAID EXPORT: Use the new fixed methods
                     else if (chartType === 'mermaid') {
                         if (format === 'svg') {
                             await this.exportMermaidToSVGFixed(container, filename);
@@ -8305,37 +8305,37 @@ ${svgData}`;
                         }
                     }
                     break;
-                    
+
                 case 'pdf':
                     window.print();
                     this.showNotification('🖨️ Use browser\'s print-to-PDF option', 'info');
                     break;
-                    
+
                 case 'json':
                     const json = JSON.stringify(chartData, null, 2);
                     this.downloadFile(json, `${filename}.json`, 'application/json');
-                    this.showNotification('✅ Chart data exported as JSON', 'success');
+                    this.showNotification('hart data exported as JSON', 'success');
                     break;
-                    
+
                 case 'csv':
                     if (chartData.data && chartData.data[0]) {
                         const trace = chartData.data[0];
                         let csv = 'X,Y\n';
                         const length = Math.max(trace.x?.length || 0, trace.y?.length || 0, trace.values?.length || 0);
-                        
+
                         for (let i = 0; i < length; i++) {
                             const x = trace.x?.[i] || trace.labels?.[i] || i;
                             const y = trace.y?.[i] || trace.values?.[i] || '';
                             csv += `${x},${y}\n`;
                         }
                         this.downloadFile(csv, `${filename}.csv`, 'text/csv');
-                        this.showNotification('✅ Chart data exported as CSV', 'success');
+                        this.showNotification('hart data exported as CSV', 'success');
                     }
                     break;
             }
         } catch (error) {
             console.error('Export error:', error);
-            this.showNotification('❌ Export failed: ' + error.message, 'error');
+            this.showNotification(' Export failed: ' + error.message, 'error');
         }
     }
 
@@ -8357,10 +8357,10 @@ ${svgData}`;
         try {
             const plotlyDiv = document.getElementById(chartId);
             if (!plotlyDiv || !window.Plotly) {
-                this.showNotification('❌ Chart not available for sharing', 'error');
+                this.showNotification(' Chart not available for sharing', 'error');
                 return;
             }
-            
+
             // Generate PNG
             const imgData = await Plotly.toImage(plotlyDiv, {
                 format: 'png',
@@ -8368,11 +8368,11 @@ ${svgData}`;
                 height: 800,
                 scale: 2
             });
-            
+
             // Convert to blob
             const response = await fetch(imgData);
             const blob = await response.blob();
-            
+
             // Try native sharing first
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'chart.png', { type: 'image/png' })] })) {
                 const file = new File([blob], `chart-${Date.now()}.png`, { type: 'image/png' });
@@ -8394,10 +8394,10 @@ ${svgData}`;
                 URL.revokeObjectURL(url);
                 this.showNotification('📥 Chart PNG downloaded', 'success');
             }
-            
+
         } catch (error) {
             console.error('Error sharing chart as PNG:', error);
-            this.showNotification('❌ Failed to share chart', 'error');
+            this.showNotification(' Failed to share chart', 'error');
         }
     }
 
@@ -8407,7 +8407,7 @@ ${svgData}`;
             container.requestFullscreen().then(() => {
                 this.showNotification('🖥️ Entered fullscreen mode', 'info');
             }).catch(err => {
-                this.showNotification('❌ Fullscreen not supported', 'error');
+                this.showNotification(' Fullscreen not supported', 'error');
             });
         } else {
             document.exitFullscreen().then(() => {
@@ -8423,7 +8423,7 @@ ${svgData}`;
             text: 'Check out this interactive chart!',
             url: window.location.href
         };
-        
+
         if (navigator.share) {
             navigator.share(shareData).then(() => {
                 this.showNotification('📤 Chart shared successfully', 'success');
@@ -8440,18 +8440,18 @@ ${svgData}`;
         navigator.clipboard.writeText(window.location.href).then(() => {
             this.showNotification('🔗 Chart URL copied to clipboard', 'success');
         }).catch(() => {
-            this.showNotification('❌ Unable to share', 'error');
+            this.showNotification(' Unable to share', 'error');
         });
     }
 
     // 8.3.4
     generateEmbedCode(container, plotlyData) {
         const embedCode = `<iframe src="${window.location.href}" width="800" height="600" frameborder="0"></iframe>`;
-        
+
         navigator.clipboard.writeText(embedCode).then(() => {
             this.showNotification('📋 Embed code copied to clipboard', 'success');
         }).catch(() => {
-            this.showNotification('❌ Failed to copy embed code', 'error');
+            this.showNotification(' Failed to copy embed code', 'error');
         });
     }
 
@@ -8481,15 +8481,15 @@ ${svgData}`;
     async copyChartData(plotlyData) {
         try {
             if (!plotlyData || !Array.isArray(plotlyData.data)) {
-                this.showNotification('❌ No chart data available to copy', 'error');
+                this.showNotification(' No chart data available to copy', 'error');
                 return;
             }
             const dataText = JSON.stringify(plotlyData.data, null, 2);
             await navigator.clipboard.writeText(dataText);
-            this.showNotification('✅ Chart data copied to clipboard', 'success');
+            this.showNotification('hart data copied to clipboard', 'success');
         } catch (err) {
             console.error('Failed to copy:', err);
-            this.showNotification('❌ Failed to copy data', 'error');
+            this.showNotification(' Failed to copy data', 'error');
         }
     }
 
@@ -8497,15 +8497,15 @@ ${svgData}`;
     setupExportDropdown(actionBar) {
         const dropdown = actionBar.querySelector('.export-dropdown');
         if (!dropdown) return;
-        
+
         const trigger = dropdown.querySelector('.viz-action-btn');
         const options = dropdown.querySelector('.export-options');
-        
+
         trigger.addEventListener('click', (e) => {
             e.stopPropagation();
             dropdown.classList.toggle('open');
         });
-        
+
         // Setup export options
         const exportOptions = dropdown.querySelectorAll('.export-option');
         exportOptions.forEach(option => {
@@ -8513,7 +8513,7 @@ ${svgData}`;
                 const format = option.getAttribute('data-format');
                 const container = dropdown.closest('.viz-container');
                 const chartData = this.getChartDataFromContainer(container);
-                
+
                 this.exportChart(container, chartData, 'plotly', format);
                 dropdown.classList.remove('open');
             });
@@ -8528,22 +8528,22 @@ ${svgData}`;
         return null;
     }
 
-/**
- * =============================================================================
- * SECTION 9: THEME & RESPONSIVE SYSTEM
- * =============================================================================
- */
+    /**
+     * =============================================================================
+     * SECTION 9: THEME & RESPONSIVE SYSTEM
+     * =============================================================================
+     */
 
     // 9.1.1
     updateTheme(newTheme) {
         console.log(`🎨 Updating theme to ${newTheme}`);
-        
+
         const oldTheme = this.options.theme;
         this.options.theme = newTheme;
         this.layoutState.currentTheme = newTheme;
-        
+
         document.body.setAttribute('data-theme', newTheme);
-        
+
         if (newTheme === 'dark') {
             this.options.colorScheme = {
                 primary: '#1f6feb',
@@ -8564,8 +8564,8 @@ ${svgData}`;
 
         // Reinject all styles
         this.injectUnifiedStyles();
-        
-        // ✅ FORCE UPDATE ALL PLOTLY CHARTS
+
+        // ORCE UPDATE ALL PLOTLY CHARTS
         this.charts.forEach((chart, chartId) => {
             try {
                 if (chart.type === 'plotly' && window.Plotly) {
@@ -8575,15 +8575,15 @@ ${svgData}`;
                         const bgColor = isDark ? '#0d1117' : '#ffffff';
                         const textColor = isDark ? '#e6edf3' : '#24292f';
                         const gridColor = isDark ? '#30363d' : '#e1e4e8';
-                        
+
                         console.log(`🔄 Updating Plotly chart ${chartId} legend background to: ${bgColor}`);
-                        
-                        // ✅ FORCE LEGEND BACKGROUND UPDATE
+
+                        // ORCE LEGEND BACKGROUND UPDATE
                         const updateObj = {
                             paper_bgcolor: bgColor,
                             plot_bgcolor: bgColor,
                             'font.color': textColor,
-                            'legend.bgcolor': bgColor, // ✅ CRITICAL!
+                            'legend.bgcolor': bgColor, // RITICAL!
                             'legend.bordercolor': gridColor,
                             'legend.font.color': textColor,
                             'xaxis.gridcolor': gridColor,
@@ -8593,16 +8593,16 @@ ${svgData}`;
                             'yaxis.linecolor': gridColor,
                             'yaxis.tickfont.color': textColor
                         };
-                        
+
                         Plotly.relayout(chartId, updateObj);
-                        console.log('✅ Plotly chart updated with new legend background');
+                        console.log('lotly chart updated with new legend background');
                     }
                 }
             } catch (err) {
                 console.error(`Error updating theme for chart ${chartId}:`, err);
             }
         });
-        
+
         this.showNotification(`🎨 Theme updated to ${newTheme}`, 'success');
     }
 
@@ -8614,9 +8614,9 @@ ${svgData}`;
         const bgColor = isDark ? '#0d1117' : '#ffffff';
         const textColor = isDark ? '#e6edf3' : '#24292f';
         const gridColor = isDark ? '#30363d' : '#e1e4e8';
-        
+
         try {
-            switch(chart.type) {
+            switch (chart.type) {
                 case 'plotly':
                     if (window.Plotly && element._fullLayout) {
                         // Update Plotly theme
@@ -8647,7 +8647,7 @@ ${svgData}`;
                         Plotly.relayout(chartId, newLayout);
                     }
                     break;
-                    
+
                 case 'mermaid':
                     // Re-render mermaid diagram with new theme
                     if (window.mermaid && chart.item?.content) {
@@ -8655,7 +8655,7 @@ ${svgData}`;
                             startOnLoad: false,
                             theme: isDark ? 'dark' : 'default'
                         });
-                        
+
                         mermaid.render(`mermaid-${chartId}-${Date.now()}`, chart.item.content)
                             .then(({ svg }) => {
                                 const mermaidDiv = element.querySelector('.mermaid');
@@ -8663,7 +8663,7 @@ ${svgData}`;
                             });
                     }
                     break;
-                    
+
                 case 'chartjs':
                     // Update Chart.js theme
                     if (window.Chart) {
@@ -8676,7 +8676,7 @@ ${svgData}`;
                         }
                     }
                     break;
-                    
+
                 case 'google':
                     // Re-render Google chart with new theme
                     if (window.google && window.google.visualization && chart.item) {
@@ -8707,7 +8707,7 @@ ${svgData}`;
     // 9.2.1
     handleBreakpointChange(newBreakpoint) {
         console.log(`📱 Breakpoint changed to: ${newBreakpoint}`);
-        
+
         this.charts.forEach((chart, chartId) => {
             const element = document.getElementById(chartId);
             if (element) {
@@ -8725,7 +8725,7 @@ ${svgData}`;
     // 9.2.3
     handleWindowResize() {
         console.log('[VIZ] Skipping window resize - Plotly charts use responsive config');
-        // ❌ DISABLED - Plotly resize breaks properly-rendered charts
+        //  DISABLED - Plotly resize breaks properly-rendered charts
         // this.charts.forEach((chart, chartId) => {
         //     if (chart.type === 'plotly' && window.Plotly) {
         //         try {
@@ -8753,7 +8753,7 @@ ${svgData}`;
     // 9.2.5
     updateSingleContainerSize(container) {
         console.log('[VIZ] Skipping container resize - Plotly charts use responsive config');
-        // ❌ DISABLED - Plotly resize breaks properly-rendered charts
+        //  DISABLED - Plotly resize breaks properly-rendered charts
         // const plotlyDiv = container.querySelector('.plotly-graph-div');
         // if (plotlyDiv && window.Plotly && plotlyDiv._fullLayout) {
         //     try {
@@ -8768,7 +8768,7 @@ ${svgData}`;
         const scope = rootElement || document;
         const containers = Array.from(scope.querySelectorAll?.('.viz-container') || []);
 
-        // ✅ EXTRACT FORCED DIMENSIONS FOR VIEWER REHYDRATION
+        // XTRACT FORCED DIMENSIONS FOR VIEWER REHYDRATION
         const forceWidth = options.forceWidth || null;
         const forceHeight = options.forceHeight || null;
 
@@ -8793,11 +8793,11 @@ ${svgData}`;
                     const viewerDiv = document.getElementById(existingViewerId);
                     if (viewerDiv && viewerDiv._fullLayout) {
                         try {
-                            // ❌ RESIZE DISABLED - Was destroying charts in viewer
+                            //  RESIZE DISABLED - Was destroying charts in viewer
                             // Plotly already renders with responsive config, no resize needed
-                            console.log('✅ VIEWER: Plotly chart found, skipping resize (uses responsive config)');
-                            
-                            // ✅ ONLY relayout if forced dimensions requested
+                            console.log('IEWER: Plotly chart found, skipping resize (uses responsive config)');
+
+                            // NLY relayout if forced dimensions requested
                             if (forceWidth || forceHeight) {
                                 const update = {};
                                 if (forceWidth) update.width = forceWidth;
@@ -8813,8 +8813,8 @@ ${svgData}`;
             }
 
             const newChartId = existingViewerId || `${inferredId}__viewer_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-            
-            // ✅ PASS FORCED DIMENSIONS TO CLONE FUNCTION
+
+            // ASS FORCED DIMENSIONS TO CLONE FUNCTION
             await this.cloneVisualizationForViewer(inferredId, container, newChartId, forceWidth, forceHeight);
         }
 
@@ -8852,26 +8852,26 @@ ${svgData}`;
                 console.warn('Missing Plotly snapshot for viewer clone:', sourceChartId);
                 return;
             }
-            
-            // ✅ FIX: Deep clone Plotly data but preserve reactivity
+
+            // IX: Deep clone Plotly data but preserve reactivity
             const viewerPlotlyData = JSON.parse(JSON.stringify(record.plotlyData));
-            
-            // ✅ FORCE LARGER DIMENSIONS FOR VIEWER PLOTLY CHARTS
+
+            // ORCE LARGER DIMENSIONS FOR VIEWER PLOTLY CHARTS
             // Use passed dimensions or defaults (wider and taller for viewer)
-            const viewerWidth = forceWidth || 1400;   // ✅ Increased from 1200 to 1400
-            const viewerHeight = forceHeight || 700;  // ✅ Increased from 600 to 700
-            
-            // ✅ FIX: Set dimensions but ENABLE autosize for responsive behavior
+            const viewerWidth = forceWidth || 1400;   // ncreased from 1200 to 1400
+            const viewerHeight = forceHeight || 700;  // ncreased from 600 to 700
+
+            // IX: Set dimensions but ENABLE autosize for responsive behavior
             viewerPlotlyData.layout.width = viewerWidth;
             viewerPlotlyData.layout.height = viewerHeight;
-            
-            // ✅ CRITICAL FIX: Enable autosize for responsive resizing in viewer panel
+
+            // RITICAL FIX: Enable autosize for responsive resizing in viewer panel
             viewerPlotlyData.layout.autosize = true;  // FIXED: Was false, now true for responsiveness
-            
-            // ✅ Ensure responsive mode is enabled
+
+            // nsure responsive mode is enabled
             viewerPlotlyData.config = viewerPlotlyData.config || {};
             viewerPlotlyData.config.responsive = true;
-            
+
             viewerItem.data = viewerPlotlyData.data;
             viewerItem.layout = viewerPlotlyData.layout;
             viewerItem.__normalizedPlotlyData = viewerPlotlyData;
@@ -8918,11 +8918,11 @@ ${svgData}`;
         });
     }
 
-/**
- * =============================================================================
- * SECTION 10: UTILITIES & HELPERS
- * =============================================================================
- */
+    /**
+     * =============================================================================
+     * SECTION 10: UTILITIES & HELPERS
+     * =============================================================================
+     */
 
     // 10.1.1
     showNotification(message, type = 'info') {
@@ -8933,7 +8933,7 @@ ${svgData}`;
             info: 'var(--accent-blue)',
             warning: 'var(--accent-orange)'
         };
-        
+
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -8949,9 +8949,9 @@ ${svgData}`;
             max-width: 300px;
         `;
         notification.textContent = message;
-        
+
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.style.opacity = '0';
             notification.style.transform = 'translateX(100%)';
@@ -8971,16 +8971,16 @@ ${svgData}`;
 
     // 10.2.2
     showErrorDirectly(contentArea, message) {
-        // ✅ CRITICAL: DOM validation before any DOM manipulation
+        // RITICAL: DOM validation before any DOM manipulation
         if (!contentArea) {
-            console.error('❌ Cannot show error - content area is null:', message);
+            console.error(' Cannot show error - content area is null:', message);
             return;
         }
         if (!document.contains(contentArea)) {
-            console.error('❌ Cannot show error - content area not in DOM:', message);
+            console.error(' Cannot show error - content area not in DOM:', message);
             return;
         }
-        
+
         contentArea.innerHTML = `
             <div class="viz-error" style="
                 text-align: center;
@@ -8996,47 +8996,47 @@ ${svgData}`;
         `;
     }
 
-    // ✅ NEW: Fullscreen Mermaid viewer with zoom and pan
-openMermaidFullscreen(container, diagramContent, chartId) {
-    console.log('🖥️ Opening Mermaid fullscreen view...');
-    
-    // Get the current SVG element
-    const currentSvg = container.querySelector('svg');
-    if (!currentSvg) {
-        this.showNotification('❌ No diagram found to display', 'error');
-        return;
-    }
+    // EW: Fullscreen Mermaid viewer with zoom and pan
+    openMermaidFullscreen(container, diagramContent, chartId) {
+        console.log('🖥️ Opening Mermaid fullscreen view...');
 
-    // Create fullscreen overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'mermaid-fullscreen-overlay';
-    
-    // Create fullscreen container
-    const fullscreenContainer = document.createElement('div');
-    fullscreenContainer.className = 'mermaid-fullscreen-container viz-container';
-    // Ensure handlers treat fullscreen as a proper viz-container target
-    try {
-        const originalContent = container.getAttribute('data-original-content') || diagramContent || '';
-        if (originalContent) fullscreenContainer.setAttribute('data-original-content', originalContent);
-        const originalFont = container.getAttribute('data-font-size') || '14';
-        fullscreenContainer.setAttribute('data-font-size', originalFont);
-        const colorTheme = container.getAttribute('data-color-theme');
-        if (colorTheme) fullscreenContainer.setAttribute('data-color-theme', colorTheme);
-    } catch (e) { /* noop */ }
-    
-    // Create header with controls
-    const header = document.createElement('div');
-    header.className = 'mermaid-fullscreen-header';
-    
-    const title = document.createElement('h3');
-    title.className = 'mermaid-fullscreen-title';
-    title.textContent = 'Mermaid Diagram - Fullscreen View';
-    
-    const controls = document.createElement('div');
-    controls.className = 'mermaid-fullscreen-controls';
-    
-    // Use viz-action-btn styling and Font Awesome icons
-    controls.innerHTML = `
+        // Get the current SVG element
+        const currentSvg = container.querySelector('svg');
+        if (!currentSvg) {
+            this.showNotification(' No diagram found to display', 'error');
+            return;
+        }
+
+        // Create fullscreen overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'mermaid-fullscreen-overlay';
+
+        // Create fullscreen container
+        const fullscreenContainer = document.createElement('div');
+        fullscreenContainer.className = 'mermaid-fullscreen-container viz-container';
+        // Ensure handlers treat fullscreen as a proper viz-container target
+        try {
+            const originalContent = container.getAttribute('data-original-content') || diagramContent || '';
+            if (originalContent) fullscreenContainer.setAttribute('data-original-content', originalContent);
+            const originalFont = container.getAttribute('data-font-size') || '14';
+            fullscreenContainer.setAttribute('data-font-size', originalFont);
+            const colorTheme = container.getAttribute('data-color-theme');
+            if (colorTheme) fullscreenContainer.setAttribute('data-color-theme', colorTheme);
+        } catch (e) { /* noop */ }
+
+        // Create header with controls
+        const header = document.createElement('div');
+        header.className = 'mermaid-fullscreen-header';
+
+        const title = document.createElement('h3');
+        title.className = 'mermaid-fullscreen-title';
+        title.textContent = 'Mermaid Diagram - Fullscreen View';
+
+        const controls = document.createElement('div');
+        controls.className = 'mermaid-fullscreen-controls';
+
+        // Use viz-action-btn styling and Font Awesome icons
+        controls.innerHTML = `
         <button class="viz-action-btn" id="zoom-out" title="Zoom Out">
             <i class="fas fa-search-minus"></i>
         </button>
@@ -9053,14 +9053,14 @@ openMermaidFullscreen(container, diagramContent, chartId) {
             <i class="far fa-window-close"></i>
         </button>
     `;
-    
-    header.appendChild(title);
-    header.appendChild(controls);
-    
-    // ✅ FIXED: Add Mermaid action controls to fullscreen
-    const fullscreenActionBar = document.createElement('div');
-    fullscreenActionBar.className = 'viz-action-bar';
-    fullscreenActionBar.style.cssText = `
+
+        header.appendChild(title);
+        header.appendChild(controls);
+
+        // FIXED: Add Mermaid action controls to fullscreen
+        const fullscreenActionBar = document.createElement('div');
+        fullscreenActionBar.className = 'viz-action-bar';
+        fullscreenActionBar.style.cssText = `
         position: relative;
         top: 0;
         left: 0;
@@ -9069,8 +9069,8 @@ openMermaidFullscreen(container, diagramContent, chartId) {
         opacity: 1;
         background: rgba(255, 255, 255, 0.1);
     `;
-    
-    fullscreenActionBar.innerHTML = `
+
+        fullscreenActionBar.innerHTML = `
         <button class="viz-action-btn" data-action="copy" title="Copy Code" data-function="copyMermaidCode">
             <i class="fas fa-copy">⧉</i>
         </button>
@@ -9099,67 +9099,67 @@ openMermaidFullscreen(container, diagramContent, chartId) {
             <i class="fas fa-download">⬇</i>
         </button>
     `;
-    
-    header.appendChild(fullscreenActionBar);
-    
-    // Create content area
-    const content = document.createElement('div');
-    content.className = 'mermaid-fullscreen-content';
-    
-    const viewport = document.createElement('div');
-    viewport.className = 'mermaid-fullscreen-viewport';
-    
-    // Wrap fullscreen diagram in a viz-content-area so existing logic finds it
-    const vizContentArea = document.createElement('div');
-    vizContentArea.className = 'viz-content-area';
-    
-    const diagramContainer = document.createElement('div');
-    // Do NOT add 'mermaid' class here to avoid automatic re-init; we clone the existing SVG
-    diagramContainer.className = 'mermaid-fullscreen-diagram';
-    
-    // Clone and prepare SVG
-    const clonedSvg = currentSvg.cloneNode(true);
-    
-    // Get the actual rendered dimensions of the original SVG
-    const originalRect = currentSvg.getBoundingClientRect();
-    console.log('📐 Original SVG rendered dimensions:', originalRect);
-    
-    // Get bounding box safely
-    let bbox;
-    try {
-        bbox = currentSvg.getBBox();
-        console.log('📦 SVG bounding box:', bbox);
-    } catch (e) {
-        console.warn('Could not get SVG bounding box:', e);
-        bbox = null;
-    }
-    
-    // ✅ SIMPLIFIED: Let SVG scale naturally to fill fullscreen container
-    // Configure the cloned SVG with responsive scaling
-    
-    // Set viewBox - prefer bbox for proper content bounds
-    if (bbox && bbox.width > 0 && bbox.height > 0) {
-        clonedSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-        console.log('🎯 Using bbox for viewBox:', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-    } else {
-        // Fallback: use original SVG viewBox or create from current dimensions
-        const originalViewBox = currentSvg.getAttribute('viewBox');
-        if (originalViewBox) {
-            clonedSvg.setAttribute('viewBox', originalViewBox);
-            console.log('🎯 Using original viewBox:', originalViewBox);
-        } else {
-            // Last resort: create viewBox from original dimensions
-            const origWidth = currentSvg.getAttribute('width') || '800';
-            const origHeight = currentSvg.getAttribute('height') || '600';
-            const vbWidth = parseFloat(origWidth.toString().replace(/[^\d.]/g, '')) || 800;
-            const vbHeight = parseFloat(origHeight.toString().replace(/[^\d.]/g, '')) || 600;
-            clonedSvg.setAttribute('viewBox', `0 0 ${vbWidth} ${vbHeight}`);
-            console.log('🎯 Created viewBox from dimensions:', `0 0 ${vbWidth} ${vbHeight}`);
+
+        header.appendChild(fullscreenActionBar);
+
+        // Create content area
+        const content = document.createElement('div');
+        content.className = 'mermaid-fullscreen-content';
+
+        const viewport = document.createElement('div');
+        viewport.className = 'mermaid-fullscreen-viewport';
+
+        // Wrap fullscreen diagram in a viz-content-area so existing logic finds it
+        const vizContentArea = document.createElement('div');
+        vizContentArea.className = 'viz-content-area';
+
+        const diagramContainer = document.createElement('div');
+        // Do NOT add 'mermaid' class here to avoid automatic re-init; we clone the existing SVG
+        diagramContainer.className = 'mermaid-fullscreen-diagram';
+
+        // Clone and prepare SVG
+        const clonedSvg = currentSvg.cloneNode(true);
+
+        // Get the actual rendered dimensions of the original SVG
+        const originalRect = currentSvg.getBoundingClientRect();
+        console.log('📐 Original SVG rendered dimensions:', originalRect);
+
+        // Get bounding box safely
+        let bbox;
+        try {
+            bbox = currentSvg.getBBox();
+            console.log('📦 SVG bounding box:', bbox);
+        } catch (e) {
+            console.warn('Could not get SVG bounding box:', e);
+            bbox = null;
         }
-    }
-    
-    // Apply CSS for proper scaling
-    clonedSvg.style.cssText = `
+
+        // SIMPLIFIED: Let SVG scale naturally to fill fullscreen container
+        // Configure the cloned SVG with responsive scaling
+
+        // Set viewBox - prefer bbox for proper content bounds
+        if (bbox && bbox.width > 0 && bbox.height > 0) {
+            clonedSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+            console.log('🎯 Using bbox for viewBox:', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+        } else {
+            // Fallback: use original SVG viewBox or create from current dimensions
+            const originalViewBox = currentSvg.getAttribute('viewBox');
+            if (originalViewBox) {
+                clonedSvg.setAttribute('viewBox', originalViewBox);
+                console.log('🎯 Using original viewBox:', originalViewBox);
+            } else {
+                // Last resort: create viewBox from original dimensions
+                const origWidth = currentSvg.getAttribute('width') || '800';
+                const origHeight = currentSvg.getAttribute('height') || '600';
+                const vbWidth = parseFloat(origWidth.toString().replace(/[^\d.]/g, '')) || 800;
+                const vbHeight = parseFloat(origHeight.toString().replace(/[^\d.]/g, '')) || 600;
+                clonedSvg.setAttribute('viewBox', `0 0 ${vbWidth} ${vbHeight}`);
+                console.log('🎯 Created viewBox from dimensions:', `0 0 ${vbWidth} ${vbHeight}`);
+            }
+        }
+
+        // Apply CSS for proper scaling
+        clonedSvg.style.cssText = `
         width: 100%;
         height: 100%;
         display: block;
@@ -9167,65 +9167,65 @@ openMermaidFullscreen(container, diagramContent, chartId) {
         max-width: 100%;
         max-height: 100%;
     `;
-    
-    // Copy styles
-    const originalElements = currentSvg.querySelectorAll('*');
-    const clonedElements = clonedSvg.querySelectorAll('*');
-    
-    originalElements.forEach((originalEl, index) => {
-        const clonedEl = clonedElements[index];
-        if (!clonedEl) return;
-        
-        const computedStyle = window.getComputedStyle(originalEl);
-        const importantProps = [
-            'fill', 'stroke', 'stroke-width', 'font-family', 'font-size', 'font-weight'
-        ];
-        
-        const styleProps = [];
-        importantProps.forEach(prop => {
-            const value = computedStyle.getPropertyValue(prop);
-            if (value && value !== 'none' && value !== '') {
-                styleProps.push(`${prop}: ${value}`);
+
+        // Copy styles
+        const originalElements = currentSvg.querySelectorAll('*');
+        const clonedElements = clonedSvg.querySelectorAll('*');
+
+        originalElements.forEach((originalEl, index) => {
+            const clonedEl = clonedElements[index];
+            if (!clonedEl) return;
+
+            const computedStyle = window.getComputedStyle(originalEl);
+            const importantProps = [
+                'fill', 'stroke', 'stroke-width', 'font-family', 'font-size', 'font-weight'
+            ];
+
+            const styleProps = [];
+            importantProps.forEach(prop => {
+                const value = computedStyle.getPropertyValue(prop);
+                if (value && value !== 'none' && value !== '') {
+                    styleProps.push(`${prop}: ${value}`);
+                }
+            });
+
+            if (styleProps.length > 0) {
+                const originalStyle = clonedEl.getAttribute('style') || '';
+                clonedEl.setAttribute('style', originalStyle + ';' + styleProps.join(';'));
             }
+
+            Array.from(originalEl.attributes).forEach(attr => {
+                if (attr.name !== 'style') {
+                    clonedEl.setAttribute(attr.name, attr.value);
+                }
+            });
         });
-        
-        if (styleProps.length > 0) {
-            const originalStyle = clonedEl.getAttribute('style') || '';
-            clonedEl.setAttribute('style', originalStyle + ';' + styleProps.join(';'));
-        }
-        
-        Array.from(originalEl.attributes).forEach(attr => {
-            if (attr.name !== 'style') {
-                clonedEl.setAttribute(attr.name, attr.value);
-            }
-        });
-    });
-    
-    // SVG styling already applied above - width/height 100% with proper viewBox
-    console.log('✅ SVG configured for responsive fullscreen scaling');
-    
-    diagramContainer.appendChild(clonedSvg);
-    vizContentArea.appendChild(diagramContainer);
-    viewport.appendChild(vizContentArea);
-    
-    // Ensure all containers are properly sized and visible
-    diagramContainer.style.cssText = `
+
+        // SVG styling already applied above - width/height 100% with proper viewBox
+        console.l(' VG configured for responsive fullscreen scaling');
+
+        diagramContainer.appendChild(clonedSvg);
+        vizContentArea.appendChild(diagramContainer);
+        viewport.appendChild(vizContentArea);
+
+        // Ensure all containers are properly sized and visible
+        diagramContainer.style.cssText = `
         display: block !important;
         visibility: visible !important;
         width: fit-content !important;
         height: fit-content !important;
         position: relative !important;
     `;
-    
-    vizContentArea.style.cssText = `
+
+        vizContentArea.style.cssText = `
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
         width: 100% !important;
         height: 100% !important;
     `;
-    
-    viewport.style.cssText = `
+
+        viewport.style.cssText = `
         position: relative !important;
         width: 100% !important;
         height: 100% !important;
@@ -9235,79 +9235,79 @@ openMermaidFullscreen(container, diagramContent, chartId) {
         align-items: center !important;
         cursor: grab !important;
     `;
-    content.appendChild(viewport);
-    
-    // Add zoom indicator
-    const zoomIndicator = document.createElement('div');
-    zoomIndicator.className = 'mermaid-zoom-indicator';
-    zoomIndicator.textContent = '100%';
-    content.appendChild(zoomIndicator);
-    
-    // Assemble fullscreen container
-    fullscreenContainer.appendChild(header);
-    fullscreenContainer.appendChild(content);
-    overlay.appendChild(fullscreenContainer);
-    
-    // Add to DOM
-    document.body.appendChild(overlay);
-    
-    // ✅ DEBUG: Log actual DOM dimensions after adding to document
-    setTimeout(() => {
-        const overlayRect = overlay.getBoundingClientRect();
-        const containerRect = fullscreenContainer.getBoundingClientRect();
-        const viewportRect = viewport.getBoundingClientRect();
-        const svgRect = clonedSvg.getBoundingClientRect();
-        
-        console.log('🔍 DEBUG - Fullscreen DOM dimensions:', {
-            overlay: { width: overlayRect.width, height: overlayRect.height },
-            container: { width: containerRect.width, height: containerRect.height },
-            viewport: { width: viewportRect.width, height: viewportRect.height },
-            svg: { width: svgRect.width, height: svgRect.height },
-            svgAttributes: {
-                width: clonedSvg.getAttribute('width'),
-                height: clonedSvg.getAttribute('height'),
-                viewBox: clonedSvg.getAttribute('viewBox')
-            }
-        });
-    }, 100);
-    
-    // ✅ FIXED: Setup action bar handlers for fullscreen
-    this.setupMermaidButtonHandlers(fullscreenActionBar, fullscreenContainer, diagramContent, chartId);
-    
-    // Initialize zoom controls - fit-to-screen logic will determine optimal scale
-    setTimeout(() => {
-        this.initFullscreenControls(viewport, diagramContainer, clonedSvg, zoomIndicator, overlay, 0.8);
-    }, 300);    this.showNotification('🖥️ Fullscreen view opened with full controls', 'success');
-}
+        content.appendChild(viewport);
+
+        // Add zoom indicator
+        const zoomIndicator = document.createElement('div');
+        zoomIndicator.className = 'mermaid-zoom-indicator';
+        zoomIndicator.textContent = '100%';
+        content.appendChild(zoomIndicator);
+
+        // Assemble fullscreen container
+        fullscreenContainer.appendChild(header);
+        fullscreenContainer.appendChild(content);
+        overlay.appendChild(fullscreenContainer);
+
+        // Add to DOM
+        document.body.appendChild(overlay);
+
+        // DEBUG: Log actual DOM dimensions after adding to document
+        setTimeout(() => {
+            const overlayRect = overlay.getBoundingClientRect();
+            const containerRect = fullscreenContainer.getBoundingClientRect();
+            const viewportRect = viewport.getBoundingClientRect();
+            const svgRect = clonedSvg.getBoundingClientRect();
+
+            console.log('🔍 DEBUG - Fullscreen DOM dimensions:', {
+                overlay: { width: overlayRect.width, height: overlayRect.height },
+                container: { width: containerRect.width, height: containerRect.height },
+                viewport: { width: viewportRect.width, height: viewportRect.height },
+                svg: { width: svgRect.width, height: svgRect.height },
+                svgAttributes: {
+                    width: clonedSvg.getAttribute('width'),
+                    height: clonedSvg.getAttribute('height'),
+                    viewBox: clonedSvg.getAttribute('viewBox')
+                }
+            });
+        }, 100);
+
+        // FIXED: Setup action bar handlers for fullscreen
+        this.setupMermaidButtonHandlers(fullscreenActionBar, fullscreenContainer, diagramContent, chartId);
+
+        // Initialize zoom controls - fit-to-screen logic will determine optimal scale
+        setTimeout(() => {
+            this.initFullscreenControls(viewport, diagramContainer, clonedSvg, zoomIndicator, overlay, 0.8);
+        }, 300); this.showNotification('🖥️ Fullscreen view opened with full controls', 'success');
+    }
 
     /**
-     * ✅ NEW: Re-render fullscreen view if it's currently open
+     * EW: Re-render fullscreen view if it's currently open
      */
     reRenderFullscreenIfOpen(originalContainer, diagramContent, chartId) {
         const fullscreenOverlay = document.querySelector('.mermaid-fullscreen-overlay');
         if (!fullscreenOverlay) {
             return; // Fullscreen not open
         }
-        
+
         console.log('🔄 Re-rendering fullscreen view with updated settings...');
-        
+
         // Get the updated SVG from the original container
         const updatedSvg = originalContainer.querySelector('svg');
         if (!updatedSvg) {
             console.warn('No updated SVG found in original container');
             return;
         }
-        
+
         // Find the fullscreen SVG container
         const fullscreenSvgContainer = fullscreenOverlay.querySelector('.mermaid-fullscreen-diagram');
         if (!fullscreenSvgContainer) {
             console.warn('No fullscreen SVG container found');
             return;
         }
-        
+
         // Clone the updated SVG with our improved sizing logic
         const clonedSvg = updatedSvg.cloneNode(true);
-        
+
         // Apply the same dimension correction logic as in openMermaidFullscreen
         const originalRect = updatedSvg.getBoundingClientRect();
         let bbox;
@@ -9316,25 +9316,25 @@ openMermaidFullscreen(container, diagramContent, chartId) {
         } catch (e) {
             bbox = null;
         }
-        
+
         let finalWidth, finalHeight;
-        
+
         if (originalRect.width > 0 && originalRect.height > 0) {
             finalWidth = Math.max(originalRect.width, 200);
             finalHeight = Math.max(originalRect.height, 150);
         } else {
             let attrWidth = parseFloat(updatedSvg.getAttribute('width')?.replace(/[^\d.]/g, '')) || 800;
             let attrHeight = parseFloat(updatedSvg.getAttribute('height')?.replace(/[^\d.]/g, '')) || 600;
-            
+
             finalWidth = Math.max(attrWidth, 200);
             finalHeight = Math.max(finalHeight, 150);
         }
-        
+
         // Fix extreme aspect ratios
         if (bbox && bbox.width > 0 && bbox.height > 0) {
             const currentRatio = finalWidth / finalHeight;
             const viewBoxRatio = bbox.width / bbox.height;
-            
+
             if (currentRatio < 0.2 || currentRatio > 5) {
                 console.log('🔧 Fixing aspect ratio in fullscreen re-render');
                 const targetSize = 700;
@@ -9345,24 +9345,24 @@ openMermaidFullscreen(container, diagramContent, chartId) {
                     finalHeight = targetSize;
                     finalWidth = targetSize * viewBoxRatio;
                 }
-                
+
                 finalWidth = Math.max(finalWidth, 300);
                 finalHeight = Math.max(finalHeight, 200);
             }
         }
-        
+
         // Configure the updated SVG
         clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
         clonedSvg.setAttribute('width', finalWidth);
         clonedSvg.setAttribute('height', finalHeight);
         clonedSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        
+
         if (bbox && bbox.width > 0 && bbox.height > 0) {
             clonedSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
         } else {
             clonedSvg.setAttribute('viewBox', `0 0 ${finalWidth} ${finalHeight}`);
         }
-        
+
         // Apply styling
         clonedSvg.style.cssText = `
             max-width: none !important;
@@ -9375,11 +9375,11 @@ openMermaidFullscreen(container, diagramContent, chartId) {
             border: 1px solid #ddd !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
         `;
-        
+
         // Replace the old SVG with the new one
         fullscreenSvgContainer.innerHTML = '';
         fullscreenSvgContainer.appendChild(clonedSvg);
-        
+
         // Trigger a re-fit to ensure proper sizing
         const fitButton = fullscreenOverlay.querySelector('#fit-screen');
         if (fitButton) {
@@ -9387,42 +9387,42 @@ openMermaidFullscreen(container, diagramContent, chartId) {
                 fitButton.click();
             }, 100);
         }
-        
-        console.log('✅ Fullscreen view re-rendered successfully');
+
+        console.log('ullscreen view re-rendered successfully');
     }
 
-    // ✅ NEW: Initialize zoom and pan controls for fullscreen view
+    // EW: Initialize zoom and pan controls for fullscreen view
     initFullscreenControls(viewport, diagramContainer, svg, zoomIndicator, overlay, initialScale = 0.8) {
-        console.log('🎮 Initializing fullscreen controls...', { 
-            viewport: !!viewport, 
-            diagramContainer: !!diagramContainer, 
+        console.log('🎮 Initializing fullscreen controls...', {
+            viewport: !!viewport,
+            diagramContainer: !!diagramContainer,
             svg: !!svg,
             initialScale: initialScale,
-            svgDimensions: svg ? { 
-                width: svg.getAttribute('width'), 
-                height: svg.getAttribute('height') 
+            svgDimensions: svg ? {
+                width: svg.getAttribute('width'),
+                height: svg.getAttribute('height')
             } : null
         });
-        
+
         let scale = initialScale; // Use the passed initial scale
         let translateX = 0;
         let translateY = 0;
         let isDragging = false;
         let lastX = 0;
         let lastY = 0;
-        
+
         const updateTransform = () => {
             diagramContainer.style.transform = `translate(-50%, -50%) translate(${translateX}px, ${translateY}px) scale(${scale})`;
             zoomIndicator.textContent = `${Math.round(scale * 100)}%`;
         };
-        
+
         // Apply initial transform immediately
         updateTransform();
-        
+
         const fitToScreen = () => {
             // Get viewport dimensions first
             const viewportRect = viewport.getBoundingClientRect();
-            
+
             if (viewportRect.width <= 0 || viewportRect.height <= 0) {
                 console.warn('⚠️ Viewport not ready, using default scale');
                 scale = 0.8; // Start at 80% to ensure visibility
@@ -9431,11 +9431,11 @@ openMermaidFullscreen(container, diagramContent, chartId) {
                 updateTransform();
                 return;
             }
-            
+
             // Get SVG dimensions - prefer the actual final dimensions we set
             let svgWidth = parseFloat(svg.getAttribute('width'));
             let svgHeight = parseFloat(svg.getAttribute('height'));
-            
+
             // If attributes are not available, try getBoundingClientRect as fallback
             if (!svgWidth || !svgHeight || svgWidth <= 0 || svgHeight <= 0) {
                 const svgRect = svg.getBoundingClientRect();
@@ -9448,23 +9448,23 @@ openMermaidFullscreen(container, diagramContent, chartId) {
                     svgHeight = viewportRect.height * 0.6;
                 }
             }
-            
-            console.log('🎯 Fitting to screen:', { 
+
+            console.log('🎯 Fitting to screen:', {
                 svgDimensions: { width: svgWidth, height: svgHeight },
                 viewportDimensions: { width: viewportRect.width, height: viewportRect.height }
             });
-            
+
             if (svgWidth > 0 && svgHeight > 0) {
                 // Calculate scale to fit with some padding (85% of viewport)
                 const scaleX = (viewportRect.width * 0.85) / svgWidth;
                 const scaleY = (viewportRect.height * 0.85) / svgHeight;
-                
+
                 // Use the smaller scale to ensure it fits in both dimensions
                 const newScale = Math.min(scaleX, scaleY);
-                
+
                 // Ensure reasonable scale limits - minimum 0.3x for very large diagrams, maximum 5x for very small ones
-                scale = Math.min(Math.max(newScale, 0.3), 5); 
-                
+                scale = Math.min(Math.max(newScale, 0.3), 5);
+
                 // Special handling for very small scales - boost them to ensure visibility
                 if (scale < 0.8 && (svgWidth < 400 || svgHeight < 300)) {
                     scale = Math.min(scale * 2, 2.0); // Double the scale for small SVGs, max 2x
@@ -9473,8 +9473,8 @@ openMermaidFullscreen(container, diagramContent, chartId) {
                 translateX = 0;
                 translateY = 0;
                 updateTransform();
-                
-                console.log('✅ Fitted to screen with scale:', scale, 'from scales:', { scaleX, scaleY });
+
+                console.log('itted to screen with scale:', scale, 'from scales:', { scaleX, scaleY });
             } else {
                 console.warn('⚠️ Could not determine SVG dimensions, using default scale');
                 scale = 0.8; // Default to 80% if we can't determine dimensions
@@ -9483,57 +9483,57 @@ openMermaidFullscreen(container, diagramContent, chartId) {
                 updateTransform();
             }
         };
-        
+
         // Control button handlers
         document.getElementById('zoom-in').onclick = () => {
             scale = Math.min(scale * 1.25, 5);
             updateTransform();
         };
-        
+
         document.getElementById('zoom-out').onclick = () => {
             scale = Math.max(scale / 1.25, 0.1);
             updateTransform();
         };
-        
+
         document.getElementById('zoom-reset').onclick = () => {
             scale = 1;
             translateX = 0;
             translateY = 0;
             updateTransform();
         };
-        
+
         document.getElementById('fit-screen').onclick = fitToScreen;
-        
+
         const closeFullscreen = () => {
             try {
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
                 document.removeEventListener('keydown', handleKeyDown);
-            } catch (_) {}
+            } catch (_) { }
             overlay.remove();
         };
         document.getElementById('close-fullscreen').onclick = closeFullscreen;
-        
+
         // Mouse wheel zoom
         viewport.addEventListener('wheel', (e) => {
             e.preventDefault();
-            
+
             const rect = viewport.getBoundingClientRect();
             const mouseX = e.clientX - rect.left - rect.width / 2;
             const mouseY = e.clientY - rect.top - rect.height / 2;
-            
+
             const delta = e.deltaY < 0 ? 1.1 : 0.9;
             const newScale = Math.min(Math.max(scale * delta, 0.1), 5);
-            
+
             // Zoom towards mouse position
             const scaleDiff = newScale - scale;
             translateX -= (mouseX / scale) * scaleDiff;
             translateY -= (mouseY / scale) * scaleDiff;
-            
+
             scale = newScale;
             updateTransform();
         });
-        
+
         // Mouse drag pan
         const onMouseMove = (e) => {
             if (!isDragging) return;
@@ -9559,22 +9559,22 @@ openMermaidFullscreen(container, diagramContent, chartId) {
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
-        
+
         // Close on ESC key
-    const handleKeyDown = (e) => {
+        const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
-        closeFullscreen();
+                closeFullscreen();
             }
         };
         document.addEventListener('keydown', handleKeyDown);
-        
+
         // Close on overlay click (but not on content)
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 closeFullscreen();
             }
         });
-        
+
         // Initial fit to screen with multiple attempts for best results
         setTimeout(fitToScreen, 100);  // Quick first attempt
         setTimeout(fitToScreen, 500);  // Second attempt after rendering
@@ -9591,7 +9591,7 @@ openMermaidFullscreen(container, diagramContent, chartId) {
 // 11.1.1
 if (typeof window !== 'undefined') {
     window.mermaidFontController = new MermaidFontController();
-    console.log('✅ Mermaid font controller initialized');
+    console.log('ermaid font controller initialized');
 }
 
 // Export for use by visualization engine (only if defined here and not already provided)
@@ -9599,7 +9599,7 @@ if (typeof window !== 'undefined' &&
     typeof window.renderEnhancedMarkdown !== 'function' &&
     typeof renderEnhancedMarkdown === 'function') {
     window.renderEnhancedMarkdown = renderEnhancedMarkdown;
-    console.log('✅ renderEnhancedMarkdown exported globally');
+    console.log('enderEnhancedMarkdown exported globally');
 } else {
     // Either already provided (e.g., by streamingTwoRule.js) or not defined locally
     if (typeof window !== 'undefined' && typeof window.renderEnhancedMarkdown === 'function') {
@@ -9626,7 +9626,7 @@ if (typeof module === 'undefined') {
     }
 }
 
-console.log('✅ UNIFIED Visualization Engine V1.19 loaded with STABLE CONTAINERS!');
+console.log('NIFIED Visualization Engine V1.19 loaded with STABLE CONTAINERS!');
 console.log('🎯 FIXED: No more UI jumping - stable 500px containers with loading overlays');
 console.log('🎯 FIXED: Direct text rendering without unnecessary wrapper containers');
 console.log('🎯 ENHANCED: Loading states inside stable containers, not replacing them');

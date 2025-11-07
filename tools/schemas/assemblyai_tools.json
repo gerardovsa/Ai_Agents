@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "assemblyai_transcribe",
-      "description": "Transcribe audio or video file to text",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nTranscribe audio or video file to text",
       "platform": "assemblyai",
       "parameters": {
         "audio_file": {
@@ -48,7 +48,7 @@
     },
     {
       "name": "assemblyai_analyze",
-      "description": "Analyze audio for sentiment, topics, and key phrases",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAnalyze audio for sentiment, topics, and key phrases",
       "platform": "assemblyai",
       "parameters": {
         "audio_file": {
@@ -92,7 +92,7 @@
     },
     {
       "name": "assemblyai_speakers",
-      "description": "Identify and label different speakers in audio",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nIdentify and label different speakers in audio",
       "platform": "assemblyai",
       "parameters": {
         "audio_file": {
@@ -122,7 +122,7 @@
     },
     {
       "name": "assemblyai_status",
-      "description": "Check the status of a transcription job",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck the status of a transcription job",
       "platform": "assemblyai",
       "parameters": {
         "transcript_id": {

@@ -55,10 +55,20 @@ class MicrosoftTeamsTools:
             
             response.raise_for_status()
             
-            if response.status_code == 204:
+            # Some endpoints return 204 No Content or 202 Accepted with empty body
+            if response.status_code in (202, 204):
                 return {'success': True}
             
-            return {'success': True, 'data': response.json()}
+            # Some endpoints return empty response on success
+            if not response.text or response.text.strip() == '':
+                return {'success': True}
+            
+            try:
+                return {'success': True, 'data': response.json()}
+            except ValueError as json_error:
+                # Response was successful but not JSON (e.g., empty body)
+                print(f"[WARNING] Microsoft Teams - Response not JSON: {response.status_code}, body length: {len(response.text)}")
+                return {'success': True, 'data': None}
             
         except requests.exceptions.HTTPError as e:
             error_msg = str(e)
@@ -454,7 +464,7 @@ class MicrosoftTeamsTools:
         message = f"""
         <h2>📊 Daily Standup - {date}</h2>
         
-        <h3>✅ Yesterday</h3>
+        <h3> Yesterday</h3>
         <ul>
         {''.join([f'<li>{item}</li>' for item in yesterday])}
         </ul>
@@ -557,7 +567,7 @@ class MicrosoftTeamsTools:
         {''.join([f'<li>{point}</li>' for point in key_points])}
         </ul>
         
-        <h3>✅ Action Items</h3>
+        <h3> Action Items</h3>
         <table>
         <tr><th>Task</th><th>Owner</th><th>Due Date</th></tr>
         {''.join([f"<tr><td>{item['task']}</td><td>{item['owner']}</td><td>{item.get('due_date', 'TBD')}</td></tr>" for item in action_items])}
@@ -600,5 +610,145 @@ class MicrosoftTeamsTools:
         return result
 
 
+# ========================================
+# GLOBAL INSTANCE & MODULE-LEVEL EXPORTS
+# ========================================
+
 # Create global instance
 microsoft_teams_tools = MicrosoftTeamsTools()
+
+# Export all functions at module level with parameter wrappers
+# Wrappers extract positional 'user_id' parameter from kwargs for registry compatibility
+
+def microsoft_teams_list_teams(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_list_teams(user_id, **kwargs)
+
+def microsoft_teams_create_team(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_create_team(user_id, **kwargs)
+
+def microsoft_teams_get_team(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_get_team(user_id, **kwargs)
+
+def microsoft_teams_list_channels(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_list_channels(user_id, **kwargs)
+
+def microsoft_teams_create_channel(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_create_channel(user_id, **kwargs)
+
+def microsoft_teams_send_channel_message(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_send_channel_message(user_id, **kwargs)
+
+def microsoft_teams_get_channel_messages(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_get_channel_messages(user_id, **kwargs)
+
+def microsoft_teams_reply_to_message(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_reply_to_message(user_id, **kwargs)
+
+def microsoft_teams_add_member(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_add_member(user_id, **kwargs)
+
+def microsoft_teams_list_members(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_list_members(user_id, **kwargs)
+
+def microsoft_teams_send_chat_message(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_send_chat_message(user_id, **kwargs)
+
+def microsoft_teams_upload_file(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_upload_file(user_id, **kwargs)
+
+def microsoft_teams_list_channel_files(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_list_channel_files(user_id, **kwargs)
+
+def microsoft_teams_create_meeting(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_create_meeting(user_id, **kwargs)
+
+def microsoft_teams_search_messages(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_search_messages(user_id, **kwargs)
+
+def microsoft_teams_pin_message(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_pin_message(user_id, **kwargs)
+
+def microsoft_teams_smart_daily_standup(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_smart_daily_standup(user_id, **kwargs)
+
+def microsoft_teams_smart_broadcast_announcement(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_smart_broadcast_announcement(user_id, **kwargs)
+
+def microsoft_teams_smart_create_poll(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_smart_create_poll(user_id, **kwargs)
+
+def microsoft_teams_smart_meeting_summary(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_smart_meeting_summary(user_id, **kwargs)
+
+def microsoft_teams_update_team_settings(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_update_team_settings(user_id, **kwargs)
+
+def microsoft_teams_get_channel_tabs(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_teams_tools.teams_get_channel_tabs(user_id, **kwargs)
+

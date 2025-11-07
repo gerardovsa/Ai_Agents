@@ -242,14 +242,14 @@ Based on the context above, adjust your behavior:
         if preferences.get('daily_briefing', False):
             hour = preferences.get('briefing_time_hour', 8)
             self.event_system.create_daily_briefing(user_id, briefing_time_hour=hour)
-            print(f"✅ Set up daily briefing for user {user_id} at {hour}:00")
+            print(f" Set up daily briefing for user {user_id} at {hour}:00")
         
         # Weekly review
         if preferences.get('weekly_review', False):
             day = preferences.get('review_day', 4)  # Default Friday
             hour = preferences.get('review_time_hour', 17)
             self.event_system.create_weekly_review(user_id, day_of_week=day, review_time_hour=hour)
-            print(f"✅ Set up weekly review for user {user_id}")
+            print(f" Set up weekly review for user {user_id}")
     
     def get_context_summary(self, user_id: str) -> Dict[str, Any]:
         """

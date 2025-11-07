@@ -90,7 +90,7 @@ def stream_chat():
             yield f"event: message_stop\ndata: {json.dumps({'session_id': session_id})}\n\n"
             
         except Exception as error:
-            print(f'❌ Stream error: {error}')
+            print(f' Stream error: {error}')
             yield f"event: error\ndata: {json.dumps({'error': str(error)})}\n\n"
     
     return Response(
@@ -156,7 +156,7 @@ def upload_files():
             session_manager.add_file_context(session_id, file.filename, text_content)
             
         except Exception as error:
-            print(f'❌ File processing error: {error}')
+            print(f' File processing error: {error}')
             return jsonify({'error': f'Failed to process {file.filename}'}), 500
     
     return jsonify({
@@ -205,7 +205,7 @@ def send_message():
         })
         
     except Exception as error:
-        print(f'❌ Message error: {error}')
+        print(f' Message error: {error}')
         return jsonify({'error': str(error)}), 500
 
 

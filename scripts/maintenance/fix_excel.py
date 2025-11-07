@@ -40,4 +40,4 @@ content = '\n'.join(new_lines)
 with open('microsoft_excel_tools.py', 'w', encoding='utf-8') as f:
     f.write(content)
 
-print('✅ Fixed microsoft_excel_tools.py')
+print(' Fixed microsoft_excel_tools.py')

@@ -6,13 +6,25 @@ This module provides tool implementations for AssemblyAI transcription and analy
 """
 
 import os
-import assemblyai as aai
 
 try:
+    import assemblyai as aai
     from config import get_api_key_enhanced
-    aai.settings.api_key = get_api_key_enhanced('ASSEMBLYAI_API_KEY')
+    api_key = get_api_key_enhanced('ASSEMBLYAI_API_KEY')
+    if api_key and hasattr(aai, 'settings'):
+        aai.settings.api_key = api_key
 except ImportError:
-    aai.settings.api_key = os.getenv('ASSEMBLYAI_API_KEY')
+    try:
+        import assemblyai as aai
+        api_key = os.getenv('ASSEMBLYAI_API_KEY')
+        if api_key and hasattr(aai, 'settings'):
+            aai.settings.api_key = api_key
+    except Exception as e:
+        print(f"⚠️ AssemblyAI import warning: {e}")
+        aai = None
+except Exception as e:
+    print(f"⚠️ AssemblyAI initialization warning: {e}")
+    aai = None
 
 
 def assemblyai_transcribe(audio_file: str, language: str = "en", speaker_labels: bool = False, punctuate: bool = True):
@@ -28,6 +40,12 @@ def assemblyai_transcribe(audio_file: str, language: str = "en", speaker_labels:
     Returns:
         Transcription result with text
     """
+    if not aai:
+        return {
+            'success': False,
+            'error': 'AssemblyAI library not available'
+        }
+    
     print(f"🔧 Transcribing audio: {audio_file}")
     
     try:
@@ -61,7 +79,7 @@ def assemblyai_transcribe(audio_file: str, language: str = "en", speaker_labels:
         return result
         
     except Exception as e:
-        print(f"❌ Transcription failed: {e}")
+        print(f" Transcription failed: {e}")
         raise
 
 
@@ -132,7 +150,7 @@ def assemblyai_analyze(audio_file: str, sentiment_analysis: bool = True,
         return result
         
     except Exception as e:
-        print(f"❌ Analysis failed: {e}")
+        print(f" Analysis failed: {e}")
         raise
 
 
@@ -181,7 +199,7 @@ def assemblyai_speakers(audio_file: str, speakers_expected: int = None):
         }
         
     except Exception as e:
-        print(f"❌ Speaker identification failed: {e}")
+        print(f" Speaker identification failed: {e}")
         raise
 
 
@@ -208,7 +226,7 @@ def assemblyai_status(transcript_id: str):
         }
         
     except Exception as e:
-        print(f"❌ Status check failed: {e}")
+        print(f" Status check failed: {e}")
         raise
 
 

@@ -50,17 +50,17 @@ async function quickStatus() {
     try {
         // Get zones
         const zones = await makeRequest(`/client/v4/zones?account.id=${ACCOUNT_ID}`);
-        
+
         for (const zone of zones) {
             console.log(`\n📍 ${zone.name.toUpperCase()}`);
-            console.log(`   Status: ${zone.status === 'active' ? '✅ Active' : '⚠️ ' + zone.status}`);
+            console.log(`   Status: ${zone.status === 'active' ? ' Active' : '⚠️ ' + zone.status}`);
             console.log(`   Plan: ${zone.plan.name}`);
-            console.log(`   Paused: ${zone.paused ? '❌ Yes' : '✅ No'}`);
-            
+            console.log(`   Paused: ${zone.paused ? ' Yes' : ' No'}`);
+
             // Name servers
             console.log(`\n   📡 Name Servers:`);
-            zone.name_servers.forEach(ns => console.log(`      ✅ ${ns}`));
-            
+            zone.name_servers.forEach(ns => console.log(`       ${ns}`));
+
             if (zone.original_name_servers?.length > 0) {
                 console.log(`\n   📡 Original Name Servers (GoDaddy):`);
                 zone.original_name_servers.forEach(ns => console.log(`      • ${ns}`));
@@ -70,13 +70,13 @@ async function quickStatus() {
             try {
                 const dns = await makeRequest(`/client/v4/zones/${zone.id}/dns_records`);
                 console.log(`\n   📝 DNS Records (${dns.length}):`);
-                
+
                 const byType = {};
                 dns.forEach(record => {
                     if (!byType[record.type]) byType[record.type] = [];
                     byType[record.type].push(record);
                 });
-                
+
                 Object.keys(byType).sort().forEach(type => {
                     console.log(`\n      ${type} Records:`);
                     byType[type].forEach(record => {
@@ -86,15 +86,15 @@ async function quickStatus() {
                     });
                 });
             } catch (error) {
-                console.log(`   ❌ Could not fetch DNS records: ${error.message}`);
+                console.log(`    Could not fetch DNS records: ${error.message}`);
             }
         }
 
         console.log('\n' + '━'.repeat(80));
-        console.log('\n✅ Domain status check complete!\n');
+        console.log('\n Domain status check complete!\n');
 
     } catch (error) {
-        console.error('\n❌ Error:', error.message, '\n');
+        console.error('\n Error:', error.message, '\n');
         process.exit(1);
     }
 }

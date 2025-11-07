@@ -57,14 +57,32 @@ def _get_meet_service():
     return build('meet', 'v2', credentials=credentials)
 
 
-def _get_calendar_service():
+def _get_calendar_service(_user_id=None, _injected_credentials=None):
     """
     Build Google Calendar service for meeting creation.
     Most Meet functionality is via Calendar API.
+    Supports database OAuth (priority) and service account (fallback).
+    
+    Args:
+        _user_id: User ID for database OAuth credential lookup
+        _injected_credentials: Flag to use database OAuth credentials
     
     Returns:
         Google Calendar service object
     """
+    # Priority: Database OAuth (if user_id provided)
+    if _user_id and _injected_credentials:
+        try:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            return create_google_service_with_user_credentials(
+                user_id=_user_id,
+                service_name='calendar',
+                version='v3'
+            )
+        except Exception as e:
+            print(f"⚠️ Database OAuth failed for Google Meet: {e}, falling back to service account")
+    
+    # Fallback: Service account
     scopes = ['https://www.googleapis.com/auth/calendar']
     
     credentials = service_account.Credentials.from_service_account_file(
@@ -83,13 +101,15 @@ def google_meet_create_meeting(
     duration_minutes: int = 60,
     attendees: Optional[List[str]] = None,
     description: Optional[str] = None,
-    calendar_id: str = 'primary'
-) -> Dict[str, Any]:
+    calendar_id: str = 'primary',
+    _user_id: Optional[int] = None,
+    _injected_credentials: bool = None
+, **kwargs) -> Dict[str, Any]:
     """
     Create a Google Meet meeting via Google Calendar.
     
     Args:
-        title (str): Meeting title
+        title (str, **kwargs): Meeting title
         start_time (str): Start time (ISO format: 2025-10-28T14:00:00)
         duration_minutes (int): Meeting duration in minutes (default: 60)
         attendees (list): List of attendee email addresses
@@ -109,7 +129,7 @@ def google_meet_create_meeting(
         }
     """
     try:
-        calendar_service = _get_calendar_service()
+        calendar_service = _get_calendar_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         # Parse start time
         start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
@@ -156,7 +176,7 @@ def google_meet_create_meeting(
                     meet_link = entry.get('uri')
                     break
         
-        print(f"✅ Created Google Meet: {title}")
+        print(f" Created Google Meet: {title}")
         print(f"   Meet Link: {meet_link}")
         print(f"   Start: {start_time}")
         
@@ -172,22 +192,24 @@ def google_meet_create_meeting(
         }
         
     except HttpError as e:
-        print(f"❌ Failed to create Meet: {e}")
+        print(f" Failed to create Meet: {e}")
         raise
     except Exception as e:
-        print(f"❌ Error creating Meet: {e}")
+        print(f" Error creating Meet: {e}")
         raise
 
 
 def google_meet_create_instant_meeting(
     title: str = "Quick Meeting",
-    duration_minutes: int = 30
-) -> Dict[str, Any]:
+    duration_minutes: int = 30,
+    _user_id: Optional[int] = None,
+    _injected_credentials: bool = None
+, **kwargs) -> Dict[str, Any]:
     """
     Create an instant Google Meet meeting starting now.
     
     Args:
-        title (str): Meeting title (default: "Quick Meeting")
+        title (str, **kwargs): Meeting title (default: "Quick Meeting")
         duration_minutes (int): Duration in minutes (default: 30)
         
     Returns:
@@ -202,12 +224,12 @@ def google_meet_create_instant_meeting(
             duration_minutes=duration_minutes
         )
         
-        print(f"✅ Instant meeting created: {result['meet_link']}")
+        print(f" Instant meeting created: {result['meet_link']}")
         
         return result
         
     except Exception as e:
-        print(f"❌ Failed to create instant meeting: {e}")
+        print(f" Failed to create instant meeting: {e}")
         raise
 
 
@@ -215,16 +237,18 @@ def google_meet_schedule_recurring_meeting(
     title: str,
     start_time: str,
     duration_minutes: int,
-    frequency: str,
-    count: int,
+    recurrence_rule: str,
+    end_date: str,
     attendees: Optional[List[str]] = None,
-    description: Optional[str] = None
-) -> Dict[str, Any]:
+    description: Optional[str] = None,
+    _user_id: Optional[int] = None,
+    _injected_credentials: bool = None
+, **kwargs) -> Dict[str, Any]:
     """
     Create a recurring Google Meet series.
     
     Args:
-        title (str): Meeting title
+        title (str, **kwargs): Meeting title
         start_time (str): First meeting start time (ISO format)
         duration_minutes (int): Duration per meeting
         frequency (str): DAILY, WEEKLY, MONTHLY
@@ -236,7 +260,7 @@ def google_meet_schedule_recurring_meeting(
         dict: Recurring meeting details
     """
     try:
-        calendar_service = _get_calendar_service()
+        calendar_service = _get_calendar_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
         end_dt = start_dt + timedelta(minutes=duration_minutes)
@@ -282,7 +306,7 @@ def google_meet_schedule_recurring_meeting(
                     meet_link = entry.get('uri')
                     break
         
-        print(f"✅ Created recurring Meet: {title}")
+        print(f" Created recurring Meet: {title}")
         print(f"   Frequency: {frequency}, Count: {count}")
         print(f"   Meet Link: {meet_link}")
         
@@ -299,24 +323,24 @@ def google_meet_schedule_recurring_meeting(
         }
         
     except Exception as e:
-        print(f"❌ Failed to create recurring meeting: {e}")
+        print(f" Failed to create recurring meeting: {e}")
         raise
 
 
 # ==================== MEETING MANAGEMENT ====================
 
-def google_meet_get_meeting_details(calendar_event_id: str) -> Dict[str, Any]:
+def google_meet_get_meeting_details(calendar_event_id: str, _user_id: Optional[int] = None, _injected_credentials: bool = None, **kwargs) -> Dict[str, Any]:
     """
     Get details of a Google Meet meeting.
     
     Args:
-        calendar_event_id (str): Calendar event ID
+        calendar_event_id (str, **kwargs): Calendar event ID
         
     Returns:
         dict: Meeting details
     """
     try:
-        calendar_service = _get_calendar_service()
+        calendar_service = _get_calendar_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         event = calendar_service.events().get(
             calendarId='primary',
@@ -358,7 +382,7 @@ def google_meet_get_meeting_details(calendar_event_id: str) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        print(f"❌ Failed to get meeting details: {e}")
+        print(f" Failed to get meeting details: {e}")
         raise
 
 
@@ -369,12 +393,12 @@ def google_meet_update_meeting(
     duration_minutes: Optional[int] = None,
     description: Optional[str] = None,
     add_attendees: Optional[List[str]] = None
-) -> Dict[str, Any]:
+, **kwargs) -> Dict[str, Any]:
     """
     Update a Google Meet meeting.
     
     Args:
-        calendar_event_id (str): Calendar event ID
+        calendar_event_id (str, **kwargs): Calendar event ID
         title (str): New title
         start_time (str): New start time (ISO format)
         duration_minutes (int): New duration
@@ -385,7 +409,7 @@ def google_meet_update_meeting(
         dict: Updated meeting details
     """
     try:
-        calendar_service = _get_calendar_service()
+        calendar_service = _get_calendar_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         # Get current event
         event = calendar_service.events().get(
@@ -428,28 +452,28 @@ def google_meet_update_meeting(
             sendUpdates='all'
         ).execute()
         
-        print(f"✅ Updated meeting: {updated_event.get('summary')}")
+        print(f" Updated meeting: {updated_event.get('summary')}")
         
         return google_meet_get_meeting_details(calendar_event_id)
         
     except Exception as e:
-        print(f"❌ Failed to update meeting: {e}")
+        print(f" Failed to update meeting: {e}")
         raise
 
 
-def google_meet_cancel_meeting(calendar_event_id: str, send_updates: bool = True) -> Dict[str, Any]:
+def google_meet_cancel_meeting(calendar_event_id: str, send_updates: bool = True, _user_id: Optional[int] = None, _injected_credentials: bool = None, **kwargs) -> Dict[str, Any]:
     """
     Cancel a Google Meet meeting.
     
     Args:
-        calendar_event_id (str): Calendar event ID
+        calendar_event_id (str, **kwargs): Calendar event ID
         send_updates (bool): Send cancellation emails to attendees (default: True)
         
     Returns:
         dict: Cancellation confirmation
     """
     try:
-        calendar_service = _get_calendar_service()
+        calendar_service = _get_calendar_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         # Get event details first
         event = calendar_service.events().get(
@@ -464,7 +488,7 @@ def google_meet_cancel_meeting(calendar_event_id: str, send_updates: bool = True
             sendUpdates='all' if send_updates else 'none'
         ).execute()
         
-        print(f"✅ Cancelled meeting: {event.get('summary')}")
+        print(f" Cancelled meeting: {event.get('summary')}")
         
         return {
             'cancelled': True,
@@ -474,24 +498,24 @@ def google_meet_cancel_meeting(calendar_event_id: str, send_updates: bool = True
         }
         
     except Exception as e:
-        print(f"❌ Failed to cancel meeting: {e}")
+        print(f" Failed to cancel meeting: {e}")
         raise
 
 
 # ==================== MEETING LISTING ====================
 
-def google_meet_list_upcoming_meetings(max_results: int = 10) -> Dict[str, Any]:
+def google_meet_list_upcoming_meetings(max_results: int = 10, _user_id: Optional[int] = None, _injected_credentials: bool = None, **kwargs) -> Dict[str, Any]:
     """
     List upcoming Google Meet meetings.
     
     Args:
-        max_results (int): Maximum number of meetings to return (default: 10)
+        max_results (int, **kwargs): Maximum number of meetings to return (default: 10)
         
     Returns:
         dict: List of upcoming meetings
     """
     try:
-        calendar_service = _get_calendar_service()
+        calendar_service = _get_calendar_service(_user_id=_user_id, _injected_credentials=_injected_credentials)
         
         now = datetime.utcnow().isoformat() + 'Z'
         
@@ -536,19 +560,19 @@ def google_meet_list_upcoming_meetings(max_results: int = 10) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        print(f"❌ Failed to list meetings: {e}")
+        print(f" Failed to list meetings: {e}")
         raise
 
 
 # ==================== SPACES API (Meeting Rooms) ====================
 
-def google_meet_create_space(display_name: str) -> Dict[str, Any]:
+def google_meet_create_space(display_name: str, **kwargs) -> Dict[str, Any]:
     """
     Create a persistent Google Meet space (meeting room).
     Spaces are reusable meeting links.
     
     Args:
-        display_name (str): Display name for the space
+        display_name (str, **kwargs): Display name for the space
         
     Returns:
         dict: Space details with permanent Meet link
@@ -565,7 +589,7 @@ def google_meet_create_space(display_name: str) -> Dict[str, Any]:
         
         created_space = meet_service.spaces().create(body=space).execute()
         
-        print(f"✅ Created Meet space: {display_name}")
+        print(f" Created Meet space: {display_name}")
         print(f"   Space name: {created_space['name']}")
         
         return {
@@ -578,16 +602,16 @@ def google_meet_create_space(display_name: str) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        print(f"❌ Failed to create space: {e}")
+        print(f" Failed to create space: {e}")
         raise
 
 
-def google_meet_get_space(space_id: str) -> Dict[str, Any]:
+def google_meet_get_space(space_id: str, **kwargs) -> Dict[str, Any]:
     """
     Get details of a Google Meet space.
     
     Args:
-        space_id (str): Space ID
+        space_id (str, **kwargs): Space ID
         
     Returns:
         dict: Space details
@@ -609,7 +633,7 @@ def google_meet_get_space(space_id: str) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        print(f"❌ Failed to get space: {e}")
+        print(f" Failed to get space: {e}")
         raise
 
 
@@ -621,7 +645,7 @@ def google_meet_create_daily_standup(
     attendees: List[str],
     duration_minutes: int = 15,
     days_count: int = 30
-) -> Dict[str, Any]:
+, **kwargs) -> Dict[str, Any]:
     """
     🎯 SMART: Create a daily standup series with Google Meet.
     
@@ -632,7 +656,7 @@ def google_meet_create_daily_standup(
     - Email reminders to all attendees
     
     Args:
-        team_name (str): Team name (e.g., "Engineering Team")
+        team_name (str, **kwargs): Team name (e.g., "Engineering Team")
         start_time (str): First standup time (ISO format: 2025-10-28T09:00:00)
         attendees (list): Team member email addresses
         duration_minutes (int): Duration in minutes (default: 15)
@@ -666,7 +690,7 @@ Keep it brief and focused!"""
             description=description
         )
         
-        print(f"✅ Daily standup created successfully!")
+        print(f" Daily standup created successfully!")
         print(f"   Team: {team_name}")
         print(f"   Attendees: {len(attendees)}")
         print(f"   Duration: {duration_minutes} min")
@@ -681,7 +705,7 @@ Keep it brief and focused!"""
         }
         
     except Exception as e:
-        print(f"❌ Failed to create daily standup: {e}")
+        print(f" Failed to create daily standup: {e}")
         raise
 
 
@@ -689,7 +713,7 @@ def google_meet_schedule_interview_series(
     candidate_name: str,
     candidate_email: str,
     interviews: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+, **kwargs) -> Dict[str, Any]:
     """
     🎯 SMART: Schedule a complete interview series for a candidate.
     
@@ -700,7 +724,7 @@ def google_meet_schedule_interview_series(
     - Structured interview flow
     
     Args:
-        candidate_name (str): Candidate's full name
+        candidate_name (str, **kwargs): Candidate's full name
         candidate_email (str): Candidate's email address
         interviews (list): List of interview dicts with:
             - title (str): Interview type (e.g., "Technical Interview")
@@ -743,9 +767,9 @@ def google_meet_schedule_interview_series(
                 'duration': interview_data['duration_minutes']
             })
             
-            print(f"   ✅ Interview {idx}: {interview_data['title']}")
+            print(f"    Interview {idx}: {interview_data['title']}")
         
-        print(f"✅ Interview series scheduled successfully!")
+        print(f" Interview series scheduled successfully!")
         print(f"   Candidate: {candidate_name} ({candidate_email})")
         print(f"   Total interviews: {len(created_interviews)}")
         
@@ -758,7 +782,7 @@ def google_meet_schedule_interview_series(
         }
         
     except Exception as e:
-        print(f"❌ Failed to schedule interview series: {e}")
+        print(f" Failed to schedule interview series: {e}")
         raise
 
 
@@ -769,7 +793,7 @@ def google_meet_create_team_meeting_with_agenda(
     attendees: List[str],
     agenda_items: List[str],
     preparation_notes: Optional[str] = None
-) -> Dict[str, Any]:
+, **kwargs) -> Dict[str, Any]:
     """
     🎯 SMART: Create a structured team meeting with detailed agenda.
     
@@ -780,7 +804,7 @@ def google_meet_create_team_meeting_with_agenda(
     - Meet link for remote/hybrid attendance
     
     Args:
-        title (str): Meeting title
+        title (str, **kwargs): Meeting title
         start_time (str): Start time (ISO format)
         duration_minutes (int): Total duration in minutes
         attendees (list): Attendee email addresses
@@ -816,7 +840,7 @@ def google_meet_create_team_meeting_with_agenda(
             description=description
         )
         
-        print(f"✅ Team meeting created successfully!")
+        print(f" Team meeting created successfully!")
         print(f"   Title: {title}")
         print(f"   Agenda items: {len(agenda_items)}")
         print(f"   Attendees: {len(attendees)}")
@@ -832,7 +856,7 @@ def google_meet_create_team_meeting_with_agenda(
         }
         
     except Exception as e:
-        print(f"❌ Failed to create team meeting: {e}")
+        print(f" Failed to create team meeting: {e}")
         raise
 
 
@@ -842,7 +866,7 @@ def google_meet_create_weekly_review(
     attendees: List[str],
     weeks_count: int = 12,
     duration_minutes: int = 60
-) -> Dict[str, Any]:
+, **kwargs) -> Dict[str, Any]:
     """
     🎯 SMART: Create a weekly review/retrospective series.
     
@@ -853,7 +877,7 @@ def google_meet_create_weekly_review(
     - Duration optimized for review meetings
     
     Args:
-        team_name (str): Team name
+        team_name (str, **kwargs): Team name
         start_time (str): First review time (ISO format)
         attendees (list): Team member email addresses
         weeks_count (int): Number of weeks (default: 12)
@@ -899,7 +923,7 @@ def google_meet_create_weekly_review(
             description=description
         )
         
-        print(f"✅ Weekly review created successfully!")
+        print(f" Weekly review created successfully!")
         print(f"   Team: {team_name}")
         print(f"   Frequency: Weekly for {weeks_count} weeks")
         print(f"   Duration: {duration_minutes} min")
@@ -915,18 +939,18 @@ def google_meet_create_weekly_review(
         }
         
     except Exception as e:
-        print(f"❌ Failed to create weekly review: {e}")
+        print(f" Failed to create weekly review: {e}")
         raise
 
 
 # ==================== HELPER FUNCTIONS ====================
 
-def google_meet_get_join_info(calendar_event_id: str) -> Dict[str, Any]:
+def google_meet_get_join_info(calendar_event_id: str, _user_id: Optional[int] = None, _injected_credentials: bool = None, **kwargs) -> Dict[str, Any]:
     """
     Get quick join information for a meeting.
     
     Args:
-        calendar_event_id (str): Calendar event ID
+        calendar_event_id (str, **kwargs): Calendar event ID
         
     Returns:
         dict: Simple join information
@@ -943,7 +967,7 @@ def google_meet_get_join_info(calendar_event_id: str) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        print(f"❌ Failed to get join info: {e}")
+        print(f" Failed to get join info: {e}")
         raise
 
 
@@ -1014,17 +1038,17 @@ if __name__ == '__main__':
             title="Test Quick Meeting",
             duration_minutes=30
         )
-        print(f"   ✅ Success! Join at: {meeting['meet_link']}")
+        print(f"    Success! Join at: {meeting['meet_link']}")
     except Exception as e:
-        print(f"   ❌ Failed: {e}")
+        print(f"    Failed: {e}")
     
     # Test upcoming meetings list
     print("\n2. Testing upcoming meetings list...")
     try:
         meetings = google_meet_list_upcoming_meetings(max_results=5)
-        print(f"   ✅ Found {meetings['count']} upcoming meetings")
+        print(f"    Found {meetings['count']} upcoming meetings")
     except Exception as e:
-        print(f"   ❌ Failed: {e}")
+        print(f"    Failed: {e}")
     
     print("\n" + "=" * 50)
     print("Testing complete!")

@@ -30,29 +30,48 @@ if not exist "%UI_DIR%\business-ai-platform-v2.html" (
     exit /b 1
 )
 
-echo [1/3] Starting Flask Backend...
+echo [0/2] Checking for existing Flask servers on port 5001...
+
+REM Kill processes using port 5001 (Flask backend only)
+REM Use more reliable netstat parsing
+setlocal enabledelayedexpansion
+set FOUND_PROCESS=0
+
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr /R "[:]5001.*LISTENING"') do (
+    set PID=%%a
+    REM Remove any non-numeric characters
+    set PID=!PID: =!
+    
+    REM Check if PID is numeric
+    echo !PID! | findstr /R "^[0-9][0-9]*$" >nul
+    if !errorlevel! equ 0 (
+        echo       Stopping PID !PID! on port 5001...
+        taskkill /F /PID !PID! >nul 2>&1
+        set FOUND_PROCESS=1
+    )
+)
+
+if !FOUND_PROCESS! equ 1 (
+    timeout /t 2 /nobreak >nul
+    echo       [OK] Port 5001 cleared
+) else (
+    echo       [OK] Port 5001 is available
+)
+endlocal
+echo.
+
+echo [1/2] Starting Flask Backend...
 echo       Location: %FLASK_DIR%
 echo       Port: 5001
 echo.
 
-REM Start Flask in new terminal window
-start "Flask Backend (Port 5001)" cmd /k "cd /d %FLASK_DIR% && python flask_app.py"
+REM Start Flask in new terminal window with UTF-8 encoding
+start "Flask Backend (Port 5001)" cmd /k "cd /d %FLASK_DIR% && set PYTHONIOENCODING=utf-8 && python flask_app.py"
 
 REM Wait 3 seconds for Flask to initialize
 timeout /t 3 /nobreak >nul
 
-echo [2/3] Starting UI Server...
-echo       Location: %UI_DIR%
-echo       Port: 8080
-echo.
-
-REM Start UI server in new terminal window
-start "UI Server (Port 8080)" cmd /k "cd /d %UI_DIR% && python -m http.server 8080"
-
-REM Wait 2 seconds for UI server to start
-timeout /t 2 /nobreak >nul
-
-echo [3/3] Opening Platform in Browser...
+echo [2/2] Opening Platform in Browser...
 echo.
 
 REM Open browser to platform
@@ -66,8 +85,8 @@ echo.
 echo     Flask Backend:  http://localhost:5001
 echo     UI Platform:    http://localhost:8080/business-ai-platform-v2.html
 echo.
-echo     2 terminal windows opened:
-echo     1. Flask Backend (Port 5001)
+echo     Note: Open business-ai-platform-v2.html directly in browser
+echo           or serve UI folder with any web server on port 8080
 echo     2. UI Server (Port 8080)
 echo.
 echo     Press Ctrl+C in each terminal to stop servers

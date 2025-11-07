@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "gsheets_read",
-      "description": "Read data from a Google Sheets spreadsheet",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRead data from a Google Sheets spreadsheet",
       "platform": "gsheets",
       "parameters": {
         "spreadsheet_id": {
@@ -34,7 +34,7 @@
     },
     {
       "name": "gsheets_write",
-      "description": "Write data to a Google Sheets spreadsheet",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nWrite data to a Google Sheets spreadsheet",
       "platform": "gsheets",
       "parameters": {
         "spreadsheet_id": {
@@ -60,7 +60,7 @@
     },
     {
       "name": "gsheets_append",
-      "description": "Append rows to the end of a sheet",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend rows to the end of a sheet",
       "platform": "gsheets",
       "parameters": {
         "spreadsheet_id": {
@@ -86,7 +86,7 @@
     },
     {
       "name": "gsheets_create",
-      "description": "Create a new Google Sheets spreadsheet",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Sheets spreadsheet",
       "platform": "gsheets",
       "parameters": {
         "title": {

@@ -33,8 +33,8 @@ Google Docs doesn't document the exact structure, and it can vary based on:
 - Borders/styling
 
 SOLUTION OPTIONS:
-1. Insert table, then QUERY the document to get actual structure ✅ BEST
-2. Use conservative estimate and skip content after tables ❌ Current
-3. Don't support tables ❌ Too limiting
+1. Insert table, then QUERY the document to get actual structure  BEST
+2. Use conservative estimate and skip content after tables  Current
+3. Don't support tables  Too limiting
 """
 print(__doc__)

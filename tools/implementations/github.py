@@ -50,7 +50,7 @@ def github_create_repo(name: str, description: str = None, private: bool = False
         }
         
     except Exception as e:
-        print(f"❌ Failed to create repository: {e}")
+        print(f" Failed to create repository: {e}")
         raise
 
 
@@ -97,7 +97,7 @@ def github_commit_file(repo: str, file_path: str, content: str, message: str):
         }
         
     except Exception as e:
-        print(f"❌ Failed to commit file: {e}")
+        print(f" Failed to commit file: {e}")
         raise
 
 
@@ -135,7 +135,7 @@ def github_create_pr(repo: str, title: str, head: str, base: str, body: str = No
         }
         
     except Exception as e:
-        print(f"❌ Failed to create PR: {e}")
+        print(f" Failed to create PR: {e}")
         raise
 
 
@@ -177,7 +177,7 @@ def github_get_issues(repo: str, state: str = "open", limit: int = 30):
         }
         
     except Exception as e:
-        print(f"❌ Failed to fetch issues: {e}")
+        print(f" Failed to fetch issues: {e}")
         raise
 
 

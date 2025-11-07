@@ -79,10 +79,10 @@ class Microsoft365OAuthManager:
             'Group.ReadWrite.All',              # Planner access
         ],
         'sharepoint': [
-            'Sites.ReadWrite.All',              # ✅ NEW: SharePoint site access
+            'Sites.ReadWrite.All',              #  NEW: SharePoint site access
         ],
         'onenote': [
-            'Notes.ReadWrite.All',              # ✅ NEW: OneNote notebook access
+            'Notes.ReadWrite.All',              #  NEW: OneNote notebook access
         ]
         # Note: Forms.Read and Forms.ReadWrite are NOT valid Microsoft Graph scopes
         # Microsoft Forms API requires different authentication approach
@@ -116,9 +116,9 @@ class Microsoft365OAuthManager:
             logger.warning("⚠️ MICROSOFT_CLIENT_SECRET is a placeholder value")
         
         if not self.client_id:
-            logger.error("❌ MICROSOFT_CLIENT_ID not configured")
+            logger.error(" MICROSOFT_CLIENT_ID not configured")
         if not self.client_secret:
-            logger.error("❌ MICROSOFT_CLIENT_SECRET not configured")
+            logger.error(" MICROSOFT_CLIENT_SECRET not configured")
         
         # Token storage
         if token_storage_path:
@@ -128,12 +128,13 @@ class Microsoft365OAuthManager:
         
         self.token_storage_path.mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"✅ Microsoft 365 OAuth Manager initialized (Tenant: {self.tenant_id})")
+        logger.info(f" Microsoft 365 OAuth Manager initialized (Tenant: {self.tenant_id})")
     
     def get_authorization_url(self, 
                               redirect_uri: str,
                               scopes: Optional[List[str]] = None,
-                              state: Optional[str] = None) -> str:
+                              state: Optional[str] = None,
+                              prompt: Optional[str] = 'select_account') -> str:
         """
         Generate OAuth2 authorization URL for user consent
         
@@ -141,6 +142,11 @@ class Microsoft365OAuthManager:
             redirect_uri: Callback URL after authorization
             scopes: List of permission scopes (default: profile + email)
             state: Optional state parameter for CSRF protection
+            prompt: OAuth prompt parameter ('select_account' | 'consent' | 'login' | 'none')
+                   - 'select_account': Show account picker (default)
+                   - 'consent': Force consent screen to reappear
+                   - 'login': Force login
+                   - 'none': Silent authentication (may fail if consent not granted)
         
         Returns:
             Authorization URL to redirect user to
@@ -149,7 +155,8 @@ class Microsoft365OAuthManager:
             url = manager.get_authorization_url(
                 redirect_uri='http://localhost:5000/api/auth/microsoft/callback',
                 scopes=['User.Read', 'Mail.Read'],
-                state='random_state_token'
+                state='random_state_token',
+                prompt='consent'  # Force re-consent
             )
         """
         # Default scopes for user login
@@ -166,14 +173,14 @@ class Microsoft365OAuthManager:
             'response_mode': 'query',
             'scope': ' '.join(scopes),
             'state': state or '',
-            'prompt': 'select_account',  # ✅ Force account picker (matches Google behavior)
+            'prompt': prompt,  # Use provided prompt parameter
         }
         
         # Construct URL with parameters
         param_string = '&'.join([f"{k}={requests.utils.quote(str(v))}" for k, v in params.items()])
         full_url = f"{auth_url}?{param_string}"
         
-        logger.info(f"🔗 Generated Microsoft authorization URL")
+        logger.info(f"🔗 Generated Microsoft authorization URL (prompt={prompt})")
         return full_url
     
     def exchange_code_for_tokens(self, 
@@ -215,7 +222,7 @@ class Microsoft365OAuthManager:
             
             # Log full error details if request fails
             if response.status_code != 200:
-                logger.error(f"❌ Token exchange failed with status {response.status_code}")
+                logger.error(f" Token exchange failed with status {response.status_code}")
                 logger.error(f"   Response: {response.text}")
                 try:
                     error_data = response.json()
@@ -236,7 +243,7 @@ class Microsoft365OAuthManager:
             expires_in = token_data.get('expires_in', 3600)
             token_data['expires_at'] = (datetime.now() + timedelta(seconds=expires_in)).isoformat()
             
-            logger.info("✅ Successfully exchanged authorization code for tokens")
+            logger.info(" Successfully exchanged authorization code for tokens")
             return {
                 'success': True,
                 'access_token': token_data['access_token'],
@@ -247,7 +254,7 @@ class Microsoft365OAuthManager:
             }
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"❌ Failed to exchange code for tokens: {e}")
+            logger.error(f" Failed to exchange code for tokens: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -281,7 +288,7 @@ class Microsoft365OAuthManager:
             expires_in = token_data.get('expires_in', 3600)
             token_data['expires_at'] = (datetime.now() + timedelta(seconds=expires_in)).isoformat()
             
-            logger.info("✅ Successfully refreshed access token")
+            logger.info(" Successfully refreshed access token")
             return {
                 'success': True,
                 'access_token': token_data['access_token'],
@@ -290,7 +297,7 @@ class Microsoft365OAuthManager:
             }
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"❌ Failed to refresh access token: {e}")
+            logger.error(f" Failed to refresh access token: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -317,7 +324,7 @@ class Microsoft365OAuthManager:
             
             profile = response.json()
             
-            logger.info(f"✅ Retrieved user profile: {profile.get('userPrincipalName')}")
+            logger.info(f" Retrieved user profile: {profile.get('userPrincipalName')}")
             return {
                 'success': True,
                 'profile': {
@@ -335,7 +342,7 @@ class Microsoft365OAuthManager:
             }
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"❌ Failed to get user profile: {e}")
+            logger.error(f" Failed to get user profile: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -363,7 +370,7 @@ class Microsoft365OAuthManager:
         with open(token_file, 'w') as f:
             json.dump(token_data, f, indent=2)
         
-        logger.info(f"✅ Stored tokens for {user_email}")
+        logger.info(f" Stored tokens for {user_email}")
     
     def load_tokens(self, user_email: str) -> Optional[Dict[str, any]]:
         """
@@ -389,7 +396,7 @@ class Microsoft365OAuthManager:
             logger.warning(f"⚠️ Token expired for {user_email}, needs refresh")
             return None
         
-        logger.info(f"✅ Loaded tokens for {user_email}")
+        logger.info(f" Loaded tokens for {user_email}")
         return token_data
     
     def get_all_scopes(self) -> List[str]:
@@ -409,33 +416,40 @@ class Microsoft365OAuthManager:
 microsoft_oauth_manager = Microsoft365OAuthManager()
 
 
-def get_microsoft_auth_url(redirect_uri: str, state: Optional[str] = None) -> str:
+def get_microsoft_auth_url(redirect_uri: str, state: Optional[str] = None, prompt: Optional[str] = 'select_account', scopes: Optional[list] = None) -> str:
     """
     Convenience function to get Microsoft authorization URL
     
     Args:
         redirect_uri: OAuth callback URL
         state: Optional state for CSRF protection
+        prompt: OAuth prompt parameter ('select_account' | 'consent' | 'login')
+               - 'select_account': Show account picker (default)
+               - 'consent': Force consent screen (for re-authentication)
+               - 'login': Force login
+        scopes: Optional list of scopes to request (if None, uses essential scopes)
     
     Returns:
         Authorization URL
     """
-    # ✅ FIX: Request only ESSENTIAL scopes for initial login
+    # If no scopes provided, use essential scopes for initial login
     # Requesting all scopes at once causes 400 errors if admin consent not granted
     # Users can grant additional permissions later via /api/auth/microsoft/grant-scopes
-    essential_scopes = [
-        'openid',
-        'profile', 
-        'email',
-        'User.Read',           # Read user profile (basic)
-        'User.ReadWrite',      # ✅ Read and write user profile
-        'offline_access'       # ✅ CRITICAL: Enables refresh tokens
-    ]
+    if scopes is None:
+        scopes = [
+            'openid',
+            'profile', 
+            'email',
+            'User.Read',           # Read user profile (basic)
+            'User.ReadWrite',      # Read and write user profile
+            'offline_access'       # CRITICAL: Enables refresh tokens
+        ]
     
     return microsoft_oauth_manager.get_authorization_url(
         redirect_uri=redirect_uri,
-        scopes=essential_scopes,
-        state=state
+        scopes=scopes,
+        state=state,
+        prompt=prompt  # Pass through prompt parameter
     )
 
 

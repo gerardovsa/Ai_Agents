@@ -6,16 +6,25 @@ This module provides tool implementations for CloudConvert file conversion.
 """
 
 import os
-import cloudconvert
 
 try:
-    from config import get_api_key_enhanced
-    api_key = get_api_key_enhanced('CLOUDCONVERT_API_KEY')
+    import cloudconvert
+    try:
+        from config import get_api_key_enhanced
+        api_key = get_api_key_enhanced('CLOUDCONVERT_API_KEY')
+    except ImportError:
+        api_key = os.getenv('CLOUDCONVERT_API_KEY')
+    
+    # Initialize CloudConvert client if library available
+    if api_key and hasattr(cloudconvert, 'configure'):
+        cloudconvert.configure(api_key=api_key)
 except ImportError:
-    api_key = os.getenv('CLOUDCONVERT_API_KEY')
-
-# Initialize CloudConvert client
-cloudconvert.configure(api_key=api_key)
+    cloudconvert = None
+    api_key = None
+except Exception as e:
+    print(f"⚠️ CloudConvert initialization warning: {e}")
+    cloudconvert = None
+    api_key = None
 
 
 def cloudconvert_convert(input_file: str, input_format: str, output_format: str, output_file: str = None):
@@ -29,8 +38,20 @@ def cloudconvert_convert(input_file: str, input_format: str, output_format: str,
         output_file: Optional output file path
     
     Returns:
-        Conversion result with download URL
+        Dict with conversion result with download URL
     """
+    if not cloudconvert:
+        return {
+            'success': False,
+            'error': 'CloudConvert library not available'
+        }
+    
+    if not api_key:
+        return {
+            'success': False,
+            'error': 'CloudConvert API key not configured'
+        }
+    
     print(f"🔧 Converting {input_format} to {output_format}")
     
     try:
@@ -73,7 +94,7 @@ def cloudconvert_convert(input_file: str, input_format: str, output_format: str,
         return {'success': True, 'download_url': download_url, 'job_id': job['id']}
         
     except Exception as e:
-        print(f"❌ Conversion failed: {e}")
+        print(f" Conversion failed: {e}")
         raise
 
 
@@ -130,7 +151,7 @@ def cloudconvert_optimize(input_file: str, file_type: str, quality: int = 85, ou
             return {'success': True, 'download_url': download_url}
         
     except Exception as e:
-        print(f"❌ Optimization failed: {e}")
+        print(f" Optimization failed: {e}")
         raise
 
 
@@ -184,7 +205,7 @@ def cloudconvert_merge(input_files: list, output_format: str, output_file: str =
         return {'success': True, 'download_url': download_url, 'output_file': output_file}
         
     except Exception as e:
-        print(f"❌ Merge failed: {e}")
+        print(f" Merge failed: {e}")
         raise
 
 
@@ -212,7 +233,7 @@ def cloudconvert_status(job_id: str):
         }
         
     except Exception as e:
-        print(f"❌ Status check failed: {e}")
+        print(f" Status check failed: {e}")
         raise
 
 

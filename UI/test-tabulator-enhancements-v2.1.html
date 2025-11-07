@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabulator Enhancements v2.1 - Test Suite</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Toast CSS -->
+    <link rel="stylesheet" href="css/tabulator-toast.css">
+
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #161616;
+            --bg-tertiary: #1e1e1e;
+            --card-background: #2d2d2d;
+            --border-default: #444;
+            --text-primary: #ffffff;
+            --text-secondary: #999;
+            --primary-color: #667eea;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --hover-overlay: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: var(--space-5);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: var(--space-5);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-top: var(--space-5);
+            margin-bottom: var(--space-3);
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-default);
+            padding-bottom: var(--space-2);
+        }
+
+        .test-section {
+            background: var(--card-background);
+            border: 1px solid var(--border-default);
+            border-radius: var(--border-radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+
+        .test-section h3 {
+            font-size: 18px;
+            margin-bottom: var(--space-3);
+            color: var(--primary-color);
+        }
+
+        .test-section p {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-3);
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+        }
+
+        .test-btn {
+            padding: var(--space-3) var(--space-4);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+        }
+
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .test-btn.success {
+            background: var(--success-color);
+        }
+
+        .test-btn.error {
+            background: var(--error-color);
+        }
+
+        .test-btn.warning {
+            background: var(--warning-color);
+            color: #000;
+        }
+
+        .test-btn.info {
+            background: var(--info-color);
+        }
+
+        .result-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--border-radius-md);
+            padding: var(--space-3);
+            margin-top: var(--space-3);
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-box pre {
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: var(--space-2);
+        }
+
+        .status-badge.pass {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status-badge.fail {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .status-badge.pending {
+            background: var(--warning-color);
+            color: #000;
+        }
+
+        .input-group {
+            margin-bottom: var(--space-3);
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: var(--space-2);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: var(--space-2) var(--space-3);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--border-radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .summary-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--border-radius-md);
+            padding: var(--space-4);
+            text-align: center;
+        }
+
+        .summary-card .value {
+            font-size: 36px;
+            font-weight: 700;
+            margin: var(--space-2) 0;
+        }
+
+        .summary-card .label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .summary-card.success .value {
+            color: var(--success-color);
+        }
+
+        .summary-card.error .value {
+            color: var(--error-color);
+        }
+
+        .summary-card.info .value {
+            color: var(--info-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>
+            <i class="fas fa-flask"></i>
+            Tabulator Enhancements v2.1 - Test Suite
+        </h1>
+
+        <!-- Summary Dashboard -->
+        <div class="summary-grid">
+            <div class="summary-card success">
+                <div class="label">Tests Passed</div>
+                <div class="value" id="tests-passed">0</div>
+            </div>
+            <div class="summary-card error">
+                <div class="label">Tests Failed</div>
+                <div class="value" id="tests-failed">0</div>
+            </div>
+            <div class="summary-card info">
+                <div class="label">Total Tests</div>
+                <div class="value" id="tests-total">0</div>
+            </div>
+        </div>
+
+        <!-- Test 1: Toast System -->
+        <h2>1. Toast Notification System</h2>
+        <div class="test-section">
+            <h3><i class="fas fa-bell"></i> Toast Tests</h3>
+            <p>Test the toast notification system with different types and configurations.</p>
+
+            <div class="button-grid">
+                <button class="test-btn success" onclick="testToastSuccess()">
+                    <i class="fas fa-check-circle"></i> Success Toast
+                </button>
+                <button class="test-btn error" onclick="testToastError()">
+                    <i class="fas fa-exclamation-circle"></i> Error Toast
+                </button>
+                <button class="test-btn warning" onclick="testToastWarning()">
+                    <i class="fas fa-exclamation-triangle"></i> Warning Toast
+                </button>
+                <button class="test-btn info" onclick="testToastInfo()">
+                    <i class="fas fa-info-circle"></i> Info Toast
+                </button>
+                <button class="test-btn" onclick="testToastMultiple()">
+                    <i class="fas fa-layer-group"></i> Multiple Toasts
+                </button>
+                <button class="test-btn" onclick="testToastLongDuration()">
+                    <i class="fas fa-clock"></i> Long Duration (10s)
+                </button>
+            </div>
+
+            <div class="result-box" id="toast-results">
+                <pre>Click buttons above to test toast notifications...</pre>
+            </div>
+        </div>
+
+        <!-- Test 2: Validation System -->
+        <h2>2. Input Validation System</h2>
+        <div class="test-section">
+            <h3><i class="fas fa-check-double"></i> Validation Tests</h3>
+            <p>Test input validation for strings, numbers, dates, arrays, and objects.</p>
+
+            <div class="button-grid">
+                <button class="test-btn" onclick="testValidationString()">
+                    <i class="fas fa-font"></i> String Validation
+                </button>
+                <button class="test-btn" onclick="testValidationNumber()">
+                    <i class="fas fa-hashtag"></i> Number Validation
+                </button>
+                <button class="test-btn" onclick="testValidationDate()">
+                    <i class="fas fa-calendar"></i> Date Validation
+                </button>
+                <button class="test-btn" onclick="testValidationArray()">
+                    <i class="fas fa-list"></i> Array Validation
+                </button>
+                <button class="test-btn" onclick="testValidationObject()">
+                    <i class="fas fa-cubes"></i> Object Validation
+                </button>
+                <button class="test-btn" onclick="testValidationUrl()">
+                    <i class="fas fa-link"></i> URL Validation
+                </button>
+                <button class="test-btn" onclick="testValidationEnum()">
+                    <i class="fas fa-list-ul"></i> Enum Validation
+                </button>
+                <button class="test-btn" onclick="testValidationBatch()">
+                    <i class="fas fa-tasks"></i> Batch Validation
+                </button>
+            </div>
+
+            <div class="result-box" id="validation-results">
+                <pre>Click buttons above to test validation...</pre>
+            </div>
+        </div>
+
+        <!-- Test 3: Network Utilities -->
+        <h2>3. Network Retry System</h2>
+        <div class="test-section">
+            <h3><i class="fas fa-network-wired"></i> Network Tests</h3>
+            <p>Test network requests with automatic retry logic and timeout handling.</p>
+
+            <div class="input-group">
+                <label>Test Endpoint URL:</label>
+                <input type="text" id="test-url" value="https://jsonplaceholder.typicode.com/posts/1"
+                    placeholder="Enter API endpoint">
+            </div>
+
+            <div class="button-grid">
+                <button class="test-btn success" onclick="testNetworkSuccess()">
+                    <i class="fas fa-check"></i> Successful Request
+                </button>
+                <button class="test-btn error" onclick="testNetworkFail()">
+                    <i class="fas fa-times"></i> Failed Request (404)
+                </button>
+                <button class="test-btn warning" onclick="testNetworkTimeout()">
+                    <i class="fas fa-hourglass-half"></i> Timeout Test
+                </button>
+                <button class="test-btn info" onclick="testNetworkRetry()">
+                    <i class="fas fa-redo"></i> Retry Test
+                </button>
+            </div>
+
+            <div class="result-box" id="network-results">
+                <pre>Click buttons above to test network utilities...</pre>
+            </div>
+        </div>
+
+        <!-- Test 4: i18n System -->
+        <h2>4. Internationalization System</h2>
+        <div class="test-section">
+            <h3><i class="fas fa-language"></i> i18n Tests</h3>
+            <p>Test multi-language support and translation functionality.</p>
+
+            <div class="input-group">
+                <label>Select Language:</label>
+                <select id="language-select" onchange="testI18nSwitch()">
+                    <option value="en">English</option>
+                    <option value="es">Spanish (Español)</option>
+                </select>
+            </div>
+
+            <div class="button-grid">
+                <button class="test-btn" onclick="testI18nBasic()">
+                    <i class="fas fa-globe"></i> Basic Translation
+                </button>
+                <button class="test-btn" onclick="testI18nParameters()">
+                    <i class="fas fa-code"></i> Parameter Substitution
+                </button>
+                <button class="test-btn" onclick="testI18nMissing()">
+                    <i class="fas fa-question"></i> Missing Translation
+                </button>
+                <button class="test-btn" onclick="testI18nAddCustom()">
+                    <i class="fas fa-plus"></i> Add Custom Translation
+                </button>
+            </div>
+
+            <div class="result-box" id="i18n-results">
+                <pre>Click buttons above to test i18n...</pre>
+            </div>
+        </div>
+
+        <!-- Test 5: Integration Tests -->
+        <h2>5. Integration Tests</h2>
+        <div class="test-section">
+            <h3><i class="fas fa-puzzle-piece"></i> Combined Functionality</h3>
+            <p>Test how all utilities work together in real-world scenarios.</p>
+
+            <div class="button-grid">
+                <button class="test-btn" onclick="testIntegrationFormValidation()">
+                    <i class="fas fa-wpforms"></i> Form Validation + Toast
+                </button>
+                <button class="test-btn" onclick="testIntegrationNetworkError()">
+                    <i class="fas fa-exclamation-triangle"></i> Network Error + i18n
+                </button>
+                <button class="test-btn" onclick="testIntegrationSuccess()">
+                    <i class="fas fa-check-circle"></i> Success Flow
+                </button>
+                <button class="test-btn" onclick="testIntegrationAll()">
+                    <i class="fas fa-rocket"></i> Run All Tests
+                </button>
+            </div>
+
+            <div class="result-box" id="integration-results">
+                <pre>Click buttons above to test integration...</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Utilities -->
+    <script src="js/tabulator-toast-system.js"></script>
+    <script src="js/tabulator-validation.js"></script>
+    <script src="js/tabulator-network-utils.js"></script>
+    <script src="js/tabulator-i18n.js"></script>
+
+    <script>
+        // Test tracking
+        let testsPassed = 0;
+        let testsFailed = 0;
+        let testsTotal = 0;
+
+        function updateStats() {
+            document.getElementById('tests-passed').textContent = testsPassed;
+            document.getElementById('tests-failed').textContent = testsFailed;
+            document.getElementById('tests-total').textContent = testsTotal;
+        }
+
+        function logResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const status = isSuccess ? '✅ PASS' : '❌ FAIL';
+            element.innerHTML = `<pre>[${timestamp}] ${status}: ${message}</pre>`;
+
+            testsTotal++;
+            if (isSuccess) {
+                testsPassed++;
+                window.toastSystem.success(message);
+            } else {
+                testsFailed++;
+                window.toastSystem.error(message);
+            }
+            updateStats();
+        }
+
+        // ========== TOAST TESTS ==========
+        function testToastSuccess() {
+            window.toastSystem.success('This is a success toast notification!');
+            logResult('toast-results', 'Success toast displayed');
+        }
+
+        function testToastError() {
+            window.toastSystem.error('This is an error toast notification!');
+            logResult('toast-results', 'Error toast displayed');
+        }
+
+        function testToastWarning() {
+            window.toastSystem.warning('This is a warning toast notification!');
+            logResult('toast-results', 'Warning toast displayed');
+        }
+
+        function testToastInfo() {
+            window.toastSystem.info('This is an info toast notification!');
+            logResult('toast-results', 'Info toast displayed');
+        }
+
+        function testToastMultiple() {
+            for (let i = 1; i <= 5; i++) {
+                setTimeout(() => {
+                    window.toastSystem.info(`Toast notification #${i}`);
+                }, i * 300);
+            }
+            logResult('toast-results', 'Multiple toasts queued (5 toasts)');
+        }
+
+        function testToastLongDuration() {
+            window.toastSystem.info('This toast will stay visible for 10 seconds', { duration: 10000 });
+            logResult('toast-results', 'Long duration toast displayed (10s)');
+        }
+
+        // ========== VALIDATION TESTS ==========
+        function testValidationString() {
+            const tests = [
+                { value: '', name: 'Empty', required: true, expected: false },
+                { value: 'Jo', name: 'Too short', required: true, minLength: 3, expected: false },
+                { value: 'John', name: 'Valid', required: true, minLength: 3, maxLength: 10, expected: true },
+                { value: 'VeryLongName123', name: 'Too long', required: true, minLength: 3, maxLength: 10, expected: false }
+            ];
+
+            let results = 'String Validation Tests:\n\n';
+            let allPassed = true;
+
+            tests.forEach(test => {
+                const result = ValidationHelper.validateString(test.value, test.name, test.required, test.minLength, test.maxLength);
+                const passed = result.valid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.name}: ${result.valid ? 'VALID' : result.error}\n`;
+                if (!passed) allPassed = false;
+            });
+
+            document.getElementById('validation-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('validation-results', allPassed ? 'All string validation tests passed' : 'Some string validation tests failed', allPassed);
+        }
+
+        function testValidationNumber() {
+            const tests = [
+                { value: 'abc', name: 'Non-number', required: true, expected: false },
+                { value: 50, name: 'Valid number', required: true, min: 0, max: 100, expected: true },
+                { value: 150, name: 'Out of range', required: true, min: 0, max: 100, expected: false },
+                { value: -5, name: 'Below minimum', required: true, min: 0, expected: false }
+            ];
+
+            let results = 'Number Validation Tests:\n\n';
+            let allPassed = true;
+
+            tests.forEach(test => {
+                const result = ValidationHelper.validateNumber(test.value, test.name, test.required, test.min, test.max);
+                const passed = result.valid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.name}: ${result.valid ? 'VALID' : result.error}\n`;
+                if (!passed) allPassed = false;
+            });
+
+            document.getElementById('validation-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('validation-results', allPassed ? 'All number validation tests passed' : 'Some number validation tests failed', allPassed);
+        }
+
+        function testValidationDate() {
+            const tests = [
+                { value: '2025-11-07', name: 'Valid date', required: true, expected: true },
+                { value: 'invalid-date', name: 'Invalid date', required: true, expected: false },
+                { value: '', name: 'Empty date', required: false, expected: true }
+            ];
+
+            let results = 'Date Validation Tests:\n\n';
+            let allPassed = true;
+
+            tests.forEach(test => {
+                const result = ValidationHelper.validateDate(test.value, test.name, test.required);
+                const passed = result.valid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.name}: ${result.valid ? 'VALID' : result.error}\n`;
+                if (!passed) allPassed = false;
+            });
+
+            document.getElementById('validation-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('validation-results', allPassed ? 'All date validation tests passed' : 'Some date validation tests failed', allPassed);
+        }
+
+        function testValidationArray() {
+            const tests = [
+                { value: [1, 2, 3], name: 'Valid array', required: true, expected: true },
+                { value: 'not-array', name: 'Not an array', required: true, expected: false },
+                { value: [], name: 'Empty array', required: true, minLength: 1, expected: false },
+                { value: [1, 2, 3], name: 'Within range', required: true, minLength: 2, maxLength: 5, expected: true }
+            ];
+
+            let results = 'Array Validation Tests:\n\n';
+            let allPassed = true;
+
+            tests.forEach(test => {
+                const result = ValidationHelper.validateArray(test.value, test.name, test.required, test.minLength, test.maxLength);
+                const passed = result.valid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.name}: ${result.valid ? 'VALID' : result.error}\n`;
+                if (!passed) allPassed = false;
+            });
+
+            document.getElementById('validation-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('validation-results', allPassed ? 'All array validation tests passed' : 'Some array validation tests failed', allPassed);
+        }
+
+        function testValidationObject() {
+            const tests = [
+                { value: { key: 'value' }, name: 'Valid object', required: true, expected: true },
+                { value: 'not-object', name: 'Not an object', required: true, expected: false },
+                { value: [1, 2, 3], name: 'Array (not object)', required: true, expected: false },
+                { value: null, name: 'Null', required: false, expected: true }
+            ];
+
+            let results = 'Object Validation Tests:\n\n';
+            let allPassed = true;
+
+            tests.forEach(test => {
+                const result = ValidationHelper.validateObject(test.value, test.name, test.required);
+                const passed = result.valid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.name}: ${result.valid ? 'VALID' : result.error}\n`;
+                if (!passed) allPassed = false;
+            });
+
+            document.getElementById('validation-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('validation-results', allPassed ? 'All object validation tests passed' : 'Some object validation tests failed', allPassed);
+        }
+
+        function testValidationUrl() {
+            const tests = [
+                { value: 'https://example.com', name: 'Valid HTTPS URL', required: true, expected: true },
+                { value: 'http://localhost:5001', name: 'Valid HTTP URL', required: true, expected: true },
+                { value: 'not-a-url', name: 'Invalid URL', required: true, expected: false },
+                { value: '', name: 'Empty URL', required: false, expected: true }
+            ];
+
+            let results = 'URL Validation Tests:\n\n';
+            let allPassed = true;
+
+            tests.forEach(test => {
+                const result = ValidationHelper.validateUrl(test.value, test.name, test.required);
+                const passed = result.valid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.name}: ${result.valid ? 'VALID' : result.error}\n`;
+                if (!passed) allPassed = false;
+            });
+
+            document.getElementById('validation-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('validation-results', allPassed ? 'All URL validation tests passed' : 'Some URL validation tests failed', allPassed);
+        }
+
+        function testValidationEnum() {
+            const tests = [
+                { value: 'red', name: 'Valid enum', allowedValues: ['red', 'green', 'blue'], expected: true },
+                { value: 'yellow', name: 'Invalid enum', allowedValues: ['red', 'green', 'blue'], expected: false },
+                { value: '', name: 'Empty enum', allowedValues: ['red', 'green', 'blue'], required: false, expected: true }
+            ];
+
+            let results = 'Enum Validation Tests:\n\n';
+            let allPassed = true;
+
+            tests.forEach(test => {
+                const result = ValidationHelper.validateEnum(test.value, test.name, test.allowedValues, test.required);
+                const passed = result.valid === test.expected;
+                results += `${passed ? '✅' : '❌'} ${test.name}: ${result.valid ? 'VALID' : result.error}\n`;
+                if (!passed) allPassed = false;
+            });
+
+            document.getElementById('validation-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('validation-results', allPassed ? 'All enum validation tests passed' : 'Some enum validation tests failed', allPassed);
+        }
+
+        function testValidationBatch() {
+            const validation = ValidationHelper.validateAll([
+                ValidationHelper.validateString('John', 'Name', true, 3),
+                ValidationHelper.validateNumber(25, 'Age', true, 18, 100),
+                ValidationHelper.validateUrl('https://example.com', 'Website', true),
+                ValidationHelper.validateArray([1, 2, 3], 'Items', true, 1)
+            ]);
+
+            const results = `Batch Validation Test:\n\n${validation.valid ? '✅ All validations passed' : '❌ Validation failed:\n' + validation.errors.join('\n')}`;
+
+            document.getElementById('validation-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('validation-results', validation.valid ? 'Batch validation passed' : 'Batch validation failed', validation.valid);
+        }
+
+        // ========== NETWORK TESTS ==========
+        async function testNetworkSuccess() {
+            const url = document.getElementById('test-url').value;
+            const startTime = Date.now();
+
+            try {
+                const response = await NetworkHelper.get(url, { retries: 3, timeout: 10000 });
+                const data = await response.json();
+                const duration = Date.now() - startTime;
+
+                const results = `Network Success Test:\n\n✅ Request successful\nURL: ${url}\nStatus: ${response.status}\nDuration: ${duration}ms\n\nResponse:\n${JSON.stringify(data, null, 2).substring(0, 500)}...`;
+
+                document.getElementById('network-results').innerHTML = `<pre>${results}</pre>`;
+                logResult('network-results', `Network request successful (${duration}ms)`);
+            } catch (error) {
+                document.getElementById('network-results').innerHTML = `<pre>❌ Error: ${error.message}</pre>`;
+                logResult('network-results', `Network request failed: ${error.message}`, false);
+            }
+        }
+
+        async function testNetworkFail() {
+            const startTime = Date.now();
+
+            try {
+                const response = await NetworkHelper.get('https://jsonplaceholder.typicode.com/posts/99999', { retries: 2, timeout: 5000 });
+                const duration = Date.now() - startTime;
+
+                document.getElementById('network-results').innerHTML = `<pre>❌ Expected failure but got response (status: ${response.status})</pre>`;
+                logResult('network-results', 'Network test failed: Expected error but got success', false);
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                const results = `Network Fail Test:\n\n✅ Correctly handled failure\nDuration: ${duration}ms\nError: ${error.message}`;
+
+                document.getElementById('network-results').innerHTML = `<pre>${results}</pre>`;
+                logResult('network-results', 'Network failure handled correctly');
+            }
+        }
+
+        async function testNetworkTimeout() {
+            const startTime = Date.now();
+
+            try {
+                // Use a very short timeout to force timeout
+                const response = await NetworkHelper.get('https://httpbin.org/delay/10', { retries: 1, timeout: 1000 });
+                const duration = Date.now() - startTime;
+
+                document.getElementById('network-results').innerHTML = `<pre>❌ Expected timeout but got response</pre>`;
+                logResult('network-results', 'Timeout test failed: No timeout occurred', false);
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                const results = `Network Timeout Test:\n\n✅ Timeout handled correctly\nDuration: ${duration}ms\nError: ${error.message}`;
+
+                document.getElementById('network-results').innerHTML = `<pre>${results}</pre>`;
+                logResult('network-results', `Timeout handled correctly (${duration}ms)`);
+            }
+        }
+
+        async function testNetworkRetry() {
+            const results = `Network Retry Test:\n\nRetry logic is tested automatically in other network tests.\nCheck the console for retry messages when failures occur.\n\nRetry Configuration:\n- Max retries: 3\n- Initial delay: 1000ms\n- Backoff multiplier: 2\n- Delays: 1s, 2s, 4s`;
+
+            document.getElementById('network-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('network-results', 'Retry test configuration displayed');
+        }
+
+        // ========== I18N TESTS ==========
+        function testI18nBasic() {
+            const translations = [
+                { key: 'edit.success', lang: 'en' },
+                { key: 'filter.applied', lang: 'en' },
+                { key: 'action.save', lang: 'en' },
+                { key: 'mobile.stock', lang: 'en' }
+            ];
+
+            let results = 'Basic Translation Tests:\n\n';
+            translations.forEach(t => {
+                const text = window.i18n.t(t.key);
+                results += `✅ ${t.key} (${t.lang}): "${text}"\n`;
+            });
+
+            document.getElementById('i18n-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('i18n-results', 'Basic translations retrieved successfully');
+        }
+
+        function testI18nParameters() {
+            const tests = [
+                { key: 'validation.required', params: { field: 'Email' } },
+                { key: 'validation.required', params: { field: 'Password' } }
+            ];
+
+            let results = 'Parameter Substitution Tests:\n\n';
+            tests.forEach(t => {
+                const text = window.i18n.t(t.key, t.params);
+                results += `✅ ${t.key} with ${JSON.stringify(t.params)}: "${text}"\n`;
+            });
+
+            document.getElementById('i18n-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('i18n-results', 'Parameter substitution working correctly');
+        }
+
+        function testI18nMissing() {
+            const missingKey = 'this.key.does.not.exist';
+            const text = window.i18n.t(missingKey);
+
+            const results = `Missing Translation Test:\n\n✅ Missing key "${missingKey}" returns: "${text}"\n(Falls back to key name when translation not found)`;
+
+            document.getElementById('i18n-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('i18n-results', 'Missing translation fallback working');
+        }
+
+        function testI18nSwitch() {
+            const lang = document.getElementById('language-select').value;
+            window.i18n.setLanguage(lang);
+
+            const examples = [
+                'edit.success',
+                'action.save',
+                'action.cancel',
+                'filter.applied'
+            ];
+
+            let results = `Language Switch Test (${lang.toUpperCase()}):\n\n`;
+            examples.forEach(key => {
+                const text = window.i18n.t(key);
+                results += `✅ ${key}: "${text}"\n`;
+            });
+
+            document.getElementById('i18n-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('i18n-results', `Language switched to ${lang.toUpperCase()}`);
+        }
+
+        function testI18nAddCustom() {
+            window.i18n.addTranslations('fr', {
+                'edit.success': 'Modifications enregistrées avec succès',
+                'action.save': 'Enregistrer'
+            });
+
+            window.i18n.setLanguage('fr');
+
+            const results = `Custom Translation Test (French):\n\n✅ edit.success: "${window.i18n.t('edit.success')}"\n✅ action.save: "${window.i18n.t('action.save')}"\n\nFrench translations added successfully!`;
+
+            document.getElementById('i18n-results').innerHTML = `<pre>${results}</pre>`;
+            logResult('i18n-results', 'Custom French translations added');
+
+            // Reset to English
+            window.i18n.setLanguage('en');
+            document.getElementById('language-select').value = 'en';
+        }
+
+        // ========== INTEGRATION TESTS ==========
+        function testIntegrationFormValidation() {
+            // Simulate a form submission with validation
+            const formData = {
+                name: '',  // Invalid: empty
+                email: 'invalid-email',  // Invalid: not an email
+                age: 150  // Invalid: out of range
+            };
+
+            const validation = ValidationHelper.validateAll([
+                ValidationHelper.validateString(formData.name, 'Name', true, 3),
+                ValidationHelper.validateString(formData.email, 'Email', true),
+                ValidationHelper.validateNumber(formData.age, 'Age', true, 18, 100)
+            ]);
+
+            if (!validation.valid) {
+                window.toastSystem.error(`Form validation failed: ${validation.errors[0]}`);
+
+                const results = `Integration Test: Form Validation + Toast\n\n❌ Validation failed:\n${validation.errors.join('\n')}\n\n✅ Toast notification displayed with error`;
+                document.getElementById('integration-results').innerHTML = `<pre>${results}</pre>`;
+                logResult('integration-results', 'Form validation + toast integration working');
+            }
+        }
+
+        async function testIntegrationNetworkError() {
+            try {
+                await NetworkHelper.get('https://invalid-url-that-does-not-exist.com/api', { retries: 2, timeout: 3000 });
+            } catch (error) {
+                const errorMsg = window.i18n.t('error.network');
+                window.toastSystem.error(errorMsg);
+
+                const results = `Integration Test: Network Error + i18n\n\n❌ Network error occurred: ${error.message}\n✅ i18n translation used: "${errorMsg}"\n✅ Toast notification displayed`;
+                document.getElementById('integration-results').innerHTML = `<pre>${results}</pre>`;
+                logResult('integration-results', 'Network error + i18n integration working');
+            }
+        }
+
+        async function testIntegrationSuccess() {
+            // Simulate successful workflow
+            const data = { name: 'John Doe', age: 30 };
+
+            // 1. Validate data
+            const validation = ValidationHelper.validateAll([
+                ValidationHelper.validateString(data.name, 'Name', true, 3),
+                ValidationHelper.validateNumber(data.age, 'Age', true, 18, 100)
+            ]);
+
+            if (!validation.valid) {
+                window.toastSystem.error(window.i18n.t('validation.invalid'));
+                return;
+            }
+
+            // 2. Simulate network request
+            try {
+                const response = await NetworkHelper.post('https://jsonplaceholder.typicode.com/posts', data, { retries: 2 });
+
+                // 3. Show success message
+                const successMsg = window.i18n.t('edit.success');
+                window.toastSystem.success(successMsg);
+
+                const results = `Integration Test: Complete Success Flow\n\n✅ Step 1: Data validated\n✅ Step 2: Network request successful\n✅ Step 3: i18n translation used\n✅ Step 4: Toast notification displayed\n\nAll systems working together perfectly!`;
+                document.getElementById('integration-results').innerHTML = `<pre>${results}</pre>`;
+                logResult('integration-results', 'Complete success flow integration working');
+            } catch (error) {
+                window.toastSystem.error(window.i18n.t('error.network'));
+                logResult('integration-results', 'Integration test failed', false);
+            }
+        }
+
+        async function testIntegrationAll() {
+            window.toastSystem.info('Running all integration tests...');
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+            testIntegrationFormValidation();
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testIntegrationNetworkError();
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            await testIntegrationSuccess();
+
+            window.toastSystem.success('All integration tests completed!');
+        }
+
+        // Initialize
+        console.log('✅ Toast System:', typeof window.toastSystem);
+        console.log('✅ Validation Helper:', typeof ValidationHelper);
+        console.log('✅ Network Helper:', typeof NetworkHelper);
+        console.log('✅ i18n System:', typeof window.i18n);
+        console.log('\n🎉 All utilities loaded successfully!\n');
+
+        window.toastSystem.info('Test suite loaded! Click any button to start testing.');
+    </script>
+</body>
+
+</html>

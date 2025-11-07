@@ -2,7 +2,7 @@
   "tools": [
     {
       "name": "google_slides_create_presentation",
-      "description": "Create a new Google Slides presentation (blank or from template)",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Slides presentation (blank or from template)",
       "parameters": {
         "type": "object",
         "properties": {
@@ -15,21 +15,31 @@
             "description": "Optional: Template presentation ID to copy from"
           }
         },
-        "required": ["title"]
+        "required": [
+          "title"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "presentation_id": {"type": "string"},
-          "url": {"type": "string"},
-          "title": {"type": "string"},
-          "slide_count": {"type": "integer"}
+          "presentation_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slide_count": {
+            "type": "integer"
+          }
         }
       }
     },
     {
       "name": "google_slides_get_presentation",
-      "description": "Get presentation details including all slides, layouts, and masters",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet presentation details including all slides, layouts, and masters",
       "parameters": {
         "type": "object",
         "properties": {
@@ -38,7 +48,9 @@
             "description": "Presentation ID"
           }
         },
-        "required": ["presentation_id"]
+        "required": [
+          "presentation_id"
+        ]
       },
       "returns": {
         "type": "object",
@@ -47,7 +59,7 @@
     },
     {
       "name": "google_slides_add_slide",
-      "description": "Add a new slide to presentation with specific layout",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a new slide to presentation with specific layout",
       "parameters": {
         "type": "object",
         "properties": {
@@ -65,20 +77,28 @@
             "description": "Position to insert slide (null = end)"
           }
         },
-        "required": ["presentation_id"]
+        "required": [
+          "presentation_id"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "slide_id": {"type": "string"},
-          "page_index": {"type": "integer"},
-          "layout": {"type": "string"}
+          "slide_id": {
+            "type": "string"
+          },
+          "page_index": {
+            "type": "integer"
+          },
+          "layout": {
+            "type": "string"
+          }
         }
       }
     },
     {
       "name": "google_slides_delete_slide",
-      "description": "Delete a slide from presentation",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a slide from presentation",
       "parameters": {
         "type": "object",
         "properties": {
@@ -91,19 +111,26 @@
             "description": "Slide ID to delete"
           }
         },
-        "required": ["presentation_id", "slide_id"]
+        "required": [
+          "presentation_id",
+          "slide_id"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "deleted": {"type": "boolean"},
-          "slide_id": {"type": "string"}
+          "deleted": {
+            "type": "boolean"
+          },
+          "slide_id": {
+            "type": "string"
+          }
         }
       }
     },
     {
       "name": "google_slides_duplicate_slide",
-      "description": "Duplicate an existing slide",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDuplicate an existing slide",
       "parameters": {
         "type": "object",
         "properties": {
@@ -116,19 +143,26 @@
             "description": "Slide ID to duplicate"
           }
         },
-        "required": ["presentation_id", "slide_id"]
+        "required": [
+          "presentation_id",
+          "slide_id"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "original_slide_id": {"type": "string"},
-          "new_slide_id": {"type": "string"}
+          "original_slide_id": {
+            "type": "string"
+          },
+          "new_slide_id": {
+            "type": "string"
+          }
         }
       }
     },
     {
       "name": "google_slides_insert_text",
-      "description": "Insert text box with full formatting options (fonts, colors, sizes, bold, italic, alignment)",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert text box with full formatting options (fonts, colors, sizes, bold, italic, alignment)",
       "parameters": {
         "type": "object",
         "properties": {
@@ -195,21 +229,33 @@
             "default": "LEFT"
           }
         },
-        "required": ["presentation_id", "slide_id", "text"]
+        "required": [
+          "presentation_id",
+          "slide_id",
+          "text"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "text_box_id": {"type": "string"},
-          "text": {"type": "string"},
-          "position": {"type": "object"},
-          "size": {"type": "object"}
+          "text_box_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
         }
       }
     },
     {
       "name": "google_slides_insert_image",
-      "description": "Insert image from public URL",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert image from public URL",
       "parameters": {
         "type": "object",
         "properties": {
@@ -246,21 +292,33 @@
             "default": 300
           }
         },
-        "required": ["presentation_id", "slide_id", "image_url"]
+        "required": [
+          "presentation_id",
+          "slide_id",
+          "image_url"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "image_id": {"type": "string"},
-          "url": {"type": "string"},
-          "position": {"type": "object"},
-          "size": {"type": "object"}
+          "image_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
         }
       }
     },
     {
       "name": "google_slides_insert_shape",
-      "description": "Insert shape with fill and border styling",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert shape with fill and border styling",
       "parameters": {
         "type": "object",
         "properties": {
@@ -313,21 +371,32 @@
             "default": 1
           }
         },
-        "required": ["presentation_id", "slide_id"]
+        "required": [
+          "presentation_id",
+          "slide_id"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "shape_id": {"type": "string"},
-          "shape_type": {"type": "string"},
-          "position": {"type": "object"},
-          "size": {"type": "object"}
+          "shape_id": {
+            "type": "string"
+          },
+          "shape_type": {
+            "type": "string"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
         }
       }
     },
     {
       "name": "google_slides_insert_table",
-      "description": "Insert table with optional data",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert table with optional data",
       "parameters": {
         "type": "object",
         "properties": {
@@ -372,26 +441,43 @@
             "description": "Optional 2D array of cell data [[row1], [row2], ...]",
             "items": {
               "type": "array",
-              "items": {"type": "string"}
+              "items": {
+                "type": "string"
+              }
             }
           }
         },
-        "required": ["presentation_id", "slide_id", "rows", "columns"]
+        "required": [
+          "presentation_id",
+          "slide_id",
+          "rows",
+          "columns"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "table_id": {"type": "string"},
-          "rows": {"type": "integer"},
-          "columns": {"type": "integer"},
-          "position": {"type": "object"},
-          "size": {"type": "object"}
+          "table_id": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "integer"
+          },
+          "columns": {
+            "type": "integer"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
         }
       }
     },
     {
       "name": "google_slides_insert_chart_from_sheets",
-      "description": "Insert chart from Google Sheets (linked)",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert chart from Google Sheets (linked)",
       "parameters": {
         "type": "object",
         "properties": {
@@ -432,22 +518,37 @@
             "default": 300
           }
         },
-        "required": ["presentation_id", "slide_id", "spreadsheet_id", "chart_id"]
+        "required": [
+          "presentation_id",
+          "slide_id",
+          "spreadsheet_id",
+          "chart_id"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "chart_id": {"type": "string"},
-          "spreadsheet_id": {"type": "string"},
-          "source_chart_id": {"type": "integer"},
-          "position": {"type": "object"},
-          "size": {"type": "object"}
+          "chart_id": {
+            "type": "string"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "source_chart_id": {
+            "type": "integer"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
         }
       }
     },
     {
       "name": "google_slides_export_as_pdf",
-      "description": "Export presentation as PDF file",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport presentation as PDF file",
       "parameters": {
         "type": "object",
         "properties": {
@@ -456,20 +557,29 @@
             "description": "Presentation ID"
           }
         },
-        "required": ["presentation_id"]
+        "required": [
+          "presentation_id"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "data": {"type": "string", "description": "Base64 encoded PDF data"},
-          "mime_type": {"type": "string"},
-          "size": {"type": "integer"}
+          "data": {
+            "type": "string",
+            "description": "Base64 encoded PDF data"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
         }
       }
     },
     {
       "name": "google_slides_export_as_pptx",
-      "description": "Export presentation as PowerPoint (.pptx) file",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport presentation as PowerPoint (.pptx) file",
       "parameters": {
         "type": "object",
         "properties": {
@@ -478,20 +588,29 @@
             "description": "Presentation ID"
           }
         },
-        "required": ["presentation_id"]
+        "required": [
+          "presentation_id"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "data": {"type": "string", "description": "Base64 encoded PPTX data"},
-          "mime_type": {"type": "string"},
-          "size": {"type": "integer"}
+          "data": {
+            "type": "string",
+            "description": "Base64 encoded PPTX data"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
         }
       }
     },
     {
       "name": "google_slides_create_pitch_deck",
-      "description": "🎯 SMART ACTION: Create complete pitch deck with 11 slides (Problem, Solution, Market, Product, Business Model, Traction, Team, Financials, Ask, Contact). Professional formatting and branding.",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART ACTION: Create complete pitch deck with 11 slides (Problem, Solution, Market, Product, Business Model, Traction, Team, Financials, Ask, Contact). Professional formatting and branding.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -507,26 +626,51 @@
             "type": "object",
             "description": "Data for each section",
             "properties": {
-              "problem": {"type": "string", "description": "Problem statement"},
-              "solution": {"type": "string", "description": "Your solution"},
+              "problem": {
+                "type": "string",
+                "description": "Problem statement"
+              },
+              "solution": {
+                "type": "string",
+                "description": "Your solution"
+              },
               "market_size": {
                 "type": "object",
                 "properties": {
-                  "tam": {"type": "string", "description": "Total Addressable Market"},
-                  "sam": {"type": "string", "description": "Serviceable Available Market"},
-                  "som": {"type": "string", "description": "Serviceable Obtainable Market"}
+                  "tam": {
+                    "type": "string",
+                    "description": "Total Addressable Market"
+                  },
+                  "sam": {
+                    "type": "string",
+                    "description": "Serviceable Available Market"
+                  },
+                  "som": {
+                    "type": "string",
+                    "description": "Serviceable Obtainable Market"
+                  }
                 }
               },
-              "product": {"type": "string", "description": "Product description"},
-              "business_model": {"type": "string", "description": "How you make money"},
+              "product": {
+                "type": "string",
+                "description": "Product description"
+              },
+              "business_model": {
+                "type": "string",
+                "description": "How you make money"
+              },
               "traction": {
                 "type": "array",
                 "description": "Traction metrics",
                 "items": {
                   "type": "object",
                   "properties": {
-                    "metric": {"type": "string"},
-                    "value": {"type": "string"}
+                    "metric": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
                   }
                 }
               },
@@ -536,27 +680,48 @@
                 "items": {
                   "type": "object",
                   "properties": {
-                    "name": {"type": "string"},
-                    "role": {"type": "string"},
-                    "bio": {"type": "string"}
+                    "name": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "bio": {
+                      "type": "string"
+                    }
                   }
                 }
               },
               "financials": {
                 "type": "object",
                 "properties": {
-                  "revenue": {"type": "string"},
-                  "growth": {"type": "string"},
-                  "runway": {"type": "string"}
+                  "revenue": {
+                    "type": "string"
+                  },
+                  "growth": {
+                    "type": "string"
+                  },
+                  "runway": {
+                    "type": "string"
+                  }
                 }
               },
-              "ask": {"type": "string", "description": "Funding ask"},
+              "ask": {
+                "type": "string",
+                "description": "Funding ask"
+              },
               "contact": {
                 "type": "object",
                 "properties": {
-                  "email": {"type": "string"},
-                  "phone": {"type": "string"},
-                  "website": {"type": "string"}
+                  "email": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "website": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -571,22 +736,36 @@
             "description": "Optional company logo URL"
           }
         },
-        "required": ["title", "company_name", "sections_data"]
+        "required": [
+          "title",
+          "company_name",
+          "sections_data"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "presentation_id": {"type": "string"},
-          "url": {"type": "string"},
-          "title": {"type": "string"},
-          "slide_count": {"type": "integer"},
-          "sections": {"type": "array"}
+          "presentation_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slide_count": {
+            "type": "integer"
+          },
+          "sections": {
+            "type": "array"
+          }
         }
       }
     },
     {
       "name": "google_slides_create_training_presentation",
-      "description": "🎯 SMART ACTION: Create training presentation with multiple modules (objectives, content, examples, exercises, takeaways). Each module gets 6 slides.",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART ACTION: Create training presentation with multiple modules (objectives, content, examples, exercises, takeaways). Each module gets 6 slides.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -604,20 +783,32 @@
             "items": {
               "type": "object",
               "properties": {
-                "module_title": {"type": "string"},
+                "module_title": {
+                  "type": "string"
+                },
                 "objectives": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": {
+                    "type": "string"
+                  }
                 },
-                "content": {"type": "string"},
+                "content": {
+                  "type": "string"
+                },
                 "examples": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": {
+                    "type": "string"
+                  }
                 },
-                "exercise": {"type": "string"},
+                "exercise": {
+                  "type": "string"
+                },
                 "key_takeaways": {
                   "type": "array",
-                  "items": {"type": "string"}
+                  "items": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -628,22 +819,36 @@
             "default": "#0F9D58"
           }
         },
-        "required": ["title", "course_name", "modules_data"]
+        "required": [
+          "title",
+          "course_name",
+          "modules_data"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "presentation_id": {"type": "string"},
-          "url": {"type": "string"},
-          "title": {"type": "string"},
-          "slide_count": {"type": "integer"},
-          "module_count": {"type": "integer"}
+          "presentation_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slide_count": {
+            "type": "integer"
+          },
+          "module_count": {
+            "type": "integer"
+          }
         }
       }
     },
     {
       "name": "google_slides_create_business_report",
-      "description": "🎯 SMART ACTION: Create business report with executive summary, key metrics dashboard, performance analysis, challenges, opportunities, action items. Optionally includes charts from Google Sheets.",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART ACTION: Create business report with executive summary, key metrics dashboard, performance analysis, challenges, opportunities, action items. Optionally includes charts from Google Sheets.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -659,26 +864,45 @@
             "type": "object",
             "description": "Report sections data",
             "properties": {
-              "executive_summary": {"type": "string"},
+              "executive_summary": {
+                "type": "string"
+              },
               "key_metrics": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
-                    "label": {"type": "string"},
-                    "value": {"type": "string"},
-                    "change": {"type": "string", "description": "e.g., '+15%' or '-5%'"}
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "change": {
+                      "type": "string",
+                      "description": "e.g., '+15%' or '-5%'"
+                    }
                   }
                 }
               },
-              "performance": {"type": "string"},
-              "challenges": {"type": "string"},
-              "opportunities": {"type": "string"},
+              "performance": {
+                "type": "string"
+              },
+              "challenges": {
+                "type": "string"
+              },
+              "opportunities": {
+                "type": "string"
+              },
               "action_items": {
                 "type": "array",
-                "items": {"type": "string"}
+                "items": {
+                  "type": "string"
+                }
               },
-              "next_steps": {"type": "string"}
+              "next_steps": {
+                "type": "string"
+              }
             }
           },
           "charts_data": {
@@ -687,9 +911,15 @@
             "items": {
               "type": "object",
               "properties": {
-                "spreadsheet_id": {"type": "string"},
-                "chart_id": {"type": "integer"},
-                "title": {"type": "string"}
+                "spreadsheet_id": {
+                  "type": "string"
+                },
+                "chart_id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -699,22 +929,36 @@
             "default": "#EA4335"
           }
         },
-        "required": ["title", "report_date", "sections_data"]
+        "required": [
+          "title",
+          "report_date",
+          "sections_data"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "presentation_id": {"type": "string"},
-          "url": {"type": "string"},
-          "title": {"type": "string"},
-          "slide_count": {"type": "integer"},
-          "chart_count": {"type": "integer"}
+          "presentation_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slide_count": {
+            "type": "integer"
+          },
+          "chart_count": {
+            "type": "integer"
+          }
         }
       }
     },
     {
       "name": "google_docs_to_slides_auto_generate",
-      "description": "🎯 SMART ACTION: Auto-generate presentation slides from Google Doc content. Intelligently converts long-form document into short-form slides with automatic section detection, bullet extraction, and formatting. Perfect for converting reports to presentations, creating slides while writing docs, or transforming documentation into training decks.",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🎯 SMART ACTION: Auto-generate presentation slides from Google Doc content. Intelligently converts long-form document into short-form slides with automatic section detection, bullet extraction, and formatting. Perfect for converting reports to presentations, creating slides while writing docs, or transforming documentation into training decks.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -728,7 +972,12 @@
           },
           "slide_style": {
             "type": "string",
-            "enum": ["modern", "minimal", "corporate", "creative"],
+            "enum": [
+              "modern",
+              "minimal",
+              "corporate",
+              "creative"
+            ],
             "description": "Visual style theme for slides",
             "default": "modern"
           },
@@ -767,26 +1016,64 @@
             "description": "Optional: Template presentation ID for consistent branding"
           }
         },
-        "required": ["doc_id"]
+        "required": [
+          "doc_id"
+        ]
       },
       "returns": {
         "type": "object",
         "properties": {
-          "presentation_id": {"type": "string", "description": "Created presentation ID"},
-          "url": {"type": "string", "description": "Presentation edit URL"},
-          "title": {"type": "string", "description": "Presentation title"},
-          "slide_count": {"type": "integer", "description": "Total slides created"},
-          "sections_created": {"type": "integer", "description": "Number of section dividers"},
-          "doc_id": {"type": "string", "description": "Source document ID"},
-          "doc_url": {"type": "string", "description": "Source document URL"},
+          "presentation_id": {
+            "type": "string",
+            "description": "Created presentation ID"
+          },
+          "url": {
+            "type": "string",
+            "description": "Presentation edit URL"
+          },
+          "title": {
+            "type": "string",
+            "description": "Presentation title"
+          },
+          "slide_count": {
+            "type": "integer",
+            "description": "Total slides created"
+          },
+          "sections_created": {
+            "type": "integer",
+            "description": "Number of section dividers"
+          },
+          "doc_id": {
+            "type": "string",
+            "description": "Source document ID"
+          },
+          "doc_url": {
+            "type": "string",
+            "description": "Source document URL"
+          },
           "conversion_summary": {
             "type": "object",
             "properties": {
-              "headings": {"type": "integer", "description": "Headings detected"},
-              "paragraphs": {"type": "integer", "description": "Paragraphs processed"},
-              "lists": {"type": "integer", "description": "Lists extracted"},
-              "images": {"type": "integer", "description": "Images included"},
-              "tables": {"type": "integer", "description": "Tables included"}
+              "headings": {
+                "type": "integer",
+                "description": "Headings detected"
+              },
+              "paragraphs": {
+                "type": "integer",
+                "description": "Paragraphs processed"
+              },
+              "lists": {
+                "type": "integer",
+                "description": "Lists extracted"
+              },
+              "images": {
+                "type": "integer",
+                "description": "Images included"
+              },
+              "tables": {
+                "type": "integer",
+                "description": "Tables included"
+              }
             }
           }
         }
@@ -794,4 +1081,3 @@
     }
   ]
 }
-

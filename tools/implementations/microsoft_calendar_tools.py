@@ -53,10 +53,20 @@ class MicrosoftCalendarTools:
             
             response.raise_for_status()
             
-            if response.status_code == 204:
+            # Some endpoints return 204 No Content or 202 Accepted with empty body
+            if response.status_code in (202, 204):
                 return {'success': True}
             
-            return {'success': True, 'data': response.json()}
+            # Some endpoints return empty response on success
+            if not response.text or response.text.strip() == '':
+                return {'success': True}
+            
+            try:
+                return {'success': True, 'data': response.json()}
+            except ValueError as json_error:
+                # Response was successful but not JSON (e.g., empty body)
+                print(f"[WARNING] Microsoft Calendar - Response not JSON: {response.status_code}, body length: {len(response.text)}")
+                return {'success': True, 'data': None}
             
         except requests.exceptions.HTTPError as e:
             error_msg = str(e)
@@ -69,7 +79,7 @@ class MicrosoftCalendarTools:
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def _parse_datetime(self, dt_string: str, timezone: str = 'UTC') -> Dict:
+    def _parse_datetime(self, dt_string: str, timezone: str = 'UTC', **kwargs) -> Dict:
         """Parse datetime string into Graph API format"""
         return {
             'dateTime': dt_string,
@@ -540,5 +550,115 @@ class MicrosoftCalendarTools:
         return result
 
 
+# ========================================
+# GLOBAL INSTANCE & MODULE-LEVEL EXPORTS
+# ========================================
+
 # Create global instance
 microsoft_calendar_tools = MicrosoftCalendarTools()
+
+# Export all functions at module level with parameter wrappers
+# Wrappers extract positional 'user_id' parameter from kwargs for registry compatibility
+
+def microsoft_calendar_list_events(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_list_events(user_id, **kwargs)
+
+def microsoft_calendar_create_event(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_create_event(user_id, **kwargs)
+
+def microsoft_calendar_get_event(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_get_event(user_id, **kwargs)
+
+def microsoft_calendar_update_event(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_update_event(user_id, **kwargs)
+
+def microsoft_calendar_delete_event(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_delete_event(user_id, **kwargs)
+
+def microsoft_calendar_create_recurring_event(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_create_recurring_event(user_id, **kwargs)
+
+def microsoft_calendar_respond_to_event(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_respond_to_event(user_id, **kwargs)
+
+def microsoft_calendar_get_availability(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_get_availability(user_id, **kwargs)
+
+def microsoft_calendar_find_meeting_rooms(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_find_meeting_rooms(user_id, **kwargs)
+
+def microsoft_calendar_book_room(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_book_room(user_id, **kwargs)
+
+def microsoft_calendar_list_calendars(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_list_calendars(user_id, **kwargs)
+
+def microsoft_calendar_create_calendar(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_create_calendar(user_id, **kwargs)
+
+def microsoft_calendar_smart_find_meeting_time(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_smart_find_meeting_time(user_id, **kwargs)
+
+def microsoft_calendar_smart_schedule_series(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_smart_schedule_series(user_id, **kwargs)
+
+def microsoft_calendar_smart_conflict_resolver(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_smart_conflict_resolver(user_id, **kwargs)
+
+def microsoft_calendar_get_reminders(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_get_reminders(user_id, **kwargs)
+
+def microsoft_calendar_set_working_hours(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_calendar_tools.calendar_set_working_hours(user_id, **kwargs)
+

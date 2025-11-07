@@ -1,11 +1,11 @@
 {
   "platform": "google_sheets",
-  "description": "Google Sheets API - Create spreadsheets, add data, format cells, analyze data. V2 includes SMART BUNDLED TOOLS for efficient operations.",
+  "description": "Google Sheets API - Create spreadsheets, add data, format cells, analyze data. V2 includes SMART BUNDLED TOOLS for efficient operations.\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "version": "2.0.0",
   "tools": [
     {
       "name": "gsheets_create_complete_spreadsheet",
-      "description": "⭐ PREFERRED METHOD: Create a complete spreadsheet with data and formatting in ONE operation. Much more efficient than calling create + write + format separately. Spreadsheet is automatically shareable.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gsheets_create_complete_spreadsheet', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ PREFERRED METHOD ✨ SUPPORTS MARKDOWN: Create a complete spreadsheet with data and formatting in ONE operation. Much more efficient than calling create + write + format separately. Spreadsheet is automatically shareable.\n\n🎨 MARKDOWN FORMATTING (set parse_markdown=True):\n  • **bold** → Bold text\n  • *italic* → Italic text\n  • # Header → Bold, 18pt font, gray background\n  • [RED]text[/RED] → Red text (errors, critical)\n  • [GREEN]text[/GREEN] → Green text (success, active)\n  • [BLUE]text[/BLUE] → Blue text (info)\n  • [YELLOW]text[/YELLOW] → Yellow text (warning, pending)\n  • [ORANGE], [PURPLE], [GRAY] → Also supported\n  • Auto-borders on all cells\n\nUSE THIS when you need colored, formatted dashboards or reports.",
       "platform": "google_sheets",
       "category": "smart_bundled",
       "priority": "high",
@@ -21,16 +21,32 @@
           "description": "2D array of data [[row1], [row2], ...]. Each row is an array of values.",
           "required": true,
           "example": [
-            ["Widget A", 15000, 150],
-            ["Widget B", 22000, 200],
-            ["Widget C", 18500, 175]
+            [
+              "Widget A",
+              15000,
+              150
+            ],
+            [
+              "Widget B",
+              22000,
+              200
+            ],
+            [
+              "Widget C",
+              18500,
+              175
+            ]
           ]
         },
         "headers": {
           "type": "array",
           "description": "Optional header row (will be bolded and frozen automatically)",
           "required": false,
-          "example": ["Product", "Revenue", "Units Sold"]
+          "example": [
+            "Product",
+            "Revenue",
+            "Units Sold"
+          ]
         },
         "sheet_name": {
           "type": "string",
@@ -53,6 +69,12 @@
           "description": "Make spreadsheet accessible to anyone with the link",
           "required": false,
           "default": true
+        },
+        "parse_markdown": {
+          "type": "boolean",
+          "description": "🎨 ENABLE MARKDOWN FORMATTING: Set to true to parse markdown syntax (**bold**, *italic*, #headers, [RED]colored text[/RED], etc.) and apply professional formatting. Default: false (plain text only)",
+          "required": false,
+          "default": false
         }
       },
       "returns": {
@@ -63,7 +85,7 @@
     },
     {
       "name": "gsheets_ai_generate_table",
-      "description": "⭐ AI-POWERED: Generate a data table from natural language description. AI determines appropriate columns, generates realistic sample data, and formats professionally. Perfect when you're not sure what structure to use.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gsheets_ai_generate_table', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED ⚠️ NO MARKDOWN: Generate a data table from natural language description. AI determines appropriate columns, generates realistic sample data, and formats professionally. Perfect when you're not sure what structure to use.\n\nNOTE: This tool does NOT support markdown formatting. Output is plain text only.",
       "platform": "google_sheets",
       "category": "ai_powered",
       "priority": "high",
@@ -91,7 +113,10 @@
           "description": "OpenAI model to use",
           "required": false,
           "default": "gpt-4",
-          "enum": ["gpt-4", "gpt-3.5-turbo"]
+          "enum": [
+            "gpt-4",
+            "gpt-3.5-turbo"
+          ]
         }
       },
       "returns": {
@@ -102,7 +127,7 @@
     },
     {
       "name": "gsheets_bulk_create_multiple",
-      "description": "⭐ BULK OPERATION: Create multiple spreadsheets at once. Most efficient for creating many spreadsheets with similar structure (e.g., regional reports, department trackers).",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gsheets_bulk_create_multiple', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION ⚠️ NO MARKDOWN: Create multiple spreadsheets at once. Most efficient for creating many spreadsheets with similar structure (e.g., regional reports, department trackers).\n\nNOTE: This tool does NOT support markdown formatting. Output is plain text only.",
       "platform": "google_sheets",
       "category": "bulk",
       "priority": "high",
@@ -114,13 +139,37 @@
           "example": [
             {
               "title": "Q1 Sales - NYC",
-              "headers": ["Product", "Revenue"],
-              "data": [["Widget A", 15000], ["Widget B", 22000]]
+              "headers": [
+                "Product",
+                "Revenue"
+              ],
+              "data": [
+                [
+                  "Widget A",
+                  15000
+                ],
+                [
+                  "Widget B",
+                  22000
+                ]
+              ]
             },
             {
               "title": "Q1 Sales - LA",
-              "headers": ["Product", "Revenue"],
-              "data": [["Widget A", 18000], ["Widget B", 25000]]
+              "headers": [
+                "Product",
+                "Revenue"
+              ],
+              "data": [
+                [
+                  "Widget A",
+                  18000
+                ],
+                [
+                  "Widget B",
+                  25000
+                ]
+              ]
             }
           ]
         },
@@ -139,7 +188,7 @@
     },
     {
       "name": "gsheets_create",
-      "description": "Create a basic Google Sheets spreadsheet (empty, no data). NOTE: Use gsheets_create_complete_spreadsheet instead for better efficiency.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gsheets_create', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ BASIC METHOD - NO MARKDOWN: Create a basic Google Sheets spreadsheet (empty, no data). NOTE: Use gsheets_create_complete_spreadsheet instead for better efficiency and markdown support.",
       "platform": "google_sheets",
       "category": "basic",
       "priority": "low",
@@ -153,7 +202,11 @@
           "type": "array",
           "description": "Array of sheet names to create",
           "required": false,
-          "example": ["Sheet1", "Sheet2", "Sheet3"]
+          "example": [
+            "Sheet1",
+            "Sheet2",
+            "Sheet3"
+          ]
         }
       },
       "returns": {
@@ -163,7 +216,7 @@
     },
     {
       "name": "gsheets_read",
-      "description": "Read data from a Google Sheets spreadsheet",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gsheets_read', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ READ ONLY - NO MARKDOWN: Read data from a Google Sheets spreadsheet. Returns plain text values only (no formatting).",
       "platform": "google_sheets",
       "category": "basic",
       "priority": "high",
@@ -187,7 +240,7 @@
     },
     {
       "name": "gsheets_write",
-      "description": "Write data to a Google Sheets spreadsheet. NOTE: Use gsheets_create_complete_spreadsheet for new spreadsheets.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gsheets_write', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ WRITE ONLY - NO MARKDOWN: Write data to a Google Sheets spreadsheet. NOTE: Use gsheets_create_complete_spreadsheet for new spreadsheets with markdown support.",
       "platform": "google_sheets",
       "category": "basic",
       "priority": "medium",
@@ -207,7 +260,20 @@
           "type": "array",
           "description": "2D array of values to write",
           "required": true,
-          "example": [["Name", "Score"], ["John", 95], ["Jane", 87]]
+          "example": [
+            [
+              "Name",
+              "Score"
+            ],
+            [
+              "John",
+              95
+            ],
+            [
+              "Jane",
+              87
+            ]
+          ]
         }
       },
       "returns": {
@@ -217,7 +283,7 @@
     },
     {
       "name": "gsheets_append",
-      "description": "Append rows to the end of a sheet",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gsheets_append', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ APPEND ONLY - NO MARKDOWN: Append rows to the end of a sheet. Adds plain text data only (no formatting).",
       "platform": "google_sheets",
       "category": "basic",
       "priority": "medium",
@@ -237,7 +303,16 @@
           "type": "array",
           "description": "2D array of values to append",
           "required": true,
-          "example": [["New Row 1", 100], ["New Row 2", 200]]
+          "example": [
+            [
+              "New Row 1",
+              100
+            ],
+            [
+              "New Row 2",
+              200
+            ]
+          ]
         }
       },
       "returns": {

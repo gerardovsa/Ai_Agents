@@ -388,7 +388,7 @@ class EventTriggerSystem:
                     try:
                         callback(trigger)
                     except Exception as e:
-                        print(f"❌ Callback error: {e}")
+                        print(f" Callback error: {e}")
             
             await asyncio.sleep(check_interval_seconds)
     

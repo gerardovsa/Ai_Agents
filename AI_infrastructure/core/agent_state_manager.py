@@ -66,7 +66,9 @@ class AgentStateManager:
                     'queue': Queue(),
                     'last_activity': datetime.now(),
                     'context': context,
-                    'created_at': datetime.now()
+                    'created_at': datetime.now(),
+                    'location': 'prime',  # NEW: Track thread location for Prime/Agent assignment
+                    'user_id': None  # NEW: Track user_id for auto-save
                 }
                 self.locks[key] = threading.Lock()
                 
@@ -134,6 +136,24 @@ class AgentStateManager:
         """Get SSE queue for agent"""
         state = self.get_or_create_state(agent_id, session_id)
         return state['queue']
+    
+    def set_thread_location(self, agent_id: str, session_id: str, location: str, user_id: Optional[int] = None):
+        """
+        Set thread location for Prime/Agent assignment tracking
+        
+        Args:
+            agent_id: Agent identifier
+            session_id: Session identifier
+            location: Thread location (prime, agent-1, agent-2, etc.)
+            user_id: User ID (optional)
+        """
+        state = self.get_state(agent_id, session_id)
+        if state:
+            state['location'] = location
+            if user_id is not None:
+                state['user_id'] = user_id
+            state['last_activity'] = datetime.now()
+            print(f"[AgentState] Updated location: {session_id[:8]}... -> {location}")
     
     def cleanup_old_states(self, max_age_hours: int = 24):
         """

@@ -81,7 +81,7 @@ def oauth_workspace_start():
         return redirect(authorization_url)
         
     except Exception as e:
-        print(f"❌ OAuth start error: {e}")
+        print(f" OAuth start error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -149,7 +149,7 @@ def oauth_workspace_callback():
             except:
                 return redirect('/login?error=Could not verify Google account')
         
-        print(f"✅ OAuth callback successful: {user_email}")
+        print(f" OAuth callback successful: {user_email}")
         
         # Prepare token data for storage
         token_data = {
@@ -162,10 +162,13 @@ def oauth_workspace_callback():
             'expiry': credentials.expiry.isoformat() if credentials.expiry else None
         }
         
-        # ✅ Store in database (user_platform_credentials table)
+        #  Store in database (user_platform_credentials table)
         import sqlite3
-        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ai_infrastructure.db')
-        conn = sqlite3.connect(db_path)
+        from pathlib import Path
+        # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
+        root_dir = Path(__file__).parent.parent.parent
+        db_path = root_dir / 'data' / 'ai_infrastructure.db'
+        conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
@@ -175,7 +178,7 @@ def oauth_workspace_callback():
         
         if user_row:
             user_id = user_row['id']
-            print(f"✅ Found existing user: {user_id}")
+            print(f" Found existing user: {user_id}")
         else:
             # Auto-create user if OAuth login
             username = user_email.split('@')[0]
@@ -184,7 +187,7 @@ def oauth_workspace_callback():
                 (username, user_email, 'oauth_google', 'user')
             )
             user_id = cursor.lastrowid
-            print(f"✅ Created new user: {user_id}")
+            print(f" Created new user: {user_id}")
         
         # Store access token with proper schema
         cursor.execute('''
@@ -208,7 +211,7 @@ def oauth_workspace_callback():
         conn.commit()
         conn.close()
         
-        print(f"✅ Stored Google OAuth credentials in database for user {user_id}")
+        print(f" Stored Google OAuth credentials in database for user {user_id}")
         
         # Also store in session for immediate use
         session['user_email'] = user_email
@@ -225,11 +228,11 @@ def oauth_workspace_callback():
         })
         
         # Redirect to main app with JWT token
-        print(f"✅ OAuth login successful, redirecting with JWT token")
+        print(f" OAuth login successful, redirecting with JWT token")
         return redirect(f'http://localhost:5001/?token={jwt_token}')
         
     except Exception as e:
-        print(f"❌ OAuth callback error: {e}")
+        print(f" OAuth callback error: {e}")
         import traceback
         traceback.print_exc()
         return redirect(f'/login?error={str(e)}')
@@ -272,7 +275,7 @@ def oauth_status():
         })
         
     except Exception as e:
-        print(f"❌ OAuth status error: {e}")
+        print(f" OAuth status error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -316,7 +319,7 @@ def oauth_disconnect():
         })
         
     except Exception as e:
-        print(f"❌ OAuth disconnect error: {e}")
+        print(f" OAuth disconnect error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

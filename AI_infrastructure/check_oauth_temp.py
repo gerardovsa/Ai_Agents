@@ -1,6 +1,12 @@
 import sqlite3
+from pathlib import Path
 
-conn = sqlite3.connect('ai_infrastructure.db')
+# Use correct database location in data/ folder (not AI_infrastructure/)
+root_dir = Path(__file__).parent.parent
+db_path = root_dir / 'data' / 'ai_infrastructure.db'
+print(f'🔷 Database path: {db_path}')
+
+conn = sqlite3.connect(str(db_path))
 conn.row_factory = sqlite3.Row
 cursor = conn.cursor()
 

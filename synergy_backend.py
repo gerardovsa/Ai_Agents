@@ -54,7 +54,7 @@ try:
     from googleapiclient.discovery import build
     GOOGLE_SERVICES_AVAILABLE = True
     logger_init = logging.getLogger(__name__)
-    logger_init.info("✅ Google Workspace authentication helpers loaded")
+    logger_init.info(" Google Workspace authentication helpers loaded")
 except ImportError as e:
     GOOGLE_SERVICES_AVAILABLE = False
     logger_init = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ socketio = SocketIO(
 try:
     from routes.task_sync_routes import task_sync_bp
     app.register_blueprint(task_sync_bp)
-    logger.info("✅ Task sync routes registered at /api/sync/*")
+    logger.info(" Task sync routes registered at /api/sync/*")
 except ImportError as e:
     logger.warning(f"⚠️ Task sync routes not available: {e}")
 
@@ -133,7 +133,7 @@ def init_database():
     
     conn.commit()
     conn.close()
-    logger.info(f"✅ Database initialized at {DATABASE_PATH}")
+    logger.info(f" Database initialized at {DATABASE_PATH}")
 
 def get_db_connection():
     """Get database connection"""
@@ -204,7 +204,7 @@ def list_sessions():
         return jsonify(sessions), 200
         
     except Exception as e:
-        logger.error(f"❌ Error listing sessions: {e}")
+        logger.error(f" Error listing sessions: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sessions/create', methods=['POST'])
@@ -273,11 +273,11 @@ def create_session():
             'user': user
         }, namespace='/ws/synergy')
         
-        logger.info(f"✅ Created session: {session_id}")
+        logger.info(f" Created session: {session_id}")
         return jsonify(session), 201
         
     except Exception as e:
-        logger.error(f"❌ Error creating session: {e}")
+        logger.error(f" Error creating session: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sessions/<session_id>', methods=['GET'])
@@ -293,7 +293,7 @@ def get_session(session_id):
         return jsonify(session), 200
         
     except Exception as e:
-        logger.error(f"❌ Error getting session: {e}")
+        logger.error(f" Error getting session: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sessions/<session_id>', methods=['PATCH'])
@@ -360,9 +360,9 @@ def update_session(session_id):
                     conn.commit()
                     conn.close()
                     session['google_task_id'] = task_id
-                    logger.info(f"✅ Synced to Google Tasks: {task_id}")
+                    logger.info(f" Synced to Google Tasks: {task_id}")
             except Exception as e:
-                logger.error(f"❌ Google Tasks sync failed: {e}")
+                logger.error(f" Google Tasks sync failed: {e}")
         
         if sync.get('google_calendar'):
             logger.info(f"🔄 Google Calendar sync requested for {session_id}")
@@ -379,9 +379,9 @@ def update_session(session_id):
                     conn.commit()
                     conn.close()
                     session['google_calendar_event_id'] = event_id
-                    logger.info(f"✅ Synced to Google Calendar: {event_id}")
+                    logger.info(f" Synced to Google Calendar: {event_id}")
             except Exception as e:
-                logger.error(f"❌ Google Calendar sync failed: {e}")
+                logger.error(f" Google Calendar sync failed: {e}")
         
         # Broadcast via WebSocket
         socketio.emit('card_edited', {
@@ -390,11 +390,11 @@ def update_session(session_id):
             'user': data.get('user', 'system')
         }, namespace='/ws/synergy')
         
-        logger.info(f"✅ Updated session: {session_id}")
+        logger.info(f" Updated session: {session_id}")
         return jsonify(session), 200
         
     except Exception as e:
-        logger.error(f"❌ Error updating session: {e}")
+        logger.error(f" Error updating session: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sessions/<session_id>/column', methods=['PATCH'])
@@ -430,7 +430,7 @@ def update_session_column(session_id):
             'user': data.get('user', 'system')
         }, namespace='/ws/synergy')
         
-        logger.info(f"✅ Moved session {session_id}: {old_column} → {new_column}")
+        logger.info(f" Moved session {session_id}: {old_column} → {new_column}")
         return jsonify({
             'success': True,
             'sessionId': session_id,
@@ -439,7 +439,7 @@ def update_session_column(session_id):
         }), 200
         
     except Exception as e:
-        logger.error(f"❌ Error updating column: {e}")
+        logger.error(f" Error updating column: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sessions/<session_id>', methods=['DELETE'])
@@ -459,11 +459,11 @@ def delete_session(session_id):
             'user': request.args.get('user', 'system')
         }, namespace='/ws/synergy')
         
-        logger.info(f"✅ Deleted session: {session_id}")
+        logger.info(f" Deleted session: {session_id}")
         return jsonify({'success': True}), 200
         
     except Exception as e:
-        logger.error(f"❌ Error deleting session: {e}")
+        logger.error(f" Error deleting session: {e}")
         return jsonify({'error': str(e)}), 500
 
 def get_session_by_id(session_id: str) -> Optional[Dict]:
@@ -501,7 +501,7 @@ def handle_subscribe(data):
     """Handle channel subscription"""
     channel = data.get('channel', 'synergy_board')
     join_room(channel)
-    logger.info(f"✅ Client {request.sid} subscribed to {channel}")
+    logger.info(f" Client {request.sid} subscribed to {channel}")
     emit('subscribed', {'channel': channel})
 
 @socketio.on('unsubscribe', namespace='/ws/synergy')
@@ -509,7 +509,7 @@ def handle_unsubscribe(data):
     """Handle channel unsubscription"""
     channel = data.get('channel', 'synergy_board')
     leave_room(channel)
-    logger.info(f"✅ Client {request.sid} unsubscribed from {channel}")
+    logger.info(f" Client {request.sid} unsubscribed from {channel}")
     emit('unsubscribed', {'channel': channel})
 
 @socketio.on('broadcast', namespace='/ws/synergy')
@@ -566,45 +566,156 @@ def api_info():
 # ============================================
 
 def seed_database():
-    """Seed database with sample data for development"""
-    logger.info("🌱 Seeding database with sample data...")
+    """Seed database with comprehensive multi-platform demo data"""
+    logger.info("🌱 Seeding database with comprehensive demo data...")
     
     sample_sessions = [
         {
-            'title': 'Email Marketing Campaign',
-            'description': 'Design and launch Q4 email campaign',
-            'project_name': 'Q4 Marketing',
+            'title': 'Customer Onboarding System',
+            'description': 'Multi-platform customer onboarding workflow with automated email sequences, signup forms, and tracking dashboard. Integrates Gmail for welcome emails, Google Forms for data collection, and Google Sheets for customer tracking.',
+            'project_name': 'Customer Success Platform',
             'priority': 'high',
             'status': 'active',
             'kanban_column': 'in_progress',
-            'due_date': '2025-11-15',
-            'assignees': ['John Doe', 'Sarah Smith'],
-            'tags': ['marketing', 'email', 'Q4'],
-            'user': 'john'
+            'due_date': '2025-11-20',
+            'assignees': ['Sarah Johnson', 'AI Assistant'],
+            'tags': ['gmail', 'google_forms', 'google_sheets', 'automation', 'customer_success'],
+            'user': 'sarah',
+            'notes': 'Created welcome email template, signup form live, tracking sheet has 50+ entries. Next: Add automated follow-up sequence.',
+            'next_steps': json.dumps([
+                {'description': 'Create welcome email template in Gmail', 'completed': True, 'due_date': '2025-11-05'},
+                {'description': 'Design customer signup form (Google Forms)', 'completed': True, 'due_date': '2025-11-07'},
+                {'description': 'Set up tracking dashboard (Google Sheets)', 'completed': True, 'due_date': '2025-11-08'},
+                {'description': 'Configure automated email sequence', 'completed': False, 'due_date': '2025-11-12'},
+                {'description': 'Add customer satisfaction survey', 'completed': False, 'due_date': '2025-11-15'}
+            ]),
+            'documents': json.dumps([
+                {'title': 'Welcome Email Template', 'url': 'https://docs.google.com/document/d/welcome-email-001', 'type': 'gmail_template', 'created_at': datetime.now().isoformat()},
+                {'title': 'Customer Signup Form', 'url': 'https://forms.google.com/signup-form-001', 'type': 'google_form', 'created_at': datetime.now().isoformat()},
+                {'title': 'Customer Tracking Dashboard', 'url': 'https://sheets.google.com/tracking-001', 'type': 'google_sheet', 'created_at': datetime.now().isoformat()}
+            ]),
+            'links': json.dumps([
+                {'title': 'Email Sequence Guide', 'url': 'https://notion.so/email-sequences', 'type': 'notion'},
+                {'title': 'Customer Journey Map', 'url': 'https://miro.com/customer-journey', 'type': 'miro'}
+            ])
         },
         {
-            'title': 'Update API Documentation',
-            'description': 'Document new REST endpoints and WebSocket events',
-            'project_name': 'Backend Development',
+            'title': 'E-commerce Store Setup',
+            'description': 'Complete e-commerce platform setup integrating WooCommerce for product catalog, Stripe for payments, Gmail for order notifications, Google Sheets for inventory tracking, and Google Forms for customer feedback.',
+            'project_name': 'Online Store Launch',
+            'priority': 'high',
+            'status': 'active',
+            'kanban_column': 'in_progress',
+            'due_date': '2025-12-01',
+            'assignees': ['Michael Chen', 'Emma Davis', 'AI Assistant'],
+            'tags': ['woocommerce', 'stripe', 'gmail', 'google_sheets', 'google_forms', 'e-commerce'],
+            'user': 'michael',
+            'notes': 'WooCommerce configured with 50 products, Stripe test payments working, order confirmation emails automated. Need to complete inventory tracking and customer feedback system.',
+            'next_steps': json.dumps([
+                {'description': 'Configure WooCommerce store', 'completed': True, 'due_date': '2025-10-28'},
+                {'description': 'Set up Stripe payment gateway', 'completed': True, 'due_date': '2025-10-30'},
+                {'description': 'Create order confirmation email templates', 'completed': True, 'due_date': '2025-11-02'},
+                {'description': 'Build inventory tracking sheet', 'completed': False, 'due_date': '2025-11-10'},
+                {'description': 'Create customer feedback form', 'completed': False, 'due_date': '2025-11-12'},
+                {'description': 'Connect all systems with automation', 'completed': False, 'due_date': '2025-11-15'}
+            ]),
+            'documents': json.dumps([
+                {'title': 'Product Catalog (WooCommerce)', 'url': 'https://store.example.com/wp-admin/products', 'type': 'woocommerce', 'created_at': datetime.now().isoformat()},
+                {'title': 'Order Confirmation Email', 'url': 'https://docs.google.com/document/d/order-email-001', 'type': 'gmail_template', 'created_at': datetime.now().isoformat()},
+                {'title': 'Inventory Tracking Sheet', 'url': 'https://sheets.google.com/inventory-001', 'type': 'google_sheet', 'created_at': datetime.now().isoformat()},
+                {'title': 'Stripe Payment Dashboard', 'url': 'https://dashboard.stripe.com/payments', 'type': 'stripe_dashboard', 'created_at': datetime.now().isoformat()}
+            ]),
+            'links': json.dumps([
+                {'title': 'Store Admin Panel', 'url': 'https://store.example.com/wp-admin', 'type': 'woocommerce'},
+                {'title': 'Payment Analytics', 'url': 'https://dashboard.stripe.com/analytics', 'type': 'stripe'}
+            ])
+        },
+        {
+            'title': 'Content Workflow System',
+            'description': 'Multi-platform content creation and publishing workflow using Google Docs for drafts, Google Drive for asset storage, Slack for team communication, Trello for task management, and WordPress for final publishing.',
+            'project_name': 'Content Marketing Hub',
             'priority': 'medium',
             'status': 'active',
-            'kanban_column': 'backlog',
-            'due_date': '2025-11-30',
-            'assignees': ['Mike Johnson'],
-            'tags': ['documentation', 'api'],
-            'user': 'mike'
+            'kanban_column': 'review',
+            'due_date': '2025-11-25',
+            'assignees': ['Alex Rivera', 'Jamie Lee', 'AI Assistant'],
+            'tags': ['google_docs', 'google_drive', 'slack', 'trello', 'wordpress', 'content_marketing'],
+            'user': 'alex',
+            'notes': 'Created 15 draft articles in Google Docs, organized 200+ images in Drive, Slack channel has 50+ team messages. Trello board tracks 30 content pieces. Ready for review before WordPress publishing.',
+            'next_steps': json.dumps([
+                {'description': 'Create content templates in Google Docs', 'completed': True, 'due_date': '2025-10-25'},
+                {'description': 'Organize assets in Google Drive folders', 'completed': True, 'due_date': '2025-10-28'},
+                {'description': 'Set up Slack content review channel', 'completed': True, 'due_date': '2025-10-30'},
+                {'description': 'Build Trello editorial calendar', 'completed': True, 'due_date': '2025-11-01'},
+                {'description': 'Review and approve 5 articles', 'completed': False, 'due_date': '2025-11-10'},
+                {'description': 'Publish approved content to WordPress', 'completed': False, 'due_date': '2025-11-15'}
+            ]),
+            'documents': json.dumps([
+                {'title': 'Content Style Guide', 'url': 'https://docs.google.com/document/d/style-guide-001', 'type': 'google_doc', 'created_at': datetime.now().isoformat()},
+                {'title': 'Article Drafts Folder', 'url': 'https://drive.google.com/drive/folders/drafts-001', 'type': 'google_drive', 'created_at': datetime.now().isoformat()},
+                {'title': 'Image Assets Library', 'url': 'https://drive.google.com/drive/folders/images-001', 'type': 'google_drive', 'created_at': datetime.now().isoformat()},
+                {'title': 'Editorial Calendar (Trello)', 'url': 'https://trello.com/b/editorial-001', 'type': 'trello_board', 'created_at': datetime.now().isoformat()}
+            ]),
+            'links': json.dumps([
+                {'title': 'WordPress Admin', 'url': 'https://blog.example.com/wp-admin', 'type': 'wordpress'},
+                {'title': 'Content Review Channel', 'url': 'https://slack.com/channels/content-review', 'type': 'slack'}
+            ])
         },
         {
-            'title': 'Fix Login Bug',
-            'description': 'Users cannot log in with Google OAuth',
-            'project_name': 'Authentication',
+            'title': 'Sales Pipeline Automation',
+            'description': 'Automated sales pipeline using Slack for lead notifications, Google Sheets for CRM tracking, Gmail for outreach campaigns, Google Calendar for meeting scheduling, and Stripe for payment processing.',
+            'project_name': 'Sales Operations',
             'priority': 'urgent',
             'status': 'active',
             'kanban_column': 'in_progress',
-            'due_date': '2025-10-29',
-            'assignees': ['Emily Chen'],
-            'tags': ['bug', 'auth', 'urgent'],
-            'user': 'emily'
+            'due_date': '2025-11-18',
+            'assignees': ['David Park', 'Lisa Chen', 'AI Assistant'],
+            'tags': ['slack', 'google_sheets', 'gmail', 'google_calendar', 'stripe', 'sales', 'automation'],
+            'user': 'david',
+            'notes': 'CRM sheet tracking 100+ leads, Slack bot sends real-time notifications, email templates ready, calendar integration working. Need to complete Stripe invoice automation.',
+            'next_steps': json.dumps([
+                {'description': 'Create CRM tracking sheet', 'completed': True, 'due_date': '2025-10-27'},
+                {'description': 'Set up Slack lead notification bot', 'completed': True, 'due_date': '2025-10-29'},
+                {'description': 'Design outreach email templates', 'completed': True, 'due_date': '2025-11-01'},
+                {'description': 'Integrate Google Calendar for meetings', 'completed': True, 'due_date': '2025-11-03'},
+                {'description': 'Automate Stripe invoice generation', 'completed': False, 'due_date': '2025-11-12'},
+                {'description': 'Create sales dashboard with metrics', 'completed': False, 'due_date': '2025-11-15'}
+            ]),
+            'documents': json.dumps([
+                {'title': 'Sales CRM Sheet', 'url': 'https://sheets.google.com/crm-sales-001', 'type': 'google_sheet', 'created_at': datetime.now().isoformat()},
+                {'title': 'Outreach Email Templates', 'url': 'https://docs.google.com/document/d/email-templates-001', 'type': 'gmail_template', 'created_at': datetime.now().isoformat()},
+                {'title': 'Meeting Calendar', 'url': 'https://calendar.google.com/sales-meetings', 'type': 'google_calendar', 'created_at': datetime.now().isoformat()},
+                {'title': 'Stripe Invoices Dashboard', 'url': 'https://dashboard.stripe.com/invoices', 'type': 'stripe_dashboard', 'created_at': datetime.now().isoformat()}
+            ]),
+            'links': json.dumps([
+                {'title': 'Lead Notifications (Slack)', 'url': 'https://slack.com/channels/lead-alerts', 'type': 'slack'},
+                {'title': 'Sales Playbook', 'url': 'https://notion.so/sales-playbook', 'type': 'notion'}
+            ])
+        },
+        {
+            'title': 'Customer Support Portal',
+            'description': 'Planning phase for comprehensive support system integrating Slack for team communication, Google Forms for ticket submission, Google Sheets for ticket tracking, Gmail for automated responses, and Google Drive for knowledge base.',
+            'project_name': 'Support Infrastructure',
+            'priority': 'medium',
+            'status': 'active',
+            'kanban_column': 'backlog',
+            'due_date': '2025-12-10',
+            'assignees': ['Rachel Kim', 'AI Assistant'],
+            'tags': ['slack', 'google_forms', 'google_sheets', 'gmail', 'google_drive', 'customer_support', 'planning'],
+            'user': 'rachel',
+            'notes': 'Initial planning complete. Need to design ticket workflow, create form templates, and build tracking system.',
+            'next_steps': json.dumps([
+                {'description': 'Design ticket submission form', 'completed': False, 'due_date': '2025-11-12'},
+                {'description': 'Create ticket tracking sheet', 'completed': False, 'due_date': '2025-11-15'},
+                {'description': 'Set up Slack support channel', 'completed': False, 'due_date': '2025-11-18'},
+                {'description': 'Build automated email responses', 'completed': False, 'due_date': '2025-11-20'},
+                {'description': 'Organize knowledge base in Drive', 'completed': False, 'due_date': '2025-11-25'}
+            ]),
+            'documents': json.dumps([]),
+            'links': json.dumps([
+                {'title': 'Support Portal Wireframes', 'url': 'https://figma.com/support-portal', 'type': 'figma'},
+                {'title': 'Customer Support Best Practices', 'url': 'https://notion.so/support-guide', 'type': 'notion'}
+            ])
         }
     ]
     
@@ -612,9 +723,9 @@ def seed_database():
         try:
             # Use create_session endpoint logic
             response = create_session_internal(session_data)
-            logger.info(f"✅ Seeded: {session_data['title']}")
+            logger.info(f" Seeded: {session_data['title']}")
         except Exception as e:
-            logger.error(f"❌ Failed to seed session: {e}")
+            logger.error(f" Failed to seed session: {e}")
 
 def create_session_internal(data: Dict) -> Dict:
     """Internal function to create session (used by seeding)"""
@@ -727,19 +838,19 @@ def sync_session_to_google_tasks(session: Dict) -> Optional[str]:
                 task=session['google_task_id'],
                 body=task_body
             ).execute()
-            logger.info(f"✅ Updated Google Task: {result.get('id')}")
+            logger.info(f" Updated Google Task: {result.get('id')}")
         else:
             # Create new task
             result = service.tasks().insert(
                 tasklist='@default',
                 body=task_body
             ).execute()
-            logger.info(f"✅ Created Google Task: {result.get('id')}")
+            logger.info(f" Created Google Task: {result.get('id')}")
         
         return result.get('id')
         
     except Exception as e:
-        logger.error(f"❌ Google Tasks sync failed: {e}")
+        logger.error(f" Google Tasks sync failed: {e}")
         return None
 
 
@@ -833,19 +944,19 @@ def sync_session_to_google_calendar(session: Dict) -> Optional[str]:
                 eventId=session['google_calendar_event_id'],
                 body=event_body
             ).execute()
-            logger.info(f"✅ Updated Google Calendar event: {result.get('id')}")
+            logger.info(f" Updated Google Calendar event: {result.get('id')}")
         else:
             # Create new event
             result = service.events().insert(
                 calendarId='primary',
                 body=event_body
             ).execute()
-            logger.info(f"✅ Created Google Calendar event: {result.get('id')}")
+            logger.info(f" Created Google Calendar event: {result.get('id')}")
         
         return result.get('id')
         
     except Exception as e:
-        logger.error(f"❌ Google Calendar sync failed: {e}")
+        logger.error(f" Google Calendar sync failed: {e}")
         return None
 
 # ============================================
@@ -872,9 +983,9 @@ if __name__ == '__main__':
         logger.info(f"📊 Database has {count} sessions")
     
     # Start server
-    logger.info("✅ Server starting on http://localhost:5001")
-    logger.info("✅ WebSocket available at ws://localhost:5001/ws/synergy")
-    logger.info("✅ API docs at http://localhost:5001/api/info")
+    logger.info(" Server starting on http://localhost:5001")
+    logger.info(" WebSocket available at ws://localhost:5001/ws/synergy")
+    logger.info(" API docs at http://localhost:5001/api/info")
     
     socketio.run(
         app, 

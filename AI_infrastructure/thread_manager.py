@@ -1,6 +1,8 @@
 """
 Enhanced Thread Manager API
 Implements AnythingLLM-style thread/message management with database persistence
+
+FIXED: Strip thinking blocks from assistant messages (Nov 5, 2025)
 """
 
 import sqlite3
@@ -8,8 +10,71 @@ import json
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 import re
+from pathlib import Path
 
-DB_PATH = 'C:/Users/gpoli/GIT/AI_agents/AI_infrastructure/data/sessions.db'
+
+def strip_thinking_blocks_from_content(content: Any) -> Any:
+    """
+    Remove thinking blocks from message content
+    
+    Handles JSON strings, lists, and plain text
+    """
+    if isinstance(content, str):
+        try:
+            parsed = json.loads(content)
+            if isinstance(parsed, list):
+                filtered = [
+                    block for block in parsed
+                    if block.get('type') not in ('thinking', 'redacted_thinking')
+                ]
+                return json.dumps(filtered)
+            return content
+        except (json.JSONDecodeError, TypeError):
+            return content
+    elif isinstance(content, list):
+        return [
+            block for block in content
+            if block.get('type') not in ('thinking', 'redacted_thinking')
+        ]
+    return content
+
+
+def prepare_content_for_storage(content: Any) -> Any:
+    """
+    Prepare assistant message content for database storage
+    
+    BEST PRACTICE (ChatGPT/Claude.ai pattern):
+    - Keep: text blocks (main response)
+    - Keep: tool_use blocks (transparency)
+    - Remove: thinking blocks (API errors)
+    - Remove: tool_result blocks (too verbose)
+    
+    Returns:
+        Filtered content with only text and tool_use blocks
+    """
+    if isinstance(content, str):
+        try:
+            parsed = json.loads(content)
+            if isinstance(parsed, list):
+                filtered = [
+                    block for block in parsed
+                    if block.get('type') in ('text', 'tool_use')
+                ]
+                return json.dumps(filtered)
+            return content
+        except (json.JSONDecodeError, TypeError):
+            return content
+    elif isinstance(content, list):
+        return [
+            block for block in content
+            if block.get('type') in ('text', 'tool_use')
+        ]
+    return content
+
+
+# CORRECT: Use data/sessions.db (not AI_infrastructure/data/sessions.db)
+root_dir = Path(__file__).parent.parent
+DB_PATH = str(root_dir / 'data' / 'sessions.db')
 
 class ThreadManager:
     """Manages workspace threads and messages with database persistence"""
@@ -293,6 +358,11 @@ class ThreadManager:
                 raise ValueError(f"Thread '{thread_slug}' not found")
             
             timestamp = datetime.now().isoformat()
+            
+            # ✅ BEST PRACTICE: Prepare content for storage
+            # Keep only text + tool_use blocks (ChatGPT/Claude.ai pattern)
+            if role == 'assistant':
+                content = prepare_content_for_storage(content)
             
             cursor.execute('''
                 INSERT INTO messages (
@@ -653,6 +723,6 @@ if __name__ == '__main__':
         workspace = tm.get_workspace('default')
         if not workspace:
             workspace = tm.create_workspace('Default Workspace', 'Main workspace for general use')
-            print(f"✅ Created workspace: {workspace}")
+            print(f" Created workspace: {workspace}")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")

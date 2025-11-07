@@ -37,7 +37,13 @@ class UnifiedSessionManager:
     - Locks: Prevent concurrent AI requests per session
     """
     
-    def __init__(self, db_path: str = 'data/sessions.db'):
+    def __init__(self, db_path: str = None):
+        # Use centralized data folder
+        if db_path is None:
+            from pathlib import Path
+            root_dir = Path(__file__).parent.parent.parent  # AI_agents root
+            db_path = str(root_dir / 'data' / 'sessions.db')
+        
         self.db_path = db_path
         self.lock = threading.Lock()  # Manager-level lock
         
@@ -46,27 +52,41 @@ class UnifiedSessionManager:
         self.queues: Dict[str, Queue] = {}        # {session_id: Queue()}
         self.locks: Dict[str, threading.Lock] = {}  # {session_id: Lock()}
         
-        # Ensure data directory exists
-        os.makedirs(os.path.dirname(db_path) if os.path.dirname(db_path) else '.', exist_ok=True)
+        # DO NOT create directory - data folder must already exist
+        # Centralized database location: AI_agents/data/
         
-        # Initialize database
+        # Initialize database (tables only)
         self._init_db()
     
     def _init_db(self):
         """Initialize SQLite database with sessions table"""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS sessions (
-                    session_id TEXT PRIMARY KEY,
-                    ui_context TEXT NOT NULL,
-                    agent_id TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    conversation TEXT,
-                    metadata TEXT
-                )
-            """)
-            conn.commit()
+        # Enhanced SQLite configuration for stability
+        conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
+        
+        # Enable WAL mode for better concurrency (multiple readers, one writer)
+        conn.execute("PRAGMA journal_mode=WAL")
+        
+        # Optimize for performance
+        conn.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe
+        conn.execute("PRAGMA cache_size=-64000")  # 64MB cache
+        conn.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
+        
+        # Create tables
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                session_id TEXT PRIMARY KEY,
+                ui_context TEXT NOT NULL,
+                agent_id TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                conversation TEXT,
+                metadata TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+        
+        print("[SessionManager] Database initialized with WAL mode (improved concurrency)")
     
     def create_session(self, ui_context: str, agent_id: Optional[str] = None, session_id: Optional[str] = None, source: str = 'ui') -> str:
         """
@@ -82,7 +102,7 @@ class UnifiedSessionManager:
             session_id: UUID string or custom session ID
         """
         with self.lock:
-            # ✅ Use provided session_id or generate new UUID
+            #  Use provided session_id or generate new UUID
             if not session_id:
                 session_id = str(uuid.uuid4())
             
@@ -91,7 +111,7 @@ class UnifiedSessionManager:
                 'ui_context': ui_context,
                 'agent_id': agent_id,
                 'conversation': [],
-                'metadata': {'source': source},  # ✅ Track source
+                'metadata': {'source': source},  #  Track source
                 'created_at': datetime.now().isoformat(),
                 'last_active': datetime.now().isoformat()
             }
@@ -99,9 +119,10 @@ class UnifiedSessionManager:
             # Store in cache
             self.sessions[session_id] = session_data
             
-            # ✅ ONLY store in DB if NOT from CLI
+            #  ONLY store in DB if NOT from CLI
             if source != 'cli':
-                with sqlite3.connect(self.db_path) as conn:
+                # Use connection timeout for stability
+                with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                     conn.execute("""
                         INSERT INTO sessions (session_id, ui_context, agent_id, conversation, metadata)
                         VALUES (?, ?, ?, ?, ?)
@@ -133,7 +154,7 @@ class UnifiedSessionManager:
                 return self.sessions[session_id]
             
             # Load from DB (slow path - session not active)
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False) as conn:
                 cursor = conn.execute("""
                     SELECT session_id, ui_context, agent_id, conversation, metadata, created_at, last_active
                     FROM sessions
@@ -176,14 +197,14 @@ class UnifiedSessionManager:
                 self.sessions[session_id]['conversation'] = conversation
                 self.sessions[session_id]['last_active'] = datetime.now().isoformat()
                 
-                # ✅ ONLY update DB if NOT from CLI
+                #  ONLY update DB if NOT from CLI
                 source = self.sessions[session_id].get('metadata', {}).get('source', 'ui')
                 if source == 'cli':
                     print(f"[SessionManager] Skipping DB save for CLI session: {session_id}")
                     return
             
             # Update DB (only for UI sessions)
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 conn.execute("""
                     UPDATE sessions
                     SET conversation = ?, last_active = CURRENT_TIMESTAMP
@@ -206,7 +227,7 @@ class UnifiedSessionManager:
                 self.sessions[session_id]['last_active'] = datetime.now().isoformat()
             
             # Update DB
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 conn.execute("""
                     UPDATE sessions
                     SET metadata = ?, last_active = CURRENT_TIMESTAMP
@@ -250,7 +271,7 @@ class UnifiedSessionManager:
             max_age_hours: Sessions inactive longer than this are removed from cache
         """
         with self.lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 # Get inactive session IDs
                 cursor = conn.execute("""
                     SELECT session_id
@@ -286,7 +307,7 @@ class UnifiedSessionManager:
             self.locks.pop(session_id, None)
             
             # Remove from DB
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
                 conn.commit()
             
@@ -312,7 +333,7 @@ class UnifiedSessionManager:
         with self.lock:
             active_count = len(self.sessions)
             
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 cursor = conn.execute("SELECT COUNT(*) FROM sessions")
                 total_count = cursor.fetchone()[0]
             
@@ -323,7 +344,7 @@ class UnifiedSessionManager:
     
     def _update_last_active(self, session_id: str):
         """Update last active timestamp (internal helper)"""
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
             conn.execute("""
                 UPDATE sessions
                 SET last_active = CURRENT_TIMESTAMP

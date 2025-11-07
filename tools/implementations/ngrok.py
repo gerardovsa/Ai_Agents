@@ -51,7 +51,7 @@ def ngrok_start_tunnel(port: int, protocol: str = "http", subdomain: str = None)
         }
         
     except Exception as e:
-        print(f"❌ Failed to start tunnel: {e}")
+        print(f" Failed to start tunnel: {e}")
         raise
 
 
@@ -81,7 +81,7 @@ def ngrok_list_tunnels():
         }
         
     except Exception as e:
-        print(f"❌ Failed to list tunnels: {e}")
+        print(f" Failed to list tunnels: {e}")
         raise
 
 
@@ -114,7 +114,7 @@ def ngrok_stop_tunnel(tunnel_name: str):
         }
         
     except Exception as e:
-        print(f"❌ Failed to stop tunnel: {e}")
+        print(f" Failed to stop tunnel: {e}")
         raise
 
 
@@ -149,7 +149,7 @@ def ngrok_get_public_url(port: int):
         }
         
     except Exception as e:
-        print(f"❌ Failed to get public URL: {e}")
+        print(f" Failed to get public URL: {e}")
         raise
 
 

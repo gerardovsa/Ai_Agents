@@ -21,7 +21,7 @@ flask_service = client.get_flask_service()
 
 if flask_service:
     service_id = flask_service['id']
-    print(f"\n✅ Flask Service Found: {flask_service['name']}")
+    print(f"\n Flask Service Found: {flask_service['name']}")
     print(f"   ID: {service_id}")
     
     # Get detailed status
@@ -51,7 +51,7 @@ if flask_service:
         print(f"\n💡 To fix: Go to Render Dashboard and resume the service")
         print(f"   URL: https://dashboard.render.com/web/{service_id}")
     else:
-        print(f"\n✅ Service is running (not suspended)")
+        print(f"\n Service is running (not suspended)")
         print(f"\n🤔 If Streamlit still can't connect, check:")
         print(f"   1. Environment variables (FLASK_URL in Streamlit)")
         print(f"   2. CORS configuration in Flask")
@@ -59,7 +59,7 @@ if flask_service:
         print(f"   4. Recent deploy failures")
 
 else:
-    print("❌ Flask service not found!")
+    print(" Flask service not found!")
     print("\n📋 Available services:")
     client.print_all_services()
 
@@ -71,13 +71,13 @@ streamlit_service = client.get_streamlit_service()
 if streamlit_service:
     service_id = streamlit_service['id']
     status = client.check_service_status(service_id)
-    print(f"\n✅ Streamlit Service Found: {streamlit_service['name']}")
+    print(f"\n Streamlit Service Found: {streamlit_service['name']}")
     print(f"   ID: {service_id}")
     print(f"   Status: {status['status']}")
     print(f"   Plan: {status['plan']}")
     print(f"   URL: {status['url']}")
 else:
-    print("❌ Streamlit service not found!")
+    print(" Streamlit service not found!")
 
 print("\n" + "=" * 80)
 print("DIAGNOSTIC COMPLETE")

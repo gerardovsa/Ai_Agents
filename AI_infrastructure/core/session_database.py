@@ -10,6 +10,8 @@ SQLite database for storing complete conversation sessions with:
 - Fast queries, no API limits
 
 This is the MAIN database. Google Tasks are just for Kanban visualization.
+
+FIXED: Strip thinking blocks from assistant messages before storage (Nov 5, 2025)
 """
 
 import sqlite3
@@ -20,6 +22,94 @@ from typing import Dict, List, Optional, Any
 from contextlib import contextmanager
 
 
+def strip_thinking_blocks_from_content(content: Any) -> Any:
+    """
+    Remove thinking blocks from message content
+    
+    Works with both:
+    - JSON string containing list of content blocks
+    - Direct list of content blocks
+    - Plain text strings (no-op)
+    
+    Returns:
+        Content without thinking blocks
+    """
+    # If content is a string, try to parse as JSON
+    if isinstance(content, str):
+        try:
+            parsed = json.loads(content)
+            if isinstance(parsed, list):
+                # Filter out thinking blocks
+                filtered = [
+                    block for block in parsed
+                    if block.get('type') not in ('thinking', 'redacted_thinking')
+                ]
+                # Return as JSON string
+                return json.dumps(filtered)
+            else:
+                # Not a list of blocks, return as-is
+                return content
+        except (json.JSONDecodeError, TypeError):
+            # Not JSON, return as-is (plain text message)
+            return content
+    
+    # If content is already a list
+    elif isinstance(content, list):
+        filtered = [
+            block for block in content
+            if block.get('type') not in ('thinking', 'redacted_thinking')
+        ]
+        return filtered
+    
+    # Other types (dict, None, etc.) - return as-is
+    return content
+
+
+def prepare_content_for_storage(content: Any) -> Any:
+    """
+    Prepare assistant message content for database storage
+    
+    BEST PRACTICE (ChatGPT/Claude.ai pattern):
+    - Keep: text blocks (main response)
+    - Keep: tool_use blocks (transparency - shows what AI requested)
+    - Remove: thinking blocks (causes API errors)
+    - Remove: tool_result blocks (too verbose, not needed for reload)
+    
+    Works with JSON strings, lists, or plain text.
+    
+    Returns:
+        Filtered content with only text and tool_use blocks
+    """
+    # If content is a string, try to parse as JSON
+    if isinstance(content, str):
+        try:
+            parsed = json.loads(content)
+            if isinstance(parsed, list):
+                # Keep only text and tool_use blocks
+                filtered = [
+                    block for block in parsed
+                    if block.get('type') in ('text', 'tool_use')
+                ]
+                return json.dumps(filtered)
+            else:
+                # Not a list of blocks, return as-is
+                return content
+        except (json.JSONDecodeError, TypeError):
+            # Not JSON, return as-is (plain text message)
+            return content
+    
+    # If content is already a list
+    elif isinstance(content, list):
+        filtered = [
+            block for block in content
+            if block.get('type') in ('text', 'tool_use')
+        ]
+        return filtered
+    
+    # Other types (dict, None, etc.) - return as-is
+    return content
+
+
 class SessionDatabase:
     """
     Manages SQLite database for session storage
@@ -27,10 +117,15 @@ class SessionDatabase:
     
     def __init__(self, db_path: str = None):
         if db_path is None:
-            # Default: data/sessions.db in project root
-            project_root = Path(__file__).parent.parent.parent
+            # Use centralized AI_agents/data/sessions.db
+            project_root = Path(__file__).parent.parent.parent  # AI_agents root
             data_dir = project_root / 'data'
-            data_dir.mkdir(exist_ok=True)
+            # DO NOT create directory - data folder must already exist
+            if not data_dir.exists():
+                raise FileNotFoundError(
+                    f"❌ Data directory does not exist: {data_dir}\n"
+                    f"Create it manually: mkdir {data_dir}"
+                )
             db_path = str(data_dir / 'sessions.db')
         
         self.db_path = db_path
@@ -154,7 +249,7 @@ class SessionDatabase:
             """)
             
             conn.commit()
-            print("✅ Database schema initialized")
+            print(" Database schema initialized")
     
     def create_session(self, session_id: str, user_id: str, title: str,
                       project_name: str = None, tags: List[str] = None) -> None:
@@ -179,16 +274,27 @@ class SessionDatabase:
             )
             
             conn.commit()
-            print(f"✅ Session saved to database: {session_id}")
+            print(f" Session saved to database: {session_id}")
     
     def add_message(self, session_id: str, role: str, content: str,
                    tools_used: List[str] = None) -> int:
-        """Add message to session"""
+        """
+        Add message to session
+        
+        BEST PRACTICE: Stores only text + tool_use blocks (Nov 5, 2025)
+        - Removes thinking blocks (causes API errors)
+        - Removes tool_result blocks (too verbose for reload)
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
             now = datetime.now().isoformat()
             tools_json = json.dumps(tools_used) if tools_used else None
+            
+            # ✅ BEST PRACTICE: Prepare content for storage
+            # Keep only text + tool_use blocks (ChatGPT/Claude.ai pattern)
+            if role == 'assistant':
+                content = prepare_content_for_storage(content)
             
             cursor.execute("""
                 INSERT INTO messages (

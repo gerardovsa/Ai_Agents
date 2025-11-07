@@ -32,14 +32,14 @@ try:
     HAS_FORMS_API = True
 except ImportError:
     HAS_FORMS_API = False
-    print("⚠️ Google Forms API dependencies not available")
+    print(" Google Forms API dependencies not available")
 
 try:
     from bs4 import BeautifulSoup
     HAS_BS4 = True
 except ImportError:
     HAS_BS4 = False
-    print("⚠️ BeautifulSoup4 not available - some workaround features will be limited")
+    print(" BeautifulSoup4 not available - some workaround features will be limited")
 
 try:
     import openai
@@ -66,7 +66,7 @@ def _get_drive_service():
 
 # ==================== FORM OPERATIONS ====================
 
-def google_forms_create_form(title, document_title=None, description=None, shareable=True):
+def google_forms_create_form(title, document_title=None, description=None, shareable=True, **kwargs):
     """Create a new Google Form and make it shareable
     
     Args:
@@ -106,9 +106,9 @@ def google_forms_create_form(title, document_title=None, description=None, share
                     fileId=form_id,
                     body=permission
                 ).execute()
-                print(f"✅ Form made shareable: {form_id}")
+                print(f" Form made shareable: {form_id}")
             except Exception as perm_error:
-                print(f"⚠️ Form created but couldn't set permissions: {perm_error}")
+                print(f" Form created but couldn't set permissions: {perm_error}")
                 shareable = False
         
         return {
@@ -120,11 +120,11 @@ def google_forms_create_form(title, document_title=None, description=None, share
         }
     
     except Exception as e:
-        print(f"❌ Failed to create form: {e}")
+        print(f" Failed to create form: {e}")
         raise
 
 
-def google_forms_get_form(form_id):
+def google_forms_get_form(form_id, **kwargs):
     """Get form details"""
     try:
         service = _get_forms_service()
@@ -133,13 +133,13 @@ def google_forms_get_form(form_id):
         return form
     
     except Exception as e:
-        print(f"❌ Failed to get form: {e}")
+        print(f" Failed to get form: {e}")
         raise
 
 
 # ==================== QUESTION OPERATIONS ====================
 
-def google_forms_add_question(form_id, question_text, question_type='TEXT', required=False, index=0):
+def google_forms_add_question(form_id, question_text, question_type='TEXT', required=False, index=0, **kwargs):
     """Add a generic question to form"""
     try:
         service = _get_forms_service()
@@ -167,11 +167,11 @@ def google_forms_add_question(form_id, question_text, question_type='TEXT', requ
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add question: {e}")
+        print(f" Failed to add question: {e}")
         raise
 
 
-def google_forms_add_multiple_choice(form_id, question_text, options, required=False, index=0):
+def google_forms_add_multiple_choice(form_id, question_text, options, required=False, index=0, **kwargs):
     """Add a multiple choice question"""
     try:
         service = _get_forms_service()
@@ -201,11 +201,11 @@ def google_forms_add_multiple_choice(form_id, question_text, options, required=F
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add multiple choice: {e}")
+        print(f" Failed to add multiple choice: {e}")
         raise
 
 
-def google_forms_add_text_question(form_id, question_text, paragraph=False, required=False, index=0):
+def google_forms_add_text_question(form_id, question_text, paragraph=False, required=False, index=0, **kwargs):
     """Add a text question"""
     try:
         service = _get_forms_service()
@@ -234,12 +234,12 @@ def google_forms_add_text_question(form_id, question_text, paragraph=False, requ
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add text question: {e}")
+        print(f" Failed to add text question: {e}")
         raise
 
 
 def google_forms_add_linear_scale(form_id, question_text, low_label, high_label, 
-                                  low_value=1, high_value=5, required=False, index=0):
+                                  low_value=1, high_value=5, required=False, index=0, **kwargs):
     """Add a linear scale question"""
     try:
         service = _get_forms_service()
@@ -271,11 +271,11 @@ def google_forms_add_linear_scale(form_id, question_text, low_label, high_label,
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add linear scale: {e}")
+        print(f" Failed to add linear scale: {e}")
         raise
 
 
-def google_forms_update_question(form_id, item_id, question_text=None, required=None):
+def google_forms_update_question(form_id, item_id, question_text=None, required=None, **kwargs):
     """Update an existing question"""
     try:
         service = _get_forms_service()
@@ -301,11 +301,11 @@ def google_forms_update_question(form_id, item_id, question_text=None, required=
         return result
     
     except Exception as e:
-        print(f"❌ Failed to update question: {e}")
+        print(f" Failed to update question: {e}")
         raise
 
 
-def google_forms_delete_question(form_id, item_id):
+def google_forms_delete_question(form_id, item_id, **kwargs):
     """Delete a question"""
     try:
         service = _get_forms_service()
@@ -321,13 +321,13 @@ def google_forms_delete_question(form_id, item_id):
         return {'deleted': True, 'item_id': item_id}
     
     except Exception as e:
-        print(f"❌ Failed to delete question: {e}")
+        print(f" Failed to delete question: {e}")
         raise
 
 
 # ==================== RESPONSES ====================
 
-def google_forms_get_responses(form_id, filter=None):
+def google_forms_get_responses(form_id, filter=None, **kwargs):
     """Get form responses"""
     try:
         service = _get_forms_service()
@@ -346,11 +346,11 @@ def google_forms_get_responses(form_id, filter=None):
         }
     
     except Exception as e:
-        print(f"❌ Failed to get responses: {e}")
+        print(f" Failed to get responses: {e}")
         raise
 
 
-def google_forms_get_response(form_id, response_id):
+def google_forms_get_response(form_id, response_id, **kwargs):
     """Get a specific response"""
     try:
         service = _get_forms_service()
@@ -363,11 +363,11 @@ def google_forms_get_response(form_id, response_id):
         return response
     
     except Exception as e:
-        print(f"❌ Failed to get response: {e}")
+        print(f" Failed to get response: {e}")
         raise
 
 
-def google_forms_delete_response(form_id, response_id):
+def google_forms_delete_response(form_id, response_id, **kwargs):
     """Delete a response"""
     try:
         service = _get_forms_service()
@@ -380,14 +380,14 @@ def google_forms_delete_response(form_id, response_id):
         return {'deleted': True, 'response_id': response_id}
     
     except Exception as e:
-        print(f"❌ Failed to delete response: {e}")
+        print(f" Failed to delete response: {e}")
         raise
 
 
 # ==================== SETTINGS & EXPORT ====================
 
 def google_forms_update_settings(form_id, collect_email=None, allow_response_edit=None, 
-                                 limit_one_response=None, quiz_mode=None):
+                                 limit_one_response=None, quiz_mode=None, **kwargs):
     """Update form settings"""
     try:
         service = _get_forms_service()
@@ -412,11 +412,11 @@ def google_forms_update_settings(form_id, collect_email=None, allow_response_edi
         return result
     
     except Exception as e:
-        print(f"❌ Failed to update settings: {e}")
+        print(f" Failed to update settings: {e}")
         raise
 
 
-def google_forms_export_responses_csv(form_id):
+def google_forms_export_responses_csv(form_id, **kwargs):
     """Export responses as CSV"""
     try:
         # Get all responses
@@ -461,13 +461,13 @@ def google_forms_export_responses_csv(form_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to export as CSV: {e}")
+        print(f" Failed to export as CSV: {e}")
         raise
 
 
 # ==================== QUIZ MODE ====================
 
-def google_forms_create_quiz(title, document_title=None):
+def google_forms_create_quiz(title, document_title=None, **kwargs):
     """Create a new quiz form"""
     try:
         form_result = google_forms_create_form(title, document_title)
@@ -492,12 +492,12 @@ def google_forms_create_quiz(title, document_title=None):
         return form_result
     
     except Exception as e:
-        print(f"❌ Failed to create quiz: {e}")
+        print(f" Failed to create quiz: {e}")
         raise
 
 
 def google_forms_add_quiz_question(form_id, question_text, options, correct_answer, 
-                                   points=1, feedback=None, index=0):
+                                   points=1, feedback=None, index=0, **kwargs):
     """Add a quiz question with grading"""
     try:
         service = _get_forms_service()
@@ -539,13 +539,13 @@ def google_forms_add_quiz_question(form_id, question_text, options, correct_answ
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add quiz question: {e}")
+        print(f" Failed to add quiz question: {e}")
         raise
 
 
 # ==================== EXTENDED FORM MANAGEMENT ====================
 
-def google_forms_delete_form(form_id):
+def google_forms_delete_form(form_id, **kwargs):
     """Delete a Google Form"""
     try:
         drive_service = _get_drive_service()
@@ -554,11 +554,11 @@ def google_forms_delete_form(form_id):
         return {'deleted': True, 'form_id': form_id}
     
     except Exception as e:
-        print(f"❌ Failed to delete form: {e}")
+        print(f" Failed to delete form: {e}")
         raise
 
 
-def google_forms_clone_form(form_id, new_title=None):
+def google_forms_clone_form(form_id, new_title=None, **kwargs):
     """Clone an existing form"""
     try:
         drive_service = _get_drive_service()
@@ -581,11 +581,11 @@ def google_forms_clone_form(form_id, new_title=None):
         }
     
     except Exception as e:
-        print(f"❌ Failed to clone form: {e}")
+        print(f" Failed to clone form: {e}")
         raise
 
 
-def google_forms_update_info(form_id, title=None, description=None, document_title=None):
+def google_forms_update_info(form_id, title=None, description=None, document_title=None, **kwargs):
     """Update form metadata"""
     try:
         service = _get_forms_service()
@@ -610,11 +610,11 @@ def google_forms_update_info(form_id, title=None, description=None, document_tit
         return result
     
     except Exception as e:
-        print(f"❌ Failed to update form info: {e}")
+        print(f" Failed to update form info: {e}")
         raise
 
 
-def google_forms_set_settings(form_id, settings_dict):
+def google_forms_set_settings(form_id, settings_dict, **kwargs):
     """Configure form settings
     
     Args:
@@ -649,13 +649,13 @@ def google_forms_set_settings(form_id, settings_dict):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to set settings: {e}")
+        print(f" Failed to set settings: {e}")
         raise
 
 
 # ==================== EXTENDED QUESTION TYPES ====================
 
-def google_forms_add_checkbox(form_id, question_text, options, required=False, index=0):
+def google_forms_add_checkbox(form_id, question_text, options, required=False, index=0, **kwargs):
     """Add a checkbox question (multiple selection)"""
     try:
         service = _get_forms_service()
@@ -685,11 +685,11 @@ def google_forms_add_checkbox(form_id, question_text, options, required=False, i
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add checkbox: {e}")
+        print(f" Failed to add checkbox: {e}")
         raise
 
 
-def google_forms_add_dropdown(form_id, question_text, options, required=False, index=0):
+def google_forms_add_dropdown(form_id, question_text, options, required=False, index=0, **kwargs):
     """Add a dropdown question"""
     try:
         service = _get_forms_service()
@@ -719,11 +719,11 @@ def google_forms_add_dropdown(form_id, question_text, options, required=False, i
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add dropdown: {e}")
+        print(f" Failed to add dropdown: {e}")
         raise
 
 
-def google_forms_add_date_question(form_id, question_text, include_time=False, required=False, index=0):
+def google_forms_add_date_question(form_id, question_text, include_time=False, required=False, index=0, **kwargs):
     """Add a date question"""
     try:
         service = _get_forms_service()
@@ -752,11 +752,11 @@ def google_forms_add_date_question(form_id, question_text, include_time=False, r
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add date question: {e}")
+        print(f" Failed to add date question: {e}")
         raise
 
 
-def google_forms_add_time_question(form_id, question_text, duration=False, required=False, index=0):
+def google_forms_add_time_question(form_id, question_text, duration=False, required=False, index=0, **kwargs):
     """Add a time question"""
     try:
         service = _get_forms_service()
@@ -785,11 +785,11 @@ def google_forms_add_time_question(form_id, question_text, duration=False, requi
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add time question: {e}")
+        print(f" Failed to add time question: {e}")
         raise
 
 
-def google_forms_add_grid(form_id, question_text, rows, columns, required=False, multiple_select=False, index=0):
+def google_forms_add_grid(form_id, question_text, rows, columns, required=False, multiple_select=False, index=0, **kwargs):
     """Add a grid question (matrix)"""
     try:
         service = _get_forms_service()
@@ -825,11 +825,11 @@ def google_forms_add_grid(form_id, question_text, rows, columns, required=False,
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add grid: {e}")
+        print(f" Failed to add grid: {e}")
         raise
 
 
-def google_forms_add_file_upload(form_id, question_text, file_types=None, max_files=10, max_size_mb=10, required=False, index=0):
+def google_forms_add_file_upload(form_id, question_text, file_types=None, max_files=10, max_size_mb=10, required=False, index=0, **kwargs):
     """Add a file upload question"""
     try:
         service = _get_forms_service()
@@ -864,11 +864,11 @@ def google_forms_add_file_upload(form_id, question_text, file_types=None, max_fi
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add file upload: {e}")
+        print(f" Failed to add file upload: {e}")
         raise
 
 
-def google_forms_move_question(form_id, item_id, new_index):
+def google_forms_move_question(form_id, item_id, new_index, **kwargs):
     """Move a question to a new position"""
     try:
         service = _get_forms_service()
@@ -885,13 +885,13 @@ def google_forms_move_question(form_id, item_id, new_index):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to move question: {e}")
+        print(f" Failed to move question: {e}")
         raise
 
 
 # ==================== SECTION MANAGEMENT ====================
 
-def google_forms_add_section(form_id, title, description=None, index=0):
+def google_forms_add_section(form_id, title, description=None, index=0, **kwargs):
     """Add a page break / section"""
     try:
         service = _get_forms_service()
@@ -918,11 +918,11 @@ def google_forms_add_section(form_id, title, description=None, index=0):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add section: {e}")
+        print(f" Failed to add section: {e}")
         raise
 
 
-def google_forms_add_description(form_id, text, index=0):
+def google_forms_add_description(form_id, text, index=0, **kwargs):
     """Add descriptive text (not a question)"""
     try:
         service = _get_forms_service()
@@ -942,11 +942,11 @@ def google_forms_add_description(form_id, text, index=0):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add description: {e}")
+        print(f" Failed to add description: {e}")
         raise
 
 
-def google_forms_add_image(form_id, image_url, alt_text=None, index=0):
+def google_forms_add_image(form_id, image_url, alt_text=None, index=0, **kwargs):
     """Add an image to the form"""
     try:
         service = _get_forms_service()
@@ -974,11 +974,11 @@ def google_forms_add_image(form_id, image_url, alt_text=None, index=0):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add image: {e}")
+        print(f" Failed to add image: {e}")
         raise
 
 
-def google_forms_add_video(form_id, video_url, caption=None, index=0):
+def google_forms_add_video(form_id, video_url, caption=None, index=0, **kwargs):
     """Add a video to the form (YouTube)"""
     try:
         service = _get_forms_service()
@@ -1006,13 +1006,13 @@ def google_forms_add_video(form_id, video_url, caption=None, index=0):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to add video: {e}")
+        print(f" Failed to add video: {e}")
         raise
 
 
 # ==================== ADVANCED RESPONSE OPERATIONS ====================
 
-def google_forms_delete_all_responses(form_id):
+def google_forms_delete_all_responses(form_id, **kwargs):
     """Delete all responses from a form"""
     try:
         service = _get_forms_service()
@@ -1038,13 +1038,13 @@ def google_forms_delete_all_responses(form_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to delete all responses: {e}")
+        print(f" Failed to delete all responses: {e}")
         raise
 
 
 # ==================== QUIZ OPERATIONS ====================
 
-def google_forms_set_quiz_settings(form_id, release_score='IMMEDIATELY', show_correct_answers=True, show_missed=True):
+def google_forms_set_quiz_settings(form_id, release_score='IMMEDIATELY', show_correct_answers=True, show_missed=True, **kwargs):
     """Configure quiz settings
     
     Args:
@@ -1076,11 +1076,11 @@ def google_forms_set_quiz_settings(form_id, release_score='IMMEDIATELY', show_co
         return result
     
     except Exception as e:
-        print(f"❌ Failed to set quiz settings: {e}")
+        print(f" Failed to set quiz settings: {e}")
         raise
 
 
-def google_forms_grade_response(form_id, response_id):
+def google_forms_grade_response(form_id, response_id, **kwargs):
     """Get the grade/score for a response"""
     try:
         response = google_forms_get_response(form_id, response_id)
@@ -1106,13 +1106,13 @@ def google_forms_grade_response(form_id, response_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to grade response: {e}")
+        print(f" Failed to grade response: {e}")
         raise
 
 
 # ==================== ADVANCED FEATURES ====================
 
-def google_forms_add_validation(form_id, item_id, validation_type, value=None):
+def google_forms_add_validation(form_id, item_id, validation_type, value=None, **kwargs):
     """Add input validation to a question
     
     Args:
@@ -1128,11 +1128,11 @@ def google_forms_add_validation(form_id, item_id, validation_type, value=None):
         return {'message': 'Validation feature requires complex implementation per question type'}
     
     except Exception as e:
-        print(f"❌ Failed to add validation: {e}")
+        print(f" Failed to add validation: {e}")
         raise
 
 
-def google_forms_set_question_description(form_id, item_id, description):
+def google_forms_set_question_description(form_id, item_id, description, **kwargs):
     """Add help text to a question"""
     try:
         service = _get_forms_service()
@@ -1152,11 +1152,11 @@ def google_forms_set_question_description(form_id, item_id, description):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to set question description: {e}")
+        print(f" Failed to set question description: {e}")
         raise
 
 
-def google_forms_shuffle_options(form_id, item_id, shuffle=True):
+def google_forms_shuffle_options(form_id, item_id, shuffle=True, **kwargs):
     """Randomize option order"""
     try:
         service = _get_forms_service()
@@ -1182,11 +1182,11 @@ def google_forms_shuffle_options(form_id, item_id, shuffle=True):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to shuffle options: {e}")
+        print(f" Failed to shuffle options: {e}")
         raise
 
 
-def google_forms_set_other_option(form_id, item_id, allow_other=True):
+def google_forms_set_other_option(form_id, item_id, allow_other=True, **kwargs):
     """Enable/disable 'Other' option for choice questions"""
     try:
         service = _get_forms_service()
@@ -1213,11 +1213,11 @@ def google_forms_set_other_option(form_id, item_id, allow_other=True):
         return result
     
     except Exception as e:
-        print(f"❌ Failed to set other option: {e}")
+        print(f" Failed to set other option: {e}")
         raise
 
 
-def google_forms_set_accepts_response(form_id, accepting=True):
+def google_forms_set_accepts_response(form_id, accepting=True, **kwargs):
     """Open or close a form to responses"""
     try:
         service = _get_forms_service()
@@ -1238,13 +1238,13 @@ def google_forms_set_accepts_response(form_id, accepting=True):
         return {'accepting': accepting}
     
     except Exception as e:
-        print(f"❌ Failed to set accepts response: {e}")
+        print(f" Failed to set accepts response: {e}")
         raise
 
 
 # ==================== EXPORT & ANALYSIS ====================
 
-def google_forms_export_responses_json(form_id):
+def google_forms_export_responses_json(form_id, **kwargs):
     """Export responses as JSON"""
     try:
         responses_data = google_forms_get_responses(form_id)
@@ -1256,11 +1256,11 @@ def google_forms_export_responses_json(form_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to export as JSON: {e}")
+        print(f" Failed to export as JSON: {e}")
         raise
 
 
-def google_forms_get_summary_statistics(form_id):
+def google_forms_get_summary_statistics(form_id, **kwargs):
     """Get response statistics"""
     try:
         responses_data = google_forms_get_responses(form_id)
@@ -1298,11 +1298,11 @@ def google_forms_get_summary_statistics(form_id):
         return stats
     
     except Exception as e:
-        print(f"❌ Failed to get statistics: {e}")
+        print(f" Failed to get statistics: {e}")
         raise
 
 
-def google_forms_link_to_sheets(form_id, sheet_id=None):
+def google_forms_link_to_sheets(form_id, sheet_id=None, **kwargs):
     """Link form responses to a Google Sheet"""
     try:
         # This requires setting up the link through the Forms UI or Apps Script
@@ -1315,13 +1315,13 @@ def google_forms_link_to_sheets(form_id, sheet_id=None):
         }
     
     except Exception as e:
-        print(f"❌ Failed to link to sheets: {e}")
+        print(f" Failed to link to sheets: {e}")
         raise
 
 
 # ==================== WEBHOOKS & NOTIFICATIONS ====================
 
-def google_forms_create_watch(form_id, webhook_url, event_type='RESPONSES'):
+def google_forms_create_watch(form_id, webhook_url, event_type='RESPONSES', **kwargs):
     """Set up webhook for form events
     
     Args:
@@ -1353,11 +1353,11 @@ def google_forms_create_watch(form_id, webhook_url, event_type='RESPONSES'):
         }
     
     except Exception as e:
-        print(f"❌ Failed to create watch: {e}")
+        print(f" Failed to create watch: {e}")
         raise
 
 
-def google_forms_delete_watch(form_id, watch_id):
+def google_forms_delete_watch(form_id, watch_id, **kwargs):
     """Remove a webhook"""
     try:
         service = _get_forms_service()
@@ -1370,11 +1370,11 @@ def google_forms_delete_watch(form_id, watch_id):
         return {'deleted': True, 'watch_id': watch_id}
     
     except Exception as e:
-        print(f"❌ Failed to delete watch: {e}")
+        print(f" Failed to delete watch: {e}")
         raise
 
 
-def google_forms_list_watches(form_id):
+def google_forms_list_watches(form_id, **kwargs):
     """Get all active webhooks for a form"""
     try:
         service = _get_forms_service()
@@ -1387,11 +1387,11 @@ def google_forms_list_watches(form_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to list watches: {e}")
+        print(f" Failed to list watches: {e}")
         raise
 
 
-def google_forms_renew_watch(form_id, watch_id):
+def google_forms_renew_watch(form_id, watch_id, **kwargs):
     """Extend a watch for another 7 days"""
     try:
         service = _get_forms_service()
@@ -1408,13 +1408,13 @@ def google_forms_renew_watch(form_id, watch_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to renew watch: {e}")
+        print(f" Failed to renew watch: {e}")
         raise
 
 
 # ==================== BULK OPERATIONS ====================
 
-def google_forms_bulk_create_forms(forms_config_list):
+def google_forms_bulk_create_forms(forms_config_list, **kwargs):
     """Create multiple forms at once
     
     Args:
@@ -1499,7 +1499,7 @@ def google_forms_bulk_create_forms(forms_config_list):
                         )
             
             created_forms.append(form)
-            print(f"✅ Created form: {config['title']}")
+            print(f" Created form: {config['title']}")
         
         return {
             'forms': created_forms,
@@ -1507,11 +1507,11 @@ def google_forms_bulk_create_forms(forms_config_list):
         }
     
     except Exception as e:
-        print(f"❌ Failed to bulk create forms: {e}")
+        print(f" Failed to bulk create forms: {e}")
         raise
 
 
-def google_forms_create_from_template(template_id, variations_list):
+def google_forms_create_from_template(template_id, variations_list, **kwargs):
     """Clone a template form with variations
     
     Args:
@@ -1535,7 +1535,7 @@ def google_forms_create_from_template(template_id, variations_list):
             # This would require more complex logic to update specific questions
             
             created_forms.append(cloned)
-            print(f"✅ Created from template: {variation.get('title')}")
+            print(f" Created from template: {variation.get('title')}")
         
         return {
             'forms': created_forms,
@@ -1543,11 +1543,11 @@ def google_forms_create_from_template(template_id, variations_list):
         }
     
     except Exception as e:
-        print(f"❌ Failed to create from template: {e}")
+        print(f" Failed to create from template: {e}")
         raise
 
 
-def google_forms_clone_multiple(form_ids, new_titles=None):
+def google_forms_clone_multiple(form_ids, new_titles=None, **kwargs):
     """Clone multiple forms"""
     try:
         cloned_forms = []
@@ -1556,7 +1556,7 @@ def google_forms_clone_multiple(form_ids, new_titles=None):
             new_title = new_titles[idx] if new_titles and idx < len(new_titles) else None
             cloned = google_forms_clone_form(form_id, new_title)
             cloned_forms.append(cloned)
-            print(f"✅ Cloned form: {form_id}")
+            print(f" Cloned form: {form_id}")
         
         return {
             'forms': cloned_forms,
@@ -1564,11 +1564,11 @@ def google_forms_clone_multiple(form_ids, new_titles=None):
         }
     
     except Exception as e:
-        print(f"❌ Failed to clone multiple forms: {e}")
+        print(f" Failed to clone multiple forms: {e}")
         raise
 
 
-def google_forms_batch_add_questions(form_id, questions_list):
+def google_forms_batch_add_questions(form_id, questions_list, **kwargs):
     """Add multiple questions to a form at once
     
     Args:
@@ -1644,16 +1644,16 @@ def google_forms_batch_add_questions(form_id, questions_list):
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Added {len(questions_list)} questions")
+        print(f" Added {len(questions_list)} questions")
         
         return result
     
     except Exception as e:
-        print(f"❌ Failed to batch add questions: {e}")
+        print(f" Failed to batch add questions: {e}")
         raise
 
 
-def google_forms_batch_update_questions(form_id, updates_list):
+def google_forms_batch_update_questions(form_id, updates_list, **kwargs):
     """Update multiple questions at once
     
     Args:
@@ -1693,16 +1693,16 @@ def google_forms_batch_update_questions(form_id, updates_list):
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Updated {len(updates_list)} questions")
+        print(f" Updated {len(updates_list)} questions")
         
         return result
     
     except Exception as e:
-        print(f"❌ Failed to batch update questions: {e}")
+        print(f" Failed to batch update questions: {e}")
         raise
 
 
-def google_forms_batch_delete_questions(form_id, item_ids):
+def google_forms_batch_delete_questions(form_id, item_ids, **kwargs):
     """Delete multiple questions at once"""
     try:
         service = _get_forms_service()
@@ -1720,16 +1720,16 @@ def google_forms_batch_delete_questions(form_id, item_ids):
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Deleted {len(item_ids)} questions")
+        print(f" Deleted {len(item_ids)} questions")
         
         return result
     
     except Exception as e:
-        print(f"❌ Failed to batch delete questions: {e}")
+        print(f" Failed to batch delete questions: {e}")
         raise
 
 
-def google_forms_reorder_questions(form_id, new_order):
+def google_forms_reorder_questions(form_id, new_order, **kwargs):
     """Reorder all questions
     
     Args:
@@ -1752,16 +1752,16 @@ def google_forms_reorder_questions(form_id, new_order):
             body={'requests': requests}
         ).execute()
         
-        print(f"✅ Reordered {len(new_order)} questions")
+        print(f" Reordered {len(new_order)} questions")
         
         return result
     
     except Exception as e:
-        print(f"❌ Failed to reorder questions: {e}")
+        print(f" Failed to reorder questions: {e}")
         raise
 
 
-def google_forms_batch_delete_responses(form_id, response_ids):
+def google_forms_batch_delete_responses(form_id, response_ids, **kwargs):
     """Delete multiple responses"""
     try:
         service = _get_forms_service()
@@ -1777,7 +1777,7 @@ def google_forms_batch_delete_responses(form_id, response_ids):
             except:
                 pass
         
-        print(f"✅ Deleted {deleted_count} responses")
+        print(f" Deleted {deleted_count} responses")
         
         return {
             'deleted': True,
@@ -1785,11 +1785,11 @@ def google_forms_batch_delete_responses(form_id, response_ids):
         }
     
     except Exception as e:
-        print(f"❌ Failed to batch delete responses: {e}")
+        print(f" Failed to batch delete responses: {e}")
         raise
 
 
-def google_forms_export_all_responses(form_ids, format='json'):
+def google_forms_export_all_responses(form_ids, format='json', **kwargs):
     """Export responses from multiple forms
     
     Args:
@@ -1806,7 +1806,7 @@ def google_forms_export_all_responses(form_ids, format='json'):
                 responses = google_forms_export_responses_json(form_id)
             
             all_responses[form_id] = responses
-            print(f"✅ Exported from form: {form_id}")
+            print(f" Exported from form: {form_id}")
         
         return {
             'forms': all_responses,
@@ -1815,11 +1815,11 @@ def google_forms_export_all_responses(form_ids, format='json'):
         }
     
     except Exception as e:
-        print(f"❌ Failed to export all responses: {e}")
+        print(f" Failed to export all responses: {e}")
         raise
 
 
-def google_forms_analyze_responses_bulk(form_ids):
+def google_forms_analyze_responses_bulk(form_ids, **kwargs):
     """Get aggregate statistics from multiple forms"""
     try:
         all_stats = {}
@@ -1829,7 +1829,7 @@ def google_forms_analyze_responses_bulk(form_ids):
             stats = google_forms_get_summary_statistics(form_id)
             all_stats[form_id] = stats
             total_responses += stats.get('total_responses', 0)
-            print(f"✅ Analyzed form: {form_id}")
+            print(f" Analyzed form: {form_id}")
         
         return {
             'forms': all_stats,
@@ -1838,11 +1838,11 @@ def google_forms_analyze_responses_bulk(form_ids):
         }
     
     except Exception as e:
-        print(f"❌ Failed to analyze responses bulk: {e}")
+        print(f" Failed to analyze responses bulk: {e}")
         raise
 
 
-def google_forms_batch_update_settings(form_ids, settings):
+def google_forms_batch_update_settings(form_ids, settings, **kwargs):
     """Update settings for multiple forms
     
     Args:
@@ -1858,7 +1858,7 @@ def google_forms_batch_update_settings(form_ids, settings):
                 'form_id': form_id,
                 'updated': True
             })
-            print(f"✅ Updated settings for: {form_id}")
+            print(f" Updated settings for: {form_id}")
         
         return {
             'forms': updated_forms,
@@ -1866,11 +1866,11 @@ def google_forms_batch_update_settings(form_ids, settings):
         }
     
     except Exception as e:
-        print(f"❌ Failed to batch update settings: {e}")
+        print(f" Failed to batch update settings: {e}")
         raise
 
 
-def google_forms_batch_open_close(form_ids, accepting=True):
+def google_forms_batch_open_close(form_ids, accepting=True, **kwargs):
     """Open or close multiple forms"""
     try:
         updated_forms = []
@@ -1881,7 +1881,7 @@ def google_forms_batch_open_close(form_ids, accepting=True):
                 'form_id': form_id,
                 'accepting': accepting
             })
-            print(f"✅ {'Opened' if accepting else 'Closed'} form: {form_id}")
+            print(f" {'Opened' if accepting else 'Closed'} form: {form_id}")
         
         return {
             'forms': updated_forms,
@@ -1890,7 +1890,7 @@ def google_forms_batch_open_close(form_ids, accepting=True):
         }
     
     except Exception as e:
-        print(f"❌ Failed to batch open/close: {e}")
+        print(f" Failed to batch open/close: {e}")
         raise
 
 
@@ -1908,7 +1908,7 @@ def _get_ai_client():
     return openai.OpenAI(api_key=api_key)
 
 
-def google_forms_ai_generate_from_prompt(prompt, form_type='survey', ai_model='gpt-4'):
+def google_forms_ai_generate_from_prompt(prompt, form_type='survey', ai_model='gpt-4', **kwargs):
     """Generate a complete form from natural language description
     
     Args:
@@ -1956,7 +1956,7 @@ Make questions clear, specific, and appropriate for the form type."""
         # Create the form using bulk create
         result = google_forms_bulk_create_forms([form_config])
         
-        print(f"✅ AI generated form: {form_config['title']}")
+        print(f" AI generated form: {form_config['title']}")
         
         return {
             'form': result['forms'][0],
@@ -1965,11 +1965,11 @@ Make questions clear, specific, and appropriate for the form type."""
         }
     
     except Exception as e:
-        print(f"❌ Failed to AI generate form: {e}")
+        print(f" Failed to AI generate form: {e}")
         raise
 
 
-def google_forms_ai_generate_survey(topic, audience, question_count=5, ai_model='gpt-4'):
+def google_forms_ai_generate_survey(topic, audience, question_count=5, ai_model='gpt-4', **kwargs):
     """Auto-generate a survey on a specific topic"""
     prompt = f"""Create a {question_count}-question survey about {topic} for {audience}.
     
@@ -1982,7 +1982,7 @@ Include:
     return google_forms_ai_generate_from_prompt(prompt, 'survey', ai_model)
 
 
-def google_forms_ai_generate_quiz(topic, difficulty='medium', question_count=10, ai_model='gpt-4'):
+def google_forms_ai_generate_quiz(topic, difficulty='medium', question_count=10, ai_model='gpt-4', **kwargs):
     """Auto-generate a quiz on a topic"""
     prompt = f"""Create a {difficulty} difficulty quiz about {topic} with {question_count} questions.
     
@@ -2001,7 +2001,7 @@ Include:
     return form
 
 
-def google_forms_ai_generate_registration(event_details, ai_model='gpt-4'):
+def google_forms_ai_generate_registration(event_details, ai_model='gpt-4', **kwargs):
     """Generate event registration form"""
     prompt = f"""Create an event registration form for: {event_details}
     
@@ -2016,7 +2016,7 @@ Include:
     return google_forms_ai_generate_from_prompt(prompt, 'registration', ai_model)
 
 
-def google_forms_ai_optimize_questions(form_id, ai_model='gpt-4'):
+def google_forms_ai_optimize_questions(form_id, ai_model='gpt-4', **kwargs):
     """Get AI suggestions to improve questions"""
     try:
         if not HAS_OPENAI:
@@ -2053,16 +2053,16 @@ Return JSON with 'suggestions' array containing improvement recommendations."""
         
         suggestions = json.loads(response.choices[0].message.content)
         
-        print(f"✅ Generated {len(suggestions.get('suggestions', []))} optimization suggestions")
+        print(f" Generated {len(suggestions.get('suggestions', []))} optimization suggestions")
         
         return suggestions
     
     except Exception as e:
-        print(f"❌ Failed to optimize questions: {e}")
+        print(f" Failed to optimize questions: {e}")
         raise
 
 
-def google_forms_ai_suggest_questions(form_id, context, ai_model='gpt-4'):
+def google_forms_ai_suggest_questions(form_id, context, ai_model='gpt-4', **kwargs):
     """Suggest additional questions based on context"""
     try:
         if not HAS_OPENAI:
@@ -2086,16 +2086,16 @@ Return JSON with 'questions' array containing question objects with type, text, 
         
         suggestions = json.loads(response.choices[0].message.content)
         
-        print(f"✅ Suggested {len(suggestions.get('questions', []))} new questions")
+        print(f" Suggested {len(suggestions.get('questions', []))} new questions")
         
         return suggestions
     
     except Exception as e:
-        print(f"❌ Failed to suggest questions: {e}")
+        print(f" Failed to suggest questions: {e}")
         raise
 
 
-def google_forms_ai_translate_form(form_id, target_language, ai_model='gpt-4'):
+def google_forms_ai_translate_form(form_id, target_language, ai_model='gpt-4', **kwargs):
     """Translate entire form to another language"""
     try:
         if not HAS_OPENAI:
@@ -2108,7 +2108,7 @@ def google_forms_ai_translate_form(form_id, target_language, ai_model='gpt-4'):
         translated_title = f"{form['info']['title']} ({target_language})"
         cloned = google_forms_clone_form(form_id, translated_title)
         
-        print(f"✅ Cloned form for translation to {target_language}")
+        print(f" Cloned form for translation to {target_language}")
         
         # Note: Full translation would require updating all text elements
         # This is a simplified implementation
@@ -2120,11 +2120,11 @@ def google_forms_ai_translate_form(form_id, target_language, ai_model='gpt-4'):
         }
     
     except Exception as e:
-        print(f"❌ Failed to translate form: {e}")
+        print(f" Failed to translate form: {e}")
         raise
 
 
-def google_forms_ai_generate_multilingual(prompt, languages, ai_model='gpt-4'):
+def google_forms_ai_generate_multilingual(prompt, languages, ai_model='gpt-4', **kwargs):
     """Create forms in multiple languages"""
     try:
         created_forms = []
@@ -2136,7 +2136,7 @@ def google_forms_ai_generate_multilingual(prompt, languages, ai_model='gpt-4'):
                 'language': language,
                 'form': form
             })
-            print(f"✅ Created form in {language}")
+            print(f" Created form in {language}")
         
         return {
             'forms': created_forms,
@@ -2144,11 +2144,11 @@ def google_forms_ai_generate_multilingual(prompt, languages, ai_model='gpt-4'):
         }
     
     except Exception as e:
-        print(f"❌ Failed to generate multilingual forms: {e}")
+        print(f" Failed to generate multilingual forms: {e}")
         raise
 
 
-def google_forms_ai_analyze_responses(form_id, analysis_type='summary', ai_model='gpt-4'):
+def google_forms_ai_analyze_responses(form_id, analysis_type='summary', ai_model='gpt-4', **kwargs):
     """AI-powered response analysis
     
     Args:
@@ -2186,7 +2186,7 @@ def google_forms_ai_analyze_responses(form_id, analysis_type='summary', ai_model
         
         analysis = json.loads(response.choices[0].message.content)
         
-        print(f"✅ Completed {analysis_type} analysis on {len(responses)} responses")
+        print(f" Completed {analysis_type} analysis on {len(responses)} responses")
         
         return {
             'analysis_type': analysis_type,
@@ -2195,16 +2195,16 @@ def google_forms_ai_analyze_responses(form_id, analysis_type='summary', ai_model
         }
     
     except Exception as e:
-        print(f"❌ Failed to analyze responses: {e}")
+        print(f" Failed to analyze responses: {e}")
         raise
 
 
-def google_forms_ai_sentiment_analysis(form_id, question_ids=None, ai_model='gpt-4'):
+def google_forms_ai_sentiment_analysis(form_id, question_ids=None, ai_model='gpt-4', **kwargs):
     """Sentiment analysis on text responses"""
     return google_forms_ai_analyze_responses(form_id, 'sentiment', ai_model)
 
 
-def google_forms_ai_categorize_responses(form_id, categories, ai_model='gpt-4'):
+def google_forms_ai_categorize_responses(form_id, categories, ai_model='gpt-4', **kwargs):
     """Auto-categorize responses"""
     try:
         if not HAS_OPENAI:
@@ -2234,7 +2234,7 @@ def google_forms_ai_categorize_responses(form_id, categories, ai_model='gpt-4'):
                 'category': category
             })
         
-        print(f"✅ Categorized {len(categorized)} responses")
+        print(f" Categorized {len(categorized)} responses")
         
         return {
             'categorized': categorized,
@@ -2242,16 +2242,16 @@ def google_forms_ai_categorize_responses(form_id, categories, ai_model='gpt-4'):
         }
     
     except Exception as e:
-        print(f"❌ Failed to categorize responses: {e}")
+        print(f" Failed to categorize responses: {e}")
         raise
 
 
-def google_forms_ai_extract_insights(form_id, ai_model='gpt-4'):
+def google_forms_ai_extract_insights(form_id, ai_model='gpt-4', **kwargs):
     """Extract key insights from responses"""
     return google_forms_ai_analyze_responses(form_id, 'insights', ai_model)
 
 
-def google_forms_ai_generate_report(form_id, report_type='summary', ai_model='gpt-4'):
+def google_forms_ai_generate_report(form_id, report_type='summary', ai_model='gpt-4', **kwargs):
     """Generate summary report"""
     try:
         analysis = google_forms_ai_analyze_responses(form_id, report_type, ai_model)
@@ -2266,16 +2266,16 @@ def google_forms_ai_generate_report(form_id, report_type='summary', ai_model='gp
             'ai_model': ai_model
         }
         
-        print(f"✅ Generated {report_type} report")
+        print(f" Generated {report_type} report")
         
         return report
     
     except Exception as e:
-        print(f"❌ Failed to generate report: {e}")
+        print(f" Failed to generate report: {e}")
         raise
 
 
-def google_forms_ai_detect_spam(form_id, ai_model='gpt-4'):
+def google_forms_ai_detect_spam(form_id, ai_model='gpt-4', **kwargs):
     """Identify spam responses"""
     try:
         if not HAS_OPENAI:
@@ -2308,7 +2308,7 @@ def google_forms_ai_detect_spam(form_id, ai_model='gpt-4'):
                     'confidence': spam_check.get('confidence')
                 })
         
-        print(f"✅ Detected {len(spam_responses)} potential spam responses")
+        print(f" Detected {len(spam_responses)} potential spam responses")
         
         return {
             'spam_responses': spam_responses,
@@ -2317,11 +2317,11 @@ def google_forms_ai_detect_spam(form_id, ai_model='gpt-4'):
         }
     
     except Exception as e:
-        print(f"❌ Failed to detect spam: {e}")
+        print(f" Failed to detect spam: {e}")
         raise
 
 
-def google_forms_ai_flag_priority(form_id, criteria, ai_model='gpt-4'):
+def google_forms_ai_flag_priority(form_id, criteria, ai_model='gpt-4', **kwargs):
     """Flag important/urgent responses"""
     try:
         if not HAS_OPENAI:
@@ -2354,7 +2354,7 @@ def google_forms_ai_flag_priority(form_id, criteria, ai_model='gpt-4'):
                     'reason': priority_check.get('reason')
                 })
         
-        print(f"✅ Flagged {len(priority_responses)} priority responses")
+        print(f" Flagged {len(priority_responses)} priority responses")
         
         return {
             'priority_responses': priority_responses,
@@ -2362,11 +2362,11 @@ def google_forms_ai_flag_priority(form_id, criteria, ai_model='gpt-4'):
         }
     
     except Exception as e:
-        print(f"❌ Failed to flag priority: {e}")
+        print(f" Failed to flag priority: {e}")
         raise
 
 
-def google_forms_ai_auto_respond(form_id, response_template, ai_model='gpt-4'):
+def google_forms_ai_auto_respond(form_id, response_template, ai_model='gpt-4', **kwargs):
     """Generate auto-responses for submissions"""
     try:
         return {
@@ -2375,18 +2375,18 @@ def google_forms_ai_auto_respond(form_id, response_template, ai_model='gpt-4'):
         }
     
     except Exception as e:
-        print(f"❌ Failed to auto respond: {e}")
+        print(f" Failed to auto respond: {e}")
         raise
 
 
-def google_forms_ai_suggest_improvements(form_id, ai_model='gpt-4'):
+def google_forms_ai_suggest_improvements(form_id, ai_model='gpt-4', **kwargs):
     """Get form optimization suggestions"""
     return google_forms_ai_optimize_questions(form_id, ai_model)
 
 
 # ==================== WORKAROUND UTILITIES ====================
 
-def google_forms_extract_entry_ids(form_id):
+def google_forms_extract_entry_ids(form_id, **kwargs):
     """Extract entry IDs for HTTP submission workaround"""
     try:
         if not HAS_BS4:
@@ -2410,7 +2410,7 @@ def google_forms_extract_entry_ids(form_id):
                     pass
                 entries[name] = label
         
-        print(f"✅ Extracted {len(entries)} entry IDs")
+        print(f" Extracted {len(entries)} entry IDs")
         
         return {
             'entries': entries,
@@ -2419,11 +2419,11 @@ def google_forms_extract_entry_ids(form_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to extract entry IDs: {e}")
+        print(f" Failed to extract entry IDs: {e}")
         raise
 
 
-def google_forms_submit_response_http(form_id, responses_dict):
+def google_forms_submit_response_http(form_id, responses_dict, **kwargs):
     """Submit response via HTTP POST workaround
     
     Args:
@@ -2438,9 +2438,9 @@ def google_forms_submit_response_http(form_id, responses_dict):
         success = response.status_code in [200, 302]
         
         if success:
-            print(f"✅ Submitted response to form")
+            print(f" Submitted response to form")
         else:
-            print(f"⚠️ Response may not have been submitted (status: {response.status_code})")
+            print(f" Response may not have been submitted (status: {response.status_code})")
         
         return {
             'submitted': success,
@@ -2449,11 +2449,11 @@ def google_forms_submit_response_http(form_id, responses_dict):
         }
     
     except Exception as e:
-        print(f"❌ Failed to submit response: {e}")
+        print(f" Failed to submit response: {e}")
         raise
 
 
-def google_forms_bulk_submit_responses(form_id, responses_list):
+def google_forms_bulk_submit_responses(form_id, responses_list, **kwargs):
     """Submit multiple responses"""
     try:
         submitted_count = 0
@@ -2463,7 +2463,7 @@ def google_forms_bulk_submit_responses(form_id, responses_list):
             if result.get('submitted'):
                 submitted_count += 1
         
-        print(f"✅ Submitted {submitted_count}/{len(responses_list)} responses")
+        print(f" Submitted {submitted_count}/{len(responses_list)} responses")
         
         return {
             'submitted': submitted_count,
@@ -2471,11 +2471,11 @@ def google_forms_bulk_submit_responses(form_id, responses_list):
         }
     
     except Exception as e:
-        print(f"❌ Failed to bulk submit: {e}")
+        print(f" Failed to bulk submit: {e}")
         raise
 
 
-def google_forms_auto_test(form_id, count=10, realistic=True, ai_model='gpt-4'):
+def google_forms_auto_test(form_id, count=10, realistic=True, ai_model='gpt-4', **kwargs):
     """Generate and submit test responses
     
     Args:
@@ -2522,16 +2522,16 @@ def google_forms_auto_test(form_id, count=10, realistic=True, ai_model='gpt-4'):
         # Submit all responses
         result = google_forms_bulk_submit_responses(form_id, responses_to_submit)
         
-        print(f"✅ Generated and submitted {result['submitted']} test responses")
+        print(f" Generated and submitted {result['submitted']} test responses")
         
         return result
     
     except Exception as e:
-        print(f"❌ Failed to auto test: {e}")
+        print(f" Failed to auto test: {e}")
         raise
 
 
-def google_forms_export_with_metadata(form_id, include_timestamps=True):
+def google_forms_export_with_metadata(form_id, include_timestamps=True, **kwargs):
     """Export responses with full metadata"""
     try:
         responses_data = google_forms_get_responses(form_id)
@@ -2548,16 +2548,16 @@ def google_forms_export_with_metadata(form_id, include_timestamps=True):
             'exported_at': datetime.now().isoformat()
         }
         
-        print(f"✅ Exported {export_data['count']} responses with metadata")
+        print(f" Exported {export_data['count']} responses with metadata")
         
         return export_data
     
     except Exception as e:
-        print(f"❌ Failed to export with metadata: {e}")
+        print(f" Failed to export with metadata: {e}")
         raise
 
 
-def google_forms_sync_to_sheets(form_id, sheet_id, realtime=False):
+def google_forms_sync_to_sheets(form_id, sheet_id, realtime=False, **kwargs):
     """Advanced Sheets synchronization"""
     try:
         return {
@@ -2568,11 +2568,11 @@ def google_forms_sync_to_sheets(form_id, sheet_id, realtime=False):
         }
     
     except Exception as e:
-        print(f"❌ Failed to sync to sheets: {e}")
+        print(f" Failed to sync to sheets: {e}")
         raise
 
 
-def google_forms_export_pdf_report(form_id):
+def google_forms_export_pdf_report(form_id, **kwargs):
     """Generate PDF report (requires additional libraries)"""
     try:
         return {
@@ -2581,11 +2581,11 @@ def google_forms_export_pdf_report(form_id):
         }
     
     except Exception as e:
-        print(f"❌ Failed to export PDF: {e}")
+        print(f" Failed to export PDF: {e}")
         raise
 
 
-def google_forms_inject_custom_html(form_id, html):
+def google_forms_inject_custom_html(form_id, html, **kwargs):
     """Add custom HTML elements (requires Apps Script bridge)"""
     try:
         return {
@@ -2594,11 +2594,11 @@ def google_forms_inject_custom_html(form_id, html):
         }
     
     except Exception as e:
-        print(f"❌ Failed to inject HTML: {e}")
+        print(f" Failed to inject HTML: {e}")
         raise
 
 
-def google_forms_set_custom_theme(form_id, theme_config):
+def google_forms_set_custom_theme(form_id, theme_config, **kwargs):
     """Apply custom styling (limited API support)"""
     try:
         return {
@@ -2607,7 +2607,7 @@ def google_forms_set_custom_theme(form_id, theme_config):
         }
     
     except Exception as e:
-        print(f"❌ Failed to set theme: {e}")
+        print(f" Failed to set theme: {e}")
         raise
 
 
@@ -2729,7 +2729,7 @@ __all__ = [
 # ==================== SMART BUNDLED TOOLS (HIGH-LEVEL) ====================
 
 def google_forms_create_complete_form(title, questions, description=None, shareable=True, 
-                                      collect_email=False, settings=None):
+                                      collect_email=False, settings=None, **kwargs):
     """Create a complete Google Form with all questions in ONE operation
     
     This is the PREFERRED method for creating forms - it bundles multiple operations
@@ -2798,12 +2798,12 @@ def google_forms_create_complete_form(title, questions, description=None, sharea
         )
         
         form_id = form['form_id']
-        print(f"✅ Created form: {form_id}")
+        print(f" Created form: {form_id}")
         
         # Step 2: Add all questions in one batch
         if questions:
             result = google_forms_batch_add_questions(form_id, questions)
-            print(f"✅ Added {len(questions)} questions")
+            print(f" Added {len(questions)} questions")
         
         # Step 3: Configure settings
         if collect_email or settings:
@@ -2811,7 +2811,7 @@ def google_forms_create_complete_form(title, questions, description=None, sharea
             if collect_email:
                 settings_dict['collect_email'] = True
             google_forms_set_settings(form_id, settings_dict)
-            print(f"✅ Configured settings")
+            print(f" Configured settings")
         
         # Return complete form info
         return {
@@ -2826,11 +2826,11 @@ def google_forms_create_complete_form(title, questions, description=None, sharea
         }
     
     except Exception as e:
-        print(f"❌ Failed to create complete form: {e}")
+        print(f" Failed to create complete form: {e}")
         raise
 
 
-def google_forms_ai_generate_form(prompt, form_type='survey', shareable=True, ai_model='gpt-4'):
+def google_forms_ai_generate_form(prompt, form_type='survey', shareable=True, ai_model='gpt-4', **kwargs):
     """Generate a complete form from natural language description using AI
     
     This is the EASIEST way to create forms - just describe what you want and
@@ -2879,7 +2879,7 @@ def google_forms_ai_generate_form(prompt, form_type='survey', shareable=True, ai
                     body=permission
                 ).execute()
                 form['shareable'] = True
-                print(f"✅ Made AI-generated form shareable")
+                print(f" Made AI-generated form shareable")
             except:
                 pass
         
@@ -2897,11 +2897,11 @@ def google_forms_ai_generate_form(prompt, form_type='survey', shareable=True, ai
         }
     
     except Exception as e:
-        print(f"❌ Failed to AI generate form: {e}")
+        print(f" Failed to AI generate form: {e}")
         raise
 
 
-def google_forms_bulk_create_multiple(forms_configs, shareable=True):
+def google_forms_bulk_create_multiple(forms_configs, shareable=True, **kwargs):
     """Create multiple complete forms at once - MOST EFFICIENT for bulk operations
     
     Args:
@@ -2956,7 +2956,7 @@ def google_forms_bulk_create_multiple(forms_configs, shareable=True):
             )
             
             created_forms.append(form)
-            print(f"✅ Created: {config.get('title')}")
+            print(f" Created: {config.get('title')}")
         
         return {
             'success': True,
@@ -2966,8 +2966,8 @@ def google_forms_bulk_create_multiple(forms_configs, shareable=True):
         }
     
     except Exception as e:
-        print(f"❌ Failed to bulk create forms: {e}")
+        print(f" Failed to bulk create forms: {e}")
         raise
 
 
-print(f"✅ Google Forms Module loaded: {len(__all__)} functions available")
+print(f" Google Forms Module loaded: {len(__all__)} functions available")

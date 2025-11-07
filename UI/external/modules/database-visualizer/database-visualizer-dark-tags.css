@@ -1,0 +1,182 @@
+/* ========================================
+   DATABASE VISUALIZER - DARK TAG THEME
+   Custom dark backgrounds with white text
+   ======================================== */
+
+/* Override default tag colors with dark backgrounds and white text */
+
+/* 1. TAG BUTTON COLORS - Dark backgrounds with white text */
+.action-btn-tag.tag-green {
+    background: #1b5e20 !important; /* Dark green */
+    color: #ffffff !important;
+    border: 2px solid #2e7d32 !important;
+}
+
+.action-btn-tag.tag-orange {
+    background: #e65100 !important; /* Dark orange */
+    color: #ffffff !important;
+    border: 2px solid #ff6f00 !important;
+}
+
+.action-btn-tag.tag-red {
+    background: #b71c1c !important; /* Dark red */
+    color: #ffffff !important;
+    border: 2px solid #c62828 !important;
+}
+
+.action-btn-tag:hover {
+    opacity: 0.85;
+    transform: scale(1.05);
+}
+
+/* 2. TAGGED CELL STYLES - Dark backgrounds */
+.tabulator-cell.tagged-cell.tag-green {
+    background: #1b5e20 !important;
+    color: #ffffff !important;
+    border-right: 4px solid #4caf50 !important;
+}
+
+.tabulator-cell.tagged-cell.tag-orange {
+    background: #e65100 !important;
+    color: #ffffff !important;
+    border-right: 4px solid #ff9800 !important;
+}
+
+.tabulator-cell.tagged-cell.tag-red {
+    background: #b71c1c !important;
+    color: #ffffff !important;
+    border-right: 4px solid #f44336 !important;
+}
+
+/* 3. TAGGED ROW BACKGROUNDS - Dark with white text */
+.tabulator-row.tagged-row-green {
+    background: #1b5e20 !important; /* Dark green */
+    color: #ffffff !important;
+    border-left: 5px solid #4caf50 !important;
+}
+
+.tabulator-row.tagged-row-green:hover {
+    background: #2e7d32 !important; /* Lighter on hover */
+    color: #ffffff !important;
+}
+
+.tabulator-row.tagged-row-orange {
+    background: #e65100 !important; /* Dark orange */
+    color: #ffffff !important;
+    border-left: 5px solid #ff9800 !important;
+}
+
+.tabulator-row.tagged-row-orange:hover {
+    background: #f57c00 !important; /* Lighter on hover */
+    color: #ffffff !important;
+}
+
+.tabulator-row.tagged-row-red {
+    background: #b71c1c !important; /* Dark red */
+    color: #ffffff !important;
+    border-left: 5px solid #f44336 !important;
+}
+
+.tabulator-row.tagged-row-red:hover {
+    background: #c62828 !important; /* Lighter on hover */
+    color: #ffffff !important;
+}
+
+/* 4. ENSURE ALL CELLS IN TAGGED ROWS HAVE WHITE TEXT */
+.tabulator-row.tagged-row-green .tabulator-cell,
+.tabulator-row.tagged-row-orange .tabulator-cell,
+.tabulator-row.tagged-row-red .tabulator-cell {
+    color: #ffffff !important;
+}
+
+/* Even on hover, keep text white */
+.tabulator-row.tagged-row-green:hover .tabulator-cell,
+.tabulator-row.tagged-row-orange:hover .tabulator-cell,
+.tabulator-row.tagged-row-red:hover .tabulator-cell {
+    color: #ffffff !important;
+}
+
+/* 5. NULL VALUE STYLING IN TAGGED ROWS */
+.tabulator-row.tagged-row-green .tabulator-cell span[style*="italic"],
+.tabulator-row.tagged-row-orange .tabulator-cell span[style*="italic"],
+.tabulator-row.tagged-row-red .tabulator-cell span[style*="italic"] {
+    color: rgba(255, 255, 255, 0.7) !important; /* Slightly dimmed white for NULL */
+}
+
+/* 6. SELECTION STYLING FOR TAGGED ROWS */
+.tabulator-row.tagged-row-green.tabulator-selected,
+.tabulator-row.tagged-row-orange.tabulator-selected,
+.tabulator-row.tagged-row-red.tabulator-selected {
+    outline: 2px solid #ffffff;
+    outline-offset: -2px;
+}
+
+/* 7. BULK OPERATION BUTTONS - Match dark theme */
+#bulk-operations-container .btn-success {
+    background: #1b5e20 !important;
+    color: #ffffff !important;
+    border: 1px solid #2e7d32 !important;
+}
+
+#bulk-operations-container .btn-success:hover {
+    background: #2e7d32 !important;
+}
+
+#bulk-operations-container .btn-warning {
+    background: #e65100 !important;
+    color: #ffffff !important;
+    border: 1px solid #ff6f00 !important;
+}
+
+#bulk-operations-container .btn-warning:hover {
+    background: #f57c00 !important;
+}
+
+#bulk-operations-container .btn-danger {
+    background: #b71c1c !important;
+    color: #ffffff !important;
+    border: 1px solid #c62828 !important;
+}
+
+#bulk-operations-container .btn-danger:hover {
+    background: #c62828 !important;
+}
+
+/* 8. ENSURE CHECKBOX CELLS ARE VISIBLE IN TAGGED ROWS */
+.tabulator-row.tagged-row-green .tabulator-cell[tabulator-field="select"],
+.tabulator-row.tagged-row-orange .tabulator-cell[tabulator-field="select"],
+.tabulator-row.tagged-row-red .tabulator-cell[tabulator-field="select"] {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 9. RESPONSIVE - MAINTAIN READABILITY ON MOBILE */
+@media (max-width: 768px) {
+    .tabulator-row.tagged-row-green,
+    .tabulator-row.tagged-row-orange,
+    .tabulator-row.tagged-row-red {
+        border-left-width: 4px !important;
+    }
+    
+    #bulk-operations-container {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    #bulk-operations-container button {
+        width: 100%;
+        margin: 2px 0;
+    }
+}
+
+/* 10. LIGHT MODE ADJUSTMENTS (force dark backgrounds even in light mode) */
+[data-theme="light"] .tabulator-row.tagged-row-green {
+    background: #1b5e20 !important;
+}
+
+[data-theme="light"] .tabulator-row.tagged-row-orange {
+    background: #e65100 !important;
+}
+
+[data-theme="light"] .tabulator-row.tagged-row-red {
+    background: #b71c1c !important;
+}

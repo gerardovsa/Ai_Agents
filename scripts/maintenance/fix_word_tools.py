@@ -106,5 +106,5 @@ if 'def get_word_tools' in content:
 with open('microsoft_word_tools_FIXED.py', 'w', encoding='utf-8') as f:
     f.write(content)
 
-print("✅ Fixed file written to microsoft_word_tools_FIXED.py")
+print(" Fixed file written to microsoft_word_tools_FIXED.py")
 print("Review the file, then rename it to microsoft_word_tools.py")

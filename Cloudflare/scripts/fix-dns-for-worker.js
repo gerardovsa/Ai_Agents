@@ -38,11 +38,11 @@ function makeRequest(method, path, data = null) {
         });
 
         req.on('error', reject);
-        
+
         if (data) {
             req.write(JSON.stringify(data));
         }
-        
+
         req.end();
     });
 }
@@ -53,52 +53,52 @@ async function fixDNSRecord() {
 
     // Step 1: Get current DNS records
     console.log('📋 Step 1: Finding mustcare.valorsynergysuite.com A record...');
-    
+
     try {
         const records = await makeRequest('GET', `/zones/${ZONE_ID}/dns_records?type=A&name=mustcare.valorsynergysuite.com`);
-        
+
         if (records.length === 0) {
-            console.log('✅ No A record found - Worker should work correctly!');
+            console.log(' No A record found - Worker should work correctly!');
             console.log('\n🎉 DNS is configured correctly for Worker-only mode');
             return;
         }
-        
+
         const record = records[0];
-        console.log(`✅ Found A record: ${record.name} → ${record.content}`);
+        console.log(` Found A record: ${record.name} → ${record.content}`);
         console.log(`   Proxied: ${record.proxied ? '🟠 YES (ORANGE CLOUD)' : '⚪ NO (GRAY CLOUD)'}`);
         console.log(`   Record ID: ${record.id}\n`);
-        
+
         if (record.proxied) {
             console.log('⚠️  PROBLEM IDENTIFIED:');
             console.log('   The A record is Proxied (Orange Cloud) which conflicts with the Worker');
             console.log('   This causes Error 1003 because Cloudflare tries to reach the IP directly\n');
-            
+
             console.log('━'.repeat(80) + '\n');
             console.log('📋 Step 2: Updating DNS record to DNS-only (Gray Cloud)...\n');
-            
+
             // Update the record to DNS-only
             const updated = await makeRequest('PATCH', `/zones/${ZONE_ID}/dns_records/${record.id}`, {
                 proxied: false
             });
-            
-            console.log('✅ DNS record updated successfully!');
+
+            console.log(' DNS record updated successfully!');
             console.log(`   ${updated.name} → ${updated.content}`);
             console.log(`   Proxied: ${updated.proxied ? '🟠 YES' : '⚪ NO (GRAY CLOUD)'}\n`);
             console.log('━'.repeat(80) + '\n');
             console.log('🎉 SUCCESS! The Worker should now handle all requests');
             console.log('🔧 Test it: https://mustcare.valorsynergysuite.com/health');
             console.log('⏱️  Wait 30 seconds for DNS propagation\n');
-            
+
         } else {
-            console.log('✅ A record is already DNS-only (Gray Cloud)');
+            console.log(' A record is already DNS-only (Gray Cloud)');
             console.log('⚠️  But Worker still might not work if the record exists');
             console.log('\n💡 RECOMMENDATION: Delete the A record entirely');
             console.log(`   Run: DELETE /zones/${ZONE_ID}/dns_records/${record.id}`);
             console.log('   This will let the Worker handle everything\n');
         }
-        
+
     } catch (error) {
-        console.error('❌ Failed:', error.message);
+        console.error(' Failed:', error.message);
         console.log('\n📋 Manual Steps:');
         console.log('1. Go to: https://dash.cloudflare.com/d31a1c9ec65f373f4008216c30b071cc/valorsynergysuite.com/dns');
         console.log('2. Find the A record for "mustcare.valorsynergysuite.com"');
@@ -109,6 +109,6 @@ async function fixDNSRecord() {
 }
 
 fixDNSRecord().catch(error => {
-    console.error('❌ Fatal error:', error);
+    console.error(' Fatal error:', error);
     process.exit(1);
 });

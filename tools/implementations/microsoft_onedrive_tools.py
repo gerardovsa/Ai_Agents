@@ -56,10 +56,20 @@ class MicrosoftOneDriveTools:
             
             response.raise_for_status()
             
-            if response.status_code == 204:
+            # Some endpoints return 204 No Content or 202 Accepted with empty body
+            if response.status_code in (202, 204):
                 return {'success': True}
             
-            return {'success': True, 'data': response.json()}
+            # Some endpoints return empty response on success
+            if not response.text or response.text.strip() == '':
+                return {'success': True}
+            
+            try:
+                return {'success': True, 'data': response.json()}
+            except ValueError as json_error:
+                # Response was successful but not JSON (e.g., empty body)
+                print(f"[WARNING] Microsoft OneDrive - Response not JSON: {response.status_code}, body length: {len(response.text)}")
+                return {'success': True, 'data': None}
             
         except requests.exceptions.HTTPError as e:
             error_msg = str(e)
@@ -72,7 +82,7 @@ class MicrosoftOneDriveTools:
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def _get_file_hash(self, file_path: str) -> str:
+    def _get_file_hash(self, file_path: str, **kwargs) -> str:
         """Calculate SHA256 hash of file"""
         sha256_hash = hashlib.sha256()
         with open(file_path, "rb") as f:
@@ -141,11 +151,25 @@ class MicrosoftOneDriveTools:
                 
                 response.raise_for_status()
                 
+                file_data = response.json()
+                file_id = file_data.get('id')
+                
+                # Make file shareable with edit permissions
+                share_result = self.onedrive_create_share_link(
+                    user_id=user_id,
+                    item_id=file_id,
+                    link_type='edit',
+                    scope='anonymous',
+                    **kwargs
+                )
+                
                 return {
                     'success': True,
                     'message': f'File "{file_name}" uploaded successfully',
                     'size': file_size,
-                    'file': response.json()
+                    'file': file_data,
+                    'shareable': share_result.get('success', False),
+                    'share_link': share_result.get('share_link', '')
                 }
                 
             except Exception as e:
@@ -230,10 +254,24 @@ class MicrosoftOneDriveTools:
         result = self._make_request('POST', endpoint, folder_data, **kwargs)
         
         if result['success']:
+            folder_data_result = result['data']
+            folder_id = folder_data_result.get('id')
+            
+            # Make folder shareable with edit permissions
+            share_result = self.onedrive_create_share_link(
+                user_id=user_id,
+                item_id=folder_id,
+                link_type='edit',
+                scope='anonymous',
+                **kwargs
+            )
+            
             return {
                 'success': True,
                 'message': f'Folder "{folder_name}" created successfully',
-                'folder': result['data']
+                'folder': folder_data_result,
+                'shareable': share_result.get('success', False),
+                'share_link': share_result.get('share_link', '')
             }
         return result
     
@@ -687,5 +725,327 @@ class MicrosoftOneDriveTools:
         return results
 
 
+# ========================================
+# GLOBAL INSTANCE & MODULE-LEVEL EXPORTS
+# ========================================
+
 # Create global instance
 microsoft_onedrive_tools = MicrosoftOneDriveTools()
+
+# Export all functions at module level
+# Wrappers handle parameter transformation for registry compatibility
+
+def microsoft_onedrive_upload_file(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_upload_file(user_id, **kwargs)
+
+def microsoft_onedrive_download_file(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_download_file(user_id, **kwargs)
+
+def microsoft_onedrive_get_file_info(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_file_info(user_id, **kwargs)
+
+def microsoft_onedrive_create_folder(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_create_folder(user_id, **kwargs)
+
+def microsoft_onedrive_delete_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_delete_item(user_id, **kwargs)
+
+def microsoft_onedrive_move_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_move_item(user_id, **kwargs)
+
+def microsoft_onedrive_copy_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_copy_item(user_id, **kwargs)
+
+def microsoft_onedrive_rename_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_rename_item(user_id, **kwargs)
+
+def microsoft_onedrive_search_files(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_search_files(user_id, **kwargs)
+
+def microsoft_onedrive_get_file_versions(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_file_versions(user_id, **kwargs)
+
+def microsoft_onedrive_restore_version(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_restore_version(user_id, **kwargs)
+
+def microsoft_onedrive_get_thumbnail(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_thumbnail(user_id, **kwargs)
+
+def microsoft_onedrive_create_share_link(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_create_share_link(user_id, **kwargs)
+
+def microsoft_onedrive_share_with_users(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_share_with_users(user_id, **kwargs)
+
+def microsoft_onedrive_get_permissions(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_permissions(user_id, **kwargs)
+
+def microsoft_onedrive_revoke_permission(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_revoke_permission(user_id, **kwargs)
+
+def microsoft_onedrive_get_storage_info(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_storage_info(user_id, **kwargs)
+
+def microsoft_onedrive_get_recent_files(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_recent_files(user_id, **kwargs)
+
+def microsoft_onedrive_smart_organize_by_type(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_smart_organize_by_type(user_id, **kwargs)
+
+def microsoft_onedrive_smart_backup_folder(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_smart_backup_folder(user_id, **kwargs)
+
+def microsoft_onedrive_smart_cleanup_duplicates(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_smart_cleanup_duplicates(user_id, **kwargs)
+
+def microsoft_onedrive_smart_sync_folders(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_smart_sync_folders(user_id, **kwargs)
+
+
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_list_files(user_id, **kwargs)
+
+def microsoft_onedrive_upload_file(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_upload_file(user_id, **kwargs)
+
+def microsoft_onedrive_download_file(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_download_file(user_id, **kwargs)
+
+def microsoft_onedrive_get_file_info(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_file_info(user_id, **kwargs)
+
+def microsoft_onedrive_create_folder(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_create_folder(user_id, **kwargs)
+
+def microsoft_onedrive_delete_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_delete_item(user_id, **kwargs)
+
+def microsoft_onedrive_move_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_move_item(user_id, **kwargs)
+
+def microsoft_onedrive_copy_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_copy_item(user_id, **kwargs)
+
+def microsoft_onedrive_rename_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_rename_item(user_id, **kwargs)
+
+def microsoft_onedrive_search_files(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_search_files(user_id, **kwargs)
+
+def microsoft_onedrive_get_file_versions(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_file_versions(user_id, **kwargs)
+
+def microsoft_onedrive_restore_version(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_restore_version(user_id, **kwargs)
+
+def microsoft_onedrive_get_thumbnail(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_thumbnail(user_id, **kwargs)
+
+def microsoft_onedrive_create_share_link(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_create_share_link(user_id, **kwargs)
+
+def microsoft_onedrive_share_with_users(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_share_with_users(user_id, **kwargs)
+
+def microsoft_onedrive_get_permissions(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_permissions(user_id, **kwargs)
+
+def microsoft_onedrive_revoke_permission(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_revoke_permission(user_id, **kwargs)
+
+def microsoft_onedrive_get_storage_info(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_storage_info(user_id, **kwargs)
+
+def microsoft_onedrive_get_recent_files(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_get_recent_files(user_id, **kwargs)
+
+def microsoft_onedrive_smart_organize_by_type(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_smart_organize_by_type(user_id, **kwargs)
+
+def microsoft_onedrive_smart_backup_folder(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_smart_backup_folder(user_id, **kwargs)
+
+def microsoft_onedrive_smart_cleanup_duplicates(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_smart_cleanup_duplicates(user_id, **kwargs)
+
+def microsoft_onedrive_smart_sync_folders(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_onedrive_tools.onedrive_smart_sync_folders(user_id, **kwargs)
+
+
+microsoft_onedrive_upload_file = microsoft_onedrive_tools.onedrive_upload_file
+
+microsoft_onedrive_download_file = microsoft_onedrive_tools.onedrive_download_file
+
+microsoft_onedrive_get_file_info = microsoft_onedrive_tools.onedrive_get_file_info
+
+microsoft_onedrive_create_folder = microsoft_onedrive_tools.onedrive_create_folder
+
+microsoft_onedrive_delete_item = microsoft_onedrive_tools.onedrive_delete_item
+
+microsoft_onedrive_move_item = microsoft_onedrive_tools.onedrive_move_item
+
+microsoft_onedrive_copy_item = microsoft_onedrive_tools.onedrive_copy_item
+
+microsoft_onedrive_rename_item = microsoft_onedrive_tools.onedrive_rename_item
+
+microsoft_onedrive_search_files = microsoft_onedrive_tools.onedrive_search_files
+
+microsoft_onedrive_get_file_versions = microsoft_onedrive_tools.onedrive_get_file_versions
+
+microsoft_onedrive_restore_version = microsoft_onedrive_tools.onedrive_restore_version
+
+microsoft_onedrive_get_thumbnail = microsoft_onedrive_tools.onedrive_get_thumbnail
+
+microsoft_onedrive_create_share_link = microsoft_onedrive_tools.onedrive_create_share_link
+
+microsoft_onedrive_share_with_users = microsoft_onedrive_tools.onedrive_share_with_users
+
+microsoft_onedrive_get_permissions = microsoft_onedrive_tools.onedrive_get_permissions
+
+microsoft_onedrive_revoke_permission = microsoft_onedrive_tools.onedrive_revoke_permission
+
+microsoft_onedrive_get_storage_info = microsoft_onedrive_tools.onedrive_get_storage_info
+
+microsoft_onedrive_get_recent_files = microsoft_onedrive_tools.onedrive_get_recent_files
+
+microsoft_onedrive_smart_organize_by_type = microsoft_onedrive_tools.onedrive_smart_organize_by_type
+
+microsoft_onedrive_smart_backup_folder = microsoft_onedrive_tools.onedrive_smart_backup_folder
+
+microsoft_onedrive_smart_cleanup_duplicates = microsoft_onedrive_tools.onedrive_smart_cleanup_duplicates
+
+microsoft_onedrive_smart_sync_folders = microsoft_onedrive_tools.onedrive_smart_sync_folders
+

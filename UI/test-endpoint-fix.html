@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endpoint Fix Test - AI Agents</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .test-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .result.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .endpoint-info {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 Endpoint Fix Test</h1>
+        <p class="subtitle">Testing corrected API endpoints - October 30, 2025</p>
+
+        <!-- Test 1: Server Health -->
+        <div class="test-section">
+            <h2>Test 1: Server Health Check</h2>
+            <button class="test-button" onclick="testHealth()">Check Server Health</button>
+            <div id="health-result"></div>
+        </div>
+
+        <!-- Test 2: Agent 1 Start -->
+        <div class="test-section">
+            <h2>Test 2: Agent 1 Start (Main Chat)</h2>
+            <button class="test-button" onclick="testAgent1()">Test Agent 1</button>
+            <div class="endpoint-info">Endpoint: POST /api/agent/agent/1/start</div>
+            <div id="agent1-result"></div>
+        </div>
+
+        <!-- Test 3: Triple Agent (1, 2, 3) -->
+        <div class="test-section">
+            <h2>Test 3: Triple Agent System</h2>
+            <button class="test-button" onclick="testAgent('1')">Test Agent 1</button>
+            <button class="test-button" onclick="testAgent('2')">Test Agent 2</button>
+            <button class="test-button" onclick="testAgent('3')">Test Agent 3</button>
+            <div class="endpoint-info">Endpoint: POST /api/agent/agent/{1,2,3}/start</div>
+            <div id="triple-result"></div>
+        </div>
+
+        <!-- Test 4: Tools Endpoint -->
+        <div class="test-section">
+            <h2>Test 4: Available Tools</h2>
+            <button class="test-button" onclick="testTools()">Get Tools List</button>
+            <div class="endpoint-info">Endpoint: GET /api/agent/tools</div>
+            <div id="tools-result"></div>
+        </div>
+
+        <!-- Test 5: Old Endpoint (Should Fail) -->
+        <div class="test-section">
+            <h2>Test 5: Old Endpoint (Should Return 404)</h2>
+            <button class="test-button" onclick="testOldEndpoint()">Test /api/agent/chat</button>
+            <div class="endpoint-info">Endpoint: POST /api/agent/chat (DEPRECATED)</div>
+            <div id="old-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001';
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.innerHTML = message;
+        }
+
+        function showLoading(elementId) {
+            showResult(elementId, '<span class="spinner"></span> Testing...', 'info');
+        }
+
+        async function testHealth() {
+            showLoading('health-result');
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult('health-result',
+                        `✅ Server is online!<br>Status: ${data.status || 'ok'}`,
+                        'success'
+                    );
+                } else {
+                    showResult('health-result',
+                        `⚠️ Server responded but not healthy<br>Status: ${response.status}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('health-result',
+                    `❌ Server offline or unreachable<br>Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testAgent1() {
+            showLoading('agent1-result');
+            try {
+                const sessionId = 'test-' + Date.now();
+                const response = await fetch(`${API_BASE}/api/agent/agent/1/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'Hello! This is a test message.',
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult('agent1-result',
+                        `✅ Agent 1 started successfully!<br>` +
+                        `Session ID: ${data.session_id}<br>` +
+                        `Agent ID: ${data.agent_id}<br>` +
+                        `Status: ${data.status}`,
+                        'success'
+                    );
+                } else {
+                    showResult('agent1-result',
+                        `❌ Failed to start Agent 1<br>` +
+                        `Status: ${response.status}<br>` +
+                        `Error: ${data.error || JSON.stringify(data)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('agent1-result',
+                    `❌ Request failed<br>Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testAgent(agentId) {
+            showLoading('triple-result');
+            try {
+                const sessionId = `test-agent${agentId}-` + Date.now();
+                const response = await fetch(`${API_BASE}/api/agent/agent/${agentId}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Testing Agent ${agentId}`,
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult('triple-result',
+                        `✅ Agent ${agentId} started successfully!<br>` +
+                        `Session ID: ${data.session_id}<br>` +
+                        `Agent ID: ${data.agent_id}<br>` +
+                        `Status: ${data.status}`,
+                        'success'
+                    );
+                } else {
+                    showResult('triple-result',
+                        `❌ Failed to start Agent ${agentId}<br>` +
+                        `Status: ${response.status}<br>` +
+                        `Error: ${data.error || JSON.stringify(data)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('triple-result',
+                    `❌ Request failed<br>Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testTools() {
+            showLoading('tools-result');
+            try {
+                const response = await fetch(`${API_BASE}/api/agent/tools`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showResult('tools-result',
+                        `✅ Tools loaded successfully!<br>` +
+                        `Total Tools: ${data.total || 0}<br>` +
+                        `Categories: ${data.categories ? data.categories.length : 0}<br>` +
+                        `Sample: ${data.tools ? data.tools.slice(0, 3).map(t => t.name).join(', ') : 'N/A'}`,
+                        'success'
+                    );
+                } else {
+                    showResult('tools-result',
+                        `⚠️ Tools endpoint responded but no tools found<br>` +
+                        `Status: ${response.status}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('tools-result',
+                    `❌ Request failed<br>Error: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        async function testOldEndpoint() {
+            showLoading('old-result');
+            try {
+                const response = await fetch(`${API_BASE}/api/agent/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'This should fail'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.status === 404) {
+                    showResult('old-result',
+                        `✅ Correctly returned 404!<br>` +
+                        `The deprecated /api/agent/chat endpoint has been removed.<br>` +
+                        `This is expected behavior.`,
+                        'success'
+                    );
+                } else if (response.status === 500) {
+                    showResult('old-result',
+                        `❌ Still getting 500 errors!<br>` +
+                        `The old endpoint still exists and is failing.<br>` +
+                        `Check agent_routes_v4.py`,
+                        'error'
+                    );
+                } else {
+                    showResult('old-result',
+                        `⚠️ Unexpected response<br>` +
+                        `Status: ${response.status}<br>` +
+                        `Response: ${JSON.stringify(data)}`,
+                        'info'
+                    );
+                }
+            } catch (error) {
+                showResult('old-result',
+                    `⚠️ Request failed (might be CORS)<br>Error: ${error.message}`,
+                    'info'
+                );
+            }
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            setTimeout(testHealth, 500);
+        });
+    </script>
+</body>
+
+</html>

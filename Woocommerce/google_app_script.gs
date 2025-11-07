@@ -51,7 +51,7 @@ function setupWooCommerceCredentials() {
     'WC_BASE_URL': 'https://minivetguide.com/wp-json/wc/v3/orders'
   });
   
-  Logger.log('✅ WooCommerce credentials have been stored securely');
+  Logger.log(' WooCommerce credentials have been stored securely');
   Logger.log('⚠️  Remember to update the hardcoded values with your actual credentials');
 }
 */
@@ -103,7 +103,7 @@ function fetchWooOrders(status, daysBack) {
       const responseCode = response.getResponseCode();
       
       if (responseCode !== 200) {
-        Logger.log(`❌ API Error on page ${page}: ${responseCode} - ${response.getContentText()}`);
+        Logger.log(` API Error on page ${page}: ${responseCode} - ${response.getContentText()}`);
         break;
       }
 
@@ -111,13 +111,13 @@ function fetchWooOrders(status, daysBack) {
       const parsed = JSON.parse(responseText);
 
       if (!Array.isArray(parsed)) {
-        Logger.log(`❌ Invalid response format on page ${page}`);
+        Logger.log(` Invalid response format on page ${page}`);
         break;
       }
 
       if (parsed.length === 0) {
         hasMorePages = false;
-        Logger.log(`✅ Reached end of data at page ${page}`);
+        Logger.log(` Reached end of data at page ${page}`);
         break;
       }
 
@@ -136,7 +136,7 @@ function fetchWooOrders(status, daysBack) {
       Utilities.sleep(CONSTANTS.API.RATE_LIMIT_MS);
       
     } catch (e) {
-      Logger.log(`❌ ERROR FETCHING PAGE ${page}: ${e.toString()}`);
+      Logger.log(` ERROR FETCHING PAGE ${page}: ${e.toString()}`);
       break;
     }
   }
@@ -245,7 +245,7 @@ function fetchWooOrders(status, daysBack) {
     exportColumnACToExcel(sheet, sheetName, startRow, processedCount);
   }
 
-  Logger.log(`✅ Import Complete - Sheet: ${sheetName}`);
+  Logger.log(` Import Complete - Sheet: ${sheetName}`);
   Logger.log(`📊 Processed: ${processedCount}, Errors: ${errorCount}, Total: ${allOrders.length}`);
 }
 
@@ -304,7 +304,7 @@ function filterItemsForPostage(lineItems) {
     return isAllowed;
   });
   
-  Logger.log(`✅ Filtered result: ${filteredItems.length} items included for postage`);
+  Logger.log(` Filtered result: ${filteredItems.length} items included for postage`);
   filteredItems.forEach((item, index) => {
     Logger.log(`Included item ${index + 1}: SKU="${item.sku}", Name="${item.name}"`);
   });
@@ -317,7 +317,7 @@ function processOrderData(order) {
   try {
     // Validate essential order data
     if (!order || !order.id) {
-      Logger.log('❌ Invalid order: missing ID');
+      Logger.log(' Invalid order: missing ID');
       return null;
     }
 
@@ -451,7 +451,7 @@ function processOrderData(order) {
     return row;
 
   } catch (e) {
-    Logger.log(`❌ Error processing order ${order.id || 'Unknown'}: ${e.toString()}`);
+    Logger.log(` Error processing order ${order.id || 'Unknown'}: ${e.toString()}`);
     return null;
   }
 }
@@ -864,20 +864,20 @@ function pollAllWooCommerceData() {
         }
         
         currentRow += 2; // Add spacing
-        Logger.log(`✅ ${ep.name}: ${Array.isArray(data) ? data.length : 1} records`);
+        Logger.log(` ${ep.name}: ${Array.isArray(data) ? data.length : 1} records`);
         
       } else {
-        masterSheet.getRange(currentRow, 1, 1, 3).setValues([[`❌ ${ep.name}`, 'ERROR:', response.getResponseCode()]]);
+        masterSheet.getRange(currentRow, 1, 1, 3).setValues([[` ${ep.name}`, 'ERROR:', response.getResponseCode()]]);
         currentRow++;
-        Logger.log(`❌ ${ep.name}: Error ${response.getResponseCode()}`);
+        Logger.log(` ${ep.name}: Error ${response.getResponseCode()}`);
       }
       
       Utilities.sleep(1000); // Rate limiting
       
     } catch (error) {
-      masterSheet.getRange(currentRow, 1, 1, 3).setValues([[`❌ ${ep.name}`, 'EXCEPTION:', error.toString()]]);
+      masterSheet.getRange(currentRow, 1, 1, 3).setValues([[` ${ep.name}`, 'EXCEPTION:', error.toString()]]);
       currentRow++;
-      Logger.log(`❌ ${ep.name}: ${error.toString()}`);
+      Logger.log(` ${ep.name}: ${error.toString()}`);
     }
   }
   
@@ -927,7 +927,7 @@ function fetchDetailedSalesAnalytics(status, daysBack) {
     createSalesAnalytics(sheet, orders);
     
   } catch (e) {
-    Logger.log("❌ ERROR: " + e.toString());
+    Logger.log(" ERROR: " + e.toString());
   }
 }
 
@@ -1598,7 +1598,7 @@ function fixMissingCFSItems(sheet, startRow, rowCount) {
         
         // Update column AC with the fixed content
         sheet.getRange(row, 29, 1, 1).setValue(updatedACContent);
-        Logger.log(`✅ Row ${row}: Added CFS to column AC`);
+        Logger.log(` Row ${row}: Added CFS to column AC`);
       }
     }
   }
@@ -1646,7 +1646,7 @@ function exportColumnACToExcel(sheet, sheetName, startRow, rowCount) {
     const fileId = exportSpreadsheet.getId();
     const downloadUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=xlsx`;
     
-    Logger.log(`✅ Excel export created: ${exportSpreadsheet.getName()}`);
+    Logger.log(` Excel export created: ${exportSpreadsheet.getName()}`);
     Logger.log(`📁 File ID: ${fileId}`);
     Logger.log(`⬇️ Download URL: ${downloadUrl}`);
     Logger.log(`📊 Exported ${filteredValues.length} filtered print labels`);
@@ -1659,6 +1659,6 @@ function exportColumnACToExcel(sheet, sheetName, startRow, rowCount) {
     sheet.getRange(1, 37, 1, 1).setValue(downloadUrl);
     
   } catch (error) {
-    Logger.log(`❌ Error exporting to Excel: ${error.toString()}`);
+    Logger.log(` Error exporting to Excel: ${error.toString()}`);
   }
 }

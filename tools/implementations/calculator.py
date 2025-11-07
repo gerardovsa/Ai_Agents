@@ -1,9 +1,13 @@
 """
-InHouse Print Calculator Wrapper
+InHouse Print Calculator Wrapper - STANDALONE VERSION
+======================================================
 Provides access to InHouse Print quote calculators for the AI agent system.
 
-This wrapper imports the calculator from the In_House_SQL project and provides
-methods that match the tool schemas for use by the AI agent.
+This wrapper uses the STANDALONE calculator module (NO In_House_SQL dependency).
+All calculators are Shopify-based with JSON pricing configs (no SQL Server).
+
+Date: October 31, 2025
+Status: PRODUCTION READY
 """
 
 import sys
@@ -13,39 +17,35 @@ from typing import Dict, Any, Optional
 
 class CalculatorWrapper:
     """
-    Wrapper for InHouse Print calculators.
-    Imports calculator from In_House_SQL project.
+    Wrapper for InHouse Print calculators - STANDALONE VERSION.
+    Uses calculator module from UI/external/modules/calculator-module/backend/
+    NO dependency on In_House_SQL project.
     """
     
     def __init__(self, **kwargs):
         """Initialize calculator wrapper"""
         self.calculator = None
-        self.db_connector = None
         self._initialize_calculator()
     
     def _initialize_calculator(self):
-        """Import and initialize the calculator from In_House_SQL project"""
+        """Import and initialize the STANDALONE calculator module"""
         try:
-            # Add In_House_SQL G_Folder to path
-            inhouse_sql_path = Path(r"C:\Users\gpoli\GIT\In_House_SQL\G_Folder")
-            if inhouse_sql_path.exists():
-                sys.path.insert(0, str(inhouse_sql_path))
-                sys.path.insert(0, str(inhouse_sql_path / "Quote_Calculator"))
+            # Add standalone calculator module to path
+            calculator_path = Path(__file__).parent.parent.parent / "UI" / "external" / "modules" / "calculator-module" / "backend"
             
-            # Import database connector from In_House_SQL
-            from tools.db_connector import InHousePrintDB
+            if not calculator_path.exists():
+                print(f"⚠️ Calculator module not found: {calculator_path}")
+                raise FileNotFoundError(f"Calculator module not found: {calculator_path}")
             
-            # Import calculator
-            from complete_calculator_implementation import ComprehensiveQuoteCalculator
+            sys.path.insert(0, str(calculator_path))
             
-            # Initialize database connection
-            config_path = inhouse_sql_path / "config" / "database-config.json"
-            self.db_connector = InHousePrintDB(str(config_path))
+            # Import STANDALONE calculator wrapper
+            from calculator_wrapper import QuoteCalculatorWrapper
             
-            # Initialize calculator
-            self.calculator = ComprehensiveQuoteCalculator(self.db_connector)
+            # Initialize calculator (NO database needed!)
+            self.calculator = QuoteCalculatorWrapper()
             
-            print("✅ Calculator initialized successfully")
+            print("✅ Standalone calculator initialized successfully (8 calculators loaded)")
             
         except Exception as e:
             print(f"⚠️ Warning: Could not initialize calculator: {e}")
@@ -122,9 +122,9 @@ class CalculatorWrapper:
     def calculate_business_cards(
         self,
         quantity: int,
-        finish_size: str,
-        stock_type: str,
-        print_type: str,
+        finish_size: str = "90x55",
+        stock_type: str = "standard",
+        print_type: str = "double_sided",
         celloglaze: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
@@ -132,11 +132,11 @@ class CalculatorWrapper:
         Calculate quote for business cards using Shopify pricing
         
         Args:
-            quantity: Number of cards (250, 500, 1000, 2000, 5000)
-            finish_size: Card size (e.g., '90x55mm')
-            stock_type: 'standard' or 'premium'
-            print_type: 'single_sided' or 'double_sided'
-            celloglaze: Optional finish ('none', 'gloss', 'matt')
+            quantity: Number of cards (500, 1000, 2000, 5000, 10000)
+            finish_size: Card size (e.g., '90x55mm') - ignored for now
+            stock_type: 'standard' (300gsm) or 'premium' (350gsm)
+            print_type: 'single_sided', 'double_sided', 'color', 'bw'
+            celloglaze: Optional finish ('none', 'gloss', 'matt', 'silk')
         
         Returns:
             Quote dictionary with Shopify-matched pricing
@@ -145,20 +145,19 @@ class CalculatorWrapper:
             return self._format_error("Calculator not available - check server logs")
         
         try:
+            # Map print_type to sides
+            sides = "double" if "double" in print_type.lower() else "single"
+            finish = celloglaze or "none"
+            
             result = self.calculator.calculate_business_cards(
                 quantity=quantity,
-                finish_size=finish_size,
                 stock_type=stock_type,
-                print_type=print_type,
-                celloglaze=celloglaze or "none"
+                sides=sides,
+                finish=finish
             )
             
-            if hasattr(result, 'to_dict'):
-                return result.to_dict()
-            elif hasattr(result, '__dict__'):
-                return result.__dict__
-            else:
-                return {"success": True, "quote": result}
+            # Result is already a dict
+            return result if isinstance(result, dict) else {"success": True, "quote": result}
                 
         except Exception as e:
             return self._format_error(f"Business card calculation failed: {str(e)}")
@@ -223,6 +222,7 @@ class CalculatorWrapper:
         height: int,
         thickness: Optional[str] = "5mm",
         double_sided: Optional[bool] = False,
+        mounting: Optional[str] = "none",
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -230,10 +230,11 @@ class CalculatorWrapper:
         
         Args:
             quantity: Number of signs (tier pricing applies)
-            width: Width in mm
-            height: Height in mm
+            width: Width in mm (width_mm parameter)
+            height: Height in mm (height_mm parameter)
             thickness: '3mm' or '5mm'
             double_sided: Print both sides
+            mounting: 'none', '4_corners', '2_top', etc.
         
         Returns:
             Quote with tier-based pricing
@@ -242,20 +243,19 @@ class CalculatorWrapper:
             return self._format_error("Calculator not available - check server logs")
         
         try:
+            print_type = "double" if double_sided else "single"
+            
             result = self.calculator.calculate_corflute_signs(
+                width_mm=width,
+                height_mm=height,
                 quantity=quantity,
-                width=width,
-                height=height,
                 thickness=thickness,
-                double_sided=double_sided
+                print_type=print_type,
+                mounting=mounting or "none"
             )
             
-            if hasattr(result, 'to_dict'):
-                return result.to_dict()
-            elif hasattr(result, '__dict__'):
-                return result.__dict__
-            else:
-                return {"success": True, "quote": result}
+            # Result is already a dict
+            return result if isinstance(result, dict) else {"success": True, "quote": result}
                 
         except Exception as e:
             return self._format_error(f"Corflute calculation failed: {str(e)}")

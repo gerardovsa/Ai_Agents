@@ -987,21 +987,188 @@ class MicrosoftSharePointTools:
 # Create global instance (no access token needed - credentials injected per-call)
 microsoft_sharepoint_tools = MicrosoftSharePointTools()
 
-# Export all functions at module level for registry access
-sharepoint_get_site = microsoft_sharepoint_tools.sharepoint_get_site
-sharepoint_list_sites = microsoft_sharepoint_tools.sharepoint_list_sites
-sharepoint_search_content = microsoft_sharepoint_tools.sharepoint_search_content
-sharepoint_list_drives = microsoft_sharepoint_tools.sharepoint_list_drives
-sharepoint_list_items = microsoft_sharepoint_tools.sharepoint_list_items
-sharepoint_upload_file = microsoft_sharepoint_tools.sharepoint_upload_file
-sharepoint_create_folder = microsoft_sharepoint_tools.sharepoint_create_folder
-sharepoint_list_lists = microsoft_sharepoint_tools.sharepoint_list_lists
-sharepoint_get_list_items = microsoft_sharepoint_tools.sharepoint_get_list_items
-sharepoint_create_list_item = microsoft_sharepoint_tools.sharepoint_create_list_item
-sharepoint_update_list_item = microsoft_sharepoint_tools.sharepoint_update_list_item
-sharepoint_get_permissions = microsoft_sharepoint_tools.sharepoint_get_permissions
-sharepoint_create_share_link = microsoft_sharepoint_tools.sharepoint_create_share_link
-sharepoint_smart_site_audit = microsoft_sharepoint_tools.sharepoint_smart_site_audit
-sharepoint_smart_bulk_upload = microsoft_sharepoint_tools.sharepoint_smart_bulk_upload
-sharepoint_smart_organize_library = microsoft_sharepoint_tools.sharepoint_smart_organize_library
-sharepoint_smart_permission_report = microsoft_sharepoint_tools.sharepoint_smart_permission_report
+# Export all functions at module level
+# Wrappers handle parameter transformation for registry compatibility
+
+def microsoft_sharepoint_list_sites(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_list_sites(**kwargs)
+
+def microsoft_sharepoint_search_content(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_search_content(**kwargs)
+
+def microsoft_sharepoint_list_drives(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_list_drives(**kwargs)
+
+def microsoft_sharepoint_list_items(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_list_items(**kwargs)
+
+def microsoft_sharepoint_upload_file(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_upload_file(**kwargs)
+
+def microsoft_sharepoint_create_folder(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_create_folder(**kwargs)
+
+def microsoft_sharepoint_list_lists(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_list_lists(**kwargs)
+
+def microsoft_sharepoint_get_list_items(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_get_list_items(**kwargs)
+
+def microsoft_sharepoint_create_list_item(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_create_list_item(**kwargs)
+
+def microsoft_sharepoint_update_list_item(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_update_list_item(**kwargs)
+
+def microsoft_sharepoint_get_permissions(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_get_permissions(**kwargs)
+
+def microsoft_sharepoint_create_share_link(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_create_share_link(**kwargs)
+
+def microsoft_sharepoint_smart_site_audit(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_smart_site_audit(**kwargs)
+
+def microsoft_sharepoint_smart_bulk_upload(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_smart_bulk_upload(**kwargs)
+
+def microsoft_sharepoint_smart_organize_library(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_smart_organize_library(**kwargs)
+
+def microsoft_sharepoint_smart_permission_report(**kwargs):
+    return microsoft_sharepoint_tools.sharepoint_smart_permission_report(**kwargs)
+
+
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_get_site(user_id, **kwargs)
+
+def microsoft_sharepoint_list_sites(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_list_sites(user_id, **kwargs)
+
+def microsoft_sharepoint_search_content(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_search_content(user_id, **kwargs)
+
+def microsoft_sharepoint_list_drives(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_list_drives(user_id, **kwargs)
+
+def microsoft_sharepoint_list_items(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_list_items(user_id, **kwargs)
+
+def microsoft_sharepoint_upload_file(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_upload_file(user_id, **kwargs)
+
+def microsoft_sharepoint_create_folder(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_create_folder(user_id, **kwargs)
+
+def microsoft_sharepoint_list_lists(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_list_lists(user_id, **kwargs)
+
+def microsoft_sharepoint_get_list_items(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_get_list_items(user_id, **kwargs)
+
+def microsoft_sharepoint_create_list_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_create_list_item(user_id, **kwargs)
+
+def microsoft_sharepoint_update_list_item(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_update_list_item(user_id, **kwargs)
+
+def microsoft_sharepoint_get_permissions(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_get_permissions(user_id, **kwargs)
+
+def microsoft_sharepoint_create_share_link(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_create_share_link(user_id, **kwargs)
+
+def microsoft_sharepoint_smart_site_audit(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_smart_site_audit(user_id, **kwargs)
+
+def microsoft_sharepoint_smart_bulk_upload(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_smart_bulk_upload(user_id, **kwargs)
+
+def microsoft_sharepoint_smart_organize_library(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_smart_organize_library(user_id, **kwargs)
+
+def microsoft_sharepoint_smart_permission_report(**kwargs):
+    user_id = kwargs.pop('user_id', None)
+    if user_id is None:
+        raise ValueError("user_id is required")
+    return microsoft_sharepoint_tools.sharepoint_smart_permission_report(user_id, **kwargs)
+
+
+microsoft_sharepoint_list_sites = microsoft_sharepoint_tools.sharepoint_list_sites
+
+microsoft_sharepoint_search_content = microsoft_sharepoint_tools.sharepoint_search_content
+
+microsoft_sharepoint_list_drives = microsoft_sharepoint_tools.sharepoint_list_drives
+
+microsoft_sharepoint_list_items = microsoft_sharepoint_tools.sharepoint_list_items
+
+microsoft_sharepoint_upload_file = microsoft_sharepoint_tools.sharepoint_upload_file
+
+microsoft_sharepoint_create_folder = microsoft_sharepoint_tools.sharepoint_create_folder
+
+microsoft_sharepoint_list_lists = microsoft_sharepoint_tools.sharepoint_list_lists
+
+microsoft_sharepoint_get_list_items = microsoft_sharepoint_tools.sharepoint_get_list_items
+
+microsoft_sharepoint_create_list_item = microsoft_sharepoint_tools.sharepoint_create_list_item
+
+microsoft_sharepoint_update_list_item = microsoft_sharepoint_tools.sharepoint_update_list_item
+
+microsoft_sharepoint_get_permissions = microsoft_sharepoint_tools.sharepoint_get_permissions
+
+microsoft_sharepoint_create_share_link = microsoft_sharepoint_tools.sharepoint_create_share_link
+
+microsoft_sharepoint_smart_site_audit = microsoft_sharepoint_tools.sharepoint_smart_site_audit
+
+microsoft_sharepoint_smart_bulk_upload = microsoft_sharepoint_tools.sharepoint_smart_bulk_upload
+
+microsoft_sharepoint_smart_organize_library = microsoft_sharepoint_tools.sharepoint_smart_organize_library
+
+microsoft_sharepoint_smart_permission_report = microsoft_sharepoint_tools.sharepoint_smart_permission_report
+

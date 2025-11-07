@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "google_analytics_list_accounts",
-      "description": "List all Google Analytics accounts accessible",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all Google Analytics accounts accessible",
       "platform": "google_analytics",
       "parameters": {},
       "returns": {
@@ -14,7 +14,7 @@
     },
     {
       "name": "google_analytics_list_properties",
-      "description": "List properties for an account",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList properties for an account",
       "platform": "google_analytics",
       "parameters": {
         "account_id": {
@@ -30,7 +30,7 @@
     },
     {
       "name": "google_analytics_get_realtime_report",
-      "description": "Get real-time analytics data (last 30 minutes)",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet real-time analytics data (last 30 minutes)",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -62,7 +62,7 @@
     },
     {
       "name": "google_analytics_run_report",
-      "description": "Run a custom analytics report",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRun a custom analytics report",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -120,7 +120,7 @@
     },
     {
       "name": "google_analytics_get_page_views",
-      "description": "Get page view statistics for a date range",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet page view statistics for a date range",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -151,7 +151,7 @@
     },
     {
       "name": "google_analytics_get_user_behavior",
-      "description": "Get user behavior metrics (sessions, bounce rate, engagement)",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet user behavior metrics (sessions, bounce rate, engagement)",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -182,7 +182,7 @@
     },
     {
       "name": "google_analytics_get_conversions",
-      "description": "Get conversion tracking data",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet conversion tracking data",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -213,7 +213,7 @@
     },
     {
       "name": "google_analytics_get_traffic_sources",
-      "description": "Get traffic source breakdown (organic, paid, social, etc.)",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet traffic source breakdown (organic, paid, social, etc.)",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -239,7 +239,7 @@
     },
     {
       "name": "google_analytics_get_demographics",
-      "description": "Get user demographics (age, gender, location)",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet user demographics (age, gender, location)",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -265,7 +265,7 @@
     },
     {
       "name": "google_analytics_get_device_data",
-      "description": "Get device and browser statistics",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet device and browser statistics",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -291,7 +291,7 @@
     },
     {
       "name": "google_analytics_get_top_pages",
-      "description": "Get most visited pages",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet most visited pages",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {
@@ -323,7 +323,7 @@
     },
     {
       "name": "google_analytics_get_events",
-      "description": "Get custom event tracking data",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet custom event tracking data",
       "platform": "google_analytics",
       "parameters": {
         "property_id": {

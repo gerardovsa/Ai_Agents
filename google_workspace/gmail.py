@@ -25,8 +25,6 @@ try:
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
-    # Import OAuth manager for personal Gmail access
-    from google_workspace.oauth_manager import build_gmail_oauth_service
     HAS_GMAIL_API = True
 except ImportError:
     HAS_GMAIL_API = False
@@ -88,8 +86,18 @@ def _get_gmail_service(user_email=None, _user_id=None, _injected_credentials=Non
             print(f"❌ Failed to use database credentials: {e}")
             raise
     
-    # Fallback: Use OAuth authentication (desktop mode for local testing)
-    return build_gmail_oauth_service(user_email=user_email)
+    # No credentials provided - throw clear error
+    raise Exception(
+        "❌ Gmail tool called directly without credentials!\n\n"
+        "🤖 AI AGENT: You MUST call Gmail tools through the execute_tool meta-tool.\n"
+        "❌ WRONG: gmail_delete_message(message_id='xxx')\n"
+        "✅ CORRECT: execute_tool(tool_name='gmail_delete_message', message_id='xxx')\n\n"
+        "WHY: Gmail requires OAuth credentials that are injected by execute_tool.\n"
+        "Direct calls bypass credential injection and will always fail.\n\n"
+        "For users: All credentials are stored in data/ai_infrastructure.db (oauth_tokens table)\n"
+        "To authenticate, visit: http://localhost:5001/auth/google/login\n\n"
+        f"Debug info: _user_id={_user_id}, _injected_credentials={_injected_credentials}\n"
+    )
 
 
 # ==================== EMAIL SENDING ====================
@@ -235,10 +243,25 @@ def gmail_list_messages(max_results=10, query=None, label_ids=None, **kwargs):
         raise
 
 
-def gmail_get_message(message_id, format='full'):
-    """Get a specific message"""
+def gmail_get_message(message_id, format='metadata', **kwargs):
+    """
+    Get a specific message by ID
+    
+    Args:
+        message_id: Gmail message ID
+        format: 'metadata' (default - lightweight, recommended for browsing),
+                'minimal' (IDs only),
+                'full' (complete message - LARGE, use only when user asks for full content)
+        **kwargs: Credential injection (_user_id, _injected_credentials)
+    
+    Returns:
+        Message object with varying detail based on format
+        
+    WARNING: format='full' can return 10k+ tokens per message for emails with
+             HTML bodies, attachments, and headers. Use 'metadata' for browsing.
+    """
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         message = service.users().messages().get(userId='me', id=message_id, format=format).execute()
         
         return message
@@ -248,10 +271,169 @@ def gmail_get_message(message_id, format='full'):
         raise
 
 
-def gmail_get_attachment(message_id, attachment_id):
+def gmail_get_message_parsed(message_id, include_attachments=True, output_format='json', **kwargs):
+    """
+    Get message with AI-OPTIMIZED parsing (clean text, no raw base64)
+    
+    This function:
+    - Fetches message with format='full'
+    - Parses MIME structure using universal parser
+    - Extracts clean text from HTML emails
+    - Downloads and parses attachments (PDF -> text, Word -> text, Excel -> CSV)
+    - Returns structured JSON or PDF ready for Claude
+    
+    Args:
+        message_id: Gmail message ID
+        include_attachments: Whether to download and parse attachments (default True)
+        output_format: 'json' (default) or 'pdf' (for Claude document API)
+        **kwargs: Credential injection (_user_id, _injected_credentials)
+    
+    Returns:
+        If output_format='json':
+            {
+                'id': str,
+                'thread_id': str,
+                'from': {'name': str, 'email': str},
+                'to': [{'name': str, 'email': str}],
+                'subject': str,
+                'date': str (ISO format),
+                'body_text': str (clean text, HTML converted),
+                'attachments': [
+                    {
+                        'filename': str,
+                        'content_type': str,
+                        'size_bytes': int,
+                        'parsed_content': str (text extracted from PDF/Word/Excel)
+                    }
+                ],
+                'token_estimate': int (rough token count)
+            }
+        
+        If output_format='pdf':
+            bytes (PDF ready for Claude document API)
+    
+    Example:
+        # Get clean email for AI analysis (JSON)
+        parsed = gmail_get_message_parsed('msg_abc123', include_attachments=True)
+        print(parsed['body_text'])  # Clean text, not HTML!
+        
+        # Get email as PDF for Claude
+        pdf_bytes = gmail_get_message_parsed('msg_abc123', output_format='pdf')
+        pdf_base64 = base64.b64encode(pdf_bytes).decode()
+    """
+    try:
+        # Import universal parser from infrastructure
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent / 'AI_infrastructure'))
+        from core.email_parser import UniversalEmailParser
+        
+        # Get full message (yes, with all MIME data)
+        service = _get_gmail_service(**kwargs)
+        raw_message = service.users().messages().get(
+            userId='me', 
+            id=message_id, 
+            format='full'
+        ).execute()
+        
+        # Parse using universal parser
+        parser = UniversalEmailParser()
+        parsed = parser.parse_gmail_message(
+            raw_message, 
+            download_attachments=include_attachments
+        )
+        
+        # Convert to requested format
+        return parser.prepare_for_claude(parsed, output_format=output_format)
+    
+    except Exception as e:
+        print(f"❌ Failed to parse message: {e}")
+        raise
+
+
+def gmail_get_thread_parsed(thread_id, max_messages=20, output_format='json', **kwargs):
+    """
+    Get entire email thread with timeline and parsed content
+    
+    This reconstructs conversation flow with:
+    - Chronological message order
+    - Participant list
+    - Clean text for each message
+    - Thread position markers
+    
+    Args:
+        thread_id: Gmail thread ID
+        max_messages: Max messages to fetch (default 20)
+        output_format: 'json' (default) or 'pdf' (for Claude document API)
+        **kwargs: Credential injection
+    
+    Returns:
+        If output_format='json':
+            {
+                'thread_id': str,
+                'subject': str,
+                'participants': [{'name': str, 'email': str}],
+                'start_date': str,
+                'last_date': str,
+                'message_count': int,
+                'messages': [
+                    {
+                        'position': 1,
+                        'from': {'name': str, 'email': str},
+                        'date': str,
+                        'body_text': str (preview),
+                        'full_message_id': str (use gmail_get_message_parsed for full content)
+                    }
+                ],
+                'token_estimate': int
+            }
+        
+        If output_format='pdf':
+            bytes (PDF ready for Claude document API with entire thread)
+    """
+    try:
+        # Import universal parser from infrastructure
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent / 'AI_infrastructure'))
+        from core.email_parser import UniversalEmailParser
+        
+        service = _get_gmail_service(**kwargs)
+        
+        # Get thread with all messages
+        thread = service.users().threads().get(
+            userId='me',
+            id=thread_id,
+            format='full'
+        ).execute()
+        
+        messages = thread.get('messages', [])[:max_messages]
+        
+        # Parse each message
+        parser = UniversalEmailParser()
+        parsed_messages = [
+            parser.parse_gmail_message(msg, download_attachments=True) 
+            for msg in messages
+        ]
+        
+        # Convert to requested format
+        if output_format == 'json':
+            # Build timeline for JSON output
+            timeline = parser.parse_email_thread_timeline(parsed_messages)
+            return timeline
+        else:
+            # Return PDF bytes (full messages with attachments)
+            return parser.prepare_for_claude(parsed_messages, output_format=output_format)
+    
+    except Exception as e:
+        print(f"❌ Failed to parse thread: {e}")
+        raise
+
+
+def gmail_get_attachment(message_id, attachment_id, **kwargs):
     """Get an attachment from a message"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         attachment = service.users().messages().attachments().get(
             userId='me',
             messageId=message_id,
@@ -273,10 +455,10 @@ def gmail_get_attachment(message_id, attachment_id):
 
 # ==================== EMAIL MANAGEMENT ====================
 
-def gmail_delete_message(message_id):
+def gmail_delete_message(message_id, **kwargs):
     """Delete a message (move to trash)"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         service.users().messages().trash(userId='me', id=message_id).execute()
         
         return {'deleted': True, 'message_id': message_id}
@@ -286,10 +468,10 @@ def gmail_delete_message(message_id):
         raise
 
 
-def gmail_modify_message(message_id, add_label_ids=None, remove_label_ids=None):
+def gmail_modify_message(message_id, add_label_ids=None, remove_label_ids=None, **kwargs):
     """Modify message labels"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         
         body = {}
         if add_label_ids:
@@ -306,32 +488,32 @@ def gmail_modify_message(message_id, add_label_ids=None, remove_label_ids=None):
         raise
 
 
-def gmail_mark_as_read(message_id):
+def gmail_mark_as_read(message_id, **kwargs):
     """Mark message as read"""
-    return gmail_modify_message(message_id, remove_label_ids=['UNREAD'])
+    return gmail_modify_message(message_id, remove_label_ids=['UNREAD'], **kwargs)
 
 
-def gmail_mark_as_unread(message_id):
+def gmail_mark_as_unread(message_id, **kwargs):
     """Mark message as unread"""
-    return gmail_modify_message(message_id, add_label_ids=['UNREAD'])
+    return gmail_modify_message(message_id, add_label_ids=['UNREAD'], **kwargs)
 
 
-def gmail_archive_message(message_id):
+def gmail_archive_message(message_id, **kwargs):
     """Archive a message (remove from inbox)"""
-    return gmail_modify_message(message_id, remove_label_ids=['INBOX'])
+    return gmail_modify_message(message_id, remove_label_ids=['INBOX'], **kwargs)
 
 
-def gmail_unarchive_message(message_id):
+def gmail_unarchive_message(message_id, **kwargs):
     """Unarchive a message (add to inbox)"""
-    return gmail_modify_message(message_id, add_label_ids=['INBOX'])
+    return gmail_modify_message(message_id, add_label_ids=['INBOX'], **kwargs)
 
 
 # ==================== LABELS ====================
 
-def gmail_list_labels():
+def gmail_list_labels(**kwargs):
     """List all labels"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         result = service.users().labels().list(userId='me').execute()
         labels = result.get('labels', [])
         
@@ -342,10 +524,10 @@ def gmail_list_labels():
         raise
 
 
-def gmail_create_label(name, label_list_visibility='labelShow', message_list_visibility='show'):
+def gmail_create_label(name, label_list_visibility='labelShow', message_list_visibility='show', **kwargs):
     """Create a new label"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         
         label = {
             'name': name,
@@ -362,10 +544,10 @@ def gmail_create_label(name, label_list_visibility='labelShow', message_list_vis
         raise
 
 
-def gmail_update_label(label_id, name=None, label_list_visibility=None, message_list_visibility=None):
+def gmail_update_label(label_id, name=None, label_list_visibility=None, message_list_visibility=None, **kwargs):
     """Update a label"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         
         label = {}
         if name:
@@ -384,10 +566,10 @@ def gmail_update_label(label_id, name=None, label_list_visibility=None, message_
         raise
 
 
-def gmail_delete_label(label_id):
+def gmail_delete_label(label_id, **kwargs):
     """Delete a label"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         service.users().labels().delete(userId='me', id=label_id).execute()
         
         return {'deleted': True, 'label_id': label_id}
@@ -399,10 +581,10 @@ def gmail_delete_label(label_id):
 
 # ==================== FILTERS ====================
 
-def gmail_create_filter(criteria, action):
+def gmail_create_filter(criteria, action, **kwargs):
     """Create a mail filter"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         
         filter_body = {
             'criteria': criteria,
@@ -418,10 +600,10 @@ def gmail_create_filter(criteria, action):
         raise
 
 
-def gmail_list_filters():
+def gmail_list_filters(**kwargs):
     """List all filters"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         result = service.users().settings().filters().list(userId='me').execute()
         filters = result.get('filter', [])
         
@@ -432,10 +614,10 @@ def gmail_list_filters():
         raise
 
 
-def gmail_delete_filter(filter_id):
+def gmail_delete_filter(filter_id, **kwargs):
     """Delete a filter"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         service.users().settings().filters().delete(userId='me', id=filter_id).execute()
         
         return {'deleted': True, 'filter_id': filter_id}
@@ -447,10 +629,10 @@ def gmail_delete_filter(filter_id):
 
 # ==================== PROFILE & INFO ====================
 
-def gmail_get_profile():
+def gmail_get_profile(**kwargs):
     """Get Gmail profile information"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         profile = service.users().getProfile(userId='me').execute()
         
         return profile
@@ -462,17 +644,17 @@ def gmail_get_profile():
 
 # ==================== SEARCH ====================
 
-def gmail_search_messages(query, max_results=10):
+def gmail_search_messages(query, max_results=10, **kwargs):
     """Search messages with query"""
-    return gmail_list_messages(max_results=max_results, query=query)
+    return gmail_list_messages(max_results=max_results, query=query, **kwargs)
 
 
 # ==================== BATCH OPERATIONS ====================
 
-def gmail_batch_delete(message_ids):
+def gmail_batch_delete(message_ids, **kwargs):
     """Delete multiple messages"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         service.users().messages().batchDelete(userId='me', body={'ids': message_ids}).execute()
         
         return {'deleted': len(message_ids), 'message_ids': message_ids}
@@ -482,10 +664,10 @@ def gmail_batch_delete(message_ids):
         raise
 
 
-def gmail_batch_modify(message_ids, add_label_ids=None, remove_label_ids=None):
+def gmail_batch_modify(message_ids, add_label_ids=None, remove_label_ids=None, **kwargs):
     """Modify multiple messages"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         
         body = {'ids': message_ids}
         if add_label_ids:
@@ -504,10 +686,10 @@ def gmail_batch_modify(message_ids, add_label_ids=None, remove_label_ids=None):
 
 # ==================== WATCH / PUSH NOTIFICATIONS ====================
 
-def gmail_watch_mailbox(topic_name, label_ids=None):
+def gmail_watch_mailbox(topic_name, label_ids=None, **kwargs):
     """Watch mailbox for changes"""
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         
         request = {'topicName': topic_name}
         if label_ids:
@@ -522,7 +704,7 @@ def gmail_watch_mailbox(topic_name, label_ids=None):
         raise
 
 
-def gmail_stop_watch():
+def gmail_stop_watch(**kwargs):
     """Stop watching mailbox"""
     try:
         service = _get_gmail_service()
@@ -537,7 +719,7 @@ def gmail_stop_watch():
 
 # ==================== THREADS ====================
 
-def gmail_get_thread(thread_id, format='full'):
+def gmail_get_thread(thread_id, format='full', **kwargs):
     """Get a conversation thread"""
     try:
         service = _get_gmail_service()
@@ -550,7 +732,7 @@ def gmail_get_thread(thread_id, format='full'):
         raise
 
 
-def gmail_list_threads(max_results=10, query=None):
+def gmail_list_threads(max_results=10, query=None, **kwargs):
     """List conversation threads"""
     try:
         service = _get_gmail_service()
@@ -573,7 +755,7 @@ def gmail_list_threads(max_results=10, query=None):
         raise
 
 
-def gmail_trash_thread(thread_id):
+def gmail_trash_thread(thread_id, **kwargs):
     """Move thread to trash"""
     try:
         service = _get_gmail_service()
@@ -588,7 +770,7 @@ def gmail_trash_thread(thread_id):
 
 # ==================== HISTORY ====================
 
-def gmail_get_history(start_history_id, max_results=100, label_id=None):
+def gmail_get_history(start_history_id, max_results=100, label_id=None, **kwargs):
     """Get mailbox history"""
     try:
         service = _get_gmail_service()
@@ -612,7 +794,7 @@ def gmail_get_history(start_history_id, max_results=100, label_id=None):
 
 # ==================== SMTP EMAIL SENDING ====================
 
-def gmail_send_email_smtp(from_email, to, subject, body, cc=None, bcc=None):
+def gmail_send_email_smtp(from_email, to, subject, body, cc=None, bcc=None, **kwargs):
     """
     Send email via SMTP from specific Gmail account.
     Works with any Gmail account using app passwords.
@@ -694,7 +876,7 @@ def gmail_send_email_smtp(from_email, to, subject, body, cc=None, bcc=None):
         }
 
 
-def gmail_send_email_smtp_html(from_email, to, subject, html_body, plain_body=None, cc=None, bcc=None):
+def gmail_send_email_smtp_html(from_email, to, subject, html_body, plain_body=None, cc=None, bcc=None, **kwargs):
     """
     Send HTML email via SMTP from specific Gmail account.
     
@@ -779,7 +961,7 @@ def gmail_send_email_smtp_html(from_email, to, subject, html_body, plain_body=No
         }
 
 
-def gmail_list_available_accounts():
+def gmail_list_available_accounts(**kwargs):
     """
     List all Gmail accounts available for sending via SMTP.
     
@@ -831,7 +1013,7 @@ def gmail_list_available_accounts():
 
 def gmail_ai_smart_compose_and_send(prompt, recipients, cc=None, bcc=None, 
                                     tone="professional", send_immediately=True,
-                                    attachments=None, create_calendar_event=False):
+                                    attachments=None, create_calendar_event=False, **kwargs):
     """
     🤖 SMART TOOL: AI-powered email composition and sending in ONE call.
     
@@ -990,7 +1172,7 @@ Example output:
 
 
 def gmail_smart_bulk_send_personalized(template, recipients_data, subject_template,
-                                        cc=None, bcc=None, delay_seconds=2):
+                                        cc=None, bcc=None, delay_seconds=2, **kwargs):
     """
     📧 SMART TOOL: Send personalized bulk emails with mail merge in ONE call.
     
@@ -1089,7 +1271,7 @@ def gmail_smart_bulk_send_personalized(template, recipients_data, subject_templa
 
 def gmail_smart_bulk_read_summarize_prioritize(query="is:unread", max_messages=50,
                                                summarize=True, prioritize=True,
-                                               create_spreadsheet=False):
+                                               create_spreadsheet=False, **kwargs):
     """
     📖 SMART TOOL: Bulk read, summarize, and prioritize emails in ONE call.
     
@@ -1291,7 +1473,7 @@ def gmail_smart_bulk_read_summarize_prioritize(query="is:unread", max_messages=5
 
 def gmail_smart_auto_reply_draft_creator(message_ids, response_type="acknowledge",
                                          tone="professional", custom_instructions=None,
-                                         create_drafts=True):
+                                         create_drafts=True, **kwargs):
     """
     💬 SMART TOOL: Auto-generate reply drafts for multiple emails in ONE call.
     
@@ -1432,7 +1614,7 @@ Generate an appropriate reply."""
 def gmail_smart_inbox_organizer_cleaner(action="organize", categories=None, 
                                         rules=None, process_existing=True,
                                         archive_older_than_days=None,
-                                        delete_spam=False):
+                                        delete_spam=False, **kwargs):
     """
     🗂️ SMART TOOL: Organize, clean, and auto-filter inbox in ONE call.
     

@@ -51,10 +51,10 @@ async function fixWorkerError() {
 
         if (result.success) {
             console.log('━'.repeat(80));
-            console.log('✅ SUCCESS! Worker Deleted');
+            console.log(' SUCCESS! Worker Deleted');
             console.log('━'.repeat(80));
-            console.log('\n✅ The broken Worker has been removed!');
-            console.log('✅ mustcare.valorsynergysuite.com should work now!');
+            console.log('\n The broken Worker has been removed!');
+            console.log(' mustcare.valorsynergysuite.com should work now!');
             console.log('\n💡 What happened:');
             console.log('   • Removed the crashing Worker code');
             console.log('   • Traffic now goes directly to your server (34.143.73.2)');
@@ -62,7 +62,7 @@ async function fixWorkerError() {
             console.log('🧪 Test your site now: https://mustcare.valorsynergysuite.com\n');
         } else {
             console.log('━'.repeat(80));
-            console.log('❌ FAILED TO DELETE');
+            console.log(' FAILED TO DELETE');
             console.log('━'.repeat(80));
             console.log('\nError:', result.errors);
             console.log('\n💡 Alternative: Delete manually:');
@@ -71,7 +71,7 @@ async function fixWorkerError() {
             console.log('   3. Click Delete\n');
         }
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         console.log('\n💡 Manual fix:');
         console.log(`   Go to: https://dash.cloudflare.com/${ACCOUNT_ID}/workers-and-pages`);
         console.log('   Delete "mustcare-worker"\n');

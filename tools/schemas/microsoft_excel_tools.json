@@ -1,274 +1,692 @@
 {
   "platform": "microsoft_excel",
   "version": "1.0",
-  "description": "Microsoft Excel spreadsheet creation, data analysis, and automation tools via Graph API",
+  "description": "Microsoft Excel spreadsheet creation, data analysis, and automation tools via Graph API\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "authentication": "microsoft_oauth",
   "base_url": "https://graph.microsoft.com/v1.0",
   "tools": [
     {
-      "name": "excel_create_workbook",
-      "description": "Create a new Excel workbook in OneDrive",
+      "name": "microsoft_excel_create_workbook",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_create_workbook', ...) - DO NOT call directly!\n\nCreate a new Excel workbook in OneDrive",
       "category": "workbook_management",
       "parameters": {
-        "name": {"type": "string", "required": true, "description": "Workbook name (will add .xlsx if not present)"},
-        "folder_id": {"type": "string", "required": false, "description": "OneDrive folder ID (default: root)"}
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Workbook name (will add .xlsx if not present)"
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "OneDrive folder ID (default: root)"
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "returns": "Dict with workbook_id, name, web_url, created_datetime"
     },
     {
-      "name": "excel_get_workbook",
-      "description": "Get Excel workbook metadata",
+      "name": "microsoft_excel_get_workbook",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_get_workbook', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Excel workbook metadata",
       "category": "workbook_management",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "OneDrive item ID of the workbook"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "OneDrive item ID of the workbook"
+          }
+        },
+        "required": [
+          "workbook_id"
+        ]
       },
       "returns": "Dict with workbook details including name, URLs, dates, size"
     },
     {
-      "name": "excel_list_workbooks",
-      "description": "List Excel workbooks in OneDrive folder",
+      "name": "microsoft_excel_list_workbooks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_list_workbooks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList Excel workbooks in OneDrive folder",
       "category": "workbook_management",
       "parameters": {
-        "folder_id": {"type": "string", "required": false, "description": "Folder ID (default: root)"},
-        "limit": {"type": "integer", "required": false, "default": 50, "description": "Maximum workbooks to return"}
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "Folder ID (default: root)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum workbooks to return",
+            "default": 50
+          }
+        },
+        "required": []
       },
       "returns": "Dict with count and list of workbooks"
     },
     {
-      "name": "excel_delete_workbook",
-      "description": "Delete an Excel workbook",
+      "name": "microsoft_excel_delete_workbook",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_delete_workbook', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete an Excel workbook",
       "category": "workbook_management",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID to delete"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID to delete"
+          }
+        },
+        "required": [
+          "workbook_id"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_list_worksheets",
-      "description": "List all worksheets in workbook",
+      "name": "microsoft_excel_list_worksheets",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_list_worksheets', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all worksheets in workbook",
       "category": "worksheet_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          }
+        },
+        "required": [
+          "workbook_id"
+        ]
       },
       "returns": "Dict with count and list of worksheets"
     },
     {
-      "name": "excel_add_worksheet",
-      "description": "Add new worksheet to workbook",
+      "name": "microsoft_excel_add_worksheet",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_add_worksheet', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd new worksheet to workbook",
       "category": "worksheet_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "name": {"type": "string", "required": true, "description": "Worksheet name"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Worksheet name"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "name"
+        ]
       },
       "returns": "Dict with new worksheet info"
     },
     {
-      "name": "excel_rename_worksheet",
-      "description": "Rename worksheet",
+      "name": "microsoft_excel_rename_worksheet",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_rename_worksheet', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRename worksheet",
       "category": "worksheet_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_id": {"type": "string", "required": true, "description": "Worksheet ID"},
-        "new_name": {"type": "string", "required": true, "description": "New worksheet name"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_id": {
+            "type": "string",
+            "description": "Worksheet ID"
+          },
+          "new_name": {
+            "type": "string",
+            "description": "New worksheet name"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_id",
+          "new_name"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_delete_worksheet",
-      "description": "Delete worksheet from workbook",
+      "name": "microsoft_excel_delete_worksheet",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_delete_worksheet', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete worksheet from workbook",
       "category": "worksheet_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_id": {"type": "string", "required": true, "description": "Worksheet ID to delete"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_id": {
+            "type": "string",
+            "description": "Worksheet ID to delete"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_id"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_get_range",
-      "description": "Get cell or range values and formatting",
+      "name": "microsoft_excel_get_range",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_get_range', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet cell or range values and formatting",
       "category": "cell_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "range_address": {"type": "string", "required": true, "description": "Range address (e.g., 'A1', 'A1:B10')"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range address (e.g., 'A1', 'A1:B10')"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address"
+        ]
       },
       "returns": "Dict with values, formulas, and formatting"
     },
     {
-      "name": "excel_update_range",
-      "description": "Update cell or range values",
+      "name": "microsoft_excel_update_range",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_update_range', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate cell or range values",
       "category": "cell_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "range_address": {"type": "string", "required": true, "description": "Range address (e.g., 'A1:B10')"},
-        "values": {"type": "array", "required": true, "description": "2D array of values"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range address (e.g., 'A1:B10')"
+          },
+          "values": {
+            "type": "array",
+            "description": "2D array of values"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address",
+          "values"
+        ]
       },
       "returns": "Dict with success status and updated counts"
     },
     {
-      "name": "excel_clear_range",
-      "description": "Clear range contents and/or formatting",
+      "name": "microsoft_excel_clear_range",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_clear_range', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nClear range contents and/or formatting",
       "category": "cell_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "range_address": {"type": "string", "required": true, "description": "Range address"},
-        "apply_to": {"type": "string", "required": false, "default": "All", "description": "What to clear ('All', 'Contents', 'Formats')"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range address"
+          },
+          "apply_to": {
+            "type": "string",
+            "description": "What to clear ('All', 'Contents', 'Formats')",
+            "default": "All"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_insert_rows",
-      "description": "Insert rows in worksheet",
+      "name": "microsoft_excel_insert_rows",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_insert_rows', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert rows in worksheet",
       "category": "cell_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "index": {"type": "integer", "required": true, "description": "Row index to insert at (0-based)"},
-        "count": {"type": "integer", "required": false, "default": 1, "description": "Number of rows to insert"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "index": {
+            "type": "integer",
+            "description": "Row index to insert at (0-based)"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of rows to insert",
+            "default": 1
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "index"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_delete_rows",
-      "description": "Delete rows from worksheet",
+      "name": "microsoft_excel_delete_rows",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_delete_rows', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete rows from worksheet",
       "category": "cell_operations",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "index": {"type": "integer", "required": true, "description": "Row index to delete from (0-based)"},
-        "count": {"type": "integer", "required": false, "default": 1, "description": "Number of rows to delete"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "index": {
+            "type": "integer",
+            "description": "Row index to delete from (0-based)"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of rows to delete",
+            "default": 1
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "index"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_set_formula",
-      "description": "Set formula in cell and get calculated result",
+      "name": "microsoft_excel_set_formula",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_set_formula', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSet formula in cell and get calculated result",
       "category": "formulas",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "cell_address": {"type": "string", "required": true, "description": "Cell address (e.g., 'A1')"},
-        "formula": {"type": "string", "required": true, "description": "Excel formula (e.g., '=SUM(A1:A10)')"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "cell_address": {
+            "type": "string",
+            "description": "Cell address (e.g., 'A1')"
+          },
+          "formula": {
+            "type": "string",
+            "description": "Excel formula (e.g., '=SUM(A1:A10)')"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "cell_address",
+          "formula"
+        ]
       },
       "returns": "Dict with formula and calculated value"
     },
     {
-      "name": "excel_calculate",
-      "description": "Trigger workbook calculation",
+      "name": "microsoft_excel_calculate",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_calculate', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nTrigger workbook calculation",
       "category": "formulas",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "calculation_type": {"type": "string", "required": false, "default": "Recalculate", "description": "'Recalculate' or 'Full'"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "calculation_type": {
+            "type": "string",
+            "description": "'Recalculate' or 'Full'",
+            "default": "Recalculate"
+          }
+        },
+        "required": [
+          "workbook_id"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_create_chart",
-      "description": "Create chart in worksheet",
+      "name": "microsoft_excel_create_chart",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_create_chart', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate chart in worksheet",
       "category": "charts",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "chart_type": {"type": "string", "required": true, "description": "Chart type ('ColumnClustered', 'Line', 'Pie', etc.)"},
-        "source_range": {"type": "string", "required": true, "description": "Data range for chart (e.g., 'A1:B10')"},
-        "title": {"type": "string", "required": false, "description": "Chart title"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "chart_type": {
+            "type": "string",
+            "description": "Chart type ('ColumnClustered', 'Line', 'Pie', etc.)"
+          },
+          "source_range": {
+            "type": "string",
+            "description": "Data range for chart (e.g., 'A1:B10')"
+          },
+          "title": {
+            "type": "string",
+            "description": "Chart title"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "chart_type",
+          "source_range"
+        ]
       },
       "returns": "Dict with chart ID and info"
     },
     {
-      "name": "excel_list_charts",
-      "description": "List all charts in worksheet",
+      "name": "microsoft_excel_list_charts",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_list_charts', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all charts in worksheet",
       "category": "charts",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name"
+        ]
       },
       "returns": "Dict with count and list of charts"
     },
     {
-      "name": "excel_sort_range",
-      "description": "Sort data range by column",
+      "name": "microsoft_excel_sort_range",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_sort_range', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSort data range by column",
       "category": "data_analysis",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "range_address": {"type": "string", "required": true, "description": "Range to sort (e.g., 'A1:C10')"},
-        "sort_column": {"type": "integer", "required": true, "description": "Column index to sort by (0-based)"},
-        "ascending": {"type": "boolean", "required": false, "default": true, "description": "Sort ascending or descending"},
-        "has_headers": {"type": "boolean", "required": false, "default": true, "description": "Whether range has header row"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range to sort (e.g., 'A1:C10')"
+          },
+          "sort_column": {
+            "type": "integer",
+            "description": "Column index to sort by (0-based)"
+          },
+          "ascending": {
+            "type": "boolean",
+            "description": "Sort ascending or descending",
+            "default": true
+          },
+          "has_headers": {
+            "type": "boolean",
+            "description": "Whether range has header row",
+            "default": true
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address",
+          "sort_column"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_filter_range",
-      "description": "Apply autofilter to range",
+      "name": "microsoft_excel_filter_range",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_filter_range', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nApply autofilter to range",
       "category": "data_analysis",
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "range_address": {"type": "string", "required": true, "description": "Range to filter"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range to filter"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address"
+        ]
       },
       "returns": "Dict with success status"
     },
     {
-      "name": "excel_smart_import_csv",
-      "description": "SMART: Import CSV data and create formatted workbook with auto-formatting and optional charts",
+      "name": "microsoft_excel_smart_import_csv",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_import_csv', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Import CSV data and create formatted workbook with auto-formatting and optional charts",
       "category": "smart_automation",
       "tier": 1,
       "parameters": {
-        "csv_data": {"type": "array", "required": true, "description": "2D array of CSV data (includes headers)"},
-        "workbook_name": {"type": "string", "required": true, "description": "Name for new workbook"},
-        "sheet_name": {"type": "string", "required": false, "default": "Data", "description": "Worksheet name"},
-        "auto_format": {"type": "boolean", "required": false, "default": true, "description": "Apply automatic formatting"},
-        "create_chart": {"type": "boolean", "required": false, "default": false, "description": "Generate chart from data"}
+        "type": "object",
+        "properties": {
+          "csv_data": {
+            "type": "array",
+            "description": "2D array of CSV data (includes headers)"
+          },
+          "workbook_name": {
+            "type": "string",
+            "description": "Name for new workbook"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name",
+            "default": "Data"
+          },
+          "auto_format": {
+            "type": "boolean",
+            "description": "Apply automatic formatting",
+            "default": true
+          },
+          "create_chart": {
+            "type": "boolean",
+            "description": "Generate chart from data",
+            "default": false
+          }
+        },
+        "required": [
+          "csv_data",
+          "workbook_name"
+        ]
       },
       "returns": "Dict with workbook_id, web_url, import stats, and optional chart_id",
-      "use_cases": ["Import sales data", "Create financial reports", "Visualize survey results"]
+      "use_cases": [
+        "Import sales data",
+        "Create financial reports",
+        "Visualize survey results"
+      ]
     },
     {
-      "name": "excel_smart_data_analysis",
-      "description": "SMART: Analyze data and generate summary statistics with auto-generated analysis worksheet",
+      "name": "microsoft_excel_smart_data_analysis",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_data_analysis', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Analyze data and generate summary statistics with auto-generated analysis worksheet",
       "category": "smart_automation",
       "tier": 1,
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "sheet_name": {"type": "string", "required": true, "description": "Worksheet name"},
-        "data_range": {"type": "string", "required": true, "description": "Range containing data (e.g., 'A1:D100')"},
-        "analysis_type": {"type": "string", "required": false, "default": "summary", "description": "Type of analysis ('summary', 'distribution', 'trends')"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "data_range": {
+            "type": "string",
+            "description": "Range containing data (e.g., 'A1:D100')"
+          },
+          "analysis_type": {
+            "type": "string",
+            "description": "Type of analysis ('summary', 'distribution', 'trends')",
+            "default": "summary"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "data_range"
+        ]
       },
       "returns": "Dict with statistics (count, sum, average, min, max per column) and analysis sheet",
-      "use_cases": ["Analyze sales data", "Generate data summaries", "Identify trends"]
+      "use_cases": [
+        "Analyze sales data",
+        "Generate data summaries",
+        "Identify trends"
+      ]
     },
     {
-      "name": "excel_smart_create_pivot",
-      "description": "SMART: Create pivot table from data with custom grouping and aggregation",
+      "name": "microsoft_excel_smart_create_pivot",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_create_pivot', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSMART: Create pivot table from data with custom grouping and aggregation",
       "category": "smart_automation",
       "tier": 1,
       "parameters": {
-        "workbook_id": {"type": "string", "required": true, "description": "Workbook ID"},
-        "source_sheet": {"type": "string", "required": true, "description": "Source worksheet name"},
-        "source_range": {"type": "string", "required": true, "description": "Data range (e.g., 'A1:D100')"},
-        "row_fields": {"type": "array", "required": true, "description": "Columns to use as row labels"},
-        "value_fields": {"type": "array", "required": true, "description": "Columns to aggregate"},
-        "destination_sheet": {"type": "string", "required": false, "description": "Destination sheet name (creates if needed)"}
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "source_sheet": {
+            "type": "string",
+            "description": "Source worksheet name"
+          },
+          "source_range": {
+            "type": "string",
+            "description": "Data range (e.g., 'A1:D100')"
+          },
+          "row_fields": {
+            "type": "array",
+            "description": "Columns to use as row labels"
+          },
+          "value_fields": {
+            "type": "array",
+            "description": "Columns to aggregate"
+          },
+          "destination_sheet": {
+            "type": "string",
+            "description": "Destination sheet name (creates if needed)"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "source_sheet",
+          "source_range",
+          "row_fields",
+          "value_fields"
+        ]
       },
       "returns": "Dict with pivot table info",
-      "use_cases": ["Summarize sales by region", "Analyze expenses by category", "Group data by time period"]
+      "use_cases": [
+        "Summarize sales by region",
+        "Analyze expenses by category",
+        "Group data by time period"
+      ]
     },
     {
-      "name": "excel_smart_financial_report",
-      "description": "SMART: Generate comprehensive financial report with multiple sheets, formulas, and charts",
+      "name": "microsoft_excel_smart_financial_report",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_financial_report', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Generate comprehensive financial report with multiple sheets, formulas, and charts",
       "category": "smart_automation",
       "tier": 1,
       "parameters": {
-        "workbook_name": {"type": "string", "required": true, "description": "Name for workbook"},
-        "financial_data": {"type": "object", "required": true, "description": "Dict with 'income', 'balance', 'cashflow' data arrays"},
-        "include_charts": {"type": "boolean", "required": false, "default": true, "description": "Generate charts for each sheet"}
+        "type": "object",
+        "properties": {
+          "workbook_name": {
+            "type": "string",
+            "description": "Name for workbook"
+          },
+          "financial_data": {
+            "type": "object",
+            "description": "Dict with 'income', 'balance', 'cashflow' data arrays"
+          },
+          "include_charts": {
+            "type": "boolean",
+            "description": "Generate charts for each sheet",
+            "default": true
+          }
+        },
+        "required": [
+          "workbook_name",
+          "financial_data"
+        ]
       },
       "returns": "Dict with workbook_id, web_url, sheets created",
-      "use_cases": ["Quarterly financial reports", "Annual statements", "Budget analysis"]
+      "use_cases": [
+        "Quarterly financial reports",
+        "Annual statements",
+        "Budget analysis"
+      ]
     }
   ],
   "rate_limits": {

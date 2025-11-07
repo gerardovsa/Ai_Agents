@@ -24,7 +24,7 @@ function ask(question) {
 async function makeRequest(path, method = 'GET', data = null) {
     return new Promise((resolve, reject) => {
         const requestData = data ? JSON.stringify(data) : null;
-        
+
         const options = {
             hostname: 'api.cloudflare.com',
             port: 443,
@@ -61,12 +61,12 @@ async function makeRequest(path, method = 'GET', data = null) {
 
 async function getWorkerScript(scriptName) {
     console.log(`\n🔍 Fetching Worker script: ${scriptName}...`);
-    
+
     try {
         const response = await makeRequest(`/client/v4/accounts/${ACCOUNT_ID}/workers/scripts/${scriptName}`);
         return response;
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return null;
     }
 }
@@ -74,7 +74,7 @@ async function getWorkerScript(scriptName) {
 async function getTailLogs(scriptName) {
     console.log(`\n📊 Recent logs for: ${scriptName}...`);
     console.log('(Note: You may need to enable logging in dashboard first)\n');
-    
+
     try {
         // Try to get tail logs
         const response = await makeRequest(`/client/v4/accounts/${ACCOUNT_ID}/workers/scripts/${scriptName}/tails`);
@@ -87,30 +87,30 @@ async function getTailLogs(scriptName) {
 
 async function deleteWorker(scriptName) {
     console.log(`\n🗑️  Deleting Worker: ${scriptName}...`);
-    
+
     const confirm = await ask('⚠️  Are you sure? This cannot be undone. (yes/no): ');
-    
+
     if (confirm.toLowerCase() !== 'yes') {
-        console.log('❌ Cancelled');
+        console.log(' Cancelled');
         return false;
     }
-    
+
     try {
         const response = await makeRequest(
             `/client/v4/accounts/${ACCOUNT_ID}/workers/scripts/${scriptName}`,
             'DELETE'
         );
-        
+
         if (response.success) {
-            console.log('✅ Worker deleted successfully!');
+            console.log(' Worker deleted successfully!');
             console.log('💡 Traffic will now go directly to your origin server (34.143.73.2)');
             return true;
         } else {
-            console.error('❌ Failed to delete:', response.errors);
+            console.error(' Failed to delete:', response.errors);
             return false;
         }
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error(' Error:', error.message);
         return false;
     }
 }
@@ -123,7 +123,7 @@ async function workerManagement() {
     // Get workers
     console.log('📋 Fetching Workers...\n');
     const workersResponse = await makeRequest(`/client/v4/accounts/${ACCOUNT_ID}/workers/scripts`);
-    
+
     if (!workersResponse.success || workersResponse.result.length === 0) {
         console.log('⚠️  No Workers found.');
         rl.close();
@@ -131,8 +131,8 @@ async function workerManagement() {
     }
 
     const workers = workersResponse.result;
-    console.log(`✅ Found ${workers.length} Worker(s):\n`);
-    
+    console.log(` Found ${workers.length} Worker(s):\n`);
+
     workers.forEach((worker, index) => {
         console.log(`${index + 1}. ${worker.id}`);
         console.log(`   Created: ${new Date(worker.created_on).toLocaleString()}`);
@@ -185,7 +185,7 @@ async function workerManagement() {
             break;
 
         default:
-            console.log('\n❌ Invalid option');
+            console.log('\n Invalid option');
     }
 
     rl.close();
@@ -193,7 +193,7 @@ async function workerManagement() {
 
 // Run
 workerManagement().catch(error => {
-    console.error('\n❌ Fatal error:', error.message);
+    console.error('\n Fatal error:', error.message);
     rl.close();
     process.exit(1);
 });

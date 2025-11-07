@@ -77,7 +77,7 @@ def cloudflare_deploy_worker(worker_name: str, script_path: str, routes: list = 
         return result
         
     except Exception as e:
-        print(f"❌ Deployment failed: {e}")
+        print(f" Deployment failed: {e}")
         raise
 
 
@@ -103,7 +103,7 @@ def cloudflare_list_workers():
         }
         
     except Exception as e:
-        print(f"❌ Failed to list workers: {e}")
+        print(f" Failed to list workers: {e}")
         raise
 
 
@@ -136,7 +136,7 @@ def cloudflare_get_worker_logs(worker_name: str, limit: int = 100):
         }
         
     except Exception as e:
-        print(f"❌ Failed to fetch logs: {e}")
+        print(f" Failed to fetch logs: {e}")
         # Return empty logs instead of failing
         return {
             'worker_name': worker_name,
@@ -174,7 +174,7 @@ def cloudflare_worker_status(worker_name: str):
         }
         
     except Exception as e:
-        print(f"❌ Failed to check status: {e}")
+        print(f" Failed to check status: {e}")
         return {
             'worker_name': worker_name,
             'exists': False,

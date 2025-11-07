@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "ngrok_start_tunnel",
-      "description": "Start an HTTP/HTTPS tunnel to localhost",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nStart an HTTP/HTTPS tunnel to localhost",
       "platform": "ngrok",
       "parameters": {
         "port": {
@@ -40,7 +40,7 @@
     },
     {
       "name": "ngrok_list_tunnels",
-      "description": "List all active ngrok tunnels",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all active ngrok tunnels",
       "platform": "ngrok",
       "parameters": {},
       "returns": {
@@ -56,7 +56,7 @@
     },
     {
       "name": "ngrok_stop_tunnel",
-      "description": "Stop a specific ngrok tunnel",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nStop a specific ngrok tunnel",
       "platform": "ngrok",
       "parameters": {
         "tunnel_name": {
@@ -80,7 +80,7 @@
     },
     {
       "name": "ngrok_get_public_url",
-      "description": "Get the public URL for a local port",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet the public URL for a local port",
       "platform": "ngrok",
       "parameters": {
         "port": {

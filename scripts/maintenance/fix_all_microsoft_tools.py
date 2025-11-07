@@ -31,7 +31,7 @@ def fix_microsoft_tool(file_path):
     
     if re.search(old_init_pattern, content):
         content = re.sub(old_init_pattern, new_init, content)
-        print("  ✅ Fixed __init__ method")
+        print("   Fixed __init__ method")
         changes_made = True
     
     # 2. Fix _get_headers method
@@ -61,7 +61,7 @@ def fix_microsoft_tool(file_path):
     
     if old_headers in content:
         content = content.replace(old_headers, new_headers)
-        print("  ✅ Fixed _get_headers method")
+        print("   Fixed _get_headers method")
         changes_made = True
     
     # 3. Fix _make_request method - add **kwargs parameter and pass it to _get_headers
@@ -70,13 +70,13 @@ def fix_microsoft_tool(file_path):
     
     if re.search(old_make_request, content):
         content = re.sub(old_make_request, new_make_request, content)
-        print("  ✅ Added **kwargs to _make_request signature")
+        print("   Added **kwargs to _make_request signature")
         changes_made = True
     
     # 4. Fix _get_headers() calls in _make_request to pass **kwargs
     content = re.sub(r'self\._get_headers\(\)', 'self._get_headers(**kwargs)', content)
     if re.search(r'self\._get_headers\(\*\*kwargs\)', content):
-        print("  ✅ Updated _get_headers() calls to pass **kwargs")
+        print("   Updated _get_headers() calls to pass **kwargs")
         changes_made = True
     
     # 5. Add **kwargs to all public method signatures and _make_request calls
@@ -110,7 +110,7 @@ def fix_microsoft_tool(file_path):
     if content != original_content:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
-        print(f"  ✅ Updated: {file_path.name}")
+        print(f"   Updated: {file_path.name}")
         return True
     else:
         print(f"  ⏭️ No changes needed: {file_path.name}")
@@ -133,7 +133,7 @@ def main():
             fixed_count += 1
     
     print("\n" + "=" * 60)
-    print(f"✅ COMPLETE: Fixed {fixed_count} / {len(microsoft_tools)} files")
+    print(f" COMPLETE: Fixed {fixed_count} / {len(microsoft_tools)} files")
     print("=" * 60)
 
 if __name__ == '__main__':
