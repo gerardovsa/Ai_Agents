@@ -2786,7 +2786,7 @@
         .ai-message-content h1:first-child,
         .ai-message-content h2:first-child,
         .ai-message-content h3:first-child {
-            margin-top: 0;
+            margin-top: 15px;
         }
 
         .ai-message-content ul,
@@ -3786,6 +3786,7 @@
 
         .agent-header .width-toggle-btn i {
             font-size: 14px;
+            transition: opacity 0.15s ease;
         }
 
         .status-dot {
@@ -7215,6 +7216,27 @@
                                         placeholder="Detailed description"></textarea>
                                 </div>
 
+                                <!-- Thread Integration Fields -->
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-thread-ids">
+                                            <i class="fas fa-comments"></i> Linked Thread IDs
+                                        </label>
+                                        <input type="text" id="edit-thread-ids" class="form-control"
+                                            placeholder="thread_abc123, thread_def456">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-assigned-agents">
+                                            <i class="fas fa-robot"></i> Assigned AI Agents
+                                        </label>
+                                        <input type="text" id="edit-assigned-agents" class="form-control"
+                                            placeholder="Agent Alpha-1, Agent Bravo-2, Data Agent">
+                                    </div>
+                                </div>
+
                                 <!-- Project & Priority Row -->
                                 <div class="form-row">
                                     <div class="form-group">
@@ -7277,20 +7299,6 @@
                                     <label for="edit-tags">Tags (comma-separated)</label>
                                     <input type="text" id="edit-tags" class="form-control"
                                         placeholder="marketing, urgent, backend">
-                                </div>
-
-                                <!-- Thread IDs -->
-                                <div class="form-group">
-                                    <label for="edit-thread-ids">Thread IDs (comma-separated)</label>
-                                    <input type="text" id="edit-thread-ids" class="form-control"
-                                        placeholder="thread_abc123, thread_def456">
-                                </div>
-
-                                <!-- Assigned Agents -->
-                                <div class="form-group">
-                                    <label for="edit-assigned-agents">Assigned Agents (comma-separated)</label>
-                                    <input type="text" id="edit-assigned-agents" class="form-control"
-                                        placeholder="Research Agent, Email Agent, Data Agent">
                                 </div>
 
                                 <!-- Notes -->
@@ -14940,7 +14948,11 @@
             async loadThreadsFromBackend() {
                 // NEW: Load threads from backend database (not localStorage)
                 try {
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/list?user_id=1`); // TODO: Get user_id from UserAuth
+                    // Get logged-in user's ID from UserAuth
+                    const userId = UserAuth.user?.id || 1;
+                    console.log(`[THREADS] Loading threads for user_id=${userId} (${UserAuth.user?.email || 'unknown'})`);
+
+                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/list?user_id=${userId}`);
                     const data = await response.json();
 
                     if (data.success && data.threads) {
@@ -15005,7 +15017,8 @@
                 // CRITICAL FIX: Fetch CURRENT assignments from backend (not localStorage!)
                 let backendAssignments = {};
                 try {
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/thread-assignments/list?user_id=1`);
+                    const userId = UserAuth.user?.id || 1;
+                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/thread-assignments/list?user_id=${userId}`);
                     const data = await response.json();
                     if (data.success && data.assignments) {
                         backendAssignments = data.assignments;
@@ -15490,7 +15503,7 @@
 
                                 if (updateResponse.ok) {
                                     console.log(`[OK] [createThreadWithMetadata] Synergy session updated with thread and agent`);
-                                    
+
                                     // FIX: Trigger Synergy board refresh
                                     if (typeof SynergyDashboard !== 'undefined' && typeof SynergyDashboard.refreshCard === 'function') {
                                         SynergyDashboard.refreshCard(synergySessionId);
@@ -15670,7 +15683,8 @@
 
                 try {
                     // Fetch current thread assignments from database
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/thread-assignments/list?user_id=1`);
+                    const userId = UserAuth.user?.id || 1;
+                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/thread-assignments/list?user_id=${userId}`);
                     const data = await response.json();
 
                     if (!data.success) {
@@ -16030,7 +16044,9 @@
                     }
 
                     // Get thread assignments from database
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/thread-assignments?user_id=1`);
+                    const userId = UserAuth.user?.id || 1;
+                    console.log(`[RESTORE] Fetching assignments for user_id=${userId}`);
+                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/thread-assignments?user_id=${userId}`);
 
                     if (!response.ok) {
                         console.warn('[WARN] [RESTORE] Failed to load thread assignments:', response.statusText);
@@ -20689,13 +20705,6 @@
             margin-bottom: 20px;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #34495e;
-        }
-
         .form-control {
             width: 100%;
             padding: 10px 15px;
@@ -21448,18 +21457,31 @@
                 const recentActivity = this.parseJsonField(session.recent_activity, []);
                 const checklist = this.parseJsonField(session.checklist, []);
 
-                // Documents
+                // DEBUG: Log parsed data
+                console.log('🔍 [DEBUG] renderCardExpanded for:', session.session_id);
+                console.log('  📄 Documents (raw):', session.documents);
+                console.log('  📄 Documents (parsed):', documents);
+                console.log('  🔗 Links (raw):', session.links);
+                console.log('  🔗 Links (parsed):', links);
+                console.log('  ✅ Next Steps (raw):', session.next_steps);
+                console.log('  ✅ Next Steps (parsed):', nextSteps);
+                console.log('  ☑️  Checklist (raw):', session.checklist);
+                console.log('  ☑️  Checklist (parsed):', checklist);
+
+                // Documents - Filter valid documents with titles and URLs
                 let docsHTML = '';
-                if (Array.isArray(documents) && documents.length > 0) {
+                const validDocuments = documents.filter(doc => doc && (doc.title || doc.name) && doc.url);
+                console.log('  📄 Valid Documents after filter:', validDocuments.length, validDocuments);
+                if (validDocuments.length > 0) {
                     docsHTML = `
                         <div class="card-section">
-                            <div class="section-title"><i class="fas fa-file-alt"></i> Documents (${documents.length})</div>
+                            <div class="section-title"><i class="fas fa-file-alt"></i> Documents (${validDocuments.length})</div>
                             <div class="document-list">
-                                ${documents.map(doc => `
+                                ${validDocuments.map(doc => `
                                     <div class="document-item">
                                         <i class="fas fa-file"></i>
-                                        <span class="doc-name">${this.escapeHtml(doc.name)}</span>
-                                        <span class="doc-size">${doc.size || 'N/A'}</span>
+                                        <a href="${doc.url}" target="_blank" class="doc-name">${this.escapeHtml(doc.title || doc.name || 'Untitled')}</a>
+                                        <span class="doc-type" style="font-size: 0.85em; opacity: 0.7; margin-left: 8px;">${doc.type || 'file'}</span>
                                     </div>
                                 `).join('')}
                             </div>
@@ -21467,20 +21489,22 @@
                     `;
                 }
 
-                // Links
+                // Links - Filter valid links with titles and URLs
                 let linksHTML = '';
-                if (Array.isArray(links) && links.length > 0) {
+                const validLinks = links.filter(link => link && (link.title || link.name) && link.url);
+                console.log('  🔗 Valid Links after filter:', validLinks.length, validLinks);
+                if (validLinks.length > 0) {
                     linksHTML = `
                         <div class="card-section">
-                            <div class="section-title"><i class="fas fa-link"></i> Links (${links.length})</div>
+                            <div class="section-title"><i class="fas fa-link"></i> Links (${validLinks.length})</div>
                             <div class="link-list">
-                                ${links.map(link => `
+                                ${validLinks.map(link => `
                                     <div class="link-item">
                                         <i class="fas fa-external-link-alt"></i>
                                         <a href="${link.url}" target="_blank" class="link-url">
-                                            ${this.escapeHtml(link.title)}
+                                            ${this.escapeHtml(link.title || link.name || 'Untitled')}
                                         </a>
-                                        <span class="link-type">${link.type}</span>
+                                        <span class="link-type">${link.type || 'external'}</span>
                                     </div>
                                 `).join('')}
                             </div>
@@ -21488,41 +21512,82 @@
                     `;
                 }
 
-                // Next Steps - Always show section, filter empty items
+                // Next Steps - Show all items (handles both string arrays and object arrays)
                 let stepsHTML = '';
-                const validSteps = Array.isArray(nextSteps) ? nextSteps.filter(step => step && step.description && step.description.trim() !== '') : [];
+                const validSteps = Array.isArray(nextSteps) ? nextSteps.filter(step => {
+                    if (typeof step === 'string') return step.trim() !== '';
+                    return step && (step.description !== null && step.description !== undefined);
+                }) : [];
+                console.log('  ✅ Valid Steps after filter:', validSteps.length, validSteps);
 
                 stepsHTML = `
                                                                                                                                         <div class="card-section">
                                                                                                                                             <div class="section-title"><i class="fas fa-tasks"></i> Next Steps ${validSteps.length > 0 ? `(${validSteps.length})` : ''}</div>
                                                                                                                                             <div class="steps-list">
-                                                                                                                                                ${validSteps.length > 0 ? validSteps.map((step, idx) => `
-                                <div class="step-item ${step.completed ? 'completed' : ''}">
-                                    <input type="checkbox" ${step.completed ? 'checked' : ''} 
+                                                                                                                                                ${validSteps.length > 0 ? validSteps.map((step, idx) => {
+                    const isString = typeof step === 'string';
+                    const description = isString ? step : step.description;
+                    const completed = isString ? false : (step.completed || false);
+                    const dueDate = isString ? null : step.due_date;
+                    const completedAt = isString ? null : step.completed_at;
+                    const timestampHtml = completed && completedAt
+                        ? `<span class="step-timestamp" style="font-size: 0.85em; opacity: 0.6; margin-left: 8px;">${this.formatTimeAgo(completedAt)}</span>`
+                        : '';
+                    return `
+                                <div class="step-item ${completed ? 'completed' : ''}">
+                                    <input type="checkbox" ${completed ? 'checked' : ''} 
                                            onchange="synergyBoard.toggleStep('${session.session_id}', ${nextSteps.indexOf(step)})">
-                                    <span class="step-description">${this.escapeHtml(step.description)}</span>
-                                    ${step.due_date ? `<span class="step-due">Due: ${new Date(step.due_date).toLocaleDateString()}</span>` : ''}
+                                    <span class="step-description" style="${completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${this.escapeHtml(description)}</span>
+                                    ${timestampHtml}
+                                    ${dueDate ? `<span class="step-due">Due: ${new Date(dueDate).toLocaleDateString()}</span>` : ''}
                                 </div>
-                            `).join('') : '<div class="step-item" style="opacity: 0.6; font-style: italic;">No next steps added</div>'}
+                            `;
+                }).join('') : '<div class="step-item" style="opacity: 0.6; font-style: italic;">No next steps added</div>'}
                                                                                                                                             </div>
                                                                                                                                         </div>
                                                                                                                                         `;
 
-                // Checklist - Always show section, filter empty items
+                // Checklist - Show all items (handles both 'task' and 'item' fields)
                 let checklistHTML = '';
-                const validChecklist = Array.isArray(checklist) ? checklist.filter(item => item && item.item && item.item.trim() !== '') : [];
+                const validChecklist = Array.isArray(checklist) ? checklist.filter(item => {
+                    if (!item) return false;
+                    const taskText = item.task || item.item;
+                    return taskText !== null && taskText !== undefined && taskText.trim() !== '';
+                }) : [];
+                console.log('  ☑️  Valid Checklist after filter:', validChecklist.length, validChecklist);
 
                 checklistHTML = `
                                                                                                                                         <div class="card-section">
                                                                                                                                             <div class="section-title"><i class="fas fa-check-square"></i> Checklist ${validChecklist.length > 0 ? `(${validChecklist.filter(c => c && c.completed).length}/${validChecklist.length})` : ''}</div>
                                                                                                                                             <div class="checklist">
-                                                                                                                                                ${validChecklist.length > 0 ? validChecklist.map((item, idx) => `
-                                <div class="checklist-item ${item.completed ? 'completed' : ''}">
-                                    <input type="checkbox" ${item.completed ? 'checked' : ''}
-                                           onchange="synergyBoard.toggleChecklistItem('${session.session_id}', ${checklist.indexOf(item)})">
-                                    <span>${this.escapeHtml(item.item)}</span>
+                                                                                                                                                ${validChecklist.length > 0 ? validChecklist.map((item, idx) => {
+                    const taskText = item.task || item.item;
+                    const hasSubtasks = item.subtasks && Array.isArray(item.subtasks) && item.subtasks.length > 0;
+                    const completedAt = item.completed_at;
+                    const timestampHtml = item.completed && completedAt
+                        ? `<span class="checklist-timestamp" style="font-size: 0.85em; opacity: 0.6; margin-left: 8px;">${this.formatTimeAgo(completedAt)}</span>`
+                        : '';
+                    return `
+                                <div class="checklist-item ${item.completed ? 'completed' : ''}" style="display: flex; flex-direction: column;">
+                                    <div style="display: flex; align-items: center;">
+                                        <input type="checkbox" ${item.completed ? 'checked' : ''}
+                                               onchange="synergyBoard.toggleChecklistItem('${session.session_id}', ${checklist.indexOf(item)})">
+                                        <span class="checklist-text" style="${item.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${this.escapeHtml(taskText)}</span>
+                                        ${timestampHtml}
+                                    </div>
+                                    ${hasSubtasks ? `
+                                        <div class="subtasks" style="margin-left: 30px; margin-top: 8px; padding-left: 10px; border-left: 2px solid rgba(255,255,255,0.1);">
+                                            ${item.subtasks.map(sub => `
+                                                <div class="subtask-item ${sub.completed ? 'completed' : ''}" style="display: flex; align-items: center; padding: 4px 0; font-size: 0.9em; opacity: 0.85;">
+                                                    <input type="checkbox" ${sub.completed ? 'checked' : ''} disabled style="margin-right: 8px;">
+                                                    <span style="${sub.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${this.escapeHtml(sub.task)}</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    ` : ''}
                                 </div>
-                            `).join('') : '<div class="checklist-item" style="opacity: 0.6; font-style: italic;">No checklist items added</div>'}
+                            `;
+                }).join('') : '<div class="checklist-item" style="opacity: 0.6; font-style: italic;">No checklist items added</div>'}
                                                                                                                                             </div>
                                                                                                                                         </div>
                                                                                                                                         `;
@@ -21912,29 +21977,90 @@
                 const session = this.sessions.find(s => s.session_id === sessionId);
                 if (!session || !session.next_steps) return;
 
-                session.next_steps[stepIndex].completed = !session.next_steps[stepIndex].completed;
+                const step = session.next_steps[stepIndex];
+                const isString = typeof step === 'string';
+
+                if (isString) {
+                    console.warn('Cannot toggle string-based next steps. Convert to object format first.');
+                    return;
+                }
+
+                const wasCompleted = step.completed;
+                step.completed = !wasCompleted;
+
+                // Add timestamp
+                const timestamp = new Date().toISOString();
+                if (step.completed) {
+                    step.completed_at = timestamp;
+                } else {
+                    delete step.completed_at;
+                }
+
+                // Add activity log entry
+                const stepDescription = step.description || 'Next step';
+                const activity = {
+                    timestamp: timestamp,
+                    description: step.completed
+                        ? `✅ Completed next step: "${stepDescription}"`
+                        : `↩️ Uncompleted next step: "${stepDescription}"`
+                };
+
+                if (!session.recent_activity) session.recent_activity = [];
+                session.recent_activity.unshift(activity);
+
+                // Keep only last 20 activity entries
+                if (session.recent_activity.length > 20) {
+                    session.recent_activity = session.recent_activity.slice(0, 20);
+                }
 
                 // Persist to database
                 try {
                     await this.apiEditCard(sessionId, {
-                        next_steps: session.next_steps
+                        next_steps: session.next_steps,
+                        recent_activity: session.recent_activity
                     });
-                    console.log('Step toggled and saved:', sessionId, stepIndex);
+                    console.log('✅ Step toggled and saved with activity log:', sessionId, stepIndex);
                 } catch (error) {
                     console.warn('Failed to save step toggle:', error);
                 }
 
-                // Re-render the card to update UI
+                // Update UI inline without full re-render
                 const card = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
                 if (card) {
-                    const wasExpanded = card.dataset.expanded === 'true';
-                    const oldCard = card;
-                    this.renderCard(session);
-                    const newCard = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
-                    if (wasExpanded && newCard) {
-                        this.toggleCardExpand(sessionId);
+                    // Find the specific checkbox element
+                    const checkboxes = card.querySelectorAll('.next-steps input[type="checkbox"]');
+                    if (checkboxes[stepIndex]) {
+                        const checkbox = checkboxes[stepIndex];
+                        const textSpan = checkbox.nextElementSibling;
+
+                        // Update checkbox state
+                        checkbox.checked = step.completed;
+
+                        // Update text styling (strike-through)
+                        if (textSpan && textSpan.classList.contains('step-description')) {
+                            if (step.completed) {
+                                textSpan.style.textDecoration = 'line-through';
+                                textSpan.style.opacity = '0.6';
+                            } else {
+                                textSpan.style.textDecoration = 'none';
+                                textSpan.style.opacity = '1';
+                            }
+                        }
+
+                        // Update or add timestamp
+                        let timestampSpan = checkbox.parentElement.querySelector('.step-timestamp');
+                        if (step.completed && step.completed_at) {
+                            if (!timestampSpan) {
+                                timestampSpan = document.createElement('span');
+                                timestampSpan.className = 'step-timestamp';
+                                timestampSpan.style.cssText = 'font-size: 0.85em; opacity: 0.6; margin-left: 8px;';
+                                checkbox.parentElement.appendChild(timestampSpan);
+                            }
+                            timestampSpan.textContent = this.formatTimeAgo(step.completed_at);
+                        } else if (timestampSpan) {
+                            timestampSpan.remove();
+                        }
                     }
-                    oldCard.remove();
                 }
             },
 
@@ -21975,29 +22101,83 @@
                 const session = this.sessions.find(s => s.session_id === sessionId);
                 if (!session || !session.checklist) return;
 
-                session.checklist[itemIndex].completed = !session.checklist[itemIndex].completed;
+                const item = session.checklist[itemIndex];
+                const wasCompleted = item.completed;
+                item.completed = !wasCompleted;
+
+                // Add timestamp
+                const timestamp = new Date().toISOString();
+                if (item.completed) {
+                    item.completed_at = timestamp;
+                } else {
+                    delete item.completed_at;
+                }
+
+                // Add activity log entry
+                const itemText = item.task || item.item || 'Checklist item';
+                const activity = {
+                    timestamp: timestamp,
+                    description: item.completed
+                        ? `☑️ Completed checklist: "${itemText}"`
+                        : `◻️ Uncompleted checklist: "${itemText}"`
+                };
+
+                if (!session.recent_activity) session.recent_activity = [];
+                session.recent_activity.unshift(activity);
+
+                // Keep only last 20 activity entries
+                if (session.recent_activity.length > 20) {
+                    session.recent_activity = session.recent_activity.slice(0, 20);
+                }
 
                 // Persist to database
                 try {
                     await this.apiEditCard(sessionId, {
-                        checklist: session.checklist
+                        checklist: session.checklist,
+                        recent_activity: session.recent_activity
                     });
-                    console.log('Checklist item toggled and saved:', sessionId, itemIndex);
+                    console.log('☑️ Checklist item toggled and saved with activity log:', sessionId, itemIndex);
                 } catch (error) {
                     console.warn('Failed to save checklist toggle:', error);
                 }
 
-                // Re-render the card to update UI
+                // Update UI inline without full re-render
                 const card = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
                 if (card) {
-                    const wasExpanded = card.dataset.expanded === 'true';
-                    const oldCard = card;
-                    this.renderCard(session);
-                    const newCard = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
-                    if (wasExpanded && newCard) {
-                        this.toggleCardExpand(sessionId);
+                    // Find the specific checkbox element
+                    const checkboxes = card.querySelectorAll('.checklist input[type="checkbox"]');
+                    if (checkboxes[itemIndex]) {
+                        const checkbox = checkboxes[itemIndex];
+                        const textSpan = checkbox.nextElementSibling;
+
+                        // Update checkbox state
+                        checkbox.checked = item.completed;
+
+                        // Update text styling (strike-through)
+                        if (textSpan && textSpan.classList.contains('checklist-text')) {
+                            if (item.completed) {
+                                textSpan.style.textDecoration = 'line-through';
+                                textSpan.style.opacity = '0.6';
+                            } else {
+                                textSpan.style.textDecoration = 'none';
+                                textSpan.style.opacity = '1';
+                            }
+                        }
+
+                        // Update or add timestamp
+                        let timestampSpan = checkbox.parentElement.querySelector('.checklist-timestamp');
+                        if (item.completed && item.completed_at) {
+                            if (!timestampSpan) {
+                                timestampSpan = document.createElement('span');
+                                timestampSpan.className = 'checklist-timestamp';
+                                timestampSpan.style.cssText = 'font-size: 0.85em; opacity: 0.6; margin-left: 8px;';
+                                checkbox.parentElement.querySelector('.checklist-text').insertAdjacentElement('afterend', timestampSpan);
+                            }
+                            timestampSpan.textContent = this.formatTimeAgo(item.completed_at);
+                        } else if (timestampSpan) {
+                            timestampSpan.remove();
+                        }
                     }
-                    oldCard.remove();
                 }
             },
 
@@ -22824,7 +23004,7 @@
                 docsList.innerHTML = '';
                 if (documents.length > 0) {
                     documents.forEach((doc, idx) => {
-                        this.addDocumentField(doc.title, doc.url, doc.type);
+                        this.addDocumentField(doc.name || doc.title, doc.url, doc.type);
                     });
                 }
 
@@ -22842,16 +23022,22 @@
                 stepsList.innerHTML = '';
                 if (nextSteps.length > 0) {
                     nextSteps.forEach((step, idx) => {
-                        this.addNextStepField(step.description, step.due_date, step.completed, step.sub_checklist || []);
+                        const isString = typeof step === 'string';
+                        const description = isString ? step : step.description;
+                        const dueDate = isString ? '' : step.due_date;
+                        const completed = isString ? false : step.completed;
+                        const subChecklist = isString ? [] : (step.sub_checklist || []);
+                        this.addNextStepField(description, dueDate, completed, subChecklist);
                     });
                 }
 
                 // Populate checklist
                 const checklistList = document.getElementById('checklist-list');
                 checklistList.innerHTML = '';
-                if (session.checklist && session.checklist.length > 0) {
-                    session.checklist.forEach((item, idx) => {
-                        this.addChecklistField(item.item, item.completed);
+                const checklist = this.parseJsonField(session.checklist, []);
+                if (checklist.length > 0) {
+                    checklist.forEach((item, idx) => {
+                        this.addChecklistField(item.task || item.item, item.completed, item.subtasks || []);
                     });
                 }
 
@@ -22990,21 +23176,56 @@
                 container.appendChild(subItem);
             },
 
-            addChecklistField(item = '', completed = false) {
+            addChecklistField(item = '', completed = false, subtasks = []) {
                 const container = document.getElementById('checklist-list');
+                const checklistId = `checklist-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'checklist-wrapper';
                 const row = document.createElement('div');
                 row.className = 'item-row';
                 row.innerHTML = `
-                                                                                                                                                                            <input type="checkbox" ${completed ? 'checked' : ''}>
-                                                                                                                                                                                <input type="text" class="form-control" placeholder="Checklist item" value="${this.escapeHtml(item)}">
-                                                                                                                                                                                    <button type="button" class="btn-remove-item" onclick="this.parentElement.remove()">
-                                                                                                                                                                                        <i class="fas fa-trash"></i>
-                                                                                                                                                                                    </button>
-                                                                                                                                                                                    `;
-                container.appendChild(row);
+                                                                                                                                                                        <input type="checkbox" ${completed ? 'checked' : ''}>
+                                                                                                                                                                            <input type="text" class="form-control" placeholder="Checklist item" value="${this.escapeHtml(item)}">
+                                                                                                                                                                                <button type="button" class="btn-add-subtask" onclick="synergyBoard.addChecklistSubtask('${checklistId}')" title="Add subtask">
+                                                                                                                                                                                    <i class="fas fa-plus"></i>
+                                                                                                                                                                                </button>
+                                                                                                                                                                                <button type="button" class="btn-remove-item" onclick="this.parentElement.parentElement.remove()">
+                                                                                                                                                                                    <i class="fas fa-trash"></i>
+                                                                                                                                                                                </button>
+                                                                                                                                                                                `;
+                wrapper.appendChild(row);
+
+                const subtasksContainer = document.createElement('div');
+                subtasksContainer.className = 'checklist-subtasks';
+                subtasksContainer.id = checklistId;
+                subtasksContainer.style.marginLeft = '30px';
+                wrapper.appendChild(subtasksContainer);
+
+                container.appendChild(wrapper);
+
+                if (subtasks && subtasks.length > 0) {
+                    subtasks.forEach(sub => {
+                        this.addChecklistSubtask(checklistId, sub.task, sub.completed);
+                    });
+                }
             },
 
-            async saveCardEdit() {
+            addChecklistSubtask(checklistId, taskText = '', completed = false) {
+                const container = document.getElementById(checklistId);
+                if (!container) return;
+
+                const subItem = document.createElement('div');
+                subItem.className = 'subtask-item';
+                subItem.style.padding = '5px 0';
+                subItem.innerHTML = `
+                    <input type="checkbox" class="sub-checkbox" ${completed ? 'checked' : ''}>
+                    <input type="text" class="form-control" placeholder="Subtask" value="${this.escapeHtml(taskText)}" style="display: inline-block; width: 70%; margin: 0 5px;">
+                    <button type="button" class="btn-remove-subtask" onclick="this.parentElement.remove()" style="padding: 5px 8px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(subItem);
+            }, async saveCardEdit() {
                 console.log('💾 Saving card edits...');
 
                 const sessionId = document.getElementById('edit-session-id').value;

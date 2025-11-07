@@ -125,11 +125,26 @@ def init_database():
             links TEXT,
             next_steps TEXT,
             checklist TEXT,
+            thread_ids TEXT,
+            assigned_agents TEXT,
             google_task_id TEXT,
             google_calendar_event_id TEXT,
             session_data TEXT
         )
     ''')
+    
+    # Add missing columns if they don't exist (migration)
+    try:
+        cursor.execute("ALTER TABLE sessions ADD COLUMN thread_ids TEXT")
+        logger.info("✅ Added thread_ids column to sessions table")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute("ALTER TABLE sessions ADD COLUMN assigned_agents TEXT")
+        logger.info("✅ Added assigned_agents column to sessions table")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     conn.commit()
     conn.close()
@@ -149,7 +164,7 @@ def dict_from_row(row: sqlite3.Row) -> Dict:
     data = dict(row)
     
     # Parse JSON fields
-    json_fields = ['assignees', 'tags', 'documents', 'links', 'next_steps', 'checklist', 'session_data']
+    json_fields = ['assignees', 'tags', 'documents', 'links', 'next_steps', 'checklist', 'thread_ids', 'assigned_agents', 'session_data']
     for field in json_fields:
         if data.get(field):
             try:
@@ -231,14 +246,16 @@ def create_session():
         links = json.dumps(data.get('links', []))
         next_steps = json.dumps(data.get('next_steps', []))
         checklist = json.dumps(data.get('checklist', []))
+        thread_ids = json.dumps(data.get('thread_ids', []))
+        assigned_agents = json.dumps(data.get('assigned_agents', []))
         session_data = json.dumps(data.get('session_data', {}))
         
         cursor.execute('''
             INSERT INTO sessions (
                 session_id, title, description, project_name, priority, status,
                 kanban_column, due_date, created_at, updated_at, assignees, tags,
-                notes, documents, links, next_steps, checklist, session_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                notes, documents, links, next_steps, checklist, thread_ids, assigned_agents, session_data
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             session_id,
             data['title'],
@@ -257,6 +274,8 @@ def create_session():
             links,
             next_steps,
             checklist,
+            thread_ids,
+            assigned_agents,
             session_data
         ))
         
@@ -322,7 +341,7 @@ def update_session(session_id):
                 params.append(updates[field])
         
         # JSON fields
-        json_fields = ['assignees', 'tags', 'documents', 'links', 'next_steps', 'checklist', 'session_data']
+        json_fields = ['assignees', 'tags', 'documents', 'links', 'next_steps', 'checklist', 'thread_ids', 'assigned_agents', 'session_data']
         
         for field in json_fields:
             if field in updates:

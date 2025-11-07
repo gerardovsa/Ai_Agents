@@ -492,9 +492,23 @@ def synergy_update_session(
         
         # Array fields (these REPLACE the entire field)
         if documents is not None:
-            updates["documents"] = documents
+            # Normalize document structure: name -> title
+            normalized_docs = []
+            for doc in documents:
+                normalized_doc = doc.copy()
+                if 'name' in normalized_doc and 'title' not in normalized_doc:
+                    normalized_doc['title'] = normalized_doc.pop('name')
+                normalized_docs.append(normalized_doc)
+            updates["documents"] = normalized_docs
         if links is not None:
-            updates["links"] = links
+            # Normalize link structure: name -> title
+            normalized_links = []
+            for link in links:
+                normalized_link = link.copy()
+                if 'name' in normalized_link and 'title' not in normalized_link:
+                    normalized_link['title'] = normalized_link.pop('name')
+                normalized_links.append(normalized_link)
+            updates["links"] = normalized_links
         if next_steps is not None:
             updates["next_steps"] = next_steps
         if tags is not None:

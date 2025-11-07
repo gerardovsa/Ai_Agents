@@ -343,7 +343,7 @@ def update_session(session_id):
         params = []
         
         # Simple fields
-        for field in ['title', 'description', 'status', 'priority', 'due_date']:
+        for field in ['title', 'description', 'status', 'priority', 'due_date', 'kanban_column']:
             if field in update_data:
                 updates.append(f"{field} = ?")
                 params.append(update_data[field])
@@ -399,12 +399,12 @@ def update_column(session_id):
     """Update session column (Kanban movement)"""
     try:
         data = request.json
-        new_column = data.get('kanban_column')
+        new_column = data.get('target_column') or data.get('kanban_column')
         
         if not new_column:
             return jsonify({
                 'success': False,
-                'error': 'kanban_column is required'
+                'error': 'target_column or kanban_column is required'
             }), 400
         
         conn = get_db_connection()

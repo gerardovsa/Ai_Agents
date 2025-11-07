@@ -38,6 +38,7 @@ from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from render_api_client import RenderAPIClient
 
@@ -47,7 +48,10 @@ class SingaporeDockerDeployer:
     
     def __init__(self):
         """Initialize deployer with API client"""
-        self.client = RenderAPIClient()
+        # Get API key from environment with fallback to hardcoded value
+        api_key = os.getenv('RENDER_API_KEY', 'rnd_hTZfWT0aHJLeX925X5sIiY5PxWiu')
+        
+        self.client = RenderAPIClient(api_key)
         self.service_id = None
         self.service_url = None
         
@@ -68,10 +72,10 @@ class SingaporeDockerDeployer:
         
         checks = []
         
-        # Check 1: Render API key
-        api_key = os.getenv('RENDER_API_KEY')
+        # Check 1: Render API key (use same fallback as __init__)
+        api_key = os.getenv('RENDER_API_KEY', 'rnd_hTZfWT0aHJLeX925X5sIiY5PxWiu')
         if api_key and api_key.startswith('rnd_'):
-            checks.append(("Render API Key", True, "Found in environment"))
+            checks.append(("Render API Key", True, f"Found: {api_key[:10]}..."))
         else:
             checks.append(("Render API Key", False, "Not found or invalid"))
         
@@ -126,23 +130,33 @@ class SingaporeDockerDeployer:
         
         service_config = {
             "type": "web_service",
-            "name": "ai-agents-backend-singapore",  # New name to avoid conflict
-            "env": "docker",
-            "region": "singapore",
-            "plan": "starter",  # $7/month
-            "repo": "https://github.com/gerardovsa/AI_agents",
-            "branch": "V2_clean",
-            "rootDir": ".",
-            "dockerfilePath": "./Dockerfile",
-            "dockerContext": "./",
+            "name": "ai-agents-backend-singapore",
+            "ownerId": "usr-d1ee04kr433s73bf3nfg",  # Your Render account ID
+            "repo": "https://github.com/gerardovsa/Ai_Agents",  # Note: Ai_Agents (capital A)
             "autoDeploy": "yes",
-            "healthCheckPath": "/health",
-            "envVars": [
-                {"key": "PYTHONUNBUFFERED", "value": "1"},
-                {"key": "RENDER", "value": "true"},
-                {"key": "ENVIRONMENT", "value": "production"},
-                {"key": "PORT", "value": "10000"}
-            ]
+            "branch": "V2_clean",
+            "buildFilter": {
+                "paths": [],
+                "ignoredPaths": []
+            },
+            "envSpecificDetails": {
+                "docker": {
+                    "dockerfilePath": "./Dockerfile",
+                    "dockerContext": "./"
+                }
+            },
+            "serviceDetails": {
+                "env": "docker",
+                "region": "singapore",
+                "plan": "starter",
+                "healthCheckPath": "/health",
+                "envVars": [
+                    {"key": "PYTHONUNBUFFERED", "value": "1"},
+                    {"key": "RENDER", "value": "true"},
+                    {"key": "ENVIRONMENT", "value": "production"},
+                    {"key": "PORT", "value": "10000"}
+                ]
+            }
         }
         
         print("Service Configuration:")

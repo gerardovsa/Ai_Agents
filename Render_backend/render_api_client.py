@@ -142,6 +142,31 @@ class RenderAPIClient:
                 return service
         return None
     
+    def create_service(self, service_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create a new web service
+        
+        Args:
+            service_config: Service configuration object with keys:
+                - type: "web_service"
+                - name: Service name
+                - env: "docker" or "python" or "node" etc.
+                - region: "oregon" or "singapore" etc.
+                - plan: "starter", "standard", etc.
+                - repo: GitHub repo URL
+                - branch: Git branch name
+                - rootDir: Root directory (default ".")
+                - dockerfilePath: Path to Dockerfile (for Docker env)
+                - dockerContext: Docker build context (for Docker env)
+                - autoDeploy: "yes" or "no"
+                - healthCheckPath: Health check endpoint
+                - envVars: List of {"key": "...", "value": "..."}
+            
+        Returns:
+            Created service object
+        """
+        return self._make_request('POST', 'services', json=service_config)
+    
     def update_service_env_vars(self, service_id: str, env_vars: List[Dict[str, str]]) -> Dict[str, Any]:
         """
         Update environment variables for a service
@@ -155,6 +180,18 @@ class RenderAPIClient:
         """
         payload = {"envVars": env_vars}
         return self._make_request('PUT', f'services/{service_id}/env-vars', json=payload)
+    
+    def delete_service(self, service_id: str) -> Dict[str, Any]:
+        """
+        Delete a service
+        
+        Args:
+            service_id: Service ID to delete
+            
+        Returns:
+            Deletion confirmation object
+        """
+        return self._make_request('DELETE', f'services/{service_id}')
     
     # ==================== Deploys ====================
     
