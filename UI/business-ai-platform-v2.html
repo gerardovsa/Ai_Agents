@@ -1135,25 +1135,29 @@
         .ai-chat-header-info {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             font-size: 13px;
             color: var(--text-secondary);
-            padding-left: 32px;
+            padding: 8px 16px;
+            flex: 1;
+            min-width: 0;
         }
 
         .thread-title-display {
             font-weight: 600;
-            font-size: 16px;
+            font-size: 15px;
             color: var(--text-primary);
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 6px 10px;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
+            background: var(--bg-secondary);
+            border: 1px solid transparent;
         }
 
         .thread-title-display:hover {
@@ -1180,21 +1184,24 @@
         .thread-metadata-row {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 12px;
-            color: var(--text-muted, #9ca3af);
+            gap: 16px;
+            font-size: 11px;
+            color: var(--text-tertiary);
             flex-wrap: wrap;
+            padding: 0 10px;
         }
 
         .thread-metadata-item {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            white-space: nowrap;
         }
 
         .thread-metadata-item i {
             font-size: 11px;
-            opacity: 0.7;
+            opacity: 0.6;
+            color: var(--accent-primary);
         }
 
         .thread-tags-row {
@@ -1202,54 +1209,60 @@
             align-items: center;
             gap: 6px;
             flex-wrap: wrap;
+            padding: 0 10px;
         }
 
         .thread-tag-pill {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 2px 8px;
-            background: var(--bg-tertiary, #1c2128);
-            color: var(--accent-primary, #58a6ff);
-            border: 1px solid var(--border-default, #30363d);
-            border-radius: 12px;
+            padding: 3px 10px;
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--accent-primary);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 14px;
             font-size: 11px;
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .thread-synergy-row {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            padding: 0 10px;
         }
 
         .thread-synergy-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 4px 10px;
-            background: var(--bg-tertiary, #1c2128);
-            border: 1px solid var(--accent-primary, #58a6ff);
-            border-radius: 6px;
+            padding: 5px 12px;
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.15), rgba(136, 78, 255, 0.15));
+            border: 1px solid rgba(88, 166, 255, 0.4);
+            border-radius: 8px;
             font-size: 12px;
             color: var(--text-primary);
             cursor: pointer;
             transition: all 0.2s;
+            font-weight: 500;
         }
 
         .thread-synergy-badge:hover {
-            background: var(--bg-hover, #21262d);
-            border-color: var(--accent-hover, #4493e6);
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.25), rgba(136, 78, 255, 0.25));
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
         }
 
         .thread-synergy-badge i {
-            color: var(--accent-primary, #58a6ff);
+            color: var(--accent-primary);
         }
 
         .thread-synergy-id {
             font-size: 10px;
             opacity: 0.7;
-            margin-left: 4px;
+            margin-left: 2px;
         }
 
         .thread-synergy-unlink {
@@ -5379,7 +5392,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            z-index: 99999;
             animation: fadeIn 0.2s ease-out;
         }
 
@@ -7427,7 +7440,7 @@
                 <div class="thread-menu-overlay" id="thread-menu">
                     <div class="thread-menu-header">
                         <span class="thread-menu-title">Thread History</span>
-                        <button class="thread-menu-new-btn" onclick="createNewThread()">
+                        <button class="thread-menu-new-btn" onclick="ThreadManager.showNewChatModal('prime')">
                             <i class="fas fa-plus"></i> New Chat
                         </button>
                     </div>
@@ -10576,7 +10589,8 @@
                                                 if (textBubble.processor) {
                                                     textBubble.processor.processChunk(data.text);
                                                 } else {
-                                                    contentDiv.innerHTML += data.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                                    // Allow HTML rendering for rich content
+                                                    contentDiv.innerHTML += data.text;
                                                 }
 
                                                 chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -12119,18 +12133,18 @@
 
             const loadedThread = MultiAgent.getLoadedThread(agentId);
             const threadInfoHtml = loadedThread
-                ? `< div class="agent-thread-loaded" >
+                ? `<div class="agent-thread-loaded">
                     <i class="fas fa-comments"></i>
                     <span class="agent-thread-title">${loadedThread.threadTitle}</span>
                     <button class="agent-thread-clear" onclick="event.stopPropagation(); MultiAgent.clearLoadedThread(${agentId})" title="Clear thread">
                         <i class="fas fa-times"></i>
                     </button>
-                   </div > `
+                   </div>`
                 : '<div class="agent-no-thread"><i class="fas fa-inbox"></i> No thread loaded</div>';
 
             column.innerHTML = `
             <!-- Collapsed Column Bar (hidden by default) -->
-            < div class="collapsed-column-bar" onclick = "MultiAgent.expandColumn(${agentId})" >
+            <div class="collapsed-column-bar" onclick="MultiAgent.expandColumn(${agentId})">
                     <button class="expand-btn" title="Expand column">
                         <i class="fas fa-chevron-right"></i>
                     </button>
@@ -12139,7 +12153,7 @@
                         <div class="thread-status-vertical" id="collapsed-status-${agentId}">No Thread</div>
                         <div class="thread-timestamp-vertical" id="collapsed-timestamp-${agentId}"></div>
                     </div>
-                </div >
+                </div>
 
                 <div class="agent-header">
                     <!-- Status Indicator (centered) -->
@@ -12162,7 +12176,7 @@
                     </div>
 
                     <div class="agent-menu-dropdown" id="menu-${agentId}">
-                        <div class="agent-menu-item" onclick="event.stopPropagation(); newChat(${agentId})">
+                        <div class="agent-menu-item" onclick="event.stopPropagation(); toggleAgentMenu(${agentId}); ThreadManager.showNewChatModal('agent-${agentId}')">
                             <i class="fas fa-plus"></i> New Chat
                         </div>
                         <div class="agent-menu-item" onclick="event.stopPropagation(); showLoadThreadDialog(${agentId})">
@@ -12376,10 +12390,10 @@
                 const size = (file.size / 1024).toFixed(1);
 
                 chip.innerHTML = `
-            < i class="fas ${icon}" ></i >
+                    <i class="fas ${icon}"></i>
                     <span>${file.name} (${size}KB)</span>
                     <button class="agent-file-chip-remove" data-index="${index}">×</button>
-        `;
+                `;
 
                 chip.querySelector('.agent-file-chip-remove').addEventListener('click', () => {
                     window.agentAttachedFiles[agentId].splice(index, 1);
@@ -12406,10 +12420,10 @@
             bar.className = 'add-agent-bar';
             bar.onclick = addAgentColumn;
             bar.innerHTML = `
-            < div class="add-agent-bar-content" >
-                <i class="fas fa-plus"></i>
+                <div class="add-agent-bar-content">
+                    <i class="fas fa-plus"></i>
                     ADD AGENT
-                </div >
+                </div>
             `;
 
             // Only show if multi-agent tab is currently active
@@ -12460,7 +12474,7 @@
 
             titleEl.textContent = `Load Thread into ${agentName} `;
             messageEl.innerHTML = `
-            < div style = "margin-bottom: 12px;" > Enter Session ID to load:</div >
+                <div style="margin-bottom: 12px;">Enter Session ID to load:</div>
                 <input type="text" 
                        id="agent-load-session-input" 
                        class="session-loader-input" 
@@ -12469,7 +12483,7 @@
                 <div style="font-size: 12px; color: var(--text-secondary);">
                     <i class="fas fa-info-circle"></i> Copy a session ID from the thread menu in the main AI chat.
                 </div>
-        `;
+            `;
 
             confirmBtn.innerHTML = '<i class="fas fa-download"></i> Load Thread';
             confirmBtn.style.background = '#3b82f6';
@@ -12510,12 +12524,12 @@
                 // Add each message
                 thread.messages.forEach(msg => {
                     const messageDiv = document.createElement('div');
-                    messageDiv.className = `agent - message ${msg.role === 'user' ? 'user' : 'assistant'} `;
+                    messageDiv.className = `agent-message ${msg.role === 'user' ? 'user' : 'assistant'}`;
                     messageDiv.innerHTML = `
-            < div class="agent-message-bubble" >
-                ${msg.content}
-                        </div >
-            `;
+                        <div class="agent-message-bubble">
+                            ${msg.content}
+                        </div>
+                    `;
                     messagesContainer.appendChild(messageDiv);
                 });
 
@@ -12632,13 +12646,13 @@
                 });
 
                 messagesContainer.innerHTML = `
-            < div class="agent-message assistant" >
-                <div class="agent-message-bubble">
-                    👋 <strong>Agent ${getAgentName(agentId)} ready!</strong><br><br>
-                        New conversation started!
+                    <div class="agent-message assistant">
+                        <div class="agent-message-bubble">
+                            👋 <strong>Agent ${getAgentName(agentId)} ready!</strong><br><br>
+                            New conversation started!
+                        </div>
                     </div>
-                </div>
-        `;
+                `;
             }
 
             // Reset session
@@ -12926,12 +12940,12 @@
                             bubble.processor.processChunk(text);
                         } catch (error) {
                             console.error(` Processor error for Agent ${agentId}:`, error);
-                            // Fallback to plain text
-                            bubble.innerHTML += text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            // Fallback to rendered HTML (not escaped)
+                            bubble.innerHTML += text;
                         }
                     } else {
-                        // Fallback to plain HTML (escape for safety)
-                        bubble.innerHTML += text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        // Allow HTML rendering for rich content
+                        bubble.innerHTML += text;
                     }
 
                     scrollAgentToBottom(agentId);
@@ -14500,8 +14514,9 @@
                     agent: 'main'     // NEW: Which agent owns this thread
                 };
                 this.threads.unshift(thread);
-                // Save to backend (async, don't wait - fallback for createNewThread() failure)
-                this.saveThreadToBackend(thread);
+                // DON'T save empty threads to backend - wait for first message
+                // Backend requires at least one message before saving
+                // Thread will be saved when first message is added via updateCurrentThread()
                 return thread.id;
             },
 
@@ -14877,6 +14892,12 @@
                 // NEW: Save thread to backend database (not localStorage)
                 // UPDATED: Include location for Prime/Agent assignment integration
                 try {
+                    // Skip saving empty threads - backend requires at least one message
+                    if (!thread.messages || thread.messages.length === 0) {
+                        console.log(`⏭️ Skipping save for empty thread: ${thread.id} (no messages yet)`);
+                        return false;
+                    }
+
                     // Determine thread location from current assignments
                     const assignments = this.getThreadAssignments();
                     let location = 'prime'; // Default to Prime
@@ -15209,19 +15230,29 @@
                 try {
                     const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/synergy/sessions`);
                     if (response.ok) {
-                        synergySessions = await response.json();
+                        const data = await response.json();
+                        // /sessions endpoint returns array directly, /list returns { sessions: [...] }
+                        synergySessions = Array.isArray(data) ? data : (data.sessions || []);
                         console.log(`[OK] [showNewChatModal] Loaded ${synergySessions.length} Synergy sessions`);
                     }
                 } catch (error) {
                     console.warn(`[WARN] [showNewChatModal] Could not load Synergy sessions:`, error);
                 }
 
-                // Get agent display name
-                const locationName = location === 'prime' ? 'Prime Agent' :
-                    (location.startsWith('agent-') ? `Agent ${location.split('-')[1]}` : location);
+                // Get agent display name with NATO phonetic alphabet
+                const agentNames = {
+                    'prime': 'Prime Agent',
+                    'agent-1': 'Agent Alpha',
+                    'agent-2': 'Agent Bravo',
+                    'agent-3': 'Agent Charlie',
+                    'agent-4': 'Agent Delta',
+                    'agent-5': 'Agent Echo',
+                    'agent-6': 'Agent Foxtrot'
+                };
+                const locationName = agentNames[location] || location;
 
                 const modalHTML = `
-                                                <div class="modal-overlay" id="newChatModalOverlay">
+                                                <div class="modal-overlay" id="newChatModalOverlay" style="z-index: 999999 !important;">
                                                     <div class="new-chat-modal">
                                                         <div class="modal-header">
                                                             <h3>💬 Start New Chat</h3>
@@ -15392,10 +15423,30 @@
                     }
 
                     const threadData = await createResponse.json();
-                    const newThread = threadData.thread;
+                    // Backend wraps response in { success: true, data: { thread: {...} } }
+                    const newThread = threadData.data?.thread || threadData.thread;
+                    if (!newThread || !newThread.id) {
+                        console.error('[ERROR] Invalid thread response:', threadData);
+                        throw new Error('Invalid thread creation response from backend');
+                    }
                     const newThreadId = newThread.id;
 
                     console.log(`[OK] [createThreadWithMetadata] Thread created:`, newThreadId);
+
+                    // FIX: Add thread to local threads array IMMEDIATELY
+                    const localThread = {
+                        id: newThreadId,
+                        title: title,
+                        tags: tags || [],
+                        synergy_card_id: synergySessionId || null,
+                        messages: [],
+                        created: newThread.created || new Date().toISOString(),
+                        updated: new Date().toISOString(),
+                        archived: false,
+                        agent: location
+                    };
+                    this.threads.unshift(localThread);
+                    console.log(`[OK] [createThreadWithMetadata] Thread added to local array`);
 
                     // 2. If Synergy session selected, update it bidirectionally
                     if (synergySessionId) {
@@ -15439,6 +15490,22 @@
 
                                 if (updateResponse.ok) {
                                     console.log(`[OK] [createThreadWithMetadata] Synergy session updated with thread and agent`);
+                                    
+                                    // FIX: Trigger Synergy board refresh
+                                    if (typeof SynergyDashboard !== 'undefined' && typeof SynergyDashboard.refreshCard === 'function') {
+                                        SynergyDashboard.refreshCard(synergySessionId);
+                                        console.log(`[OK] [createThreadWithMetadata] Synergy card UI refreshed`);
+                                    } else if (typeof location !== 'undefined' && location.reload) {
+                                        // Fallback: Post message to Synergy iframe if exists
+                                        const synergyIframe = document.querySelector('iframe[src*="synergy"]');
+                                        if (synergyIframe && synergyIframe.contentWindow) {
+                                            synergyIframe.contentWindow.postMessage({
+                                                type: 'REFRESH_CARD',
+                                                sessionId: synergySessionId
+                                            }, '*');
+                                            console.log(`[OK] [createThreadWithMetadata] Posted refresh message to Synergy iframe`);
+                                        }
+                                    }
                                 } else {
                                     console.warn(`[WARN] [createThreadWithMetadata] Failed to update Synergy session`);
                                 }
@@ -15490,17 +15557,32 @@
 
                     // Assign thread to location in database
                     if (typeof this.assignThread === 'function') {
-                        await this.assignThread(newThreadId, location);
+                        const assignmentResult = await this.assignThread(newThreadId, location);
+                        if (!assignmentResult) {
+                            console.warn(`[WARN] [createThreadWithMetadata] Assignment to ${location} failed, but thread created`);
+                        } else {
+                            console.log(`[OK] [createThreadWithMetadata] Thread assigned to ${location} in database`);
+                        }
                     }
 
-                    // Refresh thread list
+                    // FIX: Refresh thread list IMMEDIATELY
                     this.renderThreadList();
+                    console.log(`[OK] [createThreadWithMetadata] Thread list refreshed`);
+
+                    // FIX: Update Prime/Agent header IMMEDIATELY
+                    if (location === 'prime') {
+                        this.updatePrimeHeader(localThread);
+                        console.log(`[OK] [createThreadWithMetadata] Prime header updated`);
+                    } else if (agentId && typeof MultiAgent !== 'undefined') {
+                        MultiAgent.updateAgentHeader(agentId);
+                        console.log(`[OK] [createThreadWithMetadata] Agent-${agentId} header updated`);
+                    }
 
                     const locationName = location === 'prime' ? 'AI Chat' :
                         (MultiAgent ? MultiAgent.getAgentName(agentId) : location);
 
-                    showNotification(`[OK] Chat "${title}" created in ${locationName}`, 'success');
-                    console.log(`🎉 [createThreadWithMetadata] Complete! Thread ready to use.`);
+                    showNotification(`Chat "${title}" created in ${locationName}`, 'success', 2000);
+                    console.log(`🎉 [createThreadWithMetadata] Complete! Thread ready with full UI sync.`);
 
                 } catch (error) {
                     console.error(`[ERROR] [createThreadWithMetadata] Error:`, error);
