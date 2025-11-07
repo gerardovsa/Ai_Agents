@@ -7,6 +7,7 @@
  */
 class ModuleLoader {
     constructor() {
+        // Use relative path from current page location
         this.manifestPath = 'external/modules/manifest.json';
         this.modules = [];
         this.loadedCount = 0;
@@ -22,6 +23,13 @@ class ModuleLoader {
         console.log('📦 Loading modules from manifest...');
 
         try {
+            // Check if we're running from file:// protocol
+            if (window.location.protocol === 'file:') {
+                console.log('⚠️ Running from file:// protocol - module loading disabled');
+                console.log('ℹ️ To enable modules, serve the app via HTTP (e.g., python -m http.server)');
+                return;
+            }
+
             // Fetch module list
             const response = await fetch(this.manifestPath);
 
@@ -43,7 +51,7 @@ class ModuleLoader {
                 }
             }
 
-            console.log(`✅ Module loading complete: ${this.loadedCount} loaded, ${this.failedCount} failed`);
+            console.log(`Module loading complete: ${this.loadedCount} loaded, ${this.failedCount} failed`);
 
         } catch (error) {
             console.error(' Failed to load modules:', error);
@@ -90,7 +98,7 @@ class ModuleLoader {
                 });
 
                 this.loadedCount++;
-                console.log(`✅ Module registered: ${moduleConfig.name}`);
+                console.log(`Module registered: ${moduleConfig.name}`);
             } else {
                 throw new Error('ModuleManager not available');
             }
@@ -170,7 +178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.ModuleLoader = new ModuleLoader();
             await window.ModuleLoader.loadModules();
 
-            console.log('✅ Module system ready');
+            console.log('Module system ready');
         } else {
             console.error(' ModuleManager failed to initialize');
         }
@@ -179,4 +187,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-console.log('✅ ModuleLoader script loaded');
+console.log('ModuleLoader script loaded');

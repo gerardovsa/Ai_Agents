@@ -29,10 +29,14 @@ import json
 from queue import Queue, Empty
 import threading
 
-# Load environment variables from .env.master file
+# Load environment variables from .env.master file (local development only)
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env.master'))
-print(f"Loaded .env.master file")
+env_file_path = os.path.join(os.path.dirname(__file__), '..', '.env.master')
+if os.path.exists(env_file_path):
+    load_dotenv(env_file_path)
+    print(f"✅ Loaded .env.master file (local development)")
+else:
+    print(f"ℹ️  Using environment variables from system (production/Render)")
 print(f"ANTHROPIC_API_KEY: {'SET' if os.getenv('ANTHROPIC_API_KEY') else 'NOT SET'}")
 print(f"OPENAI_API_KEY: {'SET' if os.getenv('OPENAI_API_KEY') else 'NOT SET'}")
 print(f"DEEPSEEK_API_KEY_1: {'SET' if os.getenv('DEEPSEEK_API_KEY_1') else 'NOT SET'}")
@@ -1129,14 +1133,31 @@ if __name__ == '__main__':
     print("Health check: http://localhost:5001/health")
     print("\n")
     
+    # Get port from environment (Render sets PORT=10000, local uses 5001)
+    port = int(os.environ.get('PORT', 5001))
+    
+    # Detect production environment
+    is_production = os.environ.get('RENDER', 'false').lower() == 'true'
+    debug_mode = not is_production
+    
     # Check if Waitress is available (production WSGI server)
     USE_PRODUCTION_SERVER = os.environ.get('USE_PRODUCTION_SERVER', 'true').lower() == 'true'
     
-    if USE_PRODUCTION_SERVER:
+    print("=" * 80)
+    print(f"STARTING FLASK SERVER")
+    print("=" * 80)
+    print(f"Environment: {'PRODUCTION (Render)' if is_production else 'DEVELOPMENT (Local)'}")
+    print(f"Port: {port}")
+    print(f"Host: 0.0.0.0")
+    print(f"Debug: {debug_mode}")
+    print(f"Auto-reload: {not is_production}")
+    print("=" * 80 + "\n")
+    
+    if USE_PRODUCTION_SERVER and not is_production:
         try:
             from waitress import serve
             print("=" * 80)
-            print("PRODUCTION MODE: Using Waitress WSGI Server")
+            print("PRODUCTION MODE: Using Waitress WSGI Server (local testing)")
             print("=" * 80)
             print("- No auto-reload (stable connections)")
             print("- Production-grade performance")
@@ -1147,7 +1168,7 @@ if __name__ == '__main__':
             serve(
                 app,
                 host='0.0.0.0',
-                port=5001,
+                port=port,
                 threads=4,  # Thread pool for concurrent requests
                 url_scheme='http'
             )
@@ -1157,23 +1178,23 @@ if __name__ == '__main__':
             print("Install with: pip install waitress")
             print("=" * 80 + "\n")
             
-            # Fallback to Flask dev server (disable auto-reload to prevent connection resets)
+            # Fallback to Flask dev server
             socketio.run(
                 app,
                 host='0.0.0.0',
-                port=5001,
-                debug=True,
+                port=port,
+                debug=debug_mode,
                 use_reloader=False  # DISABLED: Prevents constant restarts
             )
     else:
-        # Development mode with auto-reload (only use during active development)
+        # Use SocketIO server for development or Render deployment
         print("=" * 80)
-        print("DEVELOPMENT MODE: Flask dev server with auto-reload")
+        print(f"{'PRODUCTION' if is_production else 'DEVELOPMENT'} MODE: Flask SocketIO server")
         print("=" * 80 + "\n")
         socketio.run(
             app,
             host='0.0.0.0',
-            port=5001,
-            debug=True,
-            use_reloader=True
+            port=port,
+            debug=debug_mode,
+            use_reloader=(not is_production)  # No reload in production
         )

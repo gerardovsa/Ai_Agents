@@ -1867,13 +1867,6 @@ def _cleanup_expired_notifications():
     ]
     for key in expired_keys:
         _feedback_injection_notifications.pop(key, None)
-        
-    except Exception as e:
-        logger.error(f"[USER FEEDBACK] Fetch error: {str(e)}")
-        return jsonify({
-            "success": False,
-            "error": f"Failed to fetch user feedback: {str(e)}"
-        }), 500
 
 
 # ============================================================
