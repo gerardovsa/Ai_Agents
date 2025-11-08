@@ -454,8 +454,10 @@ def start_agent(agent_id):
         is_form_data = request.content_type and 'multipart/form-data' in request.content_type
         
         if is_form_data:
+            data = request.form  # Set data to form for consistent access
             session_id = request.form.get('session_id')
             prompt = request.form.get('message', '')
+            thread_id = request.form.get('thread_id') or session_id  # Extract thread_id from form
             files = request.files.getlist('files')
             if not files:
                 return error_response("No files uploaded", 400)
@@ -468,6 +470,7 @@ def start_agent(agent_id):
             data = request.json or {}
             session_id = data.get('session_id')
             prompt = data.get('message', '')
+            thread_id = data.get('thread_id') or session_id  # Extract thread_id from JSON
             file_data = None
         
         if not prompt:
@@ -481,7 +484,15 @@ def start_agent(agent_id):
         
         # CRITICAL FIX: Read conversation_history from frontend request
         # Frontend sends full conversation history in data.conversation_history
-        conversation_history = data.get('conversation_history', []) if not is_form_data else []
+        if is_form_data:
+            # For form data, conversation_history might be a JSON string
+            conv_history_str = request.form.get('conversation_history', '[]')
+            try:
+                conversation_history = json.loads(conv_history_str) if isinstance(conv_history_str, str) else []
+            except:
+                conversation_history = []
+        else:
+            conversation_history = data.get('conversation_history', [])
         print(f"[START] Received {len(conversation_history)} messages in conversation_history from frontend")
         
         # Get or create agent state (IMPORTANT: This ensures conversation is in agent_state_manager)
@@ -526,18 +537,18 @@ def start_agent(agent_id):
         print(f"[START] User ID for credential injection: {user_id}")
         
         if file_data:
-            print(f"[START] Starting file agent worker for agent {agent_id}, session {session_id[:8]}")
+            print(f"[START] Starting file agent worker for agent {agent_id}, session {session_id[:8]}, thread {thread_id}")
             threading.Thread(
                 target=run_agent_worker,
-                args=(agent_id, prompt, file_data, lock, session_id, queue, state['conversation'], state['context'], user_id),
+                args=(agent_id, prompt, file_data, lock, session_id, queue, state['conversation'], state['context'], user_id, thread_id),
                 daemon=True
             ).start()
         else:
-            print(f"[START] Starting simple agent worker for agent {agent_id}, session {session_id[:8]}")
-            print(f"[START] Worker args: agent_id={agent_id}, prompt='{prompt[:50]}...', ai_client={ai_client is not None}, user_id={user_id}")
+            print(f"[START] Starting simple agent worker for agent {agent_id}, session {session_id[:8]}, thread {thread_id}")
+            print(f"[START] Worker args: agent_id={agent_id}, prompt='{prompt[:50]}...', ai_client={ai_client is not None}, user_id={user_id}, thread_id={thread_id}")
             threading.Thread(
                 target=run_simple_agent_worker,
-                args=(agent_id, prompt, lock, session_id, queue, state['conversation'], ai_client, user_id),
+                args=(agent_id, prompt, lock, session_id, queue, state['conversation'], ai_client, user_id, thread_id),
                 daemon=True
             ).start()
             print(f"[START] Thread started successfully")
@@ -787,7 +798,127 @@ def stream_agent(agent_id):
 🔍 CRITICAL: NO BULK TOOL SCHEMAS!
 - list_platform_tools() returns NAMES ONLY (no parameter schemas)
 - get_tool_schema() returns parameters for ONE specific tool
-- This prevents sending 200+ tool schemas when you only need 1-2 tools
+- This prevents sending 200+ tool schemas when you only need 1-2 tools"""
+    
+    # ============================================
+    # SYNERGY CONTEXT INJECTION
+    # ============================================
+    # Check if this thread is linked to a Synergy project
+    # If yes, inject project context into system prompt
+    try:
+        from pathlib import Path
+        import sqlite3
+        
+        # Get thread info from sessions.db
+        root_dir = Path(__file__).parent.parent.parent
+        sessions_db = root_dir / 'data' / 'sessions.db'
+        
+        conn = sqlite3.connect(str(sessions_db))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Find thread by session_id (thread.id = session_id in most cases)
+        cursor.execute("""
+            SELECT synergy_card_id, synergy_card_name 
+            FROM threads 
+            WHERE id = ? OR thread_slug = ?
+            LIMIT 1
+        """, (session_id, session_id))
+        
+        thread_row = cursor.fetchone()
+        conn.close()
+        
+        if thread_row and thread_row['synergy_card_id']:
+            synergy_card_id = thread_row['synergy_card_id']
+            print(f"[Stream {agent_id}] 🔗 Thread linked to Synergy project: {synergy_card_id}")
+            
+            # Fetch Synergy project details
+            synergy_db = root_dir / 'data' / 'synergy_sessions.db'
+            conn = sqlite3.connect(str(synergy_db))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT 
+                    title, description, project_name, priority, status,
+                    tags, documents, next_steps, notes, due_date
+                FROM synergy_sessions 
+                WHERE session_id = ?
+            """, (synergy_card_id,))
+            
+            synergy_row = cursor.fetchone()
+            conn.close()
+            
+            if synergy_row:
+                # Build Synergy context string
+                synergy_context = f"\n\n{'='*80}\n"
+                synergy_context += "🎯 SYNERGY PROJECT CONTEXT\n"
+                synergy_context += f"{'='*80}\n\n"
+                synergy_context += f"You are working on a Synergy project:\n\n"
+                synergy_context += f"**Project:** {synergy_row['title']}\n"
+                if synergy_row['project_name']:
+                    synergy_context += f"**Category:** {synergy_row['project_name']}\n"
+                if synergy_row['description']:
+                    synergy_context += f"**Description:** {synergy_row['description']}\n"
+                synergy_context += f"**Priority:** {synergy_row['priority']}\n"
+                synergy_context += f"**Status:** {synergy_row['status']}\n"
+                
+                # Add notes if present
+                if synergy_row['notes']:
+                    synergy_context += f"\n**Project Notes:**\n{synergy_row['notes']}\n"
+                
+                # Add next steps if present
+                if synergy_row['next_steps']:
+                    try:
+                        next_steps = json.loads(synergy_row['next_steps']) if isinstance(synergy_row['next_steps'], str) else synergy_row['next_steps']
+                        if next_steps and isinstance(next_steps, list) and len(next_steps) > 0:
+                            synergy_context += "\n**Next Steps:**\n"
+                            for step in next_steps:
+                                if isinstance(step, dict):
+                                    status_icon = "✅" if step.get('completed') else "⏳"
+                                    synergy_context += f"- {status_icon} {step.get('description', 'N/A')}\n"
+                    except:
+                        pass
+                
+                # Add documents if present
+                if synergy_row['documents']:
+                    try:
+                        documents = json.loads(synergy_row['documents']) if isinstance(synergy_row['documents'], str) else synergy_row['documents']
+                        if documents and isinstance(documents, list) and len(documents) > 0:
+                            synergy_context += "\n**Project Documents:**\n"
+                            for doc in documents:
+                                if isinstance(doc, dict):
+                                    synergy_context += f"- {doc.get('title', 'Untitled')} ({doc.get('type', 'file')})\n"
+                    except:
+                        pass
+                
+                # Add due date if present
+                if synergy_row['due_date']:
+                    synergy_context += f"\n**Due Date:** {synergy_row['due_date']}\n"
+                
+                synergy_context += f"\n{'='*80}\n"
+                synergy_context += "Use this context to provide relevant assistance for this specific project.\n"
+                synergy_context += f"{'='*80}\n"
+                
+                # Append to system prompt
+                system_prompt += synergy_context
+                print(f"[Stream {agent_id}] ✅ Synergy context injected: {synergy_row['title']}")
+            else:
+                print(f"[Stream {agent_id}] ⚠️  Synergy project {synergy_card_id} not found in database")
+        else:
+            print(f"[Stream {agent_id}] ℹ️  Thread not linked to any Synergy project")
+    
+    except Exception as e:
+        print(f"[Stream {agent_id}] ⚠️  Error checking Synergy context: {e}")
+        # Continue without Synergy context - not critical
+    
+    # Continue with original code
+    system_prompt_continued = """
+
+📍 SERVER TOOLS (Always Available - No Discovery Needed):
+- web_search: Real-time web search for current information (news, pricing, standards, market data)
+  Usage: Claude will automatically use this when you need current information
+  Location: Brisbane, Queensland, Australia
 
 � SERVER TOOLS (Always Available - No Discovery Needed):
 - web_search: Real-time web search for current information (news, pricing, standards, market data)
@@ -829,6 +960,94 @@ Platforms available: google_workspace, microsoft_365, woocommerce, stripe, slack
 
 Use tools in multiple rounds with interleaved thinking to complete complex tasks."""
     
+    # ============================================
+    # SYNERGY CONTEXT INJECTION (Into conversation)
+    # ============================================
+    # Check if this thread is linked to a Synergy project
+    # If yes, prepend project context to the user's current message
+    synergy_context_prefix = ""
+    try:
+        from pathlib import Path
+        import sqlite3
+        
+        # Get thread info from sessions.db
+        root_dir = Path(__file__).parent.parent.parent
+        sessions_db = root_dir / 'data' / 'sessions.db'
+        
+        conn = sqlite3.connect(str(sessions_db))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Find thread by session_id
+        cursor.execute("""
+            SELECT synergy_card_id, synergy_card_name 
+            FROM threads 
+            WHERE id = ? OR thread_slug = ?
+            LIMIT 1
+        """, (session_id, session_id))
+        
+        thread_row = cursor.fetchone()
+        conn.close()
+        
+        if thread_row and thread_row['synergy_card_id']:
+            synergy_card_id = thread_row['synergy_card_id']
+            print(f"[Stream {agent_id}] 🔗 Thread linked to Synergy project: {synergy_card_id}")
+            
+            # Fetch Synergy project details
+            synergy_db = root_dir / 'data' / 'synergy_sessions.db'
+            conn = sqlite3.connect(str(synergy_db))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT 
+                    title, description, project_name, priority, status,
+                    tags, documents, next_steps, notes, due_date
+                FROM synergy_sessions 
+                WHERE session_id = ?
+            """, (synergy_card_id,))
+            
+            synergy_row = cursor.fetchone()
+            conn.close()
+            
+            if synergy_row:
+                # Build Synergy context prefix for user message
+                synergy_context_prefix = f"[SYNERGY PROJECT CONTEXT]\n"
+                synergy_context_prefix += f"Project: {synergy_row['title']}\n"
+                if synergy_row['description']:
+                    synergy_context_prefix += f"Description: {synergy_row['description']}\n"
+                synergy_context_prefix += f"Status: {synergy_row['status']} | Priority: {synergy_row['priority']}\n"
+                
+                # Add notes if present
+                if synergy_row['notes']:
+                    synergy_context_prefix += f"Notes: {synergy_row['notes']}\n"
+                
+                # Add next steps if present
+                if synergy_row['next_steps']:
+                    try:
+                        next_steps = json.loads(synergy_row['next_steps']) if isinstance(synergy_row['next_steps'], str) else synergy_row['next_steps']
+                        if next_steps and isinstance(next_steps, list) and len(next_steps) > 0:
+                            pending_steps = [s for s in next_steps if isinstance(s, dict) and not s.get('completed')]
+                            if pending_steps:
+                                synergy_context_prefix += f"Pending Steps: {', '.join([s.get('description', '') for s in pending_steps[:3]])}\n"
+                    except:
+                        pass
+                
+                synergy_context_prefix += f"[/SYNERGY CONTEXT]\n\n"
+                
+                print(f"[Stream {agent_id}] ✅ Synergy context will be injected: {synergy_row['title']}")
+            else:
+                print(f"[Stream {agent_id}] ⚠️ Synergy project {synergy_card_id} not found")
+        else:
+            print(f"[Stream {agent_id}] ℹ️ Thread not linked to Synergy project")
+    
+    except Exception as e:
+        print(f"[Stream {agent_id}] ⚠️ Error fetching Synergy context: {e}")
+        # Continue without Synergy context - not critical
+    
+    # Prepend Synergy context to user message if present
+    user_message_with_context = synergy_context_prefix + last_message if synergy_context_prefix else last_message
+    
     # Import streaming worker
     from core.combined_agent_worker import execute_streaming_request
     
@@ -839,10 +1058,10 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
             
             # Execute streaming request with multi-round support
             # CRITICAL: Use conversation_without_current (past messages only)
-            # user_prompt contains the current message to process
+            # user_prompt contains the current message to process (with Synergy context if applicable)
             for event in execute_streaming_request(
                 session_id=session_id,
-                user_prompt=last_message,
+                user_prompt=user_message_with_context,
                 conversation_history=conversation_without_current,
                 system_prompt=system_prompt,
                 tools=tools,
@@ -885,28 +1104,18 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                             except Exception as e:
                                 print(f"⚠️ [Auto-Save] Could not determine thread location: {e}")
                             
-                            # Save to database
-                            insert_query = """
-                                INSERT OR REPLACE INTO saved_threads 
-                                (thread_id, agent_id, session_id, user_id, location, thread_name, 
-                                 conversation, message_count, context, created_at, saved_at, last_updated)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
+                            # Update thread's updated_at timestamp (thread already exists from creation)
+                            # Don't try to save to non-existent saved_threads table
+                            update_query = """
+                                UPDATE threads 
+                                SET updated_at = datetime('now')
+                                WHERE thread_slug = ?
                             """
                             
-                            params = [
-                                thread_id,
-                                agent_id,
-                                session_id,
-                                user_id,
-                                location,
-                                'Auto-saved thread',  # Default title
-                                conversation_json,
-                                len(final_state['conversation']),
-                                json.dumps(final_state.get('context', {}))
-                            ]
+                            params = [session_id]
                             
-                            execute_sqlite_update(db_path, insert_query, params)
-                            print(f"✅ [Auto-Save] Thread saved: {thread_id} ({len(final_state['conversation'])} messages)")
+                            execute_sqlite_update(db_path, update_query, params)
+                            print(f"✅ [Auto-Save] Thread updated: {thread_id} ({len(final_state['conversation'])} messages)")
                     
                     except Exception as save_error:
                         print(f"⚠️ [Auto-Save] Failed to save thread: {save_error}")
@@ -1352,6 +1561,7 @@ def simple_chat():
         response_text = None
         tool_calls_list = []
         error_message = None
+        start_time = datetime.now()
         
         # Create queue for agent response
         response_queue = Queue()
@@ -1361,6 +1571,9 @@ def simple_chat():
             nonlocal response_text, tool_calls_list, error_message
             
             try:
+                # Track timing
+                request_start = datetime.now()
+                
                 # Run agent worker (blocking call with user_id for credential injection)
                 result = agent_worker(
                     message=message,
@@ -1370,6 +1583,64 @@ def simple_chat():
                     ai_client=ai_client,
                     attachments=data.get('attachments')  # Pass file attachments
                 )
+                
+                # Calculate response time
+                response_time_ms = int((datetime.now() - request_start).total_seconds() * 1000)
+                
+                response_text = result.get('response', '')
+                tool_calls_list = result.get('tool_calls', [])
+                
+                # Save messages to database with metadata
+                try:
+                    from thread_manager import ThreadManager
+                    from utils.database_helpers import get_sessions_database_path
+                    
+                    thread_id = data.get('thread_id') or session_id
+                    thread_mgr = ThreadManager(get_sessions_database_path())
+                    
+                    # Save user message
+                    thread_mgr.add_message(
+                        workspace_slug='default',
+                        thread_slug=thread_id,
+                        role='user',
+                        content=message,
+                        prompt=message,
+                        user_id=user_id,
+                        include=True,
+                        tool_calls=None,
+                        tokens_used=None,
+                        response_time_ms=None,
+                        metadata={}
+                    )
+                    
+                    # Estimate tokens (rough approximation: 1 token ≈ 4 characters)
+                    estimated_tokens = int(len(response_text) / 4)
+                    
+                    # Save assistant message with metadata
+                    thread_mgr.add_message(
+                        workspace_slug='default',
+                        thread_slug=thread_id,
+                        role='assistant',
+                        content=response_text,
+                        prompt=None,
+                        user_id=user_id,
+                        include=True,
+                        tool_calls=tool_calls_list,
+                        tokens_used=estimated_tokens,
+                        response_time_ms=response_time_ms,
+                        metadata={
+                            'model': 'claude-sonnet-4-5-20250929',
+                            'session_id': session_id,
+                            'source': 'cli'
+                        }
+                    )
+                    
+                    print(f"💾 [Message Save] Saved to thread {thread_id} - {response_time_ms}ms, ~{estimated_tokens} tokens")
+                    
+                except Exception as save_error:
+                    print(f"⚠️ [Message Save] Failed to save messages: {save_error}")
+                    import traceback
+                    traceback.print_exc()
                 
                 response_text = result.get('response', '')
                 tool_calls_list = result.get('tool_calls', [])
@@ -1781,7 +2052,7 @@ def check_user_feedback(session_id):
                 'injected': True,
                 'feedback': instructions,
                 'timestamp': datetime.now().isoformat(),
-                'expires_at': (datetime.now() + timedelta(seconds=30)).isoformat()
+                'expires_at': (datetime.now() + timedelta(seconds=60)).isoformat()
             }
             
             return jsonify({

@@ -66,7 +66,7 @@ const RenderConfig = {
             });
 
             const data = await response.json();
-            console.log('✅ Render Flask connected:', data);
+            console.log('Render Flask connected:', data);
             return { success: true, data };
         } catch (error) {
             console.error(' Render connection failed:', error);

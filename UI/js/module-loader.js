@@ -86,16 +86,8 @@ class ModuleLoader {
 
             // Register with ModuleManager
             if (window.ModuleManager) {
-                window.ModuleManager.registerModule({
-                    id: fullManifest.id,
-                    name: fullManifest.name,
-                    icon: fullManifest.icon,
-                    color: fullManifest.color,
-                    description: fullManifest.description,
-                    scriptPath: fullManifest.scriptPath,
-                    tabs: fullManifest.tabs,
-                    settings: fullManifest.settings
-                });
+                // Pass full manifest to include ALL properties (dependencies, version, etc.)
+                window.ModuleManager.registerModule(fullManifest);
 
                 this.loadedCount++;
                 console.log(`Module registered: ${moduleConfig.name}`);

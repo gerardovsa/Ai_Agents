@@ -73,6 +73,16 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # CRITICAL FIX: Ensure user row exists before UPDATE
+    cursor.execute("SELECT id FROM users WHERE id = ?", [user_id])
+    if not cursor.fetchone():
+        logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
+        cursor.execute("""
+            INSERT INTO users (id, username, email, created_at, last_active, metadata)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+        """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local'])
+        conn.commit()
+    
     # Get existing metadata
     cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
     row = cursor.fetchone()
@@ -241,6 +251,16 @@ def save_thread_assignments():
         
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # CRITICAL FIX: Ensure user row exists before UPDATE
+        cursor.execute("SELECT id FROM users WHERE id = ?", [user_id])
+        if not cursor.fetchone():
+            logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
+            cursor.execute("""
+                INSERT INTO users (id, username, email, created_at, last_active, metadata)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+            """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local'])
+            conn.commit()
         
         # Get existing metadata
         cursor.execute("""

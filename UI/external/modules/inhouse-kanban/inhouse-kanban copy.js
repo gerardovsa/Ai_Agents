@@ -45,42 +45,6 @@ class InhouseKanbanModule extends BaseModule {
 
         // Auto-refresh timer
         this.refreshTimer = null;
-
-        // Stage mapping with Font Awesome icons and colors
-        this.stageMapping = {
-            'ArtOnly': { icon: 'fa-brush', color: '#FF6B6B', label: 'Art Only' },
-            'ArtAndPrint': { icon: 'fa-palette', color: '#FF8E53', label: 'Art & Print' },
-            'OnHold': { icon: 'fa-pause-circle', color: '#FFA500', label: 'On Hold' },
-            'Digital - 9110': { icon: 'fa-print', color: '#4ECDC4', label: 'Digital - 9110' },
-            'Digital - Other': { icon: 'fa-print', color: '#45B7D1', label: 'Digital - Other' },
-            'Digital - OutSource': { icon: 'fa-arrow-right-arrow-left', color: '#96CEB4', label: 'Digital - OutSource' },
-            'Digital - Cello': { icon: 'fa-wand-magic-sparkles', color: '#FFEAA7', label: 'Digital - Cello' },
-            'Digital - Bindery': { icon: 'fa-book', color: '#DDA0DD', label: 'Digital - Bindery' },
-            'TicketComplete': { icon: 'fa-check', color: '#98D8C8', label: 'Ticket Complete' },
-            'JobComplete': { icon: 'fa-flag-checkered', color: '#55A3FF', label: 'Job Complete' },
-            'ReadyToPrint': { icon: 'fa-hourglass-start', color: '#F7DC6F', label: 'Ready to Print' },
-            'Signs - UV': { icon: 'fa-sun', color: '#BB8FCE', label: 'Signs - UV' },
-            'Signs - Solvent': { icon: 'fa-droplet', color: '#AED6F1', label: 'Signs - Solvent' },
-            'Signs - Laminate': { icon: 'fa-layer-group', color: '#A3E4D7', label: 'Signs - Laminate' },
-            'Signs - Finishing': { icon: 'fa-toolbox', color: '#D5A6BD', label: 'Signs - Finishing' }
-        };
-
-        // Priority labels with FA icons
-        this.priorityLabels = {
-            'critical': { icon: 'fa-fire', label: 'CRITICAL', color: '#B71C1C' },
-            'high': { icon: 'fa-exclamation-triangle', label: 'HIGH', color: '#D32F2F' },
-            'medium': { icon: 'fa-circle-dot', label: 'MEDIUM', color: '#FF8800' },
-            'normal': { icon: 'fa-list', label: 'NORMAL', color: '#4CAF50' },
-            'low': { icon: 'fa-circle', label: 'LOW', color: '#2196F3' }
-        };
-
-        // Customer tier badges with FA icons
-        this.tierBadges = {
-            'VIP': { icon: 'fa-gem', color: '#a855f7' },
-            'Premium': { icon: 'fa-star', color: '#3b82f6' },
-            'Regular': { icon: 'fa-check', color: '#22c55e' },
-            'New': { icon: 'fa-plus', color: '#6b7280' }
-        };
     }
 
     /**
@@ -421,23 +385,19 @@ class InhouseKanbanModule extends BaseModule {
      */
     renderStageColumn(stage, jobs) {
         const primaryColor = this.manifest?.colors?.primary || '#00509E';
-        const stageInfo = this.stageMapping[stage.StageDescription] || {};
-        const stageIcon = stageInfo.icon ? `<i class="fas ${stageInfo.icon}"></i>` : '';
-        const stageColor = stageInfo.color || primaryColor;
-        const stageName = stageInfo.label || stage.StageDescription || 'Unknown Stage';
 
         return `
-            <div class="kanban-column" data-stage-id="${stage.StageID}" style="border-left: 4px solid ${stageColor};">
-                <div class="column-header" style="border-bottom-color: ${stageColor}; background: linear-gradient(135deg, ${stageColor}20 0%, ${stageColor}10 100%);">
-                    <h3 class="column-title">${stageIcon} ${this.escapeHtml(stageName)}</h3>
+            <div class="kanban-column" data-stage-id="${stage.StageID}">
+                <div class="column-header" style="border-bottom-color: ${primaryColor};">
+                    <h3 class="column-title">${this.escapeHtml(stage.StageDescription || 'Unknown Stage')}</h3>
                     <div class="column-metrics">
-                        <span class="job-count"><i class="fas fa-layer-group"></i> ${stage.JobCount || 0}</span>
-                        <span class="stage-value"><i class="fas fa-tag"></i> ${this.formatCurrency(stage.TotalValue || 0)}</span>
+                        <span class="job-count"><i class="fas fa-box"></i> ${stage.JobCount || 0} jobs</span>
+                        <span class="stage-value"><i class="fas fa-dollar-sign"></i> ${this.formatCurrency(stage.TotalValue || 0)}</span>
                     </div>
                 </div>
                 
                 <div class="column-body">
-                    ${jobs.length > 0 ? jobs.map(job => this.renderJobCard(job)).join('') : '<div class="empty-column"><i class="fas fa-inbox"></i> No jobs</div>'}
+                    ${jobs.length > 0 ? jobs.map(job => this.renderJobCard(job)).join('') : '<div class="empty-column">No jobs in this stage</div>'}
                 </div>
             </div>
         `;
@@ -447,6 +407,64 @@ class InhouseKanbanModule extends BaseModule {
      * Render job card (using Streamlit data fields)
      */
     renderJobCard(job) {
+        const priorityColor = job.PriorityColorHex || '#6b7280';
+        const tierColor = job.CustomerTierColorHex || '#6b7280';
+        const wipColor = job.WIPColorHex || '#6b7280';
+
+        return `
+            <div class="kanban-card" 
+                 data-job-id="${job.TicketID}"
+                 data-priority="${job.PriorityLabel}"
+                 style="border-left: 4px solid ${priorityColor};">
+                
+                <div class="card-header-row">
+                    <div class="priority-badge" style="background-color: ${priorityColor};">
+                        ${job.PriorityLabel || 'NORMAL'}
+                    </div>
+                    <div class="customer-tier" style="background-color: ${tierColor};">
+                        ${job.CustomerTier || 'Regular'}
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="client-name">
+                        <i class="fas fa-building"></i>
+                        ${this.escapeHtml(job.ClientName || 'Unknown Client')}
+                    </div>
+                    
+                    <div class="job-description">
+                        ${this.escapeHtml(job.ShortJobDesc || 'No description')}
+                    </div>
+                    
+                    <div class="job-specs">
+                        <span class="spec-item"><i class="fas fa-hashtag"></i> ${job.TicketID}</span>
+                        <span class="spec-item"><i class="fas fa-boxes"></i> ${job.QTY || 0}</span>
+                        <span class="spec-item"><i class="fas fa-dollar-sign"></i> ${this.formatCurrency(job.Cost || 0)}</span>
+                    </div>
+                    
+                    ${this.renderJobDetails(job)}
+                    
+                    <div class="card-footer-row">
+                        <div class="due-date ${this.getDueDateClass(job.UrgencyLevel)}">
+                            <i class="fas fa-calendar-alt"></i>
+                            ${this.formatDate(job.DateRequired)}
+                        </div>
+                        <div class="wip-status" style="color: ${wipColor};">
+                            <i class="fas fa-hourglass-half"></i>
+                            ${job.WIPStatus} (${job.DaysInSystem || 0}d)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-actions">
+                    <button class="view-details-btn" onclick="window.ModuleRegistry['inhouse-kanban'].showJobDetailsModal(${job.TicketID})">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
     /**
      * Render job detail fields
      */

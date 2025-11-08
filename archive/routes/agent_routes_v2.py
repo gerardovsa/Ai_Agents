@@ -1051,6 +1051,8 @@ The most commonly used platforms (slack, gmail, woocommerce, google_sheets, stri
 DO NOT mention: Trello, Asana, Linear, ClickUp, Monday.com, or other external platforms you don't have tools for.
 DO mention: Google Workspace (Docs, Sheets, Tasks, Drive, Gmail, Calendar, Forms), Slack, Stripe, WooCommerce, etc.
 
+Use tools in multiple rounds as needed to complete complex tasks.
+
 **VISUALIZATIONS - CREATE DIAGRAMS & CHARTS:**
 Use `<MERMAID>...</MERMAID>` for flowcharts/diagrams, `<PLOTLY>...</PLOTLY>` for interactive charts, `<TABLE>...</TABLE>` for data tables, `<GANTT>...</GANTT>` for project timelines.
 
@@ -3778,6 +3780,8 @@ def handle_main_chat_streaming(message, session_id, provider, model, user_id=Non
 **Server tools:** web_search (real-time web search, location: Brisbane, Australia)
 
 🚨 ONLY mention platforms/tools you actually have: Google Workspace, Slack, Stripe, WooCommerce, etc. DO NOT mention: Trello, Asana, Linear, ClickUp.
+
+Use tools in multiple rounds as needed to complete complex tasks.
 
 Provide clear, helpful responses. Format URLs as markdown links: [Title](url)"""
             

@@ -1,6 +1,6 @@
 import sqlite3
 
-conn = sqlite3.connect('C:/Users/gpoli/GIT/AI_agents/AI_infrastructure/data/sessions.db')
+conn = sqlite3.connect('C:/Users/gpoli/GIT/AI_agents/data/sessions.db')
 cursor = conn.cursor()
 
 cursor.execute("SELECT sql FROM sqlite_master WHERE type='table'")

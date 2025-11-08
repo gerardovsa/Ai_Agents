@@ -4,10 +4,17 @@ Connection helpers for SQL Server and SQLite databases
 """
 
 import sqlite3
-import pyodbc
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import json
+
+# Make pyodbc optional - only needed for SQL Server connections
+try:
+    import pyodbc
+    PYODBC_AVAILABLE = True
+except ImportError:
+    PYODBC_AVAILABLE = False
+    pyodbc = None
 
 
 class DatabaseConnectionError(Exception):
@@ -27,6 +34,12 @@ def get_sql_server_connection(server: str, database: str, timeout: int = 30):
     Returns:
         pyodbc.Connection
     """
+    if not PYODBC_AVAILABLE:
+        raise DatabaseConnectionError(
+            "pyodbc not available - SQL Server connections disabled. "
+            "Install pyodbc and unixodbc to enable SQL Server support."
+        )
+    
     try:
         conn_str = (
             f"DRIVER={{ODBC Driver 17 for SQL Server}};"

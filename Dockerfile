@@ -10,11 +10,14 @@ WORKDIR /app
 # - curl: For health checks and API calls
 # - git: For potential git operations in tools
 # - build-essential: For compiling Python packages with C extensions
+# - unixodbc unixodbc-dev: For pyodbc SQL Server connections
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
     git \
     build-essential \
+    unixodbc \
+    unixodbc-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

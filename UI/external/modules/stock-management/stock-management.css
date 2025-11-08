@@ -407,3 +407,32 @@ canvas {
         width: 100%;
     }
 }
+
+/* ===================================================================
+   TABULATOR TABLE BORDERS
+   =================================================================== */
+.tabulator {
+    border: 1px solid #2A3142 !important;
+}
+
+.tabulator .tabulator-header {
+    background: #1A1F2E !important;
+    border-bottom: 2px solid #0078d4 !important;
+}
+
+.tabulator .tabulator-header .tabulator-col {
+    border-right: 1px solid #2A3142 !important;
+    background: #1A1F2E !important;
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row {
+    border-bottom: 1px solid #2A3142 !important;
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell {
+    border-right: 1px solid #2A3142 !important;
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row:hover {
+    background: rgba(0, 120, 212, 0.05) !important;
+}

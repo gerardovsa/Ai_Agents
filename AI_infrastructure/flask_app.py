@@ -81,6 +81,7 @@ from core.unified_ai_client import initialize_ai_client
 # Import routes (blueprints) - Working In_House_SQL implementation
 from routes.agent_routes_v4 import agent_bp  # V4 modular architecture with tool execution
 from routes.thread_routes import thread_bp
+from routes.message_operations import message_ops_bp  # NEW: Message operations (fork, clone, copy, delete)
 from routes.export_routes import export_bp
 from routes.woocommerce_routes import woocommerce_bp
 from routes.auth_routes import auth_bp  # NEW: User authentication
@@ -105,6 +106,7 @@ app.config.from_object(Config)
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp)                                     # Working agent routes with async support
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
+app.register_blueprint(message_ops_bp)                               # NEW: Message operations - fork, clone, copy, delete (5 endpoints)
 app.register_blueprint(export_bp, url_prefix='/api/export')         # 3 endpoints (export functionality)
 app.register_blueprint(woocommerce_bp)                               # 9 endpoints (WooCommerce direct API)
 app.register_blueprint(auth_bp)                                      # NEW: 6 endpoints (user auth)
@@ -124,32 +126,19 @@ app.register_blueprint(thread_assignment_bp)                         # NEW: Thre
 
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)
 # This discovers and registers Flask routes from UI/external/modules/*/routes/
+# INCLUDES: Stock Management, Shopify E-Commerce, Database Visualizer, Quote Calculator, etc.
 try:
     from core.module_blueprint_loader import load_module_blueprints
     module_bp_count = load_module_blueprints(app)
     print(f"✅ Loaded {module_bp_count} module blueprints from UI/external/modules")
+    print("   Routes auto-discovered from: UI/external/modules/*/routes/*.py")
+    print("   Stock Management: /api/stock-management/* (Blueprint auto-loaded)")
 except Exception as e:
     print(f"⚠️  Module blueprints not loaded: {e}")
     print("   (Module blueprints are optional)")
 
-# Stock Management: ENABLED (load routes from module folder)
-if STOCK_DB_AVAILABLE:
-    try:
-        # Add stock management module to path
-        module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'external', 'modules', 'stock-management')
-        if os.path.exists(module_path):
-            sys.path.insert(0, module_path)
-            from stock_routes import init_stock_routes
-            init_stock_routes(app, STOCK_DB_CONFIG, STOCK_DB_AVAILABLE)
-            print(f"✅ Stock management routes registered from {module_path}")
-        else:
-            print(f"⚠️ Stock management module not found at {module_path}")
-    except Exception as e:
-        print(f"❌ Failed to load stock routes: {e}")
-        import traceback
-        traceback.print_exc()
-else:
-    print("[INFO] Stock management disabled - database not available")
+# REMOVED DUPLICATE: Stock Management routes now loaded via module_blueprint_loader above
+# Old init_stock_routes() pattern caused route conflicts with Blueprint system
 
 # Shopify E-Commerce: ENABLED (load routes from module folder)
 if STOCK_DB_AVAILABLE:  # Shopify uses same database as Stock Management

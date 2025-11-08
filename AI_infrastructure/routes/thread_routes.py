@@ -81,10 +81,10 @@ def create_thread():
         
         insert_query = """
             INSERT INTO threads (
-                thread_slug, name, user_id, created_at, updated_at,
+                thread_slug, workspace_id, name, user_id, created_at, updated_at,
                 metadata, location, tags, synergy_card_id,
                 parent_thread_id, branch_point_message_id, branch_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         execute_sqlite_update(
@@ -92,6 +92,7 @@ def create_thread():
             insert_query,
             (
                 thread_id,                      # thread_slug
+                1,                              # workspace_id (default workspace)
                 title,                          # name
                 user_id,                        # user_id
                 created,                        # created_at
@@ -148,16 +149,33 @@ def list_threads():
         
         limit = int(request.args.get('limit', 50))
         
-        # Query threads from database
+        # Query threads from database with message counts and metadata
         db_path = get_sessions_database_path()
         
         query = """
-            SELECT thread_slug, name, user_id, created_at, updated_at, 
-                   metadata, location, tags, synergy_card_id, 
-                   parent_thread_id, branch_name
-            FROM threads
-            WHERE user_id = ?
-            ORDER BY updated_at DESC
+            SELECT 
+                t.id,
+                t.thread_slug, 
+                t.name, 
+                t.user_id, 
+                t.created_at, 
+                t.updated_at, 
+                t.metadata, 
+                t.location, 
+                t.tags, 
+                t.synergy_card_id, 
+                t.parent_thread_id, 
+                t.branch_name,
+                COUNT(m.id) as message_count,
+                MAX(m.created_at) as last_message_time,
+                (SELECT role FROM messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
+            FROM threads t
+            LEFT JOIN messages m ON t.id = m.thread_id
+            WHERE t.user_id = ?
+            GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
+                     t.metadata, t.location, t.tags, t.synergy_card_id, 
+                     t.parent_thread_id, t.branch_name
+            ORDER BY t.updated_at DESC
             LIMIT ?
         """
         
@@ -169,16 +187,22 @@ def list_threads():
             # Rows are returned as dicts from execute_sqlite_query
             thread_data = {
                 'id': row['thread_slug'],
+                'thread_id': row['id'],  # Internal database ID
                 'title': row['name'],
                 'user_id': row['user_id'],
                 'created': row['created_at'],
                 'updated': row['updated_at'],
                 'metadata': json.loads(row['metadata']) if row['metadata'] else {},
                 'location': row['location'] or 'prime',
+                'agent': row['location'] or 'main',  # Alias for frontend compatibility
                 'tags': json.loads(row['tags']) if row['tags'] else [],
                 'synergy_card_id': row['synergy_card_id'],
                 'parent_thread_id': row['parent_thread_id'],
-                'branch_name': row['branch_name']
+                'branch_name': row['branch_name'],
+                'message_count': row['message_count'] or 0,
+                'last_message_time': row['last_message_time'],
+                'last_message_role': row['last_message_role'],
+                'archived': False  # Default for now, add column later if needed
             }
             threads.append(thread_data)
         
@@ -369,12 +393,12 @@ def save_thread():
         # Detect format and normalize
         if 'thread_id' in data and 'messages' in data:
             # Format 2 (Frontend) - convert to internal format
-            thread_id = data.get('thread_id')
+            thread_id = str(data.get('thread_id'))  # Convert to string immediately
             title = data.get('title', 'Untitled Thread')
             messages = data.get('messages', [])
             agent = data.get('agent', 'prime')
             user_id = data.get('user_id', 1)
-            location = data.get('location', 'prime')
+            location = str(data.get('location', 'prime'))  # Convert to string
             
             # NEW METADATA FIELDS
             tags = json.dumps(data.get('tags', []))
@@ -415,8 +439,14 @@ def save_thread():
             summary = None
             summary_generated_at = None
         
+        # Validate required fields
         if not agent_id or not session_id:
             return error_response("Missing agent_id/session_id or thread_id", 400)
+        
+        # Ensure agent_id and session_id are strings (not integers)
+        agent_id = str(agent_id) if agent_id is not None else None
+        session_id = str(session_id) if session_id is not None else None
+        location = str(location) if location is not None else 'prime'
         
         # Get thread state from agent_state_manager if conversation not provided
         if conversation is None:
@@ -467,10 +497,10 @@ def save_thread():
         insert_query = """
             INSERT OR REPLACE INTO saved_threads 
             (thread_id, agent_id, session_id, user_id, location, thread_name, conversation, 
-             message_count, context, created_at, saved_at, last_updated,
+             message_count, context, saved_at, last_updated,
              tags, synergy_card_id, parent_thread_id, branch_point_message_id, 
              branch_name, summary, summary_generated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'),
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'),
                     ?, ?, ?, ?, ?, ?, ?)
         """
         
@@ -484,7 +514,6 @@ def save_thread():
             conversation_json,
             len(conversation),
             context_json,
-            datetime.now().isoformat(),
             # NEW METADATA FIELDS
             tags,
             synergy_card_id,
@@ -886,4 +915,411 @@ def mark_thread_read(thread_id):
         return error_response(f"Database error: {str(e)}", 500)
     except Exception as e:
         return error_response(str(e), 500)
+
+
+@thread_bp.route('/details', methods=['POST'])
+def get_threads_details():
+    """
+    Get detailed information for multiple threads including agent assignments
+    
+    SYNERGY INTEGRATION: Used to display linked threads in Synergy cards
+    Fetches thread details from threads table and agent assignments from thread_assignments table
+    
+    Body params:
+        thread_ids (list): Array of thread IDs to fetch details for
+    
+    Returns:
+        Array of thread objects with: id, name, thread_slug, agent_id, agent_name, created, updated
+    """
+    print("[THREADS DETAILS] Endpoint called!")
+    print("[THREADS DETAILS] Step 1: Getting request data...")
+    try:
+        data = request.get_json()
+        print(f"[THREADS DETAILS] Step 2: Got data: {data}")
+        thread_ids = data.get('thread_ids', [])
+        print(f"[THREADS DETAILS] Step 3: Thread IDs: {thread_ids}")
+        
+        if not thread_ids or not isinstance(thread_ids, list):
+            return error_response("thread_ids array required", 400)
+        
+        if len(thread_ids) == 0:
+            return success_response([])
+        
+        print("[THREADS DETAILS] Step 4: Building query...")
+        # Build query with placeholders
+        placeholders = ','.join(['?' for _ in thread_ids])
+        print(f"[THREADS DETAILS] Step 5: Placeholders: {placeholders}")
+        
+        # Query threads from sessions.db
+        print("[THREADS DETAILS] Step 6: Getting database path...")
+        # Note: thread_assignments is in ai_infrastructure.db, not sessions.db
+        # We need to query sessions.db for threads, then join with assignments separately
+        db_path = get_sessions_database_path()
+        print(f"[THREADS DETAILS] Step 7: DB path: {db_path}")
+        query = f"""
+            SELECT 
+                t.id,
+                t.thread_slug,
+                t.name,
+                t.created_at,
+                t.updated_at,
+                t.synergy_card_id,
+                t.location
+            FROM threads t
+            WHERE t.id IN ({placeholders}) OR t.thread_slug IN ({placeholders})
+            ORDER BY t.updated_at DESC
+        """
+        
+        # Duplicate thread_ids for both id and thread_slug matching
+        params = thread_ids + thread_ids
+        print(f"[THREADS DETAILS] Step 8: Executing query with {len(params)} params...")
+        threads = execute_sqlite_query(db_path, query, params)
+        print(f"[THREADS DETAILS] Step 9: Got {len(threads)} threads")
+        
+        # Now get agent assignments from ai_infrastructure.db
+        print("[THREADS DETAILS] Step 10: Getting agent assignments...")
+        from pathlib import Path
+        import sqlite3
+        root_dir = Path(__file__).parent.parent.parent
+        ai_db = root_dir / 'data' / 'ai_infrastructure.db'
+        print(f"[THREADS DETAILS] Step 11: AI DB path: {ai_db}")
+        
+        assignments = {}
+        try:
+            print("[THREADS DETAILS] Step 12: Connecting to AI DB...")
+            conn = sqlite3.connect(str(ai_db))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            print("[THREADS DETAILS] Step 13: Connected, querying assignments...")
+            
+            # thread_assignments uses session_id (which matches thread.id or thread.thread_slug)
+            for thread_id in thread_ids:
+                cursor.execute("""
+                    SELECT session_id, location 
+                    FROM thread_assignments 
+                    WHERE session_id = ?
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                """, (thread_id,))
+                
+                row = cursor.fetchone()
+                if row:
+                    assignments[thread_id] = {
+                        'location': row['location'],  # e.g., "alpha-3", "prime"
+                        'agent_name': row['location'].upper() if row['location'] else 'No Agent'
+                    }
+            
+            conn.close()
+            print(f"[THREADS DETAILS] Step 14: Got {len(assignments)} assignments")
+        except Exception as e:
+            print(f"[THREADS] Warning: Could not fetch agent assignments: {e}")
+            print("[THREADS DETAILS] Step 14b: Assignment lookup failed (non-fatal)")
+        
+        # Convert to list of dicts
+        print("[THREADS DETAILS] Step 15: Building result array...")
+        result = []
+        for thread in threads:
+            thread_id = thread[0]
+            thread_slug = thread[1]
+            location_from_threads = thread[6]  # threads.location column
+            
+            # Use location from threads table first, then fall back to assignments table
+            # The threads.location column is the primary source of truth
+            if location_from_threads:
+                agent_location = location_from_threads
+                agent_display_name = location_from_threads.upper()
+            else:
+                # Check assignments by both id and slug
+                assignment = assignments.get(str(thread_id)) or assignments.get(thread_slug) or {}
+                agent_location = assignment.get('location', 'prime')
+                agent_display_name = assignment.get('agent_name', 'Prime')
+            
+            result.append({
+                'id': thread_id,
+                'thread_slug': thread_slug,
+                'name': thread[2] or thread_slug or str(thread_id),  # Fallback to slug or id
+                'created': thread[3],
+                'updated': thread[4],
+                'synergy_card_id': thread[5],
+                'synergy_card_name': None,  # Not stored in threads table, could fetch from synergy_sessions if needed
+                'agent_id': agent_location,
+                'agent_name': agent_display_name
+            })
+        
+        print(f"[THREADS DETAILS] Step 16: Returning {len(result)} threads")
+        return success_response(result)
+    
+    except DatabaseConnectionError as e:
+        print(f"[THREADS ERROR] DatabaseConnectionError: {e}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f"Database error: {str(e)}", 500)
+    except Exception as e:
+        print(f"[THREADS ERROR] Exception type: {type(e).__name__}")
+        print(f"[THREADS ERROR] Exception value: {e}")
+        print(f"[THREADS ERROR] Exception str: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f"Thread details error: {str(e)}", 500)
+
+
+# ============================================================
+# MESSAGE SAVING (NEW - FIX FOR THREAD MESSAGE LINKING)
+# ============================================================
+
+@thread_bp.route('/messages/save', methods=['POST'])
+def save_messages():
+    """
+    Save messages directly to the messages table
+    CRITICAL FIX: Links messages to threads so they show up in thread list
+    
+    POST /api/threads/messages/save
+    {
+        "thread_id": "1762593367878",
+        "user_id": 14,
+        "messages": [
+            {"role": "user", "content": "hello", "timestamp": 1699999999},
+            {"role": "assistant", "content": "Hi!", "timestamp": 1699999999}
+        ]
+    }
+    
+    Returns:
+        {"success": true, "thread_id": "...", "messages_saved": 2}
+    """
+    try:
+        from thread_manager import ThreadManager
+        
+        data = request.get_json() or {}
+        thread_id = str(data.get('thread_id'))
+        messages = data.get('messages', [])
+        user_id = data.get('user_id', 1)
+        
+        if not thread_id:
+            return error_response('thread_id required', 400)
+        
+        if not messages or not isinstance(messages, list):
+            return error_response('messages array required', 400)
+        
+        print(f"[MESSAGE SAVE] Thread: {thread_id}, User: {user_id}, Messages: {len(messages)}")
+        
+        # Initialize ThreadManager
+        thread_mgr = ThreadManager(get_sessions_database_path())
+        
+        # CRITICAL FIX: Clear existing messages for this thread first to avoid duplicates
+        db_path = get_sessions_database_path()
+        
+        # Get the internal thread database ID (execute_sqlite_query already imported at top)
+        query = "SELECT id FROM threads WHERE thread_slug = ?"
+        rows = execute_sqlite_query(db_path, query, (thread_id,))
+        
+        if rows and len(rows) > 0:
+            internal_thread_id = rows[0]['id']
+            
+            # Delete existing messages for this thread (execute_sqlite_update already imported at top)
+            delete_query = "DELETE FROM messages WHERE thread_id = ?"
+            execute_sqlite_update(db_path, delete_query, (internal_thread_id,))
+            print(f"[MESSAGE SAVE] Cleared existing messages for thread {thread_id} (internal ID: {internal_thread_id})")
+        
+        # Save each message
+        saved_count = 0
+        for msg in messages:
+            role = msg.get('role')
+            content = msg.get('content')
+            
+            if not role or not content:
+                print(f"[MESSAGE SAVE] Skipping invalid message: {msg}")
+                continue
+            
+            try:
+                # Add message to database
+                thread_mgr.add_message(
+                    workspace_slug='default',
+                    thread_slug=thread_id,
+                    role=role,
+                    content=content,
+                    user_id=user_id,
+                    prompt=content if role == 'user' else None,
+                    include=True,
+                    tool_calls=msg.get('tool_calls'),
+                    tokens_used=msg.get('tokens_used'),
+                    response_time_ms=msg.get('response_time_ms'),
+                    metadata=msg.get('metadata', {})
+                )
+                saved_count += 1
+                print(f"[MESSAGE SAVE] Saved {role} message to thread {thread_id}")
+            except Exception as msg_error:
+                print(f"[MESSAGE SAVE ERROR] Failed to save message: {msg_error}")
+                continue
+        
+        return success_response({
+            'thread_id': thread_id,
+            'messages_saved': saved_count
+        }, message=f'Saved {saved_count} messages to thread')
+    
+    except Exception as e:
+        print(f"[MESSAGE SAVE ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Failed to save messages: {str(e)}', 500)
+
+
+@thread_bp.route('/messages/get', methods=['GET'])
+def get_messages():
+    """
+    Get messages for a thread
+    
+    GET /api/threads/messages/get?thread_id=1762614784052
+    
+    Returns:
+        {"success": true, "messages": [...], "count": 2}
+    """
+    try:
+        thread_id = request.args.get('thread_id')
+        if not thread_id:
+            return error_response('thread_id required', 400)
+        
+        db_path = get_sessions_database_path()
+        
+        # Query messages by thread_slug (which matches thread_id)
+        query = """
+            SELECT 
+                m.id,
+                m.role,
+                m.content,
+                m.tool_calls,
+                m.tokens_used,
+                m.response_time_ms,
+                m.created_at,
+                m.metadata
+            FROM messages m
+            JOIN threads t ON m.thread_id = t.id
+            WHERE t.thread_slug = ?
+            ORDER BY m.created_at ASC
+        """
+        
+        rows = execute_sqlite_query(db_path, query, (thread_id,))
+        
+        messages = []
+        for row in rows:
+            messages.append({
+                'id': row['id'],
+                'role': row['role'],
+                'content': row['content'],
+                'tool_calls': json.loads(row['tool_calls']) if row['tool_calls'] else [],
+                'tokens_used': row['tokens_used'],
+                'response_time_ms': row['response_time_ms'],
+                'timestamp': row['created_at'],
+                'metadata': json.loads(row['metadata']) if row['metadata'] else {}
+            })
+        
+        return success_response({
+            'messages': messages,
+            'count': len(messages)
+        }, message=f'Found {len(messages)} messages')
+    
+    except Exception as e:
+        print(f"[MESSAGE GET ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Failed to get messages: {str(e)}', 500)
+
+
+# ============================================================
+# THREAD ASSIGNMENTS (DELETE ENDPOINT)
+# ============================================================
+
+@thread_bp.route('/assignments/<location>', methods=['DELETE'])
+def delete_assignment(location):
+    """
+    Delete thread assignment for a specific location
+    
+    DELETE /api/threads/assignments/{location}
+    
+    Removes the thread assignment from the specified agent/location.
+    Used when cleaning up stale assignments (thread deleted but assignment remains).
+    
+    Returns:
+        {"success": true, "message": "Assignment cleared"}
+    """
+    try:
+        import sqlite3
+        from pathlib import Path
+        import json
+        
+        # Clean location (remove extra spaces)
+        location = location.strip()
+        
+        # Get user_id from request (Authorization header or query param)
+        user_id = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            # Extract user_id from JWT token
+            try:
+                import jwt
+                token = auth_header.split(' ')[1]
+                payload = jwt.decode(token, options={"verify_signature": False})
+                user_id = payload.get('user_id')
+            except:
+                pass
+        
+        # Fallback to query param
+        if not user_id:
+            user_id = request.args.get('user_id', type=int)
+        
+        # Fallback to default user
+        if not user_id:
+            user_id = 1
+        
+        print(f"[DELETE ASSIGNMENT] Clearing assignment for location: {location}, user_id: {user_id}")
+        
+        # FIXED: Use sessions.db with users.metadata column (same as thread_assignment_routes.py)
+        root_dir = Path(__file__).parent.parent.parent
+        db_path = root_dir / 'data' / 'sessions.db'
+        
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.cursor()
+        
+        # Ensure user row exists
+        cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+        if not cursor.fetchone():
+            cursor.execute("""
+                INSERT INTO users (id, username, email, metadata)
+                VALUES (?, ?, ?, ?)
+            """, (user_id, f'user_{user_id}', f'user_{user_id}@example.com', '{}'))
+            print(f'[DELETE ASSIGNMENT] Created user row for user {user_id}')
+        
+        # Get current metadata
+        cursor.execute("SELECT metadata FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        metadata = json.loads(row[0] or '{}')
+        
+        # Remove assignment from metadata
+        assignments = metadata.get('thread_assignments', {})
+        session_id = assignments.pop(location, None)
+        
+        # Update metadata
+        metadata['thread_assignments'] = assignments
+        cursor.execute("""
+            UPDATE users
+            SET metadata = ?
+            WHERE id = ?
+        """, (json.dumps(metadata), user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        deleted_count = 1 if session_id else 0
+        print(f"[DELETE ASSIGNMENT] Cleared {location} assignment for user {user_id} (session_id: {session_id})")
+        
+        return success_response(
+            {'location': location, 'deleted': deleted_count, 'session_id': session_id},
+            message=f'Assignment cleared for {location}'
+        )
+    
+    except Exception as e:
+        print(f"[DELETE ASSIGNMENT ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Failed to delete assignment: {str(e)}', 500)
+
 

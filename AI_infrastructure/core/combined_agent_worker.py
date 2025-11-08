@@ -372,7 +372,8 @@ def run_agent_worker(
     queue: Queue,
     conversation_history: Optional[List[Dict]] = None,
     context: str = 'triple_agent',
-    user_id: Optional[int] = None
+    user_id: Optional[int] = None,
+    thread_id: Optional[str] = None
 ):
     """
     Background worker that executes ToolUseAgent (with file support)
@@ -478,13 +479,16 @@ def run_agent_worker(
                 final_response = result.get('final_response', '')
                 
                 queue.put({'type': 'response', 'content': final_response})
-                queue.put({
+                complete_payload = {
                     'type': 'complete',
                     'result': final_response,
                     'session_id': session_id,
                     'tool_calls': result.get('tool_calls', 0),
                     'thinking_tokens': result.get('thinking_tokens', 0)
-                })
+                }
+                if thread_id is not None:
+                    complete_payload['thread_id'] = thread_id
+                queue.put(complete_payload)
                 
                 print(f"{log_prefix} Complete")
             else:
@@ -520,7 +524,8 @@ def run_simple_agent_worker(
     queue: Queue,
     conversation_history: Optional[List[Dict]] = None,
     ai_client = None,
-    user_id: int = 1
+    user_id: int = 1,
+    thread_id: Optional[str] = None
 ):
     """
     Simplified worker for text-only prompts (no files)
@@ -729,7 +734,10 @@ def run_simple_agent_worker(
             if response_text:
                 queue.put({'type': 'content_delta', 'text': response_text})
         
-        queue.put({'type': 'complete', 'result': response_text, 'session_id': session_id})
+        complete_payload = {'type': 'complete', 'result': response_text, 'session_id': session_id}
+        if thread_id is not None:
+            complete_payload['thread_id'] = thread_id
+        queue.put(complete_payload)
         
         print(f"{log_prefix} Complete")
         

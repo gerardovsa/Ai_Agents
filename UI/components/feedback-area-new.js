@@ -85,10 +85,10 @@ const feedbackAreaStyles = `
     .user-feedback-container {
         position: absolute;
         bottom: 100%;
-        left: 0;
+        left: 5px;
         right: 0;
-        width: 100%;
-        max-height: 300px;
+        width: calc(100% - 5px);
+        height: 120px;
         background: var(--bg-secondary, #161b22);
         border: 1px solid var(--border-default, #30363d);
         border-bottom: none;
@@ -105,114 +105,114 @@ const feedbackAreaStyles = `
         display: flex;
     }
     
-    /* Header */
-    .feedback-header {
-        background: var(--bg-tertiary, #1c2128);
-        border-bottom: 1px solid var(--border-default, #30363d);
-        padding: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        border-radius: 12px 12px 0 0;
-    }
-    
-    .feedback-header-left {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .feedback-header-icon {
-        font-size: 18px;
-        color: var(--accent-primary, #58a6ff);
-        animation: pulse 2s infinite;
-    }
-    
-    .feedback-header-text {
-        color: var(--text-primary, #f3f4f6);
-        font-size: 14px;
-        font-weight: 600;
-    }
-    
-    .feedback-close-btn {
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border-default);
-        border-radius: 6px;
-        padding: var(--space-2) var(--space-3);
-        color: var(--text-primary);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        transition: all 0.2s ease;
-        font-size: 14px;
-    }
-    
-    .feedback-close-btn:hover {
-        background: var(--bg-tertiary);
-        color: var(--text-primary, #f3f4f6);
-        border: 1px solid var(--accent-primary);
-        border-radius: 6px;
-    }
-    
-    /* Controls */
-    .feedback-controls {
-        padding: 15px;
+    /* Main content wrapper with 3-column layout */
+    .feedback-content-wrapper {
         display: flex;
         gap: 8px;
-        flex-wrap: wrap;
-        background: var(--bg-secondary, #161b22);
-        border-bottom: 1px solid var(--border-default, #30363d);
+        padding: 10px;
+        flex: 1;
+        align-items: stretch;
     }
     
-    .feedback-control-btn {
-        flex: 1;
-        min-width: 80px;
-        background: var(--bg-tertiary, #1c2128);
+    /* Left buttons column */
+    .feedback-left-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 32px;
+    }
+    
+    .feedback-quick-btn-vertical {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background: transparent;
+        color: white;
         border: 1px solid var(--border-default, #30363d);
-        color: var(--text-primary, #f3f4f6);
-        padding: 8px 14px;
         border-radius: 6px;
-        font-size: 13px;
-        font-weight: 500;
+        font-size: 14px;
         cursor: pointer;
-        transition: all 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        transition: all 0.2s ease;
     }
     
-    .feedback-control-btn:hover {
-        background: var(--bg-hover, #21262d);
+    .feedback-quick-btn-vertical:hover {
         border-color: var(--accent-primary, #58a6ff);
-        transform: translateY(-1px);
+        color: var(--accent-primary, #58a6ff);
+        transform: scale(1.05);
     }
     
-    .feedback-control-btn:active {
-        transform: translateY(0);
-    }
-    
-    /* Body */
-    .feedback-body {
+    /* Center textarea */
+    .feedback-center {
         flex: 1;
-        padding: 15px;
-        background: var(--bg-secondary, #161b22);
-        overflow-y: auto;
+        display: flex;
     }
     
+    /* Right buttons column */
+    .feedback-right-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 32px;
+        margin-right: 5px;
+    }
+    
+    .feedback-close-btn-vertical,
+    .feedback-send-btn-vertical {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .feedback-close-btn-vertical {
+        background: var(--bg-tertiary, #1c2128);
+        color: var(--text-muted, #9ca3af);
+        border: 1px solid var(--border-default, #30363d);
+    }
+    
+    .feedback-close-btn-vertical:hover {
+        background: var(--bg-hover, #21262d);
+        color: var(--text-primary, #f3f4f6);
+        border-color: var(--accent-primary, #58a6ff);
+    }
+    
+    .feedback-send-btn-vertical {
+        background: var(--accent-hover, #4a93e0);
+        color: white;
+    }
+    
+    .feedback-send-btn-vertical:hover {
+        background: var(--accent-primary, #58a6ff);
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+    }
+    
+    .feedback-spacer {
+        flex: 1;
+    }
+    
+    /* Textarea */
     .feedback-textarea {
         width: 100%;
-        min-height: 100px;
-        max-height: 250px;
-        padding: 12px;
+        height: 100%;
+        padding: 10px;
         border: 1px solid var(--border-default, #30363d);
         border-radius: 8px;
         background: var(--bg-primary, #0d1117);
         color: var(--text-primary, #f3f4f6);
         font-size: 14px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        resize: vertical;
+        resize: none;
         transition: border-color 0.2s ease;
     }
     
@@ -223,6 +223,19 @@ const feedbackAreaStyles = `
     }
     
     .feedback-textarea::placeholder {
+        color: var(--text-muted, #9ca3af);
+    }
+    
+    /* Status bar (bottom) */
+    .feedback-status {
+        padding: 6px 10px;
+        background: var(--bg-tertiary, #1c2128);
+        border-top: 1px solid var(--border-default, #30363d);
+        font-size: 12px;
+        text-align: center;
+    }
+    
+    .feedback-status span {
         color: var(--text-muted, #9ca3af);
     }
     
@@ -254,8 +267,7 @@ const feedbackAreaStyles = `
     
     /* Quick Action Buttons (Icon-only with hover text) */
     .feedback-quick-btn, .feedback-send-btn {
-        flex: 1;
-        min-width: 40px;
+        width: 38px;
         height: 38px;
         padding: 0;
         background: var(--accent-hover, #4a93e0);
@@ -322,6 +334,37 @@ const feedbackAreaStyles = `
     @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.6; }
+    }
+    
+    @keyframes pulseOrange {
+        0%, 100% {
+            opacity: 1;
+            box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.7);
+        }
+        50% {
+            opacity: 0.8;
+            box-shadow: 0 0 0 10px rgba(251, 146, 60, 0);
+        }
+    }
+    
+    /* Feedback button states */
+    .ai-chat-feedback-btn.pending {
+        animation: pulseOrange 1.5s ease-in-out infinite;
+        background: rgba(251, 146, 60, 0.2) !important;
+        border-color: #fb923c !important;
+        color: #fb923c !important;
+    }
+    
+    .ai-chat-feedback-btn.success {
+        background: rgba(16, 185, 129, 0.2) !important;
+        border-color: #10b981 !important;
+        color: #10b981 !important;
+    }
+    
+    .ai-chat-feedback-btn.error {
+        background: rgba(239, 68, 68, 0.2) !important;
+        border-color: #ef4444 !important;
+        color: #ef4444 !important;
     }
     
     /* Mobile Responsive */
@@ -438,8 +481,26 @@ function initFeedbackArea() {
 function toggleFeedbackContainer() {
     const container = document.getElementById('user-feedback-container');
     const icon = document.getElementById('user-feedback-icon');
+    const sendBtn = document.getElementById('feedback-send-btn');
 
     if (container.classList.contains('open')) {
+        // Check if feedback is being sent/waiting
+        if (sendBtn && sendBtn.disabled) {
+            // Feedback in progress - show warning
+            const statusEl = document.getElementById('feedback-status');
+            const messageEl = document.getElementById('feedback-message');
+            if (statusEl && messageEl) {
+                statusEl.style.display = 'block';
+                messageEl.textContent = '⚠️ Feedback being sent - please wait...';
+                messageEl.style.color = '#fbbf24'; // Yellow
+                setTimeout(() => {
+                    if (messageEl.textContent.includes('⚠️')) {
+                        messageEl.textContent = messageEl.textContent.replace('⚠️ Feedback being sent - please wait...', '⏳ Waiting for AI...');
+                    }
+                }, 2000);
+            }
+            return; // Don't close
+        }
         container.classList.remove('open');
     } else {
         container.classList.add('open');
@@ -561,6 +622,7 @@ function sendFeedback() {
     const textarea = document.getElementById('user-feedback-text');
     const sendBtn = document.getElementById('feedback-send-btn');
     const headerText = document.getElementById('feedback-message');
+    const feedbackBtn = document.getElementById('ai-chat-feedback-btn');
     const instructions = textarea ? textarea.value.trim() : '';
 
     if (!instructions) {
@@ -572,6 +634,12 @@ function sendFeedback() {
 
     // Get session ID from window context
     const sessionId = window.currentSessionId || window.sessionId || 'default';
+
+    // Set feedback button to pending state (pulsing orange)
+    if (feedbackBtn) {
+        feedbackBtn.classList.remove('success', 'error');
+        feedbackBtn.classList.add('pending');
+    }
 
     // Show "Sending..." state
     if (sendBtn) {
@@ -615,17 +683,37 @@ function sendFeedback() {
                 clearFeedback();
 
                 // Start polling for injection confirmation
-                startPollingForInjection(sessionId, sendBtn, headerText);
+                startPollingForInjection(sessionId, sendBtn, headerText, feedbackBtn);
             } else {
                 console.error('[FEEDBACK] Failed to send:', result);
+
+                // Set feedback button to error state (red)
+                if (feedbackBtn) {
+                    feedbackBtn.classList.remove('pending', 'success');
+                    feedbackBtn.classList.add('error');
+                    setTimeout(() => feedbackBtn.classList.remove('error'), 5000);
+                }
+
+                // Show error toast
+                showFeedbackToast('Failed to send feedback', 'error');
+
                 resetFeedbackUI(sendBtn, headerText, 'Failed to send feedback');
-                alert('Failed to send feedback. Please try again.');
             }
         })
         .catch(error => {
             console.error('[FEEDBACK] Network error:', error);
+
+            // Set feedback button to error state (red)
+            if (feedbackBtn) {
+                feedbackBtn.classList.remove('pending', 'success');
+                feedbackBtn.classList.add('error');
+                setTimeout(() => feedbackBtn.classList.remove('error'), 5000);
+            }
+
+            // Show error toast
+            showFeedbackToast('Network error - check connection', 'error');
+
             resetFeedbackUI(sendBtn, headerText, 'Network error');
-            alert('Network error. Please check connection.');
         });
 }
 
@@ -635,7 +723,7 @@ function sendFeedback() {
  * Checks every 500ms if execute_tool() has picked up the feedback
  * Shows visual confirmation when injection happens
  */
-function startPollingForInjection(sessionId, sendBtn, headerText) {
+function startPollingForInjection(sessionId, sendBtn, headerText, feedbackBtn) {
     let pollCount = 0;
     const maxPolls = 60; // 30 seconds max (60 * 500ms)
 
@@ -645,6 +733,15 @@ function startPollingForInjection(sessionId, sendBtn, headerText) {
         // Stop polling after 30 seconds
         if (pollCount > maxPolls) {
             clearInterval(pollInterval);
+
+            // Set feedback button to error state (timeout)
+            if (feedbackBtn) {
+                feedbackBtn.classList.remove('pending', 'success');
+                feedbackBtn.classList.add('error');
+                setTimeout(() => feedbackBtn.classList.remove('error'), 5000);
+            }
+
+            showFeedbackToast('Timeout - feedback may still be picked up', 'error');
             resetFeedbackUI(sendBtn, headerText, 'Timeout - feedback may still be picked up');
             console.warn('[FEEDBACK] Polling timeout - feedback stored but no injection detected yet');
             return;
@@ -659,6 +756,16 @@ function startPollingForInjection(sessionId, sendBtn, headerText) {
                     clearInterval(pollInterval);
 
                     console.log('[FEEDBACK] AI RECEIVED FEEDBACK:', data.feedback);
+
+                    // Set feedback button to success state (green)
+                    if (feedbackBtn) {
+                        feedbackBtn.classList.remove('pending', 'error');
+                        feedbackBtn.classList.add('success');
+                        setTimeout(() => feedbackBtn.classList.remove('success'), 5000);
+                    }
+
+                    // Show success toast
+                    showFeedbackToast('AI received your feedback!', 'success');
 
                     // Show success state
                     if (sendBtn) {
@@ -740,6 +847,56 @@ async function handleFetchInstructionsRequest() {
 
 /* ==================== EXPORT ==================== */
 
+/**
+ * Show toast notification for feedback status
+ * 
+ * @param {string} message - Toast message
+ * @param {string} type - 'success' or 'error'
+ */
+function showFeedbackToast(message, type) {
+    // Check if notification container exists
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        console.warn('[FEEDBACK] Notification container not found, using alert');
+        return;
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'notification ' + (type === 'success' ? 'success' : 'error');
+    toast.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        color: white;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        margin-bottom: 10px;
+        animation: slideInRight 0.3s ease-out;
+    `;
+
+    const icon = type === 'success' ? '✓' : '✕';
+    toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
+
+    // Add to container
+    container.appendChild(toast);
+
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 4000);
+}
+
 // Make available globally
 window.initFeedbackArea = initFeedbackArea;
 window.showFeedbackArea = showFeedbackArea;
@@ -750,6 +907,7 @@ window.getCurrentFeedback = getCurrentFeedback;
 window.clearFeedback = clearFeedback;
 window.sendFeedback = sendFeedback;
 window.handleFetchInstructionsRequest = handleFetchInstructionsRequest;
+window.showFeedbackToast = showFeedbackToast;
 
 // Auto-initialize on load
 if (document.readyState === 'loading') {

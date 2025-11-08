@@ -306,6 +306,7 @@ def get_profile():
             'success': True,
             'profile': {
                 **request.user,
+                'id': request.user['user_id'],  # ✅ FIX: Add 'id' alias for frontend compatibility
                 'gmail_accounts': gmail_accounts,
                 'workspace_id': workspace_id,
                 'auth_platform': auth_platform,  # 'google' | 'microsoft' | None

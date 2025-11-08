@@ -82,7 +82,7 @@ Database Check:
   User ID: 1
   Platform: google
   Email: gerardo@vetsuccessacademy.com
-  Profile: Gerardo Polito
+  Profile: Gerardo Poli
   Token Length: 180+ chars
   Expires: 2025-10-30 17:00:00
   Valid: 1

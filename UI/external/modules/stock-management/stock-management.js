@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Stock Management Module
  * Complete inventory management, analytics, and AI-powered invoice processing
  * 
@@ -136,13 +136,13 @@ class SQLViewerHelper {
                         <h3>SQL Query Editor</h3>
                         <div class="editor-actions">
                             <button class="btn btn-primary" onclick="stockModule.executeSQLQuery()">
-                                â–¶ Execute Query
+                                ▶ Execute Query
                             </button>
                             <button class="btn btn-secondary" onclick="stockModule.clearSQLQuery()">
                                 Clear
                             </button>
                             <button class="btn btn-secondary" onclick="stockModule.loadTableList()">
-                                ðŸ“‹ Show Tables
+                                📋 Show Tables
                             </button>
                         </div>
                     </div>
@@ -186,7 +186,7 @@ class SQLViewerHelper {
         }
 
         try {
-            const response = await fetch(`${this.module.backendUrl}/api/stock/sql-query`, {
+            const response = await fetch(`${this.module.backendUrl}/api/stock-management/sql-query`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query })
@@ -216,7 +216,7 @@ class SQLViewerHelper {
         // Show execution info
         infoDiv.innerHTML = `
             <div class="success-banner">
-                âœ“ Query executed successfully
+                ✓ Query executed successfully
                 <span class="execution-stats">
                     ${result.row_count} rows | ${result.execution_time_ms}ms
                 </span>
@@ -270,7 +270,7 @@ class SQLViewerHelper {
         const infoDiv = document.getElementById('sql-execution-info');
         infoDiv.innerHTML = `
             <div class="error-banner">
-                âœ— Error: ${message}
+                ✗ Error: ${message}
             </div>
         `;
     }
@@ -346,7 +346,7 @@ class CellEditingHelper {
         const pkValue = pkCell.textContent;
 
         try {
-            const response = await fetch(`${this.module.backendUrl}/api/stock/update-cell`, {
+            const response = await fetch(`${this.module.backendUrl}/api/stock-management/update-cell`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -393,7 +393,7 @@ class CellEditingHelper {
         const infoDiv = document.getElementById('sql-execution-info');
         const tempDiv = document.createElement('div');
         tempDiv.className = 'success-banner';
-        tempDiv.textContent = `âœ“ ${message}`;
+        tempDiv.textContent = `✓ ${message}`;
         tempDiv.style.position = 'fixed';
         tempDiv.style.top = '20px';
         tempDiv.style.right = '20px';
@@ -413,7 +413,7 @@ class StockManagementModule extends BaseModule {
         super(moduleId);
 
         // Configuration
-        this.apiEndpoint = '/api/stock';
+        this.apiEndpoint = '/api/stock-management';
         this.backendUrl = 'http://localhost:5001';
 
         // State management
@@ -450,14 +450,6 @@ class StockManagementModule extends BaseModule {
         this.cellEditor = new CellEditingHelper(this);
         console.log('[INIT] Helper classes initialized (SQL Viewer, Cell Editor)');
 
-        // Initialize TABLE_ENHANCEMENTS for advanced table features
-        if (typeof StockTableEnhancements !== 'undefined') {
-            StockTableEnhancements.init(this);
-            console.log('[TABLE_ENHANCEMENTS] All table features enabled');
-        } else {
-            console.warn('[WARN] TABLE_ENHANCEMENTS.js not loaded - advanced features disabled');
-        }
-
         // Check backend connectivity
         await this.checkBackendConnection();
 
@@ -485,41 +477,104 @@ class StockManagementModule extends BaseModule {
     }
 
     initializeSubTabs() {
-        console.log('[INIT] Scheduling Stock Management sub-tabs initialization...');
-        console.log('[TIMING] Using double RAF for DOM readiness...');
+        console.log('� [INIT] Scheduling Stock Management sub-tabs initialization...');
 
-        // Use DOUBLE requestAnimationFrame to ensure DOM is fully rendered AND painted
+        // Use requestAnimationFrame to ensure DOM is fully rendered
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                console.log('[TIMING] DOM ready. Checking containers...');
-                const requiredTabs = ['invoice-processing', 'usage-analytics', 'reorder-dashboard', 'profit-analysis', 'sql-viewer', 'ai-analytics'];
-                console.log('[CHECK] Verifying sub-tab containers...');
-                const containerStatus = requiredTabs.map(tabId => {
-                    const container = this.getSubTabContainer(tabId);
-                    const found = !!container;
-                    console.log(`   [${found ? 'OK' : 'MISSING'}] ${this.moduleId}-subtab-${tabId}`);
-                    return { tabId, found, container };
-                });
-                const missingTabs = containerStatus.filter(s => !s.found).map(s => s.tabId);
-                if (missingTabs.length > 0) {
-                    console.error('[ERROR] Missing containers:', missingTabs);
-                    console.error('[DEBUG] Module ID:', this.moduleId);
-                    const allContainers = document.querySelectorAll(`[id^="${this.moduleId}-subtab-"]`);
-                    console.error('[DEBUG] Found:', Array.from(allContainers).map(el => el.id));
-                    return;
-                }
-                console.log('[INIT] All containers found. Initializing...');
-                this.initializeInvoiceProcessingTab();
-                this.initializeUsageAnalyticsTab();
-                this.initializeReorderDashboardTab();
-                this.initializeProfitAnalysisTab();
-                this.initializeSQLViewerTab();
-                this.initializeAIAnalyticsTab();
-                console.log('[INIT] All sub-tabs initialized successfully');
+            // Verify all required containers exist (BaseModule should have created them)
+            const requiredTabs = [
+                'invoice-processing',
+                'usage-analytics',
+                'reorder-dashboard',
+                'profit-analysis',
+                'sql-viewer',
+                'ai-analytics'
+            ];
+
+            // Check each container individually with detailed logging
+            console.log('🔍 [CHECK] Checking for required containers...');
+            const containerStatus = requiredTabs.map(tabId => {
+                const container = this.getSubTabContainer(tabId);
+                const found = !!container;
+                console.log(`   ${found ? '✅' : '❌'} ${this.moduleId}-subtab-${tabId}`);
+                return { tabId, found, container };
             });
+
+            const missingTabs = containerStatus.filter(s => !s.found).map(s => s.tabId);
+
+            if (missingTabs.length > 0) {
+                console.error('❌ [INIT] Missing sub-tab containers:', missingTabs);
+                console.error('❌ [DEBUG] Module ID:', this.moduleId);
+                console.error('❌ [DEBUG] Expected ID format:', `${this.moduleId}-subtab-{tabId}`);
+
+                // List what we actually found
+                const allContainers = document.querySelectorAll(`[id^="${this.moduleId}-subtab-"]`);
+                console.error('❌ [DEBUG] Found containers:', Array.from(allContainers).map(el => el.id));
+                console.error('❌ [DEBUG] DOM state - module container exists:', !!this.container);
+                console.error('❌ [DEBUG] DOM state - module container id:', this.container?.id);
+                return;
+            }
+
+            console.log('✅ [INIT] All sub-tab containers found. Initializing content...');
+
+            // Initialize all 6 tabs
+            this.initializeInvoiceProcessingTab();
+            this.initializeUsageAnalyticsTab();
+            this.initializeReorderDashboardTab();
+            this.initializeProfitAnalysisTab();
+            this.initializeSQLViewerTab();
+            this.initializeAIAnalyticsTab();
+
+            console.log('✅ [INIT] All sub-tabs initialized successfully');
         });
     }
 
+    // ========================================================================
+    // MODULE LIFECYCLE METHODS (Override BaseModule behavior)
+    // ========================================================================
+
+    onRefresh() {
+        console.log('[REFRESH] Refreshing Stock Management Module...');
+
+        // Refresh the currently active sub-tab
+        if (!this.activeSubTab) {
+            console.warn('[WARN] No active sub-tab to refresh');
+            return;
+        }
+
+        switch (this.activeSubTab) {
+            case 'invoice-processing':
+                this.refreshInvoiceTab();
+                break;
+            case 'usage-analytics':
+                this.refreshUsageAnalyticsTab();
+                break;
+            case 'reorder-dashboard':
+                this.refreshReorderDashboardTab();
+                break;
+            case 'profit-analysis':
+                this.refreshProfitAnalysisTab();
+                break;
+            case 'sql-viewer':
+                this.refreshSQLViewerTab();
+                break;
+            case 'ai-analytics':
+                this.refreshAIAnalyticsTab();
+                break;
+            default:
+                console.log('[REFRESH] No specific refresh handler for:', this.activeSubTab);
+        }
+    }
+
+    onSubTabActivate(subTabId) {
+        console.log('[TAB] Stock Management sub-tab activated:', subTabId);
+        this.activeSubTab = subTabId;
+
+        // FIXED: Disabled auto-loading of data on tab activation
+        // User must click the refresh button to load data for each tab
+        // This prevents unnecessary API calls and gives user control
+        console.log(`   → Tab content ready. Click 'Refresh' button to load data.`);
+    }
 
     onRefresh() {
         console.log('[REFRESH] Refreshing Stock Management data (NOT reloading page)...');
@@ -557,7 +612,7 @@ class StockManagementModule extends BaseModule {
     }
 
     onSettings() {
-        console.log('âš™ï¸ Stock Management settings requested');
+        console.log('⚙️ Stock Management settings requested');
         alert('Stock Management settings coming soon!\n\n' +
             'Will include:\n' +
             '- API endpoint configuration\n' +
@@ -598,27 +653,32 @@ class StockManagementModule extends BaseModule {
 
     initializeInvoiceProcessingTab() {
         const tab = this.getSubTabContainer('invoice-processing');
-        if (!tab) return;
+        if (!tab) {
+            console.error('❌ [INIT] Could not find invoice-processing container');
+            return;
+        }
+
+        console.log('✅ [INIT] Initializing Invoice Processing tab...');
 
         tab.innerHTML = `
             <div class="module-dashboard">
+                <!-- Card Header with Title and Subtitle -->
                 <div class="dashboard-card">
                     <div class="card-header">
-                        <div class="header-left">
-                            <h3 class="card-title">
+                        <div class="header-left" style="width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: center;">
+                            <h3 class="card-title" style="font-size: 24px; margin: 0;">
                                 <i class="fas fa-file-invoice"></i> AI Invoice Processing
                             </h3>
-                            <div class="card-subtitle">
+                            <div class="card-subtitle" style="margin: 0;">
                                 Upload supplier invoices for automatic extraction and stock matching
                             </div>
                         </div>
-                        <div class="header-right">
-                            <button class="btn btn-secondary" id="invoice-refresh-btn" onclick="stockModule.refreshInvoiceTab()">
-                                <i class="fas fa-sync-alt"></i> Clear
-                            </button>
-                        </div>
                     </div>
-                    <div class="card-content">
+                </div>
+                
+                <!-- Upload Card -->
+                <div class="dashboard-card" style="margin-top: 20px;">
+                    <div class="card-content" style="padding: 30px;">
                         <!-- Upload Area -->
                         <div class="upload-zone" id="invoice-upload-zone">
                             <div class="upload-icon">
@@ -694,7 +754,7 @@ class StockManagementModule extends BaseModule {
     }
 
     async handleInvoiceUpload(file) {
-        console.log('ðŸ“„ Processing invoice:', file.name);
+        console.log('📄 Processing invoice:', file.name);
 
         // Show processing indicator
         document.getElementById('invoice-upload-zone').style.display = 'none';
@@ -777,7 +837,12 @@ class StockManagementModule extends BaseModule {
 
     initializeUsageAnalyticsTab() {
         const tab = this.getSubTabContainer('usage-analytics');
-        if (!tab) return;
+        if (!tab) {
+            console.error('❌ [INIT] Could not find usage-analytics container');
+            return;
+        }
+
+        console.log('✅ [INIT] Initializing Usage Analytics tab...');
 
         tab.innerHTML = `
             <div class="module-dashboard">
@@ -854,7 +919,7 @@ class StockManagementModule extends BaseModule {
                 <div class="dashboard-card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-chart-line"></i> Usage Analytics
+                            <i class="fas fa-chart-bar"></i> Usage Analytics Data
                         </h3>
                     </div>
                     <div class="card-content">
@@ -866,9 +931,7 @@ class StockManagementModule extends BaseModule {
                             <p style="margin: 0; font-size: 16px;">Click the <strong>Refresh</strong> button to load usage analytics data</p>
                             <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">Select timeframe from dropdown and click Refresh</p>
                         </div>
-                        <div id="analytics-charts" style="display: none;">
-                            <canvas id="consumption-chart" height="80"></canvas>
-                        </div>
+                        <div id="analytics-table-container" style="display: none; min-height: 400px;"></div>
                     </div>
                 </div>
             </div>
@@ -887,15 +950,17 @@ class StockManagementModule extends BaseModule {
         console.log(`[LOAD] Loading usage analytics for ${this.currentPeriod} days...`);
 
         const loadingDiv = document.getElementById('analytics-loading');
-        const chartsDiv = document.getElementById('analytics-charts');
+        const readyDiv = document.getElementById('analytics-ready');
+        const tableContainer = document.getElementById('analytics-table-container');
 
         if (loadingDiv) loadingDiv.style.display = 'block';
-        if (chartsDiv) chartsDiv.style.display = 'none';
+        if (readyDiv) readyDiv.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'none';
 
         try {
             // Call the REAL backend API
             const response = await fetch(
-                `${this.backendUrl}/api/stock/usage-analytics?days=${this.currentPeriod}&group_by=month`
+                `${this.backendUrl}/api/stock-management/usage-analytics?days=${this.currentPeriod}&group_by=month`
             );
 
             if (!response.ok) {
@@ -904,34 +969,33 @@ class StockManagementModule extends BaseModule {
 
             const result = await response.json();
 
-            if (!result.success) {
+            if (result.status !== 'ok') {
                 throw new Error(result.message || 'Failed to load usage analytics');
             }
 
-            console.log('[OK] Usage analytics loaded:', result.data);
+            console.log('[OK] Usage analytics loaded:', result.data.length, 'records');
 
             // Update summary stats
-            const summary = result.data.summary || {};
-            const datasets = result.data.datasets || [];
+            const data = result.data || [];
+            const totalStocks = data.length;
+            const totalUsage = data.reduce((sum, item) => sum + (item.usage_count || 0), 0);
+            const totalSheets = data.reduce((sum, item) => sum + (item.total_quantity || 0), 0);
 
-            const totalStocks = datasets.reduce((sum, ds) => sum + (ds.stock_count || 0), 0);
-            const totalUsage = datasets.reduce((sum, ds) => sum + (ds.total_usage || 0), 0);
-
-            // Fast movers = datasets with usage > average
-            const avgUsage = totalUsage / (datasets.length || 1);
-            const fastMovers = datasets.filter(ds => ds.total_usage > avgUsage).length;
-            const slowMovers = datasets.filter(ds => ds.total_usage < avgUsage).length;
+            // Fast movers = usage > average
+            const avgUsage = totalUsage / (totalStocks || 1);
+            const fastMovers = data.filter(item => item.usage_count > avgUsage).length;
+            const slowMovers = data.filter(item => item.usage_count < avgUsage).length;
 
             document.getElementById('total-stocks-used').textContent = totalStocks;
-            document.getElementById('total-sheets-used').textContent = totalUsage.toLocaleString();
+            document.getElementById('total-sheets-used').textContent = totalSheets.toLocaleString();
             document.getElementById('fast-movers-count').textContent = fastMovers;
             document.getElementById('slow-movers-count').textContent = slowMovers;
 
-            // Render chart
-            this.renderUsageChart(result.data);
+            // Render Tabulator table
+            this.renderUsageTable(data);
 
             if (loadingDiv) loadingDiv.style.display = 'none';
-            if (chartsDiv) chartsDiv.style.display = 'block';
+            if (tableContainer) tableContainer.style.display = 'block';
 
         } catch (error) {
             console.error('[ERROR] Failed to load usage analytics:', error);
@@ -952,98 +1016,87 @@ class StockManagementModule extends BaseModule {
         }
     }
 
-    renderUsageChart(data) {
-        const canvas = document.getElementById('consumption-chart');
-        if (!canvas) {
-            console.warn('[WARN] Cannot find canvas element: consumption-chart');
+    renderUsageTable(data) {
+        const container = document.getElementById('analytics-table-container');
+        if (!container) {
+            console.warn('[WARN] Cannot find container: analytics-table-container');
             return;
         }
 
-        // Destroy existing chart
-        if (this.charts['consumption']) {
-            this.charts['consumption'].destroy();
+        // Destroy existing table
+        if (this.usageTable) {
+            this.usageTable.destroy();
         }
 
-        const ctx = canvas.getContext('2d');
-
-        // Color palette
-        const colors = [
-            '#00509E', '#FF6B35', '#28A745', '#FFC107',
-            '#17A2B8', '#DC3545', '#6F42C1', '#20C997'
-        ];
-
-        // Build chart datasets
-        const chartDatasets = (data.datasets || []).map((dataset, index) => ({
-            label: dataset.label,
-            data: dataset.data,
-            backgroundColor: colors[index % colors.length] + '40', // 40 = alpha transparency
-            borderColor: colors[index % colors.length],
-            borderWidth: 2,
-            tension: 0.3
-        }));
-
-        this.charts['consumption'] = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.labels || [],
-                datasets: chartDatasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: `Stock Usage Trends (${this.currentPeriod} days)`,
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function (context) {
-                                return `${context.dataset.label}: ${context.parsed.y} jobs`;
-                            }
-                        }
+        // Create Tabulator
+        this.usageTable = new Tabulator(container, {
+            data: data,
+            layout: "fitDataStretch",
+            pagination: "local",
+            paginationSize: 25,
+            paginationSizeSelector: [10, 25, 50, 100],
+            movableColumns: true,
+            resizableColumns: true,
+            height: "500px",
+            placeholder: "No usage data available",
+            columns: [
+                {
+                    title: "Stock ID",
+                    field: "StockID",
+                    width: 120,
+                    headerSort: true,
+                    headerFilter: "input",
+                    formatter: function (cell) {
+                        return `<span style="font-weight: 600; color: #0078d4;">${cell.getValue()}</span>`;
                     }
                 },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Time Period'
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Job Count'
-                        },
-                        ticks: {
-                            stepSize: 10
-                        }
+                {
+                    title: "Stock Type",
+                    field: "StockType",
+                    width: 200,
+                    headerSort: true,
+                    headerFilter: "input"
+                },
+                {
+                    title: "GSM",
+                    field: "GSM",
+                    width: 100,
+                    headerSort: true,
+                    hozAlign: "center"
+                },
+                {
+                    title: "Dimensions",
+                    field: "Dimensions",
+                    width: 150,
+                    headerSort: true,
+                    hozAlign: "center"
+                },
+                {
+                    title: "Usage Count",
+                    field: "usage_count",
+                    width: 130,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        return `<span style="font-weight: 700; color: #10b981;">${value.toLocaleString()}</span>`;
                     }
                 },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
+                {
+                    title: "Total Sheets",
+                    field: "total_quantity",
+                    width: 140,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        return `<span style="font-weight: 700;">${value.toLocaleString()}</span>`;
+                    }
                 }
-            }
+            ]
         });
 
-        console.log('[CHART] Usage chart rendered with', chartDatasets.length, 'datasets');
+        console.log('[TABULATOR] Usage analytics table rendered with', data.length, 'rows');
     }
 
     async loadUsageAnalyticsData() {
@@ -1062,7 +1115,12 @@ class StockManagementModule extends BaseModule {
 
     initializeReorderDashboardTab() {
         const tab = this.getSubTabContainer('reorder-dashboard');
-        if (!tab) return;
+        if (!tab) {
+            console.error('❌ [INIT] Could not find reorder-dashboard container');
+            return;
+        }
+
+        console.log('✅ [INIT] Initializing Reorder Dashboard tab with Tabulator...');
 
         tab.innerHTML = `
             <div class="module-dashboard">
@@ -1079,117 +1137,115 @@ class StockManagementModule extends BaseModule {
                         </div>
                     </div>
                 </div>
-
-                <!-- Summary Cards -->
+                
+                <!-- Summary Metrics -->
                 <div class="stats-grid">
-                    <div class="stat-card critical">
-                        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-card">
+                        <div class="stat-icon danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
                         <div class="stat-content">
                             <div class="stat-label">Critical Stock</div>
                             <div class="stat-value" id="reorder-critical-count">--</div>
                         </div>
                     </div>
-                    <div class="stat-card warning">
-                        <div class="stat-icon"><i class="fas fa-bell"></i></div>
+                    <div class="stat-card">
+                        <div class="stat-icon warning">
+                            <i class="fas fa-bell"></i>
+                        </div>
                         <div class="stat-content">
                             <div class="stat-label">Low Stock</div>
                             <div class="stat-value" id="reorder-low-count">--</div>
                         </div>
                     </div>
-                    <div class="stat-card info">
-                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-card">
+                        <div class="stat-icon success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
                         <div class="stat-content">
                             <div class="stat-label">Adequate Stock</div>
                             <div class="stat-value" id="reorder-adequate-count">--</div>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-boxes"></i></div>
+                        <div class="stat-icon primary">
+                            <i class="fas fa-boxes"></i>
+                        </div>
                         <div class="stat-content">
                             <div class="stat-label">Total Stocks</div>
                             <div class="stat-value" id="reorder-total-count">--</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Bulk Operations Toolbar -->
+                
+                <!-- Toolbar with Filters and Actions -->
                 <div class="bulk-operations-toolbar" style="display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #1a1f2e; border-bottom: 1px solid #2a3142; margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="display: flex; gap: 8px; flex: 1; flex-wrap: wrap;">
+                        <button class="btn btn-sm" data-filter="all" onclick="stockModule.filterReorderTable('all')" style="padding: 6px 16px; background: #0078d4;">
+                            <i class="fas fa-list"></i> All
+                        </button>
+                        <button class="btn btn-sm" data-filter="critical" onclick="stockModule.filterReorderTable('critical')" style="padding: 6px 16px;">
+                            <i class="fas fa-exclamation-triangle"></i> Critical
+                        </button>
+                        <button class="btn btn-sm" data-filter="low" onclick="stockModule.filterReorderTable('low')" style="padding: 6px 16px;">
+                            <i class="fas fa-bell"></i> Low Stock
+                        </button>
+                        <button class="btn btn-sm" data-filter="adequate" onclick="stockModule.filterReorderTable('adequate')" style="padding: 6px 16px;">
+                            <i class="fas fa-check-circle"></i> Adequate
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="reorder-limit-selector" class="form-control" style="width: auto; padding: 6px 10px; margin: 0;">
+                            <option value="10">Show 10</option>
+                            <option value="25" selected>Show 25</option>
+                            <option value="50">Show 50</option>
+                            <option value="100">Show 100</option>
+                            <option value="all">Show All</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="stockModule.exportReorderToExcel()" style="padding: 6px 12px; font-size: 12px;">
+                            <i class="fas fa-file-excel"></i> Export
+                        </button>
                         <button class="btn btn-primary" onclick="stockModule.refreshReorderDashboardTab()" style="padding: 6px 12px; font-size: 12px;">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
                     </div>
-                    <div class="selected-count" style="margin-left: 16px; font-size: 12px;">
-                        <span id="reorder-selected-count">0 selected</span>
-                    </div>
-                    <div class="bulk-actions" style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
-                        <button onclick="stockModule.bulkTagRows(null)" class="btn btn-sm" title="Clear Tags" style="padding: 6px 12px; font-size: 12px;">
-                            <i class="fas fa-eraser"></i> Clear
-                        </button>
-                        <button onclick="stockModule.bulkTagRows('green')" class="btn btn-sm" style="background: #28a745; padding: 6px 12px; font-size: 12px;" title="Mark as Ordered">
-                            <i class="fas fa-check"></i> Ordered
-                        </button>
-                        <button onclick="stockModule.bulkTagRows('orange')" class="btn btn-sm" style="background: #fd7e14; padding: 6px 12px; font-size: 12px;" title="Needs Review">
-                            <i class="fas fa-eye"></i> Review
-                        </button>
-                        <button onclick="stockModule.bulkTagRows('red')" class="btn btn-sm" style="background: #dc3545; padding: 6px 12px; font-size: 12px;" title="Urgent">
-                            <i class="fas fa-fire"></i> Urgent
-                        </button>
-                    </div>
                 </div>
 
-                <!-- Reorder Table -->
-                <div id="reorder-table-container" style="min-height: 500px; background: #0B0E13; border: 1px solid #2A3142; border-radius: 6px;"></div>
-                
-                <!-- OLD HTML TABLE (Hidden - keeping for reference) -->
-                <div id="old-reorder-table" style="display: none;">
-                <div class="table-container">
-                    <table class="data-table" id="reorder-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;"><input type="checkbox" id="reorder-select-all"></th>
-                                <th style="width: 50px;">#</th>
-                                <th style="width: 60px;">Tag</th>
-                                <th>Stock ID</th>
-                                <th>Stock Type</th>
-                                <th>Current Level</th>
-                                <th>Reorder Point</th>
-                                <th>Status</th>
-                                <th>Last Order Date</th>
-                                <th>Supplier</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reorder-table-body">
-                            <tr id="reorder-ready-row">
-                                <td colspan="10" style="text-align: center; padding: 40px; color: #9ca3af;">
-                                    <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
-                                    <p style="margin: 0; font-size: 16px;">Click the <strong>Refresh</strong> button to load reorder dashboard</p>
-                                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">View stock alerts and reorder recommendations</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Search Bar -->
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="reorder-search-input" class="form-control" placeholder="🔍 Search by Stock ID, Stock Type, or Supplier..." 
+                           style="width: 100%; padding: 10px 16px; background: #0B0E13; border: 1px solid #2A3142; border-radius: 6px; color: #E5E7EB; font-size: 14px;">
                 </div>
+
+                <!-- Tabulator Container -->
+                <div id="reorder-table-container" style="min-height: 400px; background: #0B0E13; border: 1px solid #2A3142; border-radius: 6px;"></div>
             </div>
         `;
 
-        // FIXED: Removed auto-loading. User must click Refresh button.
+        // Initialize Tabulator after DOM is ready
+        setTimeout(() => {
+            this.initializeReorderTabulator();
+            // Data will be loaded via tableBuilt event (no race condition)
+        }, 100);
     }
-    initReorderTabulator(data) {
+
+    initializeReorderTabulator() {
         const container = document.getElementById('reorder-table-container');
         if (!container) {
-            console.error('Reorder table container not found!');
+            console.error('❌ Reorder table container not found');
             return;
         }
 
-        // Destroy existing table
-        if (window.stockReorderTable) {
-            window.stockReorderTable.destroy();
+        console.log('✅ Initializing Reorder Tabulator...');
+
+        // Destroy existing table if any
+        if (this.reorderTable) {
+            this.reorderTable.destroy();
         }
 
-        // Create new Tabulator
-        window.stockReorderTable = new Tabulator(container, {
-            data: data,
+        // Create Tabulator with tableBuilt event listener
+        this.reorderTable = new Tabulator(container, {
+            data: [],
             layout: "fitDataStretch",
             pagination: "local",
             paginationSize: 25,
@@ -1197,7 +1253,7 @@ class StockManagementModule extends BaseModule {
             movableColumns: true,
             resizableColumns: true,
             height: "600px",
-            placeholder: "No reorder data. Click Refresh.",
+            placeholder: "No reorder data available. Click Refresh to load.",
             columns: [
                 {
                     title: "Stock ID",
@@ -1205,12 +1261,14 @@ class StockManagementModule extends BaseModule {
                     width: 150,
                     headerSort: true,
                     headerFilter: "input",
-                    formatter: (cell) => `<span style="font-weight: 600; color: #0078d4;">${cell.getValue() || 'N/A'}</span>`
+                    formatter: function (cell) {
+                        return `<span style="font-weight: 600; color: #0078d4;">${cell.getValue() || 'N/A'}</span>`;
+                    }
                 },
                 {
                     title: "Stock Type",
                     field: "stock_type",
-                    width: 250,
+                    width: 200,
                     headerSort: true,
                     headerFilter: "input"
                 },
@@ -1220,7 +1278,10 @@ class StockManagementModule extends BaseModule {
                     width: 120,
                     headerSort: true,
                     hozAlign: "center",
-                    formatter: (cell) => `<span style="font-weight: 700;">${cell.getValue() || 0}</span>`
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        return `<span style="font-weight: 700;">${value}</span>`;
+                    }
                 },
                 {
                     title: "Reorder Point",
@@ -1228,25 +1289,51 @@ class StockManagementModule extends BaseModule {
                     width: 120,
                     headerSort: true,
                     hozAlign: "center",
-                    formatter: (cell) => `<span style="color: #f97316;">${cell.getValue() || 100}</span>`
+                    formatter: function (cell) {
+                        return `<span style="color: #f97316;">${cell.getValue() || 100}</span>`;
+                    }
                 },
                 {
                     title: "Status",
-                    field: "status_display",
+                    field: "status",
                     width: 150,
                     headerSort: true,
                     headerFilter: "select",
-                    headerFilterParams: { values: { "": "All", "CRITICAL": "Critical", "LOW": "Low", "ADEQUATE": "Adequate" } },
-                    formatter: (cell) => cell.getValue()
+                    headerFilterParams: { values: { "": "All", "critical": "Critical", "low": "Low", "adequate": "Adequate" } },
+                    formatter: function (cell) {
+                        const row = cell.getRow().getData();
+                        const level = parseInt(row.current_level || 0);
+                        const reorderPoint = parseInt(row.reorder_point || 100);
+
+                        let status, color, icon;
+                        if (level === 0 || level < (reorderPoint * 0.5)) {
+                            status = 'CRITICAL';
+                            color = '#ef4444';
+                            icon = 'fa-exclamation-triangle';
+                        } else if (level < reorderPoint) {
+                            status = 'LOW';
+                            color = '#f97316';
+                            icon = 'fa-bell';
+                        } else {
+                            status = 'ADEQUATE';
+                            color = '#22c55e';
+                            icon = 'fa-check-circle';
+                        }
+
+                        return `<span style="background: ${color}33; color: ${color}; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fas ${icon}"></i> ${status}
+                    </span>`;
+                    }
                 },
                 {
-                    title: "Last Order",
+                    title: "Last Order Date",
                     field: "last_order_date",
                     width: 150,
                     headerSort: true,
-                    formatter: (cell) => {
-                        const val = cell.getValue();
-                        return val && val !== 'N/A' ? `<span style="color: #9ca3af;">${val}</span>` : '<span style="color: #6b7280;">Never</span>';
+                    formatter: function (cell) {
+                        const value = cell.getValue();
+                        if (!value || value === 'N/A') return '<span style="color: #6b7280;">Never</span>';
+                        return `<span style="color: #9ca3af;">${value}</span>`;
                     }
                 },
                 {
@@ -1254,35 +1341,69 @@ class StockManagementModule extends BaseModule {
                     field: "supplier",
                     width: 180,
                     headerSort: true,
-                    headerFilter: "input"
+                    headerFilter: "input",
+                    formatter: function (cell) {
+                        return `<span style="color: #e5e7eb;">${cell.getValue() || 'Unknown'}</span>`;
+                    }
+                },
+                {
+                    title: "Actions",
+                    width: 140,
+                    hozAlign: "center",
+                    headerSort: false,
+                    formatter: function (cell) {
+                        return `<button class="btn btn-sm" onclick="stockModule.viewStockDetails('${cell.getRow().getData().stock_id}')" style="padding: 4px 12px; font-size: 11px;">
+                        <i class="fas fa-eye"></i> View
+                    </button>`;
+                    }
                 }
             ]
         });
 
-        console.log(`✅ Reorder Tabulator created with ${data.length} rows`);
+        // Attach search listener
+        const searchInput = document.getElementById('reorder-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.reorderTable.setFilter([
+                    { field: "stock_id", type: "like", value: e.target.value },
+                    { field: "stock_type", type: "like", value: e.target.value },
+                    { field: "supplier", type: "like", value: e.target.value }
+                ], "or");
+            });
+        }
+
+        // Attach limit selector listener
+        const limitSelector = document.getElementById('reorder-limit-selector');
+        if (limitSelector) {
+            limitSelector.addEventListener('change', (e) => {
+                const value = e.target.value;
+                if (value === 'all') {
+                    this.reorderTable.setPageSize(this.reorderTable.getDataCount());
+                } else {
+                    this.reorderTable.setPageSize(parseInt(value));
+                }
+            });
+        }
+
+        // Wait for table to be fully built before loading data
+        this.reorderTable.on("tableBuilt", () => {
+            console.log('✅ Reorder Tabulator initialized and built - loading data...');
+            this.loadReorderDashboard();
+        });
     }
-
-
 
     async loadReorderDashboard() {
         console.log('[LOAD] Loading reorder dashboard...');
 
-        const tbody = document.getElementById('reorder-table-body');
-
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="10" class="loading-cell">
-                        <i class="fas fa-spinner fa-spin"></i> Loading reorder data...
-                    </td>
-                </tr>
-            `;
+        // Show loading state (no setPlaceholder needed - will show empty until data loads)
+        if (this.reorderTable) {
+            // Don't call setData here - causes race condition
         }
 
         try {
             // Call the REAL backend API - reorder dashboard endpoint
             const response = await fetch(
-                `${this.backendUrl}/api/stock/reorder-dashboard`
+                `${this.backendUrl}/api/stock-management/reorder-dashboard`
             );
 
             if (!response.ok) {
@@ -1300,143 +1421,35 @@ class StockManagementModule extends BaseModule {
             const stocks = result.data || [];
             this.reorderData = stocks;
 
-            // Calculate summary statistics
-            let critical = 0, low = 0, adequate = 0;
-
-            stocks.forEach(stock => {
-                const level = parseInt(stock.current_level || 0);
-                const reorderPoint = parseInt(stock.reorder_point || 100);
-
-                if (level === 0 || level < (reorderPoint * 0.5)) {
-                    critical++;
-                } else if (level < reorderPoint) {
-                    low++;
-                } else {
-                    adequate++;
-                }
-            });
-
-            // Update summary cards
-            document.getElementById('reorder-critical-count').textContent = critical;
-            document.getElementById('reorder-low-count').textContent = low;
-            document.getElementById('reorder-adequate-count').textContent = adequate;
+            // Update summary cards from API response
+            const summary = result.summary || {};
+            document.getElementById('reorder-critical-count').textContent = summary.critical || 0;
+            document.getElementById('reorder-low-count').textContent = summary.moderate || 0;
+            document.getElementById('reorder-adequate-count').textContent = summary.upcoming || 0;
             document.getElementById('reorder-total-count').textContent = stocks.length;
 
-            // Populate table
-            // Use Tabulator instead of HTML table
-        const enrichedData = stocks.map(stock => {
-            const level = parseInt(stock.current_level || 0);
-            const reorderPoint = parseInt(stock.reorder_point || 100);
-            
-            let statusText, statusColor, statusIcon;
-            if (level === 0 || level < (reorderPoint * 0.5)) {
-                statusText = 'CRITICAL';
-                statusColor = '#ef4444';
-                statusIcon = 'fa-exclamation-triangle';
-            } else if (level < reorderPoint) {
-                statusText = 'LOW';
-                statusColor = '#f97316';
-                statusIcon = 'fa-bell';
-            } else {
-                statusText = 'ADEQUATE';
-                statusColor = '#22c55e';
-                statusIcon = 'fa-check-circle';
+            // Load data into Tabulator using replaceData (safe for initialized tables)
+            if (this.reorderTable) {
+                this.reorderTable.replaceData(stocks);
+                console.log(`[OK] Loaded ${stocks.length} reorder records into Tabulator`);
             }
-            
-            return {
-                ...stock,
-                status_display: `<span style="background: ${statusColor}33; color: ${statusColor}; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;"><i class="fas ${statusIcon}"></i> ${statusText}</span>`
-            };
-        });
-        
-        this.initReorderTabulator(enrichedData);
 
         } catch (error) {
             console.error('[ERROR] Failed to load reorder data:', error);
 
-            if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="10" class="error-cell">
-                            <div class="error-message">
-                                <i class="fas fa-exclamation-circle"></i>
-                                <p>Failed to load reorder data</p>
-                                <p class="error-details">${error.message}</p>
-                                <button class="btn btn-secondary" onclick="stockModule.loadReorderDashboard()">
-                                    <i class="fas fa-redo"></i> Retry
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+            if (this.reorderTable) {
+                this.reorderTable.replaceData([]);
+                // Show error in console - Tabulator will show empty table
+            }
+
+            if (window.TabulatorToast) {
+                window.TabulatorToast.showToast('Error loading reorder data', 'error');
             }
         }
     }
 
-    populateReorderTable(stocks) {
-        const tbody = document.getElementById('reorder-table-body');
-        if (!tbody) return;
-
-        if (stocks.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" class="empty-cell">No stocks need reordering</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = stocks.map((stock, index) => {
-            // Calculate status based on current vs reorder level
-            const currentLevel = parseInt(stock.current_level || 0);
-            const reorderPoint = parseInt(stock.reorder_point || 100);
-
-            let status, statusClass;
-            if (currentLevel === 0 || currentLevel < (reorderPoint * 0.5)) {
-                status = 'CRITICAL';
-                statusClass = 'status-critical';
-            } else if (currentLevel < reorderPoint) {
-                status = 'LOW';
-                statusClass = 'status-warning';
-            } else {
-                status = 'OK';
-                statusClass = 'status-ok';
-            }
-
-            const tag = this.getRowTag ? this.getRowTag(stock.stock_id) : null;
-
-            return `
-                <tr class="${tag ? 'tagged-row-' + tag : ''}" data-stock-id="${stock.stock_id}">
-                    <td><input type="checkbox" class="stock-checkbox" data-stock-id="${stock.stock_id}"></td>
-                    <td class="row-number">${index + 1}</td>
-                    <td>
-                        <button class="tag-btn ${tag ? 'tag-' + tag : ''}" 
-                                onclick="stockModule.toggleRowTag(event, '${stock.stock_id}')" 
-                                title="Tag Row">
-                            <i class="fas fa-tag"></i>
-                        </button>
-                    </td>
-                    <td data-field="Stock ID"><strong>#${stock.stock_id}</strong></td>
-                    <td data-field="Stock Type">${stock.stock_type_name || 'N/A'}</td>
-                    <td data-field="Current Level" style="text-align: right;">${currentLevel.toLocaleString()}</td>
-                    <td data-field="Reorder Point" style="text-align: right;">${reorderPoint.toLocaleString()}</td>
-                    <td><span class="status-badge ${statusClass}">${status}</span></td>
-                    <td data-field="Last Order Date">${stock.last_used || 'Never'}</td>
-                    <td data-field="Supplier">${stock.supplier_name || 'N/A'}</td>
-                </tr>
-            `;
-        }).join('');
-
-        // Apply table enhancements
-        const table = document.getElementById('reorder-table');
-        if (this.attachTableEnhancements) {
-            this.attachTableEnhancements(table);
-        }
-
-        // Setup select-all
-        document.getElementById('reorder-select-all')?.addEventListener('change', (e) => {
-            document.querySelectorAll('#reorder-table .stock-checkbox').forEach(cb => {
-                cb.checked = e.target.checked;
-            });
-            if (this.updateSelectionCount) this.updateSelectionCount();
-        });
-    }
+    // REMOVED: populateReorderTable() - No longer needed (was for HTML table, not Tabulator)
+    // Tabulator uses setData() method instead
 
     refreshReorderDashboardTab() {
         console.log('[REFRESH] Refreshing reorder dashboard...');
@@ -1449,7 +1462,12 @@ class StockManagementModule extends BaseModule {
 
     initializeProfitAnalysisTab() {
         const tab = this.getSubTabContainer('profit-analysis');
-        if (!tab) return;
+        if (!tab) {
+            console.error('❌ [INIT] Could not find profit-analysis container');
+            return;
+        }
+
+        console.log('✅ [INIT] Initializing Profit Analysis tab...');
 
         tab.innerHTML = `
             <div class="module-dashboard">
@@ -1528,67 +1546,198 @@ class StockManagementModule extends BaseModule {
                         <button onclick="stockModule.bulkTagRows('red')" class="btn btn-sm" style="background: #dc3545; padding: 6px 12px; font-size: 12px;" title="Low Profit">
                             <i class="fas fa-arrow-down"></i> Low
                         </button>
+                        <div style="border-left: 1px solid #2A3142; height: 24px; margin: 0 4px;"></div>
+                        <div class="dropdown" style="position: relative;">
+                            <button class="btn btn-sm" style="padding: 6px 12px; font-size: 12px; background: #0078d4;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <div class="dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: #1A1F2E; border: 1px solid #2A3142; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; min-width: 120px;">
+                                <button onclick="stockModule.exportProfit('xlsx')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-excel" style="color: #10b981; width: 16px;"></i> Excel
+                                </button>
+                                <button onclick="stockModule.exportProfit('csv')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-csv" style="color: #60a5fa; width: 16px;"></i> CSV
+                                </button>
+                                <button onclick="stockModule.exportProfit('pdf')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i> PDF
+                                </button>
+                                <button onclick="stockModule.exportProfit('json')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-code" style="color: #f59e0b; width: 16px;"></i> JSON
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Profit Analysis Table -->
-                <div class="table-container">
-                    <table class="data-table" id="profit-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;"><input type="checkbox" id="profit-select-all"></th>
-                                <th style="width: 50px;">#</th>
-                                <th style="width: 60px;">Tag</th>
-                                <th>Stock ID</th>
-                                <th>Stock Type</th>
-                                <th>Jobs Count</th>
-                                <th>Total Revenue</th>
-                                <th>Total Cost</th>
-                                <th>Profit</th>
-                                <th>Margin %</th>
-                            </tr>
-                        </thead>
-                        <tbody id="profit-table-body">
-                            <tr id="profit-ready-row">
-                                <td colspan="10" style="text-align: center; padding: 40px; color: #9ca3af;">
-                                    <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
-                                    <p style="margin: 0; font-size: 16px;">Click the <strong>Refresh</strong> button to load profit analysis</p>
-                                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">Select timeframe from dropdown and click Refresh</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Profit Analysis Table (Tabulator) -->
+                <div id="profit-table-container" style="min-height: 400px; background: #0B0E13; border: 1px solid #2A3142; border-radius: 6px;">
+                    <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                        <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
+                        <p style="margin: 0; font-size: 16px;">Click the <strong>Refresh</strong> button to load profit analysis</p>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">Select timeframe from dropdown and click Refresh</p>
+                    </div>
                 </div>
             </div>
         `;
+
         // Setup event handlers
         document.getElementById('profit-period-selector')?.addEventListener('change', (e) => {
             const days = parseInt(e.target.value);
             this.loadProfitAnalysis(days);
         });
 
-        // FIXED: Removed auto-loading. User must click Refresh button.
+        // Initialize Tabulator after DOM is ready
+        setTimeout(() => {
+            this.initializeProfitTabulator();
+        }, 100);
+    }
+
+    initializeProfitTabulator() {
+        const container = document.getElementById('profit-table-container');
+        if (!container) {
+            console.error('Profit table container not found');
+            return;
+        }
+
+        console.log('Initializing Profit Tabulator...');
+
+        // Destroy existing table if any
+        if (this.profitTable) {
+            this.profitTable.destroy();
+        }
+
+        // Create Tabulator with advanced features
+        this.profitTable = new Tabulator(container, {
+            data: [],
+            layout: "fitDataStretch",
+            pagination: "local",
+            paginationSize: 25,
+            paginationSizeSelector: [10, 25, 50, 100],
+            movableColumns: true,
+            resizableColumns: true,
+            height: "600px",
+            placeholder: "No profit data available. Click Refresh to load.",
+            selectable: true,
+            selectableRangeMode: "click",
+            columns: [
+                {
+                    title: "Tag",
+                    field: "stock_id",
+                    width: 60,
+                    frozen: true,
+                    headerSort: false,
+                    hozAlign: "center",
+                    formatter: function (cell) {
+                        const rowId = cell.getValue();
+                        const tag = window.TabulatorFunctions?.getRowTag(rowId, 'profit_tags');
+                        const color = tag || 'untagged';
+                        return `<button class="tag-btn tag-${color}" onclick="window.TabulatorFunctions.toggleRowTag(event, '${rowId}', stockModule.profitTable, 'profit_tags')" title="Tag row">
+                            <i class="fas fa-tag"></i>
+                        </button>`;
+                    }
+                },
+                {
+                    title: "Stock ID",
+                    field: "stock_id",
+                    width: 120,
+                    headerSort: true,
+                    headerFilter: "input",
+                    formatter: function (cell) {
+                        return `<span style="font-weight: 600; color: #0078d4;">${cell.getValue()}</span>`;
+                    }
+                },
+                {
+                    title: "Stock Type",
+                    field: "stock_type",
+                    width: 200,
+                    headerSort: true,
+                    headerFilter: "input"
+                },
+                {
+                    title: "Jobs Count",
+                    field: "job_count",
+                    width: 120,
+                    headerSort: true,
+                    hozAlign: "center",
+                    formatter: function (cell) {
+                        return `<span style="font-weight: 600;">${cell.getValue() || 0}</span>`;
+                    }
+                },
+                {
+                    title: "Total Revenue",
+                    field: "total_revenue",
+                    width: 140,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        return `<span style="font-weight: 700; color: #10b981;">$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                    }
+                },
+                {
+                    title: "Total Cost",
+                    field: "total_cost",
+                    width: 140,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        return `<span style="font-weight: 700; color: #ef4444;">$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                    }
+                },
+                {
+                    title: "Gross Profit",
+                    field: "gross_profit",
+                    width: 140,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        const color = value >= 0 ? '#10b981' : '#ef4444';
+                        return `<span style="font-weight: 700; color: ${color};">$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                    }
+                },
+                {
+                    title: "Margin %",
+                    field: "margin_percent",
+                    width: 120,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        let color = '#9ca3af';
+                        if (value >= 40) color = '#10b981'; // Green for high margin
+                        else if (value >= 20) color = '#f59e0b'; // Orange for medium
+                        else if (value > 0) color = '#ef4444'; // Red for low
+                        return `<span style="font-weight: 700; color: ${color};">${value.toFixed(1)}%</span>`;
+                    }
+                }
+            ],
+            rowFormatter: function (row) {
+                if (window.TabulatorFunctions) {
+                    window.TabulatorFunctions.applyRowTagFormatter(row, 'stock_id', 'profit_tags');
+                }
+            }
+        });
+
+        // Wait for table to be fully built before loading data
+        this.profitTable.on("tableBuilt", () => {
+            console.log('✅ Profit Tabulator initialized and built - loading data...');
+            this.loadProfitAnalysis(this.currentPeriod || 90);
+        });
     }
 
     async loadProfitAnalysis(days) {
         console.log(`[LOAD] Loading profit analysis for ${days} days...`);
 
-        const tbody = document.getElementById('profit-table-body');
-
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="10" class="loading-cell">
-                        <i class="fas fa-spinner fa-spin"></i> Loading profit analysis...
-                    </td>
-                </tr>
-            `;
+        // Show loading state (table will show empty until data loads)
+        if (this.profitTable) {
+            // Don't call setData here - causes race condition
         }
 
         try {
-            // Call the REAL backend API
             const response = await fetch(
-                `${this.backendUrl}/api/stock/profit-analysis?days=${days}`
+                `${this.backendUrl}/api/stock-management/profit-analysis?days=${days}`
             );
 
             if (!response.ok) {
@@ -1597,112 +1746,44 @@ class StockManagementModule extends BaseModule {
 
             const result = await response.json();
 
-            if (!result.success) {
+            // Backend returns {status: 'ok', data: [...], summary: {...}}
+            if (result.status !== 'ok') {
                 throw new Error(result.message || 'Failed to load profit data');
             }
 
-            console.log('[OK] Profit analysis loaded:', result.data);
+            console.log('[OK] Profit analysis loaded:', result);
 
-            const analysisData = result.data || {};
-            const stocks = analysisData.stocks || [];
+            // Data is directly in result.data array (not nested)
+            const stocks = result.data || [];
             this.profitData = stocks;
 
-            // Calculate summary stats from the data
-            let totalRevenue = 0, totalCost = 0, totalJobs = 0;
+            // Use summary from backend (already calculated)
+            const summary = result.summary || {};
 
-            stocks.forEach(stock => {
-                const revenue = parseFloat(stock.total_revenue || 0);
-                const cost = parseFloat(stock.total_cost || 0);
-                const jobs = parseInt(stock.job_count || 0);
+            // Update summary cards from backend summary
+            document.getElementById('profit-total-revenue').textContent = `$${(summary.total_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('profit-total-cost').textContent = `$${(summary.total_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('profit-margin-avg').textContent = `${(summary.overall_margin || 0).toFixed(1)}%`;
+            document.getElementById('profit-total-jobs').textContent = (summary.stocks_analyzed || 0).toLocaleString();
 
-                totalRevenue += revenue;
-                totalCost += cost;
-                totalJobs += jobs;
-            });
-
-            const totalProfit = totalRevenue - totalCost;
-            const avgMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100) : 0;
-
-            // Update summary cards
-            document.getElementById('profit-total-revenue').textContent = `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            document.getElementById('profit-total-cost').textContent = `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            document.getElementById('profit-margin-avg').textContent = `${avgMargin.toFixed(1)}%`;
-            document.getElementById('profit-total-jobs').textContent = totalJobs.toLocaleString();
-
-            // Populate table
-            this.populateProfitTable(stocks);
+            // Load data into Tabulator using replaceData
+            if (this.profitTable) {
+                this.profitTable.replaceData(stocks);
+                console.log(`[OK] Loaded ${stocks.length} profit records into Tabulator`);
+            }
 
         } catch (error) {
             console.error('[ERROR] Failed to load profit data:', error);
 
-            if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="10" class="error-cell">
-                            <div class="error-message">
-                                <i class="fas fa-exclamation-circle"></i>
-                                <p>Failed to load profit analysis</p>
-                                <p class="error-details">${error.message}</p>
-                                <button class="btn btn-secondary" onclick="stockModule.loadProfitAnalysis(${days})">
-                                    <i class="fas fa-redo"></i> Retry
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+            if (this.profitTable) {
+                this.profitTable.replaceData([]);
+                // Show error in console
+            }
+
+            if (window.TabulatorToast) {
+                window.TabulatorToast.showToast('Error loading profit data', 'error');
             }
         }
-    }
-
-    populateProfitTable(stocks) {
-        const tbody = document.getElementById('profit-table-body');
-        if (!tbody) return;
-
-        if (stocks.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" class="empty-cell">No profit data available</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = stocks.map((stock, index) => {
-            const tag = this.getRowTag ? this.getRowTag(stock.stock_id) : null;
-            const profit = (stock.revenue || 0) - (stock.cost || 0);
-            const margin = stock.revenue > 0 ? ((profit / stock.revenue) * 100) : 0;
-            const marginClass = margin > 30 ? 'text-success' : margin > 15 ? 'text-warning' : 'text-error';
-
-            return `
-                <tr class="${tag ? 'tagged-row-' + tag : ''}" data-stock-id="${stock.stock_id}">
-                    <td><input type="checkbox" class="stock-checkbox" data-stock-id="${stock.stock_id}"></td>
-                    <td class="row-number">${index + 1}</td>
-                    <td>
-                        <button class="tag-btn ${tag ? 'tag-' + tag : ''}" 
-                                onclick="stockModule.toggleRowTag(event, '${stock.stock_id}')">
-                            <i class="fas fa-tag"></i>
-                        </button>
-                    </td>
-                    <td data-field="Stock ID"><strong>#${stock.stock_id}</strong></td>
-                    <td data-field="Stock Type">${stock.stock_type || 'N/A'}</td>
-                    <td data-field="Jobs Count" style="text-align: right;">${stock.job_count?.toLocaleString() || 0}</td>
-                    <td data-field="Total Revenue" style="text-align: right;">$${(stock.revenue || 0).toLocaleString()}</td>
-                    <td data-field="Total Cost" style="text-align: right;">$${(stock.cost || 0).toLocaleString()}</td>
-                    <td data-field="Profit" style="text-align: right;">$${profit.toLocaleString()}</td>
-                    <td data-field="Margin %" style="text-align: right;" class="${marginClass}">${margin.toFixed(1)}%</td>
-                </tr>
-            `;
-        }).join('');
-
-        // Apply table enhancements
-        const table = document.getElementById('profit-table');
-        if (this.attachTableEnhancements) {
-            this.attachTableEnhancements(table);
-        }
-
-        // Setup select-all
-        document.getElementById('profit-select-all')?.addEventListener('change', (e) => {
-            document.querySelectorAll('#profit-table .stock-checkbox').forEach(cb => {
-                cb.checked = e.target.checked;
-            });
-            if (this.updateSelectionCount) this.updateSelectionCount();
-        });
     }
 
     refreshProfitAnalysisTab() {
@@ -1717,7 +1798,12 @@ class StockManagementModule extends BaseModule {
 
     initializeSQLViewerTab() {
         const tab = this.getSubTabContainer('sql-viewer');
-        if (!tab) return;
+        if (!tab) {
+            console.error('❌ [INIT] Could not find sql-viewer container');
+            return;
+        }
+
+        console.log('✅ [INIT] Initializing SQL Viewer tab...');
 
         tab.innerHTML = `
             <div class="module-dashboard">
@@ -1778,27 +1864,77 @@ class StockManagementModule extends BaseModule {
                         <button onclick="stockModule.bulkTagRows('red')" class="btn btn-sm" style="background: #dc3545; padding: 6px 12px; font-size: 12px;">
                             <i class="fas fa-tag"></i> Red
                         </button>
+                        <div style="border-left: 1px solid #2A3142; height: 24px; margin: 0 4px;"></div>
+                        <div class="dropdown" style="position: relative;">
+                            <button class="btn btn-sm" style="padding: 6px 12px; font-size: 12px; background: #0078d4;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <div class="dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: #1A1F2E; border: 1px solid #2A3142; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; min-width: 120px;">
+                                <button onclick="stockModule.exportSQLResults('xlsx')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-excel" style="color: #10b981; width: 16px;"></i> Excel
+                                </button>
+                                <button onclick="stockModule.exportSQLResults('csv')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-csv" style="color: #60a5fa; width: 16px;"></i> CSV
+                                </button>
+                                <button onclick="stockModule.exportSQLResults('pdf')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i> PDF
+                                </button>
+                                <button onclick="stockModule.exportSQLResults('json')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-code" style="color: #f59e0b; width: 16px;"></i> JSON
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Query Results -->
-                <div id="sql-results-container" style="display: none;">
-                    <div class="table-container">
-                        <table class="data-table" id="sql-results-table">
-                            <thead id="sql-table-head"></thead>
-                            <tbody id="sql-table-body"></tbody>
-                        </table>
+                <!-- Query Results (Tabulator) -->
+                <div id="sql-results-tabulator-container" style="min-height: 400px; background: #0B0E13; border: 1px solid #2A3142; border-radius: 6px;">
+                    <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                        <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
+                        <p style="margin: 0; font-size: 16px;">Enter a SQL query above and click <strong>Execute</strong></p>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">Results will display in a formatted table below</p>
                     </div>
-                </div>
-
-                <!-- No Results / Ready State -->
-                <div id="sql-no-results" style="display: block; text-align: center; padding: 40px; color: #9ca3af;">
-                    <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
-                    <p style="margin: 0; font-size: 16px;">Enter a SQL query above and click <strong>Execute</strong></p>
-                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">Results will display in a formatted table below</p>
                 </div>
             </div>
         `;
+
+        // Initialize empty Tabulator
+        setTimeout(() => {
+            this.initializeSQLViewerTabulator();
+        }, 100);
+    }
+
+    initializeSQLViewerTabulator() {
+        const container = document.getElementById('sql-results-tabulator-container');
+        if (!container) {
+            console.error('SQL results container not found');
+            return;
+        }
+
+        console.log('Initializing SQL Viewer Tabulator...');
+
+        // Destroy existing table if any
+        if (this.sqlViewerTable) {
+            this.sqlViewerTable.destroy();
+        }
+
+        // Create empty Tabulator (will be populated dynamically)
+        this.sqlViewerTable = new Tabulator(container, {
+            data: [],
+            layout: "fitDataStretch",
+            pagination: "local",
+            paginationSize: 25,
+            paginationSizeSelector: [10, 25, 50, 100, 500],
+            movableColumns: true,
+            resizableColumns: true,
+            height: "600px",
+            placeholder: "Enter a SQL query above and click Execute to load data",
+            selectable: true,
+            selectableRangeMode: "click",
+            columns: [] // Will be set dynamically based on query results
+        });
+
+        console.log('SQL Viewer Tabulator initialized (empty)');
     }
 
     clearSQLQuery() {
@@ -1837,77 +1973,97 @@ class StockManagementModule extends BaseModule {
     }
 
     displaySQLResults(data) {
-        const container = document.getElementById('sql-results-container');
-        const noResults = document.getElementById('sql-no-results');
-        const toolbar = document.getElementById('sql-toolbar');
-        const thead = document.getElementById('sql-table-head');
-        const tbody = document.getElementById('sql-table-body');
-        const rowCount = document.getElementById('sql-row-count');
-
         if (!data.results || data.results.length === 0) {
-            container.style.display = 'none';
-            toolbar.style.display = 'none';
-            noResults.style.display = 'block';
-            noResults.innerHTML = '<i class="fas fa-info-circle"></i> Query returned no results';
+            if (this.sqlViewerTable) {
+                this.sqlViewerTable.setData([]);
+                this.sqlViewerTable.setPlaceholder('Query returned no results');
+            }
             return;
         }
 
-        // Show results
-        container.style.display = 'block';
-        toolbar.style.display = 'flex';
-        noResults.style.display = 'none';
-        rowCount.textContent = `${data.results.length} rows`;
+        console.log(`[SQL] Displaying ${data.results.length} rows`);
 
-        // Build table header
-        const columns = data.columns || Object.keys(data.results[0]);
-        thead.innerHTML = `
-            <tr>
-                <th style="width: 40px;"><input type="checkbox" id="sql-select-all"></th>
-                <th style="width: 50px;">#</th>
-                <th style="width: 60px;">Tag</th>
-                ${columns.map(col => `<th>${col}</th>`).join('')}
-            </tr>
-        `;
+        // Get columns from first row
+        const dataColumns = data.columns || Object.keys(data.results[0]);
 
-        // Build table body
-        tbody.innerHTML = data.results.map((row, index) => {
-            const rowId = row.stock_id || row.id || index;
-            const tag = this.getRowTag ? this.getRowTag(rowId) : null;
+        // Build dynamic Tabulator columns
+        const tabulatorColumns = [
+            {
+                title: "Tag",
+                field: "_rowId",
+                width: 60,
+                frozen: true,
+                headerSort: false,
+                hozAlign: "center",
+                formatter: function (cell) {
+                    const row = cell.getRow().getData();
+                    const rowId = row.stock_id || row.id || row._rowId;
+                    const tag = window.TabulatorFunctions?.getRowTag(rowId, 'sql_viewer_tags');
+                    const color = tag || 'untagged';
+                    return `<button class="tag-btn tag-${color}" onclick="window.TabulatorFunctions.toggleRowTag(event, '${rowId}', stockModule.sqlViewerTable, 'sql_viewer_tags')" title="Tag row">
+                        <i class="fas fa-tag"></i>
+                    </button>`;
+                }
+            }
+        ];
 
-            return `
-                <tr class="${tag ? 'tagged-row-' + tag : ''}" data-row-id="${rowId}">
-                    <td><input type="checkbox" class="stock-checkbox" data-row-id="${rowId}"></td>
-                    <td class="row-number">${index + 1}</td>
-                    <td>
-                        <button class="tag-btn ${tag ? 'tag-' + tag : ''}" 
-                                onclick="stockModule.toggleRowTag(event, '${rowId}')">
-                            <i class="fas fa-tag"></i>
-                        </button>
-                    </td>
-                    ${columns.map(col => {
-                const value = row[col];
-                const displayValue = value === null || value === undefined ? '<em>NULL</em>' :
-                    typeof value === 'object' ? JSON.stringify(value) :
-                        String(value);
-                return `<td data-field="${col}">${displayValue}</td>`;
-            }).join('')}
-                </tr>
-            `;
-        }).join('');
+        // Add data columns dynamically
+        dataColumns.forEach(col => {
+            const column = {
+                title: col,
+                field: col,
+                headerSort: true,
+                headerFilter: "input",
+                formatter: function (cell) {
+                    const value = cell.getValue();
+                    if (value === null || value === undefined) {
+                        return '<em style="color: #6b7280;">NULL</em>';
+                    }
+                    if (typeof value === 'object') {
+                        return `<span style="font-family: monospace; font-size: 11px;">${JSON.stringify(value)}</span>`;
+                    }
+                    // Detect numeric values
+                    if (typeof value === 'number') {
+                        if (Number.isInteger(value)) {
+                            return `<span style="font-weight: 600; color: #60a5fa;">${value.toLocaleString()}</span>`;
+                        } else {
+                            return `<span style="font-weight: 600; color: #60a5fa;">${value.toFixed(2)}</span>`;
+                        }
+                    }
+                    // Detect currency
+                    if (typeof value === 'string' && value.match(/^\$?\d+\.?\d*$/)) {
+                        const num = parseFloat(value.replace('$', ''));
+                        return `<span style="font-weight: 600; color: #10b981;">$${num.toFixed(2)}</span>`;
+                    }
+                    // Detect dates
+                    if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+                        return `<span style="color: #f59e0b;">${new Date(value).toLocaleString()}</span>`;
+                    }
+                    return String(value);
+                }
+            };
 
-        // Apply table enhancements
-        const table = document.getElementById('sql-results-table');
-        if (this.attachTableEnhancements) {
-            this.attachTableEnhancements(table);
-        }
+            // Auto-size column based on column name
+            if (col.toLowerCase().includes('id')) column.width = 100;
+            else if (col.toLowerCase().includes('name') || col.toLowerCase().includes('type')) column.width = 200;
+            else if (col.toLowerCase().includes('date') || col.toLowerCase().includes('time')) column.width = 180;
+            else column.width = 150;
 
-        // Setup select-all
-        document.getElementById('sql-select-all')?.addEventListener('change', (e) => {
-            document.querySelectorAll('#sql-results-table .stock-checkbox').forEach(cb => {
-                cb.checked = e.target.checked;
-            });
-            if (this.updateSelectionCount) this.updateSelectionCount();
+            tabulatorColumns.push(column);
         });
+
+        // Add _rowId to each row for tagging
+        const processedData = data.results.map((row, index) => ({
+            ...row,
+            _rowId: row.stock_id || row.id || `row_${index}`
+        }));
+
+        // Update Tabulator with new columns and data
+        if (this.sqlViewerTable) {
+            this.sqlViewerTable.setColumns(tabulatorColumns);
+            this.sqlViewerTable.setData(processedData);
+            console.log(`[OK] SQL Viewer loaded ${processedData.length} rows with ${tabulatorColumns.length} columns`);
+        }
     }
 
     // ========================================================================
@@ -1916,7 +2072,12 @@ class StockManagementModule extends BaseModule {
 
     initializeAIAnalyticsTab() {
         const tab = this.getSubTabContainer('ai-analytics');
-        if (!tab) return;
+        if (!tab) {
+            console.error('❌ [INIT] Could not find ai-analytics container');
+            return;
+        }
+
+        console.log('✅ [INIT] Initializing AI Analytics tab...');
 
         tab.innerHTML = `
             <div class="module-dashboard">
@@ -1984,53 +2145,208 @@ class StockManagementModule extends BaseModule {
                         <button onclick="stockModule.bulkTagRows('red')" class="btn btn-sm" style="background: #dc3545; padding: 6px 12px; font-size: 12px;" title="Failed">
                             <i class="fas fa-times"></i> Failed
                         </button>
+                        <div style="border-left: 1px solid #2A3142; height: 24px; margin: 0 4px;"></div>
                         <button class="btn btn-primary" id="ai-refresh-btn" onclick="stockModule.refreshAIAnalyticsTab()" style="padding: 6px 12px; font-size: 12px;">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
+                        <div class="dropdown" style="position: relative;">
+                            <button class="btn btn-sm" style="padding: 6px 12px; font-size: 12px; background: #0078d4;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <div class="dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: #1A1F2E; border: 1px solid #2A3142; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; min-width: 120px;">
+                                <button onclick="stockModule.exportAIAnalytics('xlsx')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-excel" style="color: #10b981; width: 16px;"></i> Excel
+                                </button>
+                                <button onclick="stockModule.exportAIAnalytics('csv')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-csv" style="color: #60a5fa; width: 16px;"></i> CSV
+                                </button>
+                                <button onclick="stockModule.exportAIAnalytics('pdf')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i> PDF
+                                </button>
+                                <button onclick="stockModule.exportAIAnalytics('json')" style="display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #E5E7EB; text-align: left; font-size: 12px; cursor: pointer;" onmouseover="this.style.background='#2A3142'" onmouseout="this.style.background='none'">
+                                    <i class="fas fa-file-code" style="color: #f59e0b; width: 16px;"></i> JSON
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- AI Analytics Table -->
-                <div class="table-container">
-                    <table class="data-table" id="ai-analytics-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;"><input type="checkbox" id="ai-select-all"></th>
-                                <th style="width: 50px;">#</th>
-                                <th style="width: 60px;">Tag</th>
-                                <th>Timestamp</th>
-                                <th>Query Type</th>
-                                <th>Model</th>
-                                <th>Input Tokens</th>
-                                <th>Output Tokens</th>
-                                <th>Cost</th>
-                                <th>Response Time</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ai-analytics-table-body">
-                            <tr id="ai-analytics-ready-row">
-                                <td colspan="11" style="text-align: center; padding: 40px; color: #9ca3af;">
-                                    <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
-                                    <p style="margin: 0; font-size: 16px;">Click the <strong>Refresh</strong> button to load AI analytics</p>
-                                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">View AI usage metrics and processing analytics</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- AI Analytics Table (Tabulator) -->
+                <div id="ai-analytics-table-container" style="min-height: 400px; background: #0B0E13; border: 1px solid #2A3142; border-radius: 6px;">
+                    <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                        <i class="fas fa-info-circle" style="font-size: 32px; color: #4ec9b0; margin-bottom: 10px; display: block;"></i>
+                        <p style="margin: 0; font-size: 16px;">Click the <strong>Refresh</strong> button to load AI analytics</p>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #6b7280;">View AI usage metrics and processing analytics</p>
+                    </div>
                 </div>
             </div>
         `;
 
-        // FIXED: Removed auto-loading. User must click Refresh button.
+        // Initialize Tabulator after DOM is ready
+        setTimeout(() => {
+            this.initializeAIAnalyticsTabulator();
+        }, 100);
+    }
+
+    initializeAIAnalyticsTabulator() {
+        const container = document.getElementById('ai-analytics-table-container');
+        if (!container) {
+            console.error('AI Analytics table container not found');
+            return;
+        }
+
+        console.log('Initializing AI Analytics Tabulator...');
+
+        // Destroy existing table if any
+        if (this.aiAnalyticsTable) {
+            this.aiAnalyticsTable.destroy();
+        }
+
+        // Create Tabulator with advanced features
+        this.aiAnalyticsTable = new Tabulator(container, {
+            data: [],
+            layout: "fitDataStretch",
+            pagination: "local",
+            paginationSize: 25,
+            paginationSizeSelector: [10, 25, 50, 100],
+            movableColumns: true,
+            resizableColumns: true,
+            height: "600px",
+            placeholder: "No AI analytics data available. Click Refresh to load.",
+            selectable: true,
+            selectableRangeMode: "click",
+            columns: [
+                {
+                    title: "Tag",
+                    field: "id",
+                    width: 60,
+                    frozen: true,
+                    headerSort: false,
+                    hozAlign: "center",
+                    formatter: function (cell) {
+                        const rowId = cell.getValue();
+                        const tag = window.TabulatorFunctions?.getRowTag(rowId, 'ai_analytics_tags');
+                        const color = tag || 'untagged';
+                        return `<button class="tag-btn tag-${color}" onclick="window.TabulatorFunctions.toggleRowTag(event, '${rowId}', stockModule.aiAnalyticsTable, 'ai_analytics_tags')" title="Tag row">
+                            <i class="fas fa-tag"></i>
+                        </button>`;
+                    }
+                },
+                {
+                    title: "Timestamp",
+                    field: "timestamp",
+                    width: 180,
+                    headerSort: true,
+                    headerFilter: "input",
+                    formatter: function (cell) {
+                        const value = cell.getValue();
+                        if (!value) return 'N/A';
+                        const date = new Date(value);
+                        return date.toLocaleString();
+                    }
+                },
+                {
+                    title: "Query Type",
+                    field: "query_type",
+                    width: 150,
+                    headerSort: true,
+                    headerFilter: "input"
+                },
+                {
+                    title: "Model",
+                    field: "model",
+                    width: 120,
+                    headerSort: true,
+                    headerFilter: "input"
+                },
+                {
+                    title: "Input Tokens",
+                    field: "input_tokens",
+                    width: 130,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        return (cell.getValue() || 0).toLocaleString();
+                    }
+                },
+                {
+                    title: "Output Tokens",
+                    field: "output_tokens",
+                    width: 130,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        return (cell.getValue() || 0).toLocaleString();
+                    }
+                },
+                {
+                    title: "Cost",
+                    field: "cost",
+                    width: 100,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        return `<span style="font-weight: 600; color: #f59e0b;">$${value.toFixed(4)}</span>`;
+                    }
+                },
+                {
+                    title: "Response Time",
+                    field: "response_time",
+                    width: 130,
+                    headerSort: true,
+                    hozAlign: "right",
+                    formatter: function (cell) {
+                        const value = cell.getValue() || 0;
+                        let color = '#10b981';
+                        if (value > 5) color = '#ef4444';
+                        else if (value > 2) color = '#f59e0b';
+                        return `<span style="font-weight: 600; color: ${color};">${value.toFixed(2)}s</span>`;
+                    }
+                },
+                {
+                    title: "Status",
+                    field: "status",
+                    width: 100,
+                    headerSort: true,
+                    hozAlign: "center",
+                    formatter: function (cell) {
+                        const status = cell.getValue() || 'unknown';
+                        let color = '#9ca3af';
+                        let icon = 'question';
+                        if (status === 'success') { color = '#10b981'; icon = 'check'; }
+                        else if (status === 'failed') { color = '#ef4444'; icon = 'times'; }
+                        else if (status === 'pending') { color = '#f59e0b'; icon = 'clock'; }
+                        return `<span style="color: ${color}; font-weight: 600;"><i class="fas fa-${icon}"></i> ${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+                    }
+                }
+            ],
+            rowFormatter: function (row) {
+                if (window.TabulatorFunctions) {
+                    window.TabulatorFunctions.applyRowTagFormatter(row, 'id', 'ai_analytics_tags');
+                }
+            }
+        });
+
+        // Wait for table to be fully built before loading data
+        this.aiAnalyticsTable.on("tableBuilt", () => {
+            console.log('✅ AI Analytics Tabulator initialized and built - ready for data');
+            // Don't auto-load - user will click refresh
+        });
     }
 
     async loadAIAnalytics() {
-        console.log('Loading AI analytics...');
+        console.log('[LOAD] Loading AI analytics...');
+
+        // Show loading state (table will show empty until data loads)
+        if (this.aiAnalyticsTable) {
+            // Don't call setData here - causes race condition
+        }
 
         try {
-            const response = await fetch(`${this.backendUrl}${this.apiEndpoint}/ai-analytics`);
-            if (!response.ok) throw new Error('Failed to load AI analytics');
+            // FIXED: Correct endpoint is /api/stock-management/ai-analytics (Blueprint prefix)
+            const response = await fetch(`${this.backendUrl}/api/stock-management/ai-analytics`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
             const data = await response.json();
 
@@ -2040,65 +2356,25 @@ class StockManagementModule extends BaseModule {
             document.getElementById('ai-avg-time').textContent = `${(data.avg_response_time || 0).toFixed(2)}s`;
             document.getElementById('ai-invoice-count').textContent = (data.invoice_count || 0).toLocaleString();
 
-            // Populate table
-            this.populateAIAnalyticsTable(data.queries || []);
+            // Load data into Tabulator using replaceData
+            const queries = data.queries || [];
+            if (this.aiAnalyticsTable) {
+                this.aiAnalyticsTable.replaceData(queries);
+                console.log(`[OK] Loaded ${queries.length} AI analytics records into Tabulator`);
+            }
 
         } catch (error) {
-            console.error(' Failed to load AI analytics:', error);
-            this.showError('ai-analytics-table-body', 'Failed to load AI analytics data');
+            console.error('[ERROR] Failed to load AI analytics:', error);
+
+            if (this.aiAnalyticsTable) {
+                this.aiAnalyticsTable.replaceData([]);
+                // Show error in console
+            }
+
+            if (window.TabulatorToast) {
+                window.TabulatorToast.showToast('Error loading AI analytics', 'error');
+            }
         }
-    }
-
-    populateAIAnalyticsTable(queries) {
-        const tbody = document.getElementById('ai-analytics-table-body');
-        if (!tbody) return;
-
-        if (queries.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" class="empty-cell">No AI queries recorded yet</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = queries.map((query, index) => {
-            const queryId = query.id || index;
-            const tag = this.getRowTag ? this.getRowTag(queryId) : null;
-            const statusClass = query.status === 'success' ? 'status-success' :
-                query.status === 'failed' ? 'status-error' : 'status-warning';
-
-            return `
-                <tr class="${tag ? 'tagged-row-' + tag : ''}" data-query-id="${queryId}">
-                    <td><input type="checkbox" class="stock-checkbox" data-query-id="${queryId}"></td>
-                    <td class="row-number">${index + 1}</td>
-                    <td>
-                        <button class="tag-btn ${tag ? 'tag-' + tag : ''}" 
-                                onclick="stockModule.toggleRowTag(event, '${queryId}')">
-                            <i class="fas fa-tag"></i>
-                        </button>
-                    </td>
-                    <td data-field="Timestamp">${query.timestamp || 'N/A'}</td>
-                    <td data-field="Query Type">${query.query_type || 'N/A'}</td>
-                    <td data-field="Model">${query.model || 'N/A'}</td>
-                    <td data-field="Input Tokens" style="text-align: right;">${(query.input_tokens || 0).toLocaleString()}</td>
-                    <td data-field="Output Tokens" style="text-align: right;">${(query.output_tokens || 0).toLocaleString()}</td>
-                    <td data-field="Cost" style="text-align: right;">$${(query.cost || 0).toFixed(4)}</td>
-                    <td data-field="Response Time" style="text-align: right;">${(query.response_time || 0).toFixed(2)}s</td>
-                    <td><span class="status-badge ${statusClass}">${query.status || 'Unknown'}</span></td>
-                </tr>
-            `;
-        }).join('');
-
-        // Apply table enhancements
-        const table = document.getElementById('ai-analytics-table');
-        if (this.attachTableEnhancements) {
-            this.attachTableEnhancements(table);
-        }
-
-        // Setup select-all
-        document.getElementById('ai-select-all')?.addEventListener('change', (e) => {
-            document.querySelectorAll('#ai-analytics-table .stock-checkbox').forEach(cb => {
-                cb.checked = e.target.checked;
-            });
-            if (this.updateSelectionCount) this.updateSelectionCount();
-        });
     }
 
     // ========================================================================
@@ -2142,298 +2418,13 @@ class StockManagementModule extends BaseModule {
     }
 
     // ========================================================================
-    // DATA LOADING METHODS (Placeholders for Phase 2-6)
+    // REMOVED DUPLICATE: loadUsageAnalytics() HTML-table version
+    // Correct Tabulator version exists at line 949 with renderUsageTable()
     // ========================================================================
 
-    async loadUsageAnalytics(days = 90) {
-        console.log(`[LOAD] Loading usage analytics for ${days} days...`);
-
-        try {
-            const response = await fetch(`${this.backendUrl}/api/stock/usage-analytics?days=${days}`);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            console.log('[OK] Usage analytics loaded:', result);
-
-            // Display the data in the UI
-            const container = document.querySelector('#usage-analytics-content');
-            if (container && result.data) {
-                const data = result.data;
-                container.innerHTML = `
-                    <div class="analytics-summary">
-                        <h3>Stock Usage Summary (${days} days)</h3>
-                        <div class="data-table-container">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Stock ID</th>
-                                        <th>Stock Type</th>
-                                        <th>Usage Count</th>
-                                        <th>Total Quantity</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${data.map(row => `
-                                        <tr>
-                                            <td>${row.StockID || 'N/A'}</td>
-                                            <td>${row.StockType || 'Unknown'}</td>
-                                            <td>${row.usage_count || 0}</td>
-                                            <td>${(row.total_quantity || 0).toLocaleString()}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }
-
-        } catch (error) {
-            console.error('[ERROR] Failed to load usage analytics:', error);
-            const container = document.querySelector('#usage-analytics-content');
-            if (container) {
-                container.innerHTML = `
-                    <div class="error-message">
-                        <p><strong>Error loading usage analytics:</strong></p>
-                        <p>${error.message}</p>
-                        <p>Make sure Flask backend is running on ${this.backendUrl}</p>
-                    </div>
-                `;
-            }
-        }
-    }
-    initReorderTabulator(data) {
-        const container = document.getElementById('reorder-table-container');
-        if (!container) {
-            console.error('Reorder table container not found!');
-            return;
-        }
-
-        // Destroy existing table
-        if (window.stockReorderTable) {
-            window.stockReorderTable.destroy();
-        }
-
-        // Create new Tabulator
-        window.stockReorderTable = new Tabulator(container, {
-            data: data,
-            layout: "fitDataStretch",
-            pagination: "local",
-            paginationSize: 25,
-            paginationSizeSelector: [10, 25, 50, 100],
-            movableColumns: true,
-            resizableColumns: true,
-            height: "600px",
-            placeholder: "No reorder data. Click Refresh.",
-            columns: [
-                {
-                    title: "Stock ID",
-                    field: "stock_id",
-                    width: 150,
-                    headerSort: true,
-                    headerFilter: "input",
-                    formatter: (cell) => `<span style="font-weight: 600; color: #0078d4;">${cell.getValue() || 'N/A'}</span>`
-                },
-                {
-                    title: "Stock Type",
-                    field: "stock_type",
-                    width: 250,
-                    headerSort: true,
-                    headerFilter: "input"
-                },
-                {
-                    title: "Current Level",
-                    field: "current_level",
-                    width: 120,
-                    headerSort: true,
-                    hozAlign: "center",
-                    formatter: (cell) => `<span style="font-weight: 700;">${cell.getValue() || 0}</span>`
-                },
-                {
-                    title: "Reorder Point",
-                    field: "reorder_point",
-                    width: 120,
-                    headerSort: true,
-                    hozAlign: "center",
-                    formatter: (cell) => `<span style="color: #f97316;">${cell.getValue() || 100}</span>`
-                },
-                {
-                    title: "Status",
-                    field: "status_display",
-                    width: 150,
-                    headerSort: true,
-                    headerFilter: "select",
-                    headerFilterParams: { values: { "": "All", "CRITICAL": "Critical", "LOW": "Low", "ADEQUATE": "Adequate" } },
-                    formatter: (cell) => cell.getValue()
-                },
-                {
-                    title: "Last Order",
-                    field: "last_order_date",
-                    width: 150,
-                    headerSort: true,
-                    formatter: (cell) => {
-                        const val = cell.getValue();
-                        return val && val !== 'N/A' ? `<span style="color: #9ca3af;">${val}</span>` : '<span style="color: #6b7280;">Never</span>';
-                    }
-                },
-                {
-                    title: "Supplier",
-                    field: "supplier",
-                    width: 180,
-                    headerSort: true,
-                    headerFilter: "input"
-                }
-            ]
-        });
-
-        console.log(`✅ Reorder Tabulator created with ${data.length} rows`);
-    }
-
-
-
-    async loadReorderDashboard() {
-        console.log('[LOAD] Loading reorder dashboard...');
-
-        try {
-            const response = await fetch(`${this.backendUrl}/api/stock/reorder-dashboard`);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            console.log('[OK] Reorder dashboard loaded:', result);
-            console.log('[DEBUG] Reorder data count:', result.data?.length);
-
-            // Update the existing table with data
-            const tbody = document.getElementById('reorder-table-body');
-            if (!tbody) {
-                console.error('[ERROR] Could not find reorder-table-body element');
-                return;
-            }
-
-            // Update summary cards
-            const summary = result.summary || {};
-            document.getElementById('reorder-critical-count').textContent = summary.critical || 0;
-            document.getElementById('reorder-low-count').textContent = summary.moderate || 0;
-            document.getElementById('reorder-adequate-count').textContent = summary.upcoming || 0;
-            document.getElementById('reorder-total-count').textContent = summary.total_alerts || 0;
-
-            // Populate table rows
-            if (result.data && result.data.length > 0) {
-                console.log('[DEBUG] Rendering', result.data.length, 'rows');
-                tbody.innerHTML = result.data.map((item, index) => `
-                    <tr data-row-id="${index}">
-                        <td><input type="checkbox" class="row-checkbox"></td>
-                        <td>${index + 1}</td>
-                        <td><div class="tag-indicator" data-tag=""></div></td>
-                        <td>${item.stock_id || item.sku || 'N/A'}</td>
-                        <td>${item.stock_type_name || item.product_name || 'Unknown'}</td>
-                        <td style="text-align: right;">${item.current_level || item.current_stock || 0}</td>
-                        <td style="text-align: right;">${item.reorder_point || 0}</td>
-                        <td>
-                            <span class="status-badge ${item.alert_level || 'ok'}">
-                                ${(item.alert_level || 'ok').toUpperCase()}
-                            </span>
-                        </td>
-                        <td>${item.last_order_date || 'N/A'}</td>
-                        <td>${item.supplier_name || 'TBD'}</td>
-                    </tr>
-                `).join('');
-                console.log('[SUCCESS] Reorder dashboard rendered with', result.data.length, 'items');
-            } else {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">No reorder alerts found</td></tr>';
-            }
-
-        } catch (error) {
-            console.error('[ERROR] Failed to load reorder dashboard:', error);
-            const container = this.getSubTabContainer('reorder-dashboard');
-            if (container) {
-                container.innerHTML = `
-                    <div class="error-message">
-                        <p><strong>Error loading reorder dashboard:</strong></p>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-    }
-
-    async loadProfitAnalysis(days) {
-        console.log(`[LOAD] Loading profit analysis for ${days} days...`);
-
-        try {
-            const response = await fetch(`${this.backendUrl}/api/stock/profit-analysis?days=${days}`);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            console.log('[OK] Profit analysis loaded:', result);
-            console.log('[DEBUG] Profit data count:', result.data?.length);
-
-            // Update the existing table with data
-            const tbody = document.getElementById('profit-table-body');
-            if (!tbody) {
-                console.error('[ERROR] Could not find profit-table-body element');
-                return;
-            }
-
-            // Update summary cards
-            const summary = result.summary || {};
-            document.getElementById('profit-total-revenue').textContent = `$${(summary.total_revenue || 0).toLocaleString()}`;
-            document.getElementById('profit-total-cost').textContent = `$${(summary.total_cost || 0).toLocaleString()}`;
-            document.getElementById('profit-margin-avg').textContent = `${(summary.overall_margin || 0).toFixed(1)}%`;
-            document.getElementById('profit-total-jobs').textContent = summary.stocks_analyzed || 0;
-
-            // Populate table rows
-            if (result.data && result.data.length > 0) {
-                console.log('[DEBUG] Rendering', result.data.length, 'profit rows');
-                tbody.innerHTML = result.data.map((item, index) => {
-                    const profit = parseFloat(item.gross_profit || item.profit || 0);
-                    const margin = parseFloat(item.margin_percent || item.margin || 0);
-                    const revenue = parseFloat(item.estimated_revenue || item.revenue || 0);
-                    const cost = parseFloat(item.total_cost || item.cost || 0);
-
-                    return `
-                        <tr data-row-id="${index}">
-                            <td><input type="checkbox" class="row-checkbox"></td>
-                            <td>${index + 1}</td>
-                            <td><div class="tag-indicator" data-tag=""></div></td>
-                            <td>#${item.stock_id || item.sku || 'N/A'}</td>
-                            <td>${item.stock_type_name || item.product_name || 'Unknown'}</td>
-                            <td style="text-align: right;">${item.total_jobs || item.units_sold || 0}</td>
-                            <td style="text-align: right;">$${revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td style="text-align: right;">$${cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td style="text-align: right; color: ${profit >= 0 ? '#10b981' : '#ef4444'};">
-                                $${profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td style="text-align: right;">${margin.toFixed(1)}%</td>
-                        </tr>
-                    `;
-                }).join('');
-                console.log('[SUCCESS] Profit analysis rendered with', result.data.length, 'items');
-            } else {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">No profit data found</td></tr>';
-            }
-
-        } catch (error) {
-            console.error('[ERROR] Failed to load profit analysis:', error);
-            const container = this.getSubTabContainer('profit-analysis');
-            if (container) {
-                container.innerHTML = `
-                    <div class="error-message">
-                        <p><strong>Error loading profit analysis:</strong></p>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-    }
+    // REMOVED DUPLICATE FUNCTIONS: loadReorderDashboard() and loadProfitAnalysis()
+    // These HTML-table based versions were causing data not to render in Tabulator
+    // Correct Tabulator-based versions exist above (lines 1392, 1786)
 
     // ========================================================================
     // REFRESH FUNCTIONS FOR ALL TABS
@@ -2461,73 +2452,7 @@ class StockManagementModule extends BaseModule {
 
     refreshAIAnalyticsTab() {
         console.log('[REFRESH] Refreshing AI analytics...');
-        this.loadAIAnalyticsData();
-    }
-
-    async loadAIAnalyticsData() {
-        console.log('[LOAD] Loading AI analytics...');
-
-        try {
-            // Call the REAL backend API
-            const response = await fetch(
-                `${this.backendUrl}/api/stock/ai-extraction-stats`
-            );
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText} `);
-            }
-
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.message || 'Failed to load AI analytics');
-            }
-
-            console.log('[OK] AI analytics loaded:', result.data);
-
-            // Display the data (implement UI rendering here)
-            const container = this.getSubTabContainer('ai-analytics');
-            if (container) {
-                const stats = result.data || {};
-                container.innerHTML = `
-                < div class="module-dashboard" >
-                    <div class="dashboard-card">
-                        <h3>AI Extraction Statistics</h3>
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-label">Total Extractions</div>
-                                <div class="stat-value">${stats.total_extractions || 0}</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-label">Success Rate</div>
-                                <div class="stat-value">${(stats.success_rate || 0).toFixed(1)}%</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-label">Average Confidence</div>
-                                <div class="stat-value">${(stats.avg_confidence || 0).toFixed(1)}%</div>
-                            </div>
-                        </div>
-                    </div>
-                    </div >
-                `;
-            }
-
-        } catch (error) {
-            console.error('[ERROR] Failed to load AI analytics:', error);
-            const container = this.getSubTabContainer('ai-analytics');
-            if (container) {
-                container.innerHTML = `
-                < div class="error-message" >
-                        <i class="fas fa-exclamation-circle"></i>
-                        <p>Failed to load AI analytics</p>
-                        <p class="error-details">${error.message}</p>
-                        <button class="btn btn-secondary" onclick="stockModule.loadAIAnalyticsData()">
-                            <i class="fas fa-redo"></i> Retry
-                        </button>
-                    </div >
-                `;
-            }
-        }
+        this.loadAIAnalytics();
     }
 
     // ========================================================================
@@ -2541,15 +2466,15 @@ class StockManagementModule extends BaseModule {
         console.log(`[LOAD] Loading usage analytics with Plotly chart for ${days} days...`);
 
         try {
-            const response = await fetch(`${this.backendUrl}/api/stock/usage-analytics?days=${days}`);
+            const response = await fetch(`${this.backendUrl}/api/stock-management/usage-analytics?days=${days}`);
             const result = await response.json();
 
             if (result.status === 'ok') {
                 const container = document.querySelector('#usage-analytics-content');
                 container.innerHTML = `
-                < div class="chart-container" >
+                <div class="chart-container">
                     <div id="usage-chart" style="width:100%;height:400px;"></div>
-                    </div >
+                </div>
                 <div class="data-table-container">
                     <table class="data-table">
                         <thead>
@@ -2594,30 +2519,30 @@ class StockManagementModule extends BaseModule {
         console.log(`[LOAD] Loading profit analysis with Plotly chart for ${days} days...`);
 
         try {
-            const response = await fetch(`${this.backendUrl}/api/stock/profit-analysis?days=${days}`);
+            const response = await fetch(`${this.backendUrl}/api/stock-management/profit-analysis?days=${days}`);
             const result = await response.json();
 
             if (result.status === 'ok') {
                 const container = document.querySelector('#profit-analysis-content');
                 container.innerHTML = `
-                < div class="summary-cards" >
-                        <div class="card">
-                            <h4>Total Revenue</h4>
-                            <div class="value">$${result.summary.total_revenue.toLocaleString()}</div>
-                        </div>
-                        <div class="card">
-                            <h4>Total Cost</h4>
-                            <div class="value">$${result.summary.total_cost.toLocaleString()}</div>
-                        </div>
-                        <div class="card">
-                            <h4>Gross Profit</h4>
-                            <div class="value">$${result.summary.total_profit.toLocaleString()}</div>
-                        </div>
-                        <div class="card">
-                            <h4>Margin</h4>
-                            <div class="value">${result.summary.overall_margin}%</div>
-                        </div>
-                    </div >
+                <div class="summary-cards">
+                    <div class="card">
+                        <h4>Total Revenue</h4>
+                        <div class="value">$${result.summary.total_revenue.toLocaleString()}</div>
+                    </div>
+                    <div class="card">
+                        <h4>Total Cost</h4>
+                        <div class="value">$${result.summary.total_cost.toLocaleString()}</div>
+                    </div>
+                    <div class="card">
+                        <h4>Gross Profit</h4>
+                        <div class="value">$${result.summary.total_profit.toLocaleString()}</div>
+                    </div>
+                    <div class="card">
+                        <h4>Margin</h4>
+                        <div class="value">${result.summary.overall_margin}%</div>
+                    </div>
+                </div>
                 <div class="chart-container">
                     <div id="profit-chart" style="width:100%;height:450px;"></div>
                 </div>
@@ -2639,15 +2564,15 @@ class StockManagementModule extends BaseModule {
         console.log('[LOAD] Loading reorder dashboard with Plotly chart...');
 
         try {
-            const response = await fetch(`${this.backendUrl}/api/stock/reorder-dashboard`);
+            const response = await fetch(`${this.backendUrl}/api/stock-management/reorder-dashboard`);
             const result = await response.json();
 
             if (result.status === 'ok') {
                 const container = document.querySelector('#reorder-dashboard-content');
                 container.innerHTML = `
-                < div class="chart-container" >
+                <div class="chart-container">
                     <div id="reorder-alerts-chart" style="width:100%;height:350px;"></div>
-                    </div >
+                </div>
                 <div class="alerts-grid">
                     ${result.data.map(stock => `
                             <div class="alert-card alert-${stock.alert_level}">
@@ -2728,7 +2653,7 @@ class StockManagementModule extends BaseModule {
      */
     async loadTableList() {
         try {
-            const response = await fetch(`${this.backendUrl}/api/stock/sql-query`);
+            const response = await fetch(`${this.backendUrl}/api/stock-management/sql-query`);
             const result = await response.json();
 
             if (result.status === 'ok') {
@@ -2762,6 +2687,406 @@ class StockManagementModule extends BaseModule {
     }
 
     // ========================================================================
+    // BULK OPERATIONS
+    // ========================================================================
+
+    bulkTagRows(color, tableName = null) {
+        console.log(`[BULK TAG] Tagging selected rows as: ${color || 'cleared'}`);
+
+        // Determine which table to operate on
+        let table = null;
+        let storageKey = '';
+
+        // Try to determine from current active tab
+        const activeTab = document.querySelector('.sub-tab-btn.active');
+        if (activeTab) {
+            const tabId = activeTab.getAttribute('data-tab');
+            if (tabId === 'profit-analysis') {
+                table = this.profitTable;
+                storageKey = 'profit_tags';
+            } else if (tabId === 'ai-analytics') {
+                table = this.aiAnalyticsTable;
+                storageKey = 'ai_analytics_tags';
+            } else if (tabId === 'sql-viewer') {
+                table = this.sqlViewerTable;
+                storageKey = 'sql_viewer_tags';
+            } else if (tabId === 'usage-analytics') {
+                table = this.usageTable;
+                storageKey = 'usage_tags';
+            } else if (tabId === 'reorder-dashboard') {
+                table = this.reorderTable;
+                storageKey = 'reorder_tags';
+            }
+        }
+
+        if (!table) {
+            console.warn('[BULK TAG] No active table found');
+            return;
+        }
+
+        const selectedRows = table.getSelectedRows();
+
+        if (selectedRows.length === 0) {
+            if (window.TabulatorToast) {
+                window.TabulatorToast.showToast('No rows selected', 'warning', 3000);
+            } else {
+                alert('Please select rows first');
+            }
+            return;
+        }
+
+        let taggedCount = 0;
+        selectedRows.forEach(row => {
+            const rowData = row.getData();
+            const rowId = rowData.stock_id || rowData.id || rowData._rowId;
+
+            if (rowId) {
+                if (color) {
+                    window.TabulatorFunctions?.setRowTag(rowId, color, storageKey);
+                } else {
+                    window.TabulatorFunctions?.clearRowTag(rowId, storageKey);
+                }
+                row.reformat(); // Refresh row styling
+                taggedCount++;
+            }
+        });
+
+        // Deselect all rows after tagging
+        table.deselectRow();
+
+        // Show success message
+        const message = color ?
+            `Tagged ${taggedCount} rows as ${color}` :
+            `Cleared tags from ${taggedCount} rows`;
+
+        if (window.TabulatorToast) {
+            window.TabulatorToast.showToast(message, 'success', 3000);
+        } else {
+            console.log(`[BULK TAG] ${message}`);
+        }
+
+        this.updateSelectionCount();
+    }
+
+    updateSelectionCount() {
+        // Find all selection count displays and update them
+        const countDisplays = ['profit-selected-count', 'ai-selected-count', 'sql-selected-count'];
+
+        countDisplays.forEach(displayId => {
+            const display = document.getElementById(displayId);
+            if (display) {
+                // Get the corresponding table
+                let table = null;
+                if (displayId.includes('profit')) table = this.profitTable;
+                else if (displayId.includes('ai')) table = this.aiAnalyticsTable;
+                else if (displayId.includes('sql')) table = this.sqlViewerTable;
+
+                if (table) {
+                    const selectedRows = table.getSelectedRows();
+                    display.textContent = `${selectedRows.length} selected`;
+                }
+            }
+        });
+    }
+
+    // ========================================================================
+    // EXPORT FUNCTIONALITY
+    // ========================================================================
+
+    exportProfit(format = 'xlsx') {
+        if (!this.profitTable) {
+            alert('No data to export');
+            return;
+        }
+
+        const fileName = `profit_analysis_${new Date().toISOString().split('T')[0]}`;
+        console.log(`[EXPORT] Exporting Profit Analysis as ${format}`);
+
+        if (format === 'xlsx') {
+            this.profitTable.download("xlsx", `${fileName}.xlsx`, { sheetName: "Profit Analysis" });
+        } else if (format === 'csv') {
+            this.profitTable.download("csv", `${fileName}.csv`);
+        } else if (format === 'pdf') {
+            this.profitTable.download("pdf", `${fileName}.pdf`, {
+                orientation: "landscape",
+                title: "Profit Analysis Report",
+                autoTable: {
+                    styles: { fontSize: 8 },
+                    margin: { top: 40 }
+                }
+            });
+        } else if (format === 'json') {
+            this.profitTable.download("json", `${fileName}.json`);
+        }
+
+        if (window.TabulatorToast) {
+            window.TabulatorToast.showToast(`Exported as ${format.toUpperCase()}`, 'success', 3000);
+        }
+    }
+
+    exportAIAnalytics(format = 'xlsx') {
+        if (!this.aiAnalyticsTable) {
+            alert('No data to export');
+            return;
+        }
+
+        const fileName = `ai_analytics_${new Date().toISOString().split('T')[0]}`;
+        console.log(`[EXPORT] Exporting AI Analytics as ${format}`);
+
+        if (format === 'xlsx') {
+            this.aiAnalyticsTable.download("xlsx", `${fileName}.xlsx`, { sheetName: "AI Analytics" });
+        } else if (format === 'csv') {
+            this.aiAnalyticsTable.download("csv", `${fileName}.csv`);
+        } else if (format === 'pdf') {
+            this.aiAnalyticsTable.download("pdf", `${fileName}.pdf`, {
+                orientation: "landscape",
+                title: "AI Analytics Report"
+            });
+        } else if (format === 'json') {
+            this.aiAnalyticsTable.download("json", `${fileName}.json`);
+        }
+
+        if (window.TabulatorToast) {
+            window.TabulatorToast.showToast(`Exported as ${format.toUpperCase()}`, 'success', 3000);
+        }
+    }
+
+    exportSQLResults(format = 'xlsx') {
+        if (!this.sqlViewerTable) {
+            alert('No data to export');
+            return;
+        }
+
+        const fileName = `sql_results_${new Date().toISOString().split('T')[0]}`;
+        console.log(`[EXPORT] Exporting SQL Results as ${format}`);
+
+        if (format === 'xlsx') {
+            this.sqlViewerTable.download("xlsx", `${fileName}.xlsx`, { sheetName: "SQL Results" });
+        } else if (format === 'csv') {
+            this.sqlViewerTable.download("csv", `${fileName}.csv`);
+        } else if (format === 'pdf') {
+            this.sqlViewerTable.download("pdf", `${fileName}.pdf`, {
+                orientation: "landscape",
+                title: "SQL Query Results"
+            });
+        } else if (format === 'json') {
+            this.sqlViewerTable.download("json", `${fileName}.json`);
+        }
+
+        if (window.TabulatorToast) {
+            window.TabulatorToast.showToast(`Exported as ${format.toUpperCase()}`, 'success', 3000);
+        }
+    }
+
+    // ========================================================================
+    // API CONNECTION TESTING (Development Tool)
+    // ========================================================================
+
+    /**
+     * Test all Tabulator API endpoints to verify data flow
+     * This is a development/debugging tool to verify that:
+     * 1. Backend APIs are responding correctly
+     * 2. Data structure matches Tabulator expectations
+     * 3. All endpoints return valid data
+     * 
+     * Usage: stockModule.runAPIConnectionTest()
+     */
+    async runAPIConnectionTest() {
+        console.log('\n' + '='.repeat(70));
+        console.log('TABULATOR API CONNECTION TEST');
+        console.log('Time: ' + new Date().toLocaleString());
+        console.log('='.repeat(70) + '\n');
+
+        const tests = [
+            {
+                name: 'Health Check',
+                endpoint: '/health',
+                method: 'GET',
+                validateData: (data) => data.app && data.providers
+            },
+            {
+                name: 'Usage Analytics',
+                endpoint: '/api/stock-management/usage-analytics?days=90',
+                method: 'GET',
+                dataKey: 'data',
+                validateData: (data) => Array.isArray(data.data)
+            },
+            {
+                name: 'Reorder Dashboard',
+                endpoint: '/api/stock-management/reorder-dashboard',
+                method: 'GET',
+                dataKey: 'data',
+                validateData: (data) => Array.isArray(data.data)
+            },
+            {
+                name: 'Profit Analysis',
+                endpoint: '/api/stock-management/profit-analysis?days=90',
+                method: 'GET',
+                dataKey: 'data',
+                validateData: (data) => Array.isArray(data.data)
+            },
+            {
+                name: 'AI Analytics',
+                endpoint: '/api/stock/ai-analytics',
+                method: 'GET',
+                dataKey: 'queries',
+                validateData: (data) => Array.isArray(data.queries)
+            },
+            {
+                name: 'SQL Query',
+                endpoint: '/api/stock-management/sql-query',
+                method: 'POST',
+                dataKey: 'data',
+                body: { query: 'SELECT * FROM unified_stocks LIMIT 5' },
+                validateData: (data) => Array.isArray(data.data) && Array.isArray(data.columns)
+            }
+        ];
+
+        let passed = 0;
+        let failed = 0;
+        const results = [];
+
+        for (const test of tests) {
+            try {
+                const startTime = performance.now();
+
+                const options = {
+                    method: test.method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+
+                if (test.body) {
+                    options.body = JSON.stringify(test.body);
+                }
+
+                const response = await fetch(`${this.backendUrl}${test.endpoint}`, options);
+                const responseTime = ((performance.now() - startTime) / 1000).toFixed(2);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // Validate data structure
+                if (!test.validateData(data)) {
+                    throw new Error('Invalid data structure');
+                }
+
+                // Count records
+                const dataArray = test.dataKey ? data[test.dataKey] : [];
+                const recordCount = Array.isArray(dataArray) ? dataArray.length : 0;
+
+                // Success
+                passed++;
+                results.push({
+                    name: test.name,
+                    passed: true,
+                    recordCount,
+                    responseTime,
+                    status: response.status
+                });
+
+                console.log(`✅ ${test.name}: ${recordCount} records in ${responseTime}s`);
+
+            } catch (error) {
+                failed++;
+                results.push({
+                    name: test.name,
+                    passed: false,
+                    error: error.message
+                });
+
+                console.error(`❌ ${test.name}: ${error.message}`);
+            }
+        }
+
+        // Print summary
+        console.log('\n' + '='.repeat(70));
+        console.log('TEST SUMMARY');
+        console.log('='.repeat(70));
+        console.log(`Total Tests: ${tests.length}`);
+        console.log(`Passed: ${passed}`);
+        console.log(`Failed: ${failed}`);
+        console.log(`Pass Rate: ${((passed / tests.length) * 100).toFixed(1)}%\n`);
+
+        // Tabulator compatibility check
+        console.log('='.repeat(70));
+        console.log('TABULATOR COMPATIBILITY CHECK');
+        console.log('='.repeat(70) + '\n');
+
+        for (const result of results) {
+            if (result.passed) {
+                if (result.recordCount === 0) {
+                    console.log(`⚠️  ${result.name}: No data (may be expected)`);
+                } else {
+                    console.log(`✅ ${result.name}: Compatible (${result.recordCount} records)`);
+                }
+            } else {
+                console.log(`❌ ${result.name}: FAILED`);
+            }
+        }
+
+        console.log('\n' + '='.repeat(70));
+
+        if (failed === 0) {
+            console.log('\n🎉 All tests passed! APIs are ready for Tabulator.\n');
+        } else {
+            console.log(`\n⚠️  ${failed} test(s) failed. Check backend and database.\n`);
+        }
+
+        return { passed, failed, results };
+    }
+
+    /**
+     * Quick test of a single endpoint
+     * Usage: stockModule.testEndpoint('reorder-dashboard')
+     */
+    async testEndpoint(name) {
+        const endpoints = {
+            'usage': '/api/stock-management/usage-analytics?days=90',
+            'reorder': '/api/stock-management/reorder-dashboard',
+            'profit': '/api/stock-management/profit-analysis?days=90',
+            'ai': '/api/stock/ai-analytics',
+            'sql': '/api/stock-management/sql-query'
+        };
+
+        const endpoint = endpoints[name];
+        if (!endpoint) {
+            console.error(`Unknown endpoint: ${name}`);
+            console.log(`Available: ${Object.keys(endpoints).join(', ')}`);
+            return;
+        }
+
+        console.log(`Testing ${name} endpoint: ${endpoint}`);
+
+        try {
+            const options = {
+                method: name === 'sql' ? 'POST' : 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            };
+
+            if (name === 'sql') {
+                options.body = JSON.stringify({ query: 'SELECT * FROM unified_stocks LIMIT 5' });
+            }
+
+            const response = await fetch(`${this.backendUrl}${endpoint}`, options);
+            const data = await response.json();
+
+            console.log('Response:', data);
+
+            const dataKey = name === 'ai' ? 'queries' : 'data';
+            const records = data[dataKey] || [];
+            console.log(`✅ Success: ${records.length} records`);
+
+            return data;
+        } catch (error) {
+            console.error(`❌ Failed: ${error.message}`);
+            return null;
+        }
+    }
+
+    // ========================================================================
     // UTILITY METHODS
     // ========================================================================
 
@@ -2775,11 +3100,11 @@ class StockManagementModule extends BaseModule {
         const element = document.getElementById(elementId);
         if (element) {
             element.innerHTML = `
-                < div class="error-message" >
+                <div class="error-message">
                     <i class="fas fa-exclamation-circle"></i>
                     <p>${message}</p>
-                </div >
-                `;
+                </div>
+            `;
         }
     }
 }
@@ -2793,11 +3118,11 @@ if (typeof window !== 'undefined') {
 
     // Register the module class
     window.ModuleRegistry['stock-management'] = StockManagementModule;
-    console.log('âœ… StockManagementModule class registered in ModuleRegistry (Combined Edition)');
+    console.log('✅ StockManagementModule class registered in ModuleRegistry (Combined Edition)');
     console.log('   Includes: Base Module + Plotly Charts + SQL Viewer + Cell Editing');
     console.log('   (Instance reference will be created by ModuleManager after initialization)');
 }
 
-console.log('âœ… Stock Management Module Loaded - Combined Edition v1.1.0');
+console.log('✅ Stock Management Module Loaded - Combined Edition v1.1.0');
 console.log('   Features: Invoice Processing, Usage Analytics, Reorder Dashboard, Profit Analysis, SQL Viewer, AI Analytics');
 console.log('   Enhancements: Plotly.js charts, SQL query interface, inline cell editing');

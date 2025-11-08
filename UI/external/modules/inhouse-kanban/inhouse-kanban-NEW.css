@@ -1,229 +1,254 @@
-﻿/**/**
+﻿/**
+ * InHousePrint Kanban Module - Synergy Dashboard Styling
+ * Production Workflow Dashboard matching Synergy design system EXACTLY
+ * 
+ * @updated 2025-11-03 - Complete rewrite to match Synergy styling
+ * @version 2.4.0 - FLEX LAYOUT FIXED
+ */
 
- * InHousePrint Kanban Module - COMPLETE CSS * InHousePrint Kanban Module - REBUILT FROM SCRATCH
+/* ===================================================================
+   MODULE CONTAINER - Match Synergy wrapper
+   =================================================================== */
+.inhouse-kanban-module,
+.module-inhouse-kanban {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+}
 
- * Version 3.0.0 - All selectors included * Version 3.0.0 - Clean flex layout
+.kanban-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 0;
+}
 
- */ */
-
-
-
-/* Module Container */.kanban-board {
-
-.inhouse-kanban-module,    display: flex;
-
-.module-inhouse-kanban {    flex-direction: row;
-
-    display: flex;    gap: 20px;
-
-    flex-direction: column;    padding: 20px;
-
-    height: 100%;    overflow-x: auto;
-
-    background: #0B0E13;    overflow-y: hidden;
-
-    color: #E5E7EB;    flex: 1;
-
-    overflow: hidden;    background: #0B0E13;
-
-}    align-items: flex-start;
-
-    min-height: 400px;
-
-/* Filters Bar */}
-
-.filters-bar {
-
-    background: #1A1F2E;.kanban-column {
-
-    border-bottom: 1px solid #2A3142;    min-width: 340px;
-
-    padding: 16px 20px;    max-width: 340px;
-
-    display: flex;    background: #1A1F2E;
-
-    align-items: center;    border: 1px solid #2A3142;
-
-    gap: 16px;    border-radius: 8px;
-
-    flex-wrap: wrap;    display: flex;
-
-    flex-shrink: 0;    flex-direction: column;
-
-}    height: fit-content;
-
-    max-height: calc(100vh - 450px);
-
-.filter-group {    flex-shrink: 0;
-
-    display: flex;}
-
+/* ===================================================================
+   MODULE HEADER - Match Synergy dashboard header
+   =================================================================== */
+.module-header {
+    display: flex;
     align-items: center;
-
-    gap: 8px;.workboard-tab {
-
-}    padding: 12px 20px;
-
-    background: transparent;
-
-.filter-group label {    border: none;
-
-    font-size: 14px;    border-bottom: 3px solid transparent;
-
-    color: #9CA3AF;    color: #9CA3AF;
-
-    font-weight: 500;    font-size: 14px;
-
-    display: flex;    font-weight: 600;
-
-    align-items: center;    cursor: pointer;
-
-    gap: 6px;    display: flex;
-
-}    align-items: center;
-
-    gap: 12px;
-
-.filter-group label i {    transition: all 0.2s ease;
-
-    color: #00509E;}
-
+    justify-content: space-between;
+    padding: var(--space-5);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+    flex-shrink: 0;
 }
 
-.workboard-tab.active {
+.module-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
 
-.filter-select,    color: #00509E;
+.module-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
 
-.filter-input {    border-bottom-color: #00509E;
+.module-title i {
+    color: var(--accent-primary);
+    font-size: 28px;
+}
 
-    padding: 8px 12px;    background: rgba(0, 80, 158, 0.15);
-
-    background: #0B0E13;}
-
-    border: 1px solid #2A3142;
-    border-radius: 6px;
-    color: #E5E7EB;
+.module-description {
     font-size: 14px;
-    transition: all 0.2s ease;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
-.filter-select {
-    cursor: pointer;
-    min-width: 150px;
-}
-
-.filter-input {
-    width: 300px;
-}
-
-.filter-select:hover,
-.filter-input:hover {
-    border-color: #00509E;
-}
-
-.filter-select:focus,
-.filter-input:focus {
-    outline: none;
-    border-color: #00509E;
-    box-shadow: 0 0 0 3px rgba(0, 80, 158, 0.2);
+.module-header-right {
+    display: flex;
+    gap: var(--space-3);
 }
 
 .btn-secondary {
-    padding: 8px 16px;
-    background: #00509E;
-    border: 1px solid #00509E;
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
-    color: white;
+    color: var(--text-primary);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-    background: #003D7A;
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
     transform: translateY(-1px);
+}
+
+/* ===================================================================
+   FILTERS BAR - Clean horizontal layout
+   =================================================================== */
+.filters-bar {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+    padding: var(--space-4) var(--space-5);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.filter-group label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.filter-group label i {
+    color: var(--accent-primary);
+}
+
+.filter-select {
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 150px;
+}
+
+.filter-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-input {
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+.filter-input:hover {
+    border-color: var(--accent-primary);
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-input::placeholder {
+    color: var(--text-muted);
 }
 
 .last-refresh {
     font-size: 12px;
-    color: #9CA3AF;
+    color: var(--text-muted);
     margin-left: auto;
 }
 
 .time-value {
-    color: #E5E7EB;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
-/* Workboard Selector */
+/* ===================================================================
+   WORKBOARD SELECTOR - Tab-style buttons
+   =================================================================== */
 .workboard-selector {
-    background: #1A1F2E;
-    border-bottom: 1px solid #2A3142;
-    padding: 0 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+    padding: 0 var(--space-5);
     display: flex;
-    gap: 4px;
-    flex-shrink: 0;
+    gap: var(--space-2);
 }
 
 .workboard-tab {
-    padding: 12px 20px;
+    padding: var(--space-3) var(--space-4);
     background: transparent;
     border: none;
-    border-bottom: 3px solid transparent;
-    color: #9CA3AF;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-2);
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .workboard-tab:hover {
-    color: #E5E7EB;
-    background: rgba(0, 80, 158, 0.1);
+    color: var(--text-primary);
+    background: var(--bg-hover);
 }
 
 .workboard-tab.active {
-    color: #00509E;
-    border-bottom-color: #00509E;
-    background: rgba(0, 80, 158, 0.15);
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
 }
 
 .workboard-tab i {
     font-size: 16px;
 }
 
-/* Metrics Row */
+/* ===================================================================
+   METRICS DASHBOARD - Card grid
+   =================================================================== */
 .kanban-metrics {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    padding: 20px;
-    background: #0B0E13;
-    flex-shrink: 0;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: var(--bg-primary);
 }
 
 .metric-card {
-    background: #1A1F2E;
-    border: 1px solid #2A3142;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
     border-radius: 8px;
-    padding: 16px;
+    padding: var(--space-4);
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     transition: all 0.2s ease;
 }
 
 .metric-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-color: #00509E;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-color: var(--accent-primary);
 }
 
 .metric-icon {
@@ -244,63 +269,67 @@
 .metric-value {
     font-size: 24px;
     font-weight: 700;
-    color: #E5E7EB;
+    color: var(--text-primary);
     line-height: 1.2;
+    margin-bottom: 2px;
 }
 
 .metric-label {
     font-size: 12px;
-    color: #9CA3AF;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-top: 4px;
 }
 
-/* KANBAN BOARD - CRITICAL FLEX LAYOUT */
+/* ===================================================================
+   KANBAN BOARD - Match Synergy column layout - FIXED FLEX
+   =================================================================== */
 .kanban-board {
     display: flex !important;
     flex-direction: row !important;
-    gap: 20px !important;
-    padding: 20px !important;
+    gap: 16px !important;
+    padding: var(--space-5) !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
     flex: 1 !important;
-    background: #0B0E13 !important;
+    background: var(--bg-primary) !important;
     align-items: flex-start !important;
-    min-height: 400px !important;
+    width: 100% !important;
 }
 
-/* KANBAN COLUMNS */
+/* ===================================================================
+   KANBAN COLUMNS - Match Synergy exactly - FORCE DISPLAY
+   =================================================================== */
 .kanban-column {
-    min-width: 340px !important;
-    max-width: 340px !important;
-    background: #1A1F2E !important;
-    border: 1px solid #2A3142 !important;
+    min-width: 320px !important;
+    max-width: 320px !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-default) !important;
     border-radius: 8px !important;
     display: flex !important;
     flex-direction: column !important;
     height: fit-content !important;
-    max-height: calc(100vh - 450px) !important;
+    max-height: calc(100vh - 400px) !important;
     flex-shrink: 0 !important;
 }
 
 .column-header {
-    padding: 16px;
-    border-bottom: 2px solid #2A3142;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-default);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
     flex-shrink: 0;
 }
 
 .column-title {
     font-size: 16px;
-    font-weight: 700;
-    color: #E5E7EB;
+    font-weight: 600;
+    color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .column-title i {
@@ -310,15 +339,15 @@
 .column-metrics {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: var(--space-3);
     font-size: 12px;
-    color: #9CA3AF;
+    color: var(--text-secondary);
 }
 
 .column-metrics span {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
 }
 
 .column-metrics i {
@@ -328,127 +357,153 @@
 
 .job-count,
 .stage-value {
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .column-body {
-    padding: 12px;
+    padding: var(--space-2);
     overflow-y: auto;
     flex: 1;
-    min-height: 150px;
+    min-height: 100px;
 }
 
-/* KANBAN CARDS */
+/* ===================================================================
+   KANBAN CARDS - Match Synergy card design EXACTLY
+   =================================================================== */
 .kanban-card {
-    background: #0B0E13;
-    border: 1px solid #2A3142;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 12px;
+    padding: var(--space-2);
+    margin-bottom: var(--space-3);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.kanban-card:last-child {
-    margin-bottom: 0;
-}
-
 .kanban-card:hover {
-    border-color: #00509E;
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 80, 158, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.card-header {
+/* Card Header Row - Priority and Tier badges */
+.card-header-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
+    gap: var(--space-2);
 }
 
-.card-priority {
+.priority-badge,
+.customer-tier {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 16px;
-    font-weight: 700;
+    color: white;
 }
 
-.card-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #E5E7EB;
-    line-height: 1.4;
-    margin-bottom: 8px;
-    word-break: break-word;
+.priority-badge i,
+.customer-tier i {
+    font-size: 10px;
 }
 
-.card-meta {
+/* Card Body */
+.card-body {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 8px;
+    gap: var(--space-2);
 }
 
-.card-project {
+.client-name {
     font-size: 12px;
-    color: #9CA3AF;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
 }
 
-.card-project i {
+.client-name i {
     font-size: 11px;
     opacity: 0.7;
 }
 
-.card-status-row {
+.job-description {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* Job Specs Row */
+.job-specs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+
+.spec-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.spec-item i {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Job Details Expandable Section */
+.job-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--border-muted);
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.detail-row i {
+    font-size: 10px;
+    opacity: 0.7;
+    width: 14px;
+}
+
+/* Card Footer Row */
+.card-footer-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-}
-
-.status-badge {
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.status-badge.status-active {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-}
-
-.status-badge.status-delayed {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-}
-
-.status-badge.status-warning {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-}
-
-.card-time {
     font-size: 11px;
-    color: #9CA3AF;
+    margin-top: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-muted);
 }
 
 .card-footer {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #2A3142;
+    margin-top: var(--space-2);
 }
 
 .card-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-2);
 }
 
 .card-tag {
@@ -456,10 +511,9 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: #9CA3AF;
-    padding: 3px 8px;
-    background: #1A1F2E;
-    border: 1px solid #2A3142;
+    color: var(--text-muted);
+    padding: 2px 6px;
+    background: var(--bg-hover);
     border-radius: 3px;
 }
 
@@ -468,29 +522,112 @@
     opacity: 0.7;
 }
 
-/* Empty States */
+.card-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.status-delayed {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.status-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.due-date,
+.wip-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.due-date i,
+.wip-status i {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Due Date Status Colors */
+.due-date.overdue {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.due-date.due-soon {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.due-date.on-track {
+    color: var(--text-secondary);
+}
+
+/* Card Actions */
+.card-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-muted);
+}
+
+.view-details-btn {
+    flex: 1;
+    padding: 6px 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    transition: all 0.2s ease;
+}
+
+.view-details-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.view-details-btn i {
+    font-size: 11px;
+}
+
+/* ===================================================================
+   EMPTY STATES
+   =================================================================== */
 .empty-column {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px;
-    color: #9CA3AF;
+    padding: var(--space-8);
+    color: var(--text-muted);
     text-align: center;
 }
 
 .empty-column i {
-    font-size: 36px;
+    font-size: 48px;
     opacity: 0.3;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
 }
 
 .empty-column p {
-    font-size: 13px;
+    font-size: 14px;
     margin: 0;
 }
 
-/* Scrollbar Styling */
+/* ===================================================================
+   SCROLLBAR STYLING
+   =================================================================== */
 .column-body::-webkit-scrollbar,
 .kanban-board::-webkit-scrollbar {
     width: 8px;
@@ -499,183 +636,28 @@
 
 .column-body::-webkit-scrollbar-track,
 .kanban-board::-webkit-scrollbar-track {
-    background: #1A1F2E;
+    background: var(--bg-secondary);
     border-radius: 4px;
 }
 
 .column-body::-webkit-scrollbar-thumb,
 .kanban-board::-webkit-scrollbar-thumb {
-    background: #2A3142;
+    background: var(--border-default);
     border-radius: 4px;
 }
 
 .column-body::-webkit-scrollbar-thumb:hover,
 .kanban-board::-webkit-scrollbar-thumb:hover {
-    background: #00509E;
+    background: var(--text-muted);
 }
 
-/* Modal Styling */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-}
-
-.modal-content {
-    background: #1A1F2E;
-    border: 1px solid #2A3142;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 800px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #2A3142;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.modal-header h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-    color: #E5E7EB;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.modal-header h2 i {
-    color: #00509E;
-}
-
-.modal-close {
-    background: transparent;
-    border: none;
-    color: #9CA3AF;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-.modal-close:hover {
-    background: #0B0E13;
-    color: #E5E7EB;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-.modal-footer {
-    padding: 20px;
-    border-top: 1px solid #2A3142;
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-.status-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.badge {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: white;
-}
-
-.detail-section {
-    margin-bottom: 20px;
-}
-
-.detail-section h3 {
-    margin: 0 0 12px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #E5E7EB;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.detail-section h3 i {
-    color: #00509E;
-}
-
-.detail-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-}
-
-.detail-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.detail-label {
-    font-size: 11px;
-    color: #9CA3AF;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-}
-
-.detail-value {
-    font-size: 14px;
-    color: #E5E7EB;
-}
-
-.notes-content {
-    padding: 12px;
-    background: #0B0E13;
-    border: 1px solid #2A3142;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #E5E7EB;
-    line-height: 1.6;
-    white-space: pre-wrap;
-}
-
-.loading-spinner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    color: #E5E7EB;
-}
-
-.loading-spinner p {
-    font-size: 16px;
-    font-weight: 500;
-}
-
-/* Responsive Design */
+/* ===================================================================
+   RESPONSIVE ADJUSTMENTS
+   =================================================================== */
 @media (max-width: 1200px) {
     .kanban-column {
-        min-width: 300px !important;
-        max-width: 300px !important;
+        min-width: 280px;
+        max-width: 280px;
     }
 
     .kanban-metrics {
@@ -699,15 +681,6 @@
     }
 
     .kanban-metrics {
-        grid-template-columns: 1fr;
-    }
-
-    .kanban-column {
-        min-width: 280px !important;
-        max-width: 280px !important;
-    }
-
-    .detail-grid {
         grid-template-columns: 1fr;
     }
 }

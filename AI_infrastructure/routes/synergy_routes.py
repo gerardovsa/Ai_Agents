@@ -469,3 +469,143 @@ def delete_session(session_id):
             'success': False,
             'error': str(e)
         }), 500
+
+
+@synergy_bp.route('/<session_id>/link-thread', methods=['POST'])
+def link_thread_to_synergy(session_id):
+    """
+    Link a thread to a Synergy session (bidirectional sync)
+    
+    CRITICAL: Updates synergy_sessions.thread_ids array
+    This is called from ThreadManager.linkToSynergy() to ensure bidirectional sync
+    
+    Body: {thread_id, thread_slug, thread_name}
+    """
+    try:
+        data = request.get_json()
+        thread_id = data.get('thread_id')
+        thread_slug = data.get('thread_slug', thread_id)
+        thread_name = data.get('thread_name', 'Untitled Thread')
+        
+        if not thread_id:
+            return jsonify({'success': False, 'error': 'thread_id required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current thread_ids array
+        cursor.execute('SELECT thread_ids FROM synergy_sessions WHERE session_id = ?', (session_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Parse existing thread_ids (JSON array)
+        thread_ids = []
+        if row['thread_ids']:
+            try:
+                thread_ids = json.loads(row['thread_ids'])
+                if not isinstance(thread_ids, list):
+                    thread_ids = []
+            except json.JSONDecodeError:
+                thread_ids = []
+        
+        # Add new thread if not already present
+        if thread_id not in thread_ids:
+            thread_ids.append(thread_id)
+            
+            # Update synergy_sessions
+            cursor.execute('''
+                UPDATE synergy_sessions 
+                SET thread_ids = ?,
+                    last_active = ?
+                WHERE session_id = ?
+            ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+            
+            conn.commit()
+            print(f"[SYNERGY SYNC] Added thread {thread_id} to Synergy session {session_id}")
+        else:
+            print(f"[SYNERGY SYNC] Thread {thread_id} already linked to {session_id}")
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'thread_ids': thread_ids,
+            'message': f'Thread {thread_id} linked successfully'
+        })
+    
+    except Exception as e:
+        print(f"[SYNERGY SYNC ERROR] Failed to link thread: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/unlink-thread', methods=['POST'])
+def unlink_thread_from_synergy(session_id):
+    """
+    Unlink a thread from a Synergy session (bidirectional sync)
+    
+    CRITICAL: Updates synergy_sessions.thread_ids array
+    This is called from ThreadManager.unlinkFromSynergy() to ensure bidirectional sync
+    
+    Body: {thread_id}
+    """
+    try:
+        data = request.get_json()
+        thread_id = data.get('thread_id')
+        
+        if not thread_id:
+            return jsonify({'success': False, 'error': 'thread_id required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current thread_ids array
+        cursor.execute('SELECT thread_ids FROM synergy_sessions WHERE session_id = ?', (session_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Parse existing thread_ids (JSON array)
+        thread_ids = []
+        if row['thread_ids']:
+            try:
+                thread_ids = json.loads(row['thread_ids'])
+                if not isinstance(thread_ids, list):
+                    thread_ids = []
+            except json.JSONDecodeError:
+                thread_ids = []
+        
+        # Remove thread if present
+        if thread_id in thread_ids:
+            thread_ids.remove(thread_id)
+            
+            # Update synergy_sessions
+            cursor.execute('''
+                UPDATE synergy_sessions 
+                SET thread_ids = ?,
+                    last_active = ?
+                WHERE session_id = ?
+            ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
+            
+            conn.commit()
+            print(f"[SYNERGY SYNC] Removed thread {thread_id} from Synergy session {session_id}")
+        else:
+            print(f"[SYNERGY SYNC] Thread {thread_id} not found in {session_id}")
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'thread_ids': thread_ids,
+            'message': f'Thread {thread_id} unlinked successfully'
+        })
+    
+    except Exception as e:
+        print(f"[SYNERGY SYNC ERROR] Failed to unlink thread: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

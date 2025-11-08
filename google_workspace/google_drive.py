@@ -169,10 +169,25 @@ def google_drive_upload_file(file_path, name=None, mime_type=None, parent_folder
         raise
 
 
-def google_drive_update_file(file_id, file_path=None, name=None, description=None, **kwargs):
-    """Update an existing file"""
+def google_drive_update_file(file_id, file_path=None, name=None, description=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """Update an existing file
+    
+    Args:
+        file_id: File ID to update
+        file_path: Optional new file path
+        name: Optional new name
+        description: Optional new description
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    """
     try:
-        service = _get_drive_service()
+        # Get user credentials if available
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
+        else:
+            service = _get_drive_service()
         
         file_metadata = {}
         if name:
@@ -253,10 +268,24 @@ def google_drive_create_folder(name, parent_folder_id=None, _user_id=None, _inje
         raise
 
 
-def google_drive_move_file(file_id, new_parent_folder_id, previous_parent_folder_id=None, **kwargs):
-    """Move a file to a different folder"""
+def google_drive_move_file(file_id, new_parent_folder_id, previous_parent_folder_id=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """Move a file to a different folder
+    
+    Args:
+        file_id: File ID to move
+        new_parent_folder_id: Destination folder ID
+        previous_parent_folder_id: Optional current parent folder ID
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    """
     try:
-        service = _get_drive_service()
+        # Get user credentials if available
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
+        else:
+            service = _get_drive_service()
         
         # Get current parents if not provided
         if not previous_parent_folder_id:
@@ -277,10 +306,24 @@ def google_drive_move_file(file_id, new_parent_folder_id, previous_parent_folder
         raise
 
 
-def google_drive_copy_file(file_id, name=None, parent_folder_id=None, **kwargs):
-    """Copy a file"""
+def google_drive_copy_file(file_id, name=None, parent_folder_id=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """Copy a file
+    
+    Args:
+        file_id: File ID to copy
+        name: Optional name for copy
+        parent_folder_id: Optional destination folder
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    """
     try:
-        service = _get_drive_service()
+        # Get user credentials if available
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
+        else:
+            service = _get_drive_service()
         
         file_metadata = {}
         if name:
@@ -337,10 +380,22 @@ def google_drive_share_file(file_id, email, role='reader', type='user', _user_id
         raise
 
 
-def google_drive_list_permissions(file_id, **kwargs):
-    """List permissions for a file"""
+def google_drive_list_permissions(file_id, _user_id=None, _injected_credentials=None, **kwargs):
+    """List permissions for a file
+    
+    Args:
+        file_id: File ID
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    """
     try:
-        service = _get_drive_service()
+        # Get user credentials if available
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
+        else:
+            service = _get_drive_service()
         
         result = service.permissions().list(
             fileId=file_id,
@@ -359,10 +414,24 @@ def google_drive_list_permissions(file_id, **kwargs):
         raise
 
 
-def google_drive_remove_permission(file_id, permission_id, **kwargs):
-    """Remove a permission from a file"""
+def google_drive_remove_permission(file_id, permission_id, _user_id=None, _injected_credentials=None, **kwargs):
+    """Remove a permission from a file
+    
+    Args:
+        file_id: File ID
+        permission_id: Permission ID to remove
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    """
     try:
-        service = _get_drive_service()
+        # Get user credentials if available
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
+        else:
+            service = _get_drive_service()
+        
         service.permissions().delete(fileId=file_id, permissionId=permission_id).execute()
         
         return {'removed': True, 'permission_id': permission_id}
@@ -379,10 +448,23 @@ def google_drive_search_files(query, max_results=10, **kwargs):
     return google_drive_list_files(max_results=max_results, query=query)
 
 
-def google_drive_export_file(file_id, mime_type, **kwargs):
-    """Export a Google Workspace file"""
+def google_drive_export_file(file_id, mime_type, _user_id=None, _injected_credentials=None, **kwargs):
+    """Export a Google Workspace file
+    
+    Args:
+        file_id: File ID to export
+        mime_type: Export MIME type
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    """
     try:
-        service = _get_drive_service()
+        # Get user credentials if available
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
+        else:
+            service = _get_drive_service()
         
         request = service.files().export_media(fileId=file_id, mimeType=mime_type)
         
@@ -404,10 +486,21 @@ def google_drive_export_file(file_id, mime_type, **kwargs):
         raise
 
 
-def google_drive_get_storage_quota(**kwargs):
-    """Get storage quota information"""
+def google_drive_get_storage_quota(_user_id=None, _injected_credentials=None, **kwargs):
+    """Get storage quota information
+    
+    Args:
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    """
     try:
-        service = _get_drive_service()
+        # Get user credentials if available
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
+        else:
+            service = _get_drive_service()
         
         about = service.about().get(fields='storageQuota').execute()
         quota = about.get('storageQuota', {})
@@ -424,10 +517,22 @@ def google_drive_get_storage_quota(**kwargs):
         raise
 
 
-def google_drive_restore_file(file_id, **kwargs):
-    """Restore a file from trash"""
+def google_drive_restore_file(file_id, _user_id=None, _injected_credentials=None, **kwargs):
+    """Restore a file from trash
+    
+    Args:
+        file_id: File ID to restore
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    """
     try:
-        service = _get_drive_service()
+        # Get user credentials if available
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
+            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
+            print(f" Drive service created with user {_user_id}'s credentials")
+        else:
+            service = _get_drive_service()
         
         file = service.files().update(
             fileId=file_id,

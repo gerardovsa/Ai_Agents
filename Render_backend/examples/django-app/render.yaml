@@ -1,0 +1,352 @@
+# ==============================================================================
+# DJANGO WEB APPLICATION - RENDER.COM DEPLOYMENT CONFIGURATION
+# ==============================================================================
+#
+# This configuration file deploys a Django web application to Render.com.
+# Django is a high-level Python web framework that encourages rapid development.
+#
+# WHAT THIS CONFIGURES:
+# - Web service running Django with Gunicorn
+# - PostgreSQL database for production
+# - Static files serving with WhiteNoise
+# - Database migrations on each deployment
+# - Health check endpoint
+#
+# PREREQUISITES:
+# 1. Django project with settings.py configured for production
+# 2. requirements.txt with gunicorn, psycopg2-binary, whitenoise, dj-database-url
+# 3. Health check endpoint at /health/
+# 4. ALLOWED_HOSTS configured to read from environment
+# 5. Static files configured with WhiteNoise
+#
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # DJANGO WEB SERVICE
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: my-django-app
+    runtime: python
+    env: python
+    region: oregon  # Options: oregon, frankfurt, singapore, ohio, virginia
+    
+    # Build Configuration
+    # Django requires collectstatic to gather all static files into STATIC_ROOT
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --no-input
+      python manage.py migrate --no-input
+    
+    # Start Command
+    # Gunicorn serves Django application
+    # Format: gunicorn [project_name].wsgi:application
+    # Replace 'myproject' with your Django project folder name
+    startCommand: gunicorn myproject.wsgi:application --bind 0.0.0.0:$PORT --workers 4
+    
+    # Plan Configuration
+    # Starter: Free tier, sleeps after inactivity
+    # Standard: $7/month, always on, better performance
+    # Pro: $25/month, 2GB RAM, 2 CPUs
+    plan: starter
+    
+    # Auto-Deploy
+    # When true, pushes to branch trigger automatic deployments
+    autoDeploy: true
+    
+    # Health Check
+    # Render pings this endpoint to verify service is running
+    # Return HTTP 200 for healthy status
+    healthCheckPath: /health/
+    
+    # Environment Variables
+    envVars:
+      # Python Version
+      - key: PYTHON_VERSION
+        value: "3.11"
+      
+      # Django Settings Module
+      # Points to your settings file (usually myproject.settings)
+      - key: DJANGO_SETTINGS_MODULE
+        value: myproject.settings
+      
+      # Secret Key
+      # CRITICAL: Generate with 'python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
+      # NEVER commit this to git!
+      - key: SECRET_KEY
+        generateValue: true  # Render generates random value
+      
+      # Debug Mode
+      # ALWAYS False in production
+      - key: DEBUG
+        value: "False"
+      
+      # Allowed Hosts
+      # Comma-separated list of domains Django will accept requests from
+      # Include your custom domain and Render domain
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,yourdomain.com"
+      
+      # Database URL
+      # Automatically provided when you add a PostgreSQL database
+      # Format: postgresql://user:password@host:5432/dbname
+      - key: DATABASE_URL
+        fromDatabase:
+          name: my-django-db
+          property: connectionString
+      
+      # Redis URL (optional)
+      # For caching and session storage
+      # - key: REDIS_URL
+      #   fromDatabase:
+      #     name: my-redis-db
+      #     property: connectionString
+      
+      # CSRF Trusted Origins
+      # Required for forms to work with custom domain
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://my-django-app.onrender.com,https://yourdomain.com"
+      
+      # Email Configuration (optional)
+      # For sending emails via SMTP
+      # - key: EMAIL_HOST
+      #   value: smtp.gmail.com
+      # - key: EMAIL_PORT
+      #   value: "587"
+      # - key: EMAIL_USE_TLS
+      #   value: "True"
+      # - key: EMAIL_HOST_USER
+      #   sync: false  # Marked as secret
+      # - key: EMAIL_HOST_PASSWORD
+      #   sync: false  # Marked as secret
+      
+      # AWS S3 Configuration (optional)
+      # For serving media files from S3
+      # - key: AWS_ACCESS_KEY_ID
+      #   sync: false
+      # - key: AWS_SECRET_ACCESS_KEY
+      #   sync: false
+      # - key: AWS_STORAGE_BUCKET_NAME
+      #   value: my-bucket
+      # - key: AWS_S3_REGION_NAME
+      #   value: us-east-1
+
+# ==============================================================================
+# DATABASES (OPTIONAL)
+# ==============================================================================
+# Uncomment to create a PostgreSQL database automatically
+# databases:
+#   - name: my-django-db
+#     databaseName: django_db
+#     user: django_user
+#     plan: starter  # Free tier: 1GB storage, 97 connection limit
+#     region: oregon  # Should match web service region
+
+# ==============================================================================
+# DEPLOYMENT CHECKLIST
+# ==============================================================================
+# Before deploying, ensure:
+#
+# 1. SETTINGS.PY CONFIGURED FOR PRODUCTION:
+#    - DEBUG = False
+#    - ALLOWED_HOSTS from environment variable
+#    - SECRET_KEY from environment variable
+#    - Database configured with dj-database-url
+#    - Static files configured with WhiteNoise
+#    - CSRF_TRUSTED_ORIGINS from environment variable
+#
+# 2. REQUIREMENTS.TXT INCLUDES:
+#    - Django>=4.2.0
+#    - gunicorn==21.2.0
+#    - psycopg2-binary==2.9.9
+#    - whitenoise==6.6.0
+#    - dj-database-url==2.1.0
+#    - python-dotenv (for local development)
+#
+# 3. HEALTH CHECK ENDPOINT:
+#    # In your urls.py:
+#    from django.http import JsonResponse
+#    from django.views.decorators.http import require_GET
+#    
+#    @require_GET
+#    def health_check(request):
+#        return JsonResponse({'status': 'healthy'}, status=200)
+#    
+#    urlpatterns = [
+#        path('health/', health_check),
+#        # ... other URLs
+#    ]
+#
+# 4. WHITENOISE CONFIGURATION (settings.py):
+#    MIDDLEWARE = [
+#        'django.middleware.security.SecurityMiddleware',
+#        'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this
+#        # ... other middleware
+#    ]
+#    
+#    STATIC_URL = '/static/'
+#    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+#    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+#
+# 5. DATABASE CONFIGURATION (settings.py):
+#    import dj_database_url
+#    
+#    DATABASES = {
+#        'default': dj_database_url.config(
+#            default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
+#            conn_max_age=600,
+#            conn_health_checks=True,
+#        )
+#    }
+#
+# 6. SECURITY SETTINGS (settings.py):
+#    SECURE_SSL_REDIRECT = True
+#    SESSION_COOKIE_SECURE = True
+#    CSRF_COOKIE_SECURE = True
+#    SECURE_BROWSER_XSS_FILTER = True
+#    SECURE_CONTENT_TYPE_NOSNIFF = True
+#    SECURE_HSTS_SECONDS = 31536000
+#    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+#    SECURE_HSTS_PRELOAD = True
+#
+# ==============================================================================
+# POST-DEPLOYMENT STEPS
+# ==============================================================================
+# After first deployment:
+#
+# 1. CREATE SUPERUSER:
+#    # SSH into your Render service (available on Pro plan)
+#    # OR use a management command:
+#    python manage.py createsuperuser --noinput --username admin --email admin@example.com
+#
+# 2. VERIFY STATIC FILES:
+#    curl https://your-app.onrender.com/static/admin/css/base.css
+#    # Should return CSS content, not 404
+#
+# 3. TEST ADMIN PANEL:
+#    https://your-app.onrender.com/admin/
+#    # Should show login page with proper styling
+#
+# 4. CHECK DATABASE MIGRATIONS:
+#    # View deploy logs to ensure migrations ran successfully
+#    python render_universal_cli.py logs tail <service-id>
+#
+# 5. CONFIGURE CUSTOM DOMAIN (optional):
+#    # In Render dashboard: Settings > Custom Domains
+#    # Add CNAME record pointing to your-app.onrender.com
+#    # SSL certificate auto-generated
+#
+# ==============================================================================
+# COMMON ISSUES & SOLUTIONS
+# ==============================================================================
+#
+# ISSUE: DisallowedHost at /
+# SOLUTION: Add your domain to ALLOWED_HOSTS environment variable
+#
+# ISSUE: Static files not loading (404 errors)
+# SOLUTION: Ensure WhiteNoise is installed and middleware is configured
+#           Run collectstatic in buildCommand
+#
+# ISSUE: CSRF verification failed
+# SOLUTION: Add domains to CSRF_TRUSTED_ORIGINS environment variable
+#           Must include https:// prefix
+#
+# ISSUE: Database connection refused
+# SOLUTION: Ensure DATABASE_URL is set correctly
+#           Check database is created and in same region
+#           Verify psycopg2-binary is in requirements.txt
+#
+# ISSUE: 502 Bad Gateway on startup
+# SOLUTION: Check Gunicorn command has correct project name
+#           Format: gunicorn [project_name].wsgi:application
+#           Check logs for Python import errors
+#
+# ==============================================================================
+# SCALING & PERFORMANCE
+# ==============================================================================
+#
+# HORIZONTAL SCALING:
+# - Upgrade plan: Standard ($7/mo) or Pro ($25/mo)
+# - Increase Gunicorn workers: --workers 4 (formula: 2 x CPU + 1)
+# - Add threads: --workers 2 --threads 4
+#
+# VERTICAL SCALING:
+# - Pro plan: 2GB RAM, 2 CPUs
+# - Pro Plus: 4GB RAM, 4 CPUs
+# - Pro Max: 8GB RAM, 8 CPUs
+#
+# DATABASE OPTIMIZATION:
+# - Enable connection pooling (conn_max_age=600)
+# - Add database indexes for frequently queried fields
+# - Use select_related() and prefetch_related() for queries
+# - Upgrade database plan for more storage/connections
+#
+# CACHING:
+# - Add Redis for caching: redis.onrender.com
+# - Configure Django cache backend in settings.py
+# - Cache expensive queries and rendered templates
+# - Use cache middleware for entire views
+#
+# MEDIA FILES:
+# - Use AWS S3 for user-uploaded files
+# - Configure django-storages with S3 backend
+# - Never store media files on Render (ephemeral storage)
+#
+# MONITORING:
+# - Use python render_universal_cli.py metrics all <service-id>
+# - Set up Sentry for error tracking
+# - Use Django Debug Toolbar locally only
+# - Monitor database query performance with django-silk
+#
+# ==============================================================================
+# EXAMPLE SETTINGS.PY FOR PRODUCTION
+# ==============================================================================
+# 
+# import os
+# import dj_database_url
+# from pathlib import Path
+# 
+# BASE_DIR = Path(__file__).resolve().parent.parent
+# 
+# # Security
+# SECRET_KEY = os.getenv('SECRET_KEY')
+# DEBUG = os.getenv('DEBUG', 'False') == 'True'
+# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+# CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+# 
+# # Database
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
+#         conn_max_age=600,
+#         conn_health_checks=True,
+#     )
+# }
+# 
+# # Static Files
+# STATIC_URL = '/static/'
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# 
+# # Middleware
+# MIDDLEWARE = [
+#     'django.middleware.security.SecurityMiddleware',
+#     'whitenoise.middleware.WhiteNoiseMiddleware',
+#     'django.contrib.sessions.middleware.SessionMiddleware',
+#     'django.middleware.common.CommonMiddleware',
+#     'django.middleware.csrf.CsrfViewMiddleware',
+#     'django.contrib.auth.middleware.AuthenticationMiddleware',
+#     'django.contrib.messages.middleware.MessageMiddleware',
+#     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+# ]
+# 
+# # Security Settings (Production Only)
+# if not DEBUG:
+#     SECURE_SSL_REDIRECT = True
+#     SESSION_COOKIE_SECURE = True
+#     CSRF_COOKIE_SECURE = True
+#     SECURE_BROWSER_XSS_FILTER = True
+#     SECURE_CONTENT_TYPE_NOSNIFF = True
+#     SECURE_HSTS_SECONDS = 31536000
+#
+# ==============================================================================

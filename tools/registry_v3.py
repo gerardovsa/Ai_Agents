@@ -519,6 +519,8 @@ class RegistryV3:
         - String: Appends feedback as text
         - Other: Wraps in dict with feedback
         
+        CRITICAL: Feedback is injected so AI MUST acknowledge it in next response
+        
         Args:
             result: Original tool result
             feedback: User feedback text
@@ -529,15 +531,24 @@ class RegistryV3:
         if not feedback:
             return result
         
-        feedback_message = f"USER GUIDANCE: {feedback}"
+        # IMPORTANT: Format feedback with clear instruction for AI to acknowledge
+        feedback_message = (
+            f"🔔 USER FEEDBACK RECEIVED: {feedback}\n\n"
+            f"⚠️ CRITICAL: You MUST acknowledge this feedback in your NEXT response to the user. "
+            f"Start your response with: '✅ Received your feedback: [brief summary]' then adjust your behavior accordingly."
+        )
         
         if isinstance(result, dict):
             # Add as new key (don't overwrite existing data)
             result['_user_feedback'] = feedback_message
+            result['_feedback_requires_acknowledgment'] = True
             return result
         elif isinstance(result, list):
             # Append as last item
-            result.append({'_user_feedback': feedback_message})
+            result.append({
+                '_user_feedback': feedback_message,
+                '_feedback_requires_acknowledgment': True
+            })
             return result
         elif isinstance(result, str):
             # Append to string
@@ -546,7 +557,8 @@ class RegistryV3:
             # Wrap in dict
             return {
                 '_original_result': result,
-                '_user_feedback': feedback_message
+                '_user_feedback': feedback_message,
+                '_feedback_requires_acknowledgment': True
             }
 
     def validate_tool_parameters(self, tool_name: str, **kwargs) -> bool:

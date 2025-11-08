@@ -34,8 +34,8 @@ stock_bp = Blueprint(
     url_prefix='/api/stock-management'
 )
 
-# SQLite stock database path
-STOCK_DB_PATH = str(Path(__file__).parent.parent.parent.parent.parent / 'data' / 'stock_data.db')
+# SQLite stock database path - Points to In_House_SQL project database
+STOCK_DB_PATH = r'C:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\stocks\stock_data.db'
 
 
 # ============================================================================
@@ -514,33 +514,88 @@ def stock_update_cell():
 @cross_origin()
 def stock_ai_analytics():
     """
-    AI Analytics - AI-powered insights and recommendations
+    AI Analytics - AI extraction statistics and insights
     Query params: days (30, 90, 180, 365)
     
     Returns:
-    - AI-generated insights
-    - Anomaly detection
-    - Recommendations
-    - Predictive trends
+    - Total AI extraction jobs
+    - Stock matching statistics
+    - Top stocks by usage frequency
+    - Match rate percentage
     """
     if request.method == 'OPTIONS':
         return '', 204
     
     try:
+        if not os.path.exists(STOCK_DB_PATH):
+            return jsonify({
+                'status': 'error',
+                'message': f'Stock database not found: {STOCK_DB_PATH}'
+            }), 503
+        
         days = int(request.args.get('days', 90))
         
-        # Placeholder response
+        conn = sqlite3.connect(STOCK_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get AI extraction statistics
+        stats_query = f"""
+        SELECT 
+            COUNT(*) as total_jobs,
+            COUNT(DISTINCT stock_id) as unique_stocks,
+            SUM(CASE WHEN stock_id IS NOT NULL THEN 1 ELSE 0 END) as matched_jobs,
+            SUM(CASE WHEN stock_id IS NULL THEN 1 ELSE 0 END) as unmatched_jobs,
+            MIN(order_date) as earliest_job,
+            MAX(order_date) as latest_job
+        FROM extracted_jobs
+        WHERE date(order_date) >= date('now', '-{days} days')
+        """
+        
+        cursor.execute(stats_query)
+        stats = dict(cursor.fetchone())
+        
+        match_rate = (stats['matched_jobs'] / stats['total_jobs'] * 100) if stats['total_jobs'] > 0 else 0
+        
+        # Get top 10 most frequently used stocks
+        top_stocks_query = f"""
+        SELECT 
+            e.stock_id,
+            u.stock_type_name,
+            COUNT(*) as usage_count,
+            SUM(COALESCE(e.total_sheets_consumed, 0)) as total_sheets
+        FROM extracted_jobs e
+        LEFT JOIN unified_stocks u ON e.stock_id = u.stock_id
+        WHERE date(e.order_date) >= date('now', '-{days} days')
+          AND e.stock_id IS NOT NULL
+        GROUP BY e.stock_id, u.stock_type_name
+        ORDER BY usage_count DESC
+        LIMIT 10
+        """
+        
+        cursor.execute(top_stocks_query)
+        top_stocks = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
         return jsonify({
             'status': 'ok',
             'days': days,
-            'total_queries': 0,
-            'total_cost': 0.00,
-            'avg_response_time': 0.0,
-            'invoice_count': 0,
-            'queries': [],
-            'message': 'AI analytics endpoint (placeholder - no AI queries tracked yet)'
+            'database': 'SQLite (stock_data.db)',
+            'total_queries': stats['total_jobs'],
+            'total_cost': 0.00,  # AI cost tracking not implemented yet
+            'avg_response_time': 0.0,  # AI timing not tracked yet
+            'invoice_count': stats['matched_jobs'],
+            'match_rate_percent': round(match_rate, 1),
+            'unique_stocks': stats['unique_stocks'],
+            'unmatched_jobs': stats['unmatched_jobs'],
+            'queries': top_stocks,
+            'date_range': {
+                'earliest': stats['earliest_job'],
+                'latest': stats['latest_job']
+            }
         })
         
     except Exception as e:
         error_details = traceback.format_exc()
+        print(f"   AI analytics failed: {error_details}")
         return jsonify({'status': 'error', 'message': str(e)}), 500

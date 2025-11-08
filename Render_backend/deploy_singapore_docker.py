@@ -34,6 +34,7 @@ import os
 import sys
 import json
 import time
+import requests
 from pathlib import Path
 
 # Add parent directory to path
@@ -131,10 +132,10 @@ class SingaporeDockerDeployer:
         service_config = {
             "type": "web_service",
             "name": "ai-agents-backend-singapore",
-            "ownerId": "usr-d1ee04kr433s73bf3nfg",  # Your Render account ID
+            "ownerId": "tea-d1bv56p5pdvs73e9iobg",  # Vet Success team
             "repo": "https://github.com/gerardovsa/Ai_Agents",  # Note: Ai_Agents (capital A)
             "autoDeploy": "yes",
-            "branch": "V2_clean",
+            "branch": "v3",
             "buildFilter": {
                 "paths": [],
                 "ignoredPaths": []
@@ -161,12 +162,12 @@ class SingaporeDockerDeployer:
         
         print("Service Configuration:")
         print(f"  Name:       {service_config['name']}")
-        print(f"  Region:     {service_config['region']} 🇸🇬")
-        print(f"  Env:        {service_config['env']}")
-        print(f"  Plan:       {service_config['plan']}")
+        print(f"  Region:     {service_config['serviceDetails']['region']} 🇸🇬")
+        print(f"  Env:        {service_config['serviceDetails']['env']}")
+        print(f"  Plan:       {service_config['serviceDetails']['plan']}")
         print(f"  Repository: {service_config['repo']}")
         print(f"  Branch:     {service_config['branch']}")
-        print(f"  Dockerfile: {service_config['dockerfilePath']}")
+        print(f"  Dockerfile: {service_config['envSpecificDetails']['docker']['dockerfilePath']}")
         
         print("\n⏳ Creating service... (this may take a few moments)")
         
@@ -187,8 +188,15 @@ class SingaporeDockerDeployer:
                 print(f"Response: {json.dumps(response, indent=2)}")
                 return False
                 
+        except requests.exceptions.HTTPError as e:
+            print(f"\n❌ Error creating service: {e}")
+            if hasattr(e.response, 'text'):
+                print(f"Error details: {e.response.text}")
+            return False
         except Exception as e:
             print(f"\n❌ Error creating service: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def wait_for_deployment(self, timeout=600):

@@ -35,7 +35,7 @@ def _get_service(user_email=None, _user_id=None, _injected_credentials=None):
     
     # No credentials provided - throw clear error
     raise Exception(
-        "❌ Google Calendar requires database OAuth!\n\n"
+        "Google Calendar requires database OAuth!\n\n"
         "File-based OAuth is no longer supported.\n"
         "All credentials must be in: data/ai_infrastructure.db (oauth_tokens table)\n\n"
         "To authenticate:\n"
@@ -66,7 +66,7 @@ class GoogleCalendarTools:
         """Get Calendar API service using DATABASE OAuth credentials ONLY"""
         if not self._user_id or not self._injected_credentials:
             raise Exception(
-                "❌ Google Calendar OAuth credentials required!\n"
+                "Google Calendar OAuth credentials required!\n"
                 "File-based OAuth (credentials_desktop.json) is no longer supported.\n"
                 "To authenticate, visit: http://localhost:5001/auth/google/login"
             )

@@ -40,6 +40,7 @@ class ModuleManager {
      * @param {string} moduleConfig.color - Icon/theme color
      * @param {string} moduleConfig.scriptPath - Path to module JS file
      * @param {Array} moduleConfig.tabs - Sub-tabs configuration
+     * @param {Array} moduleConfig.dependencies - Dependencies to load
      */
     registerModule(moduleConfig) {
         console.log(`📦 Registering module: ${moduleConfig.name}`);
@@ -68,8 +69,10 @@ class ModuleManager {
         // Create tab content container
         this.createTabContainer(moduleConfig);
 
-        // Load module script
-        this.loadModuleScript(moduleConfig);
+        // Load dependencies first, then module script
+        this.loadModuleDependencies(moduleConfig).then(() => {
+            this.loadModuleScript(moduleConfig);
+        });
 
         console.log(`Module registered: ${moduleConfig.name} (${this.modules.size} total)`);
     }
@@ -149,6 +152,80 @@ class ModuleManager {
         this.mainContent.appendChild(tabContent);
 
         console.log(`Tab container created for ${config.name}`);
+    }
+
+    /**
+     * Load module dependencies (CSS/JS files)
+     */
+    async loadModuleDependencies(config) {
+        // Check if dependencies exist and is an array
+        if (!config.dependencies || !Array.isArray(config.dependencies) || config.dependencies.length === 0) {
+            console.log(`📦 No dependencies for ${config.name}`);
+            return;
+        }
+
+        console.log(`📦 Loading ${config.dependencies.length} dependencies for ${config.name}...`);
+
+        const loadPromises = config.dependencies.map(async (dep) => {
+            // Skip if already loaded
+            const selector = dep.endsWith('.css')
+                ? `link[href*="${dep.split('/').pop().split('?')[0]}"]`
+                : `script[src*="${dep.split('/').pop().split('?')[0]}"]`;
+
+            if (document.querySelector(selector)) {
+                console.log(`⏭️ Already loaded: ${dep}`);
+                return;
+            }
+
+            // Load CSS or JS
+            if (dep.endsWith('.css')) {
+                return this.loadCSS(dep);
+            } else {
+                return this.loadJS(dep);
+            }
+        });
+
+        await Promise.all(loadPromises);
+        console.log(`✅ All dependencies loaded for ${config.name}`);
+    }
+
+    /**
+     * Load CSS file
+     */
+    loadCSS(url) {
+        return new Promise((resolve, reject) => {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = url;
+            link.onload = () => {
+                console.log(`✅ CSS loaded: ${url}`);
+                resolve();
+            };
+            link.onerror = () => {
+                console.warn(`⚠️ Failed to load CSS: ${url}`);
+                resolve(); // Don't reject, continue anyway
+            };
+            document.head.appendChild(link);
+        });
+    }
+
+    /**
+     * Load JS file
+     */
+    loadJS(url) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = url;
+            script.onload = () => {
+                console.log(`✅ JS loaded: ${url}`);
+                resolve();
+            };
+            script.onerror = () => {
+                console.warn(`⚠️ Failed to load JS: ${url}`);
+                resolve(); // Don't reject, continue anyway
+            };
+            document.head.appendChild(script);
+        });
     }
 
     /**
