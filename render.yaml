@@ -4,7 +4,7 @@
 # Region: Singapore (optimized for Australia)
 # Deployment Type: Docker
 # Repository: gerardovsa/AI_agents
-# Branch: V2_clean
+# Branch: v3
 
 services:
   # ==================== AI Agents Backend Service ====================
@@ -16,7 +16,7 @@ services:
     
     # Repository configuration
     repo: https://github.com/gerardovsa/AI_agents
-    branch: V2_clean
+    branch: v3
     rootDir: .
     
     # Docker configuration
