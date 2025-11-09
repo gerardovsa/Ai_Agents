@@ -29,6 +29,14 @@ services:
     # Health check endpoint
     healthCheckPath: /health
     
+    # ==================== Persistent Disk (10GB) ====================
+    # Mounts to /data for SQLite databases
+    # Cost: $2.50/month (10GB @ $0.25/GB)
+    disk:
+      name: ai-agents-data
+      mountPath: /data
+      sizeGB: 10
+    
     # ==================== Environment Variables ====================
     envVars:
       # Flask configuration
@@ -88,15 +96,16 @@ services:
         value: https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/calendar.readonly
       
       # ==================== Database Configuration ====================
-      # SQLite databases created automatically in container
+      # SQLite databases stored on persistent disk (10GB mounted at /data)
+      # Survives deployments and restarts
       - key: DATABASE_PATH
-        value: /app/data/ai_infrastructure.db
+        value: /data/ai_infrastructure.db
       
       - key: SESSION_DB_PATH
-        value: /app/data/sessions.db
+        value: /data/sessions.db
       
       - key: SYNERGY_DB_PATH
-        value: /app/data/synergy_sessions.db
+        value: /data/synergy_sessions.db
       
       # ==================== Flask Secret Key ====================
       # Generate new key: python -c "import secrets; print(secrets.token_hex(32))"

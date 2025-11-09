@@ -14,12 +14,17 @@ class Config:
     # Base paths
     BASE_DIR = Path(__file__).parent  # AI_infrastructure folder
     ROOT_DIR = BASE_DIR.parent  # AI_agents folder
-    DATA_DIR = ROOT_DIR / 'data'  # Centralized data folder
     
-    # Database config - ALWAYS use AI_agents/data/ for this project
+    # Data directory: Use Render persistent disk in production, local data/ in development
+    if os.environ.get('RENDER') == 'true':
+        DATA_DIR = Path('/data')  # Render persistent disk mount point
+    else:
+        DATA_DIR = ROOT_DIR / 'data'  # Local development
+    
+    # Database config
     DB_CONFIG_PATH = DATA_DIR / 'database-config.json'
     
-    # All databases in centralized data folder
+    # All databases in centralized data folder (persistent on Render)
     SESSION_DB_PATH = DATA_DIR / 'sessions.db'
     AI_INFRASTRUCTURE_DB_PATH = DATA_DIR / 'ai_infrastructure.db'
     SYNERGY_DB_PATH = DATA_DIR / 'synergy_sessions.db'

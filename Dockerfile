@@ -28,8 +28,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy entire application (includes data/database-config.json via .dockerignore exception)
 COPY . .
 
-# Ensure data directory exists for runtime database creation
-RUN mkdir -p /app/data
+# Ensure data directories exist
+# /app/data - for local config file
+# /data - for Render persistent disk mount point
+RUN mkdir -p /app/data /data
+
+# Make startup script executable
+RUN chmod +x startup.sh
 
 # Add application directories to Python path
 # This ensures tools, implementations, and infrastructure modules can be imported
@@ -47,6 +52,6 @@ EXPOSE 5001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT:-5001}/health || exit 1
 
-# Run Flask app
+# Run startup script (handles persistent disk initialization + Flask app)
 # Note: Render sets PORT environment variable to 10000
-CMD ["python", "AI_infrastructure/flask_app.py"]
+CMD ["./startup.sh"]
