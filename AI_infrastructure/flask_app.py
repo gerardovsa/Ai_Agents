@@ -91,7 +91,16 @@ from routes.account_linking_routes import account_linking_bp  # NEW: Account lin
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
 from routes.database_visualizer_routes import database_visualizer_bp  # NEW: Database visualizer module
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
-from routes.inhouse_kanban_routes import inhouse_kanban_bp  # NEW: InHousePrint production workflow
+
+# Optional: InHousePrint production workflow (requires pymssql)
+try:
+    from routes.inhouse_kanban_routes import inhouse_kanban_bp
+    INHOUSE_KANBAN_AVAILABLE = True
+except ImportError as e:
+    print(f"ℹ️  [InHouse Kanban] Module not available: {e}")
+    inhouse_kanban_bp = None
+    INHOUSE_KANBAN_AVAILABLE = False
+
 from routes.kanban_analytics_routes import kanban_analytics_bp  # NEW: Kanban Analytics (SQLite database with custom metrics)
 from routes.production_log_routes import production_log_bp  # NEW: Production Log (comprehensive job tracking)
 from routes.user_preferences_routes import user_preferences_bp  # NEW: User personalization preferences
@@ -116,7 +125,8 @@ app.register_blueprint(account_linking_bp)                           # NEW: Acco
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
 app.register_blueprint(database_visualizer_bp)                       # NEW: Database visualizer (5 endpoints)
 app.register_blueprint(synergy_bp)                                   # NEW: Synergy Dashboard (6 endpoints: /api/synergy/*)
-app.register_blueprint(inhouse_kanban_bp)                            # NEW: InHousePrint production workflow (5 endpoints)
+if INHOUSE_KANBAN_AVAILABLE:
+    app.register_blueprint(inhouse_kanban_bp)                        # NEW: InHousePrint production workflow (5 endpoints)
 app.register_blueprint(kanban_analytics_bp)                          # NEW: Kanban Analytics SQLite (15 endpoints: /api/kanban-analytics/*)
 app.register_blueprint(production_log_bp)                            # NEW: Production Log (10 endpoints: /api/production-log/*)
 app.register_blueprint(user_preferences_bp)                          # NEW: User preferences (2 endpoints: /api/user/preferences)
