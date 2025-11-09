@@ -25,13 +25,22 @@ RUN apt-get update && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy entire application (includes data/database-config.json via .dockerignore exception)
+# Copy entire application
 COPY . .
 
 # Ensure data directories exist
 # /app/data - for local config file
 # /data - for Render persistent disk mount point
 RUN mkdir -p /app/data /data
+
+# Copy database-config.json to /app/data if it exists in the build context
+# Startup script will copy this to persistent disk on first run
+RUN if [ -f data/database-config.json ]; then \
+        echo "Copying database-config.json to /app/data"; \
+        cp data/database-config.json /app/data/database-config.json; \
+    else \
+        echo "Warning: database-config.json not found, will be created at runtime"; \
+    fi
 
 # Make startup script executable
 RUN chmod +x startup.sh

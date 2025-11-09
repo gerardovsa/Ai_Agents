@@ -15,8 +15,32 @@ if [ "$RENDER" = "true" ]; then
     # Copy database-config.json to persistent disk if it doesn't exist
     if [ ! -f "/data/database-config.json" ]; then
         echo "→ Initializing persistent disk..."
-        echo "  Copying database-config.json to /data"
-        cp /app/data/database-config.json /data/database-config.json
+        
+        # Try multiple possible locations for the config file
+        if [ -f "/app/data/database-config.json" ]; then
+            echo "  Copying database-config.json from /app/data to /data"
+            cp /app/data/database-config.json /data/database-config.json
+        elif [ -f "./data/database-config.json" ]; then
+            echo "  Copying database-config.json from ./data to /data"
+            cp ./data/database-config.json /data/database-config.json
+        else
+            echo "  Creating default database-config.json in /data"
+            cat > /data/database-config.json << 'EOF'
+{
+    "database": {
+        "type": "sqlite",
+        "path": "ai_infrastructure.db"
+    },
+    "AI": {
+        "AnthropicAPIKey": "",
+        "Model": "claude-sonnet-4-20250514",
+        "MaxTokens": 8096,
+        "DeepSeekAPIKey": "",
+        "OpenAIAPIKey": ""
+    }
+}
+EOF
+        fi
         echo "✓ Persistent disk initialized"
     else
         echo "✓ Persistent disk already initialized"
