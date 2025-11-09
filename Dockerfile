@@ -11,6 +11,8 @@ WORKDIR /app
 # - git: For potential git operations in tools
 # - build-essential: For compiling Python packages with C extensions
 # - unixodbc unixodbc-dev: For pyodbc SQL Server connections
+# - freetds-dev: For pymssql SQL Server connections
+# - tesseract-ocr: For pytesseract OCR text extraction
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
@@ -18,6 +20,8 @@ RUN apt-get update && \
     build-essential \
     unixodbc \
     unixodbc-dev \
+    freetds-dev \
+    tesseract-ocr \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -36,10 +40,10 @@ RUN mkdir -p /app/data /data
 # Copy database-config.json to /app/data if it exists in the build context
 # Startup script will copy this to persistent disk on first run
 RUN if [ -f data/database-config.json ]; then \
-        echo "Copying database-config.json to /app/data"; \
-        cp data/database-config.json /app/data/database-config.json; \
+    echo "Copying database-config.json to /app/data"; \
+    cp data/database-config.json /app/data/database-config.json; \
     else \
-        echo "Warning: database-config.json not found, will be created at runtime"; \
+    echo "Warning: database-config.json not found, will be created at runtime"; \
     fi
 
 # Make startup script executable
