@@ -108,6 +108,8 @@ data/*.db
 data/*.sqlite
 AI_infrastructure/*.db
 AI_infrastructure/data/*.db
+# BUT ALLOW database-config.json (not a database, it's a config file)
+!data/database-config.json
 
 # ========================================
 # Documentation & Markdown
