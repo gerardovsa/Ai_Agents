@@ -25,10 +25,10 @@ RUN apt-get update && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy entire application
+# Copy entire application (includes data/database-config.json via .dockerignore exception)
 COPY . .
 
-# Create data directory for databases
+# Ensure data directory exists for runtime database creation
 RUN mkdir -p /app/data
 
 # Add application directories to Python path

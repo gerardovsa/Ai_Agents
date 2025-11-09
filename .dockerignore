@@ -57,13 +57,15 @@ venv.bak/
 config.py
 **/service-account*.json
 **/azure_ad_app_config.json
-**/credentials*.json
-**/*_credentials*.json
+**/credentials.json
+**/*_credentials.json
 **/client_secret*.json
 **/*.pem
 **/*.key
 **/*.p12
 **/*.pfx
+# EXCEPTION: Allow database-config.json (uses env vars, no secrets)
+!data/database-config.json
 
 # ========================================
 # IDE & Editor Files
