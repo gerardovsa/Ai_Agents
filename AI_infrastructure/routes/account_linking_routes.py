@@ -79,20 +79,21 @@ def init_account_linking_tables():
         )
     ''')
     
+    # DEPRECATED 2025-11-10: Table removed, feature not used (0 rows)
     # Table for pending link requests
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS account_link_requests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            target_email TEXT NOT NULL,
-            link_token TEXT UNIQUE NOT NULL,
-            request_type TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            expires_at TIMESTAMP NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    ''')
+    # cursor.execute('''
+    #     CREATE TABLE IF NOT EXISTS account_link_requests (
+    #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+    #         user_id INTEGER NOT NULL,
+    #         target_email TEXT NOT NULL,
+    #         link_token TEXT UNIQUE NOT NULL,
+    #         request_type TEXT NOT NULL,
+    #         status TEXT DEFAULT 'pending',
+    #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    #         expires_at TIMESTAMP NOT NULL,
+    #         FOREIGN KEY (user_id) REFERENCES users(id)
+    #     )
+    # ''')
     
     # Add is_primary field to users table if not exists
     try:

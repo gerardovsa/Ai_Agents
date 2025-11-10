@@ -21841,6 +21841,9 @@
         .form-section {
             margin-top: var(--space-4);
             padding-top: var(--space-4);
+        }
+        
+        .form-section:not(:first-child) {
             border-top: 1px solid var(--border-muted);
         }
 
@@ -24471,7 +24474,8 @@
                         return `<div class="threads-error"><i class="fas fa-exclamation-triangle"></i> ${threadIds.length} thread(s) linked</div>`;
                     }
 
-                    const threads = await response.json();
+                    const result = await response.json();
+                    const threads = result.data || result; // Handle both {success, data} format and direct array
 
                     if (!threads || threads.length === 0) {
                         return '<div class="no-threads"><i class="fas fa-link-slash"></i> No threads found</div>';

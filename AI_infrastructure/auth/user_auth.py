@@ -156,22 +156,23 @@ class UserAuthManager:
                 )
             ''')
             
+            # DEPRECATED 2025-11-10: Migrated to oauth_tokens table
             # Gmail accounts linked to users
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_gmail_accounts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    gmail_address TEXT NOT NULL,
-                    display_name TEXT,
-                    access_token TEXT,
-                    refresh_token TEXT,
-                    token_expiry TIMESTAMP,
-                    is_primary BOOLEAN DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                    UNIQUE(user_id, gmail_address)
-                )
-            ''')
+            # cursor.execute('''
+            #     CREATE TABLE IF NOT EXISTS user_gmail_accounts (
+            #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+            #         user_id INTEGER NOT NULL,
+            #         gmail_address TEXT NOT NULL,
+            #         display_name TEXT,
+            #         access_token TEXT,
+            #         refresh_token TEXT,
+            #         token_expiry TIMESTAMP,
+            #         is_primary BOOLEAN DEFAULT 0,
+            #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            #         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            #         UNIQUE(user_id, gmail_address)
+            #     )
+            # ''')
             
             # User sessions (JWT tokens)
             cursor.execute('''
@@ -187,23 +188,24 @@ class UserAuthManager:
                 )
             ''')
             
+            # DEPRECATED 2025-11-10: Replaced by oauth_tokens table
             # NEW: Platform credentials table (stores API keys/tokens per user per platform)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_platform_credentials (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    platform TEXT NOT NULL,
-                    credential_type TEXT NOT NULL,
-                    credential_key TEXT NOT NULL,
-                    credential_value TEXT NOT NULL,
-                    is_active BOOLEAN DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    metadata TEXT,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                    UNIQUE(user_id, platform, credential_key)
-                )
-            ''')
+            # cursor.execute('''
+            #     CREATE TABLE IF NOT EXISTS user_platform_credentials (
+            #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+            #         user_id INTEGER NOT NULL,
+            #         platform TEXT NOT NULL,
+            #         credential_type TEXT NOT NULL,
+            #         credential_key TEXT NOT NULL,
+            #         credential_value TEXT NOT NULL,
+            #         is_active BOOLEAN DEFAULT 1,
+            #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            #         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            #         metadata TEXT,
+            #         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            #         UNIQUE(user_id, platform, credential_key)
+            #     )
+            # ''')
             
             # Update workspaces table to link to users
             cursor.execute('''
@@ -573,25 +575,14 @@ class UserAuthManager:
             return {'success': False, 'error': str(e)}
     
     def get_user_gmail_accounts(self, user_id: int) -> List[Dict]:
-        """Get all Gmail accounts linked to user"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT gmail_address, display_name, is_primary, created_at
-                FROM user_gmail_accounts
-                WHERE user_id = ?
-                ORDER BY is_primary DESC, created_at ASC
-            ''', (user_id,))
-            
-            return [
-                {
-                    'email': row[0],
-                    'display_name': row[1] or row[0],
-                    'is_primary': bool(row[2]),
-                    'created_at': row[3]
-                }
-                for row in cursor.fetchall()
-            ]
+        """
+        DEPRECATED 2025-11-10: user_gmail_accounts table removed
+        Gmail OAuth tokens now stored in oauth_tokens table (ai_infrastructure.db)
+        Returns empty list for backward compatibility
+        """
+        # DEPRECATED: user_gmail_accounts table deleted as part of OAuth migration
+        # All Gmail/Google OAuth tokens now in oauth_tokens table
+        return []
     
     def get_user_workspace(self, user_id: int) -> Optional[int]:
         """Get user's default workspace ID"""

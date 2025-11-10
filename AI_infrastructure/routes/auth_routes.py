@@ -198,10 +198,15 @@ def get_gmail_accounts():
     
     GET /api/auth/gmail-accounts
     Headers: Authorization: Bearer <token>
+    
+    DEPRECATED: Gmail accounts now in oauth_tokens table (ai_infrastructure.db)
+    Returns empty list for backward compatibility
     """
     try:
         user_id = request.user['user_id']
-        accounts = user_auth_manager.get_user_gmail_accounts(user_id)
+        # DEPRECATED: user_gmail_accounts table removed 2025-11-10
+        # Gmail OAuth tokens now in oauth_tokens table
+        accounts = []  # Return empty list instead of querying deleted table
         
         return jsonify({
             'success': True,
@@ -225,8 +230,9 @@ def get_profile():
     try:
         user_id = request.user['user_id']
         
-        # Get Gmail accounts
-        gmail_accounts = user_auth_manager.get_user_gmail_accounts(user_id)
+        # DEPRECATED: Gmail accounts now in oauth_tokens table
+        # Return empty list for backward compatibility
+        gmail_accounts = []  # user_gmail_accounts table removed 2025-11-10
         
         # Get workspace
         workspace_id = user_auth_manager.get_user_workspace(user_id)

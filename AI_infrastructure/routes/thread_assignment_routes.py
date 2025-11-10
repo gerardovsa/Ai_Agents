@@ -39,9 +39,9 @@ thread_assignment_bp = Blueprint('thread_assignments', __name__)
 
 
 def get_db_connection():
-    """Get connection to sessions.db"""
+    """Get connection to ai_infrastructure.db (where users table is)"""
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'sessions.db'
+    db_path = root_dir / 'data' / 'ai_infrastructure.db'
     
     print(f'🔷 [Thread Assignments] Using: {db_path}')
     
@@ -78,9 +78,9 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
     if not cursor.fetchone():
         logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
         cursor.execute("""
-            INSERT INTO users (id, username, email, created_at, last_active, metadata)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
-        """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local'])
+            INSERT INTO users (id, username, email, password_hash, created_at, last_active, metadata)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+        """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'])
         conn.commit()
     
     # Get existing metadata

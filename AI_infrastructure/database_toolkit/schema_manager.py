@@ -57,37 +57,39 @@ class SchemaManager:
         # ============================================================
         # PLATFORM CREDENTIALS & OAUTH
         # ============================================================
-        "user_platform_credentials": """
-            CREATE TABLE IF NOT EXISTS user_platform_credentials (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                platform TEXT NOT NULL,
-                credential_type TEXT NOT NULL,
-                credential_key TEXT,
-                credential_value TEXT,
-                is_active BOOLEAN DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                metadata TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                UNIQUE(user_id, platform, credential_type)
-            )
-        """,
+        # DEPRECATED: Commented out 2025-11-10 - Migrated to oauth_tokens table
+        # "user_platform_credentials": """
+        #     CREATE TABLE IF NOT EXISTS user_platform_credentials (
+        #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        #         user_id INTEGER NOT NULL,
+        #         platform TEXT NOT NULL,
+        #         credential_type TEXT NOT NULL,
+        #         credential_key TEXT,
+        #         credential_value TEXT,
+        #         is_active BOOLEAN DEFAULT 1,
+        #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        #         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        #         metadata TEXT,
+        #         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        #         UNIQUE(user_id, platform, credential_type)
+        #     )
+        # """,
         
-        "user_gmail_accounts": """
-            CREATE TABLE IF NOT EXISTS user_gmail_accounts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                gmail_address TEXT UNIQUE NOT NULL,
-                display_name TEXT,
-                access_token TEXT,
-                refresh_token TEXT,
-                token_expiry TIMESTAMP,
-                is_primary BOOLEAN DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
-        """,
+        # DEPRECATED: Commented out 2025-11-10 - Migrated to oauth_tokens table
+        # "user_gmail_accounts": """
+        #     CREATE TABLE IF NOT EXISTS user_gmail_accounts (
+        #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        #         user_id INTEGER NOT NULL,
+        #         gmail_address TEXT UNIQUE NOT NULL,
+        #         display_name TEXT,
+        #         access_token TEXT,
+        #         refresh_token TEXT,
+        #         token_expiry TIMESTAMP,
+        #         is_primary BOOLEAN DEFAULT 0,
+        #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        #         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        #     )
+        # """,
         
         "user_email_aliases": """
             CREATE TABLE IF NOT EXISTS user_email_aliases (
@@ -138,19 +140,20 @@ class SchemaManager:
             )
         """,
         
-        "account_link_requests": """
-            CREATE TABLE IF NOT EXISTS account_link_requests (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                target_email TEXT NOT NULL,
-                link_token TEXT UNIQUE NOT NULL,
-                request_type TEXT DEFAULT 'gmail',
-                status TEXT DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                expires_at TIMESTAMP NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
-        """,
+        # DEPRECATED: Commented out 2025-11-10 - Feature not used (0 rows)
+        # "account_link_requests": """
+        #     CREATE TABLE IF NOT EXISTS account_link_requests (
+        #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        #         user_id INTEGER NOT NULL,
+        #         target_email TEXT NOT NULL,
+        #         link_token TEXT UNIQUE NOT NULL,
+        #         request_type TEXT DEFAULT 'gmail',
+        #         status TEXT DEFAULT 'pending',
+        #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        #         expires_at TIMESTAMP NOT NULL,
+        #         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        #     )
+        # """,
         
         # ============================================================
         # KANBAN TASK SYNC (Future Feature)
