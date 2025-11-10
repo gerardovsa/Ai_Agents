@@ -10,18 +10,18 @@ services:
   # ==================== AI Agents Backend Service ====================
   - type: web
     name: ai-agents-backend
-    env: docker
+    env: python
     region: singapore  # 🇸🇬 CLOSEST TO AUSTRALIA (~100-150ms latency)
     plan: starter  # $7/month (can downgrade to free after testing)
     
     # Repository configuration
     repo: https://github.com/gerardovsa/AI_agents
-    branch: v3
+    branch: v3-clean-deploy
     rootDir: .
     
-    # Docker configuration
-    dockerfilePath: ./Dockerfile
-    dockerContext: ./
+    # Python configuration
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn AI_infrastructure.flask_app:app --bind 0.0.0.0:$PORT
     
     # Deployment settings
     autoDeploy: true  # Auto-deploy on git push
