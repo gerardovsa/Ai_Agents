@@ -1,0 +1,156 @@
+# ========================================
+# AI Agents Platform - Render.com Configuration
+# ========================================
+# Region: Singapore (optimized for Australia)
+# Deployment Type: Docker
+# Repository: gerardovsa/AI_agents
+# Branch: v3
+
+services:
+  # ==================== AI Agents Backend Service ====================
+  - type: web
+    name: ai-agents-backend
+    env: docker
+    region: singapore  # 🇸🇬 CLOSEST TO AUSTRALIA (~100-150ms latency)
+    plan: starter  # $7/month (can downgrade to free after testing)
+    
+    # Repository configuration
+    repo: https://github.com/gerardovsa/AI_agents
+    branch: v3
+    rootDir: .
+    
+    # Docker configuration
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    
+    # Deployment settings
+    autoDeploy: true  # Auto-deploy on git push
+    
+    # Health check endpoint
+    healthCheckPath: /health
+    
+    # ==================== Persistent Disk (10GB) ====================
+    # Mounts to /data for SQLite databases
+    # Cost: $2.50/month (10GB @ $0.25/GB)
+    disk:
+      name: ai-agents-data
+      mountPath: /data
+      sizeGB: 10
+    
+    # ==================== Environment Variables ====================
+    envVars:
+      # Flask configuration
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      
+      - key: RENDER
+        value: "true"
+      
+      - key: ENVIRONMENT
+        value: "production"
+      
+      - key: PORT
+        value: "10000"  # Render default port
+      
+      # ==================== AI Provider API Keys ====================
+      # Note: Add these manually in Render dashboard after deployment
+      # Dashboard: https://dashboard.render.com/web/srv-xxxxx/env
+      
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Will add manually (keeps secrets out of git)
+      
+      - key: OPENAI_API_KEY
+        sync: false
+      
+      - key: DEEPSEEK_API_KEY_1
+        sync: false
+      
+      # ==================== Microsoft OAuth ====================
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      
+      - key: MICROSOFT_TENANT_ID
+        value: common
+      
+      # ==================== Google OAuth ====================
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      
+      - key: GOOGLE_OAUTH_MODE
+        value: web  # Use web mode for production (not desktop)
+      
+      # Update this after deployment with your Render URL
+      - key: GOOGLE_REDIRECT_URI
+        value: https://ai-agents-backend.onrender.com/api/auth/google/callback
+      
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        value: https://ai-agents-backend.onrender.com/oauth2callback
+      
+      - key: GOOGLE_OAUTH_SCOPES
+        value: https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/calendar.readonly
+      
+      # ==================== Database Configuration ====================
+      # SQLite databases stored on persistent disk (10GB mounted at /data)
+      # Survives deployments and restarts
+      - key: DATABASE_PATH
+        value: /data/ai_infrastructure.db
+      
+      - key: SESSION_DB_PATH
+        value: /data/sessions.db
+      
+      - key: SYNERGY_DB_PATH
+        value: /data/synergy_sessions.db
+      
+      # ==================== Flask Secret Key ====================
+      # Generate new key: python -c "import secrets; print(secrets.token_hex(32))"
+      - key: SECRET_KEY
+        sync: false  # Add manually in dashboard
+      
+      # ==================== CORS Configuration ====================
+      - key: CORS_ORIGINS
+        value: "*"  # Update with your frontend URL after deployment
+
+# ========================================
+# Post-Deployment Steps
+# ========================================
+# 1. Add environment variables in Render dashboard:
+#    - ANTHROPIC_API_KEY
+#    - OPENAI_API_KEY
+#    - DEEPSEEK_API_KEY_1
+#    - MICROSOFT_CLIENT_ID
+#    - MICROSOFT_CLIENT_SECRET
+#    - GOOGLE_OAUTH_CLIENT_ID
+#    - GOOGLE_OAUTH_CLIENT_SECRET
+#    - SECRET_KEY
+#
+# 2. Update OAuth redirect URLs:
+#    - Google Cloud Console: Add https://ai-agents-backend-xxxx.onrender.com/api/auth/google/callback
+#    - Microsoft Azure Portal: Add https://ai-agents-backend-xxxx.onrender.com/api/auth/microsoft/callback
+#
+# 3. Test deployment:
+#    - python Render_backend/test_deployment.py https://ai-agents-backend-xxxx.onrender.com
+#
+# 4. Monitor service:
+#    - python Render_backend/monitor_deployment.py srv-xxxxx
+#
+# ========================================
+# Cost Optimization
+# ========================================
+# Starter Plan: $7/month
+#   - Always-on (no spin down)
+#   - Better performance
+#   - Dedicated resources
+#
+# Free Plan: $0/month (downgrade after testing)
+#   - Spins down after 15 min inactivity
+#   - 1-2 min cold start
+#   - 750 hours/month free
+#
+# Downgrade command:
+#   python Render_backend/downgrade_to_free.py srv-xxxxx

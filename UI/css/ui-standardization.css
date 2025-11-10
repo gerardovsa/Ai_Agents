@@ -1,0 +1,887 @@
+/**
+ * UI Standardization System
+ * Version: 1.0.0
+ * Last Updated: November 7, 2025
+ * 
+ * Universal, adaptable UI components for consistent design across all modules
+ * Based on user feedback: compact metrics, larger subtabs, centered headers, less rounded buttons
+ */
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES - Design Tokens
+   ============================================================================= */
+
+:root {
+    /* Typography Scale - Adjusted for better hierarchy */
+    --font-size-xs: 11px;
+    --font-size-sm: 13px;
+    --font-size-md: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 20px;
+    /* Larger for subtabs */
+    --font-size-xxl: 28px;
+    --font-size-xxxl: 36px;
+
+    /* Font Family - Roboto everywhere */
+    --font-family: 'Roboto', Arial, sans-serif;
+
+    /* Spacing Scale */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+
+    /* Border Radius - Less rounded per user request */
+    --border-radius-sm: 4px;
+    --border-radius-md: 6px;
+    --border-radius-lg: 8px;
+
+    /* Colors - NO PURPLE/INDIGO */
+    --primary-color: #3b82f6;
+    /* Blue instead of purple */
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+
+    /* Backgrounds - Darker cards */
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #161616;
+    --bg-tertiary: #1e1e1e;
+    --card-background: #1a1d23;
+    /* Darker */
+
+    /* Borders */
+    --border-default: #444;
+    --border-hover: #666;
+
+    /* Text */
+    --text-primary: #ffffff;
+    --text-secondary: #b8bcc8;
+    /* Brighter secondary text */
+    --text-tertiary: #666;
+
+    /* Effects */
+    --hover-overlay: rgba(255, 255, 255, 0.1);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Global font family */
+* {
+    font-family: var(--font-family);
+}
+
+/* =============================================================================
+   1. METRIC CARDS - Compact stat display with left border and icon
+   ============================================================================= */
+
+.metric-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    padding: 0;
+    /* Remove all padding */
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 85px;
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--primary-color);
+}
+
+.metric-card.success::before {
+    background: var(--success-color);
+}
+
+.metric-card.error::before {
+    background: var(--error-color);
+}
+
+.metric-card.warning::before {
+    background: var(--warning-color);
+}
+
+.metric-card.info::before {
+    background: var(--info-color);
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.metric-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-left: var(--space-3);
+    /* Space from left edge */
+}
+
+.metric-icon.primary {
+    background: rgba(59, 130, 246, 0.15);
+    /* Blue, not purple */
+    color: var(--primary-color);
+}
+
+.metric-icon.success {
+    background: rgba(40, 167, 69, 0.15);
+    color: var(--success-color);
+}
+
+.metric-icon.error {
+    background: rgba(220, 53, 69, 0.15);
+    color: var(--error-color);
+}
+
+.metric-icon.warning {
+    background: rgba(255, 193, 7, 0.15);
+    color: var(--warning-color);
+}
+
+.metric-icon.info {
+    background: rgba(23, 162, 184, 0.15);
+    color: var(--info-color);
+}
+
+.metric-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-right: var(--space-3);
+    /* Space from right edge */
+}
+
+.metric-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.metric-value {
+    font-size: var(--font-size-xl);
+    /* 20px - reduced from 28px */
+    font-weight: 700;
+    color: #ffffff;
+    /* Brighter - pure white */
+    line-height: 1.1;
+}
+
+.metric-footer {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.metric-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.metric-change.positive {
+    color: var(--success-color);
+}
+
+.metric-change.negative {
+    color: var(--error-color);
+}
+
+.metric-change.neutral {
+    color: var(--text-secondary);
+}
+
+.metric-footer .divider {
+    color: var(--border-default);
+}
+
+/* =============================================================================
+   2. METRIC GRID - Responsive grid with min 4 columns
+   ============================================================================= */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+/* Force minimum 4 columns on large screens */
+@media (min-width: 1400px) {
+    .metrics-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width: 1800px) {
+    .metrics-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* =============================================================================
+   3. SUBTAB NAVIGATION - Larger text, consistent styling
+   ============================================================================= */
+
+.subtab-nav {
+    display: flex;
+    gap: var(--space-2);
+    border-bottom: 2px solid var(--border-default);
+    margin-bottom: var(--space-5);
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.subtab-btn {
+    padding: var(--space-3) var(--space-4);
+    background: none;
+    border: none;
+    color: #b8bcc8;
+    /* Brighter text */
+    font-size: var(--font-size-lg);
+    /* Larger as requested */
+    font-weight: 500;
+    /* Medium weight, not bold */
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    position: relative;
+    margin-bottom: -2px;
+}
+
+.subtab-btn:hover {
+    color: var(--text-primary);
+    background: var(--hover-overlay);
+}
+
+.subtab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: 600;
+}
+
+.subtab-btn i {
+    margin-right: var(--space-2);
+}
+
+/* =============================================================================
+   4. SECTION HEADERS - Centered with clean borders
+   ============================================================================= */
+
+.section-header {
+    text-align: center;
+    margin-bottom: var(--space-5);
+    position: relative;
+}
+
+.section-header::before,
+.section-header::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: calc(50% - 200px);
+    height: 1px;
+    background: var(--border-default);
+}
+
+.section-header::before {
+    left: 0;
+}
+
+.section-header::after {
+    right: 0;
+}
+
+.section-title {
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    /* Medium weight as requested */
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0 var(--space-2);
+    /*    background: var(--bg-primary); */
+    position: relative;
+    z-index: 1;
+}
+
+.section-title i {
+    color: var(--primary-color);
+}
+
+.section-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-top: var(--space-2);
+}
+
+/* =============================================================================
+   5. ACTION BAR - Timeline, refresh, filters row
+   ============================================================================= */
+
+.action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    /* Normal padding */
+    background: var(--card-background);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.action-bar-left,
+.action-bar-center,
+.action-bar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.action-bar-center {
+    flex: 1;
+    justify-content: center;
+}
+
+/* =============================================================================
+   6. BUTTONS - Less rounded, consistent sizing
+   ============================================================================= */
+
+.btn {
+    padding: var(--space-2) var(--space-4);
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    /* Less rounded */
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    white-space: nowrap;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+    opacity: 0.9;
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Remove btn-sm and btn-lg - only normal buttons */
+.btn.btn-sm,
+.btn.btn-lg {
+    padding: var(--space-2) var(--space-4);
+    /* Force normal size */
+    font-size: var(--font-size-md);
+    /* Force normal font */
+}
+
+.btn.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+}
+
+.btn.btn-success {
+    background: var(--success-color);
+}
+
+.btn.btn-error {
+    background: var(--error-color);
+}
+
+.btn.btn-warning {
+    background: var(--warning-color);
+    color: #000;
+}
+
+.btn.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+}
+
+.btn.btn-ghost:hover {
+    background: var(--hover-overlay);
+    color: var(--text-primary);
+}
+
+.btn i {
+    font-size: 0.9em;
+}
+
+/* =============================================================================
+   7. FILTER ROW - Consistent filter button styling
+   ============================================================================= */
+
+.filter-row {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.filter-btn:hover {
+    background: var(--hover-overlay);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.filter-btn i {
+    font-size: 0.9em;
+}
+
+/* =============================================================================
+   8. EXPANDERS - Collapsible sections
+   ============================================================================= */
+
+.expander {
+    background: var(--card-background);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--space-3);
+    overflow: hidden;
+}
+
+.expander-header {
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.expander-header:hover {
+    background: var(--hover-overlay);
+}
+
+.expander-title {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.expander-toggle {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.expander.expanded .expander-toggle {
+    transform: rotate(180deg);
+}
+
+.expander-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.expander.expanded .expander-content {
+    max-height: 5000px;
+    padding: var(--space-4);
+    border-top: 1px solid var(--border-default);
+}
+
+/* =============================================================================
+   9. DASHBOARD CARD - Standard container
+   ============================================================================= */
+
+.dashboard-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.card-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.card-actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.card-body {
+    /* Content goes here */
+}
+
+.card-footer {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-default);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* =============================================================================
+   10. FORM INPUTS - Consistent input styling
+   ============================================================================= */
+
+.form-group {
+    margin-bottom: var(--space-4);
+}
+
+.form-label {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-control::placeholder {
+    color: var(--text-tertiary);
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* =============================================================================
+   11. TABLES - Consistent table styling
+   ============================================================================= */
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-background);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.data-table thead {
+    background: var(--bg-tertiary);
+}
+
+.data-table th {
+    padding: var(--space-3);
+    text-align: left;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border-default);
+}
+
+.data-table td {
+    padding: var(--space-3);
+    font-size: var(--font-size-md);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+    background: var(--hover-overlay);
+}
+
+/* =============================================================================
+   12. BADGES & TAGS
+   ============================================================================= */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    line-height: 1;
+    color: #e8eaed;
+    /* Brighter text */
+}
+
+.badge.badge-primary {
+    background: rgba(59, 130, 246, 0.2);
+    /* Blue, not purple */
+    color: #60a5fa;
+    /* Brighter blue */
+}
+
+.badge.badge-success {
+    background: rgba(40, 167, 69, 0.2);
+    color: #34d399;
+    /* Brighter green */
+}
+
+.badge.badge-error {
+    background: rgba(220, 53, 69, 0.2);
+    color: #f87171;
+    /* Brighter red */
+}
+
+.badge.badge-warning {
+    background: rgba(255, 193, 7, 0.2);
+    color: #fbbf24;
+    /* Brighter yellow */
+}
+
+.badge.badge-info {
+    background: rgba(23, 162, 184, 0.2);
+    color: #22d3ee;
+    /* Brighter cyan */
+}
+
+/* =============================================================================
+   13. RESPONSIVE UTILITIES
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-bar-left,
+    .action-bar-center,
+    .action-bar-right {
+        justify-content: center;
+    }
+
+    .section-header::before,
+    .section-header::after {
+        width: calc(50% - 150px);
+    }
+
+    .subtab-nav {
+        gap: var(--space-1);
+    }
+
+    .subtab-btn {
+        font-size: var(--font-size-md);
+        padding: var(--space-2) var(--space-3);
+    }
+}
+
+/* =============================================================================
+   14. UTILITY CLASSES
+   ============================================================================= */
+
+.text-center {
+    text-align: center;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-primary {
+    color: var(--text-primary);
+}
+
+.text-secondary {
+    color: var(--text-secondary);
+}
+
+.text-tertiary {
+    color: var(--text-tertiary);
+}
+
+.text-success {
+    color: var(--success-color);
+}
+
+.text-error {
+    color: var(--error-color);
+}
+
+.text-warning {
+    color: var(--warning-color);
+}
+
+.text-info {
+    color: var(--info-color);
+}
+
+.mb-1 {
+    margin-bottom: var(--space-1);
+}
+
+.mb-2 {
+    margin-bottom: var(--space-2);
+}
+
+.mb-3 {
+    margin-bottom: var(--space-3);
+}
+
+.mb-4 {
+    margin-bottom: var(--space-4);
+}
+
+.mb-5 {
+    margin-bottom: var(--space-5);
+}
+
+.mt-1 {
+    margin-top: var(--space-1);
+}
+
+.mt-2 {
+    margin-top: var(--space-2);
+}
+
+.mt-3 {
+    margin-top: var(--space-3);
+}
+
+.mt-4 {
+    margin-top: var(--space-4);
+}
+
+.mt-5 {
+    margin-top: var(--space-5);
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.gap-2 {
+    gap: var(--space-2);
+}
+
+.gap-3 {
+    gap: var(--space-3);
+}
+
+.gap-4 {
+    gap: var(--space-4);
+}

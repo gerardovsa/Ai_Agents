@@ -1,0 +1,741 @@
+
+================================================================================
+COMPLETE DATABASE STRUCTURE FOR AI AGENTS PLATFORM
+================================================================================
+
+================================================================================
+DATABASE: SESSIONS DATABASE (Main threads & messages)
+Location: sessions.db
+================================================================================
+
+
+ TABLE: messages
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+thread_id                      INTEGER         YES                        
+role                           TEXT            YES                        
+content                        TEXT            YES                        
+timestamp                      TIMESTAMP       NO         CURRENT_TIMESTAMP 
+response_time                  REAL            NO                         
+workspace_id                   INTEGER         NO         1               
+prompt                         TEXT            NO                         
+user_id                        INTEGER         NO                         
+include                        INTEGER         NO         1               
+tool_calls                     TEXT            NO         '[]'            
+tokens_used                    INTEGER         NO                         
+response_time_ms               INTEGER         NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+updated_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+metadata                       TEXT            NO         '{}'            
+
+Total rows: 34
+
+Sample data (first 3 rows):
+
+  Row 1:
+    id: 17
+    thread_id: 3
+    role: user
+    content: Hello, how are you?
+    timestamp: 2025-11-09 10:33:06
+    response_time: None
+    workspace_id: 1
+    prompt: Hello, how are you?
+    user_id: 12
+    include: 1
+    tool_calls: []
+    tokens_used: None
+    response_time_ms: None
+    created_at: 2025-11-09T20:33:06.015209
+    updated_at: 2025-11-09T20:33:06.015209
+    metadata: {}
+
+  Row 2:
+    id: 18
+    thread_id: 3
+    role: assistant
+    content: I'm doing well, thank you!
+    timestamp: 2025-11-09 10:33:06
+    response_time: None
+    workspace_id: 1
+    prompt: None
+    user_id: 12
+    include: 1
+    tool_calls: []
+    tokens_used: None
+    response_time_ms: None
+    created_at: 2025-11-09T20:33:06.020619
+    updated_at: 2025-11-09T20:33:06.020619
+    metadata: {}
+
+  Row 3:
+    id: 19
+    thread_id: 3
+    role: user
+    content: What's the weather like?
+    timestamp: 2025-11-09 10:33:08
+    response_time: None
+    workspace_id: 1
+    prompt: What's the weather like?
+    user_id: 12
+    include: 1
+    tool_calls: []
+    tokens_used: None
+    response_time_ms: None
+    created_at: 2025-11-09T20:33:08.054918
+    updated_at: 2025-11-09T20:33:08.054918
+    metadata: {}
+
+ TABLE: saved_threads
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+thread_id                      TEXT            NO                         YES
+agent_id                       TEXT            YES                        
+session_id                     TEXT            YES                        
+user_id                        INTEGER         NO         1               
+location                       TEXT            NO         'prime'         
+thread_name                    TEXT            NO                         
+conversation                   TEXT            YES                        
+message_count                  INTEGER         NO                         
+context                        TEXT            NO                         
+created_at                     TEXT            NO                         
+saved_at                       TEXT            NO         CURRENT_TIMESTAMP 
+last_updated                   TEXT            NO         CURRENT_TIMESTAMP 
+tags                           TEXT            NO         '[]'            
+synergy_card_id                TEXT            NO         NULL            
+parent_thread_id               TEXT            NO         NULL            
+branch_point_message_id        TEXT            NO         NULL            
+branch_name                    TEXT            NO         NULL            
+summary                        TEXT            NO         NULL            
+summary_generated_at           TEXT            NO         NULL            
+
+Total rows: 7
+
+ TABLE: sessions
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+session_id                     TEXT            NO                         YES
+ui_context                     TEXT            YES                        
+agent_id                       TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+last_active                    TIMESTAMP       NO         CURRENT_TIMESTAMP 
+conversation                   TEXT            NO                         
+metadata                       TEXT            NO                         
+
+Total rows: 0
+
+ TABLE: sqlite_sequence
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+name                                           NO                         
+seq                                            NO                         
+
+Total rows: 3
+
+ TABLE: thread_assignments
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+user_id                        INTEGER         YES                        
+thread_slug                    TEXT            YES                        
+location                       TEXT            YES                        
+assigned_at                    TIMESTAMP       NO         CURRENT_TIMESTAMP 
+updated_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+metadata                       TEXT            NO         "{}"            
+
+Total rows: 0
+
+ TABLE: thread_shares
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+thread_id                      INTEGER         YES                        
+shared_by_user_id              INTEGER         YES                        
+shared_with_user_id            INTEGER         NO                         
+shared_with_email              TEXT            NO                         
+share_type                     TEXT            YES        'direct'        
+action                         TEXT            YES                        
+role_granted                   TEXT            NO                         
+share_token                    TEXT            NO                         
+share_link                     TEXT            NO                         
+created_at                     TIMESTAMP       YES        CURRENT_TIMESTAMP 
+expires_at                     TIMESTAMP       NO                         
+accessed_at                    TIMESTAMP       NO                         
+revoked_at                     TIMESTAMP       NO                         
+revoked_by_user_id             INTEGER         NO                         
+revoke_reason                  TEXT            NO                         
+metadata                       TEXT            NO         '{}'            
+
+Total rows: 0
+
+ TABLE: thread_users
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+thread_id                      INTEGER         YES                        
+user_id                        INTEGER         YES                        
+role                           TEXT            YES        'viewer'        
+access_level                   TEXT            YES        'read'          
+added_by_user_id               INTEGER         YES                        
+added_at                       TIMESTAMP       YES        CURRENT_TIMESTAMP 
+removed_at                     TIMESTAMP       NO                         
+last_accessed_at               TIMESTAMP       NO                         
+metadata                       TEXT            NO         '{}'            
+
+Total rows: 0
+
+ TABLE: threads
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+thread_slug                    TEXT            YES                        
+user_id                        INTEGER         YES                        
+title                          TEXT            NO         'Untitled Thread' 
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+updated_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+archived                       INTEGER         NO         0               
+tags                           TEXT            NO         '[]'            
+synergy_card_id                TEXT            NO                         
+metadata                       TEXT            NO         '{}'            
+workspace_id                   INTEGER         NO                         
+name                           TEXT            NO                         
+location                       TEXT            NO                         
+parent_thread_id               TEXT            NO                         
+branch_point_message_id        TEXT            NO                         
+branch_name                    TEXT            NO                         
+agent_id                       TEXT            NO         'prime'         
+message_count                  INTEGER         NO         0               
+
+Total rows: 8
+
+Sample data (first 3 rows):
+
+  Row 1:
+    id: 1
+    thread_slug: 1762663889170
+    user_id: 12
+    title: Untitled Thread
+    created_at: 2025-11-09T14:51:29.170321
+    updated_at: 2025-11-09T21:35:10.235843
+    archived: 0
+    tags: []
+    synergy_card_id: None
+    metadata: {}
+    workspace_id: 1
+    name: Smart toot test
+    location: prime
+    parent_thread_id: None
+    branch_point_message_id: None
+    branch_name: None
+    agent_id: prime
+    message_count: 0
+
+  Row 2:
+    id: 2
+    thread_slug: 1762664086386
+    user_id: 12
+    title: Untitled Thread
+    created_at: 2025-11-09T14:54:46.386637
+    updated_at: 2025-11-09 07:19:33
+    archived: 0
+    tags: []
+    synergy_card_id: None
+    metadata: {}
+    workspace_id: 1
+    name: Smart toot test
+    location: prime
+    parent_thread_id: None
+    branch_point_message_id: None
+    branch_name: None
+    agent_id: prime
+    message_count: 0
+
+  Row 3:
+    id: 3
+    thread_slug: 1762664406832
+    user_id: 12
+    title: Untitled Thread
+    created_at: 2025-11-09T15:00:06.832454
+    updated_at: 2025-11-09T20:33:10.101502
+    archived: 0
+    tags: []
+    synergy_card_id: None
+    metadata: {}
+    workspace_id: 1
+    name: Smart toot test
+    location: prime
+    parent_thread_id: None
+    branch_point_message_id: None
+    branch_name: None
+    agent_id: prime
+    message_count: 0
+
+ TABLE: users
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+email                          TEXT            YES                        
+name                           TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+username                       TEXT            NO                         
+last_active                    TIMESTAMP       NO                         
+metadata                       TEXT            NO         "{}"            
+
+Total rows: 1
+
+================================================================================
+DATABASE: AI INFRASTRUCTURE (Users & credentials)
+Location: ai_infrastructure.db
+================================================================================
+
+
+ TABLE: account_link_requests
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+user_id                        INTEGER         YES                        
+target_email                   TEXT            YES                        
+link_token                     TEXT            YES                        
+request_type                   TEXT            YES                        
+status                         TEXT            NO         'pending'       
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+expires_at                     TIMESTAMP       YES                        
+
+Total rows: 0
+
+ TABLE: oauth_tokens
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+user_id                        INTEGER         YES                        
+platform                       TEXT            YES                        
+access_token                   TEXT            YES                        
+refresh_token                  TEXT            NO                         
+token_type                     TEXT            NO         'Bearer'        
+expires_at                     TIMESTAMP       NO                         
+scope                          TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+updated_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+last_refreshed_at              TIMESTAMP       NO                         
+metadata                       TEXT            NO                         
+account_identifier             TEXT            NO                         
+account_name                   TEXT            NO                         
+is_primary_account             BOOLEAN         NO         0               
+is_valid                       BOOLEAN         NO         1               
+is_active                      BOOLEAN         NO         1               
+refresh_attempts               INTEGER         NO         0               
+last_refresh_error             TEXT            NO                         
+auto_refresh_enabled           BOOLEAN         NO         1               
+granted_scopes                 TEXT            NO                         
+issued_at                      TIMESTAMP       NO                         
+revoked_at                     TIMESTAMP       NO                         
+ip_address_granted             TEXT            NO                         
+email                          TEXT            NO                         
+profile_name                   TEXT            NO                         
+error_count                    INTEGER         NO         0               
+last_error                     TEXT            NO                         
+
+Total rows: 5
+
+ TABLE: sqlite_sequence
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+name                                           NO                         
+seq                                            NO                         
+
+Total rows: 6
+
+ TABLE: thread_assignments
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+user_id                        INTEGER         YES                        
+session_id                     TEXT            YES                        
+location                       TEXT            YES                        
+agent_name                     TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+updated_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+
+Total rows: 0
+
+ TABLE: user_account_links
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+primary_user_id                INTEGER         YES                        
+linked_user_id                 INTEGER         YES                        
+linked_email                   TEXT            YES                        
+link_type                      TEXT            YES                        
+link_status                    TEXT            NO         'pending'       
+link_token                     TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+confirmed_at                   TIMESTAMP       NO                         
+
+Total rows: 0
+
+ TABLE: user_gmail_accounts
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+user_id                        INTEGER         YES                        
+gmail_address                  TEXT            YES                        
+display_name                   TEXT            NO                         
+access_token                   TEXT            NO                         
+refresh_token                  TEXT            NO                         
+token_expiry                   TIMESTAMP       NO                         
+is_primary                     BOOLEAN         NO         0               
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+
+Total rows: 0
+
+ TABLE: user_platform_credentials
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+user_id                        INTEGER         YES                        
+platform                       TEXT            YES                        
+credential_type                TEXT            YES                        
+credential_key                 TEXT            YES                        
+credential_value               TEXT            YES                        
+is_active                      BOOLEAN         NO         1               
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+updated_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+metadata                       TEXT            NO                         
+
+Total rows: 0
+
+ TABLE: user_preferences
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+user_id                        INTEGER         NO                         YES
+communication_style            TEXT            NO         'professional'  
+detail_level                   TEXT            NO         'standard'      
+auth_platform                  TEXT            NO         'auto'          
+preferred_tools                TEXT            NO                         
+custom_preferences             TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+updated_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+nickname                       TEXT            NO                         
+detected_country               TEXT            NO                         
+detected_city                  TEXT            NO                         
+detected_timezone              TEXT            NO                         
+detected_ip_address            TEXT            NO                         
+manual_location_override       TEXT            NO                         
+manual_timezone_override       TEXT            NO                         
+use_manual_location            INTEGER         NO         0               
+use_manual_timezone            INTEGER         NO         0               
+last_location_check            TIMESTAMP       NO                         
+ai_memories                    TEXT            NO                         
+memory_updated_at              TIMESTAMP       NO                         
+
+Total rows: 4
+
+ TABLE: user_sessions
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+user_id                        INTEGER         YES                        
+token                          TEXT            YES                        
+ip_address                     TEXT            NO                         
+user_agent                     TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+expires_at                     TIMESTAMP       YES                        
+
+Total rows: 370
+
+ TABLE: users
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+username                       TEXT            YES                        
+email                          TEXT            YES                        
+password_hash                  TEXT            YES                        
+role                           TEXT            NO         'user'          
+primary_gmail                  TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+last_active                    TIMESTAMP       NO         CURRENT_TIMESTAMP 
+metadata                       TEXT            NO                         
+is_primary                     BOOLEAN         NO         1               
+allowed_dashboards             TEXT            NO         '[]'            
+has_google_oauth               BOOLEAN         NO         0               
+has_microsoft_oauth            BOOLEAN         NO         0               
+is_active                      BOOLEAN         NO         1               
+
+Total rows: 6
+
+ TABLE: workspace_invitations
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+workspace_id                   INTEGER         YES                        
+invited_user_id                INTEGER         NO                         
+invited_email                  TEXT            YES                        
+role                           TEXT            YES                        
+token                          TEXT            YES                        
+status                         TEXT            YES                        
+invited_by_user_id             INTEGER         YES                        
+created_at                     TEXT            YES                        
+expires_at                     TEXT            YES                        
+responded_at                   TEXT            NO                         
+
+Total rows: 1
+
+ TABLE: workspace_users
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+workspace_id                   INTEGER         YES                        
+user_id                        INTEGER         YES                        
+role                           TEXT            YES                        
+added_by_user_id               INTEGER         YES                        
+added_at                       TEXT            YES                        
+removed_at                     TEXT            NO                         
+
+Total rows: 2
+
+ TABLE: workspaces
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+id                             INTEGER         NO                         YES
+user_id                        INTEGER         YES                        
+name                           TEXT            YES                        
+description                    TEXT            NO                         
+created_at                     TIMESTAMP       NO         CURRENT_TIMESTAMP 
+metadata                       TEXT            NO                         
+slug                           TEXT            NO                         
+owner_id                       INTEGER         NO                         
+status                         TEXT            NO         active          
+visibility                     TEXT            NO         private         
+settings                       TEXT            NO                         
+updated_at                     TEXT            NO                         
+archived_at                    TEXT            NO                         
+
+Total rows: 4
+
+================================================================================
+DATABASE: SYNERGY SESSIONS (Synergy integration)
+Location: synergy_sessions.db
+================================================================================
+
+
+ TABLE: synergy_sessions
+--------------------------------------------------------------------------------
+Column Name                    Type            Not Null   Default         PK
+--------------------------------------------------------------------------------
+session_id                     TEXT            NO                         YES
+title                          TEXT            YES                        
+description                    TEXT            NO                         
+platforms_involved             TEXT            NO                         
+status                         TEXT            NO         'active'        
+priority                       TEXT            NO         'medium'        
+kanban_column                  TEXT            NO         'backlog'       
+tags                           TEXT            NO                         
+documents                      TEXT            NO                         
+links                          TEXT            NO                         
+next_steps                     TEXT            NO                         
+assignees                      TEXT            NO                         
+recent_activity                TEXT            NO                         
+checklist                      TEXT            NO                         
+due_date                       TEXT            NO                         
+created_at                     TEXT            NO         CURRENT_TIMESTAMP 
+last_active                    TEXT            NO         CURRENT_TIMESTAMP 
+completed_at                   TEXT            NO                         
+google_task_id                 TEXT            NO                         
+google_calendar_id             TEXT            NO                         
+microsoft_todo_id              TEXT            NO                         
+thread_ids                     TEXT            NO                         
+assigned_agents                TEXT            NO                         
+project_name                   TEXT            NO                         
+notes                          TEXT            NO                         
+session_data                   TEXT            NO                         
+google_calendar_event_id       TEXT            NO                         
+updated_at                     TEXT            NO                         
+shared_with_users              TEXT            NO                         
+owner_user_id                  INTEGER         NO                         
+column_position                INTEGER         NO         0               
+
+Total rows: 15
+
+Sample data (first 3 rows):
+
+  Row 1:
+    session_id: sess_20251101_2353_enterprise_multi-platform_inte
+    title: Enterprise Multi-Platform Integration & Analytics System
+    description: Complete enterprise-grade integration system connecting e-commerce (WooCommerce + Stripe), communica...
+    platforms_involved: []
+    status: active
+    priority: critical
+    kanban_column: in_progress
+    tags: ["enterprise", "integration", "ecommerce", "automation", "analytics", "customer-facing", "high-prior...
+    documents: [{"name": "System Architecture Diagram", "url": "https://docs.google.com/document/d/architecture-v2"...
+    links: []
+    next_steps: ["Phase 1: Database schema design and Supabase setup", "Phase 2: WooCommerce product catalog integra...
+    assignees: ["AI Agent"]
+    recent_activity: [{"type": "created", "timestamp": "2025-11-01T23:53:52.348101", "user": "AI Agent", "details": "Sess...
+    checklist: []
+    due_date: 2025-12-15
+    created_at: 2025-11-01T23:53:52.348379
+    last_active: 2025-11-01T23:53:54.400942
+    completed_at: None
+    google_task_id: None
+    google_calendar_id: None
+    microsoft_todo_id: None
+    thread_ids: None
+    assigned_agents: None
+    project_name: None
+    notes: None
+    session_data: None
+    google_calendar_event_id: None
+    updated_at: None
+    shared_with_users: None
+    owner_user_id: None
+    column_position: 4
+
+  Row 2:
+    session_id: sess_20251101_2353_enterprise_e-commerce_platform
+    title: Enterprise E-Commerce Platform Launch with Multi-Channel Integration
+    description: Comprehensive e-commerce platform launch integrating 12+ platforms for seamless customer experience....
+    platforms_involved: []
+    status: active
+    priority: critical
+    kanban_column: in_progress
+    tags: ["e-commerce", "automation", "urgent", "revenue-critical", "multi-platform", "customer-facing", "pay...
+    documents: [{"name": "Product Catalog Master Sheet", "url": "https://docs.google.com/spreadsheets/d/sample-prod...
+    links: []
+    next_steps: ["Configure WooCommerce store settings and theme", "Import product catalog from CSV (500+ products)"...
+    assignees: ["AI Agent"]
+    recent_activity: [{"type": "created", "timestamp": "2025-11-01T23:53:56.062066", "user": "AI Agent", "details": "Sess...
+    checklist: []
+    due_date: 2025-11-30
+    created_at: 2025-11-01T23:53:56.062325
+    last_active: 2025-11-01T23:53:58.116160
+    completed_at: None
+    google_task_id: None
+    google_calendar_id: None
+    microsoft_todo_id: None
+    thread_ids: None
+    assigned_agents: None
+    project_name: None
+    notes: None
+    session_data: None
+    google_calendar_event_id: None
+    updated_at: None
+    shared_with_users: None
+    owner_user_id: None
+    column_position: 5
+
+  Row 3:
+    session_id: sess_20251103_0906_veterinary_practice_management
+    title: Veterinary Practice Management System - Google Workspace Integration
+    description: Comprehensive veterinary practice management system testing all Google Workspace tools - including p...
+    platforms_involved: []
+    status: active
+    priority: high
+    kanban_column: in_progress
+    tags: ["veterinary", "healthcare", "google-workspace", "integration-test", "practice-management"]
+    documents: []
+    links: []
+    next_steps: ["Create patient intake form", "Build patient records spreadsheet", "Write veterinary care guide", "...
+    assignees: ["AI Agent"]
+    recent_activity: [{"type": "created", "timestamp": "2025-11-03T09:06:35.167304", "user": "AI Agent", "details": "Sess...
+    checklist: []
+    due_date: None
+    created_at: 2025-11-03T09:06:35.167645
+    last_active: 2025-11-03T10:26:37.575791
+    completed_at: None
+    google_task_id: None
+    google_calendar_id: None
+    microsoft_todo_id: None
+    thread_ids: None
+    assigned_agents: None
+    project_name: None
+    notes: None
+    session_data: None
+    google_calendar_event_id: None
+    updated_at: None
+    shared_with_users: None
+    owner_user_id: None
+    column_position: 6
+
+================================================================================
+KEY IDENTIFIERS SUMMARY
+================================================================================
+
+THREAD IDENTIFICATION:
+  - threads.id (INTEGER, PRIMARY KEY) → Internal database ID (e.g., 1, 2, 3)
+  - threads.thread_slug (TEXT, UNIQUE) → External thread ID used in UI (e.g., '1762664086386')
+  
+    CRITICAL: Frontend uses thread_slug as thread.id
+    Backend joins use threads.id (internal database ID)
+
+MESSAGES:
+  - messages.id (INTEGER, PRIMARY KEY) → Message database ID
+  - messages.thread_id (INTEGER, FOREIGN KEY) → Links to threads.id (NOT thread_slug!)
+  
+    CRITICAL: Messages join on threads.id, NOT thread_slug
+
+THREAD ASSIGNMENTS (Location tracking):
+  - thread_assignments.session_id (TEXT) → Same as threads.thread_slug
+  - thread_assignments.location (TEXT) → 'prime', 'agent-1', 'agent-2', etc.
+  
+SYNERGY SESSIONS:
+  - synergy_sessions.session_id (TEXT, PRIMARY KEY) → Synergy card ID
+  - synergy_sessions.thread_ids (TEXT) → JSON array of thread_slugs
+  
+RELATIONSHIPS:
+  1. Frontend thread.id ←→ Database threads.thread_slug
+  2. Database threads.id ←→ Database messages.thread_id
+  3. Frontend thread.id ←→ thread_assignments.session_id
+  4. Synergy card ←→ JSON array of thread_slugs in synergy_sessions.thread_ids
+
+
+QUERY EXAMPLES:
+================================================================================
+
+1. Get thread with messages:
+   SELECT t.*, COUNT(m.id) as message_count
+   FROM threads t
+   LEFT JOIN messages m ON t.id = m.thread_id
+   WHERE t.thread_slug = '1762664086386'
+   GROUP BY t.id
+
+2. Get messages for a thread:
+   SELECT m.*
+   FROM messages m
+   JOIN threads t ON m.thread_id = t.id
+   WHERE t.thread_slug = '1762664086386'
+   ORDER BY m.timestamp
+
+3. Get thread location:
+   SELECT location
+   FROM thread_assignments
+   WHERE session_id = '1762664086386'
+
+4. Get threads for synergy session:
+   SELECT thread_ids
+   FROM synergy_sessions
+   WHERE session_id = 'synergy_card_id'
+

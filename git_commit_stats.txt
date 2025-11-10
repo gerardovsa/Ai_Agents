@@ -1,0 +1,44 @@
+﻿67e1495846ba44b44d55ebdad12d2ee5657494e0|gerardovsa|2025-11-08 04:31:17 +1000|Complete Render deployment preparation - all files ready for Singapore deployment
+ 41 files changed, 13223 insertions(+), 120 deletions(-)
+
+3fa50f9f942251eeb829096fec933620bd7474c5|gerardovsa|2025-11-08 03:58:37 +1000|Add complete Render deployment guide for AI Agents Singapore
+ 1 file changed, 390 insertions(+)
+
+a0f93d59b733a92155efd27772ed34cde1d880e8|gerardovsa|2025-11-08 03:34:53 +1000|Add Render CLI quick reference card for fast command lookup
+ 1 file changed, 238 insertions(+)
+
+9ecc9a5a4bd8a27bfb4f331b9508b4839f7c9125|gerardovsa|2025-11-08 03:26:08 +1000|Add comprehensive Render CLI tools with 50+ commands for complete project management
+ 3 files changed, 1822 insertions(+)
+
+4f07233a6b9737cec57227d2c005622ba1df0030|gerardovsa|2025-11-08 02:36:40 +1000|Complete Render Singapore Docker deployment preparation
+ 11 files changed, 2621 insertions(+), 66 deletions(-)
+
+bc12c79683c2b5957dd54b6abe3a392dab41c0c6|gerardovsa|2025-11-08 02:35:33 +1000|Add Singapore Docker deployment scripts
+ 2 files changed, 514 insertions(+)
+
+c0f6815be0024d07fc7dc3156df23e69b52ed76b|gerardovsa|2025-11-08 01:44:27 +1000|v3 Project Cleanup - Removed obsolete scripts and organized docs
+ 124 files changed, 31096 insertions(+), 12477 deletions(-)
+
+31b97753619c9851ea73a1e2349947cad97b25b5|gerardovsa|2025-11-08 01:17:34 +1000|V2 Complete - Major Platform Update with Synergy Integration
+ 12384 files changed, 719070 insertions(+), 37427 deletions(-)
+
+c9adad573d7e871a92197ba8c2fefa48dddf9034|gerardovsa|2025-10-30 10:36:49 +1000|fix: Remove conflicting render.yaml, cleanup redundant files, exclude secrets
+ 116 files changed, 28398 insertions(+), 15688 deletions(-)
+
+2768b3faa12a74a726d9497c5b5f18b11ae9e7c0|gerardovsa|2025-10-29 22:40:09 +1000|fix: Add runtime.txt for Python 3.11.9
+ 1 file changed, 1 insertion(+)
+
+fde080347b6b5ad6aeea64d0034245b18f433dfc|gerardovsa|2025-10-29 18:22:11 +1000|feat: Complete AI Infrastructure with OAuth, 564 Tools, and Unified UI (clean history - secrets removed)
+ 547 files changed, 262679 insertions(+)
+
+a735492f5937b7f8c9f8348f58c759f4fc428b78|gerardovsa|2025-10-29 18:20:54 +1000|docs: Add Render deployment scripts and guides
+ 10 files changed, 1634 insertions(+), 12 deletions(-)
+
+70afa1afcd776b16a88e078915688cad1348988c|gerardovsa|2025-10-29 18:10:24 +1000|security: Remove sensitive files and add example config
+ 6 files changed, 170 insertions(+), 695 deletions(-)
+
+46f92f09bca873edd725debe7a725dd8192e769e|gerardovsa|2025-10-29 17:30:55 +1000|feat: Complete AI Infrastructure with OAuth, 564 Tools, and Unified UI
+ 548 files changed, 262090 insertions(+), 620 deletions(-)
+
+e590e422c39b6d448c83fb4078d7a9d131c6e135|gerardovsa|2025-10-26 11:59:47 +1000|feat: Add Google Cloud Run integration (15 tools, 296 total)
+ 6 files changed, 2465 insertions(+)

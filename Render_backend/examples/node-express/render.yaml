@@ -1,0 +1,371 @@
+# ==============================================================================
+# NODE.JS EXPRESS APPLICATION - RENDER.COM DEPLOYMENT CONFIGURATION
+# ==============================================================================
+#
+# This configuration file deploys a Node.js Express application to Render.com.
+# Express is a minimal and flexible Node.js web application framework.
+#
+# WHAT THIS CONFIGURES:
+# - Web service running Node.js with Express
+# - Automatic npm install on build
+# - Health check endpoint
+# - Environment-based configuration
+#
+# PREREQUISITES:
+# 1. package.json with start script defined
+# 2. Express app listening on process.env.PORT
+# 3. Health check endpoint (e.g., /health)
+# 4. Node version specified in package.json engines field
+#
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # NODE.JS WEB SERVICE
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: my-node-app
+    runtime: node
+    env: node
+    region: oregon  # Options: oregon, frankfurt, singapore, ohio, virginia
+    
+    # Build Configuration
+    # Automatically runs 'npm install' or 'yarn install'
+    # Add custom build steps if needed (e.g., TypeScript compilation)
+    buildCommand: npm install && npm run build
+    
+    # Start Command
+    # Must match "start" script in package.json
+    # Common options:
+    # - npm start (production)
+    # - node server.js (direct)
+    # - node dist/index.js (for compiled TypeScript)
+    # - pm2 start ecosystem.config.js (for PM2 process manager)
+    startCommand: npm start
+    
+    # Plan Configuration
+    # Starter: Free tier, sleeps after inactivity
+    # Standard: $7/month, always on
+    # Pro: $25/month, 2GB RAM, 2 CPUs
+    plan: starter
+    
+    # Auto-Deploy
+    # When true, pushes to branch automatically trigger deployments
+    autoDeploy: true
+    
+    # Health Check
+    # Render pings this endpoint to verify service is running
+    # Your Express app should respond with HTTP 200
+    healthCheckPath: /health
+    
+    # Environment Variables
+    envVars:
+      # Node Version
+      # Should match version in package.json "engines" field
+      - key: NODE_VERSION
+        value: "20.11.0"
+      
+      # Node Environment
+      # Enables production optimizations
+      - key: NODE_ENV
+        value: production
+      
+      # Port
+      # CRITICAL: Your Express app MUST listen on this port
+      # Example: app.listen(process.env.PORT || 3000)
+      - key: PORT
+        value: "10000"  # Render default, but app should read from process.env.PORT
+      
+      # Application Secret
+      # For session management, JWT signing, etc.
+      - key: APP_SECRET
+        generateValue: true  # Render generates random value
+      
+      # CORS Origins (if needed)
+      # Comma-separated list of allowed origins
+      - key: CORS_ORIGINS
+        value: "https://myfrontend.com,https://www.myfrontend.com"
+      
+      # Database Connection (if using PostgreSQL)
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: my-postgres-db
+      #     property: connectionString
+      
+      # MongoDB Connection (if using MongoDB Atlas)
+      # - key: MONGODB_URI
+      #   sync: false  # Marked as secret, won't appear in logs
+      
+      # Redis Connection (if using Redis)
+      # - key: REDIS_URL
+      #   fromDatabase:
+      #     name: my-redis-db
+      #     property: connectionString
+      
+      # API Keys (examples)
+      # - key: STRIPE_SECRET_KEY
+      #   sync: false
+      # - key: SENDGRID_API_KEY
+      #   sync: false
+      # - key: AWS_ACCESS_KEY_ID
+      #   sync: false
+      # - key: AWS_SECRET_ACCESS_KEY
+      #   sync: false
+      
+      # Logging Level
+      - key: LOG_LEVEL
+        value: info  # Options: error, warn, info, debug
+      
+      # Max Request Body Size
+      - key: MAX_BODY_SIZE
+        value: 10mb
+
+# ==============================================================================
+# DATABASES (OPTIONAL)
+# ==============================================================================
+# Uncomment to create a PostgreSQL database automatically
+# databases:
+#   - name: my-postgres-db
+#     databaseName: nodejs_db
+#     user: nodejs_user
+#     plan: starter  # Free tier: 1GB storage, 97 connection limit
+#     region: oregon  # Should match web service region
+
+# ==============================================================================
+# DEPLOYMENT CHECKLIST
+# ==============================================================================
+# Before deploying, ensure:
+#
+# 1. PACKAGE.JSON CONFIGURED:
+#    {
+#      "name": "my-node-app",
+#      "version": "1.0.0",
+#      "engines": {
+#        "node": "20.11.0",
+#        "npm": "10.x"
+#      },
+#      "scripts": {
+#        "start": "node server.js",
+#        "build": "echo 'No build needed' || tsc",  // If using TypeScript
+#        "dev": "nodemon server.js"
+#      },
+#      "dependencies": {
+#        "express": "^4.18.2",
+#        "dotenv": "^16.3.1",
+#        "cors": "^2.8.5"
+#      }
+#    }
+#
+# 2. EXPRESS APP LISTENS ON process.env.PORT:
+#    const express = require('express');
+#    const app = express();
+#    
+#    // CRITICAL: Must use process.env.PORT
+#    const PORT = process.env.PORT || 3000;
+#    
+#    app.listen(PORT, '0.0.0.0', () => {
+#      console.log(`Server running on port ${PORT}`);
+#    });
+#
+# 3. HEALTH CHECK ENDPOINT:
+#    app.get('/health', (req, res) => {
+#      res.status(200).json({
+#        status: 'healthy',
+#        timestamp: new Date().toISOString(),
+#        uptime: process.uptime()
+#      });
+#    });
+#
+# 4. ENVIRONMENT VARIABLES LOADED:
+#    // Using dotenv for local development
+#    require('dotenv').config();
+#    
+#    const dbUrl = process.env.DATABASE_URL;
+#    const appSecret = process.env.APP_SECRET;
+#
+# 5. ERROR HANDLING:
+#    // Global error handler
+#    app.use((err, req, res, next) => {
+#      console.error(err.stack);
+#      res.status(500).json({
+#        error: 'Something went wrong',
+#        message: process.env.NODE_ENV === 'production' 
+#          ? 'Internal server error' 
+#          : err.message
+#      });
+#    });
+#
+# 6. CORS CONFIGURED (if needed):
+#    const cors = require('cors');
+#    
+#    const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [];
+#    
+#    app.use(cors({
+#      origin: allowedOrigins,
+#      credentials: true
+#    }));
+#
+# ==============================================================================
+# POST-DEPLOYMENT STEPS
+# ==============================================================================
+# After first deployment:
+#
+# 1. VERIFY SERVICE IS RUNNING:
+#    curl https://your-app.onrender.com/health
+#    # Should return: {"status":"healthy","timestamp":"..."}
+#
+# 2. CHECK LOGS FOR ERRORS:
+#    python render_universal_cli.py logs tail <service-id>
+#    # Look for startup errors or connection issues
+#
+# 3. TEST DATABASE CONNECTION (if applicable):
+#    # Add a /db-health endpoint to test database connectivity
+#    app.get('/db-health', async (req, res) => {
+#      try {
+#        await db.query('SELECT 1');
+#        res.json({ database: 'connected' });
+#      } catch (error) {
+#        res.status(500).json({ database: 'disconnected', error: error.message });
+#      }
+#    });
+#
+# 4. CONFIGURE CUSTOM DOMAIN (optional):
+#    # In Render dashboard: Settings > Custom Domains
+#    # Add CNAME record pointing to your-app.onrender.com
+#
+# 5. SET UP MONITORING:
+#    # Use tools like New Relic, DataDog, or Sentry
+#    # Or implement custom metrics endpoint
+#
+# ==============================================================================
+# COMMON ISSUES & SOLUTIONS
+# ==============================================================================
+#
+# ISSUE: App not starting (502 Bad Gateway)
+# SOLUTION: Ensure app listens on process.env.PORT, not hardcoded port
+#           Check logs for Node.js errors or missing dependencies
+#
+# ISSUE: npm install fails during build
+# SOLUTION: Ensure package.json and package-lock.json are committed
+#           Remove node_modules from git (add to .gitignore)
+#           Check for platform-specific dependencies (use --platform=linux)
+#
+# ISSUE: Environment variables not loading
+# SOLUTION: Use process.env.VARIABLE_NAME (not require('dotenv'))
+#           Verify variables are set in render.yaml or dashboard
+#           Check variable names match exactly (case-sensitive)
+#
+# ISSUE: Database connection timeout
+# SOLUTION: Ensure DATABASE_URL is set correctly
+#           Use connection pooling (e.g., pg.Pool)
+#           Set longer connection timeout in database config
+#
+# ISSUE: Memory issues / crashes
+# SOLUTION: Monitor memory usage in Render dashboard
+#           Increase plan (Standard/Pro) for more memory
+#           Add --max-old-space-size flag: node --max-old-space-size=1024 server.js
+#           Check for memory leaks with heapdump
+#
+# ==============================================================================
+# SCALING & PERFORMANCE
+# ==============================================================================
+#
+# HORIZONTAL SCALING:
+# - Upgrade to Standard ($7/mo) or Pro ($25/mo) plan
+# - Use PM2 for process management and clustering:
+#   npm install pm2
+#   startCommand: pm2 start ecosystem.config.js --no-daemon
+#   
+#   # ecosystem.config.js:
+#   module.exports = {
+#     apps: [{
+#       name: 'my-app',
+#       script: './server.js',
+#       instances: 'max',  // Use all available CPUs
+#       exec_mode: 'cluster',
+#       env: {
+#         NODE_ENV: 'production'
+#       }
+#     }]
+#   };
+#
+# VERTICAL SCALING:
+# - Standard: 512MB RAM, 0.5 CPU
+# - Pro: 2GB RAM, 2 CPUs
+# - Pro Plus: 4GB RAM, 4 CPUs
+#
+# CACHING:
+# - Use Redis for session storage and caching
+# - Implement response caching with express-redis-cache
+# - Use CDN for static assets (images, CSS, JS)
+#
+# DATABASE OPTIMIZATION:
+# - Use connection pooling (pg.Pool for PostgreSQL)
+# - Add database indexes for frequently queried fields
+# - Use database query caching
+# - Consider read replicas for heavy read workloads
+#
+# CODE OPTIMIZATION:
+# - Use async/await instead of callbacks
+# - Implement request rate limiting (express-rate-limit)
+# - Compress responses (compression middleware)
+# - Use streaming for large responses
+# - Enable gzip compression
+#
+# MONITORING:
+# - Use python render_universal_cli.py metrics all <service-id>
+# - Implement custom metrics with Prometheus
+# - Set up alerts for error rates and response times
+# - Monitor Node.js event loop lag
+#
+# ==============================================================================
+# EXAMPLE SERVER.JS
+# ==============================================================================
+# 
+# const express = require('express');
+# const cors = require('cors');
+# require('dotenv').config();
+# 
+# const app = express();
+# 
+# // Middleware
+# app.use(express.json({ limit: process.env.MAX_BODY_SIZE || '10mb' }));
+# app.use(express.urlencoded({ extended: true }));
+# 
+# // CORS
+# const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [];
+# app.use(cors({ origin: allowedOrigins, credentials: true }));
+# 
+# // Health check
+# app.get('/health', (req, res) => {
+#   res.json({
+#     status: 'healthy',
+#     timestamp: new Date().toISOString(),
+#     uptime: process.uptime(),
+#     environment: process.env.NODE_ENV
+#   });
+# });
+# 
+# // Routes
+# app.get('/', (req, res) => {
+#   res.json({ message: 'Welcome to my API' });
+# });
+# 
+# // Error handler
+# app.use((err, req, res, next) => {
+#   console.error(err.stack);
+#   res.status(500).json({
+#     error: process.env.NODE_ENV === 'production' 
+#       ? 'Internal server error' 
+#       : err.message
+#   });
+# });
+# 
+# // Start server
+# const PORT = process.env.PORT || 3000;
+# app.listen(PORT, '0.0.0.0', () => {
+#   console.log(`Server running on port ${PORT}`);
+#   console.log(`Environment: ${process.env.NODE_ENV}`);
+# });
+#
+# ==============================================================================

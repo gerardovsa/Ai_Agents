@@ -1,0 +1,60 @@
+# Web Framework
+flask==3.0.0
+flask-cors==4.0.0
+flask-socketio==5.3.4
+waitress==2.1.2
+gunicorn==21.2.0
+
+# AI Models
+anthropic>=0.40.0
+openai==1.35.0
+requests==2.31.0
+
+# Data Processing
+pandas==2.1.4
+numpy==1.26.2
+
+# Environment
+python-dotenv==1.0.0
+
+# Google APIs
+google-auth==2.23.4
+google-auth-oauthlib==1.1.0
+google-api-python-client==2.108.0
+google-cloud-run==0.10.5
+google-cloud-logging==3.8.0
+google-cloud-monitoring==2.16.0
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+pyodbc>=5.0.0
+pymssql>=2.2.0
+
+# Document Processing
+python-docx==1.1.0
+pypdf>=3.17.0
+PyPDF2>=3.0.0
+openpyxl>=3.1.0
+reportlab>=4.0.0
+Pillow>=10.0.0
+pytesseract>=0.3.10
+
+# Text/HTML Processing
+html2text>=2020.1.16
+beautifulsoup4>=4.12.0
+
+# Geolocation (optional)
+geoip2>=4.7.0
+maxminddb-geolite2>=2018.701
+
+# Token counting
+tiktoken>=0.5.0
+
+# Utilities
+pytz==2023.3
+python-dateutil==2.8.2
+
+# Authentication & Security (NEW)
+bcrypt==4.0.1
+PyJWT==2.8.0

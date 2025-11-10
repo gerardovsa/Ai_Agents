@@ -1,0 +1,393 @@
+# ==============================================================================
+# NEXT.JS APPLICATION - RENDER.COM DEPLOYMENT CONFIGURATION
+# ==============================================================================
+#
+# This configuration file deploys a Next.js application to Render.com.
+# Next.js is a React framework for production with server-side rendering.
+#
+# WHAT THIS CONFIGURES:
+# - Web service running Next.js production build
+# - Automatic build optimization
+# - Image optimization support
+# - Server-side rendering (SSR) and Static Site Generation (SSG)
+#
+# PREREQUISITES:
+# 1. Next.js project with next.config.js
+# 2. package.json with build and start scripts
+# 3. Node version specified in package.json engines
+# 4. Environment variables for API keys, database URLs, etc.
+#
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # NEXT.JS WEB SERVICE
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: my-nextjs-app
+    runtime: node
+    env: node
+    region: oregon  # Options: oregon, frankfurt, singapore, ohio, virginia
+    
+    # Build Configuration
+    # Next.js requires 'npm run build' to create optimized production build
+    # This creates a .next folder with compiled pages
+    buildCommand: npm install && npm run build
+    
+    # Start Command
+    # Starts Next.js production server
+    # Default port is 3000, but Render overrides with $PORT
+    startCommand: npm start
+    
+    # Plan Configuration
+    # Starter: Free tier, sleeps after inactivity
+    # Standard: $7/month, always on, better for SSR
+    # Pro: $25/month, recommended for production SSR apps
+    plan: standard
+    
+    # Auto-Deploy
+    # Automatically deploy when pushing to connected branch
+    autoDeploy: true
+    
+    # Health Check
+    # Next.js doesn't have default health endpoint
+    # Create custom endpoint in pages/api/health.js
+    healthCheckPath: /api/health
+    
+    # Environment Variables
+    envVars:
+      # Node Version
+      # Should match version in package.json
+      - key: NODE_VERSION
+        value: "20.11.0"
+      
+      # Node Environment
+      # CRITICAL for production optimizations
+      - key: NODE_ENV
+        value: production
+      
+      # Next.js Configuration
+      # Base URL for your application
+      - key: NEXT_PUBLIC_BASE_URL
+        value: https://my-nextjs-app.onrender.com
+      
+      # API URL
+      # If you have separate backend API
+      - key: NEXT_PUBLIC_API_URL
+        value: https://my-api.onrender.com
+      
+      # Database URL (if using database)
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: my-postgres-db
+      #     property: connectionString
+      
+      # Authentication Secrets
+      # For NextAuth.js or similar
+      # - key: NEXTAUTH_SECRET
+      #   generateValue: true
+      # - key: NEXTAUTH_URL
+      #   value: https://my-nextjs-app.onrender.com
+      
+      # Third-Party API Keys
+      # IMPORTANT: Use NEXT_PUBLIC_ prefix ONLY for client-side variables
+      # Server-side only variables don't need prefix
+      # 
+      # Client-side (available in browser):
+      # - key: NEXT_PUBLIC_GOOGLE_ANALYTICS_ID
+      #   value: G-XXXXXXXXXX
+      # - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+      #   value: pk_test_xxxxx
+      #
+      # Server-side only (NOT exposed to browser):
+      # - key: STRIPE_SECRET_KEY
+      #   sync: false
+      # - key: DATABASE_URL
+      #   sync: false
+      # - key: JWT_SECRET
+      #   generateValue: true
+      
+      # Vercel Analytics (if migrating from Vercel)
+      # - key: NEXT_PUBLIC_VERCEL_ENV
+      #   value: production
+      
+      # Image Optimization
+      # Next.js Image component domains
+      # Configure in next.config.js, but can use env vars
+      # - key: NEXT_PUBLIC_IMAGE_DOMAINS
+      #   value: images.unsplash.com,cdn.example.com
+
+# ==============================================================================
+# DATABASES (OPTIONAL)
+# ==============================================================================
+# Uncomment if your Next.js app uses database
+# databases:
+#   - name: my-postgres-db
+#     databaseName: nextjs_db
+#     user: nextjs_user
+#     plan: starter
+#     region: oregon
+
+# ==============================================================================
+# DEPLOYMENT CHECKLIST
+# ==============================================================================
+# Before deploying, ensure:
+#
+# 1. PACKAGE.JSON CONFIGURED:
+#    {
+#      "name": "my-nextjs-app",
+#      "version": "1.0.0",
+#      "engines": {
+#        "node": "20.11.0",
+#        "npm": "10.x"
+#      },
+#      "scripts": {
+#        "dev": "next dev",
+#        "build": "next build",
+#        "start": "next start -p $PORT",
+#        "lint": "next lint"
+#      },
+#      "dependencies": {
+#        "next": "^14.1.0",
+#        "react": "^18.2.0",
+#        "react-dom": "^18.2.0"
+#      }
+#    }
+#
+# 2. NEXT.CONFIG.JS CONFIGURED FOR RENDER:
+#    /** @type {import('next').NextConfig} */
+#    const nextConfig = {
+#      // Output standalone for optimized builds
+#      output: 'standalone',
+#      
+#      // Image optimization domains
+#      images: {
+#        domains: ['images.unsplash.com', 'cdn.example.com'],
+#        // For Render, you may want to disable image optimization
+#        // and use external CDN instead:
+#        unoptimized: false  // Set to true if having issues
+#      },
+#      
+#      // Environment variables
+#      env: {
+#        CUSTOM_KEY: process.env.CUSTOM_KEY,
+#      },
+#      
+#      // Redirects/Rewrites if needed
+#      async redirects() {
+#        return [
+#          {
+#            source: '/old-page',
+#            destination: '/new-page',
+#            permanent: true,
+#          },
+#        ]
+#      },
+#    }
+#    
+#    module.exports = nextConfig
+#
+# 3. HEALTH CHECK ENDPOINT:
+#    Create pages/api/health.js:
+#    
+#    export default function handler(req, res) {
+#      res.status(200).json({
+#        status: 'healthy',
+#        timestamp: new Date().toISOString(),
+#        nextVersion: process.env.npm_package_version
+#      })
+#    }
+#
+# 4. ENVIRONMENT VARIABLES IN CODE:
+#    // Client-side (NEXT_PUBLIC_ prefix required)
+#    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+#    
+#    // Server-side (no prefix needed)
+#    export async function getServerSideProps() {
+#      const dbUrl = process.env.DATABASE_URL
+#      // Fetch data using dbUrl
+#    }
+#
+# 5. STATIC FILE SERVING:
+#    // Files in /public are served at root
+#    // /public/logo.png -> https://yourapp.com/logo.png
+#    
+#    import Image from 'next/image'
+#    <Image src="/logo.png" width={200} height={100} alt="Logo" />
+#
+# 6. API ROUTES:
+#    // pages/api/users.js
+#    export default async function handler(req, res) {
+#      if (req.method === 'GET') {
+#        // Fetch users
+#        const users = await fetchUsers()
+#        res.status(200).json(users)
+#      } else {
+#        res.status(405).json({ message: 'Method not allowed' })
+#      }
+#    }
+#
+# ==============================================================================
+# POST-DEPLOYMENT STEPS
+# ==============================================================================
+# After first deployment:
+#
+# 1. VERIFY SITE IS ACCESSIBLE:
+#    Open browser to: https://your-app.onrender.com
+#    # Should load your Next.js home page
+#
+# 2. TEST SERVER-SIDE RENDERING:
+#    # View page source (right-click -> View Page Source)
+#    # Should see rendered HTML content, not just <div id="root">
+#
+# 3. CHECK API ROUTES:
+#    curl https://your-app.onrender.com/api/health
+#    # Should return: {"status":"healthy",...}
+#
+# 4. TEST IMAGE OPTIMIZATION:
+#    # Check browser network tab for optimized images
+#    # Next.js automatically optimizes images on demand
+#
+# 5. CONFIGURE CUSTOM DOMAIN:
+#    # Render Dashboard > Settings > Custom Domains
+#    # Add CNAME record: your-domain.com -> your-app.onrender.com
+#
+# 6. SET UP ANALYTICS:
+#    # Add Google Analytics, Vercel Analytics, or similar
+#    # Use NEXT_PUBLIC_ env vars for client-side tracking
+#
+# ==============================================================================
+# COMMON ISSUES & SOLUTIONS
+# ==============================================================================
+#
+# ISSUE: Build fails with "Cannot find module"
+# SOLUTION: Ensure all dependencies are in package.json
+#           Delete package-lock.json and run npm install locally
+#           Commit updated package-lock.json
+#
+# ISSUE: Images not loading (404 errors)
+# SOLUTION: Add image domains to next.config.js images.domains array
+#           OR set images.unoptimized = true to disable optimization
+#           For external images, use domains config
+#
+# ISSUE: Environment variables not defined
+# SOLUTION: Client-side vars MUST have NEXT_PUBLIC_ prefix
+#           Server-side vars don't need prefix
+#           Restart build after adding new env vars
+#
+# ISSUE: API routes return 404
+# SOLUTION: Ensure files are in pages/api/ folder
+#           File name becomes route: pages/api/users.js -> /api/users
+#           Check for syntax errors in API route files
+#
+# ISSUE: Slow page loads
+# SOLUTION: Use Static Site Generation (SSG) where possible
+#           Implement Incremental Static Regeneration (ISR)
+#           Use next/image for automatic image optimization
+#           Add CDN for static assets
+#
+# ISSUE: Memory issues during build
+# SOLUTION: Upgrade to Standard or Pro plan (more memory)
+#           Reduce bundle size (analyze with @next/bundle-analyzer)
+#           Enable SWC minifier in next.config.js
+#
+# ==============================================================================
+# SCALING & PERFORMANCE
+# ==============================================================================
+#
+# RENDERING STRATEGIES:
+# 1. Static Site Generation (SSG) - Best performance
+#    export async function getStaticProps() {
+#      const data = await fetchData()
+#      return { props: { data }, revalidate: 60 }  // ISR
+#    }
+#
+# 2. Server-Side Rendering (SSR) - Always fresh data
+#    export async function getServerSideProps() {
+#      const data = await fetchData()
+#      return { props: { data } }
+#    }
+#
+# 3. Client-Side Rendering (CSR) - For dynamic content
+#    useEffect(() => {
+#      fetchData().then(setData)
+#    }, [])
+#
+# OPTIMIZATION TIPS:
+# - Use ISR (Incremental Static Regeneration) for mostly-static pages
+# - Implement proper caching headers
+# - Use next/image for automatic image optimization
+# - Enable compression in next.config.js
+# - Use next/dynamic for code splitting
+# - Implement proper loading states
+#
+# CACHING:
+# - Add Redis for session storage
+# - Cache API responses when possible
+# - Use CDN for static assets (images, fonts)
+# - Implement SWR for client-side caching
+#
+# MONITORING:
+# - Use python render_universal_cli.py metrics all <service-id>
+# - Add Sentry for error tracking
+# - Use Vercel Analytics or similar
+# - Monitor Core Web Vitals
+#
+# SCALING:
+# - Standard plan: Good for small to medium traffic
+# - Pro plan: Recommended for production apps with SSR
+# - Pro Plus: For high-traffic applications
+# - Consider CDN for global performance
+#
+# ==============================================================================
+# EXAMPLE NEXT.CONFIG.JS
+# ==============================================================================
+#
+# /** @type {import('next').NextConfig} */
+# const nextConfig = {
+#   reactStrictMode: true,
+#   
+#   // Standalone output for optimized builds
+#   output: 'standalone',
+#   
+#   // Image optimization
+#   images: {
+#     domains: ['images.unsplash.com', 'cdn.example.com'],
+#     formats: ['image/avif', 'image/webp'],
+#   },
+#   
+#   // Internationalization
+#   i18n: {
+#     locales: ['en', 'es', 'fr'],
+#     defaultLocale: 'en',
+#   },
+#   
+#   // Headers for security
+#   async headers() {
+#     return [
+#       {
+#         source: '/(.*)',
+#         headers: [
+#           {
+#             key: 'X-Frame-Options',
+#             value: 'DENY',
+#           },
+#           {
+#             key: 'X-Content-Type-Options',
+#             value: 'nosniff',
+#           },
+#         ],
+#       },
+#     ]
+#   },
+#   
+#   // Webpack configuration (if needed)
+#   webpack: (config, { isServer }) => {
+#     // Custom webpack config
+#     return config
+#   },
+# }
+# 
+# module.exports = nextConfig
+#
+# ==============================================================================

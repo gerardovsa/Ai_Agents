@@ -1,0 +1,18 @@
+# Email to PDF Conversion Requirements
+# =====================================
+# Install with: pip install -r email_pdf_requirements.txt
+
+# PDF Generation and Merging
+reportlab>=4.0.0          # PDF creation from text/images
+pypdf>=3.17.0             # PDF merging (preferred modern version)
+# OR: PyPDF2>=3.0.0       # Alternative PDF library (older)
+
+# OCR for header/footer text extraction
+pytesseract>=0.3.10       # Python wrapper for Tesseract OCR
+Pillow>=10.0.0            # Image processing (already in email_parser_requirements)
+
+# NOTE: Tesseract OCR binary must be installed separately:
+# Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
+#          Install and add to PATH
+# Linux: sudo apt-get install tesseract-ocr
+# Mac: brew install tesseract

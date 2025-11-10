@@ -1,0 +1,838 @@
+"""
+Meta-Tools Implementation - Tool discovery and guidance
+These meta-tools help Claude discover and use the 604+ available tools
+Uses registry directly (no external dependencies)
+
+FIXED: All calls to registry.execute_tool() now use keyword-only arguments
+"""
+from typing import Dict, Any, List, Optional
+
+
+def list_available_platforms(**kwargs) -> Dict[str, Any]:
+    """
+    List all platforms that have tools available
+    
+    Returns:
+        Dict with platforms list and tool counts per platform
+    """
+    from tools.registry_v3 import get_registry
+    
+    registry = get_registry()
+    
+    # Group tools by platform
+    platform_counts = {}
+    for tool_name, tool in registry.tools.items():
+        platform = tool.get("platform", "unknown")
+        platform_counts[platform] = platform_counts.get(platform, 0) + 1
+    
+    # Remove meta_tools from main list
+    platforms = [p for p in sorted(platform_counts.keys()) if p != "meta_tools"]
+    
+    return {
+        "success": True,
+        "platforms": platforms,
+        "platform_count": len(platforms),
+        "tool_counts": {p: platform_counts[p] for p in platforms},
+        "total_tools": sum(platform_counts[p] for p in platforms)
+    }
+
+
+def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
+    """
+    List all tools for a platform - NAMES AND DESCRIPTIONS ONLY (no parameter schemas)
+    
+    Returns a simple list of tool names and what they do.
+    If you need to know how to use a tool, call get_tool_schema(tool_name).
+    
+    Supports platform name matching:
+    - "microsoft" matches all microsoft_* tools
+    - "microsoft_word" matches microsoft_word_* tools
+    - "outlook" expands to microsoft_outlook
+    - "google" matches all google_* tools
+    - "gmail" matches gmail_* tools
+    
+    Args:
+        platform: Platform name (e.g., 'google_forms', 'microsoft_outlook', 'gmail')
+                 or platform alias ('microsoft', 'google', 'm365', 'office')
+    
+    Returns:
+        Dict with list of tool names and short descriptions
+    """
+    from tools.registry_v3 import get_registry
+    
+    registry = get_registry()
+    platform_lower = platform.lower()
+    
+    # Define platform aliases for exact expansion
+    platform_aliases = {
+        'microsoft': ['microsoft_'],  # Match all microsoft_ tools
+        'microsoft 365': ['microsoft_'],
+        'm365': ['microsoft_'],
+        'office': ['microsoft_outlook', 'microsoft_word', 'microsoft_excel', 'microsoft_teams'],
+        'office 365': ['microsoft_'],
+        'outlook': ['microsoft_outlook_'],
+        'teams': ['microsoft_teams_'],
+        'onedrive': ['microsoft_onedrive_'],
+        'todo': ['microsoft_todo_'],
+        'word': ['microsoft_word_'],
+        'excel': ['microsoft_excel_'],
+        'onenote': ['microsoft_onenote_'],
+        'forms': ['microsoft_forms_'],
+        'sharepoint': ['microsoft_sharepoint_'],
+        'calendar': ['microsoft_calendar_', 'google_calendar_'],
+        'google': ['google_', 'gmail_'],  # All Google tools
+        'google workspace': ['google_', 'gmail_'],
+        'gsuite': ['google_', 'gmail_'],
+        'gmail': ['gmail_'],
+        'sheets': ['google_sheets_'],
+        'docs': ['google_docs_'],
+        'drive': ['google_drive_'],
+        'forms': ['google_forms_'],
+        'synergy': ['synergy_'],  # Synergy Dashboard tools
+        'dashboard': ['synergy_'],  # Alias for synergy
+        'kanban': ['synergy_'],  # Alias for synergy
+    }
+    
+    tool_list = []
+    matched_platform = None
+    
+    # Check if input is a direct prefix (like "microsoft_word")
+    # First, try direct prefix matching for compound names
+    if '_' in platform_lower:
+        # e.g., "microsoft_word" or "google_sheets"
+        prefix = platform_lower + '_' if not platform_lower.endswith('_') else platform_lower
+        for tool_name, tool in registry.tools.items():
+            if tool_name.lower().startswith(prefix):
+                tool_list.append({
+                    "name": tool_name,
+                    "description": tool.get("description", "")
+                })
+        if tool_list:
+            matched_platform = platform_lower
+    
+    # If not found, try exact alias expansion
+    if not tool_list:
+        if platform_lower in platform_aliases:
+            search_prefixes = platform_aliases[platform_lower]
+            matched_platform = platform_lower
+            
+            for tool_name, tool in registry.tools.items():
+                # Check if tool name starts with any of the search prefixes
+                for prefix in search_prefixes:
+                    if tool_name.lower().startswith(prefix):
+                        tool_list.append({
+                            "name": tool_name,
+                            "description": tool.get("description", "")
+                        })
+                        break  # Don't add tool twice
+    
+    if not tool_list:
+        # Get list of available platforms/prefixes for helpful error message
+        available_prefixes = set()
+        for tool_name in registry.tools.keys():
+            # Extract first part of tool name
+            parts = tool_name.lower().split('_')
+            if len(parts) >= 2:
+                available_prefixes.add('_'.join(parts[:2]))  # e.g., "microsoft_word", "google_sheets"
+        
+        return {
+            "success": False,
+            "error": f"No tools found for platform: {platform}",
+            "available_platforms": sorted(list(available_prefixes)),
+            "platform_aliases_available": sorted(list(platform_aliases.keys())),
+            "suggestion": "Try using a platform alias like 'microsoft', 'google', 'outlook', 'gmail', etc. or use exact prefix like 'microsoft_word', 'google_sheets'"
+        }
+    
+    # Build smart guidance for broad platform searches
+    guidance = None
+    subplatforms_info = None
+    
+    if matched_platform in ['microsoft', 'microsoft 365', 'm365']:
+        subplatforms = ['outlook', 'teams', 'excel', 'word', 'onedrive', 'calendar', 'todo', 'forms', 'sharepoint', 'onenote']
+        guidance = "To narrow down further, try:\n" + \
+                   "  - list_platform_tools('microsoft_outlook') for email/calendar\n" + \
+                   "  - list_platform_tools('microsoft_teams') for messaging\n" + \
+                   "  - list_platform_tools('microsoft_excel') for spreadsheets\n" + \
+                   "  - list_platform_tools('microsoft_word') for documents\n" + \
+                   "  - list_platform_tools('microsoft_onedrive') for files"
+        subplatforms_info = {
+            "available_subplatforms": subplatforms,
+            "pattern": "microsoft_[subplatform]_[action]",
+            "examples": ["microsoft_outlook_send_email", "microsoft_teams_send_message", "microsoft_excel_create_workbook"]
+        }
+    elif matched_platform in ['google', 'google workspace', 'gsuite']:
+        subplatforms = ['gmail', 'sheets', 'docs', 'forms', 'calendar', 'drive', 'tasks']
+        guidance = "To narrow down further, try:\n" + \
+                   "  - list_platform_tools('gmail') for email\n" + \
+                   "  - list_platform_tools('google_sheets') for spreadsheets\n" + \
+                   "  - list_platform_tools('google_docs') for documents\n" + \
+                   "  - list_platform_tools('google_forms') for forms\n" + \
+                   "  - list_platform_tools('google_calendar') for scheduling"
+        subplatforms_info = {
+            "available_subplatforms": subplatforms,
+            "pattern": "google_[subplatform]_[action]",
+            "examples": ["gmail_send_email", "google_sheets_create_spreadsheet", "google_docs_create_document"]
+        }
+    elif matched_platform in ['synergy', 'dashboard', 'kanban']:
+        guidance = "Synergy Dashboard - Visual Kanban board for multi-platform project tracking:\n\n" + \
+                   "CORE TOOLS:\n" + \
+                   "  - synergy_smart_project_tracker - ONE-CALL project setup with full tracking\n" + \
+                   "  - synergy_create_session - Create new project card\n" + \
+                   "  - synergy_get_session - Fetch current project state\n" + \
+                   "  - synergy_list_sessions - View all projects on dashboard\n" + \
+                   "  - synergy_move_session - Change project status/column\n\n" + \
+                   "APPEND TOOLS (Efficient single-item additions - RECOMMENDED!):\n" + \
+                   "  - synergy_add_document - Add ONE document (no fetch needed)\n" + \
+                   "  - synergy_add_link - Add ONE external link (no fetch needed)\n" + \
+                   "  - synergy_add_next_step - Add ONE action item (no fetch needed)\n" + \
+                   "  - synergy_add_tag - Add ONE tag (no fetch needed)\n" + \
+                   "  - synergy_link_thread - Link ONE conversation thread (no fetch needed)\n" + \
+                   "  - synergy_assign_agent - Assign ONE AI agent (no fetch needed)\n\n" + \
+                   "EDIT TOOLS (Description, Notes, and Checklist Management):\n" + \
+                   "  - synergy_edit_description - Replace description text\n" + \
+                   "  - synergy_edit_notes - Replace notes text\n" + \
+                   "  - synergy_checklist_add_item - Add checklist item\n" + \
+                   "  - synergy_checklist_edit_item - Edit checklist item text\n" + \
+                   "  - synergy_checklist_toggle_item - Check/uncheck item (mark done/undone)\n" + \
+                   "  - synergy_checklist_delete_item - Delete checklist item\n" + \
+                   "  - synergy_checklist_add_sub_item - Add nested sub-item to checklist\n\n" + \
+                   "BULK UPDATE (Only when replacing entire arrays):\n" + \
+                   "  - synergy_update_session - REPLACES entire arrays (requires fetch first)\n\n" + \
+                   "WORKFLOW: Use append/edit tools for incremental updates. They're efficient and preserve existing data."
+        subplatforms_info = {
+            "key_tools": ["synergy_smart_project_tracker", "synergy_add_document", "synergy_checklist_add_item"],
+            "append_tools": ["synergy_add_document", "synergy_add_link", "synergy_add_next_step", "synergy_add_tag", "synergy_link_thread", "synergy_assign_agent"],
+            "edit_tools": ["synergy_edit_description", "synergy_edit_notes", "synergy_checklist_add_item", "synergy_checklist_edit_item", "synergy_checklist_toggle_item", "synergy_checklist_delete_item", "synergy_checklist_add_sub_item"],
+            "pattern": "synergy_[action]_[object]",
+            "examples": ["synergy_create_session", "synergy_add_document", "synergy_checklist_toggle_item"]
+        }
+    
+    # Sort alphabetically
+    tool_list.sort(key=lambda x: x["name"])
+    
+    result = {
+        "success": True,
+        "platform": platform,
+        "matched_as": matched_platform,
+        "tool_count": len(tool_list),
+        "tools": tool_list,
+        "next_steps": "To use a tool: 1) Call get_tool_schema(tool_name) to see parameters, 2) Call execute_tool(tool_name, **params)"
+    }
+    
+    if guidance:
+        result["guidance"] = guidance
+    
+    if subplatforms_info:
+        result["naming_pattern"] = subplatforms_info
+    
+    return result
+
+
+def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
+    """
+    Get FULL Anthropic-formatted parameter schema for ONE specific tool
+    
+    Use this AFTER list_platform_tools() to learn how to use a specific tool.
+    Returns complete parameter information formatted for Anthropic API with input_schema.
+    
+    MULTI-PROVIDER COMPATIBLE: Handles both Anthropic (Claude) and OpenAI (GPT) formats.
+    
+    Args:
+        tool_name: Name of the tool (e.g., 'gmail_send_email', 'google_docs_create_document')
+    
+    Returns:
+        Dict with full Anthropic-formatted tool schema including input_schema
+    """
+    import json
+    from tools.registry_v3 import get_registry
+    
+    # MULTI-PROVIDER PARAMETER EXTRACTION (same as execute_tool)
+    extracted_tool_name = tool_name
+    
+    # Extract from kwargs (Anthropic format)
+    if not extracted_tool_name and 'tool_name' in kwargs:
+        extracted_tool_name = kwargs.get('tool_name')
+    
+    # Extract from JSON arguments (OpenAI format)
+    if not extracted_tool_name and 'arguments' in kwargs:
+        arguments = kwargs.get('arguments')
+        if isinstance(arguments, str):
+            try:
+                args_dict = json.loads(arguments)
+                extracted_tool_name = args_dict.get('tool_name')
+            except json.JSONDecodeError:
+                pass
+    
+    # Extract from nested input (API wrapper format)
+    if not extracted_tool_name and 'input' in kwargs:
+        input_obj = kwargs.get('input')
+        if isinstance(input_obj, dict):
+            extracted_tool_name = input_obj.get('tool_name')
+    
+    # Validate tool_name extracted
+    if not extracted_tool_name:
+        error_result = {
+            "success": False,
+            "error": "tool_name parameter is required",
+            "usage": "get_tool_schema(tool_name='<tool_name>')",
+            "note": "Pass the tool name you want to learn about",
+            "received_params": list(kwargs.keys())
+        }
+        print(f"\n[META-TOOL ERROR] get_tool_schema() - Missing tool_name:")
+        print(f"  - Received params: {list(kwargs.keys())}")
+        return error_result
+    
+    print(f"\n[META-TOOL] get_tool_schema() called:")
+    print(f"  - Tool name: {extracted_tool_name}")
+    
+    registry = get_registry()
+    
+    # Check if tool exists
+    if extracted_tool_name not in registry.tools:
+        error_result = {
+            "success": False,
+            "error": f"Tool not found: {extracted_tool_name}",
+            "suggestion": "Call list_available_platforms() then list_platform_tools(platform) to see available tools"
+        }
+        print(f"[META-TOOL ERROR] get_tool_schema() - Tool not found: {extracted_tool_name}")
+        return error_result
+    
+    tool = registry.tools[extracted_tool_name]
+    
+    # Get the Anthropic-formatted version which includes input_schema
+    anthropic_tools = registry.get_anthropic_tools()
+    anthropic_tool = None
+    for at in anthropic_tools:
+        if at.get('name') == tool_name:
+            anthropic_tool = at
+            break
+    
+    if not anthropic_tool:
+        # Fallback to manual schema if not in Anthropic format
+        return {
+            "success": True,
+            "tool_name": tool_name,
+            "description": tool.get("description", ""),
+            "platform": tool.get("platform", "unknown"),
+            "input_schema": {
+                "type": "object",
+                "properties": tool.get("parameters", {}).get("properties", tool.get("parameters", {})),
+                "required": tool.get("parameters", {}).get("required", [])
+            },
+            "examples": tool.get("examples", []),
+            "note": "Add this tool to your tools list to use it"
+        }
+    
+    print(f"[META-TOOL] get_tool_schema() returning schema for: {extracted_tool_name}")
+    
+    return {
+        "success": True,
+        "tool_name": tool_name,
+        "description": anthropic_tool.get("description", ""),
+        "platform": tool.get("platform", "unknown"),
+        "input_schema": anthropic_tool.get("input_schema", {}),
+        "examples": tool.get("examples", []),
+        "note": "Add this tool to your tools list to use it. The input_schema shows all required and optional parameters."
+    }
+
+
+def search_tools(query: str, **kwargs) -> Dict[str, Any]:
+    """
+    Search for tools by keyword with strategic alias expansion (NO fuzzy matching)
+    
+    Examples:
+    - search_tools("send email") → finds gmail_send_email, outlook_send_email
+    - search_tools("gmail") → finds all Gmail tools
+    - search_tools("microsoft") → finds microsoft_outlook, microsoft_calendar, etc.
+    - search_tools("m365") → expands to Microsoft 365 tools
+    - search_tools("office") → expands to Microsoft Office tools
+    
+    Args:
+        query: Search query (e.g., 'email', 'gmail', 'microsoft', 'm365', 'office', 'outlook')
+    
+    Returns:
+        Dict with matching tools (names and descriptions only)
+    """
+    from tools.registry_v3 import get_registry
+    
+    registry = get_registry()
+    query_lower = query.lower().strip()
+    
+    # CRITICAL: Detect searches for web search/fetch tools
+    # Claude has these as SERVER TOOLS (no client-side execution needed)
+    web_search_queries = ['websearch', 'web_search', 'web search', 'search web', 'search internet', 
+                          'internet search', 'tavily', 'brave', 'brave search', 'search engine',
+                          'online search', 'web query']
+    web_fetch_queries = ['webfetch', 'web_fetch', 'web fetch', 'fetch url', 'fetch web', 
+                        'read url', 'get url', 'scrape', 'scrape web', 'download url',
+                        'read webpage', 'fetch page', 'get webpage']
+    
+    # Check if searching for web search tools
+    if any(q in query_lower for q in web_search_queries):
+        return {
+            "success": True,
+            "match_count": 1,
+            "query": query,
+            "guidance": """SERVER TOOL AVAILABLE: web_search
+
+You have a web_search SERVER TOOL that's ALWAYS available.
+This tool runs on Anthropic's servers and provides real-time internet access.
+
+HOW TO USE (NO execute_tool NEEDED):
+You don't call search_tools() or execute_tool() for this. Just USE IT DIRECTLY in your content blocks.
+
+EXAMPLE:
+User: "What's the latest AI news?"
+
+Your response should include:
+{
+  "type": "tool_use",
+  "name": "web_search",
+  "input": {
+    "query": "latest AI news November 2025"
+  }
+}
+
+Claude API executes search automatically on server
+You receive results with URLs, titles, content, page age
+You analyze and respond to user
+
+KEY POINTS:
+- Server tool (no client execution)
+- Max 5 searches per conversation
+- Returns URLs, titles, snippets, page age
+- Localized to Brisbane, Queensland, Australia
+- Use for: current events, news, trends, recent data, anything after your knowledge cutoff
+
+WHEN TO USE:
+- Current events, news, trends
+- Latest pricing or market data
+- Recent technical standards
+- Real-time information
+- Any info beyond your knowledge cutoff (April 2024)
+
+NEVER say "I need to find a web search tool" - YOU ALREADY HAVE IT!
+Just use it directly.""",
+            "available_platforms": ["anthropic_server_tools"],
+            "tools": [{
+                "name": "web_search",
+                "description": "Server-side real-time web search (always available)",
+                "platform": "anthropic_server_tools",
+                "type": "server_tool",
+                "usage": "Use directly in content blocks with tool_use type, no execute_tool() needed"
+            }],
+            "critical_note": "This is a SERVER TOOL - it's not in your tools list but you can use it directly. Don't search for alternatives."
+        }
+    
+    # Check if searching for web fetch tools
+    if any(q in query_lower for q in web_fetch_queries):
+        return {
+            "success": True,
+            "match_count": 1,
+            "query": query,
+            "guidance": """SERVER TOOL AVAILABLE: web_fetch
+
+You have a web_fetch SERVER TOOL that's ALWAYS available.
+This tool runs on Anthropic's servers and fetches full content from URLs.
+
+HOW TO USE (NO execute_tool NEEDED):
+You don't call search_tools() or execute_tool() for this. Just USE IT DIRECTLY in your content blocks.
+
+EXAMPLE:
+User: "Analyze this article: https://example.com/article"
+
+Your response should include:
+{
+  "type": "tool_use",
+  "name": "web_fetch",
+  "input": {
+    "url": "https://example.com/article"
+  }
+}
+
+Claude API fetches content automatically on server
+You receive full document content with citations
+You analyze and respond to user
+
+KEY POINTS:
+- Server tool (no client execution)
+- Max 10 fetches per conversation
+- Fetches PDFs, web pages, documents
+- Returns full content with citations
+- Max 100,000 tokens per fetch
+- Use for: analyzing URLs, reading documents, summarizing web content
+
+WHEN TO USE:
+- Analyze specific URL
+- Read webpage content
+- Extract info from PDF link
+- Summarize document at URL
+- Compare multiple URLs
+- Follow up on web_search results
+
+NEVER say "I need to find a web fetch tool" - YOU ALREADY HAVE IT!
+Just use it directly.""",
+            "available_platforms": ["anthropic_server_tools"],
+            "tools": [{
+                "name": "web_fetch",
+                "description": "Server-side URL content fetching (always available)",
+                "platform": "anthropic_server_tools",
+                "type": "server_tool",
+                "usage": "Use directly in content blocks with tool_use type, no execute_tool() needed"
+            }],
+            "critical_note": "This is a SERVER TOOL - it's not in your tools list but you can use it directly. Don't search for alternatives."
+        }
+    
+    # Continue with normal search for client-side tools
+    
+    # Strategic alias expansion (NOT fuzzy logic - exact matches only)
+    alias_map = {
+        'microsoft': ['microsoft_', 'outlook_', 'teams_', 'onedrive_', 'word_', 'excel_', 'powerpoint_'],
+        'microsoft 365': ['microsoft_', 'outlook_', 'teams_', 'onedrive_', 'word_', 'excel_', 'powerpoint_'],
+        'm365': ['microsoft_', 'outlook_', 'teams_', 'onedrive_', 'word_', 'excel_', 'powerpoint_'],
+        'office': ['outlook_', 'word_', 'excel_', 'powerpoint_', 'microsoft_'],
+        'office 365': ['outlook_', 'word_', 'excel_', 'powerpoint_', 'microsoft_'],
+        'google': ['google_', 'gmail_', 'gsheets_'],
+        'google workspace': ['google_', 'gmail_', 'gsheets_', 'google_docs', 'google_calendar', 'google_drive'],
+        'gsuite': ['google_', 'gmail_', 'gsheets_', 'google_docs', 'google_calendar', 'google_drive'],
+        'email': ['gmail_', 'outlook_', 'email', 'send'],
+        'mail': ['gmail_', 'outlook_', 'email', 'send'],
+        'spreadsheet': ['sheets', 'excel', 'spreadsheet'],
+        'sheets': ['sheets', 'excel', 'spreadsheet'],
+        'document': ['docs', 'word', 'document'],
+        'calendar': ['calendar', 'scheduling'],
+        'chat': ['teams', 'slack', 'message'],
+        'storage': ['drive', 'onedrive', 'dropbox'],
+    }
+    
+    # Platform subcomponents for guidance
+    platform_components = {
+        'microsoft': {
+            'platforms': ['excel', 'word', 'outlook', 'teams', 'onedrive', 'powerpoint', 'onenote', 'forms', 'sharepoint'],
+            'guidance': "Use microsoft_[PLATFORM] format to narrow down:\n- microsoft_outlook (email, calendar, contacts)\n- microsoft_teams (messaging, meetings)\n- microsoft_excel_tools (spreadsheet operations)\n- microsoft_word_tools (document editing)\n- microsoft_onedrive (file storage)\n- microsoft_calendar (scheduling)\nOr use list_platform_tools('PLATFORM_NAME') for specific tool lists."
+        },
+        'google': {
+            'platforms': ['gmail', 'sheets', 'docs', 'forms', 'calendar', 'drive', 'tasks'],
+            'guidance': "Use google_[PLATFORM] format to narrow down:\n- gmail (email operations)\n- google_sheets (spreadsheet operations)\n- google_docs (document editing)\n- google_forms (form creation and responses)\n- google_calendar (scheduling)\n- google_drive (file storage)\n- google_tasks (task management)\nOr use list_platform_tools('PLATFORM_NAME') for specific tool lists."
+        }
+    }
+    
+    # Determine search keywords (expand aliases or use query directly)
+    search_keywords = []
+    
+    # Check for exact alias match
+    if query_lower in alias_map:
+        search_keywords = alias_map[query_lower]
+    else:
+        # No alias - use query directly for substring matching
+        search_keywords = [query_lower]
+    
+    # Search tool names and descriptions (exact substring matching only)
+    matching_tools = []
+    matched_tool_names = set()
+    
+    for tool_name, tool in registry.tools.items():
+        # Skip meta-tools in search results
+        if tool_name.startswith(('list_', 'get_platform', 'recommend_', 'execute_', 'search_')):
+            continue
+        
+        if tool_name in matched_tool_names:
+            continue
+        
+        description = tool.get("description", "").lower()
+        
+        # Check if any search keyword appears in tool name or description
+        matched = False
+        for keyword in search_keywords:
+            if keyword in tool_name.lower() or keyword in description:
+                matched = True
+                break
+        
+        if matched:
+            matching_tools.append({
+                "name": tool_name,
+                "description": tool.get("description", ""),
+                "platform": tool.get("platform", "unknown")
+            })
+            matched_tool_names.add(tool_name)
+    
+    # Sort alphabetically by name
+    matching_tools.sort(key=lambda x: x["name"])
+    
+    # Build response
+    result = {
+        "success": True,
+        "query": query,
+        "match_count": len(matching_tools),
+        "tools": matching_tools[:50],  # Limit to 50 results
+        "search_method": "exact_substring_matching",
+        "aliases_available": list(alias_map.keys()),
+        "next_steps": "To use a tool: 1) Call get_tool_schema(tool_name) to see parameters, 2) Call execute_tool(tool_name, **params)"
+    }
+    
+    # Add smart guidance for broad platform searches
+    for broad_query, components in platform_components.items():
+        if query_lower in broad_query or broad_query in query_lower:
+            result["guidance"] = f"\n{components['guidance']}"
+            result["available_subplatforms"] = components['platforms']
+            result["info"] = f"Found {len(matching_tools)} {broad_query.capitalize()} tools. To narrow down the results, try searching for specific subplatforms: {', '.join(components['platforms'])}"
+            break
+    
+    return result
+
+
+def get_platform_guide(platform: str, **kwargs) -> Dict[str, Any]:
+    """
+    Get detailed usage guide for a platform's tools
+    
+    Args:
+        platform: Platform name (e.g., 'google_workspace', 'microsoft_365', 'calculator')
+    
+    Returns:
+        Dict with detailed guide text
+    """
+    # Simple implementation - just return basic info about the platform
+    from tools.registry_v3 import get_registry
+    
+    registry = get_registry()
+    
+    # Count tools for this platform
+    tool_names = [name for name, tool in registry.tools.items() if tool.get("platform") == platform]
+    
+    if not tool_names:
+        return {
+            "success": False,
+            "error": f"Platform not found: {platform}",
+            "suggestion": "Call list_available_platforms() to see available platforms"
+        }
+    
+    guide = f"Platform: {platform}\n"
+    guide += f"Tools available: {len(tool_names)}\n\n"
+    guide += "To use this platform:\n"
+    guide += f"1. Call list_platform_tools('{platform}') to see all tools\n"
+    guide += "2. Call get_tool_schema(tool_name) to learn about a specific tool\n"
+    guide += "3. Call execute_tool(tool_name, **params) to use the tool\n"
+    
+    return {
+        "success": True,
+        "platform": platform,
+        "tool_count": len(tool_names),
+        "guide": guide
+    }
+
+
+def recommend_tools_for_task(task_description: str, 
+                             user_platforms: Optional[List[str]] = None,
+                             **kwargs) -> Dict[str, Any]:
+    """
+    Get smart recommendations for which tools to use for a task
+    
+    Args:
+        task_description: What you want to do
+        user_platforms: List of platforms user has connected (optional)
+    
+    Returns:
+        Dict with recommendations
+    """
+    # Simple recommendation: use search_tools instead
+    return {
+        "success": True,
+        "task": task_description,
+        "recommendation": f"Use search_tools('{task_description}') to find relevant tools",
+        "example": f"search_tools('{task_description.split()[0]}') will find matching tools"
+    }
+
+
+def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
+    """
+    Execute ANY tool by name (proxy function for dynamic tool execution)
+    
+    This allows Claude to call tools after discovering them via list_platform_tools(),
+    without needing all 603 tool schemas sent upfront.
+    
+    MULTI-PROVIDER COMPATIBLE: Handles both Anthropic (Claude) and OpenAI (GPT) formats.
+    
+    Anthropic sends: execute_tool(input={"tool_name": "X", "param": "Y"})
+    OpenAI sends: execute_tool(arguments='{"tool_name": "X", "param": "Y"}')
+    
+    Args:
+        tool_name: Name of tool to execute (e.g., 'gmail_send_email', 'google_docs_create') [REQUIRED]
+        **tool_params: All parameters required by the tool
+    
+    Returns:
+        Result from the executed tool
+    """
+    import json
+    from tools.registry_v3 import get_registry
+    
+    # MULTI-PROVIDER PARAMETER EXTRACTION
+    # Handle 4 different ways providers send parameters:
+    
+    # 1. Direct parameter (least common, but check first)
+    extracted_tool_name = tool_name
+    params = dict(tool_params)
+    
+    # 2. Anthropic format: tool_name in kwargs
+    if not extracted_tool_name and 'tool_name' in params:
+        extracted_tool_name = params.pop('tool_name')
+    
+    # 3. OpenAI format: JSON string in 'arguments'
+    if not extracted_tool_name and 'arguments' in params:
+        arguments = params.pop('arguments')
+        if isinstance(arguments, str):
+            try:
+                args_dict = json.loads(arguments)
+                extracted_tool_name = args_dict.pop('tool_name', None)
+                params.update(args_dict)  # Merge remaining args
+            except json.JSONDecodeError as e:
+                return {
+                    "success": False,
+                    "error": f"Failed to parse arguments JSON: {str(e)}",
+                    "received_arguments": arguments[:100]
+                }
+    
+    # 4. Nested input object (some API wrappers)
+    if not extracted_tool_name and 'input' in params:
+        input_obj = params.pop('input')
+        if isinstance(input_obj, dict):
+            extracted_tool_name = input_obj.pop('tool_name', None)
+            params.update(input_obj)
+    
+    # Validate tool_name extracted
+    if not extracted_tool_name:
+        return {
+            "success": False,
+            "error": "tool_name parameter is required",
+            "usage": "execute_tool(tool_name='<tool_name>', param1='value1', param2='value2', ...)",
+            "note": "First call get_tool_schema(tool_name='<tool_name>') to see required parameters",
+            "received_params": list(tool_params.keys()),
+            "example": {
+                "tool_name": "microsoft_outlook_send_email",
+                "to": "recipient@example.com",
+                "subject": "Hello",
+                "body": "Test message"
+            }
+        }
+    
+    registry = get_registry()
+    
+    # Check if tool exists
+    if extracted_tool_name not in registry.tools:
+        # Try to suggest similar tools
+        all_tools = list(registry.tools.keys())
+        suggestions = [t for t in all_tools if extracted_tool_name.lower() in t.lower()][:5]
+        
+        return {
+            "success": False,
+            "error": f"Tool '{extracted_tool_name}' not found in registry",
+            "suggestion": "Use search_tools() or list_platform_tools() to find available tools",
+            "similar_tools": suggestions if suggestions else None,
+            "available_tool_count": len(all_tools)
+        }
+    
+    # Execute the tool with credential injection
+    try:
+        # Log execution attempt
+        print(f"\n[META-TOOL] execute_tool() called:")
+        print(f"  - Target tool: {extracted_tool_name}")
+        print(f"  - Parameters: {list(params.keys())}")
+        print(f"  - Has _user_id: {'_user_id' in params}")
+        print(f"  - Has _injected_credentials: {'_injected_credentials' in params}")
+        if '_user_id' in params:
+            print(f"  - User ID: {params['_user_id']}")
+        
+        # CRITICAL: registry.execute_tool() only accepts **kwargs, not positional args
+        # Must pass tool_name inside kwargs dictionary
+        result = registry.execute_tool(tool_name=extracted_tool_name, **params)
+        
+        print(f"[META-TOOL] execute_tool() result: success={result.get('success', 'unknown')}")
+        if not result.get('success'):
+            print(f"[META-TOOL] Error from target tool: {result.get('error', 'No error message')}")
+        
+        return {
+            "success": True,
+            "tool": extracted_tool_name,
+            "result": result,
+            "parameters_used": list(params.keys())
+        }
+    except Exception as e:
+        import traceback
+        error_details = {
+            "success": False,
+            "error": f"Tool execution failed: {str(e)}",
+            "tool": extracted_tool_name,
+            "parameters_received": list(params.keys()),
+            "error_type": type(e).__name__,
+            "traceback": traceback.format_exc()
+        }
+        
+        # Log the error
+        print(f"\n[META-TOOL ERROR] execute_tool() failed:")
+        print(f"  - Tool: {extracted_tool_name}")
+        print(f"  - Error: {str(e)}")
+        print(f"  - Error Type: {type(e).__name__}")
+        print(f"  - Traceback:\n{traceback.format_exc()}")
+        
+        return error_details
+
+
+def get_workflow_steps(workflow_name: str, **kwargs) -> Dict[str, Any]:
+    """
+    Get step-by-step workflow for common tasks
+    
+    Args:
+        workflow_name: Name of workflow (e.g., 'send_email', 'create_document', 'generate_quote')
+    
+    Returns:
+        Dict with step-by-step instructions
+    """
+    # Generic workflow guidance
+    workflows = {
+        "send_email": [
+            "1. Call search_tools('email') or list_platform_tools('google_workspace')",
+            "2. Find gmail_send_email or outlook_send_email",
+            "3. Call get_tool_schema('gmail_send_email')",
+            "4. Call execute_tool('gmail_send_email', to='...', subject='...', body='...')"
+        ],
+        "create_document": [
+            "1. Call search_tools('document') or list_platform_tools('google_workspace')",
+            "2. Find google_docs_create_document",
+            "3. Call get_tool_schema('google_docs_create_document')",
+            "4. Call execute_tool('google_docs_create_document', title='...')"
+        ],
+        "generate_quote": [
+            "1. Call list_platform_tools('calculator')",
+            "2. Find appropriate calculator tool (e.g., calculate_business_cards)",
+            "3. Call get_tool_schema('calculate_business_cards')",
+            "4. Call execute_tool('calculate_business_cards', quantity=..., stock_type='...')"
+        ]
+    }
+    
+    steps = workflows.get(workflow_name)
+    
+    if not steps:
+        return {
+            "success": False,
+            "error": f"Workflow not found: {workflow_name}",
+            "available_workflows": list(workflows.keys()),
+            "suggestion": "Use search_tools() to find relevant tools for your task"
+        }
+    
+    return {
+        "success": True,
+        "workflow_name": workflow_name,
+        "steps": "\n".join(steps)
+    }
+
+
+# Module info for registry
+__all__ = [
+    "list_available_platforms",
+    "list_platform_tools",
+    "get_tool_schema",
+    "search_tools",
+    "get_platform_guide",
+    "recommend_tools_for_task",
+    "get_workflow_steps",
+    "execute_tool"
+]

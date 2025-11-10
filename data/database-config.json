@@ -1,0 +1,13 @@
+﻿{
+    "database": {
+        "type": "sqlite",
+        "path": "ai_infrastructure.db"
+    },
+    "AI": {
+        "AnthropicAPIKey": "",
+        "Model": "claude-sonnet-4-20250514",
+        "MaxTokens": 8096,
+        "DeepSeekAPIKey": "",
+        "OpenAIAPIKey": ""
+    }
+}

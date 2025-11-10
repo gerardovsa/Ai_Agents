@@ -1,0 +1,530 @@
+/**
+ * Stock Management Module - Custom Styles
+ * Professional design with blue/teal color scheme
+ * NO EMOJIS - Only Font Awesome icons and status circles
+ */
+
+/* ===================================================================
+   UPLOAD ZONE (Invoice Processing)
+   =================================================================== */
+.sm-upload-zone {
+    border: 2px dashed var(--primary-color, #0078d4);
+    border-radius: 8px;
+    padding: 40px 20px;
+    text-align: center;
+    background: rgba(0, 120, 212, 0.05);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.sm-upload-zone:hover,
+.sm-upload-zone.sm-dragover {
+    background: rgba(0, 120, 212, 0.1);
+    border-color: var(--primary-hover, #006cbe);
+    transform: translateY(-2px);
+}
+
+.sm-upload-icon {
+    font-size: 48px;
+    color: var(--primary-color, #0078d4);
+    margin-bottom: 15px;
+}
+
+.sm-upload-text h4 {
+    color: var(--text-primary, #e6edf3);
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.sm-upload-text p {
+    color: var(--text-secondary, #7d8590);
+    font-size: 14px;
+}
+
+/* Processing Indicator */
+.sm-processing-indicator {
+    text-align: center;
+    padding: 30px;
+    color: var(--primary-color, #0078d4);
+}
+
+.sm-processing-indicator i {
+    font-size: 32px;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.sm-processing-indicator span {
+    font-size: 16px;
+    color: var(--text-primary, #e6edf3);
+}
+
+/* ===================================================================
+   RESULTS & EXTRACTION
+   =================================================================== */
+.sm-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-default, #30363d);
+}
+
+.sm-results-header h4 {
+    color: var(--text-primary, #e6edf3);
+    margin: 0;
+}
+
+.sm-extraction-summary {
+    background: var(--bg-secondary, #161b22);
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--primary-color, #0078d4);
+}
+
+.sm-extraction-summary p {
+    margin: 8px 0;
+    color: var(--text-primary, #e6edf3);
+}
+
+.sm-extraction-summary strong {
+    color: var(--primary-color, #0078d4);
+    margin-right: 10px;
+}
+
+/* ===================================================================
+   DASHBOARD CONTROLS
+   =================================================================== */
+.sm-dashboard-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--bg-secondary, #161b22);
+    border-radius: 6px;
+    border: 1px solid var(--border-default, #30363d);
+}
+
+.sm-control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sm-control-group label {
+    color: var(--text-primary, #e6edf3);
+    font-weight: 500;
+    margin: 0;
+}
+
+.sm-control-group select {
+    background: var(--bg-tertiary, #21262d);
+    color: var(--text-primary, #e6edf3);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.sm-control-group select:hover {
+    border-color: var(--primary-color, #0078d4);
+}
+
+.sm-control-group select:focus {
+    outline: none;
+    border-color: var(--primary-color, #0078d4);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.2);
+}
+
+/* ===================================================================
+   STAT CARDS (Usage Analytics) - Compact variant
+   Reduced sizing and spacing for dense dashboards
+   =================================================================== */
+.sm-stats-grid {
+    display: grid;
+    /* narrower minimum width so more cards fit on a row */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.sm-stat-card {
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    /* reduced padding for smaller card footprint */
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.18s ease;
+}
+
+.sm-stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.18);
+    border-color: var(--primary-color, #0078d4);
+}
+
+.sm-stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.sm-stat-icon.sm-primary {
+    background: rgba(0, 120, 212, 0.16);
+    color: var(--primary-color, #0078d4);
+}
+
+.sm-stat-icon.sm-success {
+    background: rgba(0, 178, 148, 0.14);
+    color: var(--secondary-color, #00b294);
+}
+
+.sm-stat-icon.sm-warning {
+    background: rgba(255, 193, 7, 0.12);
+    color: #ffc107;
+}
+
+.sm-stat-icon.sm-info {
+    background: rgba(121, 134, 203, 0.12);
+    color: #7986cb;
+}
+
+.sm-stat-content {
+    flex: 1;
+}
+
+.sm-stat-label {
+    font-size: 12px;
+    color: var(--text-secondary, #7d8590);
+    margin-bottom: 4px;
+}
+
+.sm-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary, #e6edf3);
+    line-height: 1;
+}
+
+/* ===================================================================
+   STATUS INDICATORS (Only Acceptable Emojis)
+   =================================================================== */
+.sm-status-critical::before {
+    content: '🔴 ';
+}
+
+.sm-status-warning::before {
+    content: '🟡 ';
+}
+
+.sm-status-healthy::before {
+    content: '🟢 ';
+}
+
+.sm-status-inactive::before {
+    content: '⚪ ';
+}
+
+/* ===================================================================
+   LOADING & ERROR STATES
+   =================================================================== */
+.sm-loading-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary, #7d8590);
+}
+
+.sm-loading-state i {
+    font-size: 32px;
+    margin-bottom: 15px;
+    display: block;
+    color: var(--primary-color, #0078d4);
+}
+
+.sm-error-message {
+    background: rgba(220, 53, 69, 0.1);
+    border-left: 4px solid #dc3545;
+    padding: 15px;
+    border-radius: 6px;
+    color: #ff6b6b;
+}
+
+.sm-error-message i {
+    margin-right: 10px;
+}
+
+.sm-info-message {
+    background: rgba(0, 120, 212, 0.1);
+    border-left: 4px solid var(--primary-color, #0078d4);
+    padding: 15px;
+    border-radius: 6px;
+    color: var(--text-primary, #e6edf3);
+}
+
+.sm-info-message i {
+    margin-right: 10px;
+    color: var(--primary-color, #0078d4);
+}
+
+.sm-success-message {
+    background: rgba(0, 178, 148, 0.1);
+    border-left: 4px solid var(--secondary-color, #00b294);
+    padding: 15px;
+    border-radius: 6px;
+    color: var(--text-primary, #e6edf3);
+}
+
+.sm-success-message i {
+    margin-right: 10px;
+    color: var(--secondary-color, #00b294);
+}
+
+/* ===================================================================
+   CHARTS (Chart.sm-js containers)
+   =================================================================== */
+.sm-chart-container {
+    position: relative;
+    height: 300px;
+    margin: 20px 0;
+}
+
+canvas {
+    max-height: 400px;
+}
+
+/* ===================================================================
+   CARD HEADER WITH REFRESH BUTTONS
+   =================================================================== */
+.dashboard-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px 6px 0 0;
+    margin-bottom: 20px;
+}
+
+.dashboard-card .card-header .sm-header-left {
+    flex: 1;
+}
+
+.dashboard-card .card-header .sm-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dashboard-card .card-header .card-title {
+    margin: 0 0 5px 0;
+    color: var(--text-primary, #e6edf3);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.dashboard-card .card-header .card-title i {
+    margin-right: 8px;
+    color: var(--primary-color, #0078d4);
+}
+
+.dashboard-card .card-header .sm-card-subtitle {
+    margin: 0;
+    color: var(--text-secondary, #7d8590);
+    font-size: 13px;
+}
+
+.dashboard-card .card-header .form-control {
+    background: var(--bg-tertiary, #21262d);
+    color: var(--text-primary, #e6edf3);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 14px;
+    min-width: 150px;
+}
+
+.dashboard-card .card-header .form-control:hover {
+    border-color: var(--primary-color, #0078d4);
+}
+
+.dashboard-card .card-header .form-control:focus {
+    outline: none;
+    border-color: var(--primary-color, #0078d4);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.2);
+}
+
+/* ===================================================================
+   BUTTONS (Override defaults with module colors)
+   =================================================================== */
+.sm-stock-management .btn-primary {
+    background: var(--primary-color, #0078d4);
+    border-color: var(--primary-color, #0078d4);
+}
+
+.sm-stock-management .btn-primary:hover {
+    background: var(--primary-hover, #006cbe);
+    border-color: var(--primary-hover, #006cbe);
+}
+
+.sm-stock-management .btn-secondary {
+    background: var(--secondary-color, #00b294);
+    border-color: var(--secondary-color, #00b294);
+}
+
+.sm-stock-management .btn-secondary:hover {
+    background: #009f82;
+    border-color: #009f82;
+}
+
+/* ===================================================================
+   RESPONSIVE DESIGN
+   =================================================================== */
+@media (max-width: 768px) {
+    .sm-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sm-dashboard-controls {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .sm-control-group {
+        width: 100%;
+    }
+}
+
+/* ===================================================================
+   TABULATOR TABLE BORDERS
+   =================================================================== */
+.tabulator {
+    border: 1px solid #30363d !important;
+}
+
+.tabulator .tabulator-header {
+    background: #1A1F2E !important;
+    border-bottom: 2px solid #0078d4 !important;
+}
+
+.tabulator .tabulator-header .tabulator-col {
+    border-right: 1px solid #30363d !important;
+    background: #1A1F2E !important;
+}
+
+.tabulator .tabulator-header .tabulator-col:first-child {
+    border-left: 1px solid #30363d !important;
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row {
+    border-bottom: 1px solid #30363d !important;
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell {
+    border-right: 1px solid #30363d !important;
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell:first-child {
+    border-left: 1px solid #30363d !important;
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row:hover {
+    background: rgba(0, 120, 212, 0.05) !important;
+}
+
+/* Tabulator Tooltip Dark Mode Fix */
+.tabulator-tooltip {
+    background: #1a1f2e !important;
+    color: #e6edf3 !important;
+    border: 1px solid #2a3142 !important;
+    padding: 6px 10px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    max-width: 300px !important;
+    word-wrap: break-word !important;
+}
+
+/* Cell Padding/Borders */
+.tabulator .tabulator-cell {
+    padding: 8px 12px !important;
+}
+
+/* Header Filter Fields */
+.tabulator .tabulator-header-filter input,
+.tabulator .tabulator-header-filter select {
+    background: #0B0E13 !important;
+    border: 1px solid #2A3142 !important;
+    color: #e6edf3 !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    width: 100% !important;
+}
+
+.tabulator .tabulator-header-filter input::placeholder {
+    color: #7d8590 !important;
+    opacity: 1 !important;
+}
+
+.tabulator .tabulator-header-filter input:focus {
+    border-color: #0078d4 !important;
+    outline: none !important;
+}
+
+/* ===================================================================
+   MODULE DASHBOARD VERTICAL FILL
+   =================================================================== */
+.module-dashboard {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: calc(100vh - 200px);
+    gap: 20px;
+}
+
+.module-dashboard .dashboard-card:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.module-dashboard .dashboard-card:last-child .card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#analytics-table-container,
+#ai-analytics-table-container,
+#reorder-table-container,
+#profit-table-container,
+#sql-results-container {
+    flex: 1 !important;
+    min-height: 400px !important;
+    height: auto !important;
+}
+
+/* Ensure Tabulator fills its container */
+#analytics-table-container .tabulator,
+#ai-analytics-table-container .tabulator,
+#reorder-table-container .tabulator,
+#profit-table-container .tabulator,
+#sql-results-container .tabulator {
+    height: 100% !important;
+}

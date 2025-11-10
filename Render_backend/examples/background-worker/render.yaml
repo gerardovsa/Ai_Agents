@@ -1,0 +1,437 @@
+# ==============================================================================
+# BACKGROUND WORKER - RENDER.COM DEPLOYMENT CONFIGURATION
+# ==============================================================================
+#
+# This configuration file deploys a background worker service to Render.com.
+# Workers process background jobs without serving HTTP requests.
+#
+# WHAT THIS CONFIGURES:
+# - Worker service that runs continuously
+# - Processes jobs from a queue (Redis, RabbitMQ, database, etc.)
+# - No HTTP port or health check required
+# - Automatic restart on failure
+#
+# COMMON USE CASES:
+# - Processing job queues (Celery, Bull, Sidekiq)
+# - Email sending workers
+# - Data processing pipelines
+# - Scheduled task processors
+# - WebSocket connection handlers
+# - Video/image processing
+# - Report generation
+#
+# PREREQUISITES:
+# 1. Worker process that runs continuously
+# 2. Connection to job queue or message broker
+# 3. Graceful shutdown handling (SIGTERM)
+# 4. Logging for monitoring
+#
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # BACKGROUND WORKER SERVICE
+  # ----------------------------------------------------------------------------
+  - type: worker  # IMPORTANT: Use 'worker' type, not 'web'
+    name: my-background-worker
+    runtime: python  # Options: python, node, ruby, go, rust, etc.
+    region: oregon  # Options: oregon, frankfurt, singapore, ohio, virginia
+    
+    # Build Configuration
+    # Install dependencies required for worker
+    buildCommand: pip install -r requirements.txt
+    
+    # Start Command
+    # Command that runs the worker process continuously
+    # IMPORTANT: Process must run continuously, not exit
+    # 
+    # Examples:
+    # - Celery: celery -A myapp worker --loglevel=info
+    # - Python: python worker.py
+    # - Node: node worker.js
+    # - Bull: npm start
+    startCommand: celery -A myapp worker --loglevel=info --concurrency=4
+    
+    # Plan Configuration
+    # Starter: Free tier, 512MB RAM, 0.5 CPU (limited hours)
+    # Standard: $7/month, 512MB RAM, 0.5 CPU (always on)
+    # Pro: $25/month, 2GB RAM, 2 CPUs
+    plan: standard  # Workers should use Standard or higher (always on)
+    
+    # Auto-Deploy
+    # Automatically redeploy worker on git push
+    autoDeploy: true
+    
+    # Environment Variables
+    envVars:
+      # Python Version (if using Python)
+      - key: PYTHON_VERSION
+        value: "3.11"
+      
+      # Worker Environment
+      - key: WORKER_ENV
+        value: production
+      
+      # Redis Connection (for Celery, Bull, etc.)
+      # REQUIRED for most job queue systems
+      - key: REDIS_URL
+        fromDatabase:
+          name: my-redis-db
+          property: connectionString
+      
+      # Database Connection (if needed)
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: my-postgres-db
+      #     property: connectionString
+      
+      # Worker Configuration
+      # Number of concurrent workers/processes
+      - key: WORKER_CONCURRENCY
+        value: "4"
+      
+      # Max tasks per worker before restart
+      - key: WORKER_MAX_TASKS_PER_CHILD
+        value: "1000"
+      
+      # Task timeout (seconds)
+      - key: WORKER_TASK_TIMEOUT
+        value: "300"
+      
+      # Logging Level
+      - key: LOG_LEVEL
+        value: info  # Options: debug, info, warning, error
+      
+      # API Keys (for external services)
+      # - key: SENDGRID_API_KEY
+      #   sync: false
+      # - key: AWS_ACCESS_KEY_ID
+      #   sync: false
+      # - key: AWS_SECRET_ACCESS_KEY
+      #   sync: false
+      # - key: STRIPE_SECRET_KEY
+      #   sync: false
+
+# ==============================================================================
+# DATABASES
+# ==============================================================================
+# Most workers require Redis for job queue
+databases:
+  - name: my-redis-db
+    databaseName: redis
+    user: redis
+    plan: starter  # Free tier: 25MB storage
+    region: oregon  # Should match worker region
+
+# Optional PostgreSQL for persistent data
+# databases:
+#   - name: my-postgres-db
+#     databaseName: worker_db
+#     user: worker_user
+#     plan: starter
+#     region: oregon
+
+# ==============================================================================
+# WORKER TYPES & EXAMPLES
+# ==============================================================================
+#
+# CELERY WORKER (PYTHON):
+#   runtime: python
+#   buildCommand: pip install -r requirements.txt
+#   startCommand: celery -A myapp worker --loglevel=info --concurrency=4
+#   
+#   requirements.txt:
+#   celery[redis]==5.3.4
+#   redis==5.0.1
+#   
+#   myapp/celery.py:
+#   from celery import Celery
+#   app = Celery('myapp', broker=os.getenv('REDIS_URL'))
+#
+# BULL WORKER (NODE.JS):
+#   runtime: node
+#   buildCommand: npm install
+#   startCommand: node worker.js
+#   
+#   package.json:
+#   {
+#     "dependencies": {
+#       "bull": "^4.12.0",
+#       "ioredis": "^5.3.2"
+#     }
+#   }
+#   
+#   worker.js:
+#   const Queue = require('bull');
+#   const queue = new Queue('myqueue', process.env.REDIS_URL);
+#   queue.process(async (job) => { /* process job */ });
+#
+# SIDEKIQ WORKER (RUBY):
+#   runtime: ruby
+#   buildCommand: bundle install
+#   startCommand: bundle exec sidekiq -c 4
+#   
+#   Gemfile:
+#   gem 'sidekiq', '~> 7.2'
+#   gem 'redis', '~> 5.0'
+#
+# CUSTOM PYTHON WORKER:
+#   runtime: python
+#   buildCommand: pip install -r requirements.txt
+#   startCommand: python worker.py
+#   
+#   worker.py:
+#   import redis
+#   import time
+#   r = redis.from_url(os.getenv('REDIS_URL'))
+#   while True:
+#       job = r.blpop('jobs', timeout=5)
+#       if job: process_job(job)
+#
+# ==============================================================================
+# DEPLOYMENT CHECKLIST
+# ==============================================================================
+# Before deploying, ensure:
+#
+# 1. WORKER RUNS CONTINUOUSLY:
+#    # Worker must run in infinite loop, not exit
+#    # Bad: process job once and exit
+#    # Good: while True loop or framework that handles this
+#
+# 2. GRACEFUL SHUTDOWN HANDLING:
+#    # Worker must handle SIGTERM for clean shutdown
+#    
+#    # Python example:
+#    import signal
+#    
+#    def handle_sigterm(signum, frame):
+#        print("Received SIGTERM, shutting down gracefully...")
+#        # Finish current job
+#        # Close connections
+#        sys.exit(0)
+#    
+#    signal.signal(signal.SIGTERM, handle_sigterm)
+#
+# 3. REDIS CONNECTION CONFIGURED:
+#    # Most workers need Redis for job queue
+#    # Test connection locally first
+#    
+#    import redis
+#    r = redis.from_url(os.getenv('REDIS_URL'))
+#    r.ping()  # Should return True
+#
+# 4. ERROR HANDLING:
+#    # Workers should handle errors gracefully
+#    # Don't let one failed job crash entire worker
+#    
+#    try:
+#        process_job(job)
+#    except Exception as e:
+#        log_error(e)
+#        # Optionally retry or move to dead letter queue
+#
+# 5. LOGGING CONFIGURED:
+#    # Use structured logging for monitoring
+#    
+#    import logging
+#    logging.basicConfig(
+#        level=os.getenv('LOG_LEVEL', 'INFO'),
+#        format='%(asctime)s %(levelname)s: %(message)s'
+#    )
+#
+# 6. CONCURRENCY TUNED:
+#    # Set appropriate worker concurrency
+#    # Too high: Memory issues
+#    # Too low: Slow job processing
+#    # Formula: 2 × CPU cores (adjust based on job type)
+#
+# ==============================================================================
+# POST-DEPLOYMENT STEPS
+# ==============================================================================
+# After first deployment:
+#
+# 1. VERIFY WORKER IS RUNNING:
+#    python render_universal_cli.py services list
+#    # Check status is "available"
+#
+# 2. CHECK LOGS FOR STARTUP:
+#    python render_universal_cli.py logs tail <service-id>
+#    # Look for "ready to process jobs" or similar message
+#
+# 3. TEST JOB PROCESSING:
+#    # Add a test job to queue
+#    # Verify worker processes it
+#    # Check logs for job completion
+#
+# 4. MONITOR REDIS CONNECTION:
+#    # Verify worker can connect to Redis
+#    # Check for connection errors in logs
+#
+# 5. TEST ERROR HANDLING:
+#    # Add a job that will fail
+#    # Verify worker handles it gracefully
+#    # Check error is logged correctly
+#
+# 6. MONITOR RESOURCE USAGE:
+#    python render_universal_cli.py metrics all <service-id>
+#    # Check CPU and memory usage
+#    # Adjust concurrency if needed
+#
+# ==============================================================================
+# COMMON ISSUES & SOLUTIONS
+# ==============================================================================
+#
+# ISSUE: Worker keeps restarting
+# SOLUTION: Worker process must run continuously
+#           Check logs for crash errors
+#           Ensure worker doesn't exit after processing one job
+#           Add error handling to prevent crashes
+#
+# ISSUE: Can't connect to Redis
+# SOLUTION: Verify REDIS_URL environment variable is set
+#           Ensure Redis database is created and in same region
+#           Check Redis plan has sufficient connections
+#           Test connection locally with same URL
+#
+# ISSUE: Jobs not being processed
+# SOLUTION: Verify worker is reading from correct queue
+#           Check Redis queue has jobs: redis-cli LLEN myqueue
+#           Ensure worker concurrency > 0
+#           Check for blocking errors in logs
+#
+# ISSUE: Memory issues / OOM errors
+# SOLUTION: Reduce worker concurrency
+#           Enable max-tasks-per-child to restart workers
+#           Upgrade to larger plan (more RAM)
+#           Check for memory leaks in job processing code
+#
+# ISSUE: Jobs timing out
+# SOLUTION: Increase WORKER_TASK_TIMEOUT
+#           Break large jobs into smaller chunks
+#           Add progress tracking for long jobs
+#           Use task retry mechanism
+#
+# ISSUE: Worker not shutting down gracefully
+# SOLUTION: Implement SIGTERM handler
+#           Allow worker to finish current job before exit
+#           Set reasonable shutdown timeout
+#
+# ==============================================================================
+# SCALING & PERFORMANCE
+# ==============================================================================
+#
+# HORIZONTAL SCALING:
+# - Add multiple worker instances
+# - Each processes jobs from same queue
+# - Distribute load automatically
+# - Scale based on queue depth
+#
+# VERTICAL SCALING:
+# - Upgrade plan for more CPU/RAM
+# - Standard: 512MB RAM, 0.5 CPU
+# - Pro: 2GB RAM, 2 CPUs
+# - Pro Plus: 4GB RAM, 4 CPUs
+#
+# CONCURRENCY TUNING:
+# - Start with: 2 × CPU cores
+# - I/O-bound jobs: Higher concurrency (8-16)
+# - CPU-bound jobs: Lower concurrency (1-4)
+# - Memory-intensive: Reduce concurrency
+# - Test and monitor, adjust as needed
+#
+# QUEUE OPTIMIZATION:
+# - Use priority queues for important jobs
+# - Separate queues for different job types
+# - Set appropriate prefetch values
+# - Use result backends sparingly
+# - Clean up completed job results
+#
+# MONITORING:
+# - Use python render_universal_cli.py metrics all <service-id>
+# - Monitor queue depth (Redis: LLEN queue)
+# - Track job processing time
+# - Set up alerts for queue backlog
+# - Monitor error rates
+#
+# RETRY STRATEGIES:
+# - Exponential backoff for retries
+# - Max retry limit (3-5 attempts)
+# - Move failed jobs to dead letter queue
+# - Alert on too many failures
+#
+# ==============================================================================
+# EXAMPLE WORKER CODE
+# ==============================================================================
+#
+# CELERY WORKER (tasks.py):
+# from celery import Celery
+# import os
+# 
+# app = Celery('myapp')
+# app.config_from_object({
+#     'broker_url': os.getenv('REDIS_URL'),
+#     'result_backend': os.getenv('REDIS_URL'),
+#     'worker_concurrency': int(os.getenv('WORKER_CONCURRENCY', 4)),
+#     'task_time_limit': int(os.getenv('WORKER_TASK_TIMEOUT', 300)),
+# })
+# 
+# @app.task(bind=True, max_retries=3)
+# def process_data(self, data_id):
+#     try:
+#         # Process data
+#         result = do_processing(data_id)
+#         return result
+#     except Exception as exc:
+#         # Retry with exponential backoff
+#         raise self.retry(exc=exc, countdown=2 ** self.request.retries)
+#
+# CUSTOM PYTHON WORKER (worker.py):
+# import redis
+# import json
+# import time
+# import signal
+# import sys
+# import os
+# 
+# # Graceful shutdown
+# shutdown = False
+# def handle_sigterm(signum, frame):
+#     global shutdown
+#     print("Received SIGTERM, finishing current job...")
+#     shutdown = True
+# 
+# signal.signal(signal.SIGTERM, handle_sigterm)
+# 
+# # Connect to Redis
+# r = redis.from_url(os.getenv('REDIS_URL'))
+# 
+# print("Worker started, waiting for jobs...")
+# 
+# while not shutdown:
+#     try:
+#         # Block for 5 seconds waiting for job
+#         job_data = r.blpop('jobs', timeout=5)
+#         
+#         if job_data:
+#             _, job = job_data
+#             job = json.loads(job)
+#             
+#             print(f"Processing job: {job['id']}")
+#             
+#             # Process job
+#             result = process_job(job)
+#             
+#             # Store result
+#             r.setex(f"result:{job['id']}", 3600, json.dumps(result))
+#             
+#             print(f"Job {job['id']} completed")
+#     
+#     except Exception as e:
+#         print(f"Error processing job: {e}")
+#         # Continue processing other jobs
+# 
+# print("Worker shutting down...")
+# r.close()
+# sys.exit(0)
+#
+# ==============================================================================

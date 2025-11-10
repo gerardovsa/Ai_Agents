@@ -1,0 +1,647 @@
+"""
+Thread Manager - Thread CRUD Operations
+
+Handles all thread lifecycle operations including:
+- Create, read, update, delete threads
+- Archive and restore threads
+- Thread sharing and permissions
+- Thread listing and search
+- Workspace integration
+"""
+
+import sqlite3
+import secrets
+import string
+from typing import List, Optional, Dict, Any
+from datetime import datetime, timedelta
+from pathlib import Path
+
+from .constants import (
+    ThreadStatus,
+    ThreadVisibility,
+    SharePermission,
+    THREAD_SLUG_LENGTH,
+    THREAD_SLUG_CHARSET,
+    MAX_MESSAGES_PER_THREAD,
+    TABLE_THREADS,
+    TABLE_THREAD_SHARES,
+    ERROR_THREAD_NOT_FOUND,
+    ERROR_PERMISSION_DENIED,
+    SUCCESS_THREAD_CREATED,
+    SUCCESS_THREAD_UPDATED,
+    SUCCESS_THREAD_DELETED,
+    SUCCESS_THREAD_ARCHIVED,
+    SUCCESS_THREAD_SHARED
+)
+
+from .models import (
+    Thread,
+    ThreadCreate,
+    ThreadUpdate,
+    ThreadListParams,
+    ThreadListResponse,
+    ThreadShareCreate,
+    ThreadShare
+)
+
+from .exceptions import (
+    ThreadNotFoundError,
+    ThreadPermissionError,
+    ThreadArchivedError,
+    ThreadDeletedError,
+    InvalidThreadSlugError,
+    DuplicateThreadError,
+    DuplicateShareError,
+    CannotShareWithSelfError,
+    WorkspaceNotFoundError,
+    DatabaseError
+)
+
+
+class ThreadManager:
+    """
+    Thread Manager - Handles thread lifecycle and operations
+    
+    Methods:
+        create_thread() - Create new thread
+        get_thread() - Get thread by ID or slug
+        update_thread() - Update thread metadata
+        delete_thread() - Soft delete thread
+        archive_thread() - Archive thread
+        restore_thread() - Restore archived/deleted thread
+        list_threads() - List threads with filters
+        share_thread() - Share thread with user
+        revoke_share() - Remove thread share
+        check_permission() - Check user permissions
+    """
+    
+    def __init__(self, db_path: Optional[str] = None):
+        """
+        Initialize ThreadManager
+        
+        Args:
+            db_path: Path to sessions.db (defaults to data/sessions.db)
+        """
+        if db_path is None:
+            root_dir = Path(__file__).parent.parent.parent
+            db_path = root_dir / 'data' / 'sessions.db'
+        
+        self.db_path = str(db_path)
+    
+    def _get_connection(self) -> sqlite3.Connection:
+        """Get database connection with Row factory"""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+    
+    def _generate_thread_slug(self) -> str:
+        """Generate unique thread slug"""
+        return ''.join(secrets.choice(THREAD_SLUG_CHARSET) for _ in range(THREAD_SLUG_LENGTH))
+    
+    def _ensure_unique_slug(self, slug: str) -> str:
+        """Ensure thread slug is unique, regenerate if collision"""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            cursor.execute("SELECT id FROM threads WHERE thread_slug = ?", (slug,))
+            if cursor.fetchone() is None:
+                conn.close()
+                return slug
+            slug = self._generate_thread_slug()
+        
+        conn.close()
+        raise DuplicateThreadError(slug)
+    
+    def create_thread(self, thread_data: ThreadCreate) -> Thread:
+        """
+        Create a new thread
+        
+        Args:
+            thread_data: ThreadCreate model with thread details
+        
+        Returns:
+            Thread: Created thread object
+        
+        Raises:
+            WorkspaceNotFoundError: If workspace doesn't exist
+            DuplicateThreadError: If slug collision occurs
+            DatabaseError: If database operation fails
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Generate unique slug
+            thread_slug = self._generate_thread_slug()
+            thread_slug = self._ensure_unique_slug(thread_slug)
+            
+            # Verify workspace exists (from ai_infrastructure.db)
+            # TODO: Add workspace validation once workspace module is complete
+            
+            # Insert thread
+            now = datetime.utcnow().isoformat()
+            cursor.execute("""
+                INSERT INTO threads (
+                    thread_slug, name, description, workspace_id, user_id,
+                    agent_id, status, visibility, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                thread_slug,
+                thread_data.name,
+                thread_data.description,
+                thread_data.workspace_id,
+                thread_data.user_id,
+                thread_data.agent_id or "1",
+                thread_data.status.value,
+                thread_data.visibility.value,
+                now,
+                now
+            ))
+            
+            thread_id = cursor.lastrowid
+            conn.commit()
+            
+            # Fetch created thread
+            thread = self.get_thread(thread_id=thread_id)
+            conn.close()
+            
+            return thread
+            
+        except sqlite3.IntegrityError as e:
+            conn.rollback()
+            conn.close()
+            raise DuplicateThreadError(thread_slug)
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            raise DatabaseError("create_thread", str(e))
+    
+    def get_thread(
+        self,
+        thread_id: Optional[int] = None,
+        thread_slug: Optional[str] = None,
+        user_id: Optional[int] = None,
+        check_permissions: bool = False
+    ) -> Thread:
+        """
+        Get thread by ID or slug
+        
+        Args:
+            thread_id: Thread internal ID
+            thread_slug: Thread external slug
+            user_id: User ID (for permission check)
+            check_permissions: Whether to verify user access
+        
+        Returns:
+            Thread: Thread object
+        
+        Raises:
+            ThreadNotFoundError: If thread doesn't exist
+            ThreadPermissionError: If user lacks access
+        """
+        if not thread_id and not thread_slug:
+            raise ValueError("Must provide either thread_id or thread_slug")
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Query thread
+        if thread_id:
+            cursor.execute("SELECT * FROM threads WHERE id = ?", (thread_id,))
+        else:
+            cursor.execute("SELECT * FROM threads WHERE thread_slug = ?", (thread_slug,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            raise ThreadNotFoundError(thread_id=thread_id, thread_slug=thread_slug)
+        
+        # Check permissions if requested
+        if check_permissions and user_id:
+            if not self.check_permission(row['id'], user_id, SharePermission.VIEW):
+                conn.close()
+                raise ThreadPermissionError(user_id, row['id'], SharePermission.VIEW.value)
+        
+        # Get message count
+        cursor.execute("SELECT COUNT(*) FROM messages WHERE thread_id = ?", (row['id'],))
+        message_count = cursor.fetchone()[0]
+        
+        # Get last message time
+        cursor.execute("""
+            SELECT created_at FROM messages 
+            WHERE thread_id = ? 
+            ORDER BY id DESC LIMIT 1
+        """, (row['id'],))
+        last_msg = cursor.fetchone()
+        last_message_at = last_msg[0] if last_msg else None
+        
+        conn.close()
+        
+        # Build Thread object
+        return Thread(
+            id=row['id'],
+            thread_slug=row['thread_slug'],
+            name=row['name'],
+            description=row['description'],
+            workspace_id=row['workspace_id'],
+            user_id=row['user_id'],
+            agent_id=row['agent_id'],
+            status=ThreadStatus(row['status']),
+            visibility=ThreadVisibility(row['visibility']),
+            message_count=message_count,
+            last_message_at=last_message_at,
+            created_at=datetime.fromisoformat(row['created_at']),
+            updated_at=datetime.fromisoformat(row['updated_at']),
+            archived_at=datetime.fromisoformat(row['archived_at']) if row['archived_at'] else None,
+            deleted_at=datetime.fromisoformat(row['deleted_at']) if row['deleted_at'] else None
+        )
+    
+    def update_thread(
+        self,
+        thread_id: int,
+        update_data: ThreadUpdate,
+        user_id: int
+    ) -> Thread:
+        """
+        Update thread metadata
+        
+        Args:
+            thread_id: Thread ID to update
+            update_data: ThreadUpdate model with changes
+            user_id: User performing update
+        
+        Returns:
+            Thread: Updated thread object
+        
+        Raises:
+            ThreadNotFoundError: If thread doesn't exist
+            ThreadPermissionError: If user lacks permission
+            ThreadArchivedError: If thread is archived
+        """
+        # Check permissions
+        thread = self.get_thread(thread_id=thread_id)
+        if not self.check_permission(thread_id, user_id, SharePermission.EDIT):
+            raise ThreadPermissionError(user_id, thread_id, SharePermission.EDIT.value)
+        
+        if thread.status == ThreadStatus.ARCHIVED:
+            raise ThreadArchivedError(thread_id)
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Build update query
+            updates = []
+            params = []
+            
+            if update_data.name is not None:
+                updates.append("name = ?")
+                params.append(update_data.name)
+            
+            if update_data.description is not None:
+                updates.append("description = ?")
+                params.append(update_data.description)
+            
+            if update_data.status is not None:
+                updates.append("status = ?")
+                params.append(update_data.status.value)
+                
+                # Set archived_at if archiving
+                if update_data.status == ThreadStatus.ARCHIVED:
+                    updates.append("archived_at = ?")
+                    params.append(datetime.utcnow().isoformat())
+            
+            if update_data.visibility is not None:
+                updates.append("visibility = ?")
+                params.append(update_data.visibility.value)
+            
+            # Always update updated_at
+            updates.append("updated_at = ?")
+            params.append(datetime.utcnow().isoformat())
+            
+            params.append(thread_id)
+            
+            # Execute update
+            cursor.execute(f"""
+                UPDATE threads 
+                SET {', '.join(updates)}
+                WHERE id = ?
+            """, params)
+            
+            conn.commit()
+            conn.close()
+            
+            # Return updated thread
+            return self.get_thread(thread_id=thread_id)
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            raise DatabaseError("update_thread", str(e))
+    
+    def delete_thread(self, thread_id: int, user_id: int, hard_delete: bool = False) -> dict:
+        """
+        Delete thread (soft or hard)
+        
+        Args:
+            thread_id: Thread ID to delete
+            user_id: User performing deletion
+            hard_delete: If True, permanently delete. If False, soft delete.
+        
+        Returns:
+            dict: Success message
+        
+        Raises:
+            ThreadNotFoundError: If thread doesn't exist
+            ThreadPermissionError: If user lacks permission
+        """
+        # Check permissions (must be owner or admin)
+        thread = self.get_thread(thread_id=thread_id)
+        if thread.user_id != user_id:
+            if not self.check_permission(thread_id, user_id, SharePermission.ADMIN):
+                raise ThreadPermissionError(user_id, thread_id, SharePermission.ADMIN.value)
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            if hard_delete:
+                # Permanently delete thread and messages
+                cursor.execute("DELETE FROM messages WHERE thread_id = ?", (thread_id,))
+                cursor.execute("DELETE FROM thread_shares WHERE thread_id = ?", (thread_id,))
+                cursor.execute("DELETE FROM threads WHERE id = ?", (thread_id,))
+            else:
+                # Soft delete
+                now = datetime.utcnow().isoformat()
+                cursor.execute("""
+                    UPDATE threads 
+                    SET status = ?, deleted_at = ?, updated_at = ?
+                    WHERE id = ?
+                """, (ThreadStatus.DELETED.value, now, now, thread_id))
+            
+            conn.commit()
+            conn.close()
+            
+            return {"success": True, "message": SUCCESS_THREAD_DELETED}
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            raise DatabaseError("delete_thread", str(e))
+    
+    def archive_thread(self, thread_id: int, user_id: int) -> dict:
+        """
+        Archive thread
+        
+        Args:
+            thread_id: Thread ID to archive
+            user_id: User performing action
+        
+        Returns:
+            dict: Success message
+        """
+        update_data = ThreadUpdate(status=ThreadStatus.ARCHIVED)
+        self.update_thread(thread_id, update_data, user_id)
+        return {"success": True, "message": SUCCESS_THREAD_ARCHIVED}
+    
+    def restore_thread(self, thread_id: int, user_id: int) -> Thread:
+        """
+        Restore archived or deleted thread
+        
+        Args:
+            thread_id: Thread ID to restore
+            user_id: User performing action
+        
+        Returns:
+            Thread: Restored thread
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            now = datetime.utcnow().isoformat()
+            cursor.execute("""
+                UPDATE threads 
+                SET status = ?, archived_at = NULL, deleted_at = NULL, updated_at = ?
+                WHERE id = ?
+            """, (ThreadStatus.ACTIVE.value, now, thread_id))
+            
+            conn.commit()
+            conn.close()
+            
+            return self.get_thread(thread_id=thread_id)
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            raise DatabaseError("restore_thread", str(e))
+    
+    def list_threads(self, params: ThreadListParams) -> ThreadListResponse:
+        """
+        List threads with filters and pagination
+        
+        Args:
+            params: ThreadListParams with filters
+        
+        Returns:
+            ThreadListResponse: Paginated thread list
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Build WHERE clause
+        where_clauses = []
+        query_params = []
+        
+        if params.workspace_id:
+            where_clauses.append("workspace_id = ?")
+            query_params.append(params.workspace_id)
+        
+        if params.user_id:
+            where_clauses.append("user_id = ?")
+            query_params.append(params.user_id)
+        
+        if params.status:
+            where_clauses.append("status = ?")
+            query_params.append(params.status.value)
+        
+        if params.visibility:
+            where_clauses.append("visibility = ?")
+            query_params.append(params.visibility.value)
+        
+        if params.search:
+            where_clauses.append("(name LIKE ? OR description LIKE ?)")
+            search_term = f"%{params.search}%"
+            query_params.extend([search_term, search_term])
+        
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+        
+        # Get total count
+        cursor.execute(f"SELECT COUNT(*) FROM threads WHERE {where_sql}", query_params)
+        total = cursor.fetchone()[0]
+        
+        # Get paginated results
+        offset = (params.page - 1) * params.page_size
+        sort_order = "ASC" if params.sort_order.lower() == "asc" else "DESC"
+        
+        cursor.execute(f"""
+            SELECT * FROM threads 
+            WHERE {where_sql}
+            ORDER BY {params.sort_by} {sort_order}
+            LIMIT ? OFFSET ?
+        """, query_params + [params.page_size, offset])
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Convert to Thread objects
+        threads = []
+        for row in rows:
+            thread = self.get_thread(thread_id=row['id'])
+            threads.append(thread)
+        
+        has_more = (params.page * params.page_size) < total
+        
+        return ThreadListResponse(
+            threads=threads,
+            total=total,
+            page=params.page,
+            page_size=params.page_size,
+            has_more=has_more
+        )
+    
+    def share_thread(self, share_data: ThreadShareCreate) -> ThreadShare:
+        """
+        Share thread with another user
+        
+        Args:
+            share_data: ThreadShareCreate with share details
+        
+        Returns:
+            ThreadShare: Created share record
+        
+        Raises:
+            ThreadNotFoundError: If thread doesn't exist
+            CannotShareWithSelfError: If sharing with self
+            DuplicateShareError: If already shared
+        """
+        # Validate thread exists
+        thread = self.get_thread(thread_id=share_data.thread_id)
+        
+        # Cannot share with self
+        if share_data.user_id == share_data.shared_by:
+            raise CannotShareWithSelfError(share_data.user_id)
+        
+        # Check for existing share
+        if self.check_permission(share_data.thread_id, share_data.user_id, SharePermission.VIEW):
+            raise DuplicateShareError(share_data.user_id, share_data.thread_id)
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            now = datetime.utcnow().isoformat()
+            cursor.execute("""
+                INSERT INTO thread_shares (
+                    thread_id, user_id, permission, shared_by, message, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                share_data.thread_id,
+                share_data.user_id,
+                share_data.permission.value,
+                share_data.shared_by,
+                share_data.message,
+                now
+            ))
+            
+            share_id = cursor.lastrowid
+            conn.commit()
+            
+            # Fetch created share
+            cursor.execute("SELECT * FROM thread_shares WHERE id = ?", (share_id,))
+            row = cursor.fetchone()
+            conn.close()
+            
+            return ThreadShare(
+                id=row['id'],
+                thread_id=row['thread_id'],
+                user_id=row['user_id'],
+                permission=SharePermission(row['permission']),
+                shared_by=row['shared_by'],
+                message=row['message'],
+                accepted=bool(row['accepted']),
+                accepted_at=datetime.fromisoformat(row['accepted_at']) if row['accepted_at'] else None,
+                created_at=datetime.fromisoformat(row['created_at']),
+                revoked_at=datetime.fromisoformat(row['revoked_at']) if row['revoked_at'] else None
+            )
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            raise DatabaseError("share_thread", str(e))
+    
+    def check_permission(
+        self,
+        thread_id: int,
+        user_id: int,
+        required_permission: SharePermission
+    ) -> bool:
+        """
+        Check if user has required permission for thread
+        
+        Args:
+            thread_id: Thread ID
+            user_id: User ID to check
+            required_permission: Required permission level
+        
+        Returns:
+            bool: True if user has permission
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Check if owner
+        cursor.execute("SELECT user_id, visibility FROM threads WHERE id = ?", (thread_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return False
+        
+        # Owner has all permissions
+        if row['user_id'] == user_id:
+            conn.close()
+            return True
+        
+        # Check workspace visibility
+        # TODO: Implement workspace membership check
+        
+        # Check explicit share
+        cursor.execute("""
+            SELECT permission FROM thread_shares 
+            WHERE thread_id = ? AND user_id = ? AND revoked_at IS NULL
+        """, (thread_id, user_id))
+        
+        share_row = cursor.fetchone()
+        conn.close()
+        
+        if not share_row:
+            return False
+        
+        # Permission hierarchy: VIEW < COMMENT < EDIT < ADMIN
+        permission_levels = {
+            SharePermission.VIEW: 1,
+            SharePermission.COMMENT: 2,
+            SharePermission.EDIT: 3,
+            SharePermission.ADMIN: 4
+        }
+        
+        user_level = permission_levels.get(SharePermission(share_row['permission']), 0)
+        required_level = permission_levels.get(required_permission, 0)
+        
+        return user_level >= required_level
