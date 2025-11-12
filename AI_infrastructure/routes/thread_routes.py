@@ -604,20 +604,27 @@ def delete_thread(thread_id):
     """
     Delete saved thread from persistent storage
     
+    Supports both formats:
+    - UUID format: "sess_abc123" or any UUID
+    - Legacy format: "agent_id_session_id"
+    
     Also clears from agent_state_manager if active
     """
     try:
-        # Parse thread_id (format: "agent_id_session_id")
+        # Try to parse as legacy format (agent_id_session_id)
         parts = thread_id.split('_', 1)
-        if len(parts) != 2:
-            return error_response("Invalid thread_id format", 400)
+        if len(parts) == 2 and not thread_id.startswith('sess_'):
+            # Legacy format
+            agent_id, session_id = parts
+            
+            # Clear from agent_state_manager if active
+            agent_state_manager.clear_conversation(agent_id, session_id)
+        else:
+            # UUID format (sess_abc123 or similar) - no need to parse
+            # Just clear from state manager with the full ID
+            agent_state_manager.clear_conversation('prime', thread_id)
         
-        agent_id, session_id = parts
-        
-        # Clear from agent_state_manager if active
-        agent_state_manager.clear_conversation(agent_id, session_id)
-        
-        # Delete from SQLite
+        # Delete from SQLite (saved_threads table)
         db_path = get_sessions_database_path()
         
         delete_query = """
@@ -638,6 +645,7 @@ def delete_thread(thread_id):
     except DatabaseConnectionError as e:
         return error_response(f"Database error: {str(e)}", 500)
     except Exception as e:
+        return error_response(str(e), 500)
         return error_response(str(e), 500)
 
 
@@ -1201,7 +1209,6 @@ def get_messages():
                 m.content,
                 m.tool_calls,
                 m.tokens_used,
-                m.response_time_ms,
                 m.created_at,
                 m.metadata
             FROM messages m
@@ -1214,15 +1221,23 @@ def get_messages():
         
         messages = []
         for row in rows:
+            # Parse metadata JSON if it exists
+            metadata = {}
+            if row.get('metadata'):
+                try:
+                    metadata = json.loads(row['metadata'])
+                except:
+                    metadata = {}
+            
             messages.append({
                 'id': row['id'],
                 'role': row['role'],
                 'content': row['content'],
                 'tool_calls': json.loads(row['tool_calls']) if row['tool_calls'] else [],
-                'tokens_used': row['tokens_used'],
-                'response_time_ms': row['response_time_ms'],
+                'tokens_used': row.get('tokens_used'),
+                'response_time_ms': None,  # Not stored in DB (log only)
                 'timestamp': row['created_at'],
-                'metadata': json.loads(row['metadata']) if row['metadata'] else {}
+                'metadata': metadata  # Now properly loaded from database
             })
         
         return success_response({

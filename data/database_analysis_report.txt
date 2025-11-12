@@ -1,0 +1,2999 @@
+
+====================================================================================================
+DATABASE STRUCTURE WITH EXAMPLE DATA
+====================================================================================================
+
+
+####################################################################################################
+DATABASE: ai_infrastructure.db
+Location: c:\Users\gpoli\GIT\AI_agents\data\ai_infrastructure.db
+Size: 442,368 bytes
+Tables: 13
+####################################################################################################
+
+  TABLE: account_link_requests - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    user_id                        INTEGER         [NOT NULL]
+      Examples: (table empty)
+    target_email                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    link_token                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    request_type                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    status                         TEXT           
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+    expires_at                     TIMESTAMP       [NOT NULL]
+      Examples: (table empty)
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: oauth_tokens - 5 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 15, 8, 99
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 3, 5, 12
+    platform                       TEXT            [NOT NULL]
+      Examples: "google", "microsoft"
+    access_token                   TEXT            [NOT NULL]
+      Examples: "ya29.a0ATi6K2vd3IKqWwWc2d7LtzYwqDjuEejbCI8bgFTh...", "ya29.a0ATi6K2sQAS3P8I5WHeqHZHnqSMUnvevGfqOefaD2...", "ya29.A0ATi6K2tkEMYIERFABmSs9yRPcCeo0eLgDb_jwMLQ..."
+    refresh_token                  TEXT           
+      Examples: "1//0g9mekHrIb5_6CgYIARAAGBASNwF-L9IrwPHM-bbA1fZ...", "1//0gX5sCFi8tcbRCgYIARAAGBASNwF-L9IrLTdzfPh47R7...", "1//0g8yXOXdgqLI_CgYIARAAGBASNwF-L9IrpJYnVpNw-xN..."
+    token_type                     TEXT           
+      Examples: "Bearer"
+    expires_at                     TIMESTAMP      
+      Examples: "2025-10-30 10:49:21", "2025-11-11 03:26:26", "2025-11-08 05:02:50"
+    scope                          TEXT           
+      Examples: "openid email profile https://www.googleapis.com...", "offline_access User.Read User.ReadWrite Mail.Re..."
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-29 13:19:36", "2025-10-30 09:49:23", "2025-11-05 08:18:59"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-10-29 13:19:36", "2025-10-30 09:49:23", "2025-11-11 02:26:28"
+    last_refreshed_at              TIMESTAMP      
+      Examples: "2025-10-30 09:49:23", "2025-11-11 02:26:28", "2025-11-08 04:02:50"
+    metadata                       TEXT           
+      Examples: "{"google_id": "106194727360309483287", "picture...", "{"google_id": "110838374146942315926", "email":...", "{"microsoft_id": "c7e77a9f-f08c-49fb-addc-05689..."
+    account_identifier             TEXT           
+      Examples: "inhouse@vetsuccessacademy.com"
+    account_name                   TEXT           
+      Examples: "Print Inhouse"
+    is_primary_account             BOOLEAN        
+      Examples: 0, 1
+    is_valid                       BOOLEAN        
+      Examples: 1
+    is_active                      BOOLEAN        
+      Examples: 1
+    refresh_attempts               INTEGER        
+      Examples: 0
+    last_refresh_error             TEXT           
+      Examples: (all NULL)
+    auto_refresh_enabled           BOOLEAN        
+      Examples: 1
+    granted_scopes                 TEXT           
+      Examples: "https://www.googleapis.com/auth/spreadsheets ht...", "https://www.googleapis.com/auth/userinfo.profil...", "offline_access User.Read User.ReadWrite Mail.Re..."
+    issued_at                      TIMESTAMP      
+      Examples: "2025-10-29 13:19:36"
+    revoked_at                     TIMESTAMP      
+      Examples: (all NULL)
+    ip_address_granted             TEXT           
+      Examples: (all NULL)
+    email                          TEXT           
+      Examples: "Gerardo@minivetguide.onmicrosoft.com", "printing@inhouseprint.com.au"
+    profile_name                   TEXT           
+      Examples: ""
+    error_count                    INTEGER        
+      Examples: 0
+    last_error                     TEXT           
+      Examples: (all NULL)
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: prompt_library - 67 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 1, 2, 3
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 1, 3, 5
+    workspace_id                   INTEGER        
+      Examples: (all NULL)
+    name                           VARCHAR(200)    [NOT NULL]
+      Examples: "Expert Coder", "Code Reviewer", "Debugger"
+    category                       VARCHAR(50)     [NOT NULL]
+      Examples: "analysis", "data", "development"
+    type                           VARCHAR(20)     [NOT NULL]
+      Examples: "quick_action", "full_prompt"
+    description                    TEXT           
+      Examples: "Production-ready code with error handling and b...", "Analyze code for bugs, security issues, and imp...", "Step-by-step debugging and issue resolution"
+    prompt_text                    TEXT            [NOT NULL]
+      Examples: "CODING EXPERT MODE ACTIVATED:
+- Write productio...", "CODE REVIEW MODE ACTIVATED:
+- Systematically an...", "DEBUG MODE ACTIVATED:
+- Analyze the issue syste..."
+    tags                           TEXT           
+      Examples: "coding,python,javascript,best-practices", "review,security,quality,refactoring", "debug,troubleshooting,errors"
+    visibility                     VARCHAR(20)     [NOT NULL]
+      Examples: "public"
+    usage_count                    INTEGER        
+      Examples: 0
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-12 09:07:42", "2025-11-12T20:54:43.150600", "2025-11-12T20:55:54.269924"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-11-12 09:07:42", "2025-11-12T20:54:43.150600", "2025-11-12T20:55:54.269924"
+
+  Foreign Keys:
+    workspace_id -> workspaces.id
+    user_id -> users.id
+
+  TABLE: sqlite_sequence - 7 rows
+  ------------------------------------------------------------------------------------------------
+    name                                          
+      Examples: "users", "workspaces", "user_sessions"
+    seq                                           
+      Examples: 14, 12, 532
+
+  TABLE: user_account_links - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    primary_user_id                INTEGER         [NOT NULL]
+      Examples: (table empty)
+    linked_user_id                 INTEGER         [NOT NULL]
+      Examples: (table empty)
+    linked_email                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    link_type                      TEXT            [NOT NULL]
+      Examples: (table empty)
+    link_status                    TEXT           
+      Examples: (table empty)
+    link_token                     TEXT           
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+    confirmed_at                   TIMESTAMP      
+      Examples: (table empty)
+
+  Foreign Keys:
+    linked_user_id -> users.id
+    primary_user_id -> users.id
+
+  TABLE: user_gmail_accounts - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    user_id                        INTEGER         [NOT NULL]
+      Examples: (table empty)
+    gmail_address                  TEXT            [NOT NULL]
+      Examples: (table empty)
+    display_name                   TEXT           
+      Examples: (table empty)
+    access_token                   TEXT           
+      Examples: (table empty)
+    refresh_token                  TEXT           
+      Examples: (table empty)
+    token_expiry                   TIMESTAMP      
+      Examples: (table empty)
+    is_primary                     BOOLEAN        
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: user_platform_credentials - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    user_id                        INTEGER         [NOT NULL]
+      Examples: (table empty)
+    platform                       TEXT            [NOT NULL]
+      Examples: (table empty)
+    credential_type                TEXT            [NOT NULL]
+      Examples: (table empty)
+    credential_key                 TEXT            [NOT NULL]
+      Examples: (table empty)
+    credential_value               TEXT            [NOT NULL]
+      Examples: (table empty)
+    is_active                      BOOLEAN        
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+    updated_at                     TIMESTAMP      
+      Examples: (table empty)
+    metadata                       TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: user_preferences - 4 rows
+  ------------------------------------------------------------------------------------------------
+    user_id                        INTEGER         [PK]
+      Examples: 1, 12, 13
+    communication_style            TEXT           
+      Examples: "professional", "casual"
+    detail_level                   TEXT           
+      Examples: "standard", "comprehensive"
+    auth_platform                  TEXT           
+      Examples: "auto", "microsoft"
+    preferred_tools                TEXT           
+      Examples: "["USE ONLY GOOGLE WORKSPACE"]", "["USE ONLY MICROSOFT 365 PLATFORMS - NO GOOGLE"]", "["USE ONLY MICROSOFT PLATFORMS - NO GOOGLE","DO..."
+    custom_preferences             TEXT           
+      Examples: ""[]""
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-06T00:00:22.591779", "2025-11-08 15:54:05", "2025-11-06 14:52:08"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-11-06T00:03:09.384969", "2025-11-08 15:54:05", "2025-11-06 14:52:08"
+    nickname                       TEXT           
+      Examples: "", "G"
+    detected_country               TEXT           
+      Examples: "Australia"
+    detected_city                  TEXT           
+      Examples: "Brisbane"
+    detected_timezone              TEXT           
+      Examples: "Australia/Brisbane"
+    detected_ip_address            TEXT           
+      Examples: "2405:6e00:640:23b3:9cb9:67f2:155d:b49c", "127.0.0.1"
+    manual_location_override       TEXT           
+      Examples: ""
+    manual_timezone_override       TEXT           
+      Examples: ""
+    use_manual_location            INTEGER        
+      Examples: 0
+    use_manual_timezone            INTEGER        
+      Examples: 0
+    last_location_check            TIMESTAMP      
+      Examples: "2025-11-06T00:03:09.384964", "2025-11-08 15:54:05", "2025-11-06 14:52:08"
+    ai_memories                    TEXT           
+      Examples: "[]"
+    memory_updated_at              TIMESTAMP      
+      Examples: "2025-11-08 15:54:05", "2025-11-06 14:52:08", "2025-11-11 13:25:06"
+    ai_model                       TEXT           
+      Examples: "claude-sonnet-4-5-20250929"
+    ai_temperature                 REAL           
+      Examples: 1.0, 0.7
+    ai_top_p                       REAL           
+      Examples: 1.0, 0.9
+    ai_max_tokens                  INTEGER        
+      Examples: 4096, 8000
+    ai_thinking_enabled            INTEGER        
+      Examples: 0, 1
+    ai_thinking_budget             INTEGER        
+      Examples: 10000, 15000
+    ai_streaming_enabled           INTEGER        
+      Examples: 1
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: user_sessions - 431 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 104, 105, 106
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 3, 1, 4
+    token                          TEXT            [NOT NULL]
+      Examples: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2...", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2...", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2..."
+    ip_address                     TEXT           
+      Examples: (all NULL)
+    user_agent                     TEXT           
+      Examples: (all NULL)
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-28 23:44:58", "2025-10-29 01:53:07", "2025-10-29 07:59:15"
+    expires_at                     TIMESTAMP       [NOT NULL]
+      Examples: "2025-10-29 23:44:58", "2025-11-28 01:53:07", "2025-11-28 07:59:15"
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: users - 6 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 13, 12, 5
+    username                       TEXT            [NOT NULL]
+      Examples: "Gerardo", "gerardo", "google_test"
+    email                          TEXT            [NOT NULL]
+      Examples: "Gerardo@minivetguide.onmicrosoft.com", "gerardo@vetsuccessacademy.com", "google_test@example.com"
+    password_hash                  TEXT            [NOT NULL]
+      Examples: "OAUTH_USER_NO_PASSWORD", "$2b$12$tkIIyMdqSDRBDkWwCKEKNePyFmwjIzy/SAeVbjCb...", "$2b$12$EZDMG4ahMKd3Fgpd8RWE0eo8X8EhI5Gh1l9YauWl..."
+    role                           TEXT           
+      Examples: "user"
+    primary_gmail                  TEXT           
+      Examples: "google_test@example.com", "microsoft_test@example.com"
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-28 15:51:12", "2025-10-29 13:19:36", "2025-11-05 08:18:59"
+    last_active                    TIMESTAMP      
+      Examples: "2025-10-28 15:51:12", "2025-10-29 13:57:43", "2025-10-29 13:20:38"
+    metadata                       TEXT           
+      Examples: "{}", "{"thread_assignments": {"agent-1": "17626904040..."
+    is_primary                     BOOLEAN        
+      Examples: 1
+    allowed_dashboards             TEXT           
+      Examples: "["main", "analytics", "ai_chat"]", "[]"
+    has_google_oauth               BOOLEAN        
+      Examples: 1, 0
+    has_microsoft_oauth            BOOLEAN        
+      Examples: 0, 1
+    is_active                      BOOLEAN        
+      Examples: 1
+    parent_user_id                 INTEGER        
+      Examples: (all NULL)
+    is_sub_user                    BOOLEAN        
+      Examples: 0
+    permissions                    TEXT           
+      Examples: (all NULL)
+    allowed_tools                  TEXT           
+      Examples: (all NULL)
+    allowed_agents                 TEXT           
+      Examples: (all NULL)
+    data_access_scope              TEXT           
+      Examples: "own"
+    usage_limit_daily              INTEGER        
+      Examples: 1000
+    access_start_time              TEXT           
+      Examples: (all NULL)
+    access_end_time                TEXT           
+      Examples: (all NULL)
+    account_expires_at             TIMESTAMP      
+      Examples: (all NULL)
+
+  TABLE: workspace_invitations - 1 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 4
+    workspace_id                   INTEGER         [NOT NULL]
+      Examples: 12
+    invited_user_id                INTEGER        
+      Examples: (all NULL)
+    invited_email                  TEXT            [NOT NULL]
+      Examples: "newuser@example.com"
+    role                           TEXT            [NOT NULL]
+      Examples: "member"
+    token                          TEXT            [NOT NULL]
+      Examples: "zAgDqPcOhMNZUMPWfqoRa_WkvHxeWIbP8qVtL1ZHjAY"
+    status                         TEXT            [NOT NULL]
+      Examples: "pending"
+    invited_by_user_id             INTEGER         [NOT NULL]
+      Examples: 3
+    created_at                     TEXT            [NOT NULL]
+      Examples: "2025-11-10 00:36:10.102169"
+    expires_at                     TEXT            [NOT NULL]
+      Examples: "2025-11-17 00:36:10.102148"
+    responded_at                   TEXT           
+      Examples: (all NULL)
+
+  Foreign Keys:
+    invited_by_user_id -> users.id
+    invited_user_id -> users.id
+    workspace_id -> workspaces.id
+
+  TABLE: workspace_users - 2 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 11, 12
+    workspace_id                   INTEGER         [NOT NULL]
+      Examples: 12
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 3, 5
+    role                           TEXT            [NOT NULL]
+      Examples: "owner", "member"
+    added_by_user_id               INTEGER         [NOT NULL]
+      Examples: 3
+    added_at                       TEXT            [NOT NULL]
+      Examples: "2025-11-09T14:36:10.073329", "2025-11-09T14:36:10.096034"
+    removed_at                     TEXT           
+      Examples: (all NULL)
+
+  Foreign Keys:
+    added_by_user_id -> users.id
+    user_id -> users.id
+    workspace_id -> workspaces.id
+
+  TABLE: workspaces - 4 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 1, 2, 3
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 1, 5, 6
+    name                           TEXT            [NOT NULL]
+      Examples: "admin's Workspace", "google_test's Workspace", "microsoft_test's Workspace"
+    description                    TEXT           
+      Examples: "Default workspace", "Testing workspace system"
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-27 10:19:19", "2025-10-29 13:19:36", "2025-11-09T14:36:10.073329"
+    metadata                       TEXT           
+      Examples: "{}"
+    slug                           TEXT           
+      Examples: "test-workspace-alpha"
+    owner_id                       INTEGER        
+      Examples: 3
+    status                         TEXT           
+      Examples: "active", "archived"
+    visibility                     TEXT           
+      Examples: "private"
+    settings                       TEXT           
+      Examples: (all NULL)
+    updated_at                     TEXT           
+      Examples: "2025-11-09T14:36:10.108794"
+    archived_at                    TEXT           
+      Examples: "2025-11-09T14:36:10.108794"
+
+  Foreign Keys:
+    user_id -> users.id
+
+
+####################################################################################################
+DATABASE: kanban_analytics.db
+Location: c:\Users\gpoli\GIT\AI_agents\data\kanban_analytics.db
+Size: 655,360 bytes
+Tables: 15
+####################################################################################################
+
+  TABLE: ai_predictions - 0 rows
+  ------------------------------------------------------------------------------------------------
+    prediction_id                  INTEGER         [PK]
+      Examples: (table empty)
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: (table empty)
+    predicted_completion_date      TEXT           
+      Examples: (table empty)
+    predicted_total_hours          REAL           
+      Examples: (table empty)
+    confidence_score               REAL           
+      Examples: (table empty)
+    late_delivery_risk             TEXT           
+      Examples: (table empty)
+    quality_risk                   TEXT           
+      Examples: (table empty)
+    cost_overrun_risk              TEXT           
+      Examples: (table empty)
+    recommended_actions            TEXT           
+      Examples: (table empty)
+    optimization_suggestions       TEXT           
+      Examples: (table empty)
+    model_version                  TEXT           
+      Examples: (table empty)
+    predicted_at                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    actual_outcome                 TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: clients - 629 rows
+  ------------------------------------------------------------------------------------------------
+    client_id                      INTEGER         [PK]
+      Examples: 1, 2, 8
+    client_name                    TEXT            [NOT NULL]
+      Examples: "4 Real Estate (Brad Scott)", "A Tech Plumbing", "AES Carrara"
+    total_orders                   INTEGER        
+      Examples: 1, 3, 2
+    total_value                    REAL           
+      Examples: 402.5, 190.95, 161.7
+    first_order_date               TEXT           
+      Examples: "2025-01-13", "2024-11-19", "2025-07-04"
+    last_order_date                TEXT           
+      Examples: "2025-01-13", "2024-11-19", "2025-07-04"
+    customer_tier                  TEXT           
+      Examples: "New", "Regular", "VIP"
+    synced_at                      TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+    last_updated                   TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+
+  TABLE: custom_job_notes - 0 rows
+  ------------------------------------------------------------------------------------------------
+    note_id                        INTEGER         [PK]
+      Examples: (table empty)
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: (table empty)
+    note_text                      TEXT            [NOT NULL]
+      Examples: (table empty)
+    note_type                      TEXT           
+      Examples: (table empty)
+    priority                       TEXT           
+      Examples: (table empty)
+    created_by                     TEXT           
+      Examples: (table empty)
+    created_at                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    resolved                       INTEGER        
+      Examples: (table empty)
+    resolved_at                    TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: custom_tags - 10 rows
+  ------------------------------------------------------------------------------------------------
+    tag_id                         INTEGER         [PK]
+      Examples: 4, 3, 7
+    tag_name                       TEXT            [NOT NULL]
+      Examples: "Complex Job", "Customer VIP", "Equipment Issue"
+    tag_category                   TEXT           
+      Examples: "priority", "issue", "customer"
+    tag_color                      TEXT           
+      Examples: "#ef4444", "#f97316", "#a855f7"
+    created_at                     TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+
+  TABLE: customer_analytics - 31 rows
+  ------------------------------------------------------------------------------------------------
+    analytics_id                   INTEGER         [PK]
+      Examples: 1, 2, 3
+    client_name                    TEXT            [NOT NULL]
+      Examples: "ASC Print & Promotional Brokers", "Carol Libke", "Citipointe Christian College"
+    analysis_period                TEXT            [NOT NULL]
+      Examples: "monthly"
+    period_start                   TEXT            [NOT NULL]
+      Examples: "2025-10-08"
+    period_end                     TEXT            [NOT NULL]
+      Examples: "2025-11-07"
+    total_orders                   INTEGER        
+      Examples: 1, 2, 3
+    total_revenue                  REAL           
+      Examples: 136.09, 11650.0, 1662.38
+    avg_order_value                REAL           
+      Examples: 136.09, 11650.0, 1662.38
+    on_time_delivery_rate          REAL           
+      Examples: (all NULL)
+    avg_turnaround_days            REAL           
+      Examples: 1.0, 0.0, 7.0
+    avg_quality_score              REAL           
+      Examples: (all NULL)
+    rework_rate                    REAL           
+      Examples: (all NULL)
+    total_profit                   REAL           
+      Examples: (all NULL)
+    avg_profit_margin              REAL           
+      Examples: (all NULL)
+    orders_per_month               REAL           
+      Examples: (all NULL)
+    days_since_last_order          INTEGER        
+      Examples: (all NULL)
+    customer_health_score          INTEGER        
+      Examples: (all NULL)
+    calculated_at                  TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:45"
+
+  Foreign Keys:
+    client_name -> clients.client_name
+
+  TABLE: job_performance - 0 rows
+  ------------------------------------------------------------------------------------------------
+    performance_id                 INTEGER         [PK]
+      Examples: (table empty)
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: (table empty)
+    estimated_hours                REAL           
+      Examples: (table empty)
+    actual_hours                   REAL           
+      Examples: (table empty)
+    setup_time_hours               REAL           
+      Examples: (table empty)
+    production_time_hours          REAL           
+      Examples: (table empty)
+    finishing_time_hours           REAL           
+      Examples: (table empty)
+    quality_score                  INTEGER        
+      Examples: (table empty)
+    rework_required                INTEGER        
+      Examples: (table empty)
+    rework_hours                   REAL           
+      Examples: (table empty)
+    defect_count                   INTEGER        
+      Examples: (table empty)
+    material_waste_percentage      REAL           
+      Examples: (table empty)
+    on_time_delivery               INTEGER        
+      Examples: (table empty)
+    customer_satisfaction          INTEGER        
+      Examples: (table empty)
+    material_cost                  REAL           
+      Examples: (table empty)
+    labor_cost                     REAL           
+      Examples: (table empty)
+    overhead_cost                  REAL           
+      Examples: (table empty)
+    total_actual_cost              REAL           
+      Examples: (table empty)
+    profit_margin                  REAL           
+      Examples: (table empty)
+    recorded_by                    TEXT           
+      Examples: (table empty)
+    recorded_at                    TEXT            [NOT NULL]
+      Examples: (table empty)
+    updated_at                     TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: job_stages - 15 rows
+  ------------------------------------------------------------------------------------------------
+    stage_id                       INTEGER         [PK]
+      Examples: 1, 2, 3
+    stage_description              TEXT            [NOT NULL]
+      Examples: "ArtOnly", "ArtAndPrint", "OnHold"
+    stage_order                    INTEGER        
+      Examples: 0, 1, 2
+    synced_at                      TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+
+  TABLE: job_tags - 0 rows
+  ------------------------------------------------------------------------------------------------
+    assignment_id                  INTEGER         [PK]
+      Examples: (table empty)
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: (table empty)
+    tag_id                         INTEGER         [NOT NULL]
+      Examples: (table empty)
+    assigned_by                    TEXT           
+      Examples: (table empty)
+    assigned_at                    TEXT            [NOT NULL]
+      Examples: (table empty)
+
+  Foreign Keys:
+    tag_id -> custom_tags.tag_id
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: job_tickets - 119 rows
+  ------------------------------------------------------------------------------------------------
+    ticket_id                      INTEGER         [PK]
+      Examples: 68374, 68375, 70398
+    order_id                       INTEGER         [NOT NULL]
+      Examples: 53238, 54844, 55463
+    stage_id                       INTEGER         [NOT NULL]
+      Examples: 1, 3, 4
+    stage_description              TEXT           
+      Examples: "Digital - OutSource", "OnHold", "TicketComplete"
+    client_name                    TEXT            [NOT NULL]
+      Examples: "ASC Print & Promotional Brokers", "AntMan", "Carol Libke"
+    order_date                     TEXT            [NOT NULL]
+      Examples: "2025-01-16", "2025-05-19", "2025-07-02"
+    short_job_desc                 TEXT           
+      Examples: "Radiology Flash Cards 42pp SEE NOTES", "1000 x PATHOLOGY FLASH CARDS 24pp CELLO", "Emergency VG  - (INVOICED FOR 1000)"
+    date_required                  TEXT           
+      Examples: "2025-01-31", "2025-05-19", "2025-07-02"
+    qty                            INTEGER        
+      Examples: 1000, 300, 500
+    cost                           REAL           
+      Examples: 6200.0, 5100.0, 10527.0
+    paper_type                     TEXT           
+      Examples: "Satin", "Mixed", "White Bond"
+    gsm                            TEXT           
+      Examples: "400gsm", "Mixed", "100"
+    paper_size                     TEXT           
+      Examples: "Custom", "A6", "BC - 90x55"
+    pages                          INTEGER        
+      Examples: 0, 50, 100
+    job_type                       TEXT           
+      Examples: "Flyers - Double Sided", "Spiral Bound Book", "Corflute"
+    bind_type                      TEXT           
+      Examples: "", "Plastic Spiral", "Perfect Bound"
+    cello_yes                      INTEGER        
+      Examples: 0, 1
+    fold_yes                       INTEGER        
+      Examples: 0, 1
+    stitch_yes                     INTEGER        
+      Examples: 0, 1
+    production_notes               TEXT           
+      Examples: "Last price: $5710 Inc GST - Review Required
+
+Fl...", "Last price: $4723 Inc GST - Review Required
+SIZ...", "
+Trim size: A6 (scale file down from A4) Conten..."
+    client_order_num               TEXT           
+      Examples: "Flash Cards Jan-25 INV-43346", "Emergency VG - INV-44466", "Standard MVG - INV-44797"
+    shipping_desc                  TEXT           
+      Examples: "Customer Pickup", "N/A", "Courier"
+    invoicing_business             TEXT           
+      Examples: "InHouse Print & Design", "InHouse Signs", "InHouse Publishing"
+    priority                       TEXT           
+      Examples: "Overdue", "Low Priority", "Urgent"
+    days_until_due                 INTEGER        
+      Examples: -279, -171, -127
+    days_in_system                 INTEGER        
+      Examples: 294, 171, 127
+    urgency_level                  TEXT           
+      Examples: "OVERDUE", "LOW", "CRITICAL"
+    customer_order_count           INTEGER        
+      Examples: 23, 273, 1
+    customer_lifetime_value        REAL           
+      Examples: 66804.04, 99543.15, 0.0
+    ai_priority_score              INTEGER        
+      Examples: 700, 600, 550
+    priority_label                 TEXT           
+      Examples: "HIGH", "URGENT", "LOW"
+    priority_color                 TEXT           
+      Examples: "orange", "yellow", "blue"
+    synced_at                      TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:45", "2025-11-06 15:57:22"
+    last_updated                   TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:45", "2025-11-06 15:57:22"
+
+  Foreign Keys:
+    order_id -> orders.order_id
+
+  TABLE: orders - 2,457 rows
+  ------------------------------------------------------------------------------------------------
+    order_id                       INTEGER         [PK]
+      Examples: 54665, 54666, 54667
+    client_name                    TEXT            [NOT NULL]
+      Examples: "All Properties Group Gold Coast", "Red Rocket Realty Springwood", "LSKD"
+    order_date                     TEXT            [NOT NULL]
+      Examples: "2025-05-07", "2025-05-08", "2025-05-09"
+    date_required                  TEXT           
+      Examples: "2025-05-07", "2025-05-08", "2025-05-09"
+    shipping_type                  TEXT           
+      Examples: "Customer Pickup", "InHouse Delivery", "Freight"
+    invoicing_business_id          INTEGER        
+      Examples: 1, 3, 2
+    client_order_num               TEXT           
+      Examples: "A1 Poster", "Just Sold 59 Narelle Crescent", "Sold Stickers"
+    synced_at                      TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+    last_updated                   TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+
+  TABLE: production_log - 98 rows
+  ------------------------------------------------------------------------------------------------
+    log_id                         INTEGER         [PK]
+      Examples: 98, 94, 95
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: 68374, 68375, 70398
+    log_date                       TEXT            [NOT NULL]
+      Examples: "2025-11-11 04:41:43", "2025-11-06 16:28:31", "2025-11-06 15:57:22"
+    log_time                       TEXT            [NOT NULL]
+      Examples: "00:00:00", "02:28:31", "14:41:43"
+    user_initials                  TEXT           
+      Examples: "AUTO", "JD", "SM"
+    entry_type                     TEXT            [NOT NULL]
+      Examples: "client_notification", "delay", "note"
+    from_stage_id                  INTEGER        
+      Examples: (all NULL)
+    to_stage_id                    INTEGER        
+      Examples: 1, 3, 4
+    from_stage_name                TEXT           
+      Examples: "Start"
+    to_stage_name                  TEXT           
+      Examples: "ArtOnly", "OnHold", "Digital - 9110"
+    note_text                      TEXT           
+      Examples: "Auto-migrated: 0.0h work (0.0h total)", "Client requested color adjustment - updating files", "Wastage: 50 sheets for color calibration"
+    wastage_amount                 REAL           
+      Examples: 50.0
+    wastage_unit                   TEXT           
+      Examples: "sheets"
+    wastage_type                   TEXT           
+      Examples: "paper"
+    wastage_reason                 TEXT           
+      Examples: "Color calibration test prints"
+    stock_item                     TEXT           
+      Examples: (all NULL)
+    stock_quantity_change          REAL           
+      Examples: (all NULL)
+    stock_reason                   TEXT           
+      Examples: (all NULL)
+    delay_hours                    REAL           
+      Examples: 2.5
+    delay_reason                   TEXT           
+      Examples: "equipment_failure"
+    delay_resolved                 INTEGER        
+      Examples: 0
+    notification_type              TEXT           
+      Examples: "email"
+    notification_recipient         TEXT           
+      Examples: "client@example.com"
+    notification_subject           TEXT           
+      Examples: "Your print job is ready for review"
+    notification_message           TEXT           
+      Examples: "Hi, your business cards are ready. Please revie..."
+    notification_status            TEXT           
+      Examples: "pending", "sent"
+    notification_sent_at           TEXT           
+      Examples: "2025-11-07T14:30:00"
+    notification_method_details    TEXT           
+      Examples: (all NULL)
+    created_at                     TEXT            [NOT NULL]
+      Examples: "2025-11-06 16:28:31", "2025-11-11 04:41:43"
+    updated_at                     TEXT           
+      Examples: (all NULL)
+    is_edited                      INTEGER        
+      Examples: 0
+    created_by_user                TEXT           
+      Examples: "GK"
+
+  Foreign Keys:
+    to_stage_id -> job_stages.stage_id
+    from_stage_id -> job_stages.stage_id
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: sqlite_sequence - 7 rows
+  ------------------------------------------------------------------------------------------------
+    name                                          
+      Examples: "custom_tags", "sync_history", "clients"
+    seq                                           
+      Examples: 10, 2, 629
+
+  TABLE: stage_analytics - 15 rows
+  ------------------------------------------------------------------------------------------------
+    analytics_id                   INTEGER         [PK]
+      Examples: 16, 17, 18
+    stage_id                       INTEGER         [NOT NULL]
+      Examples: 1, 2, 3
+    date                           TEXT            [NOT NULL]
+      Examples: "2025-11-07"
+    jobs_entered                   INTEGER        
+      Examples: 0
+    jobs_completed                 INTEGER        
+      Examples: 0
+    jobs_in_progress               INTEGER        
+      Examples: 1, 0, 14
+    avg_time_in_stage_hours        REAL           
+      Examples: 0.0
+    min_time_in_stage_hours        REAL           
+      Examples: 0.0
+    max_time_in_stage_hours        REAL           
+      Examples: 0.0
+    total_time_hours               REAL           
+      Examples: 0.0
+    is_bottleneck                  INTEGER        
+      Examples: 0
+    bottleneck_severity            TEXT           
+      Examples: "none"
+    queue_depth                    INTEGER        
+      Examples: 1, 0, 14
+    calculated_at                  TEXT            [NOT NULL]
+      Examples: "2025-11-06 15:57:22"
+
+  Foreign Keys:
+    stage_id -> job_stages.stage_id
+
+  TABLE: stage_transitions - 93 rows
+  ------------------------------------------------------------------------------------------------
+    transition_id                  INTEGER         [PK]
+      Examples: 1, 2, 3
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: 68374, 68375, 70398
+    from_stage_id                  INTEGER        
+      Examples: (all NULL)
+    to_stage_id                    INTEGER         [NOT NULL]
+      Examples: 1, 3, 4
+    transition_date                TEXT            [NOT NULL]
+      Examples: "2025-11-06 15:57:22"
+    transition_time_hours          REAL           
+      Examples: (all NULL)
+    notes                          TEXT           
+      Examples: (all NULL)
+    business_hours                 REAL           
+      Examples: 0.0
+    total_hours                    REAL           
+      Examples: 0.0
+
+  Foreign Keys:
+    to_stage_id -> job_stages.stage_id
+    from_stage_id -> job_stages.stage_id
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: sync_history - 2 rows
+  ------------------------------------------------------------------------------------------------
+    sync_id                        INTEGER         [PK]
+      Examples: 1, 2
+    sync_type                      TEXT            [NOT NULL]
+      Examples: "full", "incremental"
+    sync_start                     TEXT            [NOT NULL]
+      Examples: "2025-11-07T00:22:44.336170", "2025-11-07T01:57:20.906747"
+    sync_end                       TEXT           
+      Examples: "2025-11-07T00:22:45.211170", "2025-11-07T01:57:22.398818"
+    records_synced                 INTEGER        
+      Examples: 3205, 0
+    records_added                  INTEGER        
+      Examples: 0
+    records_updated                INTEGER        
+      Examples: 0, 41
+    records_deleted                INTEGER        
+      Examples: 0
+    sync_status                    TEXT           
+      Examples: "success"
+    error_message                  TEXT           
+      Examples: (all NULL)
+    sync_duration_seconds          REAL           
+      Examples: 0.875, 1.492071
+
+
+####################################################################################################
+DATABASE: sessions.db
+Location: c:\Users\gpoli\GIT\AI_agents\data\sessions.db
+Size: 430,080 bytes
+Tables: 11
+####################################################################################################
+
+  TABLE: api_sessions - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    api_session_id                 TEXT            [NOT NULL]
+      Examples: (table empty)
+    workspace_id                   INTEGER        
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+    last_active                    TIMESTAMP      
+      Examples: (table empty)
+    metadata                       TEXT           
+      Examples: (table empty)
+
+  TABLE: messages - 143 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 1, 2, 3
+    workspace_id                   INTEGER        
+      Examples: 1
+    thread_id                      INTEGER         [NOT NULL]
+      Examples: 1, 3, 5
+    session_id                     TEXT           
+      Examples: (all NULL)
+    role                           TEXT            [NOT NULL]
+      Examples: "user", "assistant"
+    content                        TEXT            [NOT NULL]
+      Examples: "Hello, how are you?", "I'm doing well, thank you!", "What's the weather like?"
+    prompt                         TEXT           
+      Examples: "what was the last message we had", "I need a summary of the emsails that caem throu...", "2 use outlook"
+    response_data                  TEXT           
+      Examples: (all NULL)
+    user_id                        INTEGER        
+      Examples: 12, 14
+    api_session_id                 TEXT           
+      Examples: (all NULL)
+    include                        BOOLEAN        
+      Examples: 1
+    feedback_score                 INTEGER        
+      Examples: (all NULL)
+    tool_calls                     TEXT           
+      Examples: "[]"
+    tokens_used                    INTEGER        
+      Examples: (all NULL)
+    model                          TEXT           
+      Examples: (all NULL)
+    timestamp                      TIMESTAMP      
+      Examples: "2025-11-09 10:33:06", "2025-11-09 10:33:08", "2025-11-09 10:33:10"
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-10 02:51:09", "2025-11-11T03:03:54.306135", "2025-11-11T03:03:54.314019"
+    metadata                       TEXT           
+      Examples: "{}"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-11-11T03:03:54.306135", "2025-11-11T03:03:54.314019", "2025-11-11T12:37:59.974275"
+
+  Foreign Keys:
+    thread_id -> threads.id
+
+  TABLE: saved_threads - 15 rows
+  ------------------------------------------------------------------------------------------------
+    thread_id                      TEXT            [PK]
+      Examples: "Prime_1762828476509", "Prime_1762867151065", "agent-2_1762851232975"
+    agent_id                       TEXT            [NOT NULL]
+      Examples: "prime", "agent-2", "Prime"
+    session_id                     TEXT            [NOT NULL]
+      Examples: "1762867151065", "1762851232975", "1762902784331"
+    user_id                        INTEGER        
+      Examples: 14
+    location                       TEXT           
+      Examples: "prime", "agent-3"
+    thread_name                    TEXT           
+      Examples: "G TEST 11 - 11pm", "TEST 11th 7pm Bravo", "G test 12th Nov"
+    conversation                   TEXT            [NOT NULL]
+      Examples: "[{"content": "can you find the synergy session ...", "[{"role": "user", "content": "hello", "timestam...", "[{"content": "hellol", "id": 56, "metadata": {}..."
+    message_count                  INTEGER        
+      Examples: 4, 2, 7
+    context                        TEXT           
+      Examples: "{}"
+    created_at                     TEXT           
+      Examples: (all NULL)
+    saved_at                       TEXT           
+      Examples: "2025-11-11 14:10:44", "2025-11-11 23:25:56", "2025-11-11 23:55:34"
+    last_updated                   TEXT           
+      Examples: "2025-11-11 14:10:44", "2025-11-11 23:25:56", "2025-11-11 23:55:34"
+    tags                           TEXT           
+      Examples: "[]"
+    synergy_card_id                TEXT           
+      Examples: (all NULL)
+    parent_thread_id               TEXT           
+      Examples: (all NULL)
+    branch_point_message_id        TEXT           
+      Examples: (all NULL)
+    branch_name                    TEXT           
+      Examples: (all NULL)
+    summary                        TEXT           
+      Examples: (all NULL)
+    summary_generated_at           TEXT           
+      Examples: (all NULL)
+
+  TABLE: sessions - 0 rows
+  ------------------------------------------------------------------------------------------------
+    session_id                     TEXT            [PK]
+      Examples: (table empty)
+    ui_context                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    agent_id                       TEXT           
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+    last_active                    TIMESTAMP      
+      Examples: (table empty)
+    conversation                   TEXT           
+      Examples: (table empty)
+    metadata                       TEXT           
+      Examples: (table empty)
+
+  TABLE: sqlite_sequence - 3 rows
+  ------------------------------------------------------------------------------------------------
+    name                                          
+      Examples: "threads", "messages", "users"
+    seq                                           
+      Examples: 30, 143, 14
+
+  TABLE: thread_shares - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    thread_id                      INTEGER         [NOT NULL]
+      Examples: (table empty)
+    shared_by                      INTEGER         [NOT NULL]
+      Examples: (table empty)
+    shared_with                    INTEGER         [NOT NULL]
+      Examples: (table empty)
+    permission                     TEXT           
+      Examples: (table empty)
+    share_type                     TEXT           
+      Examples: (table empty)
+    shared_at                      TIMESTAMP      
+      Examples: (table empty)
+    expires_at                     TIMESTAMP      
+      Examples: (table empty)
+    access_count                   INTEGER        
+      Examples: (table empty)
+    last_accessed                  TIMESTAMP      
+      Examples: (table empty)
+    revoked                        INTEGER        
+      Examples: (table empty)
+    revoked_at                     TIMESTAMP      
+      Examples: (table empty)
+    revoked_by                     INTEGER        
+      Examples: (table empty)
+    share_link                     TEXT           
+      Examples: (table empty)
+    notes                          TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    thread_id -> threads.id
+
+  TABLE: thread_users - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    thread_id                      INTEGER         [NOT NULL]
+      Examples: (table empty)
+    user_id                        INTEGER         [NOT NULL]
+      Examples: (table empty)
+    permission                     TEXT           
+      Examples: (table empty)
+    added_at                       TIMESTAMP      
+      Examples: (table empty)
+    added_by                       INTEGER        
+      Examples: (table empty)
+    is_owner                       INTEGER        
+      Examples: (table empty)
+
+  Foreign Keys:
+    thread_id -> threads.id
+
+  TABLE: threads - 30 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 2, 6, 5
+    thread_slug                    TEXT            [NOT NULL]
+      Examples: "1762663889170", "1762664086386", "1762664406832"
+    workspace_id                   INTEGER        
+      Examples: 1
+    user_id                        INTEGER        
+      Examples: 12, 14
+    name                           TEXT            [NOT NULL]
+      Examples: "Smart toot test", "Smart toot test 3- agnet", "Smart tool test 4 - Google Forms"
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-09T14:51:29.170321", "2025-11-09T14:54:46.386637", "2025-11-09T15:00:06.832454"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-11-09 07:19:33", "2025-11-09 13:41:15", "2025-11-09 14:57:24"
+    metadata                       TEXT           
+      Examples: "{}"
+    location                       TEXT           
+      Examples: "prime", "agent-3", "agent-2"
+    tags                           TEXT           
+      Examples: "[]"
+    synergy_card_id                INTEGER        
+      Examples: "sess_20251101_1410_alex_content_workflow_system", "sess_20251111_0219_manuscript_formatting_research", "sess_20251107_2211_email_thread_quote_generation_"
+    parent_thread_id               INTEGER        
+      Examples: (all NULL)
+    branch_name                    TEXT           
+      Examples: (all NULL)
+    archived                       INTEGER        
+      Examples: 0
+    branch_point_message_id        TEXT           
+      Examples: (all NULL)
+
+  TABLE: user_sessions - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    user_id                        INTEGER         [NOT NULL]
+      Examples: (table empty)
+    token                          TEXT            [NOT NULL]
+      Examples: (table empty)
+    session_token                  TEXT           
+      Examples: (table empty)
+    ip_address                     TEXT           
+      Examples: (table empty)
+    user_agent                     TEXT           
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+    expires_at                     TIMESTAMP      
+      Examples: (table empty)
+    last_activity                  TIMESTAMP      
+      Examples: (table empty)
+
+  TABLE: users - 2 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 12, 14
+    username                       TEXT            [NOT NULL]
+      Examples: "user_12", "user_14"
+    email                          TEXT            [NOT NULL]
+      Examples: "user_12@ai-platform.local", "user_14@ai-platform.local"
+    password_hash                  TEXT            [NOT NULL]
+      Examples: "SYSTEM_USER"
+    role                           TEXT           
+      Examples: "user"
+    primary_gmail                  TEXT           
+      Examples: (all NULL)
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-10 03:04:45", "2025-11-11 02:33:27"
+    last_active                    TIMESTAMP      
+      Examples: "2025-11-11 02:52:19", "2025-11-12 12:22:57"
+    metadata                       TEXT           
+      Examples: "{"thread_assignments": {"agent-1": "17628280698...", "{"thread_assignments": {"agent-1": "17628741587..."
+
+  TABLE: workspaces - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    name                           TEXT            [NOT NULL]
+      Examples: (table empty)
+    description                    TEXT           
+      Examples: (table empty)
+    owner_id                       INTEGER        
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+    updated_at                     TIMESTAMP      
+      Examples: (table empty)
+    metadata                       TEXT           
+      Examples: (table empty)
+
+
+####################################################################################################
+DATABASE: sessions_temp.db
+Location: c:\Users\gpoli\GIT\AI_agents\data\sessions_temp.db
+Size: 0 bytes
+Tables: 0
+####################################################################################################
+
+
+####################################################################################################
+DATABASE: stock_data.db
+Location: c:\Users\gpoli\GIT\AI_agents\data\stock_data.db
+Size: 8,994,816 bytes
+Tables: 36
+####################################################################################################
+
+  TABLE: ClickCostHistory - 0 rows
+  ------------------------------------------------------------------------------------------------
+    HistoryID                      INTEGER         [PK]
+      Examples: (table empty)
+    ClickDesc                      TEXT            [NOT NULL]
+      Examples: (table empty)
+    OldPrice                       REAL            [NOT NULL]
+      Examples: (table empty)
+    NewPrice                       REAL            [NOT NULL]
+      Examples: (table empty)
+    ChangePercent                  REAL           
+      Examples: (table empty)
+    ChangedBy                      TEXT           
+      Examples: (table empty)
+    ChangedDate                    TEXT           
+      Examples: (table empty)
+
+  TABLE: ClickCosts - 5 rows
+  ------------------------------------------------------------------------------------------------
+    ClickID                        INTEGER         [PK]
+      Examples: 6, 7, 8
+    ClickDesc                      TEXT            [NOT NULL]
+      Examples: "B&W A4 Click", "Color A4 Click (Low Coverage 0-10%)", "Color A4 Click (Medium Coverage 11-30%)"
+    ClickPricePerA4                REAL            [NOT NULL]
+      Examples: 0.006, 0.05, 0.08
+    LastUpdated                    TEXT           
+      Examples: "2025-10-15T00:37:40.891834", "2025-10-15T00:37:40.892056", "2025-10-15T00:37:40.892064"
+
+  TABLE: ConsumableInventory - 7 rows
+  ------------------------------------------------------------------------------------------------
+    ConsumableID                   INTEGER         [PK]
+      Examples: 1, 2, 3
+    ConsumableType                 TEXT            [NOT NULL]
+      Examples: "celloglaze_gloss", "celloglaze_matt", "celloglaze_silk"
+    Description                    TEXT            [NOT NULL]
+      Examples: "Celloglaze Film - Gloss", "Celloglaze Film - Matt", "Celloglaze Film - Silk Feel"
+    Unit                           TEXT            [NOT NULL]
+      Examples: "meters", "boxes", "sheets"
+    CurrentStock                   REAL           
+      Examples: 500.0, 400.0, 300.0
+    ReorderPoint                   REAL           
+      Examples: 100.0, 80.0, 5.0
+    CriticalLevel                  REAL           
+      Examples: 50.0, 40.0, 2.0
+    CostPerUnit                    REAL           
+      Examples: 2.5, 2.75, 3.2
+    SupplierName                   TEXT           
+      Examples: "Film Supplies Inc", "Binding Solutions", "Plastics Warehouse"
+    IsActive                       INTEGER        
+      Examples: 1
+    LastUpdated                    TEXT           
+      Examples: "2025-10-10 00:27:30"
+
+  TABLE: ConsumableTransactions - 0 rows
+  ------------------------------------------------------------------------------------------------
+    TransactionID                  INTEGER         [PK]
+      Examples: (table empty)
+    ConsumableID                   INTEGER         [NOT NULL]
+      Examples: (table empty)
+    TransactionType                TEXT            [NOT NULL]
+      Examples: (table empty)
+    Quantity                       REAL            [NOT NULL]
+      Examples: (table empty)
+    OrderID                        INTEGER        
+      Examples: (table empty)
+    TransactionDate                TEXT           
+      Examples: (table empty)
+    Notes                          TEXT           
+      Examples: (table empty)
+    BalanceAfter                   REAL           
+      Examples: (table empty)
+
+  Foreign Keys:
+    ConsumableID -> ConsumableInventory.ConsumableID
+
+  TABLE: CorfluteMaterialTransactions - 1 rows
+  ------------------------------------------------------------------------------------------------
+    TransactionID                  INTEGER         [PK]
+      Examples: 1
+    MaterialID                     INTEGER         [NOT NULL]
+      Examples: 1
+    TransactionType                TEXT            [NOT NULL]
+      Examples: "CONSUMPTION"
+    Sheets                         INTEGER         [NOT NULL]
+      Examples: -1
+    SqmUsed                        REAL            [NOT NULL]
+      Examples: 0.54
+    OrderID                        INTEGER        
+      Examples: 12345
+    TransactionDate                TEXT           
+      Examples: "2025-10-10 00:46:28"
+    Notes                          TEXT           
+      Examples: "Consumed 1 sheets (0.54 sqm) for order #12345"
+
+  Foreign Keys:
+    MaterialID -> CorfluteMaterials.MaterialID
+
+  TABLE: CorfluteMaterials - 4 rows
+  ------------------------------------------------------------------------------------------------
+    MaterialID                     INTEGER         [PK]
+      Examples: 1, 2, 3
+    Thickness                      INTEGER         [NOT NULL]
+      Examples: 5, 3, 10
+    SheetWidth                     INTEGER         [NOT NULL]
+      Examples: 2440, 1830
+    SheetHeight                    INTEGER         [NOT NULL]
+      Examples: 1220
+    Colour                         TEXT           
+      Examples: "White"
+    SheetsInStock                  INTEGER        
+      Examples: 49, 30, 20
+    TotalSqmInStock                REAL           
+      Examples: 2.4368, 2.2326, 2.9768
+    ReorderPoint                   INTEGER        
+      Examples: 10, 5
+    CostPerSheet                   REAL           
+      Examples: 35.0, 28.0, 25.0
+    CostPerSqm                     REAL           
+      Examples: 11.76, 12.54, 8.4
+    SupplierName                   TEXT           
+      Examples: "Signage Plastics"
+    SupplierPartNumber             TEXT           
+      Examples: "5MM-STD-WH", "5MM-MED-WH", "3MM-STD-WH"
+    IsActive                       INTEGER        
+      Examples: 1
+    LastUpdated                    TEXT           
+      Examples: "2025-10-10 00:46:28"
+
+  TABLE: EventProcessingLog - 0 rows
+  ------------------------------------------------------------------------------------------------
+    log_id                         INTEGER         [PK]
+      Examples: (table empty)
+    event_type                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    order_id                       TEXT            [NOT NULL]
+      Examples: (table empty)
+    order_number                   TEXT           
+      Examples: (table empty)
+    handler_name                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    success                        INTEGER         [NOT NULL]
+      Examples: (table empty)
+    message                        TEXT           
+      Examples: (table empty)
+    processing_time_ms             INTEGER        
+      Examples: (table empty)
+    created_at                     TEXT            [NOT NULL]
+      Examples: (table empty)
+
+  TABLE: JobTickets - 0 rows
+  ------------------------------------------------------------------------------------------------
+    job_ticket_id                  INTEGER         [PK]
+      Examples: (table empty)
+    order_source                   TEXT           
+      Examples: (table empty)
+    external_order_id              TEXT           
+      Examples: (table empty)
+    customer_email                 TEXT           
+      Examples: (table empty)
+    product_title                  TEXT           
+      Examples: (table empty)
+    quantity                       INTEGER        
+      Examples: (table empty)
+    total_price                    REAL           
+      Examples: (table empty)
+    job_stage                      TEXT           
+      Examples: (table empty)
+    created_date                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    completed_date                 TEXT           
+      Examples: (table empty)
+    notes                          TEXT           
+      Examples: (table empty)
+    stock_ids_used                 TEXT           
+      Examples: (table empty)
+
+  TABLE: ProfitMargins - 27 rows
+  ------------------------------------------------------------------------------------------------
+    MarginID                       INTEGER         [PK]
+      Examples: 10, 11, 12
+    ProductType                    TEXT            [NOT NULL]
+      Examples: "Flyers", "Perfect Bound Books", "Business Cards"
+    MinJobValue                    REAL            [NOT NULL]
+      Examples: 0.0, 51.0, 101.0
+    MaxJobValue                    REAL           
+      Examples: 50.0, 100.0, 200.0
+    MarginPercentage               REAL            [NOT NULL]
+      Examples: 150.0, 100.0, 75.0
+    IsActive                       INTEGER        
+      Examples: 1
+
+  TABLE: PurchaseOrderItems - 0 rows
+  ------------------------------------------------------------------------------------------------
+    POItemID                       INTEGER         [PK]
+      Examples: (table empty)
+    POID                           INTEGER         [NOT NULL]
+      Examples: (table empty)
+    StockID                        INTEGER        
+      Examples: (table empty)
+    ConsumableID                   INTEGER        
+      Examples: (table empty)
+    Description                    TEXT            [NOT NULL]
+      Examples: (table empty)
+    QuantityOrdered                INTEGER         [NOT NULL]
+      Examples: (table empty)
+    QuantityReceived               INTEGER        
+      Examples: (table empty)
+    UnitPrice                      REAL            [NOT NULL]
+      Examples: (table empty)
+    LineTotal                      REAL            [NOT NULL]
+      Examples: (table empty)
+
+  Foreign Keys:
+    ConsumableID -> ConsumableInventory.ConsumableID
+    StockID -> StockLevels.StockID
+    POID -> PurchaseOrders.POID
+
+  TABLE: PurchaseOrders - 0 rows
+  ------------------------------------------------------------------------------------------------
+    POID                           INTEGER         [PK]
+      Examples: (table empty)
+    PONumber                       TEXT            [NOT NULL]
+      Examples: (table empty)
+    SupplierName                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    OrderDate                      TEXT           
+      Examples: (table empty)
+    ExpectedDeliveryDate           TEXT           
+      Examples: (table empty)
+    ActualDeliveryDate             TEXT           
+      Examples: (table empty)
+    Status                         TEXT           
+      Examples: (table empty)
+    TotalValue                     REAL           
+      Examples: (table empty)
+    Notes                          TEXT           
+      Examples: (table empty)
+    CreatedBy                      TEXT           
+      Examples: (table empty)
+    CreatedDate                    TEXT           
+      Examples: (table empty)
+
+  TABLE: QuoteMaterialRequirements - 0 rows
+  ------------------------------------------------------------------------------------------------
+    RequirementID                  INTEGER         [PK]
+      Examples: (table empty)
+    QuoteID                        TEXT            [NOT NULL]
+      Examples: (table empty)
+    StockID                        INTEGER        
+      Examples: (table empty)
+    RequiredQuantity               INTEGER         [NOT NULL]
+      Examples: (table empty)
+    StockSpec                      TEXT            [NOT NULL]
+      Examples: (table empty)
+    MaterialType                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    IsReserved                     INTEGER        
+      Examples: (table empty)
+    ReservedDate                   TEXT           
+      Examples: (table empty)
+    ConsumedOrderID                INTEGER        
+      Examples: (table empty)
+    ConsumedDate                   TEXT           
+      Examples: (table empty)
+    CreatedDate                    TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    StockID -> StockLevels.StockID
+
+  TABLE: ReorderAlerts - 0 rows
+  ------------------------------------------------------------------------------------------------
+    AlertID                        INTEGER         [PK]
+      Examples: (table empty)
+    StockID                        INTEGER        
+      Examples: (table empty)
+    ConsumableID                   INTEGER        
+      Examples: (table empty)
+    AlertLevel                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    CurrentLevel                   REAL            [NOT NULL]
+      Examples: (table empty)
+    ReorderPoint                   REAL            [NOT NULL]
+      Examples: (table empty)
+    RecommendedOrderQty            INTEGER        
+      Examples: (table empty)
+    IsAcknowledged                 INTEGER        
+      Examples: (table empty)
+    IsSuppressed                   INTEGER        
+      Examples: (table empty)
+    GeneratedDate                  TEXT           
+      Examples: (table empty)
+    AcknowledgedBy                 TEXT           
+      Examples: (table empty)
+    AcknowledgedDate               TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    ConsumableID -> ConsumableInventory.ConsumableID
+    StockID -> StockLevels.StockID
+
+  TABLE: StockLevels - 183 rows
+  ------------------------------------------------------------------------------------------------
+    StockID                        INTEGER         [PK]
+      Examples: 16, 19, 22
+    StockTypeID                    INTEGER         [NOT NULL]
+      Examples: 20, 24, 29
+    StockTypeDesc                  TEXT            [NOT NULL]
+      Examples: "45mm Circles 24up Gloss", "ADESTOR CAST GLOSS OPAQUE", "ADESTOR CAST GLOSS Solid Back"
+    Length                         INTEGER        
+      Examples: 450, 483, 660
+    Width                          INTEGER        
+      Examples: 320, 330, 210
+    GSM                            INTEGER        
+      Examples: 0, 80, 90
+    Colour                         TEXT           
+      Examples: "White"
+    CostPerThousand                REAL            [NOT NULL]
+      Examples: 36.0, 34.0, 46.0
+    Markup                         REAL           
+      Examples: 10.0, 15.0, 35.0
+    CurrentStockLevel              INTEGER        
+      Examples: 0
+    ReorderPoint                   INTEGER        
+      Examples: 1000
+    CriticalLevel                  INTEGER        
+      Examples: 500
+    MaxStockLevel                  INTEGER        
+      Examples: 5000
+    SupplierName                   TEXT           
+      Examples: "TBD - Update in UI"
+    SupplierPartNumber             TEXT           
+      Examples: (all NULL)
+    LocationCode                   TEXT           
+      Examples: (all NULL)
+    BinNumber                      TEXT           
+      Examples: (all NULL)
+    IsActive                       INTEGER        
+      Examples: 1
+    LastUpdated                    TEXT           
+      Examples: "2025-10-15T00:37:27.490812", "2025-10-15T00:37:27.491450", "2025-10-15T00:37:27.491466"
+    CreatedDate                    TEXT           
+      Examples: "2025-10-15T00:37:27.490863", "2025-10-15T00:37:27.491455", "2025-10-15T00:37:27.491467"
+
+  TABLE: StockMarkupRules - 11 rows
+  ------------------------------------------------------------------------------------------------
+    RuleID                         INTEGER         [PK]
+      Examples: 1, 2, 3
+    RuleName                       TEXT            [NOT NULL]
+      Examples: "Premium Cover Stock", "Economy Flyer Stock", "Book Interior Stock"
+    StockTypePattern               TEXT           
+      Examples: "Satin", "Matt", "Gloss"
+    GSMMin                         INTEGER        
+      Examples: 300, 128, 80
+    GSMMax                         INTEGER        
+      Examples: 400, 150, 100
+    MarkupPercent                  REAL            [NOT NULL]
+      Examples: 40.0, 45.0, 25.0
+    Priority                       INTEGER        
+      Examples: 10, 5, 8
+    IsActive                       INTEGER        
+      Examples: 1
+    CreatedDate                    TEXT           
+      Examples: "2025-10-15T00:37:35.635222", "2025-10-15T00:37:35.636877", "2025-10-15T00:37:35.636905"
+
+  TABLE: StockTransactions - 13 rows
+  ------------------------------------------------------------------------------------------------
+    TransactionID                  INTEGER         [PK]
+      Examples: 1, 2, 3
+    StockID                        INTEGER         [NOT NULL]
+      Examples: 1, 2, 5
+    TransactionType                TEXT            [NOT NULL]
+      Examples: "CONSUMPTION", "PURCHASE", "ADJUSTMENT"
+    Quantity                       INTEGER         [NOT NULL]
+      Examples: -2000, 5000, -500
+    OrderID                        INTEGER        
+      Examples: 12345, 12346, 2995
+    QuoteID                        TEXT           
+      Examples: (all NULL)
+    POID                           INTEGER        
+      Examples: (all NULL)
+    TransactionDate                TEXT           
+      Examples: "2025-10-10 00:27:30", "2025-10-10 00:27:35", "2025-10-10 00:28:44"
+    Notes                          TEXT           
+      Examples: "Test order - 1000 books", "Supplier delivery - Invoice #INV-2024-001", "Test consumption"
+    PerformedBy                    TEXT           
+      Examples: "Test User", "Warehouse Team", "System"
+    BalanceAfter                   INTEGER        
+      Examples: 13000, 18000, 17500
+
+  Foreign Keys:
+    POID -> PurchaseOrders.POID
+    StockID -> StockLevels.StockID
+
+  TABLE: custom_events - 0 rows
+  ------------------------------------------------------------------------------------------------
+    event_id                       INTEGER         [PK]
+      Examples: (table empty)
+    event_type                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    event_data                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    customer_email                 TEXT           
+      Examples: (table empty)
+    session_id                     TEXT           
+      Examples: (table empty)
+    order_id                       TEXT           
+      Examples: (table empty)
+    product_id                     TEXT           
+      Examples: (table empty)
+    stock_id                       TEXT           
+      Examples: (table empty)
+    source                         TEXT           
+      Examples: (table empty)
+    created_at                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    processed                      INTEGER        
+      Examples: (table empty)
+
+  Foreign Keys:
+    stock_id -> unified_stocks.stock_id
+    order_id -> shopify_orders.order_number
+
+  TABLE: extracted_jobs - 1,336 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 542, 543, 544
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: 71346, 71347, 71348
+    order_id                       INTEGER        
+      Examples: 56803, 56804, 56805
+    order_date                     TEXT           
+      Examples: "2025-07-15", "2025-07-16", "2025-07-17"
+    client_name                    TEXT           
+      Examples: "2ML", "A.M.G Pest Management", "AMA Products"
+    stock_type                     TEXT           
+      Examples: "corflute", "linen", "vinyl"
+    stock_description              TEXT           
+      Examples: "White Corflute 5mm 2440x1220mm", "Knight Linen 350GSM 450x320mm", "Monomeric Vinyl"
+    gsm                            INTEGER        
+      Examples: 80, 90, 100
+    paper_finish                   TEXT           
+      Examples: "corflute", "linen", "vinyl"
+    sheet_size                     TEXT           
+      Examples: "1220x2440", "320x450", "330x483"
+    length_mm                      INTEGER        
+      Examples: 1220, 320, 330
+    width_mm                       INTEGER        
+      Examples: 2440, 450, 483
+    quantity_ordered               INTEGER        
+      Examples: 100, 4, 250
+    total_sheets_consumed          INTEGER        
+      Examples: 100, 4, 250
+    sheets_per_item                REAL           
+      Examples: 1.0, 3.0, 0.5
+    job_description                TEXT           
+      Examples: "** INV - 45688 **
+
+Size: A5 Portrait
+Black wiro...", "5mm Corflute
+2440mm x 1220mm
+NO PRINT, BLANK SH...", "*Ready by morning of Wed 15th at the latest*
+
+F..."
+    product_type                   TEXT           
+      Examples: "booklets", "corflute", "brochures"
+    finishing_notes                TEXT           
+      Examples: (all NULL)
+    total_estimated_value          REAL           
+      Examples: (all NULL)
+    estimated_profit               REAL           
+      Examples: (all NULL)
+    profit_margin_percent          REAL           
+      Examples: (all NULL)
+    stock_cost_estimate            REAL           
+      Examples: (all NULL)
+    industry                       TEXT           
+      Examples: "automotive", "construction", "education"
+    client_type                    TEXT           
+      Examples: "small_business", "medium_business", "non_profit"
+    suburb                         TEXT           
+      Examples: "Maylands", "Tamborine Mountain", "Broadbeach"
+    extraction_confidence          REAL           
+      Examples: 0.95, 0.98, 0.92
+    ai_model                       TEXT           
+      Examples: "claude-sonnet-4-20250514", "pattern-matching-v1"
+    extraction_timestamp           TEXT           
+      Examples: "2025-10-12T18:00:13.105371", "2025-10-12T18:00:13.106256", "2025-10-12T18:00:13.106366"
+    json_data                      TEXT           
+      Examples: "{"ticket_id": 72783, "order_id": 56803, "order_...", "{"ticket_id": 72784, "order_id": 56804, "order_...", "{"ticket_id": 72785, "order_id": 56805, "order_..."
+    created_at                     TEXT           
+      Examples: "2025-10-12 02:35:23", "2025-10-12 03:52:59", "2025-10-12 05:48:58"
+    updated_at                     TEXT           
+      Examples: "2025-10-13 15:24:12", "2025-10-12 08:00:13", "2025-10-14T01:41:12.676969"
+    job_value                      REAL           
+      Examples: 796.61, 80.0, 541.35
+    stock_id                       INTEGER        
+      Examples: "TEMP_unknown_0", "T1", 94
+    mixed_stock_flag               INTEGER        
+      Examples: 0, 1
+    cover_stock_id                 TEXT           
+      Examples: "28"
+    content_stock_id               TEXT           
+      Examples: (all NULL)
+    thickness_mm                   REAL           
+      Examples: 5.0, 1.0, 2.0
+    standard_format                TEXT           
+      Examples: "A5", "standard_sheet", "A4"
+    orientation                    TEXT           
+      Examples: "portrait", "landscape", "square"
+    product_category               TEXT           
+      Examples: "booklets", "corflute", "brochures"
+    product_sub_category           TEXT           
+      Examples: "wire_bound", "signage", "saddle_stitched"
+    sides                          TEXT           
+      Examples: "double_sided", "no_print", "single_sided"
+    color_type                     TEXT           
+      Examples: "full_color", "no_print", "mixed"
+    page_count                     INTEGER        
+      Examples: 84, 24, 136
+    binding_type                   TEXT           
+      Examples: "wire_bound", "saddle_stitch", "perfect_bound"
+    stock_role_primary             TEXT           
+      Examples: "single"
+    fluting_direction              TEXT           
+      Examples: "landscape_flute", "portrait_flute"
+    print_method                   TEXT           
+      Examples: "digital", "wide_format", "direct_print"
+    color_pages                    INTEGER        
+      Examples: "9 pages color, 231 pages B&W", "295, 296, 297", "13, 16, 17, 34, 35, 37, 43, 50, 58, 63, 64, 71,..."
+    bw_pages                       INTEGER        
+      Examples: 272
+    special_effects                TEXT           
+      Examples: "white_ink", "foiling", "variable_data, numbering"
+    color_sides                    TEXT           
+      Examples: "both", "front_only", "none"
+    binding_edge                   TEXT           
+      Examples: "long_edge", "top", "long"
+    cellophane                     TEXT           
+      Examples: "gloss", "matte", "soft_touch"
+    lamination                     TEXT           
+      Examples: "gloss", "whiteboard", "anti_graffiti"
+    coating                        TEXT           
+      Examples: "poly_vinyl"
+    folding_type                   TEXT           
+      Examples: "roll_fold", "half_fold", "tri_fold"
+    drilling                       BOOLEAN        
+      Examples: 0, 1
+    perforation                    BOOLEAN        
+      Examples: 0, 1
+    die_cutting                    BOOLEAN        
+      Examples: 0, 1
+    creasing                       BOOLEAN        
+      Examples: 0
+    uv_coating                     BOOLEAN        
+      Examples: 0, 1
+    address                        TEXT           
+      Examples: "9b Hardey Road", "Level 2 Oracle West 19 Elizabeth Avenue", "8 Gould Street"
+    state                          TEXT           
+      Examples: "WA", "QLD", "NSW"
+    postcode                       TEXT           
+      Examples: "6051", "4127", "2136"
+    business_description           TEXT           
+      Examples: "Graphic design studio specializing in website d...", "Queensland-based commercial construction and sh...", "Christian women's ministry organization - Annua..."
+    industry_sub_category          TEXT           
+      Examples: "graphic_design", "contractor", "religious"
+    delivery_method                TEXT           
+      Examples: "courier", "pickup", "hand_delivery"
+    urgent                         BOOLEAN        
+      Examples: 0, 1
+    rush_job                       BOOLEAN        
+      Examples: 0, 1
+    due_date                       TEXT           
+      Examples: (all NULL)
+    quality_tier                   TEXT           
+      Examples: "standard", "premium", "economy"
+    use_case                       TEXT           
+      Examples: "recipe_book", "construction_material", "convention_program"
+    complexity_score               INTEGER        
+      Examples: 4, 1, 3
+    typical_turnaround_days        INTEGER        
+      Examples: 5, 1, 3
+    price_sensitivity              TEXT           
+      Examples: "medium", "high", "low"
+    production_difficulty          TEXT           
+      Examples: (all NULL)
+    total_products_count           INTEGER        
+      Examples: 1, 2, 5
+    multi_product_order            BOOLEAN        
+      Examples: 0, 1
+    rush_order                     BOOLEAN        
+      Examples: 0, 1
+    file_path                      TEXT           
+      Examples: "P:\Danica Studios 10 10 2025", "P:\CWCI (Mt Tamborine) 10 10 25", "W:\Ray White Commercial 10 10 25"
+    artwork_supplied               BOOLEAN        
+      Examples: 1, 0
+    job_type_from_db               TEXT           
+      Examples: "Wire Bound Book", "Corflute", "Saddle Stitched Book"
+
+  TABLE: job_stocks - 126 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 128, 129, 130
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: 71452, 71457, 71467
+    stock_id                       TEXT            [NOT NULL]
+      Examples: "105", "127", "21"
+    stock_role                     TEXT           
+      Examples: "interior", "cover"
+    quantity_sheets                INTEGER        
+      Examples: 13, 1, 6
+    notes                          TEXT           
+      Examples: "128GSM Satin interior", "300GSM Satin cover", "115GSM Satin interior"
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-14 13:53:24", "2025-10-14 14:12:47", "2025-10-14 14:34:37"
+
+  Foreign Keys:
+    ticket_id -> extracted_jobs.ticket_id
+
+  TABLE: shopify_abandoned_checkouts - 4 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 6, 5, 7
+    shopify_checkout_id            TEXT            [NOT NULL]
+      Examples: "28758575087811", "28784365568195", "28946423677123"
+    token                          TEXT            [NOT NULL]
+      Examples: "1099377b7b7e32111fc55e8564474615", "382e1aebde0b674f184f03cf63c49f40", "8b9d1364900e8f613a05d319be9112aa"
+    cart_token                     TEXT           
+      Examples: "hWN369ooJCDXuLHji48vK7KW", "hWN2Lf4npTCgpOSxrwzzLsNF", "hWN41hxsGQP2uN0xLCQqqYJ2"
+    email                          TEXT           
+      Examples: "info@glorealestate.com.au", "juhakinnunen311@gmail.com", "lirapal535@forexru.com"
+    gateway                        TEXT           
+      Examples: (all NULL)
+    buyer_accepts_marketing        BOOLEAN        
+      Examples: 0
+    created_at                     TEXT           
+      Examples: "2025-10-15T01:44:32+10:00", "2025-10-12T20:47:07+10:00", "2025-09-26T15:52:32+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-09-18T09:54:04+10:00", "2025-09-26T15:52:32+10:00", "2025-10-12T20:47:07+10:00"
+    completed_at                   TEXT           
+      Examples: (all NULL)
+    closed_at                      TEXT           
+      Examples: (all NULL)
+    customer_id                    TEXT           
+      Examples: "8356640424131", "8328824062147", "8382222827715"
+    customer_email                 TEXT           
+      Examples: "info@glorealestate.com.au", "siyun.marketing@gmail.com", "juhakinnunen311@gmail.com"
+    customer_first_name            TEXT           
+      Examples: "Sarah", "Siyun", "Juha"
+    customer_last_name             TEXT           
+      Examples: "Hsieh", "Yang", "Kinnunen"
+    customer_phone                 TEXT           
+      Examples: (all NULL)
+    subtotal_price                 REAL           
+      Examples: 209.39, 365.67, 53.9
+    total_price                    REAL           
+      Examples: 365.67, 209.39, 68.85
+    total_tax                      REAL           
+      Examples: 19.04, 33.24, 6.26
+    total_discounts                REAL           
+      Examples: 0.0
+    currency                       TEXT           
+      Examples: "AUD"
+    abandoned_checkout_url         TEXT           
+      Examples: "https://inhouseprint.com.au/63883116739/checkou...", "https://inhouseprint.com.au/63883116739/checkou...", "https://inhouseprint.com.au/63883116739/checkou..."
+    discount_codes                 TEXT           
+      Examples: "[]"
+    recovery_email_sent            BOOLEAN        
+      Examples: 0
+    recovery_email_sent_at         TEXT           
+      Examples: (all NULL)
+    recovered                      BOOLEAN        
+      Examples: 0
+    recovered_order_id             TEXT           
+      Examples: (all NULL)
+    note                           TEXT           
+      Examples: "Much appreciated if we can have them by end of ...", "The PDF's supplied for print include a 2mm blee..."
+    referring_site                 TEXT           
+      Examples: "https://www.google.com/", "https://inhouseprint.com.au/"
+    landing_site                   TEXT           
+      Examples: "/?gad_source=1&gad_campaignid=21585434101&gclid...", "/checkout/63883116739/cn/hWN2Lf4npTCgpOSxrwzzLs...", "/"
+    source_name                    TEXT           
+      Examples: "web"
+    synced_at                      TEXT           
+      Examples: "2025-10-16T16:17:54.026133", "2025-10-16T16:17:54.027865", "2025-10-16T16:17:54.027919"
+
+  Foreign Keys:
+    recovered_order_id -> shopify_orders.shopify_order_id
+    customer_id -> shopify_customers.shopify_customer_id
+
+  TABLE: shopify_abandoned_line_items - 10 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 2, 3, 7
+    checkout_id                    TEXT            [NOT NULL]
+      Examples: "1099377b7b7e32111fc55e8564474615", "382e1aebde0b674f184f03cf63c49f40", "8b9d1364900e8f613a05d319be9112aa"
+    shopify_product_id             TEXT           
+      Examples: "7731107496131", "7731109331139", "7729184374979"
+    shopify_variant_id             TEXT           
+      Examples: "44870924140739", "44879076425923", "44878958493891"
+    title                          TEXT           
+      Examples: "Printed Flyers", "Folded Printed Flyers", "Corflute Signs"
+    variant_title                  TEXT           
+      Examples: "(D#0DKLIJG)", "(D#MD157RL)", "(D#CKENBEK)"
+    quantity                       INTEGER        
+      Examples: 1
+    price                          REAL           
+      Examples: 209.39, 217.17, 148.5
+    sku                            TEXT           
+      Examples: "ssp|colp|psdl|pSAT150|art", "dsp|colp|psa3|pSAT128|art", "q|art|size6x9|ssPrint"
+    vendor                         TEXT           
+      Examples: "InHouse Print & Design"
+    product_type                   TEXT           
+      Examples: (all NULL)
+    properties                     TEXT           
+      Examples: "[{"name": "Quantity", "value": "3000"}, {"name"...", "[{"name": "Quantity", "value": "500"}, {"name":...", "[{"name": "Quantity", "value": "6"}, {"name": "..."
+
+  Foreign Keys:
+    checkout_id -> shopify_abandoned_checkouts.token
+
+  TABLE: shopify_analytics_cache - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    metric_name                    TEXT            [NOT NULL]
+      Examples: (table empty)
+    metric_date                    DATE            [NOT NULL]
+      Examples: (table empty)
+    metric_value                   REAL           
+      Examples: (table empty)
+    metric_data                    TEXT           
+      Examples: (table empty)
+    created_at                     TEXT           
+      Examples: (table empty)
+
+  TABLE: shopify_customer_addresses - 272 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 270, 539, 540
+    shopify_address_id             TEXT            [NOT NULL]
+      Examples: "8807357055171", "8808530378947", "8809371238595"
+    customer_id                    TEXT            [NOT NULL]
+      Examples: "7650533310659", "7659327553731", "7671678009539"
+    first_name                     TEXT           
+      Examples: "Michelle", "Elias", "Paul"
+    last_name                      TEXT           
+      Examples: "Deaves", "Esber", "Audi"
+    company                        TEXT           
+      Examples: "Hive Conveyancing", "Urban coatings pressure washing", "KPS Australia"
+    address1                       TEXT           
+      Examples: "21 Bungaree Street", "24 Lindsay Street", "3 Regatta Way"
+    address2                       TEXT           
+      Examples: "Graceville", "Shop 6", ""
+    city                           TEXT           
+      Examples: "Wyee", "Campsie", "Cabarita"
+    province                       TEXT           
+      Examples: "New South Wales", "Victoria", "Queensland"
+    province_code                  TEXT           
+      Examples: "NSW", "VIC", "QLD"
+    country                        TEXT           
+      Examples: "Australia", "United States"
+    country_code                   TEXT           
+      Examples: "AU", "US"
+    zip                            TEXT           
+      Examples: "2259", "2194", "2137"
+    phone                          TEXT           
+      Examples: "+61402449500", "+61498634037", "0422102003"
+    is_default                     BOOLEAN        
+      Examples: 1, 0
+
+  Foreign Keys:
+    customer_id -> shopify_customers.shopify_customer_id
+
+  TABLE: shopify_customers - 251 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 371, 471, 281
+    shopify_customer_id            TEXT            [NOT NULL]
+      Examples: "7650533310659", "7659327553731", "7671678009539"
+    email                          TEXT           
+      Examples: "Aydin.Areta@gmail.com", "Blair@insightbranding.com.au", "a.little.splash.of.colour2@gmail.com"
+    first_name                     TEXT           
+      Examples: "Michelle", "Elias", "jose"
+    last_name                      TEXT           
+      Examples: "Deaves", "Esber", "baez"
+    phone                          TEXT           
+      Examples: "+61422102003", "+61484900754", "+61431249447"
+    orders_count                   INTEGER        
+      Examples: 12, 5, 4
+    total_spent                    REAL           
+      Examples: 3013.56, 2962.55, 1899.22
+    average_order_value            REAL           
+      Examples: 129.0, 355.64, 0.0
+    state                          TEXT           
+      Examples: "disabled", "enabled"
+    verified_email                 BOOLEAN        
+      Examples: 1
+    accepts_marketing              BOOLEAN        
+      Examples: 0
+    tags                           TEXT           
+      Examples: "", "Login with Shop, Shop", "newsletter"
+    note                           TEXT           
+      Examples: ""
+    currency                       TEXT           
+      Examples: "AUD"
+    created_at                     TEXT           
+      Examples: "2024-09-23T18:22:48+10:00", "2025-10-16T06:26:27+10:00", "2025-10-15T01:31:41+10:00"
+    updated_at                     TEXT           
+      Examples: "2024-09-23T18:22:51+10:00", "2025-10-16T06:26:32+10:00", "2025-10-15T01:44:32+10:00"
+    last_order_id                  TEXT           
+      Examples: "5786411008195", "6263402627267", "6261741781187"
+    last_order_name                TEXT           
+      Examples: "#1027", "#1279", "#1278"
+    last_order_date                TEXT           
+      Examples: (all NULL)
+    default_address_id             TEXT           
+      Examples: (all NULL)
+    marketing_opt_in_level         TEXT           
+      Examples: (all NULL)
+    tax_exempt                     BOOLEAN        
+      Examples: 0
+    synced_at                      TEXT           
+      Examples: "2025-10-16T03:00:36.892660", "2025-10-16T16:17:47.838660", "2025-10-16T16:17:47.857531"
+
+  Foreign Keys:
+    last_order_id -> shopify_orders.shopify_order_id
+
+  TABLE: shopify_line_items - 59 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 3, 7, 11
+    shopify_order_id               TEXT            [NOT NULL]
+      Examples: "6153174220995", "6156133433539", "6156181668035"
+    line_item_id                   TEXT            [NOT NULL]
+      Examples: "14701518192835", "14706913902787", "14707003130051"
+    product_id                     TEXT           
+      Examples: "7729184374979", "7731078693059", "7731079086275"
+    variant_id                     TEXT           
+      Examples: "44900927373507", "44900923375811", "44900570497219"
+    title                          TEXT           
+      Examples: "Construction Signs", "Corflute Signs", "Notepads A5"
+    variant_title                  TEXT           
+      Examples: "(D#8HIIKGP)", "(D#0XFVV1B)", "(D#1BU8M8W)"
+    sku                            TEXT           
+      Examples: "q|art|size6x9|ssPrint", "q|art|size6x4|ssPrint", "art"
+    quantity                       INTEGER        
+      Examples: 1
+    price                          REAL           
+      Examples: 200.1, 250.13, 311.9
+    total_discount                 REAL           
+      Examples: 0.0
+    tax_lines                      TEXT           
+      Examples: (all NULL)
+    raw_json                       TEXT           
+      Examples: "{"id": 14914801828035, "admin_graphql_api_id": ...", "{"id": 14914801860803, "admin_graphql_api_id": ...", "{"id": 14914172190915, "admin_graphql_api_id": ..."
+
+  Foreign Keys:
+    shopify_order_id -> shopify_orders.shopify_order_id
+
+  TABLE: shopify_line_properties - 617 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 17, 43, 53
+    line_item_id                   TEXT            [NOT NULL]
+      Examples: "14701518192835", "14706913902787", "14707003130051"
+    name                           TEXT            [NOT NULL]
+      Examples: "Artwork Upload", "Artwork Upload 1", "Artwork Upload 10"
+    value                          TEXT           
+      Examples: "20", "1", "600mm x 900mm"
+
+  Foreign Keys:
+    line_item_id -> shopify_line_items.line_item_id
+
+  TABLE: shopify_orders - 54 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 31, 24, 48
+    shopify_order_id               TEXT            [NOT NULL]
+      Examples: "6153174220995", "6156133433539", "6156181668035"
+    order_number                   TEXT           
+      Examples: "1225", "1226", "1227"
+    email                          TEXT           
+      Examples: "", "Aydin.Areta@gmail.com", "aaron.mohtar@gmail.com"
+    created_at                     TEXT           
+      Examples: "2025-07-18T20:48:49+10:00", "2025-07-21T13:50:30+10:00", "2025-07-21T15:38:21+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-10-14T21:28:49+10:00", "2025-10-14T10:33:48+10:00", "2025-10-10T10:44:16+10:00"
+    financial_status               TEXT           
+      Examples: "paid", "refunded", "pending"
+    fulfillment_status             TEXT           
+      Examples: "fulfilled"
+    total_price                    REAL           
+      Examples: 450.23, 311.9, 260.54
+    subtotal_price                 REAL           
+      Examples: 450.23, 311.9, 260.54
+    total_tax                      REAL           
+      Examples: 40.93, 28.35, 23.69
+    currency                       TEXT           
+      Examples: "AUD"
+    customer_id                    TEXT           
+      Examples: "8384140312771", "8155347189955", "8341076181187"
+    customer_name                  TEXT           
+      Examples: "Bobby Backman", "Tristan Cargill", "Edward Dilleen"
+    tags                           TEXT           
+      Examples: "DPO, sb_product_personalize", "sb_product_personalize", "DPO"
+    note                           TEXT           
+      Examples: "", "hello cam you please delivery to 4 thiele st Sp...", "I need these delivered by Friday at the latest ..."
+    raw_json                       TEXT           
+      Examples: "{"id": 6261741781187, "admin_graphql_api_id": "...", "{"id": 6261359280323, "admin_graphql_api_id": "...", "{"id": 6257161633987, "admin_graphql_api_id": "..."
+    created_in_db_at               TEXT           
+      Examples: "2025-10-15 11:38:51"
+
+  TABLE: shopify_price_parity - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    shopify_order_id               TEXT            [NOT NULL]
+      Examples: (table empty)
+    line_item_id                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    shopify_price                  REAL            [NOT NULL]
+      Examples: (table empty)
+    backend_price                  REAL           
+      Examples: (table empty)
+    difference                     REAL           
+      Examples: (table empty)
+    pct_difference                 REAL           
+      Examples: (table empty)
+    calculator_inputs              TEXT           
+      Examples: (table empty)
+    notes                          TEXT           
+      Examples: (table empty)
+    checked_at                     TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    line_item_id -> shopify_line_items.line_item_id
+    shopify_order_id -> shopify_orders.shopify_order_id
+
+  TABLE: shopify_product_images - 620 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 1096, 1097, 1098
+    shopify_image_id               TEXT            [NOT NULL]
+      Examples: "42559593742531", "42559614288067", "42559812042947"
+    product_id                     TEXT            [NOT NULL]
+      Examples: "7729184374979", "7731078693059", "7731109331139"
+    position                       INTEGER        
+      Examples: 1, 2, 3
+    src                            TEXT            [NOT NULL]
+      Examples: "https://cdn.shopify.com/s/files/1/0638/8311/673...", "https://cdn.shopify.com/s/files/1/0638/8311/673...", "https://cdn.shopify.com/s/files/1/0638/8311/673..."
+    alt                            TEXT           
+      Examples: "Construction signs"
+    width                          INTEGER        
+      Examples: 800, 600, 300
+    height                         INTEGER        
+      Examples: 800, 600, 300
+    variant_ids                    TEXT           
+      Examples: ""
+    created_at                     TEXT           
+      Examples: "2025-06-11T14:34:00+10:00", "2025-06-11T14:38:23+10:00", "2025-06-12T10:41:37+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-06-11T14:34:02+10:00", "2025-06-11T14:38:25+10:00", "2025-06-12T10:41:39+10:00"
+
+  Foreign Keys:
+    product_id -> shopify_products.shopify_product_id
+
+  TABLE: shopify_product_mapping - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    storefront_option              TEXT            [NOT NULL]
+      Examples: (table empty)
+    mapped_stock_id                TEXT           
+      Examples: (table empty)
+    notes                          TEXT           
+      Examples: (table empty)
+    created_at                     TEXT           
+      Examples: (table empty)
+    updated_at                     TEXT           
+      Examples: (table empty)
+
+  TABLE: shopify_product_variants - 250 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 395, 482, 251
+    shopify_variant_id             TEXT            [NOT NULL]
+      Examples: "42910742839491", "42915370664131", "42915410542787"
+    product_id                     TEXT            [NOT NULL]
+      Examples: "7729184374979", "7731078693059", "7731109331139"
+    title                          TEXT           
+      Examples: "Default", "Default Title"
+    price                          REAL           
+      Examples: 358.88, 330.0, 474.38
+    compare_at_price               REAL           
+      Examples: (all NULL)
+    sku                            TEXT           
+      Examples: "", "BIN6898", "CAR14050"
+    barcode                        TEXT           
+      Examples: ""
+    position                       INTEGER        
+      Examples: 1, 2
+    inventory_policy               TEXT           
+      Examples: "deny"
+    fulfillment_service            TEXT           
+      Examples: "manual"
+    inventory_management           TEXT           
+      Examples: (all NULL)
+    option1                        TEXT           
+      Examples: "Default", "Default Title"
+    option2                        TEXT           
+      Examples: (all NULL)
+    option3                        TEXT           
+      Examples: (all NULL)
+    taxable                        BOOLEAN        
+      Examples: 1
+    grams                          INTEGER        
+      Examples: 0
+    weight                         REAL           
+      Examples: 0.0
+    weight_unit                    TEXT           
+      Examples: "kg"
+    inventory_item_id              TEXT           
+      Examples: "46549694283971", "46549693169859", "46549580611779"
+    inventory_quantity             INTEGER        
+      Examples: -1, 0
+    old_inventory_quantity         INTEGER        
+      Examples: 0, -1
+    requires_shipping              BOOLEAN        
+      Examples: 1
+    created_at                     TEXT           
+      Examples: "2025-06-30T17:27:30+10:00", "2025-06-30T17:26:30+10:00", "2025-06-30T16:23:14+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-06-30T17:27:30+10:00", "2025-06-30T17:26:30+10:00", "2025-06-30T16:23:14+10:00"
+
+  Foreign Keys:
+    product_id -> shopify_products.shopify_product_id
+
+  TABLE: shopify_products - 250 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: 251, 252, 253
+    shopify_product_id             TEXT            [NOT NULL]
+      Examples: "7729184374979", "7731078693059", "7731109331139"
+    title                          TEXT            [NOT NULL]
+      Examples: "100 x 140mm House Shaped Fridge Magnet", "100 x 93mm Shield Shaped Magnet", "105 x 148mm Clip Fridge Magnet"
+    body_html                      TEXT           
+      Examples: "<p data-end="161" data-start="119">100 x 140mm ...", "<p data-start="114" data-end="216"><strong data...", "<p data-start="174" data-end="272"><strong data..."
+    vendor                         TEXT           
+      Examples: "InHouse Print & Design"
+    product_type                   TEXT           
+      Examples: "", "Business Cards", "Corflute"
+    handle                         TEXT           
+      Examples: "100-x-140mm-house-shaped-fridge-magnet", "100-x-140mm-house-shaped-fridge-magnet-1", "100-x-140mm-house-shaped-fridge-magnet-2"
+    published_at                   TEXT           
+      Examples: "2025-06-26T15:23:25+10:00", "2025-06-26T15:23:04+10:00", "2025-06-26T14:59:04+10:00"
+    template_suffix                TEXT           
+      Examples: "productnoqtyselector", "fridge-magnets", "productcorflute"
+    published_scope                TEXT           
+      Examples: "global", "web"
+    tags                           TEXT           
+      Examples: "Business Card Magnets, gloss laminated magnet, ...", "Business Card Magnets, Fridge Magnets, house ma...", "Gloss Finish, High-Quality Fridge Magnet Printi..."
+    status                         TEXT           
+      Examples: "active", "draft"
+    admin_graphql_api_id           TEXT           
+      Examples: "gid://shopify/Product/8175236251843", "gid://shopify/Product/8175236939971", "gid://shopify/Product/8175597519043"
+    metafields_global_title_tag    TEXT           
+      Examples: (all NULL)
+    metafields_global_description_tag TEXT           
+      Examples: (all NULL)
+    image_src                      TEXT           
+      Examples: "https://cdn.shopify.com/s/files/1/0638/8311/673...", "https://cdn.shopify.com/s/files/1/0638/8311/673...", "https://cdn.shopify.com/s/files/1/0638/8311/673..."
+    image_alt                      TEXT           
+      Examples: "Construction signs"
+    created_at                     TEXT           
+      Examples: "2025-06-11T14:37:35+10:00", "2025-06-11T14:41:17+10:00", "2025-06-12T10:42:57+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-10-15T00:36:50+10:00", "2025-10-15T00:36:51+10:00", "2025-10-15T00:37:04+10:00"
+    synced_at                      TEXT           
+      Examples: "2025-10-16T16:17:53.052092", "2025-10-16T16:17:53.053899", "2025-10-16T16:17:53.053954"
+
+  TABLE: shopify_stock_usage - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    shopify_order_id               TEXT            [NOT NULL]
+      Examples: (table empty)
+    line_item_id                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    stock_id                       TEXT           
+      Examples: (table empty)
+    sheets_consumed                INTEGER        
+      Examples: (table empty)
+    sqm_consumed                   REAL           
+      Examples: (table empty)
+    stock_cost                     REAL           
+      Examples: (table empty)
+    recorded_at                    TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    line_item_id -> shopify_line_items.line_item_id
+    shopify_order_id -> shopify_orders.shopify_order_id
+
+  TABLE: shopify_webhook_events - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    topic                          TEXT            [NOT NULL]
+      Examples: (table empty)
+    shopify_id                     TEXT           
+      Examples: (table empty)
+    received_at                    TEXT           
+      Examples: (table empty)
+    payload_hash                   TEXT            [NOT NULL]
+      Examples: (table empty)
+    raw_json                       TEXT            [NOT NULL]
+      Examples: (table empty)
+    processed                      BOOLEAN        
+      Examples: (table empty)
+    processed_at                   TEXT           
+      Examples: (table empty)
+    error                          TEXT           
+      Examples: (table empty)
+
+  TABLE: sqlite_sequence - 20 rows
+  ------------------------------------------------------------------------------------------------
+    name                                          
+      Examples: "StockLevels", "ConsumableInventory", "ClickCosts"
+    seq                                           
+      Examples: 261, 7, 10
+
+  TABLE: unified_stocks - 264 rows
+  ------------------------------------------------------------------------------------------------
+    stock_id                       TEXT            [PK]
+      Examples: "103", "105", "114"
+    stock_category                 TEXT            [NOT NULL]
+      Examples: "digital", "digital_coated", "digital_poster"
+    stock_type_id                  INTEGER        
+      Examples: 20, 24, 29
+    stock_type_name                TEXT            [NOT NULL]
+      Examples: "45mm Circles 24up Gloss", "ACM", "ADESTOR CAST GLOSS OPAQUE"
+    stock_description              TEXT           
+      Examples: "• Lightweight coated satin paper with semi-glos...", "• Lightweight coated satin paper with semi-glos...", "• Lightweight coated satin paper with semi-glos..."
+    gsm                            INTEGER        
+      Examples: 90, 115, 128
+    length_mm                      INTEGER        
+      Examples: 450, 483, 660
+    width_mm                       INTEGER        
+      Examples: 320, 330, 210
+    cost_per_thousand              REAL           
+      Examples: 36.0, 42.0, 55.0
+    thickness_mm                   REAL           
+      Examples: 5.0, 3.0, 2.0
+    cost_per_sqm                   REAL           
+      Examples: 8.3, 16.2, 2.5
+    roll_width_mm                  INTEGER        
+      Examples: 1370, 1600, 1524
+    roll_length_mm                 INTEGER        
+      Examples: 50000, 2000
+    cost_per_roll                  REAL           
+      Examples: 240.0, 280.0, 320.0
+    cost_per_lm                    REAL           
+      Examples: 9.0, 5.6, 6.4
+    markup                         REAL           
+      Examples: 10.0, 15.0, 20.0
+    sheet_sqm                      REAL           
+      Examples: 0.144, 0.15939, 0.15456
+    is_temp_stock                  BOOLEAN        
+      Examples: 0, 1
+    source                         TEXT           
+      Examples: "sql_server", "manual_temp", "invoice_import"
+    notes                          TEXT           
+      Examples: "Standard corflute signage
+Price updated from in...", "Lightweight corflute
+Price updated from invoice...", "A4 corflute sheet"
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-14 01:03:01", "2025-10-17 04:06:16", "2025-10-18T00:44:51.294847"
+    supplier_name                  TEXT           
+      Examples: "Spicers Paper", "Multicor", "Palight"
+    product_code                   TEXT           
+      Examples: "110219", "170893", "97088026"
+    unit_type                      TEXT           
+      Examples: "Sheet", "Roll"
+    last_purchased_date            DATE           
+      Examples: (all NULL)
+    last_purchase_cost             REAL           
+      Examples: (all NULL)
+    average_cost                   REAL           
+      Examples: (all NULL)
+    purchase_count                 INTEGER        
+      Examples: 0, 1
+    colour                         TEXT           
+      Examples: "White", "Clear", "Yellow"
+    finish                         TEXT           
+      Examples: "Satin", "Uncoated", "Synthetic"
+    material_type                  TEXT           
+      Examples: "Satin", "Precut Jack", "Uncoated"
+    is_active                      BOOLEAN        
+      Examples: 1, 0
+    product_type                   TEXT           
+      Examples: "Paper", "Poster", "Synthetic Poster"
+    brand_name                     TEXT           
+      Examples: "Pacesetter Satin", "Multicor Corflute", "Palight PVC"
+    supplier_notes                 TEXT           
+      Examples: "Properties: Satin", "Properties: Fire Retardant", "Supplier changed from Digistar to Spicers Paper..."
+    last_supplier_update           TEXT           
+      Examples: "2025-10-17T20:29:13.787467", "2025-10-17T20:29:13.803225", "2025-10-17T20:29:13.795715"
+    marketing_description          TEXT           
+      Examples: "Premium satin paper delivers professional resul...", "Premium lightweight satin paper delivers profes...", "Premium satin paper delivers professional resul..."
+    recommended_uses               TEXT           
+      Examples: "Flyers, Posters, Brochures, Direct mail, Magazi...", "Flyers, Brochures, Booklet internals, Direct ma...", "Flyers, Brochures, Booklets, Direct mail, Magaz..."
+    not_recommended                TEXT           
+      Examples: "Business cards, Outdoor signage, Packaging, Pre...", "Business cards, Outdoor signage, Packaging, Pre...", "High-resolution photography, Premium brochures ..."
+    material_class                 TEXT           
+      Examples: "", "Paper"
+    usage_category                 TEXT           
+      Examples: "digital_coated", "digital_uncoated", "digital_poster"
+    durability_rating              INTEGER        
+      Examples: "2 - Medium-term Indoor (6-24 months typical for...", "2 - Medium-term Indoor (6-24 months typical for...", "1 - Short-term Indoor (3-12 months typical for ..."
+    finish_type_enhanced           TEXT           
+      Examples: "C2S Satin Semi-gloss coating", "C2S Satin Semi-gloss", "Natural Smooth Uncoated Woodfree"
+    technical_specs_formatted      TEXT           
+      Examples: "HP Indigo Certified: 320x450mm and 530x750mm si...", "Coating Type: C2S (95%) - Both sides printable ...", "Coating Type: C2S (95%) - Both sides printable ..."
+    updated_at                     TEXT           
+      Examples: "2025-10-25 00:28:57"
+
+
+####################################################################################################
+DATABASE: synergy_sessions.db
+Location: c:\Users\gpoli\GIT\AI_agents\data\synergy_sessions.db
+Size: 94,208 bytes
+Tables: 1
+####################################################################################################
+
+  TABLE: synergy_sessions - 21 rows
+  ------------------------------------------------------------------------------------------------
+    session_id                     TEXT            [PK]
+      Examples: "sess_20251101_1410_alex_content_workflow_system", "sess_20251101_1410_david_sales_pipeline_automation", "sess_20251101_1410_michael_e-commerce_store_setup"
+    title                          TEXT            [NOT NULL]
+      Examples: "Enterprise Multi-Platform Integration & Analyti...", "Enterprise E-Commerce Platform Launch with Mult...", "Veterinary Practice Management System - Google ..."
+    description                    TEXT           
+      Examples: "Complete enterprise-grade integration system co...", "Comprehensive e-commerce platform launch integr...", "Comprehensive veterinary practice management sy..."
+    platforms_involved             TEXT           
+      Examples: "[]", "["microsoft_outlook", "microsoft_word", "micros..."
+    status                         TEXT           
+      Examples: "active", "paused", "in_progress"
+    priority                       TEXT           
+      Examples: "critical", "high", "medium"
+    kanban_column                  TEXT           
+      Examples: "in_progress", "backlog", "review"
+    tags                           TEXT           
+      Examples: "["enterprise", "integration", "ecommerce", "aut...", "["e-commerce", "automation", "urgent", "revenue...", "["veterinary", "healthcare", "google-workspace"..."
+    documents                      TEXT           
+      Examples: "[{"name": "System Architecture Diagram", "url":...", "[{"name": "Product Catalog Master Sheet", "url"...", "[]"
+    links                          TEXT           
+      Examples: "[]", "[{"title": "Synergy Dashboard", "url": "http://..."
+    next_steps                     TEXT           
+      Examples: "["Phase 1: Database schema design and Supabase ...", "["Configure WooCommerce store settings and them...", "["Create patient intake form", "Build patient r..."
+    assignees                      TEXT           
+      Examples: "["AI Agent"]", "[]", "["Sarah Johnson", "AI Assistant"]"
+    recent_activity                TEXT           
+      Examples: "[{"type": "created", "timestamp": "2025-11-01T2...", "[{"type": "created", "timestamp": "2025-11-01T2...", "[{"type": "created", "timestamp": "2025-11-03T0..."
+    checklist                      TEXT           
+      Examples: "[]", "[{"task": "Email Thread 1 - Leanne Catalano Cor...", "[{"task": "Test basic session creation", "compl..."
+    due_date                       TEXT           
+      Examples: "2025-12-15", "2025-11-30", "2025-11-20"
+    created_at                     TEXT           
+      Examples: "2025-11-01T23:53:52.348379", "2025-11-01T23:53:56.062325", "2025-11-03T09:06:35.167645"
+    last_active                    TEXT           
+      Examples: "2025-11-01T23:53:54.400942", "2025-11-01T23:53:58.116160", "2025-11-03T10:26:37.575791"
+    completed_at                   TEXT           
+      Examples: (all NULL)
+    google_task_id                 TEXT           
+      Examples: (all NULL)
+    google_calendar_id             TEXT           
+      Examples: (all NULL)
+    microsoft_todo_id              TEXT           
+      Examples: (all NULL)
+    thread_ids                     TEXT           
+      Examples: "[]", "["1762663889170"]", "["1762788226777"]"
+    assigned_agents                TEXT           
+      Examples: "["Prime Agent"]", "[]", "["Agent 2"]"
+    project_name                   TEXT           
+      Examples: "Customer Success Platform", "Online Store Launch", "Content Marketing Hub"
+    notes                          TEXT           
+      Examples: "Created welcome email template, signup form liv...", "WooCommerce configured with 50 products, Stripe...", "Created 15 draft articles in Google Docs, organ..."
+    session_data                   TEXT           
+      Examples: "{}"
+    google_calendar_event_id       TEXT           
+      Examples: (all NULL)
+    updated_at                     TEXT           
+      Examples: "2025-11-10 00:12:40", "2025-11-01T14:10:10.973274", "2025-11-01T14:10:10.978604"
+    shared_with_users              TEXT           
+      Examples: "[]"
+    owner_user_id                  INTEGER        
+      Examples: 1
+    column_position                INTEGER        
+      Examples: 4, 5, 6
+
+
+====================================================================================================
+SCRIPT DATABASE ACCESS ANALYSIS
+====================================================================================================
+
+Total scripts with database access: 420
+
+
+####################################################################################################
+DIRECTORY: AI_infrastructure
+####################################################################################################
+
+  FILE: check_db_locations.py (19 lines)
+  Tables: sqlite_master
+
+  FILE: check_db_schema.py (43 lines)
+  Database Connections:
+    Line 7: ai_infrastructure.db
+  Tables: sqlite_master
+
+  FILE: check_oauth_temp.py (42 lines)
+  Tables: pathlib, user_platform_credentials, users
+
+  FILE: check_schema.py (37 lines)
+  Tables: pathlib, sqlite_master
+
+  FILE: flask_app.py (1215 lines)
+  Tables: DataFrame, JobTickets, Quote_DigitalStocks, UI, client, core, dotenv, environment, flask, flask_cors
+
+  FILE: flask_integration.py (254 lines)
+  Tables: AI_infrastructure, flask, queue, typing
+
+  FILE: migrate_oauth_enhancements.py (228 lines)
+  Tables: datetime, oauth_tokens, pathlib, project
+
+  FILE: migrate_oauth_final_consolidation.py (449 lines)
+  Tables: datetime, oauth_tokens, pathlib, sqlite_master, user_gmail_accounts
+
+  FILE: run_flask_no_reload.py (33 lines)
+  Tables: flask_app
+
+  FILE: thread_manager.py (773 lines)
+  Tables: LLM, a, ai_infrastructure, cache, datetime, flask, messages, pathlib, sessions, text
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\auth
+####################################################################################################
+
+  FILE: credential_injector.py (746 lines)
+  Tables: agent, auth, data, database, datetime, gmail, google, googleapiclient, oauth_tokens, pathlib
+
+  FILE: permission_checker.py (486 lines)
+  Tables: datetime, pathlib, typing, users
+
+  FILE: user_auth.py (1347 lines)
+  Tables: Authorization, DB, OAuth, datetime, dotenv, flask, functools, header, oauth_tokens, pathlib
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\builders
+####################################################################################################
+
+  FILE: credential_fetcher.py (304 lines)
+  Tables: AI_infrastructure, columns, database, datetime, get_credentials, oauth_tokens, pathlib, typing, user_platform_credentials
+
+  FILE: system_prompt_builder.py (279 lines)
+  Tables: AI_infrastructure, pathlib, the, typing
+
+  FILE: tool_schema_converter.py (301 lines)
+  Tables: AI_infrastructure, pathlib, registry, typing
+
+  FILE: user_profile_builder.py (303 lines)
+  Tables: AI_infrastructure, ai_infrastructure, boolean, database, pathlib, typing, users
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\config
+####################################################################################################
+
+  FILE: __init__.py (67 lines)
+  Tables: config
+
+  FILE: constants.py (232 lines)
+  Database Connections:
+    Line 95: data/ai_infrastructure.db
+    Line 96: data/sessions.db
+  Tables: environment, pathlib
+
+  FILE: logging_config.py (17 lines)
+  Tables: AI_infrastructure
+
+  FILE: oauth_config.py (61 lines)
+  Tables: dotenv, pathlib
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\core
+####################################################################################################
+
+  FILE: __init__.py (16 lines)
+  Tables: anywhere
+
+  FILE: agent_state_manager.py (185 lines)
+  Tables: datetime, queue, typing
+
+  FILE: combined_agent_worker.py (1623 lines)
+  Tables: Claude, User, anthropic, assistant, calculator, core, current, datetime, dict, execute_streaming_request
+
+  FILE: confirmation_manager.py (522 lines)
+  Tables: AI_infrastructure, args, dataclasses, enum, typing, users
+
+  FILE: context_aware_ai.py (309 lines)
+  Tables: AI_infrastructure, authentication, datetime, google_workspace, pathlib, typing
+
+  FILE: context_engine.py (369 lines)
+  Tables: AI, IP, authentication, collections, database, datetime, pathlib, recent, timezone, typing
+
+  FILE: conversation_manager.py (535 lines)
+  Tables: AI_infrastructure, John, pathlib, registry, tools, typing
+
+  FILE: email_parser.py (762 lines)
+  Tables: AI, AI_infrastructure, ANY, Gmail, Microsoft, bs4, chronological, clean, datetime, email
+
+  FILE: email_to_pdf_converter.py (560 lines)
+  Tables: AI_infrastructure, PIL, PyPDF2, UniversalEmailParser, comprehensive, from_addr, header, io, paragraphs, reportlab
+
+  FILE: event_triggers.py (553 lines)
+  Tables: collections, dataclasses, datetime, enum, pathlib, trigger, typing
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\database_toolkit
+####################################################################################################
+
+  FILE: cli.py (205 lines)
+  Tables: users
+
+  FILE: diagnostics.py (236 lines)
+  Tables: datetime, sqlite_master, typing, user_sessions, users
+
+  FILE: query_tool.py (131 lines)
+  Tables: datetime, typing, users
+
+  FILE: schema_manager.py (369 lines)
+  Tables: database, datetime, pathlib, schema, schema_versions, sqlite_master, typing
+
+  FILE: session_manager.py (236 lines)
+  Tables: datetime, typing, user_sessions
+
+  FILE: user_manager.py (282 lines)
+  Tables: datetime, typing, user_platform_credentials, users
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\meta_tools
+####################################################################################################
+
+  FILE: __init__.py (15 lines)
+  Tables: AI_infrastructure, package, their
+
+  FILE: platform_guide_provider.py (275 lines)
+  Tables: pathlib, typing
+
+  FILE: platform_tools_lister.py (177 lines)
+  Tables: pathlib, tools, typing
+
+  FILE: smart_tool_instructor.py (500 lines)
+  Tables: pathlib, request, tools, typing
+
+  FILE: workflow_instructor.py (550 lines)
+  Tables: John, get_stock_list, multiple, pathlib, typing
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\migrations
+####################################################################################################
+
+  FILE: run_thread_features_migration.py (128 lines)
+  Tables: pathlib, sqlite_master
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\routes
+####################################################################################################
+
+  FILE: account_linking_routes.py (743 lines)
+  Tables: JWT, account_link_requests, datetime, dotenv, flask, one, pathlib, secondary, the, token
+
+  FILE: agent_routes_v4.py (2323 lines)
+  Tables: ALL, Claude, Feature, Flask, IP, In_House_SQL, JSON, JWT, agent, agent_state_manager
+
+  FILE: auth_routes.py (545 lines)
+  Tables: auth, database, flask, linked, oauth_tokens, pathlib, system, user_platform_credentials, users
+
+  FILE: chat_routes.py (276 lines)
+  Tables: PDF, core, datetime, flask
+
+  FILE: communication_routes.py (676 lines)
+  Tables: auth, flask, google_workspace, multiple, oauth_tokens, pathlib, selected, token, tools, utils
+
+  FILE: compat_sessions.py (45 lines)
+  Tables: flask
+
+  FILE: database_visualizer_routes.py (345 lines)
+  Tables: a, datetime, flask, pathlib, project, sqlite_master, this, typing, utils
+
+  FILE: export_routes.py (296 lines)
+  Tables: core, database, datetime, extracted_jobs, flask, unified_stocks, utils
+
+  FILE: file_routes.py (194 lines)
+  Tables: config, flask, pathlib, utils
+
+  FILE: geolocation_routes.py (170 lines)
+  Tables: AI_infrastructure, IP, X, flask, query
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\sync
+####################################################################################################
+
+  FILE: __init__.py (19 lines)
+  Tables: InHousePrint
+
+  FILE: kanban_db_sync.py (866 lines)
+  Tables: AI_infrastructure, InHousePrint, JobStage, JobTickets, Orders, SQL, clients, customer_analytics, datetime, job_stages
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\threads
+####################################################################################################
+
+  FILE: __init__.py (67 lines)
+  Tables: threads
+
+  FILE: constants.py (116 lines)
+  Tables: enum
+
+  FILE: exceptions.py (148 lines)
+  Tables: typing
+
+  FILE: message_manager.py (626 lines)
+  Tables: datetime, messages, pathlib, threads, typing
+
+  FILE: models.py (300 lines)
+  Tables: database, datetime, pydantic, typing
+
+  FILE: thread_manager.py (648 lines)
+  Tables: ai_infrastructure, datetime, messages, pathlib, thread_shares, threads, typing
+
+  FILE: thread_sharing_manager.py (571 lines)
+  Tables: datetime, pathlib, thread_shares, thread_users, threads, typing
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\tools
+####################################################################################################
+
+  FILE: smart_tool_selector.py (362 lines)
+  Tables: 564, matched, query, this, typing
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\utils
+####################################################################################################
+
+  FILE: database_helpers.py (252 lines)
+  Tables: pathlib, sqlite_master, typing
+
+  FILE: db_safety.py (167 lines)
+  Tables: args, datetime, functools, pathlib
+
+  FILE: email_alias_helpers.py (354 lines)
+  Tables: a, datetime, pathlib, typing, user_email_aliases, users
+
+  FILE: error_handler.py (363 lines)
+  Tables: pathlib, successful, typing, utils
+
+  FILE: file_encoding.py (183 lines)
+  Tables: Flask, file, filename, media, typing
+
+  FILE: file_storage.py (233 lines)
+  Tables: config, datetime, different, pathlib, storage, typing
+
+  FILE: formatters.py (432 lines)
+  Tables: datetime, pathlib, typing, utils
+
+  FILE: geolocation_service.py (335 lines)
+  Tables: IP, coordinates, datetime, geolite2, typing
+
+  FILE: logger.py (227 lines)
+  Tables: datetime, pathlib, utils
+
+  FILE: logger_config.py (215 lines)
+  Tables: parent, typing
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\workspace
+####################################################################################################
+
+  FILE: __init__.py (118 lines)
+  Tables: AI_infrastructure
+
+  FILE: access_control.py (481 lines)
+  Tables: enum, pathlib, typing, workspace_users, workspaces
+
+  FILE: constants.py (243 lines)
+  Tables: enum, typing, workspace
+
+  FILE: exceptions.py (231 lines)
+  Tables: workspace
+
+  FILE: invitation_manager.py (511 lines)
+  Tables: datetime, pathlib, typing, workspace_invitations, workspace_users, workspaces
+
+  FILE: models.py (137 lines)
+  Tables: datetime, pydantic, typing
+
+  FILE: models_old.py (89 lines)
+  Tables: datetime, pydantic, typing
+
+  FILE: slug_generator.py (388 lines)
+  Tables: check, names, pathlib, threads, typing, workspaces
+
+  FILE: workspace_manager.py (769 lines)
+  Tables: datetime, pathlib, sessions, typing, users, workspace, workspace_users, workspaces
+
+####################################################################################################
+DIRECTORY: ARCHIVE_OCT30_2025\test_scripts
+####################################################################################################
+
+  FILE: verify_stock_module.py (216 lines)
+  Tables: pathlib
+
+====================================================================================================
+API ROUTES TO DATABASE CONNECTIONS
+====================================================================================================
+
+Total API routes: 177
+
+
+####################################################################################################
+DATABASE: Get database connection to ai_infrastructure.db
+####################################################################################################
+  /categories                                        Tables: pathlib, datetime
+
+####################################################################################################
+DATABASE: ai_infrastructure.db
+####################################################################################################
+  /categories                                        Tables: pathlib, datetime
+  /details                                           Tables: threads, sessions, synergy_sessions
+  /workspace/callback                                Tables: Gmail, OAuth, googleapiclient
+
+####################################################################################################
+DATABASE: sessions.db
+####################################################################################################
+  /assignments/<location>                            Tables: the, JWT, users
+
+####################################################################################################
+ROUTES WITHOUT EXPLICIT DATABASE (173 routes)
+####################################################################################################
+  /link-status in account_linking_routes.py
+  /initiate-link in account_linking_routes.py
+  /confirm-link in account_linking_routes.py
+  /unlink in account_linking_routes.py
+  /set-primary in account_linking_routes.py
+  /emails in account_linking_routes.py
+  /link/oauth in account_linking_routes.py
+  /unlink/<path:email> in account_linking_routes.py
+  /register in auth_routes.py
+  /login in auth_routes.py
+  /verify in auth_routes.py
+  /link-gmail in auth_routes.py
+  /gmail-accounts in auth_routes.py
+  /profile in auth_routes.py
+  /api/auth/credentials/check in auth_routes.py
+
+====================================================================================================
+INCONSISTENCY DETECTION REPORT
+====================================================================================================
+
+WARNING - Total Issues: 2437
+  HIGH: 2437
+  MEDIUM: 0
+
+
+####################################################################################################
+HIGH SEVERITY (2437)
+####################################################################################################
+
+  MISSING_TABLE (2437 issues):
+    ERROR: References non-existent table: pathlib
+    File: AI_infrastructure\check_oauth_temp.py
+    Table: pathlib
+
+    ERROR: References non-existent table: pathlib
+    File: AI_infrastructure\check_schema.py
+    Table: pathlib
+
+    ERROR: References non-existent table: UI
+    File: AI_infrastructure\flask_app.py
+    Table: UI
+
+    ERROR: References non-existent table: Quote_DigitalStocks
+    File: AI_infrastructure\flask_app.py
+    Table: Quote_DigitalStocks
+
+    ERROR: References non-existent table: room
+    File: AI_infrastructure\flask_app.py
+    Table: room
+
+    ERROR: References non-existent table: environment
+    File: AI_infrastructure\flask_app.py
+    Table: environment
+
+    ERROR: References non-existent table: flask_socketio
+    File: AI_infrastructure\flask_app.py
+    Table: flask_socketio
+
+    ERROR: References non-existent table: shopify_routes
+    File: AI_infrastructure\flask_app.py
+    Table: shopify_routes
+
+    ERROR: References non-existent table: module
+    File: AI_infrastructure\flask_app.py
+    Table: module
+
+    ERROR: References non-existent table: system
+    File: AI_infrastructure\flask_app.py
+    Table: system
+
+
+####################################################################################################
+MEDIUM SEVERITY (0)
+####################################################################################################
+
+====================================================================================================
+UI ELEMENT TO DATA SOURCE MAPPING
+====================================================================================================
+
+
+1. THREAD LIST (Left Sidebar)
+   Data Source: sessions.db.threads
+   API: GET /api/threads
+   Key Fields: thread_slug, last_agent_location, last_message_timestamp
+
+2. MESSAGE HISTORY (Chat Area)
+   Data Source: sessions.db.messages
+   API: GET /api/threads/<thread_slug>/messages
+   Key Fields: role, content, timestamp, tool_calls
+
+3. AGENT SELECTOR (Top Bar)
+   Data Source: thread_assignments.location
+   API: GET /api/thread-assignments/<thread_slug>
+   Values: 'prime', 'agent-1', 'agent-2', 'agent-3', 'agent-4'
+
+4. USER PROFILE (Account Menu)
+   Data Source: ai_infrastructure.db.users
+   API: GET /api/auth/me
+   Key Fields: username, email, role, primary_gmail
+
+5. SUB-USER MANAGEMENT (Settings)
+   Data Source: ai_infrastructure.db.users (WHERE is_sub_user = 1)
+   API: GET /api/users/sub-users
+   Fields: allowed_tools, allowed_agents, data_access_scope
+
+
+====================================================================================================
+DEBUGGING GUIDE
+====================================================================================================
+
+
+COMMON ISSUES:
+
+1. "Table not found" error
+   - Check database connection path (should be data/xxx.db)
+   - Verify table exists with this script
+   - Check spelling and case sensitivity
+
+2. "Database is locked" error
+   - Check for unclosed connections
+   - Use: with sqlite3.connect() as conn:
+   - Enable WAL mode: PRAGMA journal_mode=WAL
+
+3. API returns empty data
+   - Check row counts in this script
+   - Verify WHERE clauses not too restrictive
+   - Test query in sqlite3 CLI
+
+4. Foreign key constraint failed
+   - Check parent record exists
+   - Enable foreign keys: PRAGMA foreign_keys = ON
+   - Use correct ID type (INTEGER vs TEXT)
+
+5. Permission denied
+   - Pass _user_id to execute_tool()
+   - Check user permissions in users table
+   - Verify allowed_tools, allowed_agents fields
+
+
+====================================================================================================
+ANALYSIS COMPLETE
+Generated: 2025-11-12 22:52:34
+====================================================================================================

@@ -70,86 +70,86 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             'displaced_thread': thread that was kicked out of target location
         }
     """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # CRITICAL FIX: Ensure user row exists before UPDATE
-    cursor.execute("SELECT id FROM users WHERE id = ?", [user_id])
-    if not cursor.fetchone():
-        logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
-        cursor.execute("""
-            INSERT INTO users (id, username, email, created_at, last_active, metadata)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
-        """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local'])
-        conn.commit()
-    
-    # Get existing metadata
-    cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
-    row = cursor.fetchone()
-    
-    # Parse metadata
-    if row and row['metadata']:
-        try:
-            metadata = json.loads(row['metadata'])
-        except json.JSONDecodeError:
+    conn = None
+    try:
+        conn = get_db_connection()
+        conn.isolation_level = None  # Autocommit mode to prevent locks
+        cursor = conn.cursor()
+        
+        # CRITICAL FIX: Ensure user row exists before UPDATE
+        cursor.execute("SELECT id FROM users WHERE id = ?", [user_id])
+        if not cursor.fetchone():
+            logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
+            cursor.execute("""
+                INSERT INTO users (id, username, email, password_hash, created_at, last_active, metadata)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+            """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'])
+        
+        # Get existing metadata
+        cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
+        row = cursor.fetchone()
+        
+        # Parse metadata
+        if row and row['metadata']:
+            try:
+                metadata = json.loads(row['metadata'])
+            except json.JSONDecodeError:
+                metadata = {}
+        else:
             metadata = {}
-    else:
-        metadata = {}
-    
-    assignments = metadata.get('thread_assignments', {})
-    
-    previous_location = None
-    displaced_thread = None
-    
-    # RULE 1: Remove thread from ANY previous location (thread can only be in one place)
-    for loc, tid in list(assignments.items()):
-        if tid == session_id:
-            previous_location = loc
-            del assignments[loc]
-            logger.info(f"🔄 [RULE 1] Removed thread {session_id} from {loc} (thread can only be in one location)")
-    
-    # If moving to Prime, we're done (Prime is implicit - not stored)
-    if location == 'prime':
+        
+        assignments = metadata.get('thread_assignments', {})
+        
+        previous_location = None
+        displaced_thread = None
+        
+        # RULE 1: Remove thread from ANY previous location (thread can only be in one place)
+        for loc, tid in list(assignments.items()):
+            if tid == session_id:
+                previous_location = loc
+                del assignments[loc]
+                logger.info(f"🔄 [RULE 1] Removed thread {session_id} from {loc} (thread can only be in one location)")
+        
+        # If moving to Prime, we're done (Prime is implicit - not stored)
+        if location == 'prime':
+            metadata['thread_assignments'] = assignments
+            cursor.execute("""
+                UPDATE users 
+                SET metadata = ?, last_active = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, [json.dumps(metadata), user_id])
+            
+            logger.info(f"✅ Thread {session_id} moved to Prime (removed from {previous_location})")
+            return {
+                'previous_location': previous_location,
+                'displaced_thread': None
+            }
+        
+        # RULE 2: Agent can only have ONE thread - remove existing thread from target location
+        if location in assignments:
+            displaced_thread = assignments[location]
+            del assignments[location]
+            logger.info(f"🔄 [RULE 2] Displaced thread {displaced_thread} from {location} (agent can only have one thread)")
+        
+        # RULE 3: Assign thread to new location (most recent assignment wins)
+        assignments[location] = session_id
+        logger.info(f"✅ [RULE 3] Assigned thread {session_id} to {location} (most recent assignment)")
+        
+        # Save back to database
         metadata['thread_assignments'] = assignments
         cursor.execute("""
             UPDATE users 
             SET metadata = ?, last_active = CURRENT_TIMESTAMP
             WHERE id = ?
         """, [json.dumps(metadata), user_id])
-        conn.commit()
-        conn.close()
         
-        logger.info(f"✅ Thread {session_id} moved to Prime (removed from {previous_location})")
         return {
             'previous_location': previous_location,
-            'displaced_thread': None
+            'displaced_thread': displaced_thread
         }
-    
-    # RULE 2: Agent can only have ONE thread - remove existing thread from target location
-    if location in assignments:
-        displaced_thread = assignments[location]
-        del assignments[location]
-        logger.info(f"🔄 [RULE 2] Displaced thread {displaced_thread} from {location} (agent can only have one thread)")
-    
-    # RULE 3: Assign thread to new location (most recent assignment wins)
-    assignments[location] = session_id
-    logger.info(f"✅ [RULE 3] Assigned thread {session_id} to {location} (most recent assignment)")
-    
-    # Save back to database
-    metadata['thread_assignments'] = assignments
-    cursor.execute("""
-        UPDATE users 
-        SET metadata = ?, last_active = CURRENT_TIMESTAMP
-        WHERE id = ?
-    """, [json.dumps(metadata), user_id])
-    
-    conn.commit()
-    conn.close()
-    
-    return {
-        'previous_location': previous_location,
-        'displaced_thread': displaced_thread
-    }
+    finally:
+        if conn:
+            conn.close()
 
 
 @thread_assignment_bp.route('/api/thread-assignments', methods=['GET'])
@@ -171,10 +171,12 @@ def get_thread_assignments():
             }
         }
     """
+    conn = None
     try:
         user_id = request.args.get('user_id', 1, type=int)
         
         conn = get_db_connection()
+        conn.isolation_level = None  # Autocommit mode
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -182,7 +184,6 @@ def get_thread_assignments():
         """, [user_id])
         
         row = cursor.fetchone()
-        conn.close()
         
         if not row or not row['metadata']:
             logger.info(f"No metadata found for user {user_id}")
@@ -215,6 +216,9 @@ def get_thread_assignments():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @thread_assignment_bp.route('/api/thread-assignments', methods=['POST'])
@@ -238,6 +242,7 @@ def save_thread_assignments():
             "saved": true
         }
     """
+    conn = None
     try:
         data = request.get_json()
         user_id = data.get('user_id', 1)
@@ -250,6 +255,7 @@ def save_thread_assignments():
         }
         
         conn = get_db_connection()
+        conn.isolation_level = None  # Autocommit mode
         cursor = conn.cursor()
         
         # CRITICAL FIX: Ensure user row exists before UPDATE
@@ -257,10 +263,9 @@ def save_thread_assignments():
         if not cursor.fetchone():
             logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
             cursor.execute("""
-                INSERT INTO users (id, username, email, created_at, last_active, metadata)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
-            """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local'])
-            conn.commit()
+                INSERT INTO users (id, username, email, password_hash, created_at, last_active, metadata)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+            """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'])
         
         # Get existing metadata
         cursor.execute("""
@@ -289,9 +294,6 @@ def save_thread_assignments():
             WHERE id = ?
         """, [json.dumps(metadata), user_id])
         
-        conn.commit()
-        conn.close()
-        
         logger.info(f"Saved {len(agent_assignments)} thread assignments for user {user_id}")
         
         return jsonify({
@@ -306,6 +308,9 @@ def save_thread_assignments():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @thread_assignment_bp.route('/api/thread-assignments/assign', methods=['POST'])

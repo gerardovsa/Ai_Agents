@@ -25,6 +25,10 @@ import uuid
 import json
 import os
 
+# Setup logging
+from utils.logger_config import setup_logger, log_db
+logger = setup_logger('core.unified_session_manager')
+
 
 class UnifiedSessionManager:
     """
@@ -86,7 +90,7 @@ class UnifiedSessionManager:
         conn.commit()
         conn.close()
         
-        print("[SessionManager] Database initialized with WAL mode (improved concurrency)")
+        log_db(logger, "Database initialized with WAL mode (improved concurrency)")
     
     def create_session(self, ui_context: str, agent_id: Optional[str] = None, session_id: Optional[str] = None, source: str = 'ui') -> str:
         """

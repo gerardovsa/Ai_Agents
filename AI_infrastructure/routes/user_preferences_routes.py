@@ -241,7 +241,7 @@ def get_preferences():
         print(f"      Detail Level: {row['detail_level']}")
         print(f"      Auth Platform: {row['auth_platform']}")
         print(f"      Nickname: {row['nickname'] or '(not set)'}")
-        print(f"      Preferred Tools: {row['preferred_tools'] or '(not set)'}")
+        print(f"      Mandatory Instructions: {row['preferred_tools'] or '(not set)'}")
         print(f"   \n   🌍 LOCATION:")
         print(f"      Country: {row['detected_country'] or '(not detected)'}")
         print(f"      City: {row['detected_city'] or '(not detected)'}")
@@ -313,7 +313,7 @@ def save_preferences():
         "communication_style": "professional|casual|detailed|brief",
         "detail_level": "minimal|standard|comprehensive",
         "auth_platform": "auto|microsoft|google",
-        "preferred_tools": "gmail,google_docs,slack" (comma-separated),
+        "preferred_tools": JSON array of mandatory instructions (e.g., ["USE ONLY MICROSOFT PLATFORMS"]),
         "custom_preferences": {...} (optional JSON object)
     }
     
@@ -364,7 +364,7 @@ def save_preferences():
         print(f"      Detail Level: {data.get('detail_level', 'standard')}")
         print(f"      Auth Platform: {data.get('auth_platform', 'auto')}")
         print(f"      Nickname: {data.get('nickname', '(not set)')}")
-        print(f"      Preferred Tools: {data.get('preferred_tools', '(not set)')}")
+        print(f"      Mandatory Instructions: {data.get('preferred_tools', '(not set)')}")
         print(f"   \n   🌍 LOCATION DATA:")
         print(f"      Country: {data.get('detected_country', '(not set)')}")
         print(f"      City: {data.get('detected_city', '(not set)')}")
@@ -651,7 +651,7 @@ def save_user_preferences(user_id, preferences_dict):
             - communication_style
             - detail_level
             - auth_platform
-            - preferred_tools (optional)
+            - preferred_tools (optional) - JSON array of mandatory instructions
             - custom_preferences (optional)
             - nickname (optional)
             - detected_country (optional)

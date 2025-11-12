@@ -17,6 +17,29 @@ class ModuleLoader {
     }
 
     /**
+     * Fetch with retry logic (exponential backoff)
+     */
+    async fetchWithRetry(url, maxRetries = 3, delay = 500) {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    return response;
+                }
+                console.warn(`⚠️ Fetch attempt ${i + 1}/${maxRetries} failed: HTTP ${response.status}`);
+            } catch (error) {
+                console.warn(`⚠️ Fetch attempt ${i + 1}/${maxRetries} error:`, error.message);
+            }
+
+            if (i < maxRetries - 1) {
+                // Wait before retrying (exponential backoff)
+                await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+            }
+        }
+        throw new Error(`Failed to fetch ${url} after ${maxRetries} attempts`);
+    }
+
+    /**
      * Load all modules from manifest
      */
     async loadModules() {
@@ -30,8 +53,8 @@ class ModuleLoader {
                 return;
             }
 
-            // Fetch module list
-            const response = await fetch(this.manifestPath);
+            // Fetch module list with retry logic
+            const response = await this.fetchWithRetry(this.manifestPath, 3);
 
             if (!response.ok) {
                 throw new Error(`Failed to load manifest: HTTP ${response.status}`);
@@ -158,11 +181,30 @@ class ModuleLoader {
 }
 
 // Initialize module loader when DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 DOM ready, initializing module system...');
+async function initializeModuleSystem() {
+    console.log('🚀 Initializing module system...');
 
-    // Wait for ModuleManager to initialize
-    if (window.ModuleManager) {
+    // Wait for ModuleManager class to be available (with timeout)
+    const maxWait = 5000; // 5 seconds
+    const startTime = Date.now();
+
+    while (!window.ModuleManager && (Date.now() - startTime) < maxWait) {
+        console.log('⏳ Waiting for ModuleManager class...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    if (!window.ModuleManager) {
+        console.error('❌ ModuleManager not found after timeout');
+        console.log('Available window properties:', Object.keys(window).filter(k => k.includes('Module')));
+        return;
+    }
+
+    try {
+        // Create ModuleManager instance if needed
+        if (!window.ModuleManager.initialize) {
+            window.ModuleManager = new ModuleManager();
+        }
+
         const initialized = window.ModuleManager.initialize();
 
         if (initialized) {
@@ -170,13 +212,51 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.ModuleLoader = new ModuleLoader();
             await window.ModuleLoader.loadModules();
 
-            console.log('Module system ready');
+            console.log('✅ Module system ready');
         } else {
-            console.error(' ModuleManager failed to initialize');
+            console.error('❌ ModuleManager failed to initialize - DOM elements missing?');
         }
-    } else {
-        console.error(' ModuleManager not found');
+    } catch (error) {
+        console.error('❌ Module system initialization error:', error);
+        // Try to show user-friendly error
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'padding: 40px; text-align: center; color: var(--text-secondary);';
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ef4444; margin-bottom: 16px;"></i>
+                <h3 style="color: var(--text-primary); margin-bottom: 8px;">Module System Failed to Load</h3>
+                <p style="margin-bottom: 20px;">${error.message}</p>
+                <button class="btn btn-primary" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i> Reload Page
+                </button>
+            `;
+            mainContent.prepend(errorDiv);
+        }
     }
-});
+}
 
-console.log('ModuleLoader script loaded');
+// Single initialization point with debouncing to prevent duplicate calls
+let moduleSystemInitialized = false;
+
+async function safeInitializeModuleSystem() {
+    if (moduleSystemInitialized) {
+        console.log('⏭️ Module system already initialized, skipping duplicate call');
+        return;
+    }
+    moduleSystemInitialized = true;
+    await initializeModuleSystem();
+}
+
+// Initialize immediately if DOM is already loaded, otherwise wait
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', safeInitializeModuleSystem);
+} else {
+    // DOM already loaded, initialize after a small delay to ensure all scripts loaded
+    setTimeout(safeInitializeModuleSystem, 100);
+}
+
+console.log('✅ ModuleLoader script loaded');
+
+// Expose for manual initialization if needed
+window.initializeModuleSystem = safeInitializeModuleSystem;

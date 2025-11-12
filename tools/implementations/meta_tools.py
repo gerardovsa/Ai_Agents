@@ -28,13 +28,19 @@ def list_available_platforms(**kwargs) -> Dict[str, Any]:
     # Remove meta_tools from main list
     platforms = [p for p in sorted(platform_counts.keys()) if p != "meta_tools"]
     
-    return {
+    result = {
         "success": True,
         "platforms": platforms,
         "platform_count": len(platforms),
         "tool_counts": {p: platform_counts[p] for p in platforms},
         "total_tools": sum(platform_counts[p] for p in platforms)
     }
+    
+    # Inject session status (if available in kwargs)
+    if '_session_status' in kwargs:
+        result['_session_status'] = kwargs['_session_status']
+    
+    return result
 
 
 def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
@@ -135,13 +141,32 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
             if len(parts) >= 2:
                 available_prefixes.add('_'.join(parts[:2]))  # e.g., "microsoft_word", "google_sheets"
         
-        return {
+        result = {
             "success": False,
             "error": f"No tools found for platform: {platform}",
             "available_platforms": sorted(list(available_prefixes)),
             "platform_aliases_available": sorted(list(platform_aliases.keys())),
             "suggestion": "Try using a platform alias like 'microsoft', 'google', 'outlook', 'gmail', etc. or use exact prefix like 'microsoft_word', 'google_sheets'"
         }
+        
+        # Inject session status (if available in kwargs)
+        if '_session_status' in kwargs:
+            result['_session_status'] = kwargs['_session_status']
+        
+        return result
+    
+    # Build result with session status injection
+    result = {
+        "success": True,
+        "platform": platform,
+        "matched_platform": matched_platform,
+        "tool_count": len(tool_list),
+        "tools": tool_list
+    }
+    
+    # Inject session status (if available in kwargs from combined_agent_worker)
+    if '_session_status' in kwargs:
+        result['_session_status'] = kwargs['_session_status']
     
     # Build smart guidance for broad platform searches
     guidance = None
@@ -210,14 +235,9 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
     # Sort alphabetically
     tool_list.sort(key=lambda x: x["name"])
     
-    result = {
-        "success": True,
-        "platform": platform,
-        "matched_as": matched_platform,
-        "tool_count": len(tool_list),
-        "tools": tool_list,
-        "next_steps": "To use a tool: 1) Call get_tool_schema(tool_name) to see parameters, 2) Call execute_tool(tool_name, **params)"
-    }
+    # Update result with additional fields
+    result["matched_as"] = matched_platform
+    result["next_steps"] = "To use a tool: 1) Call get_tool_schema(tool_name) to see parameters, 2) Call execute_tool(tool_name, **params)"
     
     if guidance:
         result["guidance"] = guidance
@@ -278,6 +298,9 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
             "note": "Pass the tool name you want to learn about",
             "received_params": list(kwargs.keys())
         }
+        # Inject session status even in errors
+        if '_session_status' in kwargs:
+            error_result['_session_status'] = kwargs['_session_status']
         print(f"\n[META-TOOL ERROR] get_tool_schema() - Missing tool_name:")
         print(f"  - Received params: {list(kwargs.keys())}")
         return error_result
@@ -294,6 +317,9 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
             "error": f"Tool not found: {extracted_tool_name}",
             "suggestion": "Call list_available_platforms() then list_platform_tools(platform) to see available tools"
         }
+        # Inject session status even in errors
+        if '_session_status' in kwargs:
+            error_result['_session_status'] = kwargs['_session_status']
         print(f"[META-TOOL ERROR] get_tool_schema() - Tool not found: {extracted_tool_name}")
         return error_result
     
@@ -325,7 +351,7 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
     
     print(f"[META-TOOL] get_tool_schema() returning schema for: {extracted_tool_name}")
     
-    return {
+    result = {
         "success": True,
         "tool_name": tool_name,
         "description": anthropic_tool.get("description", ""),
@@ -334,6 +360,12 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
         "examples": tool.get("examples", []),
         "note": "Add this tool to your tools list to use it. The input_schema shows all required and optional parameters."
     }
+    
+    # Inject session status (if available in kwargs)
+    if '_session_status' in kwargs:
+        result['_session_status'] = kwargs['_session_status']
+    
+    return result
 
 
 def search_tools(query: str, **kwargs) -> Dict[str, Any]:

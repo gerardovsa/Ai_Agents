@@ -423,7 +423,7 @@
 
 .btn {
     padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
     cursor: pointer;
@@ -815,4 +815,23 @@
     .hide-desktop {
         display: none !important;
     }
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+/* Spinner animation for loading states */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
 }

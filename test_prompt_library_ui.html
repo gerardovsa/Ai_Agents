@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Library - Test UI</title>
+    <style>
+        /* ==================== ROOT VARIABLES (Match Main Platform) ==================== */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #1c2128;
+            --bg-hover: #21262d;
+            --accent-primary: #58a6ff;
+            --accent-success: #3fb950;
+            --accent-error: #f85149;
+            --accent-warning: #f0883e;
+            --text-primary: #f3f4f6;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --border-default: #30363d;
+            --border-muted: #21262d;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 24px;
+            --space-6: 32px;
+            --font-primary: 'Roboto', Arial, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ==================== CHAT CONTAINER ==================== */
+        .chat-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: var(--space-6);
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            margin-bottom: var(--space-4);
+        }
+
+        .chat-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* ==================== MESSAGES AREA ==================== */
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-4);
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: var(--space-4);
+        }
+
+        .message {
+            margin-bottom: var(--space-4);
+            padding: var(--space-3);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+        }
+
+        .message.user {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-primary);
+        }
+
+        .message-header {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        .message-content {
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ==================== INPUT CONTAINER ==================== */
+        .input-container {
+            position: relative;
+        }
+
+        /* ==================== ACTIVE PROMPTS INDICATOR ==================== */
+        .active-prompts-bar {
+            padding: var(--space-3);
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid var(--accent-primary);
+            border-radius: 8px;
+            margin-bottom: var(--space-3);
+            display: none;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            align-items: center;
+        }
+
+        .active-prompts-bar.show {
+            display: flex;
+        }
+
+        .active-prompt-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .active-prompt-tag .icon {
+            font-size: 14px;
+        }
+
+        .active-prompt-tag .remove {
+            cursor: pointer;
+            color: var(--accent-error);
+            font-weight: bold;
+            margin-left: 4px;
+        }
+
+        .active-prompt-tag .remove:hover {
+            opacity: 0.7;
+        }
+
+        .clear-all-prompts {
+            margin-left: auto;
+            padding: 4px 10px;
+            background: transparent;
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-all-prompts:hover {
+            border-color: var(--accent-error);
+            color: var(--accent-error);
+        }
+
+        /* ==================== INLINE PROMPT DROPDOWN ==================== */
+        .inline-prompt-dropdown {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            margin-bottom: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: var(--space-3);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .inline-prompt-dropdown.show {
+            display: block;
+        }
+
+        .inline-search {
+            width: 100%;
+            padding: var(--space-2) var(--space-3);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            margin-bottom: var(--space-3);
+        }
+
+        .inline-search:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .category-filter {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 4px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        .prompt-list-item {
+            padding: var(--space-3);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            margin-bottom: var(--space-2);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .prompt-list-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .prompt-list-item.selected {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-primary);
+        }
+
+        .prompt-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .prompt-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .prompt-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .prompt-description {
+            font-size: 11px;
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .prompt-type-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+        }
+
+        .prompt-type-badge.quick {
+            background: rgba(240, 136, 62, 0.2);
+            color: var(--accent-warning);
+        }
+
+        .prompt-type-badge.full {
+            background: rgba(88, 166, 255, 0.2);
+            color: var(--accent-primary);
+        }
+
+        .add-new-prompt-btn {
+            width: 100%;
+            padding: var(--space-3);
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px dashed var(--accent-success);
+            border-radius: 6px;
+            color: var(--accent-success);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            margin-top: var(--space-3);
+        }
+
+        .add-new-prompt-btn:hover {
+            background: rgba(63, 185, 80, 0.15);
+        }
+
+        /* ==================== CHAT INPUT ROW ==================== */
+        .chat-input-row {
+            display: flex;
+            gap: var(--space-2);
+            align-items: center;
+        }
+
+        .prompt-trigger-btn {
+            padding: var(--space-3);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+        }
+
+        .prompt-trigger-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .prompt-trigger-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: var(--space-3) var(--space-4);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: var(--font-primary);
+            resize: none;
+            min-height: 44px;
+            max-height: 200px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .auto-scroll-btn {
+            padding: var(--space-3);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+        }
+
+        .auto-scroll-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .auto-scroll-btn.active {
+            background: var(--accent-success);
+            border-color: var(--accent-success);
+            color: white;
+        }
+
+        .send-btn {
+            padding: var(--space-3) var(--space-5);
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 44px;
+        }
+
+        .send-btn:hover {
+            background: #1c5fa8;
+            transform: translateY(-1px);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ==================== MODAL (Add/Edit Prompt) ==================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: var(--space-5);
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 24px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: var(--space-5);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-2);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: var(--font-primary);
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-textarea.large {
+            min-height: 200px;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: var(--space-2);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: var(--space-4);
+            margin-top: var(--space-2);
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            accent-color: var(--accent-primary);
+        }
+
+        .radio-option label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .category-management {
+            display: flex;
+            gap: var(--space-2);
+            align-items: center;
+        }
+
+        .category-management .form-select {
+            flex: 1;
+        }
+
+        .icon-btn {
+            padding: var(--space-2) var(--space-3);
+            background: var(--bg-hover);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .icon-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .icon-btn.success {
+            background: rgba(63, 185, 80, 0.1);
+            border-color: var(--accent-success);
+            color: var(--accent-success);
+        }
+
+        .icon-btn.success:hover {
+            background: rgba(63, 185, 80, 0.2);
+        }
+
+        .modal-footer {
+            padding: var(--space-4) var(--space-5);
+            border-top: 1px solid var(--border-default);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-3);
+        }
+
+        .btn {
+            padding: var(--space-3) var(--space-5);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1c5fa8;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--accent-error);
+            border-color: var(--accent-error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d33a32;
+        }
+
+        /* ==================== SCROLLBAR ==================== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-default);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-muted);
+        }
+
+        /* ==================== UTILITIES ==================== */
+        .hidden {
+            display: none !important;
+        }
+
+        .mt-3 {
+            margin-top: var(--space-3);
+        }
+
+        .text-success {
+            color: var(--accent-success);
+        }
+
+        .text-error {
+            color: var(--accent-error);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Chat Container -->
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <h1>💬 AI Chat - Prompt Library Test</h1>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="messages-area" id="messagesArea">
+            <div class="message">
+                <div class="message-header">AI Assistant</div>
+                <div class="message-content">Hello! I'm your AI assistant. You can use the prompt library to enhance my
+                    capabilities. Click the ⚡ icon below to browse and select prompts.</div>
+            </div>
+            <div class="message user">
+                <div class="message-header">You</div>
+                <div class="message-content">Can you help me write some code?</div>
+            </div>
+            <div class="message">
+                <div class="message-header">AI Assistant (with Expert Coder prompt)</div>
+                <div class="message-content">Absolutely! I'm now in Expert Coder mode. I'll provide production-ready
+                    code with error handling, comprehensive docstrings, and following best practices. What would you
+                    like me to help you build?</div>
+            </div>
+        </div>
+
+        <!-- Input Container -->
+        <div class="input-container">
+            <!-- Active Prompts Bar (shows when prompts are selected) -->
+            <div class="active-prompts-bar" id="activePromptsBar">
+                <!-- Dynamic content here -->
+            </div>
+
+            <!-- Inline Prompt Dropdown -->
+            <div class="inline-prompt-dropdown" id="promptDropdown">
+                <input type="text" class="inline-search" id="inlineSearch" placeholder="🔍 Search prompts...">
+
+                <div class="category-filter">
+                    <button class="filter-btn active" data-category="all">All</button>
+                    <button class="filter-btn" data-category="development">💻 Dev</button>
+                    <button class="filter-btn" data-category="analysis">📊 Analysis</button>
+                    <button class="filter-btn" data-category="data">🗄️ Data</button>
+                    <button class="filter-btn" data-category="style">💬 Style</button>
+                </div>
+
+                <div id="promptListContainer">
+                    <!-- Prompt items will be dynamically inserted here -->
+                </div>
+
+                <button class="add-new-prompt-btn" onclick="openModal()">
+                    <span>+</span>
+                    <span>Create New Prompt</span>
+                </button>
+            </div>
+
+            <!-- Chat Input Row -->
+            <div class="chat-input-row">
+                <!-- Prompt Trigger Button -->
+                <button class="prompt-trigger-btn" id="promptTriggerBtn" title="Browse Prompts">
+                    ⚡
+                </button>
+
+                <!-- Chat Input -->
+                <textarea class="chat-input" id="chatInput" placeholder="Type your message..." rows="1"></textarea>
+
+                <!-- Auto Scroll Button -->
+                <button class="auto-scroll-btn active" id="autoScrollBtn" title="Auto Scroll">
+                    ↓
+                </button>
+
+                <!-- Send Button -->
+                <button class="send-btn" id="sendBtn">
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Creating/Editing Prompts -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create New Prompt</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="promptForm">
+                    <!-- Prompt Title -->
+                    <div class="form-group">
+                        <label class="form-label">Prompt Title *</label>
+                        <input type="text" class="form-input" id="promptTitle" placeholder="e.g., Expert Coder"
+                            required>
+                        <div class="form-help">A clear, descriptive name for the prompt</div>
+                    </div>
+
+                    <!-- Icon -->
+                    <div class="form-group">
+                        <label class="form-label">Icon (Emoji)</label>
+                        <input type="text" class="form-input" id="promptIcon" placeholder="⚡" maxlength="2">
+                        <div class="form-help">Single emoji to represent this prompt</div>
+                    </div>
+
+                    <!-- Category Management -->
+                    <div class="form-group">
+                        <label class="form-label">Category *</label>
+                        <div class="category-management">
+                            <select class="form-select" id="promptCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="development">💻 Development</option>
+                                <option value="analysis">📊 Analysis</option>
+                                <option value="data">🗄️ Data & SQL</option>
+                                <option value="style">💬 Style</option>
+                                <option value="business">💼 Business</option>
+                                <option value="creative">✍️ Creative</option>
+                            </select>
+                            <button type="button" class="icon-btn success" onclick="addNewCategory()">+ New</button>
+                        </div>
+                    </div>
+
+                    <!-- Prompt Type -->
+                    <div class="form-group">
+                        <label class="form-label">Prompt Type *</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="typeQuick" name="promptType" value="quick_action" checked>
+                                <label for="typeQuick">Quick Action (Short, focused)</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="typeFull" name="promptType" value="full_prompt">
+                                <label for="typeFull">Full Prompt (Detailed, long)</label>
+                            </div>
+                        </div>
+                        <div class="form-help">
+                            Quick Action: Brief instructions (e.g., "Be concise", "Use type hints")<br>
+                            Full Prompt: Comprehensive instructions with examples and guidelines
+                        </div>
+                    </div>
+
+                    <!-- Short Description -->
+                    <div class="form-group">
+                        <label class="form-label">Short Description</label>
+                        <input type="text" class="form-input" id="promptShortDesc"
+                            placeholder="One-line description for the dropdown" maxlength="100">
+                        <div class="form-help">Brief description shown in prompt list (50-100 characters)</div>
+                    </div>
+
+                    <!-- Prompt Text -->
+                    <div class="form-group">
+                        <label class="form-label">Prompt Content *</label>
+                        <textarea class="form-textarea large" id="promptText"
+                            placeholder="Enter the full prompt instructions..." required></textarea>
+                        <div class="form-help">
+                            The actual prompt text that will be injected into the AI's system prompt.<br>
+                            Be specific and clear about what you want the AI to do.
+                        </div>
+                    </div>
+
+                    <!-- Tags/Keywords -->
+                    <div class="form-group">
+                        <label class="form-label">Tags (comma-separated)</label>
+                        <input type="text" class="form-input" id="promptTags"
+                            placeholder="python, coding, best-practices">
+                        <div class="form-help">Keywords for search and discovery</div>
+                    </div>
+
+                    <!-- Visibility (Optional - for future) -->
+                    <div class="form-group">
+                        <label class="form-label">Visibility</label>
+                        <select class="form-select" id="promptVisibility">
+                            <option value="private">🔒 Private (Only me)</option>
+                            <option value="workspace">👥 Workspace (Team)</option>
+                            <option value="public">🌍 Public (Everyone)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-danger hidden" id="deleteBtn" onclick="deletePrompt()">Delete</button>
+                <button class="btn btn-primary" onclick="savePrompt()">Save Prompt</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== STATE MANAGEMENT ====================
+        let selectedPrompts = [];
+        let allPrompts = [
+            {
+                id: 1,
+                key: 'expert_coder',
+                name: 'Expert Coder',
+                icon: '⚡',
+                category: 'development',
+                type: 'quick_action',
+                description: 'Production-ready code with error handling and best practices',
+                prompt: 'CODING EXPERT MODE ACTIVATED:\n- Write production-ready code with error handling\n- Include comprehensive docstrings and type hints\n- Follow best practices and design patterns',
+                tags: ['coding', 'python', 'javascript'],
+                visibility: 'public'
+            },
+            {
+                id: 2,
+                key: 'code_reviewer',
+                name: 'Code Reviewer',
+                icon: '🔍',
+                category: 'development',
+                type: 'quick_action',
+                description: 'Analyze code for bugs, security issues, and improvements',
+                prompt: 'CODE REVIEW MODE ACTIVATED:\n- Analyze code for bugs, security issues, and performance problems\n- Check for code smells and anti-patterns\n- Suggest refactoring opportunities',
+                tags: ['review', 'security', 'quality'],
+                visibility: 'public'
+            },
+            {
+                id: 3,
+                key: 'debugger',
+                name: 'Debugger',
+                icon: '🐛',
+                category: 'development',
+                type: 'quick_action',
+                description: 'Step-by-step debugging and issue resolution',
+                prompt: 'DEBUG MODE ACTIVATED:\n- Systematically analyze the issue step-by-step\n- Check error messages, stack traces, and logs\n- Verify data flow and state at each step',
+                tags: ['debug', 'troubleshooting'],
+                visibility: 'public'
+            },
+            {
+                id: 4,
+                key: 'sql_expert',
+                name: 'SQL Expert',
+                icon: '🗄️',
+                category: 'data',
+                type: 'quick_action',
+                description: 'Optimized SQL queries with performance analysis',
+                prompt: 'SQL EXPERT MODE ACTIVATED:\n- Write optimized, performant SQL queries\n- Use proper indexing strategies\n- Include query execution plans (EXPLAIN)',
+                tags: ['sql', 'database', 'optimization'],
+                visibility: 'public'
+            },
+            {
+                id: 5,
+                key: 'concise',
+                name: 'Concise',
+                icon: '⚡',
+                category: 'style',
+                type: 'quick_action',
+                description: 'Short, direct answers without extra explanation',
+                prompt: 'CONCISE MODE ACTIVATED:\n- Provide brief, direct answers\n- Avoid lengthy explanations\n- Get straight to the point',
+                tags: ['brief', 'short', 'quick'],
+                visibility: 'public'
+            },
+            {
+                id: 6,
+                key: 'detailed_analysis',
+                name: 'Detailed Analysis',
+                icon: '📊',
+                category: 'analysis',
+                type: 'full_prompt',
+                description: 'Comprehensive in-depth analysis with data and evidence',
+                prompt: 'DETAILED ANALYSIS MODE ACTIVATED:\n- Provide comprehensive, in-depth analysis\n- Break down complex topics into components\n- Use data and evidence to support conclusions\n- Consider multiple perspectives and scenarios\n- Include visualizations or tables where helpful',
+                tags: ['analysis', 'detailed', 'comprehensive'],
+                visibility: 'public'
+            },
+            {
+                id: 7,
+                key: 'system_architect',
+                name: 'System Architect',
+                icon: '🏗️',
+                category: 'development',
+                type: 'full_prompt',
+                description: 'High-level system design and architecture expertise',
+                prompt: 'SYSTEM ARCHITECT MODE ACTIVATED:\nYou are a senior system architect with 15+ years of experience designing scalable, distributed systems.\n\nFocus on:\n- System architecture and design patterns\n- Scalability and performance optimization\n- Security and reliability considerations\n- Technology stack recommendations\n- Trade-off analysis for architectural decisions\n\nProvide:\n- High-level system diagrams\n- Component interactions\n- Data flow models\n- Scalability strategies\n- Best practices and patterns',
+                tags: ['architecture', 'design', 'scalability', 'systems'],
+                visibility: 'public'
+            }
+        ];
+
+        let editingPromptId = null;
+        let autoScroll = true;
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', function () {
+            renderPromptList();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Prompt trigger button
+            document.getElementById('promptTriggerBtn').addEventListener('click', togglePromptDropdown);
+
+            // Auto scroll button
+            document.getElementById('autoScrollBtn').addEventListener('click', toggleAutoScroll);
+
+            // Category filters
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    filterPrompts(this.dataset.category);
+                });
+            });
+
+            // Search input
+            document.getElementById('inlineSearch').addEventListener('input', function (e) {
+                searchPrompts(e.target.value);
+            });
+
+            // Send button
+            document.getElementById('sendBtn').addEventListener('click', sendMessage);
+
+            // Enter key to send
+            document.getElementById('chatInput').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                const dropdown = document.getElementById('promptDropdown');
+                const triggerBtn = document.getElementById('promptTriggerBtn');
+
+                if (!dropdown.contains(e.target) && !triggerBtn.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                    triggerBtn.classList.remove('active');
+                }
+            });
+
+            // Close modal when clicking overlay
+            document.getElementById('modalOverlay').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        }
+
+        // ==================== PROMPT DROPDOWN ====================
+        function togglePromptDropdown() {
+            const dropdown = document.getElementById('promptDropdown');
+            const triggerBtn = document.getElementById('promptTriggerBtn');
+
+            dropdown.classList.toggle('show');
+            triggerBtn.classList.toggle('active');
+
+            if (dropdown.classList.contains('show')) {
+                document.getElementById('inlineSearch').focus();
+            }
+        }
+
+        function renderPromptList(filter = 'all', searchTerm = '') {
+            const container = document.getElementById('promptListContainer');
+
+            let filteredPrompts = allPrompts;
+
+            // Filter by category
+            if (filter !== 'all') {
+                filteredPrompts = filteredPrompts.filter(p => p.category === filter);
+            }
+
+            // Filter by search term
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filteredPrompts = filteredPrompts.filter(p =>
+                    p.name.toLowerCase().includes(term) ||
+                    p.description.toLowerCase().includes(term) ||
+                    p.tags.some(tag => tag.toLowerCase().includes(term))
+                );
+            }
+
+            container.innerHTML = filteredPrompts.map(prompt => `
+                <div class="prompt-list-item ${selectedPrompts.includes(prompt.key) ? 'selected' : ''}" 
+                     onclick="togglePromptSelection('${prompt.key}')"
+                     data-key="${prompt.key}">
+                    <span class="prompt-icon">${prompt.icon}</span>
+                    <div class="prompt-info">
+                        <div class="prompt-name">${prompt.name}</div>
+                        <div class="prompt-description">${prompt.description}</div>
+                    </div>
+                    <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
+                        ${prompt.type === 'quick_action' ? 'Quick' : 'Full'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function filterPrompts(category) {
+            const searchTerm = document.getElementById('inlineSearch').value;
+            renderPromptList(category, searchTerm);
+        }
+
+        function searchPrompts(searchTerm) {
+            const activeCategory = document.querySelector('.filter-btn.active').dataset.category;
+            renderPromptList(activeCategory, searchTerm);
+        }
+
+        function togglePromptSelection(promptKey) {
+            const index = selectedPrompts.indexOf(promptKey);
+
+            if (index > -1) {
+                // Remove
+                selectedPrompts.splice(index, 1);
+            } else {
+                // Add
+                selectedPrompts.push(promptKey);
+            }
+
+            updateActivePromptsBar();
+            renderPromptList(
+                document.querySelector('.filter-btn.active').dataset.category,
+                document.getElementById('inlineSearch').value
+            );
+        }
+
+        function updateActivePromptsBar() {
+            const bar = document.getElementById('activePromptsBar');
+
+            if (selectedPrompts.length === 0) {
+                bar.classList.remove('show');
+                return;
+            }
+
+            bar.classList.add('show');
+
+            const promptTags = selectedPrompts.map(key => {
+                const prompt = allPrompts.find(p => p.key === key);
+                return `
+                    <div class="active-prompt-tag">
+                        <span class="icon">${prompt.icon}</span>
+                        <span>${prompt.name}</span>
+                        <span class="remove" onclick="removePrompt('${key}')">×</span>
+                    </div>
+                `;
+            }).join('');
+
+            bar.innerHTML = `
+                ${promptTags}
+                <button class="clear-all-prompts" onclick="clearAllPrompts()">Clear All</button>
+            `;
+        }
+
+        function removePrompt(promptKey) {
+            togglePromptSelection(promptKey);
+        }
+
+        function clearAllPrompts() {
+            selectedPrompts = [];
+            updateActivePromptsBar();
+            renderPromptList(
+                document.querySelector('.filter-btn.active').dataset.category,
+                document.getElementById('inlineSearch').value
+            );
+        }
+
+        // ==================== MODAL ====================
+        function openModal(promptId = null) {
+            editingPromptId = promptId;
+            const modal = document.getElementById('modalOverlay');
+            const title = document.getElementById('modalTitle');
+            const deleteBtn = document.getElementById('deleteBtn');
+
+            if (promptId) {
+                // Edit mode
+                const prompt = allPrompts.find(p => p.id === promptId);
+                title.textContent = 'Edit Prompt';
+                deleteBtn.classList.remove('hidden');
+
+                // Fill form
+                document.getElementById('promptTitle').value = prompt.name;
+                document.getElementById('promptIcon').value = prompt.icon;
+                document.getElementById('promptCategory').value = prompt.category;
+                document.getElementById('promptShortDesc').value = prompt.description;
+                document.getElementById('promptText').value = prompt.prompt;
+                document.getElementById('promptTags').value = prompt.tags.join(', ');
+                document.getElementById('promptVisibility').value = prompt.visibility;
+
+                if (prompt.type === 'quick_action') {
+                    document.getElementById('typeQuick').checked = true;
+                } else {
+                    document.getElementById('typeFull').checked = true;
+                }
+            } else {
+                // Create mode
+                title.textContent = 'Create New Prompt';
+                deleteBtn.classList.add('hidden');
+                document.getElementById('promptForm').reset();
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+            editingPromptId = null;
+        }
+
+        function savePrompt() {
+            const title = document.getElementById('promptTitle').value;
+            const icon = document.getElementById('promptIcon').value || '⚡';
+            const category = document.getElementById('promptCategory').value;
+            const shortDesc = document.getElementById('promptShortDesc').value;
+            const text = document.getElementById('promptText').value;
+            const tags = document.getElementById('promptTags').value.split(',').map(t => t.trim()).filter(t => t);
+            const visibility = document.getElementById('promptVisibility').value;
+            const type = document.querySelector('input[name="promptType"]:checked').value;
+
+            if (!title || !category || !text) {
+                alert('Please fill in all required fields (Title, Category, Prompt Content)');
+                return;
+            }
+
+            if (editingPromptId) {
+                // Edit existing
+                const promptIndex = allPrompts.findIndex(p => p.id === editingPromptId);
+                allPrompts[promptIndex] = {
+                    ...allPrompts[promptIndex],
+                    name: title,
+                    icon: icon,
+                    category: category,
+                    description: shortDesc,
+                    prompt: text,
+                    tags: tags,
+                    visibility: visibility,
+                    type: type
+                };
+            } else {
+                // Create new
+                const newPrompt = {
+                    id: Date.now(),
+                    key: title.toLowerCase().replace(/\s+/g, '_'),
+                    name: title,
+                    icon: icon,
+                    category: category,
+                    type: type,
+                    description: shortDesc,
+                    prompt: text,
+                    tags: tags,
+                    visibility: visibility
+                };
+                allPrompts.push(newPrompt);
+            }
+
+            renderPromptList();
+            closeModal();
+
+            // Show success message
+            alert('Prompt saved successfully!');
+        }
+
+        function deletePrompt() {
+            if (!confirm('Are you sure you want to delete this prompt?')) {
+                return;
+            }
+
+            allPrompts = allPrompts.filter(p => p.id !== editingPromptId);
+
+            // Remove from selected if present
+            const prompt = allPrompts.find(p => p.id === editingPromptId);
+            if (prompt) {
+                selectedPrompts = selectedPrompts.filter(k => k !== prompt.key);
+            }
+
+            renderPromptList();
+            updateActivePromptsBar();
+            closeModal();
+
+            alert('Prompt deleted successfully!');
+        }
+
+        function addNewCategory() {
+            const newCategory = prompt('Enter new category name:');
+            if (newCategory) {
+                const select = document.getElementById('promptCategory');
+                const option = document.createElement('option');
+                option.value = newCategory.toLowerCase().replace(/\s+/g, '_');
+                option.textContent = newCategory;
+                select.appendChild(option);
+                select.value = option.value;
+            }
+        }
+
+        // ==================== CHAT FUNCTIONALITY ====================
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message
+            addMessage('user', message);
+
+            // Build prompt context
+            let promptContext = '';
+            if (selectedPrompts.length > 0) {
+                promptContext = '\n\nActive Prompts:\n' + selectedPrompts.map(key => {
+                    const prompt = allPrompts.find(p => p.key === key);
+                    return `- ${prompt.name}: ${prompt.prompt}`;
+                }).join('\n');
+            }
+
+            // Simulate AI response
+            setTimeout(() => {
+                addMessage('assistant', `I received your message: "${message}"${promptContext ? '\n\nI\'m using the following prompts: ' + selectedPrompts.map(k => allPrompts.find(p => p.key === k).name).join(', ') : ''}`);
+            }, 500);
+
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+        }
+
+        function addMessage(role, content) {
+            const messagesArea = document.getElementById('messagesArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role === 'user' ? 'user' : ''}`;
+            messageDiv.innerHTML = `
+                <div class="message-header">${role === 'user' ? 'You' : 'AI Assistant'}</div>
+                <div class="message-content">${content}</div>
+            `;
+            messagesArea.appendChild(messageDiv);
+
+            if (autoScroll) {
+                messagesArea.scrollTop = messagesArea.scrollHeight;
+            }
+        }
+
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const btn = document.getElementById('autoScrollBtn');
+            btn.classList.toggle('active');
+
+            if (autoScroll) {
+                document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
+            }
+        }
+
+        // Auto-resize textarea
+        document.getElementById('chatInput').addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+    </script>
+</body>
+
+</html>

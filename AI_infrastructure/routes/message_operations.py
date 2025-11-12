@@ -117,8 +117,8 @@ def fork_thread():
                 INSERT INTO messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
-                    tokens_used, response_time_ms, metadata, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    tokens_used, metadata, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             execute_sqlite_update(db_path, insert_msg, (
                 new_thread_id,
@@ -131,7 +131,6 @@ def fork_thread():
                 msg.get('api_session_id'),
                 msg.get('tool_calls'),
                 msg.get('tokens_used'),
-                msg.get('response_time_ms'),
                 msg.get('metadata'),
                 msg['created_at'],
                 datetime.now().isoformat()
@@ -223,8 +222,8 @@ def clone_thread():
                 INSERT INTO messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
-                    tokens_used, response_time_ms, metadata, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    tokens_used, metadata, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             execute_sqlite_update(db_path, insert_msg, (
                 new_thread_id,
@@ -237,7 +236,6 @@ def clone_thread():
                 msg.get('api_session_id'),
                 msg.get('tool_calls'),
                 msg.get('tokens_used'),
-                msg.get('response_time_ms'),
                 msg.get('metadata'),
                 msg['created_at'],
                 datetime.now().isoformat()
@@ -328,8 +326,8 @@ def copy_messages():
                 INSERT INTO messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
-                    tokens_used, response_time_ms, metadata, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    tokens_used, metadata, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             msg_metadata = json.loads(msg.get('metadata', '{}')) if msg.get('metadata') else {}
             msg_metadata['copied_from_message_id'] = msg['id']
@@ -346,7 +344,6 @@ def copy_messages():
                 msg.get('api_session_id'),
                 msg.get('tool_calls'),
                 msg.get('tokens_used'),
-                msg.get('response_time_ms'),
                 json.dumps(msg_metadata),
                 msg['created_at'],
                 datetime.now().isoformat()

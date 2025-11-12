@@ -243,6 +243,18 @@ class MessageManager:
             except:
                 metadata = {}
         
+        # response_time_ms may not exist in older DBs; handle safely
+        response_time_ms = None
+        try:
+            if 'response_time_ms' in row.keys():
+                response_time_ms = row['response_time_ms']
+        except Exception:
+            # sqlite3.Row may not support keys() in some contexts; fallback
+            try:
+                response_time_ms = row['response_time_ms']
+            except Exception:
+                response_time_ms = None
+
         return Message(
             id=row['id'],
             thread_id=row['thread_id'],
@@ -254,7 +266,7 @@ class MessageManager:
             include=row['include'],
             tool_calls=row['tool_calls'],
             tokens_used=row['tokens_used'],
-            response_time_ms=row['response_time_ms'],
+            response_time_ms=response_time_ms,
             metadata=metadata,
             created_at=datetime.fromisoformat(row['created_at']),
             updated_at=datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None
@@ -291,36 +303,40 @@ class MessageManager:
         
         conn = self._get_connection()
         cursor = conn.cursor()
-        
+
         try:
             updates = []
             params = []
-            
+
             if update_data.content is not None:
                 updates.append("content = ?")
                 params.append(update_data.content)
-            
+
             if update_data.metadata is not None:
                 updates.append("metadata = ?")
                 params.append(json.dumps(update_data.metadata))
-            
+
             # Always update updated_at
             updates.append("updated_at = ?")
             params.append(datetime.utcnow().isoformat())
-            
+
+            # Build and execute UPDATE statement
+            if not updates:
+                # Nothing to update
+                conn.close()
+                return self.get_message(message_id)
+
             params.append(message_id)
-            
-            cursor.execute(f"""
-                UPDATE messages 
-                SET {', '.join(updates)}
-                WHERE id = ?
-            """, params)
-            
+            update_sql = f"UPDATE messages SET {', '.join(updates)} WHERE id = ?"
+            cursor.execute(update_sql, tuple(params))
             conn.commit()
+
+            updated = self.get_message(message_id)
             conn.close()
-            
-            return self.get_message(message_id)
-            
+            return updated
+        except (MessageNotFoundError, ThreadPermissionError):
+            conn.close()
+            raise
         except Exception as e:
             conn.rollback()
             conn.close()
@@ -586,6 +602,24 @@ class MessageManager:
         conn.close()
         
         if not row:
-            return None
-        
-        return self.get_message(row['id'])
+            # Log response time for debugging (do not persist in DB)
+            if response_time_ms is not None:
+                try:
+                    print(f"[TIMING] message_id={message_id} response_time_ms={response_time_ms}")
+                except Exception:
+                    pass
+
+            return {
+                'id': message_id,
+                'workspace_id': workspace_id,
+                'thread_id': thread_id,
+                'role': role,
+                'content': content,
+                'prompt': prompt,
+                'include': include,
+                'tool_calls': tool_calls or [],
+                'tokens_used': tokens_used,
+                'response_time_ms': response_time_ms,
+                'created_at': timestamp,
+                'metadata': metadata or {}
+            }

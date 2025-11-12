@@ -68,11 +68,27 @@ class RegistryV3:
                 with open(schema_file, 'r', encoding='utf-8', errors='replace') as f:
                     schema_data = json.load(f)
                 
+                # Get top-level platform field (if present)
+                schema_platform = schema_data.get("platform")
+                
                 # Schema should have a "tools" array
                 if "tools" in schema_data:
                     for tool in schema_data["tools"]:
                         tool_name = tool.get("name")
                         if tool_name:
+                            # CRITICAL FIX: Apply schema-level platform to tools
+                            if schema_platform:
+                                # If tool doesn't have platform field, use schema-level
+                                if "platform" not in tool:
+                                    tool["platform"] = schema_platform
+                                    logger.debug(f"  [SCHEMA] Set platform={schema_platform} for {tool_name}")
+                                # If tool has DIFFERENT platform than schema-level, override with schema-level
+                                # This fixes cases where individual tools have wrong platform (e.g., google_sheets tools marked as google_docs)
+                                elif tool["platform"] != schema_platform:
+                                    old_platform = tool["platform"]
+                                    tool["platform"] = schema_platform
+                                    logger.debug(f"  [SCHEMA] Overrode platform {old_platform} -> {schema_platform} for {tool_name}")
+                            
                             self.tools[tool_name] = tool
                             logger.debug(f"  [SCHEMA] Loaded: {tool_name}")
             except Exception as e:
@@ -434,6 +450,21 @@ class RegistryV3:
         
         if not tool_name:
             raise ValueError("tool_name is required in kwargs")
+        
+        # CHECK TOOL PERMISSION (Phase 3 - User Management)
+        user_id = kwargs.get('_user_id')
+        if user_id:
+            try:
+                from AI_infrastructure.auth.permission_checker import get_permission_checker
+                checker = get_permission_checker()
+                checker.check_tool_permission(user_id, tool_name)
+            except ImportError:
+                # Permission checker not available, allow execution
+                logger.warning("[PERMISSION] Permission checker not available, allowing tool execution")
+            except Exception as e:
+                # Permission denied - raise error to stop execution
+                logger.error(f"[PERMISSION] Tool '{tool_name}' denied for user {user_id}: {e}")
+                raise PermissionError(f"Permission denied for tool '{tool_name}': {e}")
         
         # Increment tool call counter
         self.tool_call_count += 1

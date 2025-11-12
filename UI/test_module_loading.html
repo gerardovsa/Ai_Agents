@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Loading Diagnostic</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        h2 {
+            color: #2196F3;
+            margin-top: 30px;
+        }
+
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .pass {
+            color: #4CAF50;
+        }
+
+        .fail {
+            color: #f44336;
+        }
+
+        .warning {
+            color: #ff9800;
+        }
+
+        pre {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #444;
+        }
+
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #1976D2;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.pass {
+            background: #4CAF50;
+        }
+
+        .status-indicator.fail {
+            background: #f44336;
+        }
+
+        .status-indicator.warning {
+            background: #ff9800;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Module Loading Diagnostic Tool</h1>
+    <p>This tool helps diagnose why dashboard modules are not loading.</p>
+
+    <button onclick="runAllTests()">🧪 Run All Tests</button>
+    <button onclick="location.reload()">🔄 Refresh Page</button>
+
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(title, content, status = 'pass') {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            section.innerHTML = `
+                <h2>
+                    <span class="status-indicator ${status}"></span>
+                    ${title}
+                </h2>
+                ${content}
+            `;
+            results.appendChild(section);
+        }
+
+        async function runAllTests() {
+            results.innerHTML = '';
+
+            // Test 1: Check if base files are loaded
+            addResult(
+                'Test 1: Core Module System Files',
+                testCoreFiles()
+            );
+
+            // Test 2: Check manifest loading
+            await testManifestLoading();
+
+            // Test 3: Check module registry
+            testModuleRegistry();
+
+            // Test 4: Check BaseModule
+            testBaseModule();
+
+            // Test 5: Network requests
+            await testNetworkRequests();
+
+            // Test 6: Check browser console
+            testConsoleErrors();
+        }
+
+        function testCoreFiles() {
+            const files = [
+                { name: 'ModuleLoader', obj: window.ModuleLoader },
+                { name: 'ModuleManager', obj: window.ModuleManager },
+                { name: 'BaseModule', obj: window.BaseModule },
+                { name: 'ModuleRegistry', obj: window.ModuleRegistry }
+            ];
+
+            let html = '<ul>';
+            let allPass = true;
+
+            files.forEach(file => {
+                const exists = file.obj !== undefined;
+                const icon = exists ? '✅' : '❌';
+                const className = exists ? 'pass' : 'fail';
+                html += `<li class="${className}">${icon} ${file.name}: ${exists ? 'Loaded' : 'NOT FOUND'}</li>`;
+                if (!exists) allPass = false;
+            });
+
+            html += '</ul>';
+            return html;
+        }
+
+        async function testManifestLoading() {
+            try {
+                const response = await fetch('/external/modules/manifest.json');
+                const manifest = await response.json();
+
+                let html = `<p class="pass">✅ Manifest loaded successfully</p>`;
+                html += `<p>Found ${manifest.modules.length} modules:</p><ul>`;
+
+                manifest.modules.forEach(mod => {
+                    const enabled = mod.enabled ? '✅' : '❌';
+                    html += `<li>${enabled} ${mod.name} (${mod.id}) - ${mod.enabled ? 'Enabled' : 'Disabled'}</li>`;
+                });
+
+                html += '</ul>';
+                addResult('Test 2: Manifest File', html);
+
+                // Test each module's manifest
+                for (const mod of manifest.modules) {
+                    if (mod.enabled) {
+                        await testModuleManifest(mod);
+                    }
+                }
+            } catch (error) {
+                addResult(
+                    'Test 2: Manifest File',
+                    `<p class="fail">❌ Failed to load manifest: ${error.message}</p>`,
+                    'fail'
+                );
+            }
+        }
+
+        async function testModuleManifest(module) {
+            try {
+                const response = await fetch(`/${module.manifestPath}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const modManifest = await response.json();
+
+                let html = `<p class="pass">✅ Module manifest loaded</p>`;
+                html += `<pre>${JSON.stringify(modManifest, null, 2)}</pre>`;
+
+                addResult(`Module: ${module.name}`, html);
+            } catch (error) {
+                addResult(
+                    `Module: ${module.name}`,
+                    `<p class="fail">❌ Failed to load module manifest: ${error.message}</p>`,
+                    'fail'
+                );
+            }
+        }
+
+        function testModuleRegistry() {
+            if (!window.ModuleRegistry) {
+                addResult(
+                    'Test 3: Module Registry',
+                    '<p class="fail">❌ ModuleRegistry not found</p>',
+                    'fail'
+                );
+                return;
+            }
+
+            const modules = Object.keys(window.ModuleRegistry);
+            let html = `<p class="pass">✅ ModuleRegistry exists</p>`;
+            html += `<p>Registered modules: ${modules.length}</p><ul>`;
+
+            modules.forEach(modId => {
+                const mod = window.ModuleRegistry[modId];
+                const type = typeof mod;
+                html += `<li>${modId}: ${type}</li>`;
+            });
+
+            html += '</ul>';
+            addResult('Test 3: Module Registry', html);
+        }
+
+        function testBaseModule() {
+            if (!window.BaseModule) {
+                addResult(
+                    'Test 4: BaseModule Class',
+                    '<p class="fail">❌ BaseModule class not found</p>',
+                    'fail'
+                );
+                return;
+            }
+
+            let html = `<p class="pass">✅ BaseModule class exists</p>`;
+            html += `<p>Methods:</p><ul>`;
+
+            const methods = Object.getOwnPropertyNames(window.BaseModule.prototype);
+            methods.forEach(method => {
+                if (method !== 'constructor') {
+                    html += `<li>${method}</li>`;
+                }
+            });
+
+            html += '</ul>';
+            addResult('Test 4: BaseModule Class', html);
+        }
+
+        async function testNetworkRequests() {
+            const urls = [
+                '/js/module-loader.js',
+                '/js/module-manager.js',
+                '/js/module-base.js',
+                '/external/modules/manifest.json'
+            ];
+
+            let html = '<ul>';
+
+            for (const url of urls) {
+                try {
+                    const response = await fetch(url);
+                    const status = response.ok ? 'pass' : 'fail';
+                    const icon = response.ok ? '✅' : '❌';
+                    html += `<li class="${status}">${icon} ${url} - HTTP ${response.status}</li>`;
+                } catch (error) {
+                    html += `<li class="fail">❌ ${url} - ${error.message}</li>`;
+                }
+            }
+
+            html += '</ul>';
+            addResult('Test 5: Network Requests', html);
+        }
+
+        function testConsoleErrors() {
+            const errors = [];
+            const originalError = console.error;
+
+            console.error = function (...args) {
+                errors.push(args.join(' '));
+                originalError.apply(console, args);
+            };
+
+            setTimeout(() => {
+                console.error = originalError;
+
+                let html = errors.length === 0
+                    ? '<p class="pass">✅ No console errors detected</p>'
+                    : `<p class="fail">❌ Found ${errors.length} console errors:</p><ul>`;
+
+                errors.forEach(err => {
+                    html += `<li>${err}</li>`;
+                });
+
+                if (errors.length > 0) html += '</ul>';
+
+                addResult('Test 6: Console Errors', html, errors.length > 0 ? 'fail' : 'pass');
+            }, 1000);
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+
+    <!-- Load module system -->
+    <script src="/js/module-loader.js"></script>
+    <script src="/js/module-manager.js"></script>
+    <script src="/js/module-base.js"></script>
+</body>
+
+</html>

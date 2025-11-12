@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Render Module Loading</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <h1>Test Render Module Loading</h1>
+    <div id="output"></div>
+
+    <script>
+        // Initialize ModuleRegistry
+        window.ModuleRegistry = {};
+        
+        // Mock BaseModule
+        class BaseModule {
+            constructor(moduleId) {
+                this.moduleId = moduleId;
+                this.manifest = null;
+                console.log(`BaseModule constructor called with: ${moduleId}`);
+            }
+            
+            async loadManifest() {
+                console.log(`Loading manifest for: ${this.moduleId}`);
+                try {
+                    const response = await fetch(`/external/modules/${this.moduleId}/manifest.json`);
+                    this.manifest = await response.json();
+                    console.log(`Manifest loaded:`, this.manifest);
+                } catch (error) {
+                    console.error(`Failed to load manifest:`, error);
+                }
+            }
+            
+            async initialize() {
+                await this.loadManifest();
+                console.log(`Module ${this.moduleId} initialized`);
+            }
+            
+            getSubTabContainer(tabId) {
+                let container = document.getElementById(`${this.moduleId}-${tabId}`);
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = `${this.moduleId}-${tabId}`;
+                    document.getElementById('output').appendChild(container);
+                }
+                return container;
+            }
+        }
+        
+        window.BaseModule = BaseModule;
+    </script>
+
+    <!-- Load the render module -->
+    <script src="/external/modules/render-management/render-management.js"></script>
+
+    <script>
+        // Test loading
+        async function testModule() {
+            console.log('=== Testing Render Module ===');
+            console.log('ModuleRegistry:', window.ModuleRegistry);
+            
+            const RenderModule = window.ModuleRegistry['render-management'];
+            if (RenderModule) {
+                console.log('✅ RenderManagementModule found in registry');
+                
+                try {
+                    const module = new RenderModule('render-management');
+                    console.log('✅ Module instantiated:', module);
+                    
+                    await module.initialize();
+                    console.log('✅ Module initialized');
+                    
+                    // Test sub-tabs
+                    module.initializeSubTabs();
+                    console.log('✅ Sub-tabs initialized');
+                    
+                } catch (error) {
+                    console.error('❌ Error during module test:', error);
+                }
+            } else {
+                console.error('❌ RenderManagementModule NOT found in registry');
+            }
+        }
+        
+        // Run test after page loads
+        window.addEventListener('load', testModule);
+    </script>
+</body>
+</html>

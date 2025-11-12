@@ -47,6 +47,10 @@ import sqlite3
 from pathlib import Path
 from dotenv import dotenv_values
 
+# Setup logging
+from utils.logger_config import setup_logger, log_db
+logger = setup_logger('auth.user_auth')
+
 # Load credentials from .env.master (in root folder, 3 levels up)
 _ENV_MASTER_PATH = Path(__file__).parent.parent.parent / '.env.master'
 _config = dotenv_values(_ENV_MASTER_PATH)
@@ -219,7 +223,7 @@ class UserAuthManager:
             ''')
             
             conn.commit()
-            print("User authentication tables initialized")
+            log_db(logger, "User authentication tables initialized")
     
     def register_user(self, username: str, email: str, password: str, primary_gmail: str = None, role: str = 'user') -> Dict:
         """

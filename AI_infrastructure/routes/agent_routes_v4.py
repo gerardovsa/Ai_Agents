@@ -495,6 +495,19 @@ def start_agent(agent_id):
             conversation_history = data.get('conversation_history', [])
         print(f"[START] Received {len(conversation_history)} messages in conversation_history from frontend")
         
+        # CRITICAL: Prune conversation IMMEDIATELY if it's too large
+        # This prevents re-sending 231K+ tokens that already exceeded the limit
+        if len(conversation_history) > 0:
+            from core.combined_agent_worker import prune_conversation_for_context_limit
+            original_count = len(conversation_history)
+            conversation_history = prune_conversation_for_context_limit(
+                conversation_history,
+                max_estimated_tokens=180000,
+                preserve_first_user=True
+            )
+            if len(conversation_history) < original_count:
+                print(f"[START] Pruned conversation: {original_count} -> {len(conversation_history)} messages")
+        
         # Get or create agent state (IMPORTANT: This ensures conversation is in agent_state_manager)
         state = agent_state_manager.get_or_create_state(agent_id, session_id, {
             'session_id': session_id,
@@ -663,16 +676,33 @@ def stream_agent(agent_id):
     # Get user preferences (nickname, auth platform, communication style)
     from routes.user_preferences_routes import get_user_preferences
     user_prefs = get_user_preferences(user_id) if user_id else None
+    
+    # Debug: Print raw preferences to see what we're getting
+    print(f"[Stream {agent_id}] 🔍 RAW USER PREFS: {user_prefs}")
+    
     nickname = user_prefs.get('nickname', '') if user_prefs else ''
     auth_platform = user_prefs.get('auth_platform', 'auto') if user_prefs else 'auto'
     communication_style = user_prefs.get('communication_style', 'professional') if user_prefs else 'professional'
     detail_level = user_prefs.get('detail_level', 'standard') if user_prefs else 'standard'
+    
+    # Get preferred_tools (this might be stored as JSON string or list)
+    preferred_tools_raw = user_prefs.get('preferred_tools', '') if user_prefs else ''
+    preferred_tools = []
+    if preferred_tools_raw:
+        try:
+            if isinstance(preferred_tools_raw, str):
+                preferred_tools = json.loads(preferred_tools_raw) if preferred_tools_raw else []
+            elif isinstance(preferred_tools_raw, list):
+                preferred_tools = preferred_tools_raw
+        except:
+            preferred_tools = []
     
     if nickname:
         print(f"[Stream {agent_id}] 👤 User nickname: {nickname}")
     print(f"[Stream {agent_id}] 🔐 Auth platform: {auth_platform}")
     print(f"[Stream {agent_id}] 💬 Communication style: {communication_style}")
     print(f"[Stream {agent_id}] 📊 Detail level: {detail_level}")
+    print(f"[Stream {agent_id}] 📋 Preferred tools: {preferred_tools}")
     
     # Get user location from IP for web_search localization
     from core.ip_location import get_location_dict
@@ -779,23 +809,147 @@ def stream_agent(agent_id):
     if ai_client:
         system_prompt = ai_client.get_system_prompt('data_agent_chat')
         
-        # Build user preferences context
-        user_context_parts = []
-        if nickname:
-            user_context_parts.append(f"User's Nickname: {nickname}")
-        user_context_parts.append(f"Preferred Auth: {auth_platform}")
-        user_context_parts.append(f"Communication Style: {communication_style}")
-        user_context_parts.append(f"Detail Level: {detail_level}")
-        user_context_parts.append(f"Location & Time: {time_context}")
+        # Map auth_platform to suite name and build platform-specific instructions
+        if auth_platform == 'microsoft':
+            mandatory_platform = "Microsoft 365 Suite"
+            platform_instructions = """
+MANDATORY PLATFORM USE: Microsoft 365 Suite
+
+User is authenticated with Microsoft 365. For any functionality that 
+overlaps between Google Workspace and Microsoft 365 (email, documents, 
+spreadsheets, calendar, file storage), you MUST use Microsoft 365 tools.
+
+Use Microsoft tools for:
+- Email → microsoft_outlook_* (NOT gmail_*)
+- Documents → microsoft_word_* (NOT google_docs_*)
+- Spreadsheets → microsoft_excel_* (NOT google_sheets_*)
+- Storage → microsoft_onedrive_* (NOT google_drive_*)
+- Calendar → microsoft_calendar_* (NOT google_calendar_*)
+- Notes → microsoft_onenote_* (NOT google_keep_*)
+- Forms → microsoft_forms_* (NOT google_forms_*)
+- Presentations → microsoft_powerpoint_* (NOT google_slides_*)
+- Team Chat → microsoft_teams_* (NOT google_chat_*)
+- Tasks → microsoft_todo_* (NOT google_tasks_*)"""
+        elif auth_platform == 'google':
+            mandatory_platform = "Google Workspace"
+            platform_instructions = """
+MANDATORY PLATFORM USE: Google Workspace
+
+User is authenticated with Google Workspace. For any functionality that 
+overlaps between Google Workspace and Microsoft 365 (email, documents, 
+spreadsheets, calendar, file storage), you MUST use Google Workspace tools.
+
+Use Google tools for:
+- Email → gmail_* (NOT microsoft_outlook_*)
+- Documents → google_docs_* (NOT microsoft_word_*)
+- Spreadsheets → google_sheets_* (NOT microsoft_excel_*)
+- Storage → google_drive_* (NOT microsoft_onedrive_*)
+- Calendar → google_calendar_* (NOT microsoft_calendar_*)
+- Forms → google_forms_* (NOT microsoft_forms_*)
+- Presentations → google_slides_* (NOT microsoft_powerpoint_*)
+- Tasks → google_tasks_* (NOT microsoft_todo_*)
+- Meet → google_meet_* (NOT microsoft_teams_*)"""
+        else:
+            mandatory_platform = "Auto (Check Connected Platforms)"
+            platform_instructions = """
+PLATFORM USE: Auto-detect
+
+User has not specified a mandatory platform. Check connected platforms and use 
+available tools. Prefer the platform the user is authenticated with."""
         
-        full_context = " | ".join(user_context_parts)
+        # Get AI memories for this user (if any)
+        ai_memories = []
+        if user_prefs and user_prefs.get('ai_memories'):
+            try:
+                import json
+                memories_json = user_prefs.get('ai_memories', '[]')
+                ai_memories = json.loads(memories_json) if memories_json else []
+            except:
+                ai_memories = []
         
-        # Inject user location + preferences into prompt
-        system_prompt = system_prompt.replace('{{USER_LOCATION}}', full_context)
+        # Build structured user context
+        user_context_block = f"""═══════════════════════════════════════════════════════════════
+USER CONTEXT
+
+User: {nickname if nickname else 'User'}
+Location: {location_string}
+Current Time: {day_of_week}, {current_time_str}
+Season: {month_name} ({season})"""
+        
+        # Add weather if available
+        if temp_c is not None:
+            user_context_block += f"\nWeather: {temp_c}°C ({temp_f}°F), {weather_condition}"
+        
+        user_context_block += f"""
+{platform_instructions}
+
+Additional Preferences (YOU MUST FOLLOW THESE):
+- Communication Style: {communication_style}
+- Detail Level: {detail_level}"""
+        
+        # Add preferred_tools as special instructions
+        if preferred_tools:
+            user_context_block += "\n\nSpecial Instructions (CRITICAL - MUST FOLLOW):"
+            for tool_pref in preferred_tools:
+                user_context_block += f"\n- {tool_pref}"
+        
+        # Add AI memories section
+        if ai_memories:
+            user_context_block += "\n\nKey Memories About This User:"
+            for memory in ai_memories[:5]:  # Show max 5 most recent memories
+                user_context_block += f"\n- {memory}"
+        
+        user_context_block += "\n═══════════════════════════════════════════════════════════════\n"
+        
+        # Debug: Print the formatted user context
+        print(f"[Stream {agent_id}] 📋 USER CONTEXT BLOCK:")
+        print(user_context_block)
+        
+        # Inject user context into prompt
+        system_prompt = system_prompt.replace('{{USER_LOCATION}}', user_context_block)
+        
+        # ============================================
+        # PROMPT INJECTION SYSTEM (NEW)
+        # ============================================
+        # Allow users to inject custom prompts from library or quick actions
+        # Request parameters: quick_actions, library_prompts, custom_prompt
+        try:
+            from core.prompt_injection_manager import get_prompt_manager
+            
+            # Get injection parameters from request
+            quick_actions = request.json.get('quick_actions', []) if request.json else []
+            library_prompts = request.json.get('library_prompts', []) if request.json else []
+            custom_prompt = request.json.get('custom_prompt', None) if request.json else None
+            user_custom_prompts = request.json.get('user_custom_prompts', []) if request.json else []
+            
+            # Apply prompt injections if any provided
+            if quick_actions or library_prompts or custom_prompt or user_custom_prompts:
+                prompt_manager = get_prompt_manager()
+                system_prompt = prompt_manager.inject_prompts(
+                    base_prompt=system_prompt,
+                    quick_actions=quick_actions,
+                    library_prompts=library_prompts,
+                    custom_prompt=custom_prompt,
+                    user_id=user_id,
+                    user_custom_prompts=user_custom_prompts
+                )
+                
+                print(f"[Stream {agent_id}] ⚡ Prompt injections applied:")
+                if quick_actions:
+                    print(f"  - Quick Actions: {quick_actions}")
+                if library_prompts:
+                    print(f"  - Library Prompts: {library_prompts}")
+                if custom_prompt:
+                    print(f"  - Custom Prompt: {custom_prompt[:50]}...")
+                if user_custom_prompts:
+                    print(f"  - User Custom Prompts: {user_custom_prompts}")
+        except Exception as e:
+            print(f"[Stream {agent_id}] ⚠️  Error applying prompt injections: {e}")
+            # Continue without injections - not critical
     else:
         system_prompt = """You are an AI assistant with access to 604 tools across 20+ platforms via a 3-STEP discovery system.
 
-🔍 CRITICAL: NO BULK TOOL SCHEMAS!
+CRITICAL: NO BULK TOOL SCHEMAS!
 - list_platform_tools() returns NAMES ONLY (no parameter schemas)
 - get_tool_schema() returns parameters for ONE specific tool
 - This prevents sending 200+ tool schemas when you only need 1-2 tools"""
@@ -819,7 +973,7 @@ def stream_agent(agent_id):
         
         # Find thread by session_id (thread.id = session_id in most cases)
         cursor.execute("""
-            SELECT synergy_card_id, synergy_card_name 
+            SELECT synergy_card_id
             FROM threads 
             WHERE id = ? OR thread_slug = ?
             LIMIT 1
@@ -830,7 +984,6 @@ def stream_agent(agent_id):
         
         if thread_row and thread_row['synergy_card_id']:
             synergy_card_id = thread_row['synergy_card_id']
-            print(f"[Stream {agent_id}] 🔗 Thread linked to Synergy project: {synergy_card_id}")
             
             # Fetch Synergy project details
             synergy_db = root_dir / 'data' / 'synergy_sessions.db'
@@ -850,9 +1003,12 @@ def stream_agent(agent_id):
             conn.close()
             
             if synergy_row:
+                # LOG: Synergy session details
+                print(f"[Stream {agent_id}] 🎯 SYNERGY LINKED → Session: {synergy_card_id} | Title: '{synergy_row['title']}' | Priority: {synergy_row['priority']} | Status: {synergy_row['status']}")
+                
                 # Build Synergy context string
                 synergy_context = f"\n\n{'='*80}\n"
-                synergy_context += "🎯 SYNERGY PROJECT CONTEXT\n"
+                synergy_context += "SYNERGY PROJECT CONTEXT\n"
                 synergy_context += f"{'='*80}\n\n"
                 synergy_context += f"You are working on a Synergy project:\n\n"
                 synergy_context += f"**Project:** {synergy_row['title']}\n"
@@ -902,11 +1058,11 @@ def stream_agent(agent_id):
                 
                 # Append to system prompt
                 system_prompt += synergy_context
-                print(f"[Stream {agent_id}] ✅ Synergy context injected: {synergy_row['title']}")
+                print(f"[Stream {agent_id}] ✅ Synergy context injected into system prompt")
             else:
-                print(f"[Stream {agent_id}] ⚠️  Synergy project {synergy_card_id} not found in database")
+                print(f"[Stream {agent_id}] ⚠️  Synergy session {synergy_card_id} not found in synergy_sessions.db")
         else:
-            print(f"[Stream {agent_id}] ℹ️  Thread not linked to any Synergy project")
+            print(f"[Stream {agent_id}] ℹ️  NO SYNERGY LINK - Thread not linked to any Synergy session")
     
     except Exception as e:
         print(f"[Stream {agent_id}] ⚠️  Error checking Synergy context: {e}")
@@ -915,17 +1071,12 @@ def stream_agent(agent_id):
     # Continue with original code
     system_prompt_continued = """
 
-📍 SERVER TOOLS (Always Available - No Discovery Needed):
+SERVER TOOLS (Always Available - No Discovery Needed):
 - web_search: Real-time web search for current information (news, pricing, standards, market data)
   Usage: Claude will automatically use this when you need current information
   Location: Brisbane, Queensland, Australia
 
-� SERVER TOOLS (Always Available - No Discovery Needed):
-- web_search: Real-time web search for current information (news, pricing, standards, market data)
-  Usage: Claude will automatically use this when you need current information
-  Location: Brisbane, Queensland, Australia
-
-�🎯 3-STEP WORKFLOW (For Client Tools):
+3-STEP WORKFLOW (For Client Tools):
 
 STEP 1: DISCOVER
 - list_available_platforms() → See what platforms exist
@@ -940,7 +1091,7 @@ STEP 3: EXECUTE
 - execute_tool("gmail_send_email", to="john@...", subject="...", body="...")
   → Executes the tool via registry
 
-📋 EXAMPLE (Send email):
+EXAMPLE (Send email):
    A) search_tools("gmail") OR list_platform_tools("google_workspace")
       → Returns: [{name: "gmail_send_email", description: "Send email"}] (NO params!)
    
@@ -950,7 +1101,7 @@ STEP 3: EXECUTE
    C) execute_tool("gmail_send_email", to="john@example.com", subject="Hello", body="Test")
       → Returns: {success: true, result: "Email sent"}
 
-🚨 CRITICAL RULES:
+CRITICAL RULES:
 - NEVER expect list_platform_tools to return parameter schemas (it won't!)
 - ALWAYS call get_tool_schema(tool_name) before execute_tool()
 - Use search_tools() when you know what you're looking for (faster than listing)
@@ -980,7 +1131,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
         
         # Find thread by session_id
         cursor.execute("""
-            SELECT synergy_card_id, synergy_card_name 
+            SELECT synergy_card_id
             FROM threads 
             WHERE id = ? OR thread_slug = ?
             LIMIT 1
@@ -991,7 +1142,6 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
         
         if thread_row and thread_row['synergy_card_id']:
             synergy_card_id = thread_row['synergy_card_id']
-            print(f"[Stream {agent_id}] 🔗 Thread linked to Synergy project: {synergy_card_id}")
             
             # Fetch Synergy project details
             synergy_db = root_dir / 'data' / 'synergy_sessions.db'
@@ -1011,6 +1161,9 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
             conn.close()
             
             if synergy_row:
+                # LOG: Synergy session details
+                print(f"[Stream {agent_id}] 🎯 SYNERGY LINKED → Session: {synergy_card_id} | Title: '{synergy_row['title']}' | Priority: {synergy_row['priority']} | Status: {synergy_row['status']}")
+                
                 # Build Synergy context prefix for user message
                 synergy_context_prefix = f"[SYNERGY PROJECT CONTEXT]\n"
                 synergy_context_prefix += f"Project: {synergy_row['title']}\n"
@@ -1035,11 +1188,11 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                 
                 synergy_context_prefix += f"[/SYNERGY CONTEXT]\n\n"
                 
-                print(f"[Stream {agent_id}] ✅ Synergy context will be injected: {synergy_row['title']}")
+                print(f"[Stream {agent_id}] ✅ Synergy context prepended to user message")
             else:
-                print(f"[Stream {agent_id}] ⚠️ Synergy project {synergy_card_id} not found")
+                print(f"[Stream {agent_id}] ⚠️  Synergy session {synergy_card_id} not found in synergy_sessions.db")
         else:
-            print(f"[Stream {agent_id}] ℹ️ Thread not linked to Synergy project")
+            print(f"[Stream {agent_id}] ℹ️  NO SYNERGY LINK - Thread not linked to any Synergy session")
     
     except Exception as e:
         print(f"[Stream {agent_id}] ⚠️ Error fetching Synergy context: {e}")
@@ -1048,15 +1201,32 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
     # Prepend Synergy context to user message if present
     user_message_with_context = synergy_context_prefix + last_message if synergy_context_prefix else last_message
     
+    # Extract AI preferences from user_prefs (CRITICAL for Extended + Interleaved Thinking)
+    ai_model = user_prefs.get('ai_model', 'claude-sonnet-4-5-20250929') if user_prefs else 'claude-sonnet-4-5-20250929'
+    ai_temperature = float(user_prefs.get('ai_temperature', 1.0)) if user_prefs else 1.0
+    ai_max_tokens = int(user_prefs.get('ai_max_tokens', 16000)) if user_prefs else 16000
+    ai_thinking_enabled = bool(user_prefs.get('ai_thinking_enabled', 1)) if user_prefs else True  # Default TRUE
+    ai_thinking_budget = int(user_prefs.get('ai_thinking_budget', 10000)) if user_prefs else 10000
+    
+    print(f"[Stream {agent_id}] 🧠 AI Preferences:")
+    print(f"  Model: {ai_model}")
+    print(f"  Temperature: {ai_temperature}")
+    print(f"  Max Tokens: {ai_max_tokens}")
+    print(f"  Extended Thinking: {'Enabled' if ai_thinking_enabled else 'Disabled'}")
+    print(f"  Thinking Budget: {ai_thinking_budget} tokens")
+    if ai_thinking_enabled:
+        print(f"  🎯 Interleaved Thinking: ENABLED (beta: interleaved-thinking-2025-05-14)")
+    
     # Import streaming worker
     from core.combined_agent_worker import execute_streaming_request
     
     def generate():
+        import json  # CRITICAL: Import json inside nested function to avoid scope issues
         try:
             # Yield start event
             yield stream_sse_event('start', {'session_id': session_id, 'agent_id': agent_id})
             
-            # Execute streaming request with multi-round support
+            # Execute streaming request with multi-round support + AI PREFERENCES
             # CRITICAL: Use conversation_without_current (past messages only)
             # user_prompt contains the current message to process (with Synergy context if applicable)
             for event in execute_streaming_request(
@@ -1065,7 +1235,12 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                 conversation_history=conversation_without_current,
                 system_prompt=system_prompt,
                 tools=tools,
-                user_id=user_id
+                user_id=user_id,
+                ai_model=ai_model,
+                ai_temperature=ai_temperature,
+                ai_max_tokens=ai_max_tokens,
+                ai_thinking_enabled=ai_thinking_enabled,
+                ai_thinking_budget=ai_thinking_budget
             ):
                 # Yield SSE event
                 event_type = event.get('type', 'unknown')

@@ -19,7 +19,11 @@ for path in [str(ai_agents_root), str(ai_infrastructure_path)]:
     if path not in sys.path:
         sys.path.insert(0, path)
 
-print("[OK] AI_agents standalone - No external dependencies")
+# Setup unified logging FIRST
+from utils.logger_config import setup_logger, log_init, log_config, log_success, log_warning, log_error
+logger = setup_logger('flask_app')
+
+log_init(logger, "AI_agents standalone - No external dependencies")
 
 # Now import Flask and other dependencies
 from flask import Flask, jsonify, request, Response, send_from_directory
@@ -34,23 +38,24 @@ from dotenv import load_dotenv
 env_file_path = os.path.join(os.path.dirname(__file__), '..', '.env.master')
 if os.path.exists(env_file_path):
     load_dotenv(env_file_path)
-    print(f"✅ Loaded .env.master file (local development)")
+    log_config(logger, "Loaded .env.master file (local development)")
 else:
-    print(f"ℹ️  Using environment variables from system (production/Render)")
-print(f"ANTHROPIC_API_KEY: {'SET' if os.getenv('ANTHROPIC_API_KEY') else 'NOT SET'}")
-print(f"OPENAI_API_KEY: {'SET' if os.getenv('OPENAI_API_KEY') else 'NOT SET'}")
-print(f"DEEPSEEK_API_KEY_1: {'SET' if os.getenv('DEEPSEEK_API_KEY_1') else 'NOT SET'}")
-print(f"MICROSOFT_CLIENT_ID: {'SET' if os.getenv('MICROSOFT_CLIENT_ID') else 'NOT SET'}")
-print(f"MICROSOFT_CLIENT_SECRET: {'SET' if os.getenv('MICROSOFT_CLIENT_SECRET') else 'NOT SET'}")
+    log_config(logger, "Using environment variables from system (production/Render)")
+
+log_config(logger, f"ANTHROPIC_API_KEY: {'SET' if os.getenv('ANTHROPIC_API_KEY') else 'NOT SET'}")
+log_config(logger, f"OPENAI_API_KEY: {'SET' if os.getenv('OPENAI_API_KEY') else 'NOT SET'}")
+log_config(logger, f"DEEPSEEK_API_KEY_1: {'SET' if os.getenv('DEEPSEEK_API_KEY_1') else 'NOT SET'}")
+log_config(logger, f"MICROSOFT_CLIENT_ID: {'SET' if os.getenv('MICROSOFT_CLIENT_ID') else 'NOT SET'}")
+log_config(logger, f"MICROSOFT_CLIENT_SECRET: {'SET' if os.getenv('MICROSOFT_CLIENT_SECRET') else 'NOT SET'}")
 
 # Stock Management - ENABLED (using local AI_agents copy)
 STOCK_DB_PATH = str(Path(__file__).parent.parent / 'data' / 'stock_data.db')
 STOCK_DB_AVAILABLE = os.path.exists(STOCK_DB_PATH)
 STOCK_DB_CONFIG = {'db_path': STOCK_DB_PATH} if STOCK_DB_AVAILABLE else None
 if STOCK_DB_AVAILABLE:
-    print(f"[INFO] Stock management enabled - database found at {STOCK_DB_PATH}")
+    log_config(logger, f"Stock management enabled - database found at {STOCK_DB_PATH}")
 else:
-    print("[WARNING] Stock management disabled - database not found")
+    log_warning(logger, "Stock management disabled - database not found")
 
 # Flask Configuration (inline - no external config.py needed)
 class Config:
@@ -97,7 +102,7 @@ try:
     from routes.inhouse_kanban_routes import inhouse_kanban_bp
     INHOUSE_KANBAN_AVAILABLE = True
 except ImportError as e:
-    print(f"ℹ️  [InHouse Kanban] Module not available: {e}")
+    log_warning(logger, f"InHouse Kanban module not available: {e}")
     inhouse_kanban_bp = None
     INHOUSE_KANBAN_AVAILABLE = False
 
@@ -108,6 +113,11 @@ from routes.geolocation_routes import geolocation_bp  # NEW: Geolocation detecti
 from routes.thread_assignment_routes import thread_assignment_bp  # NEW: Thread assignments (JSON storage)
 from routes.workspace_routes import workspace_bp  # NEW: Workspace management (CRUD, members, invitations)
 from routes.thread_sharing_routes import thread_sharing_bp  # NEW: Thread sharing (multi-user collaboration)
+from routes.communication_routes import communication_bp  # NEW: Communication Hub (Gmail + Outlook unified inbox)
+from routes.user_management_routes import user_management_bp  # NEW: Sub-user management (parent-child hierarchy)
+from routes.render_routes import render_bp  # NEW: Render cloud management (deploy, logs, metrics)
+from routes.file_routes import file_bp  # NEW: File storage management (upload, download, delete)
+from routes.prompt_library_routes import prompt_routes  # NEW: Prompt library (database-backed prompt management)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 
 # Initialize Flask app
@@ -119,6 +129,7 @@ app.register_blueprint(agent_bp)                                     # Working a
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
 app.register_blueprint(thread_sharing_bp)                            # NEW: Thread sharing (6 endpoints: share, accept, revoke, list)
 app.register_blueprint(message_ops_bp)                               # NEW: Message operations - fork, clone, copy, delete (5 endpoints)
+app.register_blueprint(file_bp)                                      # NEW: File storage (7 endpoints: serve, download, delete, usage)
 app.register_blueprint(export_bp, url_prefix='/api/export')         # 3 endpoints (export functionality)
 app.register_blueprint(woocommerce_bp)                               # 9 endpoints (WooCommerce direct API)
 app.register_blueprint(auth_bp)                                      # NEW: 6 endpoints (user auth)
@@ -136,6 +147,10 @@ app.register_blueprint(user_preferences_bp)                          # NEW: User
 app.register_blueprint(geolocation_bp)                               # NEW: Geolocation detection (2 endpoints: /api/geolocation/*)
 app.register_blueprint(thread_assignment_bp)                         # NEW: Thread assignments (7 endpoints: /api/thread-assignments/*)
 app.register_blueprint(workspace_bp)                                 # NEW: Workspace management (18 endpoints: /api/workspaces/*)
+app.register_blueprint(communication_bp)                             # NEW: Communication Hub (8 endpoints: /api/communication-hub/*)
+app.register_blueprint(user_management_bp)                           # NEW: Sub-user management (5 endpoints: /api/users/sub-users/*)
+app.register_blueprint(render_bp)                                    # NEW: Render cloud management (6 endpoints: /api/render/*)
+app.register_blueprint(prompt_routes)                                # NEW: Prompt library (10 endpoints: /api/prompts/*)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
 
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)
@@ -143,13 +158,13 @@ app.register_blueprint(workspace_bp)                                 # NEW: Work
 # INCLUDES: Stock Management, Shopify E-Commerce, Database Visualizer, Quote Calculator, etc.
 try:
     from core.module_blueprint_loader import load_module_blueprints
+    from utils.logger_config import log_module, log_route
     module_bp_count = load_module_blueprints(app)
-    print(f"✅ Loaded {module_bp_count} module blueprints from UI/external/modules")
-    print("   Routes auto-discovered from: UI/external/modules/*/routes/*.py")
-    print("   Stock Management: /api/stock-management/* (Blueprint auto-loaded)")
+    log_module(logger, f"Loaded {module_bp_count} module blueprints from UI/external/modules")
+    log_route(logger, "Auto-discovered routes from: UI/external/modules/*/routes/*.py")
+    log_route(logger, "Stock Management: /api/stock-management/* (Blueprint auto-loaded)")
 except Exception as e:
-    print(f"⚠️  Module blueprints not loaded: {e}")
-    print("   (Module blueprints are optional)")
+    log_warning(logger, f"Module blueprints not loaded: {e} (Module blueprints are optional)")
 
 # REMOVED DUPLICATE: Stock Management routes now loaded via module_blueprint_loader above
 # Old init_stock_routes() pattern caused route conflicts with Blueprint system
@@ -163,23 +178,23 @@ if STOCK_DB_AVAILABLE:  # Shopify uses same database as Stock Management
             sys.path.insert(0, shopify_module_path)
             from shopify_routes import init_shopify_routes
             init_shopify_routes(app, STOCK_DB_CONFIG, STOCK_DB_AVAILABLE)
-            print(f"✅ Shopify E-Commerce routes registered from {shopify_module_path}")
+            log_success(logger, f"Shopify E-Commerce routes registered from {shopify_module_path}")
         else:
-            print(f"⚠️ Shopify module not found at {shopify_module_path}")
+            log_warning(logger, f"Shopify module not found at {shopify_module_path}")
     except Exception as e:
-        print(f"❌ Failed to load shopify routes: {e}")
+        log_error(logger, f"Failed to load shopify routes: {e}")
         import traceback
         traceback.print_exc()
 else:
-    print("[INFO] Shopify E-Commerce disabled - database not available")
+    log_config(logger, "Shopify E-Commerce disabled - database not available")
 
 # Legacy compatibility: register /api/sessions/* proxy so older UIs work
 try:
     from routes.compat_sessions import compat_bp
     app.register_blueprint(compat_bp)
-    print('Compatibility blueprint registered: /api/sessions/* -> /api/kanban/*')
+    log_route(logger, "Compatibility blueprint registered: /api/sessions/* -> /api/kanban/*")
 except Exception:
-    print('Compatibility blueprint not available')
+    log_warning(logger, "Compatibility blueprint not available")
 
 # TODO: Add platform-specific routes for 281 tools across 19 platforms:
 # - openai_routes.py (15 tools)
@@ -454,6 +469,12 @@ def serve_single_agent_viewer():
 def serve_triple_agent():
     """Serve Triple Agent HTML UI"""
     return send_from_directory(TEMPLATE_DIR, 'triple_agent.html')
+
+# Serve favicon
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon to prevent 404 errors"""
+    return send_from_directory(STATIC_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # Serve static files (JS, CSS, images)
 @app.route('/static/<path:filename>')
@@ -1124,17 +1145,7 @@ def internal_error(error):
 # ============================================================================
 
 if __name__ == '__main__':
-    print("\n" + "=" * 80)
-    print("STARTING NEW FLASK APP (Clean Architecture)")
-    print("=" * 80)
-    print("Port: 5001 (AI Infrastructure - Production Mode)")
-    print("Infrastructure: AI_infrastructure/")
-    print("Session Manager: Unified (SQLite + in-memory)")
-    print("AI Client: Multi-provider (Anthropic + DeepSeek + OpenAI)")
-    print("=" * 80)
-    print("\nAccess at: http://localhost:5001")
-    print("Health check: http://localhost:5001/health")
-    print("\n")
+    # Startup banner removed from logs (not sent to AI)
     
     # Get port from environment (Render sets PORT=10000, local uses 5001)
     port = int(os.environ.get('PORT', 5001))

@@ -367,6 +367,33 @@ Always explain what you're doing when using these tools so the user understands 
                         msg['content'] = thinking_blocks + other_blocks
                         print(f"✅ [UnifiedAIClient] Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks")
         
+        # ✅ EXPLICIT CHECK: Validate final assistant message when thinking is enabled
+        thinking_enabled = session_data.get('enable_thinking', True)
+        if thinking_enabled and conversation:
+            # Find last assistant message
+            last_assistant_idx = None
+            for i in range(len(conversation) - 1, -1, -1):
+                if conversation[i].get('role') == 'assistant':
+                    last_assistant_idx = i
+                    break
+            
+            if last_assistant_idx is not None:
+                last_assistant = conversation[last_assistant_idx]
+                content = last_assistant.get('content', [])
+                
+                if isinstance(content, list) and content:
+                    has_thinking = any(block.get('type') == 'thinking' for block in content)
+                    first_is_thinking = content[0].get('type') == 'thinking'
+                    
+                    if has_thinking and not first_is_thinking:
+                        # Already reordered above, this shouldn't happen
+                        print(f"⚠️  [UnifiedAIClient] WARNING: Final assistant message has thinking blocks but first block is not thinking!")
+                    elif not has_thinking:
+                        # No thinking blocks in final assistant message - this is OK when thinking param is present
+                        print(f"[UnifiedAIClient] ℹ️  Final assistant message has no thinking blocks (API will generate thinking in response)")
+                    else:
+                        print(f"[UnifiedAIClient] ✅ Final assistant message properly starts with thinking block")
+        
         # Stream with Anthropic (WITH Extended Thinking + Interleaved Thinking + Server Tools)
         assistant_message = {'role': 'assistant', 'content': []}
         
@@ -375,9 +402,23 @@ Always explain what you're doing when using these tools so the user understands 
         if enable_web_fetch:
             beta_headers.append("web-fetch-2025-09-10")
         
+        # CRITICAL: When thinking is enabled, temperature MUST be 1.0 (Anthropic API requirement)
+        # Get custom temperature from session_data or use default
+        custom_temperature = session_data.get('temperature', 1.0)
+        thinking_enabled = session_data.get('enable_thinking', True)
+        
+        if thinking_enabled:
+            final_temperature = 1.0
+            if custom_temperature != 1.0:
+                print(f"[UnifiedAIClient] ⚙️  Temperature overridden: {custom_temperature} → 1.0 (required when thinking enabled)")
+        else:
+            final_temperature = custom_temperature
+            print(f"[UnifiedAIClient] ⚙️  Temperature set to {final_temperature} (thinking disabled)")
+        
         with self.anthropic_client.messages.stream(
             model=self.anthropic_model,
             max_tokens=12000,
+            temperature=final_temperature,
             system=system_prompt,
             messages=conversation,
             tools=all_tools,
@@ -873,6 +914,7 @@ Always explain what you're doing when using these tools so the user understands 
         tools: Optional[List] = None,
         enable_thinking: bool = True,
         thinking_budget: int = 5000,
+        temperature: float = 1.0,
         enable_web_search: bool = True,
         enable_web_fetch: bool = False
     ) -> Dict:
@@ -888,6 +930,7 @@ Always explain what you're doing when using these tools so the user understands 
             tools: Optional tool definitions (client tools)
             enable_thinking: Enable Extended Thinking (default: True)
             thinking_budget: Token budget for thinking (default: 5000)
+            temperature: Temperature for sampling (default: 1.0, forced to 1.0 when thinking enabled)
             enable_web_search: Enable web_search server tool (default: True)
             enable_web_fetch: Enable web_fetch server tool BETA (default: False)
         
@@ -991,6 +1034,30 @@ Always explain what you're doing when using these tools so the user understands 
                             print(f"[UnifiedAIClient.create_message] ✅ Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks")
                             print(f"[UnifiedAIClient.create_message]   New first block: {msg['content'][0].get('type')}")
             
+            # ✅ EXPLICIT CHECK: Validate final assistant message when thinking is enabled
+            if enable_thinking and messages:
+                # Find last assistant message
+                last_assistant_idx = None
+                for i in range(len(messages) - 1, -1, -1):
+                    if messages[i].get('role') == 'assistant':
+                        last_assistant_idx = i
+                        break
+                
+                if last_assistant_idx is not None:
+                    last_assistant = messages[last_assistant_idx]
+                    content = last_assistant.get('content', [])
+                    
+                    if isinstance(content, list) and content:
+                        has_thinking = any(block.get('type') == 'thinking' for block in content)
+                        first_is_thinking = content[0].get('type') == 'thinking'
+                        
+                        if has_thinking and not first_is_thinking:
+                            print(f"⚠️  [UnifiedAIClient.create_message] WARNING: Final assistant message has thinking blocks but first block is not thinking!")
+                        elif not has_thinking:
+                            print(f"[UnifiedAIClient.create_message] ℹ️  Final assistant message has no thinking blocks (API will generate thinking in response)")
+                        else:
+                            print(f"[UnifiedAIClient.create_message] ✅ Final assistant message properly starts with thinking block")
+            
             # Prepare API parameters
             api_params = {
                 "model": model,
@@ -1006,6 +1073,17 @@ Always explain what you're doing when using these tools so the user understands 
                     "type": "enabled",
                     "budget_tokens": thinking_budget
                 }
+                # CRITICAL: When thinking is enabled, temperature MUST be 1.0 (Anthropic API requirement)
+                # This overrides any user preferences automatically
+                api_params["temperature"] = 1.0
+                if temperature != 1.0:
+                    print(f"[UnifiedAIClient] ⚙️  Temperature overridden: {temperature} → 1.0 (required when thinking enabled)")
+                else:
+                    print(f"[UnifiedAIClient] ⚙️  Temperature set to 1.0 (thinking enabled)")
+            else:
+                # Use custom temperature when thinking is disabled
+                api_params["temperature"] = temperature
+                print(f"[UnifiedAIClient] ⚙️  Temperature set to {temperature} (thinking disabled)")
             
             # Add beta headers
             extra_headers = {}
@@ -1020,6 +1098,25 @@ Always explain what you're doing when using these tools so the user understands 
             
             if extra_headers:
                 api_params["extra_headers"] = extra_headers
+            
+            # DEBUG: Log messages being sent to API
+            print(f"\n[UnifiedAIClient] 🔍 FINAL API REQUEST DEBUG:")
+            print(f"  - Total messages: {len(messages)}")
+            for i, msg in enumerate(messages):
+                print(f"\n  Message {i} ({msg.get('role')}):")
+                content = msg.get('content', [])
+                if isinstance(content, list):
+                    print(f"    - Content blocks: {len(content)}")
+                    for j, block in enumerate(content):
+                        if isinstance(block, dict):
+                            print(f"      Block {j}: type={block.get('type')}, keys={list(block.keys())}")
+                            if block.get('type') == 'thinking':
+                                print(f"        - thinking length: {len(block.get('thinking', ''))} chars")
+                                if 'signature' in block:
+                                    print(f"        - signature: {repr(block['signature'])} (type: {type(block['signature']).__name__})")
+                                else:
+                                    print(f"        - signature: NOT PRESENT")
+            print(f"\n[UnifiedAIClient] 📤 Sending request to Anthropic API...\n")
             
             # Call Anthropic API
             response = self.anthropic_client.messages.create(**api_params)
@@ -1047,8 +1144,9 @@ Always explain what you're doing when using these tools so the user understands 
                 # Add thinking field and signature if present (BOTH required for Extended Thinking)
                 if hasattr(block, 'thinking'):
                     block_dict['thinking'] = block.thinking
-                    # CRITICAL: signature field is REQUIRED when passing thinking blocks back to API
-                    if hasattr(block, 'signature'):
+                    # CRITICAL: Only add signature if it exists AND is not empty
+                    # (empty string causes 400 error: "Invalid signature in thinking block")
+                    if hasattr(block, 'signature') and block.signature:
                         block_dict['signature'] = block.signature
                 
                 # Add tool_use fields if present

@@ -1,0 +1,44 @@
+# ============================================
+# MustCare ValorAISynergySuite - Document Collector Service
+# Lightweight worker for document processing
+# ============================================
+
+FROM node:20-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app/collector
+
+# Copy package files
+COPY collector/package*.json ./
+
+# Install dependencies
+RUN npm ci --legacy-peer-deps
+
+# Copy collector source
+COPY collector/ ./
+
+# Create necessary directories
+RUN mkdir -p /app/collector/hotdir && \
+    mkdir -p /app/collector/outputs && \
+    chmod -R 777 /app/collector/hotdir && \
+    chmod -R 777 /app/collector/outputs
+
+# Expose port
+EXPOSE 8888
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8888/process || exit 1
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=8888
+
+# Start collector
+CMD ["node", "index.js"]

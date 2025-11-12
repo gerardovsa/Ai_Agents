@@ -1,0 +1,67 @@
+# ============================================
+# MustCare ValorAISynergySuite - Simple Single-Stage Build
+# Optimized for Render Starter tier (512 MB RAM)
+# ============================================
+
+FROM node:20-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy all package files first
+COPY package*.json ./
+COPY frontend/package*.json ./frontend/
+COPY server/package*.json ./server/
+COPY collector/package*.json ./collector/
+
+# Install all dependencies in one go to save memory
+RUN cd frontend && npm ci --legacy-peer-deps && \
+    cd ../server && npm ci --only=production --legacy-peer-deps && \
+    cd ../collector && npm ci --legacy-peer-deps && \
+    cd ..
+
+# Copy source code
+COPY frontend/ ./frontend/
+COPY server/ ./server/
+COPY collector/ ./collector/
+
+# Build frontend
+RUN cd frontend && npm run build && cd ..
+
+# Create storage directories
+RUN mkdir -p /app/storage/lancedb && \
+    mkdir -p /app/storage/documents && \
+    mkdir -p /app/storage/vector-cache && \
+    mkdir -p /app/storage/uploads && \
+    mkdir -p /app/logs && \
+    chmod -R 777 /app/storage && \
+    chmod -R 777 /app/logs
+
+# Copy startup script
+COPY render/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Expose ports
+EXPOSE 10000 8888
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:10000/api/v1/system/check || exit 1
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=10000
+ENV SERVER_PORT=10000
+ENV COLLECTOR_PORT=8888
+ENV STORAGE_DIR=/app/storage
+
+# Start application
+CMD ["/app/start.sh"]

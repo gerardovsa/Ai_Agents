@@ -46,7 +46,7 @@ class ThreadCreate(ThreadBase):
     agent_id: Optional[str] = Field(default="1", description="Agent ID (1, 2, 3, etc.)")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "Customer Support Chat",
                 "description": "Discussion about product features",
@@ -68,7 +68,7 @@ class ThreadUpdate(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "Updated Thread Name",
                 "status": "archived",
@@ -93,8 +93,8 @@ class Thread(ThreadBase):
     deleted_at: Optional[datetime] = None
     
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "id": 1,
                 "thread_slug": "abc123def456",
@@ -157,7 +157,7 @@ class MessageCreate(MessageBase):
     metadata: Optional[Dict[str, Any]] = None
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "thread_id": 1,
                 "user_id": 1,
@@ -190,8 +190,8 @@ class Message(MessageBase):
     updated_at: Optional[datetime] = None
     
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "id": 1,
                 "thread_id": 1,
@@ -218,7 +218,7 @@ class ThreadShareCreate(BaseModel):
     message: Optional[str] = Field(None, max_length=500, description="Optional message to recipient")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "thread_id": 1,
                 "user_id": 2,
@@ -243,7 +243,7 @@ class ThreadShare(BaseModel):
     revoked_at: Optional[datetime] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ThreadShareUpdate(BaseModel):

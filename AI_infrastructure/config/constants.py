@@ -98,6 +98,27 @@ SESSIONS_DB_PATH = 'data/sessions.db'
 # Connection pool size
 DB_POOL_SIZE = 5
 
+# ============================================================
+# FILE STORAGE SETTINGS
+# ============================================================
+
+import os
+from pathlib import Path
+
+# Get upload storage path from environment, or use default
+# Can be overridden in .env.master: UPLOAD_STORAGE_PATH=E:\AI_Files\uploads
+_root_dir = Path(__file__).parent.parent.parent
+UPLOAD_STORAGE_PATH = os.getenv(
+    'UPLOAD_STORAGE_PATH',
+    str(_root_dir / 'data' / 'uploads')
+)
+
+# Maximum total storage per user (bytes)
+MAX_USER_STORAGE = 500 * 1024 * 1024  # 500 MB
+
+# File retention days (0 = keep forever)
+FILE_RETENTION_DAYS = 0  # Keep files as long as thread exists
+
 # Query timeout (seconds)
 DB_TIMEOUT = 30
 

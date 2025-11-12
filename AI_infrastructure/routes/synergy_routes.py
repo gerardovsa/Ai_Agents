@@ -33,6 +33,163 @@ def get_db_connection():
     return conn
 
 
+def normalize_next_steps(steps):
+    """
+    Auto-convert string arrays to object arrays for next_steps field
+    
+    This allows AI agents to send simple strings ['Step 1', 'Step 2']
+    while ensuring the UI receives rich objects with completion tracking.
+    
+    Args:
+        steps: Array of strings OR objects
+               Strings: ["Create email", "Test send"]
+               Objects: [{"description": "Create email", "completed": false}]
+    
+    Returns:
+        Array of objects with structure:
+        [
+            {
+                "description": "Step text",
+                "completed": false,
+                "due_date": null,
+                "completed_at": null
+            }
+        ]
+    
+    Examples:
+        Input:  ["Phase 1", "Phase 2"]
+        Output: [
+            {"description": "Phase 1", "completed": false, "due_date": null, "completed_at": null},
+            {"description": "Phase 2", "completed": false, "due_date": null, "completed_at": null}
+        ]
+    """
+    if not steps:
+        return []
+    
+    normalized = []
+    for step in steps:
+        if isinstance(step, str):
+            # Convert string to rich object
+            normalized.append({
+                'description': step,
+                'completed': False,
+                'due_date': None,
+                'completed_at': None
+            })
+        elif isinstance(step, dict):
+            # Ensure object has all required fields
+            normalized.append({
+                'description': step.get('description', ''),
+                'completed': step.get('completed', False),
+                'due_date': step.get('due_date'),
+                'completed_at': step.get('completed_at')
+            })
+        else:
+            # Skip invalid entries
+            continue
+    
+    return normalized
+
+
+def normalize_documents(docs):
+    """
+    Auto-convert documents array ensuring 'title' field exists
+    
+    Fixes the field name mismatch where tools might send 'name' 
+    but UI expects 'title'.
+    
+    Args:
+        docs: Array of document objects
+    
+    Returns:
+        Array of objects with structure:
+        [
+            {
+                "title": "Document name",
+                "url": "https://...",
+                "type": "google_doc|google_sheet|pdf|etc"
+            }
+        ]
+    """
+    if not docs:
+        return []
+    
+    normalized = []
+    for doc in docs:
+        if isinstance(doc, dict):
+            # Ensure 'title' field exists (convert 'name' to 'title' if needed)
+            title = doc.get('title') or doc.get('name', '')
+            normalized.append({
+                'title': title,
+                'url': doc.get('url', ''),
+                'type': doc.get('type', 'document')
+            })
+    
+    return normalized
+
+
+def normalize_checklist(items):
+    """
+    Normalize checklist items ensuring 'task' field exists and subtasks are preserved
+    
+    Handles three field name variations:
+    - Old format: {"text": "...", "completed": false}
+    - UI format: {"item": "...", "completed": false}
+    - Correct format: {"task": "...", "completed": false, "subtasks": []}
+    
+    Args:
+        items: Array of checklist items (may have mixed field names)
+    
+    Returns:
+        Array of standardized objects with {task, completed, completed_at, subtasks}
+    
+    Examples:
+        Input:  [{"item": "Do this", "completed": false}]
+        Output: [{"task": "Do this", "completed": false, "completed_at": null, "subtasks": []}]
+        
+        Input:  [{"task": "Main", "subtasks": [{"task": "Sub1"}, {"item": "Sub2"}]}]
+        Output: [{"task": "Main", "completed": false, "completed_at": null, "subtasks": [
+                    {"task": "Sub1", "completed": false},
+                    {"task": "Sub2", "completed": false}
+                ]}]
+    """
+    if not items:
+        return []
+    
+    normalized = []
+    for item in items:
+        if isinstance(item, dict):
+            # Get task text from any field name variation
+            task_text = item.get('task') or item.get('item') or item.get('text', '')
+            
+            # Skip empty items
+            if not task_text:
+                continue
+            
+            # Normalize subtasks (recursively handle field name variations)
+            subtasks = item.get('subtasks', [])
+            normalized_subtasks = []
+            
+            for subtask in subtasks:
+                if isinstance(subtask, dict):
+                    subtask_text = subtask.get('task') or subtask.get('item') or subtask.get('text', '')
+                    if subtask_text:
+                        normalized_subtasks.append({
+                            'task': subtask_text,
+                            'completed': subtask.get('completed', False)
+                        })
+            
+            # Build standardized item
+            normalized.append({
+                'task': task_text,
+                'completed': item.get('completed', False),
+                'completed_at': item.get('completed_at'),
+                'subtasks': normalized_subtasks
+            })
+    
+    return normalized
+
+
 def init_database():
     """Initialize Synergy database if it doesn't exist"""
     os.makedirs(DB_PATH.parent, exist_ok=True)
@@ -188,6 +345,54 @@ def get_sessions_simple():
         }), 500
 
 
+@synergy_bp.route('', methods=['GET'])
+def get_sessions_bulk():
+    """
+    Bulk fetch sessions by comma-separated ids query parameter.
+    Example: GET /api/synergy?ids=sess_1,sess_2
+    Returns: { success: True, sessions: { <id>: {...}, ... } }
+    If no ids provided, falls back to list of sessions (minimal fields).
+    """
+    try:
+        ids_param = request.args.get('ids')
+        if not ids_param:
+            # Fallback: return a minimal sessions list (same as /sessions)
+            return get_sessions_simple()
+
+        ids = [i.strip() for i in ids_param.split(',') if i.strip()]
+        if not ids:
+            return jsonify({'success': True, 'sessions': {}})
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Build a parameterized query with the right number of placeholders
+        placeholders = ','.join('?' for _ in ids)
+        query = f"SELECT * FROM synergy_sessions WHERE session_id IN ({placeholders})"
+        cursor.execute(query, ids)
+        rows = cursor.fetchall()
+        conn.close()
+
+        sessions = {}
+        for row in rows:
+            session = dict(row)
+            # Parse JSON fields
+            for field in ['platforms_involved', 'tags', 'documents', 'links', 
+                         'next_steps', 'assignees', 'recent_activity', 'checklist',
+                         'thread_ids', 'assigned_agents']:
+                if session.get(field):
+                    try:
+                        session[field] = json.loads(session[field])
+                    except:
+                        session[field] = []
+            sessions[session['session_id']] = session
+
+        return jsonify({'success': True, 'sessions': sessions})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @synergy_bp.route('/create', methods=['POST'])
 def create_session():
     """Create a new session"""
@@ -218,12 +423,12 @@ def create_session():
         title_slug = data.get('title', 'untitled').lower().replace(' ', '_')[:30]
         session_id = f"sess_{timestamp}_{title_slug}"
         
-        # Serialize JSON fields
+        # Normalize and serialize JSON fields
         platforms_involved = json.dumps(data.get('platforms_involved', []))
         tags = json.dumps(data.get('tags', []))
-        documents = json.dumps(data.get('documents', []))
+        documents = json.dumps(normalize_documents(data.get('documents', [])))
         links = json.dumps(data.get('links', []))
-        next_steps = json.dumps(data.get('next_steps', []))
+        next_steps = json.dumps(normalize_next_steps(data.get('next_steps', [])))
         assignees = json.dumps(data.get('assignees', []))
         recent_activity = json.dumps([{
             'type': 'created',
@@ -231,8 +436,11 @@ def create_session():
             'user': data.get('created_by', 'AI Agent'),
             'details': f"Session created: {data.get('title')}"
         }])
-        checklist = json.dumps(data.get('checklist', []))
-        thread_ids = json.dumps(data.get('thread_ids', []))
+        checklist = json.dumps(normalize_checklist(data.get('checklist', [])))
+        
+        # Get thread_ids - may include auto-linked thread from agent context
+        thread_ids_list = data.get('thread_ids', [])
+        thread_ids = json.dumps(thread_ids_list)
         assigned_agents = json.dumps(data.get('assigned_agents', []))
         
         conn = get_db_connection()
@@ -268,12 +476,29 @@ def create_session():
         ))
         
         conn.commit()
+        
+        # BIDIRECTIONAL LINKING: Update threads table with synergy_card_id for auto-linked threads
+        if thread_ids_list:
+            for thread_id in thread_ids_list:
+                try:
+                    cursor.execute('''
+                        UPDATE threads 
+                        SET synergy_card_id = ?, synergy_card_name = ?, updated = ?
+                        WHERE id = ?
+                    ''', (session_id, data.get('title', 'Untitled Session'), datetime.now().isoformat(), thread_id))
+                    print(f"BIDIRECTIONAL LINK: Thread {thread_id} updated with synergy_card_id {session_id}")
+                except Exception as link_error:
+                    print(f"Warning: Failed to update thread {thread_id}: {link_error}")
+            
+            conn.commit()
+        
         conn.close()
         
         return jsonify({
             'success': True,
             'session_id': session_id,
-            'message': 'Session created successfully'
+            'message': 'Session created successfully',
+            'linked_threads': thread_ids_list  # Return which threads were auto-linked
         })
     
     except Exception as e:
@@ -354,14 +579,38 @@ def update_session(session_id):
                 updates.append(f"{field} = ?")
                 params.append(update_data[field])
         
-        # JSON fields
-        for field in ['platforms_involved', 'tags', 'documents', 'links', 
-                     'next_steps', 'assignees', 'checklist', 'thread_ids', 'assigned_agents']:
+        # JSON fields without normalization
+        for field in ['platforms_involved', 'tags', 'links', 
+                     'assignees', 'thread_ids', 'assigned_agents']:
             if field in update_data:
                 updates.append(f"{field} = ?")
                 json_value = json.dumps(update_data[field])
                 params.append(json_value)
                 print(f"[DEBUG] Adding {field}: {json_value}")  # DEBUG
+        
+        # Special handling for next_steps (normalize string arrays to objects)
+        if 'next_steps' in update_data:
+            updates.append("next_steps = ?")
+            normalized = normalize_next_steps(update_data['next_steps'])
+            json_value = json.dumps(normalized)
+            params.append(json_value)
+            print(f"[DEBUG] Adding next_steps (normalized): {json_value}")  # DEBUG
+        
+        # Special handling for documents (ensure 'title' field)
+        if 'documents' in update_data:
+            updates.append("documents = ?")
+            normalized = normalize_documents(update_data['documents'])
+            json_value = json.dumps(normalized)
+            params.append(json_value)
+            print(f"[DEBUG] Adding documents (normalized): {json_value}")  # DEBUG
+        
+        # Special handling for checklist (normalize task/item/text fields and subtasks)
+        if 'checklist' in update_data:
+            updates.append("checklist = ?")
+            normalized = normalize_checklist(update_data['checklist'])
+            json_value = json.dumps(normalized)
+            params.append(json_value)
+            print(f"[DEBUG] Adding checklist (normalized): {json_value}")  # DEBUG
         
         # Add to recent activity
         if 'recent_activity' in update_data:

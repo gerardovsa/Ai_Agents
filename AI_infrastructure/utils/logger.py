@@ -47,6 +47,31 @@ COLORS = {
     'RESET': '\033[0m'       # Reset
 }
 
+
+# ============================================================
+# CUSTOM FORMATTER WITH ERROR HIGHLIGHTING
+# ============================================================
+
+class ErrorHighlightFormatter(logging.Formatter):
+    """Custom formatter that highlights errors with red text and separator lines"""
+    
+    def format(self, record):
+        import re
+        
+        # Format the base message
+        message = super().format(record)
+        
+        # Highlight the word "error" in red anywhere in the message (case-insensitive)
+        error_pattern = r'\b(error|ERROR|Error)\b'
+        message = re.sub(error_pattern, f'{COLORS["ERROR"]}\\1{COLORS["RESET"]}', message)
+        
+        # Add red separator lines for ERROR and CRITICAL level messages
+        if record.levelno >= logging.ERROR:
+            separator = f"{COLORS['ERROR']}{'=' * 100}{COLORS['RESET']}"
+            message = f"\n{separator}\n{message}\n{separator}"
+        
+        return message
+
 # ============================================================
 # LOGGER FACTORY
 # ============================================================
@@ -87,7 +112,7 @@ def get_logger(name: str) -> logging.Logger:
         # ========================================
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
-        console_formatter = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
+        console_formatter = ErrorHighlightFormatter(LOG_FORMAT, DATE_FORMAT)
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
         
@@ -97,7 +122,7 @@ def get_logger(name: str) -> logging.Logger:
         try:
             file_handler = logging.FileHandler(LOG_FILE, encoding='utf-8', mode='a')
             file_handler.setLevel(logging.INFO)
-            file_formatter = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
+            file_formatter = ErrorHighlightFormatter(LOG_FORMAT, DATE_FORMAT)
             file_handler.setFormatter(file_formatter)
             logger.addHandler(file_handler)
         except Exception as e:
@@ -109,7 +134,7 @@ def get_logger(name: str) -> logging.Logger:
         try:
             debug_handler = logging.FileHandler(DEBUG_FILE, encoding='utf-8', mode='a')
             debug_handler.setLevel(logging.DEBUG)
-            debug_formatter = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
+            debug_formatter = ErrorHighlightFormatter(LOG_FORMAT, DATE_FORMAT)
             debug_handler.setFormatter(debug_formatter)
             logger.addHandler(debug_handler)
         except Exception as e:

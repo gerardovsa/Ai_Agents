@@ -2519,6 +2519,240 @@ class ComprehensiveQuoteCalculator:
                     },
                     "historical_pattern_query": "SELECT TOP 20 TicketID, ShortJobDesc, TicketNotes, QTY, Cost FROM JobTickets WHERE ShortJobDesc LIKE '%corflute%' OR ShortJobDesc LIKE '%sign%' ORDER BY TicketDate DESC"
                 }
+            },
+            
+            "notepads_a5": {
+                "description": "Professional A5 notepads with padding service, cardboard backing, and custom printing",
+                "calculator_type": "Shopify (NotepadsA5ShopifyCalculator)",
+                "product_features": {
+                    "padding_service": "Professional notepad padding with cardboard backing",
+                    "multiple_artworks": "First artwork free, additional at $15 each",
+                    "tiered_pricing": "7 quantity tiers for padding rates, 13 tiers for profit margins",
+                    "double_gst": "Applies GST twice (Total * 1.1 * 1.1 = 21% total increase)",
+                    "leaves_options": "25, 50, or 100 leaves per pad"
+                },
+                
+                "required_parameters": {
+                    "quantity": {
+                        "type": "int",
+                        "description": "Number of notepads to produce (pads, not sheets)",
+                        "validation": "Must be one of: 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000",
+                        "typical_values": [100, 250, 500, 1000],
+                        "most_common": [100, 250],
+                        "example": 100,
+                        "database_source": "JobTickets.QTY for notepad orders",
+                        "extraction_hints": [
+                            "Look for 'notepads', 'pads', or 'memo pads' in job description",
+                            "Default to 100 if not specified (most economical for small businesses)"
+                        ]
+                    },
+                    "leaves_per_pad": {
+                        "type": "int",
+                        "description": "Number of sheets in each notepad",
+                        "validation": "Must be 25, 50, or 100",
+                        "enum": [25, 50, 100],
+                        "default": 50,
+                        "most_common": 50,
+                        "example": 50,
+                        "extraction_hints": [
+                            "Look for '50 leaf', '50 sheets', or '50 pages' in description",
+                            "Default to 50 leaves if not specified (standard notepad size)"
+                        ]
+                    },
+                    "print_type": {
+                        "type": "string",
+                        "description": "Printing mode - color/B&W, single/double sided",
+                        "enum": [
+                            "Colour 1 sided",
+                            "Colour 2 sided",
+                            "Black & White 1 sided",
+                            "Black & White 2 sided"
+                        ],
+                        "default": "Black & White 1 sided",
+                        "most_common": "Black & White 1 sided",
+                        "pricing": {
+                            "Colour 1 sided": "$0.048 per sheet",
+                            "Colour 2 sided": "$0.096 per sheet",
+                            "Black & White 1 sided": "$0.01 per sheet",
+                            "Black & White 2 sided": "$0.02 per sheet"
+                        },
+                        "example": "Black & White 1 sided",
+                        "extraction_hints": [
+                            "Look for 'colour', 'color', 'full color', or 'CMYK' → Colour",
+                            "Look for 'black and white', 'b&w', 'B/W', 'mono' → Black & White",
+                            "Look for 'double sided', 'both sides', '2-sided' → 2 sided",
+                            "Default to Black & White 1 sided (most economical)"
+                        ]
+                    },
+                    "stock_type": {
+                        "type": "string",
+                        "description": "Paper stock weight and type",
+                        "enum": [
+                            "Uncoated Bond 80GSM",
+                            "Uncoated Bond 90GSM",
+                            "Uncoated Bond 100GSM",
+                            "Revive 100% Recycled 80GSM Bond"
+                        ],
+                        "default": "Uncoated Bond 80GSM",
+                        "most_common": "Uncoated Bond 80GSM",
+                        "pricing": {
+                            "Uncoated Bond 80GSM": "$0.03 per sheet (standard)",
+                            "Uncoated Bond 90GSM": "$0.033 per sheet (medium weight)",
+                            "Uncoated Bond 100GSM": "$0.054 per sheet (heavy weight)",
+                            "Revive 100% Recycled 80GSM Bond": "$0.06 per sheet (eco-friendly)"
+                        },
+                        "example": "Uncoated Bond 80GSM",
+                        "extraction_hints": [
+                            "Look for '80gsm', '90gsm', '100gsm' in description",
+                            "Look for 'recycled', 'eco-friendly', 'revive' → Recycled option",
+                            "Default to 80GSM (standard notepad paper)"
+                        ]
+                    }
+                },
+                
+                "optional_parameters": {
+                    "artworks": {
+                        "type": "int",
+                        "description": "Number of different artwork designs",
+                        "validation": "Must be 1-10",
+                        "default": 1,
+                        "example": 1,
+                        "pricing": "First artwork free, additional at $15 each",
+                        "formula": "IF artworks > 1 THEN (artworks * 15) - 15 ELSE 0",
+                        "extraction_hints": [
+                            "Look for 'designs', 'versions', 'different artworks'",
+                            "Default to 1 (single design)"
+                        ]
+                    },
+                    "finish_size": {
+                        "type": "string",
+                        "description": "Notepad size (currently only A5 supported)",
+                        "enum": ["A5 Portrait"],
+                        "default": "A5 Portrait",
+                        "dimensions": "148 x 210mm",
+                        "multiplier": 0.5,
+                        "note": "Only A5 Portrait available in current calculator version"
+                    }
+                },
+                
+                "pricing_structure": {
+                    "setup_costs": {
+                        "imposition_setup": "$15 (fixed)",
+                        "guillotine_setup": "$12 (fixed)",
+                        "artwork_setup": "$15 per extra artwork (first free)"
+                    },
+                    "padding_rate_tiers": {
+                        "tier_1": "1-250 pads: $0.20 per pad",
+                        "tier_2": "251-500 pads: $0.20 per pad",
+                        "tier_3": "501-1000 pads: $0.15 per pad",
+                        "tier_4": "1001-1500 pads: $0.15 per pad",
+                        "tier_5": "1501-2000 pads: $0.10 per pad",
+                        "tier_6": "2001-3000 pads: $0.10 per pad",
+                        "tier_7": "3001+ pads: $0.10 per pad"
+                    },
+                    "profit_margin_tiers": {
+                        "tier_1": "$1-500 subtotal: 80% margin",
+                        "tier_2": "$501-1000 subtotal: 80% margin",
+                        "tier_3": "$1001-1500 subtotal: 80% margin",
+                        "tier_4": "$1501-2000 subtotal: 75% margin",
+                        "tier_5": "$2001-2500 subtotal: 72% margin",
+                        "tier_6": "$2501-3000 subtotal: 72% margin",
+                        "tier_7": "$3001-4000 subtotal: 65% margin",
+                        "tier_8": "$4001-5000 subtotal: 55% margin",
+                        "tier_9": "$5001-7500 subtotal: 52% margin",
+                        "tier_10": "$7501-10000 subtotal: 47% margin",
+                        "tier_11": "$10001-15000 subtotal: 42% margin",
+                        "tier_12": "$15001-20000 subtotal: 41% margin",
+                        "tier_13": "$20001+ subtotal: 41% margin"
+                    },
+                    "additional_costs": {
+                        "box_board_backing": "$0.07 per pad",
+                        "stock_waste": "5% waste factor (1.05 multiplier)",
+                        "cutting_cost": "$11 per 500 sheets"
+                    },
+                    "double_gst_warning": "Calculator applies GST twice: Total * 1.1 * 1.1 = 21% total increase. This matches original Shopify DPO implementation."
+                },
+                
+                "calculation_steps": [
+                    "1. Calculate artwork setup cost: IF artworks > 1 THEN (artworks * 15) - 15 ELSE 0",
+                    "2. Calculate total setup cost: impos_setup (15) + guilo_setup (12) + artwork_setup",
+                    "3. Calculate total leaf sheets: ((quantity * leaves_per_pad) * stock_waste (1.05)) * finish_size_multiplier (0.5)",
+                    "4. Calculate content click cost: total_leave_sheets * print_type_price",
+                    "5. Calculate total content cost: (total_leave_sheets * stock_price) + content_click_cost + (box_board_cost (0.07) * quantity)",
+                    "6. Calculate cutting cost: total_leave_sheets / cutting_block (500) * cut_cost (11)",
+                    "7. Calculate padding cost based on quantity tiers: quantity * padding_rate",
+                    "8. Calculate subtotal: setup_cost + content_cost + cutting_cost + padding_cost",
+                    "9. Determine profit margin based on subtotal amount using 13 different tiers",
+                    "10. Apply margin: subtotal + (subtotal * profit_margin)",
+                    "11. Apply GST: result * 1.1",
+                    "12. Apply final multiplier: result * 1.1 (double GST application)"
+                ],
+                
+                "common_configurations": {
+                    "office_notepads_basic": {
+                        "quantity": 100,
+                        "artworks": 1,
+                        "finish_size": "A5 Portrait",
+                        "leaves_per_pad": 50,
+                        "print_type": "Black & White 1 sided",
+                        "stock_type": "Uncoated Bond 80GSM",
+                        "typical_use": "Small business branded notepads",
+                        "estimated_range": "$120-180 inc GST"
+                    },
+                    "promotional_notepads": {
+                        "quantity": 250,
+                        "artworks": 2,
+                        "finish_size": "A5 Portrait",
+                        "leaves_per_pad": 25,
+                        "print_type": "Colour 1 sided",
+                        "stock_type": "Uncoated Bond 90GSM",
+                        "typical_use": "Marketing giveaways with multiple designs",
+                        "estimated_range": "$280-350 inc GST"
+                    },
+                    "bulk_office_supply": {
+                        "quantity": 1000,
+                        "artworks": 1,
+                        "finish_size": "A5 Portrait",
+                        "leaves_per_pad": 100,
+                        "print_type": "Black & White 1 sided",
+                        "stock_type": "Revive 100% Recycled 80GSM Bond",
+                        "typical_use": "Corporate office stationery in bulk",
+                        "estimated_range": "$800-1200 inc GST"
+                    }
+                },
+                
+                "extraction_patterns": {
+                    "identify_notepad_orders": {
+                        "keywords": ["notepad", "note pad", "memo pad", "writing pad", "desk pad", "scratch pad"],
+                        "query": "SELECT * FROM JobTickets WHERE ShortJobDesc LIKE '%notepad%' OR ShortJobDesc LIKE '%note pad%' OR ShortJobDesc LIKE '%memo%'"
+                    },
+                    "extract_specifications": {
+                        "quantity": "JobTickets.QTY (number of pads)",
+                        "leaves": "Parse from TicketNotes: '50 leaf', '50 sheets', '50 pages'",
+                        "print": "Parse TicketNotes for 'colour', 'black and white', 'single sided', 'double sided'",
+                        "stock": "Parse for '80gsm', '90gsm', '100gsm', 'recycled'",
+                        "size": "Default to A5 Portrait (most common notepad size)"
+                    }
+                },
+                
+                "validation_rules": {
+                    "quantity_validation": {
+                        "rule": "Must be one of the predefined values",
+                        "allowed": [25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000],
+                        "error_message": "Quantity must be one of the allowed values"
+                    },
+                    "leaves_validation": {
+                        "rule": "Must be 25, 50, or 100",
+                        "allowed": [25, 50, 100],
+                        "error_message": "Leaves per pad must be 25, 50, or 100"
+                    },
+                    "artworks_validation": {
+                        "rule": "Must be between 1 and 10",
+                        "min": 1,
+                        "max": 10,
+                        "error_message": "Artworks must be between 1 and 10"
+                    }
+                }
             }
         }
         

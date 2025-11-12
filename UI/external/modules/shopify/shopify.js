@@ -412,7 +412,11 @@ class SQLViewerHelper {
     async executeQuery() {
         const query = document.getElementById('shopify-sql-query').value.trim();
         if (!query) {
-            alert('Please enter a query');
+            UIComponents.showAlert({
+                title: 'Query Required',
+                message: 'Please enter a SQL query to execute.',
+                variant: 'warning'
+            });
             return;
         }
 
@@ -1229,7 +1233,12 @@ class ShopifyModule extends BaseModule {
     viewOrderDetails(orderId) {
         console.log('[Shopify] Viewing order details:', orderId);
         // TODO: Implement order details modal or navigation
-        alert(`Order details for ID: ${orderId}\n\nThis feature will open a detailed order view with:\n- Line items\n- Customer info\n- Shipping details\n- Payment history\n- Fulfillment status`);
+        UIComponents.showAlert({
+            title: 'Order Details',
+            message: `Order ID: ${orderId}\n\nThis feature will open a detailed order view with:\n• Line items\n• Customer info\n• Shipping details\n• Payment history\n• Fulfillment status`,
+            variant: 'info',
+            okLabel: 'Got it'
+        });
     }
 
     /**

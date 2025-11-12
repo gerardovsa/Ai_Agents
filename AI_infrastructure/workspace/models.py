@@ -44,7 +44,7 @@ class Workspace(BaseModel):
     archived_at: Optional[datetime]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class WorkspaceMemberCreate(BaseModel):
@@ -70,7 +70,7 @@ class WorkspaceMember(BaseModel):
     removed_at: Optional[datetime]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class WorkspaceInvitationCreate(BaseModel):
@@ -96,7 +96,7 @@ class WorkspaceInvitation(BaseModel):
     responded_at: Optional[datetime]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class WorkspaceInvitationResponse(BaseModel):

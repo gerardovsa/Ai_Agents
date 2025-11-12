@@ -900,9 +900,9 @@ class StockManagementModule extends BaseModule {
                     </div>
                 </div>
                 
-                <!-- Toolbar -->
+                <!-- Toolbar with Tags -->
                 <div class="bulk-operations-toolbar" style="display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #1a1f2e; border-bottom: 1px solid #2a3142; margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
                         <select id="usage-period-selector" class="form-control" style="margin: 0; width: auto; padding: 6px 10px; background: #0B0E13; border: 1px solid #2A3142; border-radius: 6px; color: #E5E7EB; font-size: 12px;">
                             <option value="30">Last 30 Days</option>
                             <option value="90" selected>Last 90 Days</option>
@@ -912,15 +912,62 @@ class StockManagementModule extends BaseModule {
                         <button class="btn btn-primary" id="usage-refresh-btn" onclick="stockModule.refreshUsageAnalyticsTab()" style="padding: 6px 12px; font-size: 12px;">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
+                        <span style="color: #6b7280; font-size: 12px; margin-left: 8px;">Selected: <span id="usage-selected-count">0</span></span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button onclick="stockModule.bulkTagRows(null, 'usage')" class="btn btn-sm" style="padding: 6px 12px; font-size: 12px; border-radius: 6px;" title="Clear Tags">
+                            <i class="fas fa-eraser"></i> Clear
+                        </button>
+                        <button onclick="stockModule.bulkTagRows('green', 'usage')" class="btn btn-sm" style="background: #28a745; padding: 6px 12px; font-size: 12px; border-radius: 6px;" title="Tag High Usage">
+                            <i class="fas fa-tag"></i>
+                        </button>
+                        <button onclick="stockModule.bulkTagRows('orange', 'usage')" class="btn btn-sm" style="background: #fd7e14; padding: 6px 12px; font-size: 12px; border-radius: 6px;" title="Tag Medium Usage">
+                            <i class="fas fa-tag"></i>
+                        </button>
+                        <button onclick="stockModule.bulkTagRows('red', 'usage')" class="btn btn-sm" style="background: #dc3545; padding: 6px 12px; font-size: 12px; border-radius: 6px;" title="Tag Low Usage">
+                            <i class="fas fa-tag"></i>
+                        </button>
+                        <span style="border-left: 1px solid #2a3142; height: 24px; margin: 0 4px;"></span>
+                        <button class="btn btn-secondary" onclick="stockModule.exportTableToExcel('usage')" style="padding: 6px 12px; font-size: 12px;" title="Export to Excel">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </button>
+                        <button class="btn btn-secondary" onclick="stockModule.exportTableToCSV('usage')" style="padding: 6px 12px; font-size: 12px;" title="Export to CSV">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                        <button class="btn btn-secondary" onclick="stockModule.exportTableToPDF('usage')" style="padding: 6px 12px; font-size: 12px;" title="Export to PDF">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
                     </div>
                 </div>
                 
                 <!-- Charts -->
                 <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 class="card-title" style="margin: 0;">
                             <i class="fas fa-chart-bar"></i> Usage Analytics Data
                         </h3>
+                        <div id="usage-pagination-controls" style="display: none; gap: 8px; align-items: center;">
+                            <span style="font-size: 12px; color: #9ca3af; margin-right: 8px;">Page Size:</span>
+                            <select id="usage-page-size" class="form-control" style="width: auto; padding: 4px 8px; background: #0B0E13; border: 1px solid #2A3142; border-radius: 4px; color: #E5E7EB; font-size: 12px;">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                            <button id="usage-first-page" class="btn btn-sm" style="padding: 4px 8px; font-size: 12px;" title="First Page">
+                                <i class="fas fa-angle-double-left"></i>
+                            </button>
+                            <button id="usage-prev-page" class="btn btn-sm" style="padding: 4px 8px; font-size: 12px;" title="Previous Page">
+                                <i class="fas fa-angle-left"></i>
+                            </button>
+                            <span id="usage-page-info" style="font-size: 12px; color: #e6edf3; margin: 0 8px;">Page 1 of 1</span>
+                            <button id="usage-next-page" class="btn btn-sm" style="padding: 4px 8px; font-size: 12px;" title="Next Page">
+                                <i class="fas fa-angle-right"></i>
+                            </button>
+                            <button id="usage-last-page" class="btn btn-sm" style="padding: 4px 8px; font-size: 12px;" title="Last Page">
+                                <i class="fas fa-angle-double-right"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="card-content">
                         <div id="analytics-loading" class="loading-state" style="display: none;">
@@ -1028,55 +1075,93 @@ class StockManagementModule extends BaseModule {
             this.usageTable.destroy();
         }
 
-        // Create Tabulator
+        // Create Tabulator with all enhancements
         this.usageTable = new Tabulator(container, {
             data: data,
             layout: "fitDataStretch",
             pagination: "local",
             paginationSize: 25,
-            paginationSizeSelector: [10, 25, 50, 100],
+            paginationCounter: "rows",
             movableColumns: true,
             resizableColumns: true,
-            height: "500px",
+            height: "100%",
             placeholder: "No usage data available",
+            cellClick: (e, cell) => this.handleCellClick(e, cell),
+            selectable: true,
+            rowFormatter: function (row) {
+                const rowData = row.getData();
+                const rowId = rowData.StockID || rowData.stock_id || rowData.id || rowData._rowId;
+                if (rowId) {
+                    const tag = window.TabulatorFunctions?.getRowTag(rowId, 'usage_tags');
+                    if (tag) {
+                        const colors = {
+                            'green': 'rgba(40, 167, 69, 0.15)',
+                            'orange': 'rgba(253, 126, 20, 0.15)',
+                            'red': 'rgba(220, 53, 69, 0.15)'
+                        };
+                        row.getElement().style.backgroundColor = colors[tag] || '';
+                    }
+                }
+            },
             columns: [
+                {
+                    formatter: "rowSelection",
+                    titleFormatter: "rowSelection",
+                    width: 40,
+                    hozAlign: "center",
+                    headerSort: false,
+                    cellClick: function (e, cell) {
+                        e.stopPropagation();
+                    }
+                },
                 {
                     title: "Stock ID",
                     field: "StockID",
                     width: 120,
                     headerSort: true,
                     headerFilter: "input",
-                    formatter: function (cell) {
-                        return `<span style="font-weight: 600; color: #0078d4;">${cell.getValue()}</span>`;
-                    }
+                    headerFilterPlaceholder: "Filter ID...",
+                    tooltip: true
                 },
                 {
                     title: "Stock Type",
                     field: "StockType",
                     width: 200,
                     headerSort: true,
-                    headerFilter: "input"
+                    headerFilter: "input",
+                    headerFilterPlaceholder: "Filter type...",
+                    tooltip: true
                 },
                 {
                     title: "GSM",
                     field: "GSM",
                     width: 100,
                     headerSort: true,
-                    hozAlign: "center"
+                    headerFilter: "input",
+                    headerFilterPlaceholder: "Filter GSM...",
+                    hozAlign: "center",
+                    tooltip: true
                 },
                 {
                     title: "Dimensions",
                     field: "Dimensions",
                     width: 150,
                     headerSort: true,
-                    hozAlign: "center"
+                    headerFilter: "input",
+                    headerFilterPlaceholder: "Filter size...",
+                    hozAlign: "center",
+                    tooltip: true
                 },
                 {
                     title: "Usage Count",
                     field: "usage_count",
                     width: 130,
                     headerSort: true,
+                    headerFilter: "number",
+                    headerFilterPlaceholder: "Min count...",
+                    headerFilterFunc: ">=",
                     hozAlign: "right",
+                    tooltip: true,
                     formatter: function (cell) {
                         const value = cell.getValue() || 0;
                         return `<span style="font-weight: 700; color: #10b981;">${value.toLocaleString()}</span>`;
@@ -1087,16 +1172,99 @@ class StockManagementModule extends BaseModule {
                     field: "total_quantity",
                     width: 140,
                     headerSort: true,
+                    headerFilter: "number",
+                    headerFilterPlaceholder: "Min sheets...",
+                    headerFilterFunc: ">=",
                     hozAlign: "right",
+                    tooltip: true,
                     formatter: function (cell) {
                         const value = cell.getValue() || 0;
                         return `<span style="font-weight: 700;">${value.toLocaleString()}</span>`;
+                    }
+                },
+                {
+                    title: "Tag",
+                    field: "_tag",
+                    width: 80,
+                    hozAlign: "center",
+                    headerSort: false,
+                    formatter: function (cell) {
+                        const rowData = cell.getRow().getData();
+                        const rowId = rowData.StockID || rowData.stock_id || rowData.id || rowData._rowId;
+                        const tag = window.TabulatorFunctions?.getRowTag(rowId, 'usage_tags');
+                        const color = tag || 'untagged';
+                        const colors = {
+                            'green': '#28a745',
+                            'orange': '#fd7e14',
+                            'red': '#dc3545',
+                            'untagged': '#6b7280'
+                        };
+                        return `<i class="fas fa-tag" style="color: ${colors[color]}; font-size: 14px;"></i>`;
                     }
                 }
             ]
         });
 
+        // Setup pagination controls
+        this.setupUsagePaginationControls();
+
+        // Selection change handler
+        this.usageTable.on('rowSelectionChanged', (data, rows) => {
+            const countEl = document.getElementById('usage-selected-count');
+            if (countEl) {
+                countEl.textContent = rows.length;
+            }
+        });
+
         console.log('[TABULATOR] Usage analytics table rendered with', data.length, 'rows');
+    }
+
+    setupUsagePaginationControls() {
+        const controls = document.getElementById('usage-pagination-controls');
+        if (!controls || !this.usageTable) return;
+
+        controls.style.display = 'flex';
+
+        const pageSize = document.getElementById('usage-page-size');
+        const firstBtn = document.getElementById('usage-first-page');
+        const prevBtn = document.getElementById('usage-prev-page');
+        const nextBtn = document.getElementById('usage-next-page');
+        const lastBtn = document.getElementById('usage-last-page');
+        const pageInfo = document.getElementById('usage-page-info');
+
+        const updatePageInfo = () => {
+            const page = this.usageTable.getPage();
+            const maxPage = this.usageTable.getPageMax();
+            pageInfo.textContent = `Page ${page} of ${maxPage}`;
+        };
+
+        pageSize.addEventListener('change', (e) => {
+            this.usageTable.setPageSize(parseInt(e.target.value));
+            updatePageInfo();
+        });
+
+        firstBtn.addEventListener('click', () => {
+            this.usageTable.setPage(1);
+            updatePageInfo();
+        });
+
+        prevBtn.addEventListener('click', () => {
+            this.usageTable.previousPage();
+            updatePageInfo();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            this.usageTable.nextPage();
+            updatePageInfo();
+        });
+
+        lastBtn.addEventListener('click', () => {
+            this.usageTable.setPage(this.usageTable.getPageMax());
+            updatePageInfo();
+        });
+
+        this.usageTable.on('pageLoaded', updatePageInfo);
+        updatePageInfo();
     }
 
     async loadUsageAnalyticsData() {

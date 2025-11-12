@@ -32,6 +32,7 @@ from .FoldedFlyers_Shopify_Calculator import FoldedFlyersShopifyCalculator
 from .PerfectBound_Shopify_Calculator import PerfectBoundShopifyCalculator
 from .WireBound_Shopify_Calculator import WireBoundShopifyCalculator
 from .SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
+from .NotepadsA5_Shopify_Calculator import NotepadsA5ShopifyCalculator
 
 __all__ = [
     'ShopifyBusinessCardCalculator',
@@ -42,4 +43,5 @@ __all__ = [
     'PerfectBoundShopifyCalculator',
     'WireBoundShopifyCalculator',
     'SpiralBoundShopifyCalculator',
+    'NotepadsA5ShopifyCalculator',
 ]

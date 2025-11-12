@@ -240,6 +240,26 @@ def synergy_create_session(
     sync_google_calendar: bool = False,
     **kwargs
 ) -> Dict[str, Any]:
+    # CRITICAL AUTO-LINKING: Extract thread_id and agent context from kwargs
+    current_thread_id = kwargs.get('thread_id') or kwargs.get('_thread_id')
+    current_agent_id = kwargs.get('agent_id') or kwargs.get('_agent_id')
+    
+    # Auto-link current thread if available
+    if current_thread_id:
+        if thread_ids is None:
+            thread_ids = []
+        if current_thread_id not in thread_ids:
+            thread_ids.append(current_thread_id)
+            print(f"AUTO-LINK: Thread {current_thread_id} automatically linked to new Synergy session")
+    
+    # Auto-assign current agent if available
+    if current_agent_id:
+        if assigned_agents is None:
+            assigned_agents = []
+        agent_name = f"Agent-{current_agent_id}" if current_agent_id.isdigit() else current_agent_id
+        if agent_name not in assigned_agents:
+            assigned_agents.append(agent_name)
+            print(f"AUTO-ASSIGN: Agent {agent_name} automatically assigned to new Synergy session")
     """
     Create a new session card in Synergy Dashboard
     

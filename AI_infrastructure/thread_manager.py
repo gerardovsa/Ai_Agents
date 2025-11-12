@@ -2,7 +2,9 @@
 Enhanced Thread Manager API
 Implements AnythingLLM-style thread/message management with database persistence
 
-FIXED: Strip thinking blocks from assistant messages (Nov 5, 2025)
+CRITICAL FIX (Nov 12, 2025): KEEP thinking blocks in saved messages
+When thinking is enabled, Anthropic API REQUIRES assistant messages to start with thinking blocks.
+Stripping them causes 400 errors on subsequent turns.
 """
 
 import sqlite3
@@ -15,27 +17,12 @@ from pathlib import Path
 
 def strip_thinking_blocks_from_content(content: Any) -> Any:
     """
-    Remove thinking blocks from message content
+    DISABLED (Nov 12, 2025): No longer strip thinking blocks
     
-    Handles JSON strings, lists, and plain text
+    Thinking blocks MUST be preserved for Anthropic API when thinking is enabled.
+    This function now just returns content unchanged.
     """
-    if isinstance(content, str):
-        try:
-            parsed = json.loads(content)
-            if isinstance(parsed, list):
-                filtered = [
-                    block for block in parsed
-                    if block.get('type') not in ('thinking', 'redacted_thinking')
-                ]
-                return json.dumps(filtered)
-            return content
-        except (json.JSONDecodeError, TypeError):
-            return content
-    elif isinstance(content, list):
-        return [
-            block for block in content
-            if block.get('type') not in ('thinking', 'redacted_thinking')
-        ]
+    # CRITICAL: Do NOT strip thinking blocks - they're required by Anthropic API
     return content
 
 
@@ -43,14 +30,20 @@ def prepare_content_for_storage(content: Any) -> Any:
     """
     Prepare assistant message content for database storage
     
-    BEST PRACTICE (ChatGPT/Claude.ai pattern):
+    UPDATED (Nov 12, 2025 - Per Anthropic SDK Documentation):
+    Per official Anthropic docs:
+    "When continuing conversations with tool use, thinking blocks are cached and count as input tokens when read from cache"
+    "Thinking blocks must be explicitly preserved and returned with the tool results"
+    "The signature field contains encrypted thinking and verifies authenticity"
+    
+    - Keep: thinking blocks (REQUIRED for extended thinking with tools)
+    - Keep: redacted_thinking blocks (REQUIRED for safety compliance)
     - Keep: text blocks (main response)
     - Keep: tool_use blocks (transparency)
-    - Remove: thinking blocks (API errors)
-    - Remove: tool_result blocks (too verbose)
+    - Remove: tool_result blocks (go in user messages)
     
     Returns:
-        Filtered content with only text and tool_use blocks
+        Filtered content with thinking, text, and tool_use blocks
     """
     if isinstance(content, str):
         try:
@@ -58,7 +51,7 @@ def prepare_content_for_storage(content: Any) -> Any:
             if isinstance(parsed, list):
                 filtered = [
                     block for block in parsed
-                    if block.get('type') in ('text', 'tool_use')
+                    if block.get('type') in ('thinking', 'redacted_thinking', 'text', 'tool_use')
                 ]
                 return json.dumps(filtered)
             return content
@@ -67,7 +60,7 @@ def prepare_content_for_storage(content: Any) -> Any:
     elif isinstance(content, list):
         return [
             block for block in content
-            if block.get('type') in ('text', 'tool_use')
+            if block.get('type') in ('thinking', 'redacted_thinking', 'text', 'tool_use')
         ]
     return content
 
@@ -407,17 +400,18 @@ class ThreadManager:
             if role == 'assistant':
                 content = prepare_content_for_storage(content)
             
+            # Do not persist response_time_ms in messages table; keep for logs only
             cursor.execute('''
                 INSERT INTO messages (
                     workspace_id, thread_id, role, content, prompt,
-                    user_id, include, tool_calls, tokens_used, response_time_ms,
+                    user_id, include, tool_calls, tokens_used,
                     created_at, updated_at, metadata
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 workspace_id, thread_id, role, content, prompt,
                 user_id, 1 if include else 0, json.dumps(tool_calls or []),
-                tokens_used, response_time_ms, timestamp, timestamp,
+                tokens_used, timestamp, timestamp,
                 json.dumps(metadata or {})
             ))
             
@@ -430,6 +424,13 @@ class ThreadManager:
             
             conn.commit()
             
+            # Log response time (do not store in DB)
+            if response_time_ms is not None:
+                try:
+                    print(f"[TIMING] thread_id={thread_slug} message_id={message_id} response_time_ms={response_time_ms}")
+                except Exception:
+                    pass
+
             return {
                 'id': message_id,
                 'workspace_id': workspace_id,

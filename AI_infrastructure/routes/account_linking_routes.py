@@ -102,7 +102,7 @@ def init_account_linking_tables():
     
     conn.commit()
     conn.close()
-    logger.info(" Account linking tables initialized")
+    logger.info("[INIT] Account linking tables initialized")
 
 # Initialize tables on module load
 init_account_linking_tables()

@@ -335,6 +335,61 @@ class CalculatorWrapper:
         except Exception as e:
             return self._format_error(f"Could not retrieve stock list: {str(e)}")
     
+    def calculate_notepads_a5(
+        self,
+        quantity: int,
+        leaves_per_pad: int,
+        print_type: str,
+        stock_type: str,
+        artworks: Optional[int] = 1,
+        finish_size: Optional[str] = "A5 Portrait",
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Calculate quote for A5 notepads with padding service
+        
+        Args:
+            quantity: Number of notepads (25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000)
+            leaves_per_pad: Sheets per pad (25, 50, or 100)
+            print_type: Print mode ('Colour 1 sided', 'Colour 2 sided', 'Black & White 1 sided', 'Black & White 2 sided')
+            stock_type: Paper stock ('Uncoated Bond 80GSM', 'Uncoated Bond 90GSM', 'Uncoated Bond 100GSM', 'Revive 100% Recycled 80GSM Bond')
+            artworks: Number of artwork designs (1-10, default 1, first free)
+            finish_size: Notepad size ('A5 Portrait' only, default)
+        
+        Returns:
+            Quote for notepads with padding service, cardboard backing, and tier-based pricing
+        """
+        if not self._ensure_calculator():
+            return self._format_error("Calculator not available - check server logs")
+        
+        try:
+            # Import and use NotepadsA5ShopifyCalculator
+            from inhouse_modules.shopify_calculators.NotepadsA5_Shopify_Calculator import NotepadsA5ShopifyCalculator
+            
+            calc = NotepadsA5ShopifyCalculator()
+            result = calc.calculate(
+                quantity=quantity,
+                artworks=artworks,
+                finish_size=finish_size,
+                leaves_per_pad=leaves_per_pad,
+                print_type=print_type,
+                stock_type=stock_type
+            )
+            
+            # Convert result to dict
+            return {
+                "success": True,
+                "total_price": float(result.total_price),
+                "unit_price": float(result.unit_price),
+                "cost_per_pad": float(result.cost_per_pad),
+                "quantity": result.quantity,
+                "breakdown": result.breakdown,
+                "specifications": result.specifications
+            }
+                
+        except Exception as e:
+            return self._format_error(f"Notepad calculation failed: {str(e)}")
+    
     def get_calculator_requirements(
         self,
         product_type: str,

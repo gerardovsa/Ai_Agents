@@ -96,9 +96,9 @@ class ModuleManager {
      * Add icon to sidebar
      */
     addSidebarIcon(config) {
-        // Find insertion point (before last divider or end of sidebar)
-        const dividers = this.sidebar.querySelectorAll('.sidebar-divider');
-        const lastDivider = dividers[dividers.length - 1];
+        // Use dedicated modules section if available, otherwise use main sidebar
+        const modulesSection = document.getElementById('sidebarModulesSection');
+        const container = modulesSection || this.sidebar;
 
         // Create button
         const button = document.createElement('button');
@@ -120,14 +120,22 @@ class ModuleManager {
             this.switchToModule(config.id);
         });
 
-        // Insert before last divider (settings section) or at end
-        if (lastDivider) {
-            this.sidebar.insertBefore(button, lastDivider);
+        // If using dedicated modules section, just append
+        if (modulesSection) {
+            modulesSection.appendChild(button);
         } else {
-            this.sidebar.appendChild(button);
+            // Fallback: Insert before last divider (settings section) or at end
+            const dividers = this.sidebar.querySelectorAll('.sidebar-divider');
+            const lastDivider = dividers[dividers.length - 1];
+
+            if (lastDivider) {
+                this.sidebar.insertBefore(button, lastDivider);
+            } else {
+                this.sidebar.appendChild(button);
+            }
         }
 
-        console.log(`Sidebar icon added for ${config.name}`);
+        console.log(`✅ Sidebar icon added for ${config.name}`);
     }
 
     /**
@@ -166,7 +174,38 @@ class ModuleManager {
 
         console.log(`📦 Loading ${config.dependencies.length} dependencies for ${config.name}...`);
 
-        const loadPromises = config.dependencies.map(async (dep) => {
+        // Resolve shorthand package@version strings to CDN URLs when possible
+        const shorthandMap = {
+            'tabulator-tables@6.3.0': [
+                'https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css',
+                'https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js'
+            ],
+            'tabulator-tables@5.5.2': [
+                'https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css',
+                'https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js'
+            ],
+            'fontawesome@6.4.0': [
+                'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+            ],
+            'fontawesome@6.3.0': [
+                'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css'
+            ]
+        };
+
+        // Expand and normalize dependency list so loader always deals with full URLs
+        const resolvedDeps = [];
+        for (let dep of config.dependencies) {
+            if (shorthandMap[dep]) {
+                resolvedDeps.push(...shorthandMap[dep]);
+            } else if (typeof dep === 'string' && dep.includes('@') && !dep.startsWith('http') && !dep.startsWith('/')) {
+                // Generic fallback: try unpkg for package@version
+                resolvedDeps.push('https://unpkg.com/' + dep);
+            } else {
+                resolvedDeps.push(dep);
+            }
+        }
+
+        const loadPromises = resolvedDeps.map(async (dep) => {
             // Skip if already loaded
             const selector = dep.endsWith('.css')
                 ? `link[href*="${dep.split('/').pop().split('?')[0]}"]`
@@ -303,7 +342,9 @@ class ModuleManager {
                 const shortNames = {
                     'stock-management': 'stockModule',
                     'inhouse-kanban': 'kanbanModule',
-                    'quote-calculator': 'quoteModule'
+                    'quote-calculator': 'quoteModule',
+                    'communication-hub': 'communicationHub',
+                    'render-management': 'renderModule'
                 };
 
                 if (shortNames[moduleId]) {
