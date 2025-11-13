@@ -32,18 +32,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy entire application
 COPY . .
 
-# Ensure data directories exist
-# /app/data - for local config file
-# /data - for Render persistent disk mount point
-RUN mkdir -p /app/data /data
+# Ensure persistent disk mount point exists
+# /data - for Render persistent disk mount point (10GB)
+# /app/data - already contains database-config.json from COPY . .
+RUN mkdir -p /data
 
-# Copy database-config.json to /app/data if it exists in the build context
-# Startup script will copy this to persistent disk on first run
-RUN if [ -f data/database-config.json ]; then \
-    echo "Copying database-config.json to /app/data"; \
-    cp data/database-config.json /app/data/database-config.json; \
+# Verify database-config.json exists in /app/data (copied from COPY . .)
+# Startup script will copy this to persistent disk (/data) on first run
+RUN if [ -f /app/data/database-config.json ]; then \
+    echo "✓ database-config.json found in /app/data"; \
+    ls -lh /app/data/database-config.json; \
     else \
-    echo "Warning: database-config.json not found, will be created at runtime"; \
+    echo "⚠ Warning: database-config.json not found, will be created at runtime"; \
     fi
 
 # Make startup script executable
