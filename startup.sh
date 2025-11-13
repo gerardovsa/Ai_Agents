@@ -61,7 +61,7 @@ if [ "$RENDER" = "true" ]; then
     echo "  Workers: 2 (1 CPU × 2)"
     echo "  Worker Class: gevent (async I/O)"
     echo "  Max Concurrent: ~100 requests"
-    echo "  Preload: Enabled (shared SQLite connection)"
+    echo "  DB Init: File-locked (prevents WAL race condition)"
     echo ""
     exec gunicorn \
         --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker \
@@ -72,7 +72,6 @@ if [ "$RENDER" = "true" ]; then
         --log-level info \
         --access-logfile - \
         --error-logfile - \
-        --preload \
         AI_infrastructure.flask_app:app
 else
     echo "→ Starting Flask application (development)..."

@@ -64,16 +64,34 @@ class UnifiedSessionManager:
     
     def _init_db(self):
         """Initialize SQLite database with sessions table"""
-        # Enhanced SQLite configuration for stability
-        conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
+        import time
         
-        # Enable WAL mode for better concurrency (multiple readers, one writer)
-        conn.execute("PRAGMA journal_mode=WAL")
-        
-        # Optimize for performance
-        conn.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe
-        conn.execute("PRAGMA cache_size=-64000")  # 64MB cache
-        conn.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
+        # Retry logic to handle WAL race condition with multiple Gunicorn workers
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
+                
+                # Enable WAL mode for better concurrency (multiple readers, one writer)
+                # This might fail if another worker is initializing - that's OK, we retry
+                conn.execute("PRAGMA journal_mode=WAL")
+                
+                # Optimize for performance
+                conn.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe
+                conn.execute("PRAGMA cache_size=-64000")  # 64MB cache
+                conn.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
+                
+                # If we got here, initialization succeeded
+                break
+                
+            except sqlite3.OperationalError as e:
+                if "database is locked" in str(e) and attempt < max_retries - 1:
+                    # Another worker is initializing - wait and retry
+                    time.sleep(0.5 * (attempt + 1))  # Exponential backoff
+                    continue
+                else:
+                    # Either not a lock error, or we've exhausted retries
+                    raise
         
         # Create tables
         conn.execute("""
