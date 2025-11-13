@@ -48,6 +48,9 @@
 
     <!-- Dragula for Kanban Drag & Drop -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css">
+
+    <!-- Token Polling System -->
+    <script src="token_polling.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
 
     <!-- Google API for Tasks & Calendar Integration -->
@@ -1145,7 +1148,24 @@
             font-size: 13px;
             color: var(--text-secondary);
             padding: 15px;
+            position: relative;
+        }
 
+        /* Hide rows 3+ by default (show only first 2 rows) */
+        .ai-chat-header-info>div:nth-child(n+3) {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            transition: opacity 0.2s ease, max-height 0.2s ease;
+        }
+
+        /* Show all rows on hover */
+        .ai-chat-header-info:hover>div:nth-child(n+3) {
+            opacity: 1;
+            max-height: 200px;
+            transition: opacity 0.3s ease 0.1s, max-height 0.3s ease 0.1s;
         }
 
         /* Row 1: Title + AI Badge */
@@ -1269,6 +1289,167 @@
             font-size: 10px;
         }
 
+        /* Copy Thread Dropdown Styles */
+        .thread-copy-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            background: transparent;
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            color: var(--text-secondary, #8b949e);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .thread-copy-btn:hover {
+            background: var(--bg-tertiary, #161b22);
+            border-color: var(--accent-primary, #58a6ff);
+            color: var(--accent-primary, #58a6ff);
+        }
+
+        .thread-copy-btn i {
+            font-size: 12px;
+        }
+
+        .thread-copy-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            min-width: 140px;
+            background: var(--bg-secondary, #0d1117);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .thread-copy-menu button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 14px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border-default, #30363d);
+            color: var(--text-primary, #c9d1d9);
+            font-size: 13px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .thread-copy-menu button:last-child {
+            border-bottom: none;
+        }
+
+        .thread-copy-menu button:hover {
+            background: var(--bg-tertiary, #161b22);
+            color: var(--accent-primary, #58a6ff);
+        }
+
+        .thread-copy-menu button i {
+            font-size: 12px;
+            width: 16px;
+            text-align: center;
+            color: var(--text-secondary, #8b949e);
+        }
+
+        .thread-copy-menu button:hover i {
+            color: var(--accent-primary, #58a6ff);
+        }
+
+        /* ============================================================
+           THREAD CARD COLLAPSE BEHAVIOR (Agent & Prime)
+           NEW LAYOUT:
+           Row 1: Title | Agent Badge + Unload (always visible)
+           Row 2: Meta info (msgs, date, time) (always visible)
+           Row 3: Copy + Thread ID (always visible)
+           Row 4: Synergy (hidden until hover)
+           Row 5: Tags (hidden until hover)
+           Action buttons: Hidden until hover
+           ============================================================ */
+
+        /* Agent Thread Cards (thread-info-1, thread-info-2, thread-info-3) */
+        /* Hide synergy and tags rows by default */
+        #thread-info-1:not(:hover) .thread-item-synergy,
+        #thread-info-1:not(:hover) .thread-tags-row,
+        #thread-info-2:not(:hover) .thread-item-synergy,
+        #thread-info-2:not(:hover) .thread-tags-row,
+        #thread-info-3:not(:hover) .thread-item-synergy,
+        #thread-info-3:not(:hover) .thread-tags-row {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            transition: opacity 0.2s ease, max-height 0.2s ease;
+        }
+
+        /* Show synergy and tags on hover */
+        #thread-info-1:hover .thread-item-synergy,
+        #thread-info-1:hover .thread-tags-row,
+        #thread-info-2:hover .thread-item-synergy,
+        #thread-info-2:hover .thread-tags-row,
+        #thread-info-3:hover .thread-item-synergy,
+        #thread-info-3:hover .thread-tags-row {
+            opacity: 1;
+            max-height: 200px;
+            transition: opacity 0.3s ease 0.1s, max-height 0.3s ease 0.1s;
+        }
+
+        /* Hide action buttons in row 1 until hover (for cleaner default view) */
+        #thread-info-1:not(:hover) .thread-item-header .thread-item-actions,
+        #thread-info-2:not(:hover) .thread-item-header .thread-item-actions,
+        #thread-info-3:not(:hover) .thread-item-header .thread-item-actions {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        #thread-info-1:hover .thread-item-header .thread-item-actions,
+        #thread-info-2:hover .thread-item-header .thread-item-actions,
+        #thread-info-3:hover .thread-item-header .thread-item-actions {
+            opacity: 1;
+            pointer-events: auto;
+            transition: opacity 0.3s ease 0.1s;
+        }
+
+        /* Prime Panel Thread Card - Same collapse behavior */
+        #prime-thread-info:not(:hover) .thread-item-synergy,
+        #prime-thread-info:not(:hover) .thread-tags-row {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            transition: opacity 0.2s ease, max-height 0.2s ease;
+        }
+
+        #prime-thread-info:hover .thread-item-synergy,
+        #prime-thread-info:hover .thread-tags-row {
+            opacity: 1;
+            max-height: 200px;
+            transition: opacity 0.3s ease 0.1s, max-height 0.3s ease 0.1s;
+        }
+
+        #prime-thread-info:not(:hover) .thread-item-header .thread-item-actions {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        #prime-thread-info:hover .thread-item-header .thread-item-actions {
+            opacity: 1;
+            pointer-events: auto;
+            transition: opacity 0.3s ease 0.1s;
+        }
+
         .add-tag-btn {
             display: inline-flex;
             align-items: center;
@@ -1301,6 +1482,39 @@
             align-items: center;
             gap: 6px;
             flex-wrap: wrap;
+        }
+
+        .thread-token-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 8px;
+            background: transparent;
+            color: var(--text-muted, #9ca3af);
+            font-size: 11px;
+            border-radius: 6px;
+        }
+
+        .thread-token-count strong {
+            color: var(--text-primary, #c9d1d9);
+            font-weight: 700;
+        }
+
+        .thread-token-count.token-normal {
+            color: var(--text-muted, #9ca3af);
+        }
+
+        .thread-token-count.token-caution {
+            color: #f59e0b;
+        }
+
+        .thread-token-count.token-critical {
+            color: #ef4444;
+        }
+
+        .thread-token-count.token-emergency {
+            color: #b91c1c;
+            font-weight: 800;
         }
 
         .thread-tag-pill {
@@ -1614,14 +1828,18 @@
         /* Thread History Menu - RIGHT SIDEBAR DROPDOWN STYLE */
         .thread-menu-overlay {
             position: fixed;
-            top: 60px; /* Start below the header/hamburger button */
-            right: -300px; /* Hidden off-screen initially */
-            width: 300px; /* Width */
-            height: calc(100vh - 60px); /* Full height minus header */
+            top: 115px;
+            /* Start below the header/hamburger button */
+            right: -300px;
+            /* Hidden off-screen initially */
+            width: 300px;
+            /* Width */
+            height: calc(100vh - 60px);
+            /* Full height minus header */
             padding: 0;
             background: var(--bg-secondary);
-            border-left: 2px solid var(--accent-primary);
-            box-shadow: -4px 0 32px rgba(88, 166, 255, 0.5);
+            border: 1px solid var(--border-default);
+            /*    box-shadow: -4px 0 32px rgba(88, 166, 255, 0.5);  */
             z-index: 10000;
             display: flex;
             flex-direction: column;
@@ -1630,7 +1848,9 @@
         }
 
         .thread-menu-overlay.active {
-            right: 0; /* Slide in from right */
+            right: 0;
+            top: 115px;
+            /* Slide in from right */
             display: flex !important;
             visibility: visible;
         }
@@ -1783,14 +2003,14 @@
             margin-bottom: var(--space-2);
             border: 1px solid var(--border-default);
             background: var(--bg-secondary);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            /*    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);  */
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
             gap: var(--space-2);
             position: relative;
             overflow: hidden;
-            max-height: 150px;
+            min-height: 120px;
             /* COMPACT: Show only 3 rows */
         }
 
@@ -1819,8 +2039,10 @@
             border-color: var(--accent-primary);
             box-shadow: 0 4px 16px rgba(88, 166, 255, 0.3);
             transform: translateY(-2px);
-            max-height: 500px; /* EXPAND: Show all rows (increased for full content) */
-            z-index: 10; /* Lift above other cards */
+            min-height: 250px;
+            /* EXPAND: Show all rows (increased for full content) */
+            z-index: 10;
+            /* Lift above other cards */
         }
 
         .thread-item.dragging {
@@ -1840,6 +2062,15 @@
         .drop-zone {
             transition: background-color 0.2s ease, border 0.2s ease;
             min-height: 100px;
+        }
+
+        /* Synergy card drag-over styling */
+        .kanban-card.drag-over {
+            background-color: rgba(59, 130, 246, 0.08) !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3), 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+            transform: scale(1.02);
+            transition: all 0.2s ease;
         }
 
         .thread-item.drag-ghost {
@@ -1895,7 +2126,7 @@
             align-items: center;
             gap: var(--space-2);
             width: 100%;
-            margin-bottom: 8px;
+            margin-bottom: 0px;
         }
 
         .thread-item-title-row {
@@ -1930,11 +2161,20 @@
             display: flex;
             gap: 6px;
             flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        /* Show buttons on parent thread-item hover */
+        .thread-item:hover .thread-item-actions,
+        .thread-info-container:hover .thread-item-actions,
+        .synergy-linked-thread-wrapper:hover .thread-item-actions {
+            opacity: 1;
         }
 
         .thread-action-btn {
             padding: 6px 8px;
-            background: transparent;
+            background: var(--accent-primary);
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -2153,9 +2393,12 @@
         }
 
         .thread-item-agent-badge.main {
-            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
-            color: #1a1a1a;
+            background: transparent;
+            border: solid 1px #ffd700;
+            /*    border: solid 1px linear-gradient(135deg, #ffd700 0%, #ff8c00 100%); */
         }
+
+
 
         .thread-item-agent-badge i {
             font-size: 11px;
@@ -2808,7 +3051,8 @@
         .ai-chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: var(--space-4);
+            padding: var(--space-4) var(--space-4) 0 var(--space-4) !important;
+            padding-bottom: 0 !important;
             display: flex;
             flex-direction: column;
             gap: var(--space-4);
@@ -3063,20 +3307,35 @@
             align-items: flex-start;
         }
 
-        /* Thinking Bubble */
+        /* Thinking Bubble - Purple with pulse animation */
         .thinking-bubble {
-            /* Removed background and borders for cleaner look */
             max-width: 100%;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            padding: 0;
+            transition: all 0.3s ease;
         }
 
         .thinking-bubble .ai-message-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            /* Removed padding, background, and border for cleaner look */
+            gap: var(--space-2);
             font-size: 12px;
             font-weight: 600;
-            color: #6b7280;
+            color: #8b5cf6;
+        }
+
+        /* Purple background for brain icon ONLY */
+        .thinking-bubble .ai-message-avatar {
+            background: #8b5cf6 !important;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        /* Pulse animation on brain icon when streaming */
+        .thinking-bubble.streaming .ai-message-avatar {
+            animation: thinkingPulse 2s ease-in-out infinite;
         }
 
         .thinking-bubble .ai-message-header i {
@@ -3106,9 +3365,16 @@
             transform: rotate(-90deg);
         }
 
+        /* Round separator for multi-round thinking */
+        .thinking-round-separator {
+            margin: 12px 0;
+            text-align: center;
+            user-select: none;
+        }
+
         .thinking-content {
             padding: var(--space-3);
-            font-size: 13px;
+            font-size: 14px;
             color: #6b7280;
             font-family: 'Monaco', 'Consolas', monospace;
             white-space: pre-wrap;
@@ -3252,7 +3518,34 @@
             }
         }
 
+        /* ==================== THINKING BUBBLE ANIMATIONS ==================== */
+        @keyframes thinkingPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 15px rgba(139, 92, 246, 0.2);
+                border-color: rgba(139, 92, 246, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 15px rgba(139, 92, 246, 0.6), 0 0 25px rgba(139, 92, 246, 0.4), 0 0 35px rgba(139, 92, 246, 0.2);
+                border-color: rgba(139, 92, 246, 0.5);
+            }
+        }
+
         /* ==================== TOOL STATUS ANIMATIONS ==================== */
+        @keyframes glowYellow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 5px rgba(234, 179, 8, 0.5), 0 0 10px rgba(234, 179, 8, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 15px rgba(234, 179, 8, 0.9), 0 0 25px rgba(234, 179, 8, 0.6), 0 0 35px rgba(234, 179, 8, 0.4);
+            }
+        }
+
         @keyframes glowOrange {
 
             0%,
@@ -3298,11 +3591,12 @@
         /* Tool status classes */
         .tool-status-running .ai-message-avatar {
             background: #eab308 !important;
-            animation: glowOrange 1.5s ease-in-out infinite;
+            animation: glowYellow 1.2s ease-in-out infinite;
         }
 
         .tool-status-running .ai-message-avatar i {
             animation: spinCog 2s linear infinite;
+            color: #ffffff !important;
         }
 
         .tool-status-complete .ai-message-avatar {
@@ -3310,9 +3604,17 @@
             animation: glowGreen 1s ease-out forwards;
         }
 
+        .tool-status-complete .ai-message-avatar i {
+            color: #ffffff !important;
+        }
+
         .tool-status-error .ai-message-avatar {
             background: #ef4444 !important;
             animation: glowRed 1s ease-out forwards;
+        }
+
+        .tool-status-error .ai-message-avatar i {
+            color: #ffffff !important;
         }
 
         /* ==================== NESTED TOOL STYLES ==================== */
@@ -4030,11 +4332,17 @@
             bottom: 0;
             left: 0;
             right: 0;
-            padding: var(--space-4);
+            padding: 20px !important;
             background: transparent;
             transition: background 0.3s ease;
             z-index: 100;
             pointer-events: none;
+        }
+
+        /* Hide chat input when welcome message is visible */
+        #prime-welcome-container:not([style*="display: none"])~.ai-chat-input-wrapper,
+        #prime-welcome-container[style*="display: flex"]~.ai-chat-input-wrapper {
+            display: none;
         }
 
         /* Keep transparent on hover and focus */
@@ -4054,7 +4362,7 @@
         .ai-chat-input-controls {
             display: flex;
             gap: 8px;
-            align-items: center;
+            align-items: flex-end;
         }
 
         /* Center textarea */
@@ -5534,24 +5842,31 @@
            BUBBLE TYPE SPECIFIC STYLES (thinking, tool, text, result)
            ============================================================ */
 
-        /* Thinking Bubble - Amber/Warning styling with brain icon */
+        /* Thinking Bubble - Purple brain icon ONLY */
         .ai-message.thinking-bubble {
-            margin: 8px 0;
+            margin: 0;
         }
 
         .ai-message.thinking-bubble .agent-message-bubble {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid #fbbf24;
-            border-left: 4px solid #fbbf24;
+            background: transparent;
+            border: none;
         }
 
         .ai-message.thinking-bubble .bubble-header {
-            color: #fbbf24;
+            color: #8b5cf6;
             font-weight: 600;
         }
 
+        /* Purple background on icon ONLY */
         .ai-message.thinking-bubble .bubble-icon {
-            color: #fbbf24;
+            background: #8b5cf6 !important;
+            color: white !important;
+            transition: all 0.3s ease;
+        }
+
+        /* Pulse animation on icon when streaming */
+        .ai-message.thinking-bubble.streaming .bubble-icon {
+            animation: thinkingPulse 2s ease-in-out infinite;
         }
 
         /* Tool Bubble - Green styling with cog icon */
@@ -10239,21 +10554,24 @@
         });
 
         // ==================== API CONFIGURATION ====================
-        // FORCE LOCAL DEVELOPMENT MODE
-        // Override RenderConfig to always use localhost for testing
-        const FORCE_LOCAL = true;  // ← Set to false to use Render.com in production
+        // AUTO-DETECT ENVIRONMENT: Production (Render) vs Local Development
+        // Uses window.location.hostname to automatically determine the backend URL
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const FORCE_LOCAL = false;  // Set to true to force localhost even on production domain
 
-        const API_BASE_URL = FORCE_LOCAL ? 'http://localhost:5001' :
-            (typeof RenderConfig !== 'undefined' ? RenderConfig.getApiBaseUrl() : 'http://localhost:5001');
-        const VSA_API_BASE_URL = FORCE_LOCAL ? 'http://localhost:5300' :
-            (typeof RenderConfig !== 'undefined' ? RenderConfig.getVsaApiUrl() : 'http://localhost:5300');
+        // Auto-detect backend URL based on current hostname
+        const API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 'http://localhost:5001' :
+            window.location.origin;  // Use same domain as frontend (Render URL)
+        
+        const VSA_API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 'http://localhost:5300' :
+            'https://vsa-agent-service.onrender.com';  // VSA Agent separate service
 
         // Make API URLs globally accessible
         window.API_BASE_URL = API_BASE_URL;
         window.VSA_API_BASE_URL = VSA_API_BASE_URL;
 
-        console.log('🌐 Environment:', FORCE_LOCAL ? 'DEVELOPMENT (FORCED localhost)' :
-            (typeof RenderConfig !== 'undefined' && RenderConfig.isProduction ? 'PRODUCTION (Render)' : 'DEVELOPMENT (localhost)'));
+        console.log('🌐 Environment:', isLocalhost ? 'DEVELOPMENT (localhost)' : 'PRODUCTION (Render)');
+        console.log('🌐 Current hostname:', window.location.hostname);
         console.log('🎯 API Base URL:', API_BASE_URL);
         console.log('🎯 VSA Agent URL:', VSA_API_BASE_URL);
 
@@ -10636,6 +10954,13 @@
 
                     const threadId = e.dataTransfer.getData('text/plain');
                     if (threadId) {
+                        // Hide welcome container when thread is dropped
+                        const welcomeContainer = document.getElementById('prime-welcome-container');
+                        if (welcomeContainer) {
+                            welcomeContainer.style.display = 'none';
+                            console.log('[WELCOME] Hidden - thread dropped on Prime');
+                        }
+
                         ThreadManager.assignThread(threadId, 'main');
                         ThreadManager.switchThread(threadId);
                         console.log(`[DROP] Thread ${threadId} dropped on Prime`);
@@ -11738,7 +12063,28 @@
 
                 // Step 2: Connect to SSE stream to receive response
                 console.log('📡 Connecting to SSE stream...');
-                const streamUrl = `${API_BASE_URL}/api/agent/stream/${agentId}?session_id=${sessionId}`;
+                
+                // PROMPT INJECTION: Get selected prompts from prompt library
+                let promptParams = '';
+                if (typeof window.getSelectedPrompts === 'function') {
+                    const selectedPrompts = window.getSelectedPrompts();
+                    if (selectedPrompts && selectedPrompts.length > 0) {
+                        const quickActions = selectedPrompts.filter(p => p.type === 'quick_action').map(p => p.name);
+                        const libraryPrompts = selectedPrompts.filter(p => p.type === 'full_prompt').map(p => p.name);
+                        
+                        if (quickActions.length > 0) {
+                            promptParams += `&quick_actions=${encodeURIComponent(quickActions.join(','))}`;
+                        }
+                        if (libraryPrompts.length > 0) {
+                            promptParams += `&library_prompts=${encodeURIComponent(libraryPrompts.join(','))}`;
+                        }
+                        
+                        console.log(`[PROMPT INJECTION] Quick Actions: ${quickActions.join(', ')}`);
+                        console.log(`[PROMPT INJECTION] Library Prompts: ${libraryPrompts.join(', ')}`);
+                    }
+                }
+                
+                const streamUrl = `${API_BASE_URL}/api/agent/stream/${agentId}?session_id=${sessionId}${promptParams}`;
                 const response = await fetch(streamUrl);
 
                 if (!response.ok) {
@@ -11771,6 +12117,9 @@
                     let thinkingBubble = null;
                     let textBubble = null;
                     let lastEventType = null;  // Track event type to detect text sequence changes
+
+                    // Reset round counter for new stream
+                    window._thinkingRoundCounter = 0;
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let buffer = '';  // Buffer for incomplete SSE messages
@@ -13137,7 +13486,8 @@
             messagesContainer.appendChild(messageDiv);
             console.log('[OK] Message added to DOM, total messages:', messagesContainer.children.length);
 
-            // Hide welcome container when first message is added
+            // Hide welcome container when any message is added (handled by thread loading now)
+            // Welcome is only shown when no thread is loaded, not based on message count
             const welcomeContainer = document.getElementById('prime-welcome-container');
             if (welcomeContainer && !isThinking) {
                 welcomeContainer.style.display = 'none';
@@ -13268,9 +13618,29 @@
             let fullResponse = '';
 
             try {
+                // PROMPT INJECTION: Get selected prompts from prompt library
+                let promptParams = '';
+                if (typeof window.getSelectedPrompts === 'function') {
+                    const selectedPrompts = window.getSelectedPrompts();
+                    if (selectedPrompts && selectedPrompts.length > 0) {
+                        const quickActions = selectedPrompts.filter(p => p.type === 'quick_action').map(p => p.name);
+                        const libraryPrompts = selectedPrompts.filter(p => p.type === 'full_prompt').map(p => p.name);
+                        
+                        if (quickActions.length > 0) {
+                            promptParams += `&quick_actions=${encodeURIComponent(quickActions.join(','))}`;
+                        }
+                        if (libraryPrompts.length > 0) {
+                            promptParams += `&library_prompts=${encodeURIComponent(libraryPrompts.join(','))}`;
+                        }
+                        
+                        console.log(`[PROMPT INJECTION] Quick Actions: ${quickActions.join(', ')}`);
+                        console.log(`[PROMPT INJECTION] Library Prompts: ${libraryPrompts.join(', ')}`);
+                    }
+                }
+                
                 // Connect to SSE stream
                 const eventSource = new EventSource(
-                    `${API_BASE_URL}/api/agent/stream?session_id=${sessionId}&message=${encodeURIComponent(message)}`
+                    `${API_BASE_URL}/api/agent/stream?session_id=${sessionId}&message=${encodeURIComponent(message)}${promptParams}`
                 );
 
                 // Handle content blocks
@@ -13742,11 +14112,13 @@
 
             // CRITICAL: Clear thread from agent (used when moving to Prime or another agent)
             clearAgentThread(agentId) {
-                console.log(`[CLEAR] Clearing thread from agent-${agentId}`);
+                const oldThreadId = this.sessions[agentId];
+                console.log(`[CLEAR] Clearing thread from agent-${agentId} (threadId: ${oldThreadId})`);
 
                 // Clear loaded thread state
                 delete this.loadedThreads[agentId];
                 this.sessions[agentId] = null;
+                console.log(`[ISOLATION] ✅ Agent-${agentId} session cleared`);
 
                 // Clear UI
                 const messagesContainer = document.querySelector(`#agent-${agentId} .agent-messages-container`);
@@ -13768,6 +14140,53 @@
                 this.updateQuickNavBadge(agentId);
 
                 console.log(`[OK] Agent ${agentId} cleared`);
+            },
+
+            // CRITICAL: Validate session isolation (prevents duplicate sessions)
+            validateSessionIsolation(threadId, expectedLocation) {
+                console.log(`[ISOLATION CHECK] Thread ${threadId} should be in ${expectedLocation}`);
+
+                const issues = [];
+
+                // Check Prime
+                if (typeof ThreadManager !== 'undefined' && ThreadManager.currentThreadId === threadId) {
+                    if (expectedLocation !== 'prime') {
+                        issues.push(`Prime has thread but location is ${expectedLocation}`);
+                        console.warn(`⚠️ [ISOLATION VIOLATION] Prime has thread ${threadId} but location is ${expectedLocation}`);
+                    }
+                }
+
+                // Check AppState.sessionId (critical for Prime)
+                if (typeof AppState !== 'undefined' && AppState.sessionId === threadId) {
+                    if (expectedLocation !== 'prime') {
+                        issues.push(`AppState.sessionId has thread but location is ${expectedLocation}`);
+                        console.warn(`⚠️ [ISOLATION VIOLATION] AppState.sessionId has thread ${threadId} but location is ${expectedLocation}`);
+                    }
+                }
+
+                // Check agents
+                [1, 2, 3].forEach(agentId => {
+                    const hasThread = this.sessions[agentId] === threadId;
+                    const shouldHave = expectedLocation === `agent-${agentId}`;
+
+                    if (hasThread && !shouldHave) {
+                        issues.push(`Agent-${agentId} has thread but location is ${expectedLocation}`);
+                        console.warn(`⚠️ [ISOLATION VIOLATION] Agent-${agentId} has thread ${threadId} but location is ${expectedLocation}`);
+                    }
+
+                    if (!hasThread && shouldHave) {
+                        issues.push(`Agent-${agentId} should have thread but doesn't`);
+                        console.warn(`⚠️ [ISOLATION VIOLATION] Agent-${agentId} should have thread ${threadId} but doesn't`);
+                    }
+                });
+
+                if (issues.length > 0) {
+                    console.error(`🚨 [ISOLATION VIOLATION] ${issues.length} issue(s):`, issues);
+                    return false;
+                }
+
+                console.log(`✅ [ISOLATION OK] Thread correctly isolated to ${expectedLocation}`);
+                return true;
             },
 
             // Clear loaded thread
@@ -14317,7 +14736,7 @@
 
                     // Unload from current location first
                     if (currentLocation === 'prime') {
-                        console.log(`[LOAD] Unloading thread from Prime before loading into agent-${agentId}`);
+                        console.log(`[ISOLATION] 🔒 Clearing Prime - thread moving to agent-${agentId}`);
                         if (typeof ThreadManager !== 'undefined' && ThreadManager.currentThreadId === thread.id) {
                             // Clear Prime panel
                             ThreadManager.currentThreadId = null;
@@ -14326,15 +14745,17 @@
                             if (typeof AppState !== 'undefined') {
                                 AppState.sessionId = null;
                                 AppState.chatMessages = [];
+                                console.log(`[ISOLATION] ✅ Prime AppState.sessionId cleared (was: ${thread.id})`);
                             }
-                            console.log(`[LOAD] Cleared Prime panel`);
+                            console.log(`[ISOLATION] ✅ Prime panel cleared`);
                         }
                     } else if (currentLocation.startsWith('agent-')) {
                         // Unload from another agent
                         const oldAgentId = parseInt(currentLocation.replace('agent-', ''));
                         if (oldAgentId !== agentId) {
-                            console.log(`[LOAD] Unloading thread from ${currentLocation} before loading into agent-${agentId}`);
+                            console.log(`[ISOLATION] 🔒 Clearing ${currentLocation} - thread moving to agent-${agentId}`);
                             this.clearAgentThread(oldAgentId);
+                            console.log(`[ISOLATION] ✅ ${currentLocation} cleared`);
                         }
                     }
                 }
@@ -14436,6 +14857,11 @@
                 console.log(`[ENABLED] Input enabled for agent-${agentId}`);
 
                 console.log(`[OK] Thread loaded into ${this.getAgentName(agentId)} with ${thread.messages ? thread.messages.length : 0} messages (TwoRule rendering)`);
+
+                // ✅ VALIDATE: Check session isolation after loading
+                setTimeout(() => {
+                    this.validateSessionIsolation(thread.id, `agent-${agentId}`);
+                }, 100);
             },
 
             // Unload thread from agent and move to Prime
@@ -15634,6 +16060,12 @@
                     threadForSaving.updated = new Date().toISOString();
                     // Note: Thread saved via backend API in updateCurrentThread() below
                     console.log(`💾 Saved to thread: ${threadForSaving.title} (${result.toolBubbles.length} tools used, thinking: ${result.fullThinkingContent ? 'yes' : 'no'})`);
+
+                    // CRITICAL FIX: Refresh thread-info card to show updated timestamp
+                    if (typeof MultiAgent !== 'undefined' && MultiAgent.updateAgentHeader) {
+                        MultiAgent.updateAgentHeader(agentId);
+                        console.log(`🔄 Refreshed agent ${agentId} header with new timestamp`);
+                    }
 
                     // Save messages to backend after multi-agent completes
                     ThreadManager.updateCurrentThread(threadForSaving.messages);
@@ -18474,8 +18906,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     if (currentLocation && currentLocation.startsWith('agent-')) {
                         const agentId = parseInt(currentLocation.replace('agent-', ''));
                         console.warn(`[LOAD] Thread ${threadId} is already loaded in ${currentLocation}`);
-                        console.log(`[LOAD] Clearing thread from ${currentLocation} before loading into Prime`);
+                        console.log(`[ISOLATION] 🔒 Clearing ${currentLocation} - thread moving to Prime`);
                         MultiAgent.clearAgentThread(agentId);
+                        console.log(`[ISOLATION] ✅ ${currentLocation} session cleared (was: ${threadId})`);
                     }
                 }
 
@@ -18496,7 +18929,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     thread.messages = [];
                 }
 
-                // Load thread messages from backend if not already loaded
+                // ALWAYS hide welcome when loading a thread (even if empty)
+                const welcomeContainer = document.getElementById('prime-welcome-container');
+                if (welcomeContainer) {
+                    welcomeContainer.style.display = 'none';
+                    console.log('[WELCOME] Hidden - thread loaded:', threadId);
+                }                // Load thread messages from backend if not already loaded
                 if (thread.messages.length === 0 && thread.message_count > 0) {
                     console.log(`[THREAD LOAD] Loading ${thread.message_count} messages from backend...`);
                     this.loadMessagesForThread(threadId).then(() => {
@@ -18558,6 +18996,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                 this.renderThreadList();
                 this.closeThreadMenu();
+
+                // ✅ VALIDATE: Check session isolation after loading
+                if (typeof MultiAgent !== 'undefined') {
+                    setTimeout(() => {
+                        MultiAgent.validateSessionIsolation(threadId, 'prime');
+                    }, 100);
+                }
             },
 
             // Show assignment options inline (expandable card)
@@ -19352,6 +19797,180 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             /* OLD updateAgentHeader() DELETED - Now handled by MultiAgent.updateAgentHeader() which calls renderThreadInfoContainer() */
 
+            // ============================================================
+            // COPY THREAD FUNCTIONALITY
+            // ============================================================
+            /**
+             * Toggle copy menu visibility
+             * @param {string} threadId - Thread ID
+             */
+            toggleCopyMenu(threadId) {
+                const menu = document.getElementById(`copy-menu-${threadId}`);
+                if (menu) {
+                    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+                }
+            },
+
+            /**
+             * Copy thread content to clipboard in specified format
+             * @param {string} threadId - Thread ID
+             * @param {string} format - 'simple', 'detailed', or 'json'
+             */
+            async copyThreadContent(threadId, format) {
+                const thread = this.threads.find(t => t.id === threadId);
+                if (!thread) {
+                    console.error(`Thread ${threadId} not found`);
+                    return;
+                }
+
+                let content = '';
+                switch (format) {
+                    case 'simple':
+                        content = this._formatSimple(thread);
+                        break;
+                    case 'detailed':
+                        content = this._formatDetailed(thread);
+                        break;
+                    case 'json':
+                        content = this._formatJSON(thread);
+                        break;
+                    default:
+                        console.error(`Unknown format: ${format}`);
+                        return;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(content);
+                    console.log(`Thread ${threadId} copied to clipboard (${format} format)`);
+
+                    // Show feedback
+                    const copyBtn = document.querySelector(`[onclick*="copyThreadContent('${threadId}'"]`);
+                    if (copyBtn) {
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                        }, 2000);
+                    }
+
+                    // Close menu
+                    this.toggleCopyMenu(threadId);
+                } catch (error) {
+                    console.error('Failed to copy to clipboard:', error);
+                    alert('Failed to copy to clipboard. Please try again.');
+                }
+            },
+
+            /**
+             * Format thread as simple markdown (user-friendly)
+             */
+            _formatSimple(thread) {
+                let output = `# ${thread.title || 'Untitled Thread'}\n\n`;
+
+                if (thread.messages && thread.messages.length > 0) {
+                    thread.messages.forEach((msg, index) => {
+                        const role = msg.role === 'user' ? 'You' : 'AI';
+                        const content = this._extractTextFromContent(msg.content);
+                        output += `**${role}:**\n${content}\n\n---\n\n`;
+                    });
+                } else {
+                    output += '*No messages yet*\n';
+                }
+
+                return output;
+            },
+
+            /**
+             * Format thread with detailed metadata
+             */
+            _formatDetailed(thread) {
+                let output = `# ${thread.title || 'Untitled Thread'}\n\n`;
+                output += `**Thread ID:** ${thread.id}\n`;
+                output += `**Created:** ${new Date(thread.created).toLocaleString()}\n`;
+                output += `**Updated:** ${new Date(thread.updated || thread.created).toLocaleString()}\n`;
+                output += `**Messages:** ${thread.message_count || (thread.messages?.length || 0)}\n`;
+
+                if (thread.synergy_card_id) {
+                    output += `**Synergy Card:** ${thread.synergy_card_name || thread.synergy_card_id}\n`;
+                }
+
+                output += `\n---\n\n`;
+
+                if (thread.messages && thread.messages.length > 0) {
+                    thread.messages.forEach((msg, index) => {
+                        const role = msg.role === 'user' ? 'You' : 'AI';
+                        const timestamp = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : 'Unknown time';
+                        const content = this._extractTextFromContent(msg.content);
+
+                        output += `### Message ${index + 1} - ${role}\n`;
+                        output += `**Time:** ${timestamp}\n`;
+
+                        if (msg.response_time) {
+                            output += `**Response Time:** ${(msg.response_time / 1000).toFixed(2)}s\n`;
+                        }
+
+                        if (msg.tools_used) {
+                            output += `**Tools Used:** ${msg.tools_used}\n`;
+                        }
+
+                        output += `\n${content}\n\n---\n\n`;
+                    });
+                } else {
+                    output += '*No messages yet*\n';
+                }
+
+                return output;
+            },
+
+            /**
+             * Format thread as JSON (for developers/debugging)
+             */
+            _formatJSON(thread) {
+                // Create a clean copy without circular references
+                const cleanThread = {
+                    id: thread.id,
+                    title: thread.title,
+                    created: thread.created,
+                    updated: thread.updated,
+                    message_count: thread.message_count,
+                    synergy_card_id: thread.synergy_card_id,
+                    synergy_card_name: thread.synergy_card_name,
+                    location: thread.location,
+                    messages: thread.messages?.map(msg => ({
+                        role: msg.role,
+                        content: msg.content,
+                        timestamp: msg.timestamp,
+                        response_time: msg.response_time,
+                        tools_used: msg.tools_used,
+                        thinking: msg.thinking
+                    })) || []
+                };
+
+                return JSON.stringify(cleanThread, null, 2);
+            },
+
+            /**
+             * Extract text content from message (handles both string and array formats)
+             */
+            _extractTextFromContent(content) {
+                if (typeof content === 'string') {
+                    return content;
+                }
+
+                if (Array.isArray(content)) {
+                    // Extract text from content blocks
+                    return content
+                        .filter(block => block.type === 'text' || block.text)
+                        .map(block => block.text || block.content || '')
+                        .join('\n\n');
+                }
+
+                return String(content);
+            },
+
+            // ============================================================
+            // UNIVERSAL THREAD INFO CONTAINER RENDERER
+            // ============================================================
             /**
              * Render Unified Thread Info Container (for Prime, Agents, and Synergy cards)
              * This replaces the old inconsistent thread-info displays with a unified structure
@@ -19507,9 +20126,10 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 if (compact) {
                     // COMPACT MODE (for agent columns and Synergy cards) - UNIFIED 5-ROW LAYOUT
                     return `<div class="ai-chat-header-info thread-info-compact" data-thread-id="${thread.id}" data-location="${location}">
-                        <!-- ROW 1: Agent Badge + Unload Button (agent only) | Action Buttons (right) -->
+                        <!-- ROW 1: Title (left) | Agent Badge + Unload Button (right) -->
                         <div class="thread-item-header">
-                            <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}" style="flex: 1; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${thread.title || 'Untitled'}</span>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                                 <div class="thread-item-agent-badge ${agentClass}">
                                     <i class="fas ${agentIcon}"></i> ${agentName}
                                 </div>
@@ -19557,12 +20177,20 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             </div>
                         </div>
                         
-                        <!-- ROW 2: Title (Full Width) -->
-                        <div class="thread-item-title-row">
-                            <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}">${thread.title || 'Untitled'}</span>
+                        <!-- ROW 2: Meta Info (messages, date, time) -->
+                        <div class="thread-item-meta" style="display: flex; align-items: center; gap: 12px; flex: 1; margin-top: 6px;">
+                            <span class="thread-meta-item" title="Message count">
+                                <i class="fas fa-comments"></i> ${msgCount} msgs
+                            </span>
+                            <span class="thread-meta-item" title="Last updated">
+                                <i class="fas fa-calendar"></i> ${dateStr}
+                            </span>
+                            <span class="thread-meta-item" title="Time">
+                                <i class="fas fa-clock"></i> ${timeStr}
+                            </span>
                         </div>
                         
-                        <!-- ROW 3: Meta Info + Thread Slug -->
+                        <!-- ROW 3: Meta Info + Copy Thread Dropdown + Thread Slug -->
                         <div class="thread-item-meta" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                             <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                                 <span class="thread-meta-item" title="Message count">
@@ -19575,11 +20203,32 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                     <i class="fas fa-clock"></i> ${timeStr}
                                 </span>
                             </div>
-                            <button class="thread-id-badge"
-                                onclick="event.stopPropagation(); ThreadManager.copyThreadId('${thread.id}')"
-                                title="Copy thread slug: ${thread.id}">
-                                <i class="fas fa-hashtag"></i> ${threadSlug}
-                            </button>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <!-- Copy Thread Content Dropdown -->
+                                <div class="thread-copy-dropdown" style="position: relative;">
+                                    <button class="thread-copy-btn"
+                                        onclick="event.stopPropagation(); ThreadManager.toggleCopyMenu('${thread.id}')"
+                                        title="Copy thread conversation">
+                                        <i class="fas fa-file-alt"></i>
+                                    </button>
+                                    <div class="thread-copy-menu" id="copy-menu-${thread.id}" style="display: none;">
+                                        <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'simple')">
+                                            <i class="fas fa-align-left"></i> Simple
+                                        </button>
+                                        <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'detailed')">
+                                            <i class="fas fa-list-ul"></i> Detailed
+                                        </button>
+                                        <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'json')">
+                                            <i class="fas fa-code"></i> JSON
+                                        </button>
+                                    </div>
+                                </div>
+                                <button class="thread-id-badge"
+                                    onclick="event.stopPropagation(); ThreadManager.copyThreadId('${thread.id}')"
+                                    title="Copy thread slug: ${thread.id}">
+                                    <i class="fas fa-hashtag"></i> ${threadSlug}
+                                </button>
+                            </div>
                         </div>
                         
                         <!-- ROW 4: Synergy Session (if present) - SHOWS FULL TITLE FROM METADATA -->
@@ -19620,6 +20269,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                     ` : ''}
                                 </span>
                             `).join('') : ''}
+                            ${typeof thread.token_count !== 'undefined' ? `
+                                <span class="thread-token-count" id="token-count-${thread.id}" title="Estimated tokens: ${thread.token_count}">
+                                    Tokens: <strong>${(thread.token_count).toLocaleString()}</strong>
+                                </span>
+                            ` : `
+                                <span class="thread-token-count" id="token-count-${thread.id}" style="display:none">
+                                    Tokens: <strong>0</strong>
+                                </span>
+                            `}
                             ${location !== 'synergy' ? `
                                 <button class="add-tag-btn" 
                                         onclick="event.stopPropagation(); ThreadManager.showAddTagModal('${location}', '${thread.id}')" 
@@ -19630,41 +20288,58 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         </div>
                     </div>`;
                 } else {
-                    // FULL MODE (for Prime panel) - UNIFIED 6-ROW LAYOUT
+                    // FULL MODE (for Prime panel) - UNIFIED 5-ROW LAYOUT
                     return `<div class="ai-chat-header-info" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}">
-                        <!-- ROW 1: Agent Badge (left) + Unload Button ONLY (right, only if assigned to agent) -->
+                        <!-- ROW 1: Title (left) | Agent Badge + Unload Button (right) -->
                         <div class="thread-item-header">
-                            <div class="thread-item-agent-badge ${agentClass}">
-                                <i class="fas ${agentIcon}"></i> ${agentName}
-                            </div>
-                            ${location !== 'synergy' && location !== 'prime' && location.startsWith('agent-') ? `
-                                <div class="thread-item-actions">
-                                    <button class="thread-action-btn unload"
+                            <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}" style="flex: 1; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${thread.title || 'Untitled'}</span>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                                <div class="thread-item-agent-badge ${agentClass}">
+                                    <i class="fas ${agentIcon}"></i> ${agentName}
+                                </div>
+                                ${location !== 'synergy' && location !== 'prime' && location.startsWith('agent-') ? `
+                                    <button class="agent-unload-btn"
                                         onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
                                         title="Unload thread from agent (move to Prime)">
                                         <i class="fas fa-sign-out-alt"></i>
                                     </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <!-- ROW 2: Meta Info (messages, date, time) -->
+                        <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                            <span class="thread-meta-item" title="Message count">
+                                <i class="fas fa-comments"></i> ${msgCount} msgs
+                            </span>
+                            <span class="thread-meta-item" title="Last updated">
+                                <i class="fas fa-calendar"></i> ${dateStr}
+                            </span>
+                            <span class="thread-meta-item" title="Time">
+                                <i class="fas fa-clock"></i> ${timeStr}
+                            </span>
+                        </div>
+                        
+                        <!-- ROW 3: Copy Thread + Thread ID -->
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                            <!-- Copy Thread Content Dropdown -->
+                            <div class="thread-copy-dropdown" style="position: relative;">
+                                <button class="thread-copy-btn"
+                                    onclick="event.stopPropagation(); ThreadManager.toggleCopyMenu('${thread.id}')"
+                                    title="Copy thread conversation">
+                                    <i class="fas fa-file-alt"></i>
+                                </button>
+                                <div class="thread-copy-menu" id="copy-menu-${thread.id}" style="display: none;">
+                                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'simple')">
+                                        <i class="fas fa-align-left"></i> Simple
+                                    </button>
+                                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'detailed')">
+                                        <i class="fas fa-list-ul"></i> Detailed
+                                    </button>
+                                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'json')">
+                                        <i class="fas fa-code"></i> JSON
+                                    </button>
                                 </div>
-                            ` : ''}
-                        </div>
-                        
-                        <!-- ROW 2: Title (Full Width) -->
-                        <div class="thread-item-title-row">
-                            <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}">${thread.title || 'Untitled'}</span>
-                        </div>
-                        
-                        <!-- ROW 3: Meta Info + Thread Slug -->
-                        <div class="thread-item-meta" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                <span class="thread-meta-item" title="Message count">
-                                    <i class="fas fa-comments"></i> ${msgCount} msgs
-                                </span>
-                                <span class="thread-meta-item" title="Last updated">
-                                    <i class="fas fa-calendar"></i> ${dateStr}
-                                </span>
-                                <span class="thread-meta-item" title="Time">
-                                    <i class="fas fa-clock"></i> ${timeStr}
-                                </span>
                             </div>
                             <button class="thread-id-badge"
                                 onclick="event.stopPropagation(); ThreadManager.copyThreadId('${thread.id}')"
@@ -19709,6 +20384,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                             title="Remove tag">&times;</button>
                                 </span>
                             `).join('') : ''}
+                            ${typeof thread.token_count !== 'undefined' ? `
+                                <span class="thread-token-count" id="token-count-${thread.id}" title="Estimated tokens: ${thread.token_count}">
+                                    Tokens: <strong>${(thread.token_count).toLocaleString()}</strong>
+                                </span>
+                            ` : `
+                                <span class="thread-token-count" id="token-count-${thread.id}" style="display:none">
+                                    Tokens: <strong>0</strong>
+                                </span>
+                            `}
                             <button class="add-tag-btn" 
                                     onclick="event.stopPropagation(); ThreadManager.showAddTagModal('${location}', '${thread.id}')" 
                                     title="Add tags to this thread">
@@ -19784,6 +20468,42 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 }
 
                 console.log('[UI UPDATE] Message count updated:', count);
+            },
+
+            /**
+             * Update token count display for a thread.
+             * threadId: string
+             * tokenCount: optional number (if provided will update the thread object)
+             */
+            updateTokenCount(threadId, tokenCount) {
+                const thread = this.threads.find(t => t.id === threadId);
+                if (!thread) return;
+
+                if (typeof tokenCount !== 'undefined') {
+                    thread.token_count = tokenCount;
+                }
+
+                const el = document.getElementById(`token-count-${thread.id}`);
+                if (!el) return;
+
+                el.style.display = 'inline-flex';
+                const value = (thread.token_count || 0);
+                try {
+                    el.innerHTML = `Tokens: <strong>${value.toLocaleString()}</strong>`;
+                } catch (e) {
+                    el.innerHTML = 'Tokens: <strong>' + (value) + '</strong>';
+                }
+
+                // Apply threshold classes (uses window.SESSION_TOKEN_LIMIT or fallback)
+                const limit = window.SESSION_TOKEN_LIMIT || 200000;
+                const pct = limit > 0 ? (value / limit) : 0;
+                el.classList.remove('token-normal', 'token-caution', 'token-critical', 'token-emergency');
+                if (pct >= 0.95) el.classList.add('token-emergency');
+                else if (pct >= 0.8) el.classList.add('token-critical');
+                else if (pct >= 0.5) el.classList.add('token-caution');
+                else el.classList.add('token-normal');
+
+                console.log('[UI UPDATE] Token count updated for', threadId, value);
             },
 
             /**
@@ -21465,7 +22185,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         const welcomeContainer = document.getElementById('prime-welcome-container');
                         if (welcomeContainer) {
                             welcomeContainer.style.display = 'none';
-                            console.log('[OK] Welcome container hidden for new thread');
+                            console.log('[WELCOME] Hidden - new thread created:', newThreadId);
                         }
                     }
 
@@ -22934,7 +23654,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 setTimeout(async () => {
                     await ThreadManager.init();
                     // Initialize drag and drop zones
-                    ThreadManager.initializeDropZones();
+                    // ThreadManager.initializeDropZones(); // Not needed - drag-and-drop works without it
                     // After threads are loaded, restore thread assignments in Multi-Agent
                     if (typeof MultiAgent !== 'undefined' && MultiAgent.restoreThreadAssignments) {
                         MultiAgent.restoreThreadAssignments();
@@ -22945,7 +23665,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             setTimeout(async () => {
                 await ThreadManager.init();
                 // Initialize drag and drop zones
-                ThreadManager.initializeDropZones();
+                // ThreadManager.initializeDropZones(); // Not needed - drag-and-drop works without it
                 // After threads are loaded, restore thread assignments in Multi-Agent
                 if (typeof MultiAgent !== 'undefined' && MultiAgent.restoreThreadAssignments) {
                     MultiAgent.restoreThreadAssignments();
@@ -25788,6 +26508,84 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             margin: 0;
         }
 
+        /* Markdown Rendering Styles */
+        .markdown-content h1 {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 8px;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 6px;
+            margin-bottom: 3px;
+            line-height: 1.3;
+        }
+
+        .markdown-content h3 {
+            font-size: 1.15em;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 5px;
+            margin-bottom: 3px;
+            line-height: 1.3;
+        }
+
+        .markdown-content strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .markdown-content em {
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        .markdown-content ul {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+            list-style-type: disc;
+        }
+
+        .markdown-content ol {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+        }
+
+        .markdown-content li {
+            margin: 0.2em 0;
+            color: var(--text-primary);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .markdown-content p {
+            margin: 0.5em 0;
+            line-height: 1.6;
+        }
+
+        .markdown-content .md-checkbox {
+            display: flex;
+            align-items: center;
+            margin: 0.4em 0;
+            gap: 0.5em;
+        }
+
+        .markdown-content .md-checkbox input[type="checkbox"] {
+            cursor: default;
+            margin: 0;
+        }
+
+        .markdown-content .md-checkbox span {
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
         .card-section {
             margin: var(--space-2) 0;
             padding: var(--space-2);
@@ -26587,6 +27385,51 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             flex: 1;
         }
 
+        /* Display Number Badges */
+        .item-number-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 700;
+            border-radius: 6px;
+            font-size: 13px;
+            padding: 0 8px;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+        }
+
+        .item-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 28px;
+            background: #e3f2fd;
+            color: #1976d2;
+            font-weight: 600;
+            border-radius: 4px;
+            font-size: 13px;
+            padding: 0 6px;
+            margin-right: 6px;
+        }
+
+        .sub-number {
+            display: inline-block;
+            min-width: 50px;
+            padding: 4px 8px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
         .item-row input[type="checkbox"] {
             width: 18px;
             height: 18px;
@@ -27315,6 +28158,209 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             margin-left: 8px;
             font-weight: 600;
         }
+
+        /* ============================================================================
+           INTERNAL DOCUMENT MODAL STYLES
+           ============================================================================ */
+
+        .internal-doc-modal {
+            max-width: 1200px;
+            width: 90%;
+            max-height: 90vh;
+        }
+
+        .header-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .doc-title-input {
+            border: none;
+            background: transparent;
+            font-size: inherit;
+            font-weight: inherit;
+            flex: 1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--text-primary);
+        }
+
+        .doc-title-input:focus {
+            background: var(--bg-tertiary);
+            outline: 2px solid var(--accent-blue);
+        }
+
+        .btn-copy-id {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn-copy-id:hover {
+            background: var(--accent-blue);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .doc-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .doc-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .doc-editor-container {
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .tab-btn:hover {
+            background: var(--bg-secondary);
+        }
+
+        .doc-editor {
+            flex: 1;
+            width: 100%;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+        }
+
+        .markdown-editor {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .html-editor {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .doc-preview {
+            flex: 1;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            overflow-y: auto;
+        }
+
+        .internal-doc-item {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .internal-doc-item:hover {
+            background: var(--bg-secondary);
+            transform: translateX(2px);
+        }
+
+        .doc-preview {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-style: italic;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .internal-doc-btn {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .internal-doc-btn:hover {
+            background: #2980b9;
+        }
+
+        .footer-left,
+        .footer-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn-export {
+            font-size: 13px;
+            padding: 8px 14px;
+        }
+
+        .auto-save-indicator {
+            color: #27ae60;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 
     <!-- ==================== SYNERGY DASHBOARD JAVASCRIPT ==================== -->
@@ -27689,6 +28735,50 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 this.updateColumnCounts();
             },
 
+            renderMarkdown(text) {
+                if (!text) return '';
+
+                // Simple markdown parser for common patterns
+                let html = text
+                    // Bold: **text** or __text__
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+                    // Italic: *text* or _text_
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/_(.+?)_/g, '<em>$1</em>')
+                    // Headers: # H1, ## H2, ### H3
+                    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                    // Checkboxes: - [ ] unchecked, - [x] checked
+                    .replace(/^- \[ \] (.+)$/gm, '<div class="md-checkbox"><input type="checkbox" disabled> <span>$1</span></div>')
+                    .replace(/^- \[x\] (.+)$/gm, '<div class="md-checkbox"><input type="checkbox" checked disabled> <span>$1</span></div>')
+                    // Bullet lists: - item or * item
+                    .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+                    // Numbered lists: 1. item
+                    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+                    // Emoji shortcuts (common ones)
+                    .replace(/:check:/g, '✅')
+                    .replace(/:cross:/g, '❌')
+                    .replace(/:warning:/g, '⚠️')
+                    .replace(/:star:/g, '⭐')
+                    .replace(/:rocket:/g, '🚀')
+                    // Paragraphs (double line breaks only)
+                    .replace(/\n\n/g, '</p><p>');
+
+                // Wrap consecutive <li> tags in <ul>
+                html = html.replace(/(<li>.*?<\/li>\s*)+/g, (match) => {
+                    return '<ul>' + match + '</ul>';
+                });
+
+                // Wrap in paragraph if no block elements
+                if (!html.match(/<(h[1-6]|ul|ol|div)/)) {
+                    html = '<p>' + html + '</p>';
+                }
+
+                return html;
+            },
+
             renderCard(session) {
                 const container = document.getElementById(`${session.kanban_column}-cards`);
                 if (!container) return;
@@ -27702,6 +28792,27 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 card.addEventListener('dblclick', (e) => {
                     e.preventDefault();
                     this.toggleCardExpand(session.session_id);
+                });
+
+                // DRAG-DROP: Add drop zone listeners to the card itself
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.classList.add('drag-over');
+                });
+
+                card.addEventListener('dragleave', (e) => {
+                    // Only remove if leaving the card entirely (not child elements)
+                    if (!card.contains(e.relatedTarget)) {
+                        card.classList.remove('drag-over');
+                    }
+                });
+
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.classList.remove('drag-over');
+                    this.handleThreadDrop(e, session.session_id);
                 });
 
                 const priorityEmoji = {
@@ -27732,91 +28843,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                 container.appendChild(card);
 
-                // DRAG-DROP INTEGRATION: Set up drop zone for thread info cards
-                const linkedThreadsSection = card.querySelector('.linked-threads-list');
-                if (linkedThreadsSection) {
-                    // Allow drop on the linked threads section
-                    linkedThreadsSection.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        linkedThreadsSection.style.background = 'rgba(88, 166, 255, 0.1)';
-                        linkedThreadsSection.style.borderColor = 'var(--accent-primary)';
-                    });
-
-                    linkedThreadsSection.addEventListener('dragleave', (e) => {
-                        e.preventDefault();
-                        linkedThreadsSection.style.background = '';
-                        linkedThreadsSection.style.borderColor = '';
-                    });
-
-                    linkedThreadsSection.addEventListener('drop', async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        linkedThreadsSection.style.background = '';
-                        linkedThreadsSection.style.borderColor = '';
-
-                        // Get thread ID from drag data
-                        const threadId = e.dataTransfer.getData('text/plain');
-                        if (!threadId) {
-                            console.warn('No thread ID in drag data');
-                            return;
-                        }
-
-                        console.log(`🎯 [DROP] Thread ${threadId} dropped on Synergy card ${session.session_id}`);
-
-                        // Link thread to session
-                        try {
-                            // Get current thread IDs
-                            const currentThreadIds = this.parseJsonField(session.thread_ids, []);
-
-                            // Check if already linked
-                            if (currentThreadIds.includes(threadId)) {
-                                showNotification('Thread already linked to this session', 'warning');
-                                return;
-                            }
-
-                            // Add to array
-                            currentThreadIds.push(threadId);
-
-                            // Update session via API
-                            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${session.session_id}`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-                                },
-                                body: JSON.stringify({
-                                    thread_ids: currentThreadIds
-                                })
-                            });
-
-                            if (!response.ok) {
-                                throw new Error(`API returned ${response.status}`);
-                            }
-
-                            // Update thread's synergy_card_id
-                            const threadUpdateResponse = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/${threadId}/update`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-                                },
-                                body: JSON.stringify({
-                                    synergy_card_id: session.session_id
-                                })
-                            });
-
-                            console.log(`✅ [DROP] Thread ${threadId} linked to session ${session.session_id}`);
-                            showNotification(`Thread linked to: ${session.title}`, 'success');
-
-                            // Refresh the board to show updated card
-                            await this.loadSessions();
-                        } catch (error) {
-                            console.error('❌ [DROP] Failed to link thread:', error);
-                            showNotification('Failed to link thread', 'error');
-                        }
-                    });
-                }
+                // DRAG-DROP INTEGRATION: Drop zone is handled by inline HTML attributes
+                // See line ~28925: ondrop="synergyBoard.handleThreadDrop(event, '${session.session_id}')"
+                // This ensures drop works on both collapsed and expanded cards
 
                 // SYNERGY INTEGRATION: Load linked threads asynchronously
                 const threadIds = this.parseJsonField(session.thread_ids, []);
@@ -27944,14 +28973,35 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 const recentActivity = this.parseJsonField(session.recent_activity, []);
                 const checklist = this.parseJsonField(session.checklist, []);
 
-                // Documents
+                // Documents - Always show section, filter empty items
                 let docsHTML = '';
-                if (Array.isArray(documents) && documents.length > 0) {
-                    docsHTML = `
-                        <div class="card-section">
-                            <div class="section-title"><i class="fas fa-file-alt"></i> Documents (${documents.length})</div>
-                            <div class="document-list">
-                                ${documents.map(doc => {
+                const validDocuments = Array.isArray(documents) ? documents.filter(doc => doc && doc.title && doc.title.trim() !== '') : [];
+
+                docsHTML = `
+                    <div class="card-section">
+                        <div class="section-title"><i class="fas fa-file-alt"></i> Documents ${validDocuments.length > 0 ? `(${validDocuments.length})` : ''}</div>
+                        <div class="document-list">
+                            ${validDocuments.length > 0 ? validDocuments.map((doc, idx) => {
+                    const displayNumber = idx + 1;
+
+                    // Handle internal docs differently
+                    if (doc.type === 'internal_doc') {
+                        return `
+                            <div class="document-item internal-doc-item" onclick="synergyBoard.openInternalDocViewer('${doc.doc_id}', '${session.session_id}')">
+                                <span class="item-number">D${displayNumber}</span>
+                                <i class="fas fa-file-alt"></i>
+                                <div class="doc-info">
+                                    <span class="doc-name">${this.escapeHtml(doc.title)}</span>
+                                    <span class="doc-type">Internal Document (${doc.format || 'markdown'})</span>
+                                    ${doc.preview ? `<span class="doc-preview">${this.escapeHtml(doc.preview)}</span>` : ''}
+                                </div>
+                                <button class="doc-link internal-doc-btn" title="Open internal document">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        // External doc (existing code)
                         const typeLabels = {
                             'google_doc': 'Google Doc',
                             'google_sheet': 'Google Sheet',
@@ -27969,22 +29019,23 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         };
                         const typeLabel = typeLabels[doc.type] || doc.type || 'File';
                         return `
-                                    <div class="document-item">
-                                        <i class="fas fa-file-alt"></i>
-                                        <div class="doc-info">
-                                            <span class="doc-name">${this.escapeHtml(doc.title || 'Untitled')}</span>
-                                            <span class="doc-type">${typeLabel}</span>
-                                        </div>
-                                        ${doc.url ? `<a href="${this.escapeHtml(doc.url)}" target="_blank" class="doc-link" title="Open document">
-                                            <i class="fas fa-external-link-alt"></i>
-                                        </a>` : ''}
-                                    </div>
-                                `;
-                    }).join('')}
+                            <div class="document-item">
+                                <span class="item-number">D${displayNumber}</span>
+                                <i class="fas fa-file-alt"></i>
+                                <div class="doc-info">
+                                    <span class="doc-name">${this.escapeHtml(doc.title || 'Untitled')}</span>
+                                    <span class="doc-type">${typeLabel}</span>
+                                </div>
+                                ${doc.url ? `<a href="${this.escapeHtml(doc.url)}" target="_blank" class="doc-link" title="Open document">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>` : ''}
                             </div>
+                        `;
+                    }
+                }).join('') : '<div class="document-item" style="opacity: 0.6; font-style: italic;">No documents added</div>'}
                         </div>
-                    `;
-                }
+                    </div>
+                `;
 
                 // Links
                 let linksHTML = '';
@@ -28015,14 +29066,18 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                                                                                         <div class="card-section">
                                                                                                                                             <div class="section-title"><i class="fas fa-tasks"></i> Next Steps ${validSteps.length > 0 ? `(${validSteps.length})` : ''}</div>
                                                                                                                                             <div class="steps-list">
-                                                                                                                                                ${validSteps.length > 0 ? validSteps.map((step, idx) => `
+                                                                                                                                                ${validSteps.length > 0 ? validSteps.map((step, idx) => {
+                    const displayNumber = idx + 1;
+                    return `
                                 <div class="step-item ${step.completed ? 'completed' : ''}">
+                                    <span class="item-number">N${displayNumber}</span>
                                     <input type="checkbox" ${step.completed ? 'checked' : ''} 
                                            onchange="synergyBoard.toggleStep('${this.escapeJs(session.session_id)}', ${nextSteps.indexOf(step)})">
                                     <span class="step-description">${this.escapeHtml(step.description)}</span>
                                     ${step.due_date ? `<span class="step-due">Due: ${new Date(step.due_date).toLocaleDateString()}</span>` : ''}
                                 </div>
-                            `).join('') : '<div class="step-item" style="opacity: 0.6; font-style: italic;">No next steps added</div>'}
+                            `;
+                }).join('') : '<div class="step-item" style="opacity: 0.6; font-style: italic;">No next steps added</div>'}
                                                                                                                                             </div>
                                                                                                                                         </div>
                                                                                                                                         `;
@@ -28039,20 +29094,24 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                                                                                             <div class="section-title"><i class="fas fa-check-square"></i> Checklist ${validChecklist.length > 0 ? `(${validChecklist.filter(c => c && c.completed).length}/${validChecklist.length})` : ''}</div>
                                                                                                                                             <div class="checklist">
                                                                                                                                                 ${validChecklist.length > 0 ? validChecklist.map((item, idx) => {
+                    const displayNumber = idx + 1;
                     const taskText = item.task || item.item || item.text;
                     const subtasks = item.subtasks || [];
                     let itemHtml = `
                                         <div class="checklist-item ${item.completed ? 'completed' : ''}">
+                                            <span class="item-number">C${displayNumber}</span>
                                             <input type="checkbox" ${item.completed ? 'checked' : ''}
                                                    onchange="synergyBoard.toggleChecklistItem('${this.escapeJs(session.session_id)}', ${checklist.indexOf(item)})">
                                             <span>${this.escapeHtml(taskText)}</span>
                                         </div>`;
 
                     if (subtasks.length > 0) {
-                        itemHtml += `<div class="sub-checklist-display" style="margin-left: 25px; margin-top: 5px;">
+                        itemHtml += `<div class="sub-checklist-display" style="margin-left: 40px; margin-top: 5px;">
                                             ${subtasks.map((subtask, subIdx) => {
+                            const subDisplayNumber = `${displayNumber}.${subIdx + 1}`;
                             const subtaskText = subtask.task || subtask.item || subtask.text;
                             return `<div class="sub-item ${subtask.completed ? 'completed' : ''}">
+                                                    <span class="sub-number">C${subDisplayNumber}</span>
                                                     <input type="checkbox" ${subtask.completed ? 'checked' : ''}
                                                            onchange="synergyBoard.toggleChecklistSubtask('${this.escapeJs(session.session_id)}', ${checklist.indexOf(item)}, ${subIdx})">
                                                     <span style="font-size: 0.9em; opacity: 0.9;">${this.escapeHtml(subtaskText)}</span>
@@ -28116,9 +29175,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                                                                                         </div>                                                                                                                                            <div class="card-title-large">${this.escapeHtml(session.title)}</div>
 
                                                                                                                                             ${session.description ? `
-                            <div class="card-description">
+                            <div class="card-description markdown-content">
                                 <div class="section-title"><i class="fas fa-align-left"></i> Description</div>
-                                <p>${this.escapeHtml(session.description)}</p>
+                                <div class="description-text">${this.renderMarkdown(session.description)}</div>
                             </div>
                         ` : ''}
 
@@ -28160,7 +29219,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             </div>
                         ` : ''}
 
-                                                                                                                                            <div class="card-section" id="threads-section-${session.session_id}">
+                                                                                                                                            <div class="card-section" 
+                                                                                                                                                 id="threads-section-${session.session_id}"
+                                                                                                                                                 data-synergy-id="${session.session_id}">
                                                                                                                                                 <div class="section-title"><i class="fas fa-comments"></i> Linked Threads</div>
                                                                                                                                                 <div class="thread-list-loading">
                                                                                                                                                     <i class="fas fa-spinner fa-spin"></i> Loading linked threads...
@@ -29335,17 +30396,35 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             },
 
             async deleteCard(sessionId) {
-                UIComponents.showConfirmation({
-                    title: 'Delete Session?',
-                    message: 'This action cannot be undone. All session data will be permanently deleted.',
-                    variant: 'danger',
-                    confirmLabel: 'Delete',
-                    cancelLabel: 'Cancel',
-                    onConfirm: async () => {
-                        console.log('Deleting session:', sessionId);
+                try {
+                    // Try UIComponents first
+                    if (window.UIComponents && typeof UIComponents.showConfirmation === 'function') {
+                        UIComponents.showConfirmation({
+                            title: 'Delete Session?',
+                            message: 'This action cannot be undone. All session data will be permanently deleted.',
+                            variant: 'danger',
+                            confirmLabel: 'Delete',
+                            cancelLabel: 'Cancel',
+                            onConfirm: async () => {
+                                console.log('Deleting session:', sessionId);
+                                await this.executeDelete(sessionId);
+                            }
+                        });
+                    } else {
+                        // Fallback to native confirm if UIComponents not available
+                        console.warn('[SYNERGY] UIComponents not available, using native confirm');
+                        if (confirm('Delete Session?\n\nThis action cannot be undone. All session data will be permanently deleted.')) {
+                            console.log('Deleting session:', sessionId);
+                            await this.executeDelete(sessionId);
+                        }
+                    }
+                } catch (error) {
+                    console.error('[SYNERGY] Delete confirmation error:', error);
+                    // Final fallback
+                    if (confirm('Delete this session? This action cannot be undone.')) {
                         await this.executeDelete(sessionId);
                     }
-                });
+                }
             },
 
             async executeDelete(sessionId) {
@@ -29803,6 +30882,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         return `
                             <div class="synergy-linked-thread-wrapper" 
                                  data-thread-id="${normalizedThread.id}"
+                                 draggable="true"
+                                 ondragstart="ThreadManager.handleDragStart(event)"
                                  onclick="synergyBoard.openThread('${normalizedThread.id}', '${thread.agent_id || 'prime'}')">
                                 ${threadInfoHTML}
                             </div>
@@ -29841,6 +30922,66 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     window.threadManager.loadThread(threadId, agentId);
                 } else {
                     alert(`Would open thread: ${threadId} in agent: ${agentId}\n(ThreadManager integration pending)`);
+                }
+            },
+
+            /**
+             * Handle thread drop onto Synergy card
+             */
+            async handleThreadDrop(event, synergyId) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.currentTarget.classList.remove('drag-over');
+
+                // Get dropped thread ID
+                const threadId = event.dataTransfer.getData('text/plain');
+                if (!threadId) {
+                    console.warn('[SYNERGY] No thread ID in drop event');
+                    return;
+                }
+
+                console.log(`[SYNERGY] Thread ${threadId} dropped on session ${synergyId}`);
+
+                // Hide welcome container when thread is dropped into Prime
+                const welcomeContainer = document.getElementById('prime-welcome-container');
+                if (welcomeContainer) {
+                    welcomeContainer.style.display = 'none';
+                    console.log('[WELCOME] Hidden - thread dropped into chat');
+                }
+
+                try {
+                    // Link thread to synergy card
+                    const userId = (window.UserAuth && window.UserAuth.user && (window.UserAuth.user.id || window.UserAuth.user.user_id)) || 1;
+                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/${synergyId}/link-thread`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            thread_id: threadId,
+                            user_id: userId
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log('[SYNERGY] Thread linked successfully');
+                        if (window.showNotification) {
+                            window.showNotification('Thread linked to Synergy card', 'success');
+                        }
+
+                        // Reload the card to show updated threads
+                        await this.loadCards();
+                    } else {
+                        console.error('[SYNERGY] Failed to link thread:', result.error);
+                        if (window.showNotification) {
+                            window.showNotification('Failed to link thread: ' + (result.error || 'Unknown error'), 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('[SYNERGY] Error linking thread:', error);
+                    if (window.showNotification) {
+                        window.showNotification('Error linking thread', 'error');
+                    }
                 }
             },
 
@@ -29998,11 +31139,25 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 }
             },
 
+            /**
+             * Calculate display number for an item (e.g., "1", "1.2", "2.3")
+             * @param {number} index - Index within siblings
+             * @param {string} parentNumber - Parent's display number (optional)
+             * @returns {string} Display number like "1" or "1.2"
+             */
+            getDisplayNumber(index, parentNumber = null) {
+                const displayIndex = index + 1;
+                return parentNumber ? `${parentNumber}.${displayIndex}` : `${displayIndex}`;
+            },
+
             addDocumentField(title = '', url = '', type = 'google_doc') {
                 const container = document.getElementById('documents-list');
+                const index = container.querySelectorAll('.item-row').length;
+                const displayNumber = this.getDisplayNumber(index);
                 const row = document.createElement('div');
                 row.className = 'item-row';
                 row.innerHTML = `
+                                                                                                                                        <span class="item-number-badge">D${displayNumber}</span>
                                                                                                                                         <input type="text" class="form-control" placeholder="Document title" value="${this.escapeHtml(title)}">
                                                                                                                                             <input type="url" class="form-control" placeholder="URL" value="${this.escapeHtml(url)}">
                                                                                                                                                 <select class="form-control" style="max-width: 180px;">
@@ -30078,13 +31233,17 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             addNextStepField(description = '', dueDate = '', completed = false, subChecklist = []) {
                 const container = document.getElementById('next-steps-list');
+                const index = container.querySelectorAll('.step-wrapper').length;
+                const displayNumber = this.getDisplayNumber(index);
                 const stepId = `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 const dueDateValue = dueDate ? new Date(dueDate).toISOString().split('T')[0] : '';
 
                 const stepWrapper = document.createElement('div');
                 stepWrapper.className = 'step-wrapper';
+                stepWrapper.dataset.displayNumber = displayNumber;
                 stepWrapper.innerHTML = `
                                                                                                                                                         <div class="item-row step-main">
+                                                                                                                                                            <span class="item-number-badge">N${displayNumber}</span>
                                                                                                                                                             <input type="checkbox" class="step-checkbox" ${completed ? 'checked' : ''}>
                                                                                                                                                                 <input type="text" class="form-control step-description" placeholder="Step description" value="${this.escapeHtml(description)}">
                                                                                                                                                                     <input type="date" class="form-control" style="max-width: 150px;" value="${dueDateValue}">
@@ -30112,9 +31271,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 const container = document.getElementById(stepId);
                 if (!container) return;
 
+                const stepWrapper = container.closest('.step-wrapper');
+                const parentNumber = stepWrapper ? stepWrapper.dataset.displayNumber : '';
+                const subIndex = container.querySelectorAll('.sub-checklist-item').length;
+                const displayNumber = this.getDisplayNumber(subIndex, parentNumber);
+
                 const subItem = document.createElement('div');
                 subItem.className = 'sub-checklist-item';
                 subItem.innerHTML = `
+                                                                                                                                                                    <span class="sub-number">N${displayNumber}</span>
                                                                                                                                                                     <input type="checkbox" class="sub-checkbox" ${completed ? 'checked' : ''}>
                                                                                                                                                                         <input type="text" class="form-control" placeholder="Sub-task" value="${this.escapeHtml(itemText)}">
                                                                                                                                                                             <button type="button" class="btn-remove-subtask" onclick="this.parentElement.remove()">
@@ -30126,12 +31291,16 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             addChecklistField(task = '', completed = false, subtasks = []) {
                 const container = document.getElementById('checklist-list');
+                const index = container.querySelectorAll('.item-wrapper').length;
+                const displayNumber = this.getDisplayNumber(index);
                 const itemId = `checklist-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'item-wrapper';
+                wrapper.dataset.displayNumber = displayNumber;
                 wrapper.innerHTML = `
                     <div class="item-row" data-item-id="${itemId}">
+                        <span class="item-number-badge">C${displayNumber}</span>
                         <input type="checkbox" ${completed ? 'checked' : ''}>
                         <input type="text" class="form-control" placeholder="Checklist item" value="${this.escapeHtml(task)}">
                         <button type="button" class="btn-add-subtask" onclick="synergyBoard.addChecklistSubtask('${itemId}')" title="Add Subtask">
@@ -30164,9 +31333,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     return;
                 }
 
+                const itemWrapper = subChecklistDiv.closest('.item-wrapper');
+                const parentNumber = itemWrapper ? itemWrapper.dataset.displayNumber : '';
+                const subIndex = subChecklistDiv.querySelectorAll('.sub-checklist-item').length;
+                const displayNumber = this.getDisplayNumber(subIndex, parentNumber);
+
                 const subItem = document.createElement('div');
                 subItem.className = 'sub-checklist-item';
                 subItem.innerHTML = `
+                    <span class="sub-number">C${displayNumber}</span>
                     <input type="checkbox" class="sub-checkbox">
                     <input type="text" class="form-control" placeholder="Subtask description">
                     <button type="button" class="btn-remove-subtask" onclick="this.parentElement.remove()">
@@ -30738,6 +31913,278 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     console.error(' Failed to sync to Google Calendar:', error);
                     throw error;
                 }
+            },
+
+            // ============================================================================
+            // INTERNAL DOCUMENTS UI
+            // ============================================================================
+
+            openInternalDocViewer(docId, sessionId) {
+                // Fetch document
+                fetch(`/api/synergy/internal-doc/${docId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.success) {
+                            alert('Failed to load document: ' + data.error);
+                            return;
+                        }
+
+                        // Show modal
+                        const modal = document.createElement('div');
+                        modal.className = 'modal-overlay';
+                        modal.id = 'internal-doc-modal';
+                        modal.innerHTML = `
+                            <div class="modal-content internal-doc-modal">
+                                <div class="modal-header">
+                                    <div class="header-title-row">
+                                        <h3>
+                                            <i class="fas fa-file-alt"></i>
+                                            <input type="text" id="doc-title" value="${this.escapeHtml(data.title)}" 
+                                                   class="doc-title-input" />
+                                        </h3>
+                                        <button class="btn-copy-id" onclick="synergyBoard.copyDocIdToClipboard('${docId}')" title="Copy Doc ID to Clipboard">
+                                            <i class="fas fa-copy"></i> ${docId}
+                                        </button>
+                                    </div>
+                                    <div class="doc-meta">
+                                        <span><i class="fas fa-code"></i> ${data.format}</span>
+                                        <span><i class="fas fa-layer-group"></i> v${data.version}</span>
+                                        <span><i class="fas fa-calendar"></i> ${new Date(data.updated_at).toLocaleString()}</span>
+                                        <span><i class="fas fa-user"></i> ${data.created_by}</span>
+                                    </div>
+                                    <button class="modal-close" onclick="synergyBoard.closeInternalDocModal()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="modal-body">
+                                    <div class="doc-editor-container">
+                                        ${data.format === 'markdown' ? `
+                                            <div class="editor-tabs">
+                                                <button class="tab-btn active" onclick="synergyBoard.switchDocTab('edit')">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </button>
+                                                <button class="tab-btn" onclick="synergyBoard.switchDocTab('preview')">
+                                                    <i class="fas fa-eye"></i> Preview
+                                                </button>
+                                            </div>
+                                            <textarea id="doc-content" class="doc-editor markdown-editor">${this.escapeHtml(data.content)}</textarea>
+                                            <div id="doc-preview" class="doc-preview markdown-content" style="display: none;"></div>
+                                        ` : `
+                                            <div contenteditable="true" id="doc-content" class="doc-editor html-editor">${data.content}</div>
+                                        `}
+                                    </div>
+                                </div>
+                                
+                                <div class="modal-footer">
+                                    <div class="footer-left">
+                                        <button class="btn-secondary btn-export" onclick="synergyBoard.exportInternalDoc('${docId}', 'word')">
+                                            <i class="fab fa-microsoft"></i> Word
+                                        </button>
+                                        <button class="btn-secondary btn-export" onclick="synergyBoard.exportInternalDoc('${docId}', 'google_doc')">
+                                            <i class="fab fa-google"></i> Google Doc
+                                        </button>
+                                        <button class="btn-secondary btn-export" onclick="synergyBoard.exportInternalDoc('${docId}', 'pdf')">
+                                            <i class="fas fa-file-pdf"></i> PDF
+                                        </button>
+                                        <button class="btn-secondary btn-export" onclick="synergyBoard.exportInternalDoc('${docId}', 'email')">
+                                            <i class="fas fa-envelope"></i> Email
+                                        </button>
+                                    </div>
+                                    <div class="footer-right">
+                                        <button class="btn-secondary" onclick="synergyBoard.closeInternalDocModal()">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                                        <button class="btn-primary" onclick="synergyBoard.saveInternalDoc('${docId}')">
+                                            <i class="fas fa-save"></i> Save Changes
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        document.body.appendChild(modal);
+
+                        // Auto-save every 30 seconds
+                        this.docAutoSaveInterval = setInterval(() => {
+                            this.saveInternalDoc(docId, true);
+                        }, 30000);
+                    })
+                    .catch(err => {
+                        console.error('Error loading document:', err);
+                        alert('Failed to load document');
+                    });
+            },
+
+            closeInternalDocModal() {
+                const modal = document.getElementById('internal-doc-modal');
+                if (modal) {
+                    modal.remove();
+                }
+                if (this.docAutoSaveInterval) {
+                    clearInterval(this.docAutoSaveInterval);
+                    this.docAutoSaveInterval = null;
+                }
+            },
+
+            switchDocTab(tab) {
+                const editBtn = document.querySelector('.editor-tabs .tab-btn:nth-child(1)');
+                const previewBtn = document.querySelector('.editor-tabs .tab-btn:nth-child(2)');
+                const editor = document.getElementById('doc-content');
+                const preview = document.getElementById('doc-preview');
+
+                if (tab === 'edit') {
+                    editBtn.classList.add('active');
+                    previewBtn.classList.remove('active');
+                    editor.style.display = 'block';
+                    preview.style.display = 'none';
+                } else {
+                    editBtn.classList.remove('active');
+                    previewBtn.classList.add('active');
+                    editor.style.display = 'none';
+                    preview.style.display = 'block';
+
+                    // Render markdown preview
+                    preview.innerHTML = this.renderMarkdown(editor.value);
+                }
+            },
+
+            saveInternalDoc(docId, isAutoSave = false) {
+                const title = document.getElementById('doc-title')?.value;
+                const contentElem = document.getElementById('doc-content');
+                if (!contentElem) return;
+
+                const content = contentElem.value || contentElem.innerHTML;
+
+                fetch(`/api/synergy/internal-doc/${docId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (!isAutoSave) {
+                                this.closeInternalDocModal();
+                                this.loadSessions();
+                            } else {
+                                // Show auto-save indicator briefly
+                                const footer = document.querySelector('.internal-doc-modal .modal-footer .footer-right');
+                                if (footer) {
+                                    const indicator = document.createElement('span');
+                                    indicator.className = 'auto-save-indicator';
+                                    indicator.innerHTML = '<i class="fas fa-check"></i> Auto-saved';
+                                    footer.insertBefore(indicator, footer.firstChild);
+                                    setTimeout(() => indicator.remove(), 2000);
+                                }
+                            }
+                        } else {
+                            if (!isAutoSave) {
+                                alert('Failed to save: ' + data.error);
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error saving document:', err);
+                        if (!isAutoSave) {
+                            alert('Failed to save document');
+                        }
+                    });
+            },
+
+            exportInternalDoc(docId, format) {
+                if (format === 'email') {
+                    const email = prompt('Enter recipient email address:');
+                    if (!email) return;
+
+                    const subject = prompt('Email subject (optional - press Enter to use document title):');
+
+                    fetch(`/api/synergy/internal-doc/${docId}/export/email`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-User-ID': '1'
+                        },
+                        body: JSON.stringify({
+                            to: email,
+                            ...(subject && { subject })
+                        })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert(`Email sent successfully to ${data.to}`);
+                            } else {
+                                alert('Failed to send email: ' + data.error);
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error sending email:', err);
+                            alert('Failed to send email');
+                        });
+                } else {
+                    // Export to Word/Google Doc/PDF
+                    const exportBtn = event.target.closest('.btn-export');
+                    if (exportBtn) {
+                        exportBtn.disabled = true;
+                        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+                    }
+
+                    fetch(`/api/synergy/internal-doc/${docId}/export/${format}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-User-ID': '1'
+                        }
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                if (data.url) {
+                                    window.open(data.url, '_blank');
+                                    alert(`Document exported successfully! Opening in new tab...`);
+                                } else {
+                                    alert(`Document exported successfully!${data.note ? '\\n\\n' + data.note : ''}`);
+                                }
+                            } else {
+                                alert('Failed to export: ' + data.error);
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error exporting document:', err);
+                            alert('Failed to export document');
+                        })
+                        .finally(() => {
+                            if (exportBtn) {
+                                exportBtn.disabled = false;
+                                const icon = format === 'word' ? 'fab fa-microsoft' :
+                                    format === 'google_doc' ? 'fab fa-google' :
+                                        'fas fa-file-pdf';
+                                const label = format === 'word' ? 'Word' :
+                                    format === 'google_doc' ? 'Google Doc' :
+                                        'PDF';
+                                exportBtn.innerHTML = `<i class="${icon}"></i> ${label}`;
+                            }
+                        });
+                }
+            },
+
+            copyDocIdToClipboard(docId) {
+                navigator.clipboard.writeText(docId).then(() => {
+                    const btn = event.target.closest('.btn-copy-id');
+                    if (btn) {
+                        const originalHTML = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        btn.style.background = '#27ae60';
+                        setTimeout(() => {
+                            btn.innerHTML = originalHTML;
+                            btn.style.background = '';
+                        }, 2000);
+                    }
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy to clipboard');
+                });
             }
         };
 
@@ -30791,6 +32238,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             let firstContentReceived = false;
             let lastEventType = null;
 
+            // Reset round counter for new stream
+            window._thinkingRoundCounter = 0;
+
+            // Track previous thinking block index to detect when block changes (NEW round)
+            let previousThinkingBlockIndex = -1;
+
             // SSE Reader setup
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -30824,7 +32277,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                 // Route to appropriate handler
                                 if (data.type === 'thinking' || data.type === 'thinking_block') {
                                     removeTypingIndicator(); // Remove dots when thinking starts
-                                    thinkingBubble = handleThinkingEvent(data, container, thinkingBubble, firstContentReceived);
+                                    // Pass the thinking bubble through handler (may return new bubble for new rounds)
+                                    const result = handleThinkingEvent(data, container, thinkingBubble, firstContentReceived, previousThinkingBlockIndex);
+                                    // IMPORTANT: Update references
+                                    thinkingBubble = result.bubble;
+                                    previousThinkingBlockIndex = result.blockIndex;
                                     if (thinkingBubble && !firstContentReceived) firstContentReceived = true;
                                     fullThinkingContent += (data.content || data.thinking || '');
                                     lastEventType = 'thinking';
@@ -30864,6 +32321,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                     // Close tool group when non-tool event occurs
                                     currentToolGroup = null;
 
+                                } else if (data.type === 'thinking_stop' || data.type === 'content_block_stop') {
+                                    // Remove streaming class when thinking completes
+                                    if (thinkingBubble && thinkingBubble.classList.contains('streaming')) {
+                                        thinkingBubble.classList.remove('streaming');
+                                        console.log('🧠 [Thinking] Stopped - removed streaming class (pulse stopped)');
+                                    }
+
                                 } else if (data.type === 'complete') {
                                     handleCompleteEvent(thinkingBubble, textBubble);
                                     currentToolGroup = null;
@@ -30895,19 +32359,49 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
         /**
          * Handle thinking block events
+         * ENHANCED: Detects new rounds (block_index === 0) and creates separate bubbles
          */
-        function handleThinkingEvent(data, container, existingBubble, firstContentReceived) {
+        function handleThinkingEvent(data, container, existingBubble, firstContentReceived, previousBlockIndex) {
             const thinkingText = data.content || data.thinking || '';
             if (!thinkingText || thinkingText.trim().length === 0) {
-                return existingBubble;
+                return { bubble: existingBubble, blockIndex: previousBlockIndex };
             }
 
             console.log('🧠 [Thinking] Content:', thinkingText.substring(0, 50) + '...');
 
+            // ROUND DETECTION: Check if block_index CHANGED (means new thinking block = new round)
+            const blockIndex = typeof data.block_index === 'number' ? data.block_index : -1;
+            const isNewRound = (blockIndex !== previousBlockIndex) && (previousBlockIndex !== -1) && existingBubble;
+
+            // If new round detected (block index changed), finalize existing bubble and create new one
+            if (isNewRound) {
+                console.log(`🔄 [Thinking] New round detected (block_index changed: ${previousBlockIndex} -> ${blockIndex}) - creating new thinking bubble`);
+
+                // Add round separator
+                const separator = document.createElement('div');
+                separator.className = 'thinking-round-separator';
+                const roundNum = (window._thinkingRoundCounter || 0) + 1;
+                window._thinkingRoundCounter = roundNum;
+                separator.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px; margin: 12px 0; opacity: 0.4;">
+                        <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, currentColor, transparent);"></div>
+                        <div style="font-size: 11px; color: #888; font-weight: 500; letter-spacing: 0.5px;">Round ${roundNum}</div>
+                        <div style="flex: 1; height: 1px; background: linear-gradient(90deg, currentColor, transparent);"></div>
+                    </div>
+                `;
+                container.appendChild(separator);
+
+                // Force creation of new bubble below
+                existingBubble = null;
+            }
+
             if (!existingBubble) {
                 // Create new thinking bubble
                 existingBubble = document.createElement('div');
-                existingBubble.className = 'ai-message assistant thinking-bubble collapsed';
+                existingBubble.className = 'ai-message assistant thinking-bubble collapsed streaming';
+
+                // Store block index for tracking
+                existingBubble.dataset.blockIndex = blockIndex;
 
                 // Header with brain icon
                 const headerDiv = document.createElement('div');
@@ -30978,7 +32472,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             // Scroll
             container.scrollTop = container.scrollHeight;
 
-            return existingBubble;
+            return { bubble: existingBubble, blockIndex: blockIndex };
         }
 
         /**
@@ -31299,8 +32793,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
         function handleCompleteEvent(thinkingBubble, textBubble) {
             console.log('[OK] [Complete] Stream finished');
 
-            // Collapse thinking bubble
+            // Remove streaming animation and collapse thinking bubble
             if (thinkingBubble) {
+                thinkingBubble.classList.remove('streaming');
                 thinkingBubble.classList.add('collapsed');
             }
 
