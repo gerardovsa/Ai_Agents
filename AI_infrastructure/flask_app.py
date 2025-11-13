@@ -118,6 +118,7 @@ from routes.user_management_routes import user_management_bp  # NEW: Sub-user ma
 from routes.render_routes import render_bp  # NEW: Render cloud management (deploy, logs, metrics)
 from routes.file_routes import file_bp  # NEW: File storage management (upload, download, delete)
 from routes.prompt_library_routes import prompt_routes  # NEW: Prompt library (database-backed prompt management)
+from routes.token_routes import token_routes  # NEW: Token tracking (real-time token counts for threads)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 
 # Initialize Flask app
@@ -151,6 +152,7 @@ app.register_blueprint(communication_bp)                             # NEW: Comm
 app.register_blueprint(user_management_bp)                           # NEW: Sub-user management (5 endpoints: /api/users/sub-users/*)
 app.register_blueprint(render_bp)                                    # NEW: Render cloud management (6 endpoints: /api/render/*)
 app.register_blueprint(prompt_routes)                                # NEW: Prompt library (10 endpoints: /api/prompts/*)
+app.register_blueprint(token_routes)                                 # NEW: Token tracking (3 endpoints: /api/tokens/*)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
 
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)
@@ -187,6 +189,22 @@ if STOCK_DB_AVAILABLE:  # Shopify uses same database as Stock Management
         traceback.print_exc()
 else:
     log_config(logger, "Shopify E-Commerce disabled - database not available")
+
+# Xero Accounting: ENABLED (load routes from module folder)
+try:
+    # Add xero module to path
+    xero_module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'external', 'modules', 'xero')
+    if os.path.exists(xero_module_path):
+        sys.path.insert(0, xero_module_path)
+        from xero_routes import init_xero_routes
+        init_xero_routes(app)
+        log_success(logger, f"Xero Accounting routes registered from {xero_module_path}")
+    else:
+        log_warning(logger, f"Xero module not found at {xero_module_path}")
+except Exception as e:
+    log_error(logger, f"Failed to load xero routes: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Legacy compatibility: register /api/sessions/* proxy so older UIs work
 try:
@@ -1210,5 +1228,6 @@ if __name__ == '__main__':
             host='0.0.0.0',
             port=port,
             debug=debug_mode,
-            use_reloader=(not is_production)  # No reload in production
+            use_reloader=(not is_production),  # No reload in production
+            allow_unsafe_werkzeug=True  # Allow Werkzeug in production (Render uses container isolation)
         )
