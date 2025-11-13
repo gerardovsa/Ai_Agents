@@ -55,6 +55,24 @@ else
     echo "✓ Running locally (development)"
 fi
 
-# Start Flask application
-echo "→ Starting Flask application..."
-exec python AI_infrastructure/flask_app.py
+# Start Flask application with Gunicorn (production) or Python (development)
+if [ "$RENDER" = "true" ]; then
+    echo "→ Starting Flask with Gunicorn (production)..."
+    echo "  Workers: 2 (1 CPU × 2)"
+    echo "  Worker Class: gevent (async I/O)"
+    echo "  Max Concurrent: ~100 requests"
+    echo ""
+    exec gunicorn \
+        --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker \
+        --workers 2 \
+        --bind 0.0.0.0:$PORT \
+        --timeout 120 \
+        --keep-alive 5 \
+        --log-level info \
+        --access-logfile - \
+        --error-logfile - \
+        AI_infrastructure.flask_app:app
+else
+    echo "→ Starting Flask application (development)..."
+    exec python AI_infrastructure/flask_app.py
+fi

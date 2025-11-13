@@ -5,6 +5,10 @@ flask-socketio==5.3.4
 waitress==2.1.2
 gunicorn==21.2.0
 
+# Async Workers (for Gunicorn)
+gevent>=23.9.0
+gevent-websocket>=0.10.1
+
 # AI Models
 anthropic>=0.40.0
 openai==1.35.0
