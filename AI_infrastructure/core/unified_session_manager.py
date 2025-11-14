@@ -79,12 +79,12 @@ class UnifiedSessionManager:
                 if not is_render:
                     try:
                         conn.execute("PRAGMA journal_mode=WAL")
-                        self.logger.info(" [DB] WAL mode enabled (local/persistent filesystem)")
+                        logger.info(" [DB] WAL mode enabled (local/persistent filesystem)")
                     except sqlite3.OperationalError as e:
-                        self.logger.warning(f" [DB] WAL mode failed (expected on ephemeral FS): {e}")
+                        logger.warning(f" [DB] WAL mode failed (expected on ephemeral FS): {e}")
                         conn.execute("PRAGMA journal_mode=DELETE")  # Fallback to DELETE mode
                 else:
-                    self.logger.info(" [DB] Using DELETE journal mode (Render ephemeral filesystem)")
+                    logger.info(" [DB] Using DELETE journal mode (Render ephemeral filesystem)")
                     conn.execute("PRAGMA journal_mode=DELETE")
                 
                 # Optimize for performance
