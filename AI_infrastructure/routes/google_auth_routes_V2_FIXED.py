@@ -33,6 +33,10 @@ else:
 # Google OAuth Configuration - Priority: OS env > .env.master
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_CLIENT_SECRET')
+
+# CRITICAL: Redirect URI must be set dynamically based on environment
+# On Render, use HTTPS. Locally, use HTTP.
+# This will be finalized in the /login route based on request.host
 GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI') or _config.get('GOOGLE_REDIRECT_URI', 'http://localhost:5001/api/auth/google/callback')
 
 # Google OAuth Endpoints
@@ -295,10 +299,22 @@ def google_login():
     force_consent = request.args.get('force_consent', 'false').lower() == 'true'
     prompt = 'consent' if force_consent else 'select_account'
     
+    # CRITICAL: Get redirect URI dynamically based on environment
+    # Priority: OS env var > .env.master > auto-detect from request
+    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or _config.get('GOOGLE_REDIRECT_URI')
+    if not redirect_uri:
+        # Fallback: build from request, but force HTTPS if on Render
+        base_url = request.url_root.rstrip('/')
+        if 'onrender.com' in request.host:
+            base_url = base_url.replace('http://', 'https://')
+        redirect_uri = base_url + '/api/auth/google/callback'
+    
+    print(f'🔷 [GOOGLE OAUTH] Using redirect URI: {redirect_uri}')
+    
     # Build authorization URL
     params = {
         'client_id': GOOGLE_CLIENT_ID,
-        'redirect_uri': GOOGLE_REDIRECT_URI,
+        'redirect_uri': redirect_uri,
         'response_type': 'code',
         'scope': ' '.join(GOOGLE_SCOPES),
         'state': state,
@@ -331,16 +347,21 @@ def google_callback():
     state = request.args.get('state')
     stored_state = session.get('google_oauth_state')
     
+    # Build frontend URL based on environment
+    frontend_url = request.url_root.rstrip('/')
+    if 'onrender.com' in request.host:
+        frontend_url = frontend_url.replace('http://', 'https://')
+    
     if not state or state != stored_state:
         print(' [GOOGLE OAUTH] Invalid state - CSRF check failed')
-        return redirect('http://localhost:5001/?error=invalid_state')
+        return redirect(f'{frontend_url}/?error=invalid_state')
     
     # Get authorization code
     code = request.args.get('code')
     if not code:
         error = request.args.get('error', 'unknown_error')
         print(f' [GOOGLE OAUTH] No authorization code: {error}')
-        return redirect(f'http://localhost:5001/?error={error}')
+        return redirect(f'{frontend_url}/?error={error}')
     
     try:
         # ====================================================================
@@ -348,11 +369,22 @@ def google_callback():
         # ====================================================================
         print('🔷 [GOOGLE OAUTH] Exchanging code for tokens...')
         
+        # CRITICAL: Use same redirect URI as in /login route
+        redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or _config.get('GOOGLE_REDIRECT_URI')
+        if not redirect_uri:
+            # Fallback: build from request, but force HTTPS if on Render
+            base_url = request.url_root.rstrip('/')
+            if 'onrender.com' in request.host:
+                base_url = base_url.replace('http://', 'https://')
+            redirect_uri = base_url + '/api/auth/google/callback'
+        
+        print(f'🔷 [GOOGLE OAUTH] Using redirect URI for token exchange: {redirect_uri}')
+        
         token_data = {
             'code': code,
             'client_id': GOOGLE_CLIENT_ID,
             'client_secret': GOOGLE_CLIENT_SECRET,
-            'redirect_uri': GOOGLE_REDIRECT_URI,
+            'redirect_uri': redirect_uri,
             'grant_type': 'authorization_code'
         }
         
@@ -545,18 +577,34 @@ def google_callback():
         # STEP 6: Redirect to app with JWT token
         # ====================================================================
         print('[GOOGLE OAUTH] OAuth flow complete - redirecting to app')
-        return redirect(f'http://localhost:5001/?token={jwt_token}&platform=google&status=connected')
+        
+        # CRITICAL: Redirect to correct frontend URL based on environment
+        frontend_url = request.url_root.rstrip('/')
+        if 'onrender.com' in request.host:
+            frontend_url = frontend_url.replace('http://', 'https://')
+        
+        return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=connected')
         
     except requests.exceptions.HTTPError as e:
         print(f' [GOOGLE OAUTH] HTTP error: {str(e)}')
         print(f'   Response: {e.response.text if hasattr(e, "response") else "No response"}')
-        return redirect(f'http://localhost:5001/?error=http_error')
+        
+        frontend_url = request.url_root.rstrip('/')
+        if 'onrender.com' in request.host:
+            frontend_url = frontend_url.replace('http://', 'https://')
+        
+        return redirect(f'{frontend_url}/?error=http_error')
     
     except Exception as e:
         print(f' [GOOGLE OAUTH] Unexpected error: {str(e)}')
         import traceback
         traceback.print_exc()
-        return redirect(f'http://localhost:5001/?error=oauth_failed')
+        
+        frontend_url = request.url_root.rstrip('/')
+        if 'onrender.com' in request.host:
+            frontend_url = frontend_url.replace('http://', 'https://')
+        
+        return redirect(f'{frontend_url}/?error=oauth_failed')
 
 @google_auth_bp.route('/status')
 def google_status():

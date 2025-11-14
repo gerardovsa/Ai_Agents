@@ -500,7 +500,12 @@ def microsoft_callback():
         return_url = session.get('microsoft_return_url', '/')
         logger.info(f"Redirecting to: {return_url}")
         
-        return redirect(f"http://localhost:5001{return_url}?token={jwt_token}")
+        # CRITICAL: Redirect to correct frontend URL based on environment
+        frontend_url = request.url_root.rstrip('/')
+        if 'onrender.com' in request.host:
+            frontend_url = frontend_url.replace('http://', 'https://')
+        
+        return redirect(f"{frontend_url}{return_url}?token={jwt_token}")
         
     except Exception as e:
         logger.error(f" Microsoft callback failed: {e}", exc_info=True)
