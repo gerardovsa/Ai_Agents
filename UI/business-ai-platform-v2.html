@@ -11,8 +11,9 @@
 
     <!-- ==================== EXTERNAL LIBRARIES ==================== -->
 
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome Icons - Local Version 7.1.0 -->
+    <link rel="stylesheet"
+        href="file:///C:/Users/gpoli/GIT/AI_agents/docs/Fontawesome/fontawesome-free-7.1.0-web/fontawesome-free-7.1.0-web/css/all.min.css">
 
     <!-- Tabulator for Data Grids -->
     <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
@@ -2058,14 +2059,14 @@
         }
 
         .ai-icon {
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 12px;
+            font-size: 24px;
         }
 
         .chat-header-actions {
@@ -2456,7 +2457,7 @@
 
         .thread-item-actions {
             display: flex;
-            gap: 6px;
+            gap: px;
             flex-shrink: 0;
             opacity: 0;
             transition: opacity 0.2s ease;
@@ -2471,7 +2472,7 @@
 
         .thread-action-btn {
             padding: 6px 8px;
-            background: var(--accent-primary);
+            background: transparent;
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -2484,8 +2485,10 @@
         }
 
         .thread-action-btn:hover {
-            background: var(--accent-primary);
+            background: transparent;
             transform: scale(1.1);
+
+
         }
 
         /* Unload Button - Red styling (similar to Synergy unlink) */
@@ -3089,7 +3092,6 @@
         }
 
         .thread-action-btn.rename:hover {
-            background: #3b82f6;
             color: white;
         }
 
@@ -8448,6 +8450,437 @@
             background: #2563eb;
         }
 
+        /* ==================== INTERNAL DOCUMENTS SECTION ==================== */
+        .internal-docs-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-default);
+        }
+
+        .docs-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .section-title i {
+            color: var(--accent-primary);
+        }
+
+        .add-doc-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-doc-btn:hover {
+            background: #4a8fe7;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+        }
+
+        .add-doc-btn i {
+            font-size: 12px;
+        }
+
+        .docs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .doc-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .doc-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .doc-item-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .doc-icon {
+            color: var(--accent-primary);
+            font-size: 14px;
+        }
+
+        .doc-info {
+            flex: 1;
+        }
+
+        .doc-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .doc-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .doc-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .doc-item:hover .doc-actions {
+            opacity: 1;
+        }
+
+        .doc-action-btn {
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 11px;
+        }
+
+        .doc-action-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .no-docs-message {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* ==================== MARKDOWN EDITOR MODAL ==================== */
+        .markdown-editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .markdown-editor-modal.active {
+            display: flex;
+        }
+
+        .editor-container {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 1400px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .editor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .editor-title-input {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+        }
+
+        .editor-title-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 16px;
+        }
+
+        .editor-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .editor-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .editor-btn.primary {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .editor-btn.primary:hover {
+            background: #4a8fe7;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .toolbar-btn {
+            padding: 6px 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--bg-hover);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border-default);
+        }
+
+        .template-selector {
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .template-selector:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .editor-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .editor-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .editor-pane-header {
+            padding: 10px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-default);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .editor-textarea {
+            flex: 1;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            resize: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .editor-textarea:focus {
+            outline: none;
+        }
+
+        .preview-pane {
+            flex: 1;
+            border-left: 1px solid var(--border-default);
+        }
+
+        .preview-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .preview-content h1 {
+            font-size: 28px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--border-default);
+            padding-bottom: 8px;
+        }
+
+        .preview-content h2 {
+            font-size: 24px;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+
+        .preview-content h3 {
+            font-size: 20px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .preview-content h4 {
+            font-size: 16px;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+
+        .preview-content p {
+            margin-bottom: 12px;
+        }
+
+        .preview-content ul,
+        .preview-content ol {
+            margin-bottom: 12px;
+            padding-left: 24px;
+        }
+
+        .preview-content li {
+            margin-bottom: 6px;
+        }
+
+        .preview-content code {
+            padding: 2px 6px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .preview-content pre {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+        }
+
+        .preview-content pre code {
+            padding: 0;
+            background: transparent;
+        }
+
+        .preview-content blockquote {
+            border-left: 4px solid var(--accent-primary);
+            padding-left: 16px;
+            margin: 16px 0;
+            color: var(--text-secondary);
+        }
+
+        .preview-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+
+        .preview-content table th,
+        .preview-content table td {
+            padding: 8px 12px;
+            border: 1px solid var(--border-default);
+        }
+
+        .preview-content table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+        }
+
+        .preview-content hr {
+            border: none;
+            border-top: 2px solid var(--border-default);
+            margin: 24px 0;
+        }
+
+        .preview-content a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        .preview-content a:hover {
+            text-decoration: underline;
+        }
+
         .btn-secondary {
             padding: 10px 20px;
             background: white;
@@ -8561,12 +8994,12 @@
                 <i class="fas fa-project-diagram"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="multi-agent" title="Multi-Agent AI (NATO Columns)">
+            <button class="sidebar-icon-btn" data-tab="multi-agent" title="Command Centre - Multi-AI">
                 <i class="fas fa-users"></i>
             </button>
 
             <button class="sidebar-icon-btn" data-tab="synergy" title="Synergy Dashboard - Session & Task Management">
-                <i class="fas fa-project-diagram"></i>
+                <i class="fa-solid fa-hexagon-nodes-bolt"></i>
             </button>
 
             <!-- MODULES SECTION - Icons added dynamically by ModuleManager -->
@@ -8587,7 +9020,7 @@
             <div class="header-left">
                 <div class="platform-logo">
                     <div class="logo-icon">
-                        <i class="fas fa-brain"></i>
+                        <i class="fa-solid fa-atom"></i>
                     </div>
                     <span>Business AI Platform</span>
                 </div>
@@ -8600,7 +9033,7 @@
 
             <div class="header-right">
                 <button class="header-btn" id="toggle-chat-btn">
-                    <i class="fas fa-brain"></i>
+                    <i class="fa-solid fa-atom"></i>
                     <span>AI Prime</span>
                 </button>
 
@@ -9028,7 +9461,7 @@
 
                         <div class="stat-card">
                             <div class="stat-icon error">
-                                <i class="fas fa-robot"></i>
+                                <i class="fa-solid fa-atom"></i>
                             </div>
                             <div class="stat-content">
                                 <div class="stat-label">AI Tool Executions</div>
@@ -9661,14 +10094,14 @@
                         <div class="multi-agent-dashboard-header">
                             <div class="multi-agent-header-left">
                                 <h2 class="multi-agent-title">
-                                    <i class="fas fa-satellite-dish"></i>
+                                    <i class="fa-solid fa-person-chalkboard"></i>
                                     Command Center
                                 </h2>
                                 <div class="multi-agent-stats">
                                     <span class="stat-item"><i class="fas fa-users"></i> <strong
-                                            id="active-agents-count">0</strong> Agents</span>
+                                            id="active-agents-count">0</strong> Active AI's</span>
                                     <span class="stat-item"><i class="fas fa-comments"></i> <strong
-                                            id="active-threads-count">0</strong> Active Threads</span>
+                                            id="active-threads-count">0</strong> Loaded AI's</span>
                                 </div>
                             </div>
                             <div class="multi-agent-header-right">
@@ -9705,7 +10138,7 @@
                         <div class="synergy-dashboard-header">
                             <div class="synergy-header-left">
                                 <h2 class="synergy-title">
-                                    <i class="fas fa-project-diagram"></i>
+                                    <i class="fa-solid fa-hexagon-nodes-bolt"></i>
                                     Synergy Dashboard
                                 </h2>
                                 <div class="synergy-stats">
@@ -10021,7 +10454,7 @@
                     <div class="ai-chat-header-row">
                         <div class="ai-chat-title">
                             <div class="ai-icon">
-                                <i class="fas fa-brain"></i>
+                                <i class="fa-solid fa-atom"></i>
                             </div>
                             <span>AI Prime</span>
                         </div>
@@ -10104,7 +10537,7 @@
                     </div>
                     <div class="thread-view-choice-buttons">
                         <button class="thread-view-choice-btn prime" onclick="ThreadViewChoice.viewInPrime()">
-                            <i class="fas fa-robot"></i>
+                            <i class="fa-solid fa-atom"></i>
                             <div>
                                 <div>Move to Prime & View</div>
                                 <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">Unload from
@@ -12475,7 +12908,7 @@
 
                                                     const avatar = document.createElement('div');
                                                     avatar.className = 'ai-message-avatar';
-                                                    avatar.innerHTML = '<i class="fas fa-brain"></i>'; // BRAIN ICON
+                                                    avatar.innerHTML = '<i class="fa-solid fa-atom"></i>'; // ATOM ICON (AI PRIME)
 
                                                     const toggleBtn = document.createElement('button');
                                                     toggleBtn.className = 'ai-message-toggle';
@@ -12731,7 +13164,7 @@
 
                                                     const avatar = document.createElement('div');
                                                     avatar.className = 'ai-message-avatar';
-                                                    avatar.innerHTML = '<i class="fas fa-robot"></i>'; // ROBOT ICON
+                                                    avatar.innerHTML = '<i class="fa-solid fa-atom"></i>'; // ATOM ICON (AI AGENT)
 
                                                     const toggleBtn = document.createElement('button');
                                                     toggleBtn.className = 'ai-message-toggle';
@@ -13536,7 +13969,7 @@
                                                     textBubble.innerHTML = `
                                                         <div class="ai-message-header">
                                                             <div class="ai-message-avatar">
-                                                                <i class="fas fa-robot"></i>
+                                                                <i class="fa-solid fa-atom"></i>
                                                             </div>
                                                         </div>
                                                         <div class="ai-message-content"></div>
@@ -13622,7 +14055,7 @@
             } else if (role === 'tool') {
                 avatar.innerHTML = '<i class="fas fa-wrench"></i>';
             } else {
-                avatar.innerHTML = '<i class="fas fa-robot"></i>';
+                avatar.innerHTML = '<i class="fa-solid fa-atom"></i>';
             }
 
             const toggleBtn = document.createElement('button');
@@ -14207,7 +14640,7 @@
 
             // Get Font Awesome icon class for agent
             getAgentIcon(agentId) {
-                return this.agentIcons[agentId - 1] || 'fa-robot';
+                return this.agentIcons[agentId - 1] || 'fa-atom';
             },
 
             // Get bespoke welcome message for each agent
@@ -14800,7 +15233,7 @@
                             messageDiv.innerHTML = `
                                 <div class="ai-message-header">
                                     <div class="ai-message-avatar">
-                                        <i class="fas fa-robot"></i>
+                                        <i class="fa-solid fa-atom"></i>
                                     </div>
                                     <button class="ai-message-toggle">
                                         <i class="fas fa-chevron-down"></i>
@@ -16449,7 +16882,7 @@
             } else if (role === 'tool') {
                 avatar.innerHTML = '<i class="fas fa-wrench"></i>';
             } else {
-                avatar.innerHTML = '<i class="fas fa-robot"></i>';
+                avatar.innerHTML = '<i class="fa-solid fa-atom"></i>';
             }
 
             const toggleBtn = document.createElement('button');
@@ -20358,7 +20791,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     if (match) {
                         const agentId = parseInt(match[1]);
                         agentName = MultiAgent ? MultiAgent.getAgentName(agentId) : `Agent-${agentId}`;
-                        agentIcon = MultiAgent ? MultiAgent.getAgentIcon(agentId) : 'fa-robot';
+                        agentIcon = MultiAgent ? MultiAgent.getAgentIcon(agentId) : 'fa-atom';
                         agentClass = 'agent';
                     }
                 } else if (location !== 'prime' && location !== 'synergy') {
@@ -21212,7 +21645,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         if (match) {
                             const agentId = parseInt(match[1]);
                             agentLabel = MultiAgent ? MultiAgent.getAgentName(agentId) : `Agent-${agentId}`;
-                            agentIcon = MultiAgent ? MultiAgent.getAgentIcon(agentId) : 'fa-robot';
+                            agentIcon = MultiAgent ? MultiAgent.getAgentIcon(agentId) : 'fa-atom';
                             agentClass = 'agent';
                         }
                     }
@@ -21363,7 +21796,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                         <div class="thread-assignment-options">
                                                             <button class="thread-assignment-option-btn prime"
                                                                     onclick="event.stopPropagation(); ThreadManager.handleThreadAssignmentOption('${thread.id}', 'move-to-prime')">
-                                                                <i class="fas fa-robot"></i>
+                                                                <i class="fa-solid fa-atom"></i>
                                                                 <div class="option-details">
                                                                     <div class="option-title">Move to Prime & View</div>
                                                                     <div class="option-subtitle">Unload from agent and open in main chat</div>
@@ -23303,13 +23736,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                         <i class="fas fa-star"></i> Prime Column
                                                                     </button>
                                                                     <button class="location-btn" data-location="agent-1">
-                                                                        <i class="fas fa-robot"></i> Agent 1
+                                                                        <i class="fa-solid fa-atom"></i> Agent 1
                                                                     </button>
                                                                     <button class="location-btn" data-location="agent-2">
-                                                                        <i class="fas fa-robot"></i> Agent 2
+                                                                        <i class="fa-solid fa-atom"></i> Agent 2
                                                                     </button>
                                                                     <button class="location-btn" data-location="agent-3">
-                                                                        <i class="fas fa-robot"></i> Agent 3
+                                                                        <i class="fa-solid fa-atom"></i> Agent 3
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -27447,7 +27880,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
         .thread-item i,
         .agent-item i {
             color: var(--accent-primary);
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .thread-id,
@@ -29951,13 +30384,29 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                                                                                             ${stepsHTML}
                                                                                                                                             ${checklistHTML}
 
+                                                                                                                                            <div class="internal-docs-section">
+                                                                                                                                                <div class="docs-section-header">
+                                                                                                                                                    <div class="section-title">
+                                                                                                                                                        <i class="fas fa-file-alt"></i> Internal Documents
+                                                                                                                                                    </div>
+                                                                                                                                                    <button class="add-doc-btn" onclick="InternalDocsManager.showEditor('${session.session_id}', null)" title="Create new document">
+                                                                                                                                                        <i class="fas fa-plus"></i> New Document
+                                                                                                                                                    </button>
+                                                                                                                                                </div>
+                                                                                                                                                <div class="docs-list" id="docs-list-${session.session_id}">
+                                                                                                                                                    <div class="no-docs-message">
+                                                                                                                                                        <i class="fas fa-folder-open"></i> No internal documents yet. Click "New Document" to create one.
+                                                                                                                                                    </div>
+                                                                                                                                                </div>
+                                                                                                                                            </div>
+
                                                                                                                                             ${session.assigned_agents && this.parseJsonField(session.assigned_agents, []).length > 0 ? `
                             <div class="card-section">
-                                <div class="section-title"><i class="fas fa-robot"></i> Assigned Agents (${this.parseJsonField(session.assigned_agents, []).length})</div>
+                                <div class="section-title"><i class="fa-solid fa-atom"></i> Assigned Agents (${this.parseJsonField(session.assigned_agents, []).length})</div>
                                 <div class="agent-list">
                                     ${this.parseJsonField(session.assigned_agents, []).map(agent => `
                                         <div class="agent-item">
-                                            <i class="fas fa-brain"></i>
+                                            <i class="fa-solid fa-atom"></i>
                                             <span class="agent-name">${this.escapeHtml(agent)}</span>
                                         </div>
                                     `).join('')}
@@ -33162,7 +33611,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                 const avatar = document.createElement('div');
                 avatar.className = 'ai-message-avatar';
-                avatar.innerHTML = '<i class="fas fa-brain"></i>';
+                avatar.innerHTML = '<i class="fa-solid fa-atom"></i>';
 
                 const toggleBtn = document.createElement('button');
                 toggleBtn.className = 'ai-message-toggle';
@@ -33481,7 +33930,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                 const avatar = document.createElement('div');
                 avatar.className = 'ai-message-avatar';
-                avatar.innerHTML = '<i class="fas fa-robot"></i>';
+                avatar.innerHTML = '<i class="fa-solid fa-atom"></i>';
 
                 headerDiv.appendChild(avatar);
 

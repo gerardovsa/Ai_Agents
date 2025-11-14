@@ -7,8 +7,8 @@ DATABASE STRUCTURE WITH EXAMPLE DATA
 ####################################################################################################
 DATABASE: ai_infrastructure.db
 Location: c:\Users\gpoli\GIT\AI_agents\data\ai_infrastructure.db
-Size: 524,288 bytes
-Tables: 15
+Size: 634,880 bytes
+Tables: 16
 ####################################################################################################
 
   TABLE: account_link_requests - 0 rows
@@ -33,20 +33,20 @@ Tables: 15
   Foreign Keys:
     user_id -> users.id
 
-  TABLE: device_registry - 0 rows
+  TABLE: device_registry - 4 rows
   ------------------------------------------------------------------------------------------------
     device_id                      TEXT            [PK]
-      Examples: (table empty)
+      Examples: "browser-a-1763090731323", "browser-b-1763090760753", "test-device-1-macbook"
     user_id                        INTEGER         [NOT NULL]
-      Examples: (table empty)
+      Examples: 1
     device_name                    TEXT            [NOT NULL]
-      Examples: (table empty)
+      Examples: "MacBook Pro (Test)", "Windows PC (Test)", "Chrome Browser"
     device_fingerprint             TEXT           
-      Examples: (table empty)
+      Examples: "", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Apple..."
     last_seen_at                   TIMESTAMP      
-      Examples: (table empty)
+      Examples: "2025-11-14 02:36:49", "2025-11-14 02:36:51", "2025-11-14 06:05:36"
     created_at                     TIMESTAMP      
-      Examples: (table empty)
+      Examples: "2025-11-14 02:35:34", "2025-11-14 02:35:36", "2025-11-14 03:25:31"
 
   Foreign Keys:
     user_id -> users.user_id
@@ -149,12 +149,29 @@ Tables: 15
     workspace_id -> workspaces.id
     user_id -> users.id
 
-  TABLE: sqlite_sequence - 7 rows
+  TABLE: sqlite_sequence - 8 rows
   ------------------------------------------------------------------------------------------------
     name                                          
       Examples: "users", "workspaces", "user_sessions"
     seq                                           
-      Examples: 14, 12, 551
+      Examples: 14, 12, 558
+
+  TABLE: thread_lock_history - 11 rows
+  ------------------------------------------------------------------------------------------------
+    lock_id                        INTEGER         [PK]
+      Examples: 1, 2, 3
+    thread_id                      INTEGER         [NOT NULL]
+      Examples: 42
+    device_id                      TEXT            [NOT NULL]
+      Examples: "test-device-1-macbook", "test-device-2-windows"
+    action                         TEXT            [NOT NULL]
+      Examples: "locked", "unlocked"
+    timestamp                      TIMESTAMP      
+      Examples: "2025-11-14 02:35:38", "2025-11-14 02:35:44", "2025-11-14 02:35:46"
+
+  Foreign Keys:
+    device_id -> device_registry.device_id
+    thread_id -> threads.thread_id
 
   TABLE: user_account_links - 0 rows
   ------------------------------------------------------------------------------------------------
@@ -311,12 +328,12 @@ Tables: 15
   Foreign Keys:
     user_id -> users.id
 
-  TABLE: user_sessions - 450 rows
+  TABLE: user_sessions - 457 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
-      Examples: 104, 105, 106
+      Examples: 86, 114, 115
     user_id                        INTEGER         [NOT NULL]
-      Examples: 3, 1, 4
+      Examples: 1, 3, 4
     token                          TEXT            [NOT NULL]
       Examples: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2...", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2...", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2..."
     ip_address                     TEXT           
@@ -331,7 +348,7 @@ Tables: 15
   Foreign Keys:
     user_id -> users.id
 
-  TABLE: users - 6 rows
+  TABLE: users - 7 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 13, 12, 5
@@ -340,23 +357,23 @@ Tables: 15
     email                          TEXT            [NOT NULL]
       Examples: "Gerardo@minivetguide.onmicrosoft.com", "gerardo@vetsuccessacademy.com", "google_test@example.com"
     password_hash                  TEXT            [NOT NULL]
-      Examples: "OAUTH_USER_NO_PASSWORD", "$2b$12$tkIIyMdqSDRBDkWwCKEKNePyFmwjIzy/SAeVbjCb...", "$2b$12$EZDMG4ahMKd3Fgpd8RWE0eo8X8EhI5Gh1l9YauWl..."
+      Examples: "SYSTEM_USER", "OAUTH_USER_NO_PASSWORD", "$2b$12$tkIIyMdqSDRBDkWwCKEKNePyFmwjIzy/SAeVbjCb..."
     role                           TEXT           
       Examples: "user"
     primary_gmail                  TEXT           
       Examples: "google_test@example.com", "microsoft_test@example.com"
     created_at                     TIMESTAMP      
-      Examples: "2025-10-28 15:51:12", "2025-10-29 13:19:36", "2025-11-05 08:18:59"
+      Examples: "2025-11-14 02:55:17", "2025-10-28 15:51:12", "2025-10-29 13:19:36"
     last_active                    TIMESTAMP      
-      Examples: "2025-10-28 15:51:12", "2025-10-29 13:57:43", "2025-10-29 13:20:38"
+      Examples: "2025-11-14 02:55:18", "2025-10-28 15:51:12", "2025-10-29 13:57:43"
     metadata                       TEXT           
-      Examples: "{}", "{"thread_assignments": {"agent-1": "17626904040..."
+      Examples: "{"thread_assignments": {"agent-1": "17630038669...", "{}", "{"thread_assignments": {"agent-1": "17626904040..."
     is_primary                     BOOLEAN        
       Examples: 1
     allowed_dashboards             TEXT           
-      Examples: "["main", "analytics", "ai_chat"]", "[]"
+      Examples: "[]", "["main", "analytics", "ai_chat"]"
     has_google_oauth               BOOLEAN        
-      Examples: 1, 0
+      Examples: 0, 1
     has_microsoft_oauth            BOOLEAN        
       Examples: 0, 1
     is_active                      BOOLEAN        
@@ -951,7 +968,7 @@ Trim size: A6 (scale file down from A4) Conten..."
 ####################################################################################################
 DATABASE: sessions.db
 Location: c:\Users\gpoli\GIT\AI_agents\data\sessions.db
-Size: 729,088 bytes
+Size: 733,184 bytes
 Tables: 11
 ####################################################################################################
 
@@ -970,7 +987,7 @@ Tables: 11
     metadata                       TEXT           
       Examples: (table empty)
 
-  TABLE: messages - 207 rows
+  TABLE: messages - 213 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 1, 2, 3
@@ -1014,7 +1031,7 @@ Tables: 11
   Foreign Keys:
     thread_id -> threads.id
 
-  TABLE: saved_threads - 26 rows
+  TABLE: saved_threads - 27 rows
   ------------------------------------------------------------------------------------------------
     thread_id                      TEXT            [PK]
       Examples: "Charlie-3_1763054845234", "Charlie-3_1763063985938", "Prime_1762828476509"
@@ -1077,7 +1094,7 @@ Tables: 11
     name                                          
       Examples: "threads", "messages", "users"
     seq                                           
-      Examples: 81, 207, 14
+      Examples: 82, 213, 14
 
   TABLE: thread_shares - 0 rows
   ------------------------------------------------------------------------------------------------
@@ -1135,7 +1152,7 @@ Tables: 11
   Foreign Keys:
     thread_id -> threads.id
 
-  TABLE: threads - 81 rows
+  TABLE: threads - 82 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 1, 2, 3
@@ -1169,6 +1186,12 @@ Tables: 11
       Examples: (all NULL)
     token_count                    INTEGER        
       Examples: 0
+    locked_to_device_id            TEXT           
+      Examples: (all NULL)
+    locked_at                      TIMESTAMP      
+      Examples: "2025-11-14 03:25:31"
+    lock_mode                      TEXT           
+      Examples: "unlocked", "locked"
 
   TABLE: user_sessions - 0 rows
   ------------------------------------------------------------------------------------------------
@@ -2480,31 +2503,33 @@ Size: 225,280 bytes
 Tables: 2
 ####################################################################################################
 
-  TABLE: synergy_internal_docs - 0 rows
+  TABLE: synergy_internal_docs - 1 rows
   ------------------------------------------------------------------------------------------------
     doc_id                         TEXT            [PK]
-      Examples: (table empty)
+      Examples: "int_doc_1763096878807"
     session_id                     TEXT            [NOT NULL]
-      Examples: (table empty)
+      Examples: "sess_20251114_1507_internal_docs_test_session"
     title                          TEXT            [NOT NULL]
-      Examples: (table empty)
+      Examples: "Meeting Notes"
     content                        TEXT            [NOT NULL]
-      Examples: (table empty)
+      Examples: "## Meeting with client
+
+Date: 2025-11-14"
     format                         TEXT            [NOT NULL]
-      Examples: (table empty)
+      Examples: "markdown"
     created_at                     TEXT           
-      Examples: (table empty)
+      Examples: "2025-11-14T15:07:58.808374"
     updated_at                     TEXT           
-      Examples: (table empty)
+      Examples: "2025-11-14T15:07:58.808381"
     created_by                     TEXT           
-      Examples: (table empty)
+      Examples: "system"
     version                        INTEGER        
-      Examples: (table empty)
+      Examples: 1
 
   Foreign Keys:
     session_id -> synergy_sessions.session_id
 
-  TABLE: synergy_sessions - 11 rows
+  TABLE: synergy_sessions - 13 rows
   ------------------------------------------------------------------------------------------------
     session_id                     TEXT            [PK]
       Examples: "sess_20251101_1410_sarah_customer_onboarding_sy...", "sess_20251111_0219_manuscript_formatting_research", "sess_20251111_1237_yesterday's_email_processing_&"
@@ -2519,7 +2544,7 @@ Tables: 2
     priority                       TEXT           
       Examples: "high", "medium"
     kanban_column                  TEXT           
-      Examples: "in_progress", "done"
+      Examples: "in_progress", "done", "backlog"
     tags                           TEXT           
       Examples: "["gmail", "google_forms", "google_sheets", "aut...", "["docs", "research", "synergy", "web_search", "...", "["microsoft_outlook", "microsoft_word", "micros..."
     documents                      TEXT           
@@ -2529,7 +2554,7 @@ Tables: 2
     next_steps                     TEXT           
       Examples: "[{"description": "[", "completed": false, "due_...", "[{"description": "Document book formatting fund...", "[{"description": "Retrieve yesterday's emails",..."
     assignees                      TEXT           
-      Examples: "["Sarah Johnson", "AI Assistant"]", "["AI Agent"]"
+      Examples: "["Sarah Johnson", "AI Assistant"]", "["AI Agent"]", "[]"
     recent_activity                TEXT           
       Examples: "[]", "[{"type": "moved", "timestamp": "2025-11-11T02:...", "[{"type": "created", "timestamp": "2025-11-11T1..."
     checklist                      TEXT           
@@ -2574,7 +2599,7 @@ Tables: 2
 SCRIPT DATABASE ACCESS ANALYSIS
 ====================================================================================================
 
-Total scripts with database access: 431
+Total scripts with database access: 437
 
 
 ####################################################################################################
@@ -2595,11 +2620,14 @@ DIRECTORY: AI_infrastructure
   FILE: check_schema.py (37 lines)
   Tables: pathlib, sqlite_master
 
-  FILE: flask_app.py (1234 lines)
+  FILE: flask_app.py (1269 lines)
   Tables: DataFrame, JobTickets, Quote_DigitalStocks, UI, client, core, dotenv, environment, flask, flask_cors
 
   FILE: flask_integration.py (254 lines)
   Tables: AI_infrastructure, flask, queue, typing
+
+  FILE: init_prompt_library.py (87 lines)
+  Tables: AI_agents, flask_app, pathlib, prompt_library
 
   FILE: migrate_oauth_enhancements.py (228 lines)
   Tables: datetime, oauth_tokens, pathlib, project
@@ -2609,9 +2637,6 @@ DIRECTORY: AI_infrastructure
 
   FILE: run_flask_no_reload.py (33 lines)
   Tables: flask_app
-
-  FILE: thread_manager.py (773 lines)
-  Tables: LLM, a, ai_infrastructure, cache, datetime, flask, messages, pathlib, sessions, text
 
 ####################################################################################################
 DIRECTORY: AI_infrastructure\auth
@@ -2623,7 +2648,7 @@ DIRECTORY: AI_infrastructure\auth
   FILE: permission_checker.py (486 lines)
   Tables: datetime, pathlib, typing, users
 
-  FILE: user_auth.py (1347 lines)
+  FILE: user_auth.py (1369 lines)
   Tables: Authorization, DB, OAuth, datetime, dotenv, flask, functools, header, oauth_tokens, pathlib
 
 ####################################################################################################
@@ -2740,6 +2765,15 @@ DIRECTORY: AI_infrastructure\meta_tools
 DIRECTORY: AI_infrastructure\migrations
 ####################################################################################################
 
+  FILE: add_refresh_attempts_column.py (68 lines)
+  Tables: pathlib, table
+
+  FILE: add_scope_column.py (56 lines)
+  Tables: pathlib
+
+  FILE: init_user_sessions_table.py (74 lines)
+  Tables: pathlib, user_sessions
+
   FILE: run_thread_features_migration.py (128 lines)
   Tables: pathlib, sqlite_master
 
@@ -2768,7 +2802,7 @@ DIRECTORY: AI_infrastructure\routes
   FILE: database_visualizer_routes.py (345 lines)
   Tables: a, datetime, flask, pathlib, project, sqlite_master, this, typing, utils
 
-  FILE: device_lock_routes.py (287 lines)
+  FILE: device_lock_routes.py (303 lines)
   Tables: AI_infrastructure, datetime, device_registry, flask, pathlib, thread_lock_history, threads
 
   FILE: export_routes.py (296 lines)
@@ -2823,10 +2857,10 @@ DIRECTORY: AI_infrastructure\tools
 DIRECTORY: AI_infrastructure\utils
 ####################################################################################################
 
-  FILE: database_helpers.py (347 lines)
+  FILE: database_helpers.py (366 lines)
   Tables: concurrent, contextlib, pathlib, pool, sqlite_master, typing, users
 
-  FILE: db_safety.py (167 lines)
+  FILE: db_safety.py (190 lines)
   Tables: args, datetime, functools, pathlib
 
   FILE: email_alias_helpers.py (354 lines)
@@ -2895,28 +2929,28 @@ DIRECTORY: ARCHIVE_OCT30_2025\test_scripts
 API ROUTES TO DATABASE CONNECTIONS
 ====================================================================================================
 
-Total API routes: 185
+Total API routes: 193
 
 
 ####################################################################################################
 DATABASE: Get database connection to ai_infrastructure.db
 ####################################################################################################
-  /categories                                        Tables: datetime, pathlib
+  /categories                                        Tables: pathlib, datetime
 
 ####################################################################################################
 DATABASE: ai_infrastructure.db
 ####################################################################################################
-  /categories                                        Tables: datetime, pathlib
-  /details                                           Tables: sessions, threads, ai_infrastructure
-  /workspace/callback                                Tables: Gmail, users, pathlib
+  /categories                                        Tables: pathlib, datetime
+  /details                                           Tables: ai_infrastructure, pathlib, sessions
+  /workspace/callback                                Tables: pathlib, users, auth
 
 ####################################################################################################
 DATABASE: sessions.db
 ####################################################################################################
-  /assignments/<location>                            Tables: users, metadata, pathlib
+  /assignments/<location>                            Tables: pathlib, users, request
 
 ####################################################################################################
-ROUTES WITHOUT EXPLICIT DATABASE (181 routes)
+ROUTES WITHOUT EXPLICIT DATABASE (189 routes)
 ####################################################################################################
   /link-status in account_linking_routes.py
   /initiate-link in account_linking_routes.py
@@ -2938,16 +2972,16 @@ ROUTES WITHOUT EXPLICIT DATABASE (181 routes)
 INCONSISTENCY DETECTION REPORT
 ====================================================================================================
 
-WARNING - Total Issues: 2508
-  HIGH: 2508
+WARNING - Total Issues: 2531
+  HIGH: 2531
   MEDIUM: 0
 
 
 ####################################################################################################
-HIGH SEVERITY (2508)
+HIGH SEVERITY (2531)
 ####################################################################################################
 
-  MISSING_TABLE (2508 issues):
+  MISSING_TABLE (2531 issues):
     ERROR: References non-existent table: pathlib
     File: AI_infrastructure\check_oauth_temp.py
     Table: pathlib
@@ -2956,37 +2990,37 @@ HIGH SEVERITY (2508)
     File: AI_infrastructure\check_schema.py
     Table: pathlib
 
-    ERROR: References non-existent table: core
+    ERROR: References non-existent table: logs
     File: AI_infrastructure\flask_app.py
-    Table: core
+    Table: logs
 
-    ERROR: References non-existent table: Quote_DigitalStocks
+    ERROR: References non-existent table: flask
     File: AI_infrastructure\flask_app.py
-    Table: Quote_DigitalStocks
+    Table: flask
 
-    ERROR: References non-existent table: pathlib
+    ERROR: References non-existent table: environment
     File: AI_infrastructure\flask_app.py
-    Table: pathlib
-
-    ERROR: References non-existent table: UI
-    File: AI_infrastructure\flask_app.py
-    Table: UI
-
-    ERROR: References non-existent table: system
-    File: AI_infrastructure\flask_app.py
-    Table: system
+    Table: environment
 
     ERROR: References non-existent table: DataFrame
     File: AI_infrastructure\flask_app.py
     Table: DataFrame
 
-    ERROR: References non-existent table: client
+    ERROR: References non-existent table: core
     File: AI_infrastructure\flask_app.py
-    Table: client
+    Table: core
 
-    ERROR: References non-existent table: xero_routes
+    ERROR: References non-existent table: room
     File: AI_infrastructure\flask_app.py
-    Table: xero_routes
+    Table: room
+
+    ERROR: References non-existent table: migrations
+    File: AI_infrastructure\flask_app.py
+    Table: migrations
+
+    ERROR: References non-existent table: Quote_DigitalStocks
+    File: AI_infrastructure\flask_app.py
+    Table: Quote_DigitalStocks
 
 
 ####################################################################################################
@@ -3059,5 +3093,5 @@ COMMON ISSUES:
 
 ====================================================================================================
 ANALYSIS COMPLETE
-Generated: 2025-11-14 12:18:47
+Generated: 2025-11-14 16:15:01
 ====================================================================================================
