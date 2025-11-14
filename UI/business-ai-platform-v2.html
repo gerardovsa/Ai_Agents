@@ -51,7 +51,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css">
 
     <!-- Token Polling System -->
-    <script src="token_polling.js"></script>
+    <!-- token_polling.js removed - functionality integrated into auth module -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
 
     <!-- Google API for Tasks & Calendar Integration -->
@@ -34112,106 +34112,133 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
         </div>
     </div>
 
-    <!-- ==================== PROMPT LIBRARY MODAL ==================== -->
-    <div id="prompt-modal-overlay" class="prompt-modal-overlay">
-        <div class="prompt-modal">
-            <div class="prompt-modal-header">
-                <h3 id="prompt-modal-title">Create New Prompt</h3>
-                <button class="prompt-modal-close" onclick="window.closePromptModal()">&times;</button>
-            </div>
-            <div class="prompt-modal-body">
-                <form id="prompt-form" onsubmit="event.preventDefault(); window.savePrompt();">
-                    <!-- Prompt Title -->
-                    <div class="form-group">
-                        <label for="prompt-title">
-                            <i class="fas fa-heading"></i> Prompt Title
-                        </label>
-                        <input type="text" id="prompt-title" class="form-control" placeholder="e.g., Code Review Assistant" required>
-                    </div>
-
-                    <!-- Category -->
-                    <div class="form-group">
-                        <label for="prompt-category">
-                            <i class="fas fa-folder"></i> Category
-                        </label>
-                        <select id="prompt-category" class="form-control" required>
-                            <option value="development">Development</option>
-                            <option value="analysis">Analysis</option>
-                            <option value="data">Data & SQL</option>
-                            <option value="style">Communication Style</option>
-                            <option value="business">Business</option>
-                            <option value="creative">Creative</option>
-                        </select>
-                    </div>
-
-                    <!-- Type -->
-                    <div class="form-group">
-                        <label>
-                            <i class="fas fa-bolt"></i> Prompt Type
-                        </label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
-                                <span>Quick Action</span>
-                                <small>Short directive (e.g., "Be concise")</small>
+    <!-- REMOVED: Duplicate prompt modal - now injected by prompt-library.js -->
+                    <form id="OLD-FORM-REMOVED">
+                        <!-- Prompt Title -->
+                        <div class="form-group">
+                            <label for="prompt-title">
+                                <i class="fas fa-heading"></i> Prompt Title
                             </label>
-                            <label class="radio-label">
-                                <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
-                                <span>Full Prompt</span>
-                                <small>Complete instructions with context</small>
+                            <input type="text" id="prompt-title" class="form-control"
+                                placeholder="e.g., Code Review Assistant" required>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="form-group">
+                            <label for="prompt-category">
+                                <i class="fas fa-folder"></i> Category
                             </label>
+                            <select id="prompt-category" class="form-control" required>
+                                <option value="development">Development</option>
+                                <option value="analysis">Analysis</option>
+                                <option value="data">Data & SQL</option>
+                                <option value="style">Communication Style</option>
+                                <option value="business">Business</option>
+                                <option value="creative">Creative</option>
+                            </select>
+                        </div>
+
+                        <!-- Type -->
+                        <div class="form-group">
+                            <label>
+                                <i class="fas fa-bolt"></i> Prompt Type
+                            </label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
+                                    <span>Quick Action</span>
+                                    <small>Short directive (e.g., "Be concise")</small>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
+                                    <span>Full Prompt</span>
+                                    <small>Complete instructions with context</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Short Description -->
+                        <div class="form-group">
+                            <label for="prompt-short-desc">
+                                <i class="fas fa-align-left"></i> Short Description
+                            </label>
+                            <input type="text" id="prompt-short-desc" class="form-control"
+                                placeholder="Brief description shown in dropdown">
+                        </div>
+
+                        <!-- Prompt Text -->
+                        <div class="form-group">
+                            <label for="prompt-text">
+                                <i class="fas fa-file-alt"></i> Prompt Text
+                            </label>
+                            <textarea id="prompt-text" class="form-control" rows="6"
+                                placeholder="Enter your prompt instructions here..." required></textarea>
+                        </div>
+
+                        <!-- Tags -->
+                        <div class="form-group">
+                            <label for="prompt-tags">
+                                <i class="fas fa-tags"></i> Tags
+                            </label>
+                            <input type="text" id="prompt-tags" class="form-control"
+                                placeholder="code, review, python (comma-separated)">
+                        </div>
+
+                        <!-- Visibility -->
+                        <div class="form-group">
+                            <label for="prompt-visibility">
+                                <i class="fas fa-eye"></i> Visibility
+                            </label>
+                            <select id="prompt-visibility" class="form-control">
+                                <option value="private">Private (only you)</option>
+                                <option value="workspace">Workspace (all members)</option>
+                                <option value="public">Public (everyone)</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- EDIT TAB -->
+                <div id="edit-tab" class="tab-content">
+                    <div class="edit-prompt-list">
+                        <div class="edit-search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="edit-search" class="form-control"
+                                placeholder="Search your prompts..." oninput="window.filterEditPrompts(this.value)">
+                        </div>
+                        <div id="edit-prompts-container" class="edit-prompts-scrollable">
+                            <!-- Prompts will be loaded here by JavaScript -->
                         </div>
                     </div>
-
-                    <!-- Short Description -->
-                    <div class="form-group">
-                        <label for="prompt-short-desc">
-                            <i class="fas fa-align-left"></i> Short Description
-                        </label>
-                        <input type="text" id="prompt-short-desc" class="form-control" placeholder="Brief description shown in dropdown">
-                    </div>
-
-                    <!-- Prompt Text -->
-                    <div class="form-group">
-                        <label for="prompt-text">
-                            <i class="fas fa-file-alt"></i> Prompt Text
-                        </label>
-                        <textarea id="prompt-text" class="form-control" rows="6" placeholder="Enter your prompt instructions here..." required></textarea>
-                    </div>
-
-                    <!-- Tags -->
-                    <div class="form-group">
-                        <label for="prompt-tags">
-                            <i class="fas fa-tags"></i> Tags
-                        </label>
-                        <input type="text" id="prompt-tags" class="form-control" placeholder="code, review, python (comma-separated)">
-                    </div>
-
-                    <!-- Visibility -->
-                    <div class="form-group">
-                        <label for="prompt-visibility">
-                            <i class="fas fa-eye"></i> Visibility
-                        </label>
-                        <select id="prompt-visibility" class="form-control">
-                            <option value="private">Private (only you)</option>
-                            <option value="workspace">Workspace (all members)</option>
-                            <option value="public">Public (everyone)</option>
-                        </select>
-                    </div>
-                </form>
+                </div>
             </div>
+
             <div class="prompt-modal-footer">
-                <button id="delete-prompt-btn" class="btn-delete hidden" onclick="window.deletePrompt()">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-                <div style="flex: 1;"></div>
-                <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
-                <button class="btn-primary" onclick="window.savePrompt()">
-                    <i class="fas fa-save"></i> Save Prompt
-                </button>
+                <!-- Create tab footer -->
+                <div id="create-footer" class="footer-content active">
+                    <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
+                    <button class="btn-primary" onclick="window.savePrompt()">
+                        <i class="fas fa-save"></i> Create Prompt
+                    </button>
+                </div>
+                <!-- Edit tab footer -->
+                <div id="edit-footer" class="footer-content">
+                    <button id="delete-prompt-btn" class="btn-delete" onclick="window.deletePrompt()">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    <div style="flex: 1;"></div>
+                    <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
+                    <button class="btn-primary" onclick="window.saveEditedPrompt()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- ==================== PROMPT LIBRARY MODAL ==================== -->
+    <!-- Modal is dynamically injected by prompt-library.js module -->
+    <!-- This prevents duplicate IDs and ensures proper initialization -->
 
     <!-- ==================== MODULE SYSTEM SCRIPTS ==================== -->
     <script src="js/module-manager.js"></script>
