@@ -149,20 +149,33 @@ class UserAuthManager:
                 with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                     cursor = conn.cursor()
                     
-                    # Enhanced users table
+                    # Enhanced users table - EXACT MATCH to existing schema
                     cursor.execute('''
                         CREATE TABLE IF NOT EXISTS users (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             username TEXT UNIQUE NOT NULL,
                             email TEXT UNIQUE NOT NULL,
-                            password_hash TEXT,
+                            password_hash TEXT NOT NULL,
                             role TEXT DEFAULT 'user',
                             primary_gmail TEXT,
-                            has_microsoft_oauth INTEGER DEFAULT 0,
-                            has_google_oauth INTEGER DEFAULT 0,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            metadata TEXT
+                            metadata TEXT,
+                            is_primary BOOLEAN DEFAULT 0,
+                            allowed_dashboards TEXT,
+                            has_google_oauth BOOLEAN DEFAULT 0,
+                            has_microsoft_oauth BOOLEAN DEFAULT 0,
+                            is_active BOOLEAN DEFAULT 1,
+                            parent_user_id INTEGER,
+                            is_sub_user BOOLEAN DEFAULT 0,
+                            permissions TEXT,
+                            allowed_tools TEXT,
+                            allowed_agents TEXT,
+                            data_access_scope TEXT DEFAULT 'own',
+                            usage_limit_daily INTEGER DEFAULT 1000,
+                            access_start_time TEXT,
+                            access_end_time TEXT,
+                            account_expires_at TIMESTAMP
                         )
                     ''')
                     
@@ -228,7 +241,7 @@ class UserAuthManager:
                         )
                     ''')
                     
-                    # OAuth tokens table (Microsoft, Google, etc.)
+                    # OAuth tokens table (Microsoft, Google, etc.) - EXACT MATCH to existing schema
                     cursor.execute('''
                         CREATE TABLE IF NOT EXISTS oauth_tokens (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -239,20 +252,28 @@ class UserAuthManager:
                             token_type TEXT DEFAULT 'Bearer',
                             expires_at TIMESTAMP,
                             scope TEXT,
-                            is_valid INTEGER DEFAULT 1,
-                            is_active INTEGER DEFAULT 1,
-                            auto_refresh_enabled INTEGER DEFAULT 1,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             last_refreshed_at TIMESTAMP,
+                            metadata TEXT,
+                            account_identifier TEXT,
+                            account_name TEXT,
+                            is_primary_account BOOLEAN DEFAULT 0,
+                            is_valid BOOLEAN DEFAULT 1,
+                            is_active BOOLEAN DEFAULT 1,
                             refresh_attempts INTEGER DEFAULT 0,
                             last_refresh_error TEXT,
+                            auto_refresh_enabled BOOLEAN DEFAULT 1,
                             granted_scopes TEXT,
-                            metadata TEXT,
+                            issued_at TIMESTAMP,
+                            revoked_at TIMESTAMP,
+                            ip_address_granted TEXT,
                             email TEXT,
                             profile_name TEXT,
                             error_count INTEGER DEFAULT 0,
                             last_error TEXT,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            profile_picture_url TEXT,
+                            profile_data TEXT,
                             UNIQUE(user_id, platform),
                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                         )
