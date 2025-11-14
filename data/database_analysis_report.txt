@@ -7,8 +7,8 @@ DATABASE STRUCTURE WITH EXAMPLE DATA
 ####################################################################################################
 DATABASE: ai_infrastructure.db
 Location: c:\Users\gpoli\GIT\AI_agents\data\ai_infrastructure.db
-Size: 442,368 bytes
-Tables: 13
+Size: 524,288 bytes
+Tables: 15
 ####################################################################################################
 
   TABLE: account_link_requests - 0 rows
@@ -33,6 +33,24 @@ Tables: 13
   Foreign Keys:
     user_id -> users.id
 
+  TABLE: device_registry - 0 rows
+  ------------------------------------------------------------------------------------------------
+    device_id                      TEXT            [PK]
+      Examples: (table empty)
+    user_id                        INTEGER         [NOT NULL]
+      Examples: (table empty)
+    device_name                    TEXT            [NOT NULL]
+      Examples: (table empty)
+    device_fingerprint             TEXT           
+      Examples: (table empty)
+    last_seen_at                   TIMESTAMP      
+      Examples: (table empty)
+    created_at                     TIMESTAMP      
+      Examples: (table empty)
+
+  Foreign Keys:
+    user_id -> users.user_id
+
   TABLE: oauth_tokens - 5 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
@@ -48,7 +66,7 @@ Tables: 13
     token_type                     TEXT           
       Examples: "Bearer"
     expires_at                     TIMESTAMP      
-      Examples: "2025-10-30 10:49:21", "2025-11-11 03:26:26", "2025-11-08 05:02:50"
+      Examples: "2025-10-30 10:49:21", "2025-11-11 03:26:26", "2025-11-13 03:31:43"
     scope                          TEXT           
       Examples: "openid email profile https://www.googleapis.com...", "offline_access User.Read User.ReadWrite Mail.Re..."
     created_at                     TIMESTAMP      
@@ -56,7 +74,7 @@ Tables: 13
     updated_at                     TIMESTAMP      
       Examples: "2025-10-29 13:19:36", "2025-10-30 09:49:23", "2025-11-11 02:26:28"
     last_refreshed_at              TIMESTAMP      
-      Examples: "2025-10-30 09:49:23", "2025-11-11 02:26:28", "2025-11-08 04:02:50"
+      Examples: "2025-10-30 09:49:23", "2025-11-11 02:26:28", "2025-11-13 02:31:43"
     metadata                       TEXT           
       Examples: "{"google_id": "106194727360309483287", "picture...", "{"google_id": "110838374146942315926", "email":...", "{"microsoft_id": "c7e77a9f-f08c-49fb-addc-05689..."
     account_identifier             TEXT           
@@ -95,7 +113,7 @@ Tables: 13
   Foreign Keys:
     user_id -> users.id
 
-  TABLE: prompt_library - 67 rows
+  TABLE: prompt_library - 76 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 1, 2, 3
@@ -106,7 +124,7 @@ Tables: 13
     name                           VARCHAR(200)    [NOT NULL]
       Examples: "Expert Coder", "Code Reviewer", "Debugger"
     category                       VARCHAR(50)     [NOT NULL]
-      Examples: "analysis", "data", "development"
+      Examples: "analysis", "customer_service", "data"
     type                           VARCHAR(20)     [NOT NULL]
       Examples: "quick_action", "full_prompt"
     description                    TEXT           
@@ -136,7 +154,7 @@ Tables: 13
     name                                          
       Examples: "users", "workspaces", "user_sessions"
     seq                                           
-      Examples: 14, 12, 532
+      Examples: 14, 12, 551
 
   TABLE: user_account_links - 0 rows
   ------------------------------------------------------------------------------------------------
@@ -273,7 +291,27 @@ Tables: 13
   Foreign Keys:
     user_id -> users.id
 
-  TABLE: user_sessions - 431 rows
+  TABLE: user_prompt_preferences - 0 rows
+  ------------------------------------------------------------------------------------------------
+    id                             INTEGER         [PK]
+      Examples: (table empty)
+    user_id                        INTEGER         [NOT NULL]
+      Examples: (table empty)
+    preference_name                TEXT            [NOT NULL]
+      Examples: (table empty)
+    quick_actions                  TEXT           
+      Examples: (table empty)
+    library_prompts                TEXT           
+      Examples: (table empty)
+    custom_prompt                  TEXT           
+      Examples: (table empty)
+    created_at                     TEXT           
+      Examples: (table empty)
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: user_sessions - 450 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 104, 105, 106
@@ -913,7 +951,7 @@ Trim size: A6 (scale file down from A4) Conten..."
 ####################################################################################################
 DATABASE: sessions.db
 Location: c:\Users\gpoli\GIT\AI_agents\data\sessions.db
-Size: 430,080 bytes
+Size: 729,088 bytes
 Tables: 11
 ####################################################################################################
 
@@ -932,7 +970,7 @@ Tables: 11
     metadata                       TEXT           
       Examples: (table empty)
 
-  TABLE: messages - 143 rows
+  TABLE: messages - 207 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 1, 2, 3
@@ -976,10 +1014,10 @@ Tables: 11
   Foreign Keys:
     thread_id -> threads.id
 
-  TABLE: saved_threads - 15 rows
+  TABLE: saved_threads - 26 rows
   ------------------------------------------------------------------------------------------------
     thread_id                      TEXT            [PK]
-      Examples: "Prime_1762828476509", "Prime_1762867151065", "agent-2_1762851232975"
+      Examples: "Charlie-3_1763054845234", "Charlie-3_1763063985938", "Prime_1762828476509"
     agent_id                       TEXT            [NOT NULL]
       Examples: "prime", "agent-2", "Prime"
     session_id                     TEXT            [NOT NULL]
@@ -1039,7 +1077,7 @@ Tables: 11
     name                                          
       Examples: "threads", "messages", "users"
     seq                                           
-      Examples: 30, 143, 14
+      Examples: 81, 207, 14
 
   TABLE: thread_shares - 0 rows
   ------------------------------------------------------------------------------------------------
@@ -1097,16 +1135,16 @@ Tables: 11
   Foreign Keys:
     thread_id -> threads.id
 
-  TABLE: threads - 30 rows
+  TABLE: threads - 81 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
-      Examples: 2, 6, 5
+      Examples: 1, 2, 3
     thread_slug                    TEXT            [NOT NULL]
       Examples: "1762663889170", "1762664086386", "1762664406832"
     workspace_id                   INTEGER        
       Examples: 1
     user_id                        INTEGER        
-      Examples: 12, 14
+      Examples: 1, 12, 14
     name                           TEXT            [NOT NULL]
       Examples: "Smart toot test", "Smart toot test 3- agnet", "Smart tool test 4 - Google Forms"
     created_at                     TIMESTAMP      
@@ -1129,6 +1167,8 @@ Tables: 11
       Examples: 0
     branch_point_message_id        TEXT           
       Examples: (all NULL)
+    token_count                    INTEGER        
+      Examples: 0
 
   TABLE: user_sessions - 0 rows
   ------------------------------------------------------------------------------------------------
@@ -1151,14 +1191,14 @@ Tables: 11
     last_activity                  TIMESTAMP      
       Examples: (table empty)
 
-  TABLE: users - 2 rows
+  TABLE: users - 3 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
-      Examples: 12, 14
+      Examples: 12, 13, 14
     username                       TEXT            [NOT NULL]
-      Examples: "user_12", "user_14"
+      Examples: "user_12", "user_13", "user_14"
     email                          TEXT            [NOT NULL]
-      Examples: "user_12@ai-platform.local", "user_14@ai-platform.local"
+      Examples: "user_12@ai-platform.local", "user_13@ai-platform.local", "user_14@ai-platform.local"
     password_hash                  TEXT            [NOT NULL]
       Examples: "SYSTEM_USER"
     role                           TEXT           
@@ -1166,11 +1206,11 @@ Tables: 11
     primary_gmail                  TEXT           
       Examples: (all NULL)
     created_at                     TIMESTAMP      
-      Examples: "2025-11-10 03:04:45", "2025-11-11 02:33:27"
+      Examples: "2025-11-10 03:04:45", "2025-11-13 02:31:45", "2025-11-11 02:33:27"
     last_active                    TIMESTAMP      
-      Examples: "2025-11-11 02:52:19", "2025-11-12 12:22:57"
+      Examples: "2025-11-11 02:52:19", "2025-11-13 02:31:45", "2025-11-13 20:39:31"
     metadata                       TEXT           
-      Examples: "{"thread_assignments": {"agent-1": "17628280698...", "{"thread_assignments": {"agent-1": "17628741587..."
+      Examples: "{"thread_assignments": {"agent-1": "17628280698...", "{"thread_assignments": {"agent-2": "17629361315...", "{"thread_assignments": {"agent-1": "17630038669..."
 
   TABLE: workspaces - 0 rows
   ------------------------------------------------------------------------------------------------
@@ -2436,46 +2476,70 @@ Price updated from invoice...", "A4 corflute sheet"
 ####################################################################################################
 DATABASE: synergy_sessions.db
 Location: c:\Users\gpoli\GIT\AI_agents\data\synergy_sessions.db
-Size: 94,208 bytes
-Tables: 1
+Size: 225,280 bytes
+Tables: 2
 ####################################################################################################
 
-  TABLE: synergy_sessions - 21 rows
+  TABLE: synergy_internal_docs - 0 rows
+  ------------------------------------------------------------------------------------------------
+    doc_id                         TEXT            [PK]
+      Examples: (table empty)
+    session_id                     TEXT            [NOT NULL]
+      Examples: (table empty)
+    title                          TEXT            [NOT NULL]
+      Examples: (table empty)
+    content                        TEXT            [NOT NULL]
+      Examples: (table empty)
+    format                         TEXT            [NOT NULL]
+      Examples: (table empty)
+    created_at                     TEXT           
+      Examples: (table empty)
+    updated_at                     TEXT           
+      Examples: (table empty)
+    created_by                     TEXT           
+      Examples: (table empty)
+    version                        INTEGER        
+      Examples: (table empty)
+
+  Foreign Keys:
+    session_id -> synergy_sessions.session_id
+
+  TABLE: synergy_sessions - 11 rows
   ------------------------------------------------------------------------------------------------
     session_id                     TEXT            [PK]
-      Examples: "sess_20251101_1410_alex_content_workflow_system", "sess_20251101_1410_david_sales_pipeline_automation", "sess_20251101_1410_michael_e-commerce_store_setup"
+      Examples: "sess_20251101_1410_sarah_customer_onboarding_sy...", "sess_20251111_0219_manuscript_formatting_research", "sess_20251111_1237_yesterday's_email_processing_&"
     title                          TEXT            [NOT NULL]
-      Examples: "Enterprise Multi-Platform Integration & Analyti...", "Enterprise E-Commerce Platform Launch with Mult...", "Veterinary Practice Management System - Google ..."
+      Examples: "Customer Onboarding System", "Manuscript Formatting Research & Documentation ...", "Yesterday's Outlook Email Processing - Word Doc..."
     description                    TEXT           
-      Examples: "Complete enterprise-grade integration system co...", "Comprehensive e-commerce platform launch integr...", "Comprehensive veterinary practice management sy..."
+      Examples: "Multi-platform customer onboarding workflow wit...", "Multi-platform project involving: docs, researc...", "Multi-platform project involving: Microsoft Out..."
     platforms_involved             TEXT           
-      Examples: "[]", "["microsoft_outlook", "microsoft_word", "micros..."
+      Examples: "[]", "["microsoft_outlook", "microsoft_word", "micros...", "["microsoft_outlook", "inhouse_print", "calcula..."
     status                         TEXT           
-      Examples: "active", "paused", "in_progress"
+      Examples: "active", "in_progress"
     priority                       TEXT           
-      Examples: "critical", "high", "medium"
+      Examples: "high", "medium"
     kanban_column                  TEXT           
-      Examples: "in_progress", "backlog", "review"
+      Examples: "in_progress", "done"
     tags                           TEXT           
-      Examples: "["enterprise", "integration", "ecommerce", "aut...", "["e-commerce", "automation", "urgent", "revenue...", "["veterinary", "healthcare", "google-workspace"..."
+      Examples: "["gmail", "google_forms", "google_sheets", "aut...", "["docs", "research", "synergy", "web_search", "...", "["microsoft_outlook", "microsoft_word", "micros..."
     documents                      TEXT           
-      Examples: "[{"name": "System Architecture Diagram", "url":...", "[{"name": "Product Catalog Master Sheet", "url"...", "[]"
+      Examples: "[]", "[{"title": "Manuscript Formatting Research Guid...", "[{"title": "MBE Eight Mile Plains - Formal Quot..."
     links                          TEXT           
-      Examples: "[]", "[{"title": "Synergy Dashboard", "url": "http://..."
+      Examples: "[]"
     next_steps                     TEXT           
-      Examples: "["Phase 1: Database schema design and Supabase ...", "["Configure WooCommerce store settings and them...", "["Create patient intake form", "Build patient r..."
+      Examples: "[{"description": "[", "completed": false, "due_...", "[{"description": "Document book formatting fund...", "[{"description": "Retrieve yesterday's emails",..."
     assignees                      TEXT           
-      Examples: "["AI Agent"]", "[]", "["Sarah Johnson", "AI Assistant"]"
+      Examples: "["Sarah Johnson", "AI Assistant"]", "["AI Agent"]"
     recent_activity                TEXT           
-      Examples: "[{"type": "created", "timestamp": "2025-11-01T2...", "[{"type": "created", "timestamp": "2025-11-01T2...", "[{"type": "created", "timestamp": "2025-11-03T0..."
+      Examples: "[]", "[{"type": "moved", "timestamp": "2025-11-11T02:...", "[{"type": "created", "timestamp": "2025-11-11T1..."
     checklist                      TEXT           
-      Examples: "[]", "[{"task": "Email Thread 1 - Leanne Catalano Cor...", "[{"task": "Test basic session creation", "compl..."
+      Examples: "[]", "[{"task": "\ud83d\udd0d OUTLOOK - Email Listing...", "[{"task": "Aaron Woods - Quote Approval & Turna..."
     due_date                       TEXT           
-      Examples: "2025-12-15", "2025-11-30", "2025-11-20"
+      Examples: "2025-11-20", "2025-11-13", "2024-11-13"
     created_at                     TEXT           
-      Examples: "2025-11-01T23:53:52.348379", "2025-11-01T23:53:56.062325", "2025-11-03T09:06:35.167645"
+      Examples: "2025-11-01T14:10:10.973274", "2025-11-11T02:19:41.374757", "2025-11-11T12:37:04.360093"
     last_active                    TEXT           
-      Examples: "2025-11-01T23:53:54.400942", "2025-11-01T23:53:58.116160", "2025-11-03T10:26:37.575791"
+      Examples: "2025-11-10T12:35:07.000254", "2025-11-11T02:49:45.448497", "2025-11-11T23:25:25.767138"
     completed_at                   TEXT           
       Examples: (all NULL)
     google_task_id                 TEXT           
@@ -2485,32 +2549,32 @@ Tables: 1
     microsoft_todo_id              TEXT           
       Examples: (all NULL)
     thread_ids                     TEXT           
-      Examples: "[]", "["1762663889170"]", "["1762788226777"]"
+      Examples: "["1762663889170"]", "["1762789269210"]", "["1762851232975"]"
     assigned_agents                TEXT           
-      Examples: "["Prime Agent"]", "[]", "["Agent 2"]"
+      Examples: "[]"
     project_name                   TEXT           
-      Examples: "Customer Success Platform", "Online Store Launch", "Content Marketing Hub"
+      Examples: "Customer Success Platform"
     notes                          TEXT           
-      Examples: "Created welcome email template, signup form liv...", "WooCommerce configured with 50 products, Stripe...", "Created 15 draft articles in Google Docs, organ..."
+      Examples: "Created welcome email template, signup form liv..."
     session_data                   TEXT           
       Examples: "{}"
     google_calendar_event_id       TEXT           
       Examples: (all NULL)
     updated_at                     TEXT           
-      Examples: "2025-11-10 00:12:40", "2025-11-01T14:10:10.973274", "2025-11-01T14:10:10.978604"
+      Examples: "2025-11-01T14:10:10.973274"
     shared_with_users              TEXT           
       Examples: "[]"
     owner_user_id                  INTEGER        
       Examples: 1
     column_position                INTEGER        
-      Examples: 4, 5, 6
+      Examples: 1, 0
 
 
 ====================================================================================================
 SCRIPT DATABASE ACCESS ANALYSIS
 ====================================================================================================
 
-Total scripts with database access: 420
+Total scripts with database access: 431
 
 
 ####################################################################################################
@@ -2531,7 +2595,7 @@ DIRECTORY: AI_infrastructure
   FILE: check_schema.py (37 lines)
   Tables: pathlib, sqlite_master
 
-  FILE: flask_app.py (1215 lines)
+  FILE: flask_app.py (1234 lines)
   Tables: DataFrame, JobTickets, Quote_DigitalStocks, UI, client, core, dotenv, environment, flask, flask_cors
 
   FILE: flask_integration.py (254 lines)
@@ -2607,7 +2671,7 @@ DIRECTORY: AI_infrastructure\core
   FILE: agent_state_manager.py (185 lines)
   Tables: datetime, queue, typing
 
-  FILE: combined_agent_worker.py (1623 lines)
+  FILE: combined_agent_worker.py (1737 lines)
   Tables: Claude, User, anthropic, assistant, calculator, core, current, datetime, dict, execute_streaming_request
 
   FILE: confirmation_manager.py (522 lines)
@@ -2704,14 +2768,14 @@ DIRECTORY: AI_infrastructure\routes
   FILE: database_visualizer_routes.py (345 lines)
   Tables: a, datetime, flask, pathlib, project, sqlite_master, this, typing, utils
 
+  FILE: device_lock_routes.py (287 lines)
+  Tables: AI_infrastructure, datetime, device_registry, flask, pathlib, thread_lock_history, threads
+
   FILE: export_routes.py (296 lines)
   Tables: core, database, datetime, extracted_jobs, flask, unified_stocks, utils
 
   FILE: file_routes.py (194 lines)
   Tables: config, flask, pathlib, utils
-
-  FILE: geolocation_routes.py (170 lines)
-  Tables: AI_infrastructure, IP, X, flask, query
 
 ####################################################################################################
 DIRECTORY: AI_infrastructure\sync
@@ -2759,8 +2823,8 @@ DIRECTORY: AI_infrastructure\tools
 DIRECTORY: AI_infrastructure\utils
 ####################################################################################################
 
-  FILE: database_helpers.py (252 lines)
-  Tables: pathlib, sqlite_master, typing
+  FILE: database_helpers.py (347 lines)
+  Tables: concurrent, contextlib, pathlib, pool, sqlite_master, typing, users
 
   FILE: db_safety.py (167 lines)
   Tables: args, datetime, functools, pathlib
@@ -2831,28 +2895,28 @@ DIRECTORY: ARCHIVE_OCT30_2025\test_scripts
 API ROUTES TO DATABASE CONNECTIONS
 ====================================================================================================
 
-Total API routes: 177
+Total API routes: 185
 
 
 ####################################################################################################
 DATABASE: Get database connection to ai_infrastructure.db
 ####################################################################################################
-  /categories                                        Tables: pathlib, datetime
+  /categories                                        Tables: datetime, pathlib
 
 ####################################################################################################
 DATABASE: ai_infrastructure.db
 ####################################################################################################
-  /categories                                        Tables: pathlib, datetime
-  /details                                           Tables: threads, sessions, synergy_sessions
-  /workspace/callback                                Tables: Gmail, OAuth, googleapiclient
+  /categories                                        Tables: datetime, pathlib
+  /details                                           Tables: sessions, threads, ai_infrastructure
+  /workspace/callback                                Tables: Gmail, users, pathlib
 
 ####################################################################################################
 DATABASE: sessions.db
 ####################################################################################################
-  /assignments/<location>                            Tables: the, JWT, users
+  /assignments/<location>                            Tables: users, metadata, pathlib
 
 ####################################################################################################
-ROUTES WITHOUT EXPLICIT DATABASE (173 routes)
+ROUTES WITHOUT EXPLICIT DATABASE (181 routes)
 ####################################################################################################
   /link-status in account_linking_routes.py
   /initiate-link in account_linking_routes.py
@@ -2874,16 +2938,16 @@ ROUTES WITHOUT EXPLICIT DATABASE (173 routes)
 INCONSISTENCY DETECTION REPORT
 ====================================================================================================
 
-WARNING - Total Issues: 2437
-  HIGH: 2437
+WARNING - Total Issues: 2508
+  HIGH: 2508
   MEDIUM: 0
 
 
 ####################################################################################################
-HIGH SEVERITY (2437)
+HIGH SEVERITY (2508)
 ####################################################################################################
 
-  MISSING_TABLE (2437 issues):
+  MISSING_TABLE (2508 issues):
     ERROR: References non-existent table: pathlib
     File: AI_infrastructure\check_oauth_temp.py
     Table: pathlib
@@ -2892,37 +2956,37 @@ HIGH SEVERITY (2437)
     File: AI_infrastructure\check_schema.py
     Table: pathlib
 
-    ERROR: References non-existent table: UI
+    ERROR: References non-existent table: core
     File: AI_infrastructure\flask_app.py
-    Table: UI
+    Table: core
 
     ERROR: References non-existent table: Quote_DigitalStocks
     File: AI_infrastructure\flask_app.py
     Table: Quote_DigitalStocks
 
-    ERROR: References non-existent table: room
+    ERROR: References non-existent table: pathlib
     File: AI_infrastructure\flask_app.py
-    Table: room
+    Table: pathlib
 
-    ERROR: References non-existent table: environment
+    ERROR: References non-existent table: UI
     File: AI_infrastructure\flask_app.py
-    Table: environment
-
-    ERROR: References non-existent table: flask_socketio
-    File: AI_infrastructure\flask_app.py
-    Table: flask_socketio
-
-    ERROR: References non-existent table: shopify_routes
-    File: AI_infrastructure\flask_app.py
-    Table: shopify_routes
-
-    ERROR: References non-existent table: module
-    File: AI_infrastructure\flask_app.py
-    Table: module
+    Table: UI
 
     ERROR: References non-existent table: system
     File: AI_infrastructure\flask_app.py
     Table: system
+
+    ERROR: References non-existent table: DataFrame
+    File: AI_infrastructure\flask_app.py
+    Table: DataFrame
+
+    ERROR: References non-existent table: client
+    File: AI_infrastructure\flask_app.py
+    Table: client
+
+    ERROR: References non-existent table: xero_routes
+    File: AI_infrastructure\flask_app.py
+    Table: xero_routes
 
 
 ####################################################################################################
@@ -2995,5 +3059,5 @@ COMMON ISSUES:
 
 ====================================================================================================
 ANALYSIS COMPLETE
-Generated: 2025-11-12 22:52:34
+Generated: 2025-11-14 12:18:47
 ====================================================================================================

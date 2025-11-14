@@ -74,8 +74,8 @@ timeout /t 3 /nobreak >nul
 echo [2/2] Opening Platform in Browser...
 echo.
 
-REM Open browser to platform
-start http://localhost:8080/business-ai-platform-v2.html
+REM Open browser to platform (direct file access)
+start "" "%UI_DIR%\business-ai-platform-v2.html"
 
 echo.
 echo ============================================================
@@ -83,11 +83,12 @@ echo    PLATFORM LAUNCHED SUCCESSFULLY!
 echo ============================================================
 echo.
 echo     Flask Backend:  http://localhost:5001
-echo     UI Platform:    http://localhost:8080/business-ai-platform-v2.html
+echo     UI Platform:    Opened in default browser
 echo.
-echo     Note: Open business-ai-platform-v2.html directly in browser
-echo           or serve UI folder with any web server on port 8080
-echo     2. UI Server (Port 8080)
+echo     Note: UI opened directly from file system
+echo           Connected to Flask backend on port 5001
+echo     1 terminal window opened:
+echo     - Flask Backend (Port 5001)
 echo.
 echo     Press Ctrl+C in each terminal to stop servers
 echo.

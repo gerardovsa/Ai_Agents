@@ -10562,7 +10562,7 @@
         // Auto-detect backend URL based on current hostname
         const API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 'http://localhost:5001' :
             window.location.origin;  // Use same domain as frontend (Render URL)
-        
+
         const VSA_API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 'http://localhost:5300' :
             'https://vsa-agent-service.onrender.com';  // VSA Agent separate service
 
@@ -12063,7 +12063,7 @@
 
                 // Step 2: Connect to SSE stream to receive response
                 console.log('📡 Connecting to SSE stream...');
-                
+
                 // PROMPT INJECTION: Get selected prompts from prompt library
                 let promptParams = '';
                 if (typeof window.getSelectedPrompts === 'function') {
@@ -12071,19 +12071,19 @@
                     if (selectedPrompts && selectedPrompts.length > 0) {
                         const quickActions = selectedPrompts.filter(p => p.type === 'quick_action').map(p => p.name);
                         const libraryPrompts = selectedPrompts.filter(p => p.type === 'full_prompt').map(p => p.name);
-                        
+
                         if (quickActions.length > 0) {
                             promptParams += `&quick_actions=${encodeURIComponent(quickActions.join(','))}`;
                         }
                         if (libraryPrompts.length > 0) {
                             promptParams += `&library_prompts=${encodeURIComponent(libraryPrompts.join(','))}`;
                         }
-                        
+
                         console.log(`[PROMPT INJECTION] Quick Actions: ${quickActions.join(', ')}`);
                         console.log(`[PROMPT INJECTION] Library Prompts: ${libraryPrompts.join(', ')}`);
                     }
                 }
-                
+
                 const streamUrl = `${API_BASE_URL}/api/agent/stream/${agentId}?session_id=${sessionId}${promptParams}`;
                 const response = await fetch(streamUrl);
 
@@ -13625,19 +13625,19 @@
                     if (selectedPrompts && selectedPrompts.length > 0) {
                         const quickActions = selectedPrompts.filter(p => p.type === 'quick_action').map(p => p.name);
                         const libraryPrompts = selectedPrompts.filter(p => p.type === 'full_prompt').map(p => p.name);
-                        
+
                         if (quickActions.length > 0) {
                             promptParams += `&quick_actions=${encodeURIComponent(quickActions.join(','))}`;
                         }
                         if (libraryPrompts.length > 0) {
                             promptParams += `&library_prompts=${encodeURIComponent(libraryPrompts.join(','))}`;
                         }
-                        
+
                         console.log(`[PROMPT INJECTION] Quick Actions: ${quickActions.join(', ')}`);
                         console.log(`[PROMPT INJECTION] Library Prompts: ${libraryPrompts.join(', ')}`);
                     }
                 }
-                
+
                 // Connect to SSE stream
                 const eventSource = new EventSource(
                     `${API_BASE_URL}/api/agent/stream?session_id=${sessionId}&message=${encodeURIComponent(message)}${promptParams}`
@@ -23680,6 +23680,30 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             user: null,
 
             init() {
+                // DEVELOPMENT MODE: Auto-login for localhost testing
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    const hasDevUser = localStorage.getItem('dev_mode_user');
+                    if (!hasDevUser) {
+                        console.log('🔧 [DEV MODE] Setting up default test user for device lock testing...');
+                        // Create a mock token and user for local testing
+                        const mockUser = {
+                            id: 1,
+                            user_id: 1,
+                            username: 'printing@inhouseprint.com.au',
+                            email: 'printing@inhouseprint.com.au',
+                            auth_platform: 'local_dev'
+                        };
+                        this.token = 'dev-mode-token-12345';
+                        this.user = mockUser;
+                        localStorage.setItem('authToken', this.token);
+                        localStorage.setItem('userProfile', JSON.stringify(mockUser));
+                        localStorage.setItem('dev_mode_user', 'true');
+                        console.log('✅ [DEV MODE] Auto-logged in as test user');
+                        this.showMainApp();
+                        return;
+                    }
+                }
+
                 // Check if user is already logged in
                 const storedToken = localStorage.getItem('authToken');
                 const storedUser = localStorage.getItem('userProfile');

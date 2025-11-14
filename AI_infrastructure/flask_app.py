@@ -119,11 +119,21 @@ from routes.render_routes import render_bp  # NEW: Render cloud management (depl
 from routes.file_routes import file_bp  # NEW: File storage management (upload, download, delete)
 from routes.prompt_library_routes import prompt_routes  # NEW: Prompt library (database-backed prompt management)
 from routes.token_routes import token_routes  # NEW: Token tracking (real-time token counts for threads)
+from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-device session management)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Initialize prompt_library table BEFORE any routes are registered
+try:
+    from init_prompt_library import init_prompt_library_table
+    db_path = Config.DATA_DIR / 'ai_infrastructure.db'
+    init_prompt_library_table(db_path)
+    log_success(logger, "Prompt library table initialized")
+except Exception as e:
+    log_error(logger, f"Failed to initialize prompt library table: {e}")
 
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp)                                     # Working agent routes with async support
@@ -143,6 +153,7 @@ app.register_blueprint(synergy_bp)                                   # NEW: Syne
 if INHOUSE_KANBAN_AVAILABLE:
     app.register_blueprint(inhouse_kanban_bp)                        # NEW: InHousePrint production workflow (5 endpoints)
 app.register_blueprint(kanban_analytics_bp)                          # NEW: Kanban Analytics SQLite (15 endpoints: /api/kanban-analytics/*)
+app.register_blueprint(device_lock_bp)                               # NEW: Device lock (5 endpoints: /api/device/*, /api/thread/*/lock*)
 app.register_blueprint(production_log_bp)                            # NEW: Production Log (10 endpoints: /api/production-log/*)
 app.register_blueprint(user_preferences_bp)                          # NEW: User preferences (2 endpoints: /api/user/preferences)
 app.register_blueprint(geolocation_bp)                               # NEW: Geolocation detection (2 endpoints: /api/geolocation/*)

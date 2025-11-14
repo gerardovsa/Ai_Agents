@@ -43,9 +43,13 @@ logger = logging.getLogger(__name__)
 
 microsoft_auth_bp = Blueprint('microsoft_auth', __name__, url_prefix='/api/auth/microsoft')
 
-# Load credentials from .env.master
+# Load credentials from .env.master (local dev) or OS environment (Render)
 _ENV_MASTER_PATH = Path(__file__).parent.parent.parent / '.env.master'
-_config = dotenv_values(_ENV_MASTER_PATH)
+if _ENV_MASTER_PATH.exists():
+    _config = dotenv_values(_ENV_MASTER_PATH)
+else:
+    # On Render, use OS environment variables
+    _config = {}
 
 # Microsoft Graph API scopes - MATCH AZURE APP REGISTRATION (12 scopes granted)
 # Updated November 5, 2025 to match actual Azure portal configuration
@@ -253,7 +257,14 @@ def microsoft_login():
         
         # Get redirect URI from environment variable (CRITICAL: Use HTTPS for Render)
         # request.url_root returns http:// on Render (internal), but Azure needs https://
-        redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI') or (request.url_root.rstrip('/') + '/api/auth/microsoft/callback')
+        # Priority: OS env var > .env.master > fallback (never use fallback on Render!)
+        redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI')
+        if not redirect_uri:
+            # Fallback: build from request, but force HTTPS if on Render
+            base_url = request.url_root.rstrip('/')
+            if 'onrender.com' in request.host:
+                base_url = base_url.replace('http://', 'https://')
+            redirect_uri = base_url + '/api/auth/microsoft/callback'
         
         # Store original redirect for after login
         return_url = request.args.get('return_url', '/')
@@ -273,8 +284,10 @@ def microsoft_login():
         
         logger.info(f"🔷 Initiating Microsoft login (force_consent={force_consent}, prompt={prompt})")
         logger.info(f"   Redirect URI: {redirect_uri}")
-        logger.info(f"   Client ID: {_config.get('MICROSOFT_CLIENT_ID', '')[:20]}...")
-        logger.info(f"   Tenant: {_config.get('MICROSOFT_TENANT_ID', 'common')}")
+        client_id_display = (os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID', ''))[:20]
+        tenant_display = os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
+        logger.info(f"   Client ID: {client_id_display}...")
+        logger.info(f"   Tenant: {tenant_display}")
         
         return redirect(auth_url)
         
@@ -331,7 +344,12 @@ def microsoft_callback():
         # STEP 3: Exchange code for tokens
         # ====================================================================
         # Get redirect URI from environment variable (CRITICAL: Use HTTPS for Render)
-        redirect_uri = _config.get('MICROSOFT_REDIRECT_URI', request.url_root.rstrip('/') + '/api/auth/microsoft/callback')
+        redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI')
+        if not redirect_uri:
+            base_url = request.url_root.rstrip('/')
+            if 'onrender.com' in request.host:
+                base_url = base_url.replace('http://', 'https://')
+            redirect_uri = base_url + '/api/auth/microsoft/callback'
         auth_result = authenticate_user_with_microsoft(code, redirect_uri)
         
         if not auth_result['success']:
@@ -435,8 +453,8 @@ def microsoft_callback():
                 'name': display_name,
                 'profile': profile,
                 'authorized_at': datetime.utcnow().isoformat(),
-                'client_id': _config.get('MICROSOFT_CLIENT_ID', '')[:20] + '...',
-                'tenant_id': _config.get('MICROSOFT_TENANT_ID', 'common')
+                'client_id': (os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID', ''))[:20] + '...',
+                'tenant_id': os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
             }),
             email,                                # email (NEW - direct column for status endpoint)
             display_name,                         # profile_name (NEW - direct column for UI display)
@@ -614,7 +632,12 @@ def get_microsoft_config():
     tenant_id = _config.get('MICROSOFT_TENANT_ID', 'common')
     
     # Get redirect URI from environment variable (CRITICAL: Use HTTPS for Render)
-    redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI') or (request.url_root.rstrip('/') + '/api/auth/microsoft/callback')
+    redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI')
+    if not redirect_uri:
+        base_url = request.url_root.rstrip('/')
+        if 'onrender.com' in request.host:
+            base_url = base_url.replace('http://', 'https://')
+        redirect_uri = base_url + '/api/auth/microsoft/callback'
     
     return jsonify({
         'success': True,
@@ -636,8 +659,11 @@ def get_microsoft_config():
 logger.info("="*80)
 logger.info("Microsoft OAuth routes loaded (V2 Fixed Version)")
 logger.info("   - Writes to: oauth_tokens table (24 columns)")
-logger.info(f"   - Client ID: {_config.get('MICROSOFT_CLIENT_ID', 'NOT SET')[:20]}...")
-logger.info(f"   - Redirect URI: http://localhost:5001/api/auth/microsoft/callback")
+client_id_check = os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID', 'NOT SET')
+redirect_uri_check = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI', 'http://localhost:5001/api/auth/microsoft/callback')
+tenant_check = os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
+logger.info(f"   - Client ID: {client_id_check[:20]}...")
+logger.info(f"   - Redirect URI: {redirect_uri_check}")
 logger.info(f"   - Scopes: {len(MICROSOFT_SCOPES)} requested")
-logger.info(f"   - Tenant: {_config.get('MICROSOFT_TENANT_ID', 'common')}")
+logger.info(f"   - Tenant: {tenant_check}")
 logger.info("="*80)

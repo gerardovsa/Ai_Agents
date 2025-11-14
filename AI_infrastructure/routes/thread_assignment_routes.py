@@ -39,9 +39,9 @@ thread_assignment_bp = Blueprint('thread_assignments', __name__)
 
 
 def get_db_connection():
-    """Get connection to sessions.db"""
+    """Get connection to ai_infrastructure.db (users table is here)"""
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'sessions.db'
+    db_path = root_dir / 'data' / 'ai_infrastructure.db'
     
     print(f'🔷 [Thread Assignments] Using: {db_path}')
     

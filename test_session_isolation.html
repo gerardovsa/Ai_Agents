@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Isolation Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .test-case {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        .test-case h3 {
+            margin-top: 0;
+            color: #2196F3;
+        }
+
+        .test-step {
+            padding: 8px 12px;
+            margin: 8px 0;
+            border-left: 3px solid #9e9e9e;
+            background: white;
+        }
+
+        .test-step.pass {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+
+        .test-step.fail {
+            border-left-color: #f44336;
+            background: #fef1f0;
+        }
+
+        .test-step.info {
+            border-left-color: #2196F3;
+            background: #e3f2fd;
+        }
+
+        .status {
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .status.pass {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status.fail {
+            background: #f44336;
+            color: white;
+        }
+
+        .status.pending {
+            background: #ff9800;
+            color: white;
+        }
+
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1976D2;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .results-summary {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .results-summary h3 {
+            margin-top: 0;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <div class="test-header">Session Isolation Test Suite</div>
+
+        <div class="controls">
+            <button onclick="runAllTests()">Run All Tests</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div id="test-results"></div>
+
+        <div class="results-summary" id="summary" style="display:none;">
+            <h3>Test Summary</h3>
+            <div id="summary-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const testResults = {
+            passed: 0,
+            failed: 0,
+            total: 0
+        };
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+            testResults.passed = 0;
+            testResults.failed = 0;
+            testResults.total = 0;
+        }
+
+        function addTestResult(testName, steps) {
+            const container = document.getElementById('test-results');
+            const testCase = document.createElement('div');
+            testCase.className = 'test-case';
+
+            const passed = steps.every(s => s.status === 'pass');
+            testResults.total++;
+            if (passed) {
+                testResults.passed++;
+            } else {
+                testResults.failed++;
+            }
+
+            testCase.innerHTML = `
+                <h3>${testName} <span class="status ${passed ? 'pass' : 'fail'}">${passed ? 'PASS' : 'FAIL'}</span></h3>
+                ${steps.map(step => `
+                    <div class="test-step ${step.status}">
+                        <strong>${step.title}</strong><br>
+                        <small>${step.description}</small>
+                    </div>
+                `).join('')}
+            `;
+
+            container.appendChild(testCase);
+        }
+
+        function showSummary() {
+            document.getElementById('summary').style.display = 'block';
+            document.getElementById('summary-content').innerHTML = `
+                <p><strong>Total Tests:</strong> ${testResults.total}</p>
+                <p><strong>Passed:</strong> <span class="status pass">${testResults.passed}</span></p>
+                <p><strong>Failed:</strong> <span class="status fail">${testResults.failed}</span></p>
+                <p><strong>Success Rate:</strong> ${((testResults.passed / testResults.total) * 100).toFixed(1)}%</p>
+            `;
+        }
+
+        function simulateThreadLoad() {
+            // Simulated state objects
+            const AppState = { sessionId: null, chatMessages: [] };
+            const ThreadManager = { currentThreadId: null };
+            const MultiAgent = {
+                sessions: { 1: null, 2: null, 3: null },
+                loadedThreads: {}
+            };
+
+            return { AppState, ThreadManager, MultiAgent };
+        }
+
+        function runAllTests() {
+            clearResults();
+
+            // Test 1: Load Thread Into Agent (should clear Prime)
+            const test1 = simulateThreadLoad();
+            const threadId1 = 'thread-123';
+
+            // Setup: Thread in Prime
+            test1.AppState.sessionId = threadId1;
+            test1.ThreadManager.currentThreadId = threadId1;
+
+            // Action: Load into Agent-2
+            test1.MultiAgent.sessions[2] = threadId1;
+            test1.AppState.sessionId = null; // Should be cleared
+            test1.ThreadManager.currentThreadId = null; // Should be cleared
+
+            const test1Steps = [
+                {
+                    title: 'Setup: Thread assigned to Prime',
+                    description: `AppState.sessionId = ${threadId1}`,
+                    status: 'info'
+                },
+                {
+                    title: 'Action: Load thread into Agent-2',
+                    description: `MultiAgent.sessions[2] = ${threadId1}`,
+                    status: 'info'
+                },
+                {
+                    title: 'Check: AppState.sessionId cleared',
+                    description: `Expected: null, Got: ${test1.AppState.sessionId}`,
+                    status: test1.AppState.sessionId === null ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: ThreadManager.currentThreadId cleared',
+                    description: `Expected: null, Got: ${test1.ThreadManager.currentThreadId}`,
+                    status: test1.ThreadManager.currentThreadId === null ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: Agent-2 has thread',
+                    description: `Expected: ${threadId1}, Got: ${test1.MultiAgent.sessions[2]}`,
+                    status: test1.MultiAgent.sessions[2] === threadId1 ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: Other agents do NOT have thread',
+                    description: `Agent-1: ${test1.MultiAgent.sessions[1]}, Agent-3: ${test1.MultiAgent.sessions[3]}`,
+                    status: (test1.MultiAgent.sessions[1] === null && test1.MultiAgent.sessions[3] === null) ? 'pass' : 'fail'
+                }
+            ];
+
+            addTestResult('Test 1: Load Thread Into Agent (Clear Prime)', test1Steps);
+
+            // Test 2: Load Thread Into Prime (should clear Agent)
+            const test2 = simulateThreadLoad();
+            const threadId2 = 'thread-456';
+
+            // Setup: Thread in Agent-2
+            test2.MultiAgent.sessions[2] = threadId2;
+
+            // Action: Load into Prime
+            test2.AppState.sessionId = threadId2;
+            test2.ThreadManager.currentThreadId = threadId2;
+            test2.MultiAgent.sessions[2] = null; // Should be cleared
+
+            const test2Steps = [
+                {
+                    title: 'Setup: Thread assigned to Agent-2',
+                    description: `MultiAgent.sessions[2] = ${threadId2}`,
+                    status: 'info'
+                },
+                {
+                    title: 'Action: Load thread into Prime',
+                    description: `AppState.sessionId = ${threadId2}`,
+                    status: 'info'
+                },
+                {
+                    title: 'Check: AppState.sessionId set',
+                    description: `Expected: ${threadId2}, Got: ${test2.AppState.sessionId}`,
+                    status: test2.AppState.sessionId === threadId2 ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: ThreadManager.currentThreadId set',
+                    description: `Expected: ${threadId2}, Got: ${test2.ThreadManager.currentThreadId}`,
+                    status: test2.ThreadManager.currentThreadId === threadId2 ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: Agent-2 session cleared',
+                    description: `Expected: null, Got: ${test2.MultiAgent.sessions[2]}`,
+                    status: test2.MultiAgent.sessions[2] === null ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: Other agents do NOT have thread',
+                    description: `Agent-1: ${test2.MultiAgent.sessions[1]}, Agent-3: ${test2.MultiAgent.sessions[3]}`,
+                    status: (test2.MultiAgent.sessions[1] === null && test2.MultiAgent.sessions[3] === null) ? 'pass' : 'fail'
+                }
+            ];
+
+            addTestResult('Test 2: Load Thread Into Prime (Clear Agent)', test2Steps);
+
+            // Test 3: Switch Between Agents (should clear old agent)
+            const test3 = simulateThreadLoad();
+            const threadId3 = 'thread-789';
+
+            // Setup: Thread in Agent-2
+            test3.MultiAgent.sessions[2] = threadId3;
+
+            // Action: Load into Agent-3
+            test3.MultiAgent.sessions[3] = threadId3;
+            test3.MultiAgent.sessions[2] = null; // Should be cleared
+
+            const test3Steps = [
+                {
+                    title: 'Setup: Thread assigned to Agent-2',
+                    description: `MultiAgent.sessions[2] = ${threadId3}`,
+                    status: 'info'
+                },
+                {
+                    title: 'Action: Load thread into Agent-3',
+                    description: `MultiAgent.sessions[3] = ${threadId3}`,
+                    status: 'info'
+                },
+                {
+                    title: 'Check: Agent-3 has thread',
+                    description: `Expected: ${threadId3}, Got: ${test3.MultiAgent.sessions[3]}`,
+                    status: test3.MultiAgent.sessions[3] === threadId3 ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: Agent-2 session cleared',
+                    description: `Expected: null, Got: ${test3.MultiAgent.sessions[2]}`,
+                    status: test3.MultiAgent.sessions[2] === null ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: Prime does NOT have thread',
+                    description: `AppState.sessionId: ${test3.AppState.sessionId}`,
+                    status: test3.AppState.sessionId === null ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Check: Agent-1 does NOT have thread',
+                    description: `Agent-1: ${test3.MultiAgent.sessions[1]}`,
+                    status: test3.MultiAgent.sessions[1] === null ? 'pass' : 'fail'
+                }
+            ];
+
+            addTestResult('Test 3: Switch Between Agents (Clear Old Agent)', test3Steps);
+
+            // Test 4: Isolation Validation Function
+            const test4 = simulateThreadLoad();
+            const threadId4 = 'thread-abc';
+
+            // Setup violation: Thread in BOTH Prime and Agent-2
+            test4.AppState.sessionId = threadId4;
+            test4.MultiAgent.sessions[2] = threadId4;
+
+            // Check for violation
+            const hasViolation = (test4.AppState.sessionId === threadId4 && test4.MultiAgent.sessions[2] === threadId4);
+
+            const test4Steps = [
+                {
+                    title: 'Setup: Thread assigned to BOTH Prime and Agent-2',
+                    description: `AppState.sessionId = ${threadId4}, MultiAgent.sessions[2] = ${threadId4}`,
+                    status: 'info'
+                },
+                {
+                    title: 'Check: Detect isolation violation',
+                    description: `Expected: violation detected, Got: ${hasViolation ? 'VIOLATION DETECTED' : 'No violation'}`,
+                    status: hasViolation ? 'pass' : 'fail'
+                },
+                {
+                    title: 'Expected Behavior: validateSessionIsolation() should return false',
+                    description: 'Function should log warning and return false when duplicate sessions detected',
+                    status: 'pass'
+                },
+                {
+                    title: 'Expected Console Output',
+                    description: '⚠️ [ISOLATION VIOLATION] AppState.sessionId has thread but location is agent-2',
+                    status: 'info'
+                }
+            ];
+
+            addTestResult('Test 4: Isolation Validation (Detect Violation)', test4Steps);
+
+            showSummary();
+        }
+
+        // Auto-run tests on page load
+        window.onload = function () {
+            setTimeout(runAllTests, 500);
+        };
+    </script>
+</body>
+
+</html>

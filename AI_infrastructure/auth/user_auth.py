@@ -452,6 +452,28 @@ class UserAuthManager:
         print(f"   First 20 chars: {token[:20]}...")
         print(f"   Database: {self.db_path}")
         
+        # DEVELOPMENT MODE: Accept dev-mode token ONLY in development (localhost)
+        # SECURITY: This bypass is DISABLED in production (Render.com)
+        import os
+        is_development = os.getenv('FLASK_ENV') == 'development' or os.getenv('DEBUG', 'False').lower() == 'true'
+        
+        if token == 'dev-mode-token-12345' and is_development:
+            print(f"\n🔧 [DEV MODE] Dev token detected - bypassing authentication")
+            print(f"   Environment: DEVELOPMENT (bypass allowed)")
+            print(f"   Returning default test user (id=1)")
+            print("\nSTAGE 2 COMPLETE (DEV MODE): Dev user authenticated")
+            print("="*60 + "\n")
+            return {
+                'user_id': 1,
+                'email': 'printing@inhouseprint.com.au',
+                'username': 'printing@inhouseprint.com.au',
+                'auth_platform': 'local_dev'
+            }
+        elif token == 'dev-mode-token-12345' and not is_development:
+            print(f"\n⚠️ [SECURITY] Dev token rejected in production environment")
+            print("="*60 + "\n")
+            return None
+        
         try:
             print(f"\n📊 STAGE 2.1: JWT Signature Validation")
             payload = jwt.decode(token, self.jwt_secret, algorithms=['HS256'])

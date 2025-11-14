@@ -22,14 +22,18 @@ from dotenv import dotenv_values
 
 google_auth_bp = Blueprint('google_auth', __name__, url_prefix='/api/auth/google')
 
-# Load credentials from .env.master
+# Load credentials from .env.master (local dev) or OS environment (Render)
 _ENV_MASTER_PATH = Path(__file__).parent.parent.parent / '.env.master'
-_config = dotenv_values(_ENV_MASTER_PATH)
+if _ENV_MASTER_PATH.exists():
+    _config = dotenv_values(_ENV_MASTER_PATH)
+else:
+    # On Render, use OS environment variables
+    _config = {}
 
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID = _config.get('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_CLIENT_ID')
-GOOGLE_CLIENT_SECRET = _config.get('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_CLIENT_SECRET')
-GOOGLE_REDIRECT_URI = _config.get('GOOGLE_REDIRECT_URI', 'http://localhost:5001/api/auth/google/callback')
+# Google OAuth Configuration - Priority: OS env > .env.master
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI') or _config.get('GOOGLE_REDIRECT_URI', 'http://localhost:5001/api/auth/google/callback')
 
 # Google OAuth Endpoints
 GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'

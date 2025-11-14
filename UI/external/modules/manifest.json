@@ -1,0 +1,96 @@
+{
+  "modules": [
+    {
+      "id": "salesforce",
+      "name": "Salesforce CRM",
+      "icon": "fab fa-salesforce",
+      "color": "#00A1E0",
+      "description": "Salesforce integration for managing leads, accounts, and opportunities",
+      "manifestPath": "external/modules/salesforce/manifest.json",
+      "scriptPath": "external/modules/salesforce/salesforce.js",
+      "enabled": true
+    },
+    {
+      "id": "stock-management",
+      "name": "Stock Management",
+      "icon": "fas fa-boxes",
+      "color": "#0078d4",
+      "description": "Comprehensive stock management system with AI-powered invoice processing, usage analytics, and profit analysis",
+      "manifestPath": "external/modules/stock-management/manifest.json",
+      "scriptPath": "external/modules/stock-management/stock-management.js",
+      "enabled": true
+    },
+    {
+      "id": "database-visualizer",
+      "name": "Database Visualizer",
+      "icon": "fas fa-database",
+      "color": "#8b5cf6",
+      "description": "Explore and visualize SQLite database schemas, tables, and data across all project .db files",
+      "manifestPath": "external/modules/database-visualizer/manifest.json",
+      "scriptPath": "external/modules/database-visualizer/database-visualizer.js",
+      "enabled": true
+    },
+    {
+      "id": "quote-calculator",
+      "name": "Quote Calculator",
+      "icon": "fas fa-calculator",
+      "color": "#ffb347",
+      "description": "Professional printing quote calculator with business cards, flyers, books, booklets, and AI-powered query library",
+      "manifestPath": "external/modules/quote-calculator/manifest.json",
+      "scriptPath": "external/modules/quote-calculator/quote-calculator.js",
+      "enabled": true
+    },
+    {
+      "id": "inhouse-kanban",
+      "name": "Production Workflow",
+      "icon": "fas fa-industry",
+      "color": "#00509E",
+      "description": "InHousePrint production workflow Kanban board with AI priority scoring and real-time job tracking",
+      "manifestPath": "external/modules/inhouse-kanban/manifest.json",
+      "scriptPath": "external/modules/inhouse-kanban/inhouse-kanban.js",
+      "enabled": true
+    },
+    {
+      "id": "shopify",
+      "name": "Shopify E-Commerce",
+      "icon": "fas fa-shopping-cart",
+      "color": "#95bf47",
+      "description": "Shopify order management, customer analytics, product performance tracking, and webhook monitoring",
+      "manifestPath": "external/modules/shopify/manifest.json",
+      "scriptPath": "external/modules/shopify/shopify.js",
+      "enabled": true
+    },
+    {
+      "id": "communication-hub",
+      "name": "Communication Hub",
+      "icon": "fas fa-comments",
+      "color": "#6366f1",
+      "description": "Unified inbox for Gmail and Outlook with AI agent integration. Drag emails to AI sidebar or right-click to send to agents.",
+      "manifestPath": "external/modules/communication-hub/manifest.json",
+      "scriptPath": "external/modules/communication-hub/communication-hub.js",
+      "enabled": true
+    },
+    {
+      "id": "render-management",
+      "name": "Render Cloud",
+      "icon": "fas fa-cloud",
+      "color": "#6C5CE7",
+      "description": "Manage Render services - deploy, monitor, view logs, and track metrics",
+      "manifestPath": "external/modules/render-management/manifest.json",
+      "scriptPath": "external/modules/render-management/render-management.js",
+      "enabled": true
+    },
+    {
+      "id": "xero",
+      "name": "Xero Accounting",
+      "icon": "fas fa-file-invoice-dollar",
+      "color": "#13B5EA",
+      "description": "Xero accounting integration for invoices, contacts, payments, and financial reporting across InHouse Print, Publishing, and Signs",
+      "manifestPath": "external/modules/xero/manifest.json",
+      "scriptPath": "external/modules/xero/xero.js",
+      "enabled": true
+    }
+  ],
+  "version": "1.0.9",
+  "lastUpdated": "2025-01-28"
+}
