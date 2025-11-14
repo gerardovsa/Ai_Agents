@@ -170,8 +170,8 @@ def init_db():
     conn.close()
     print('Database tables initialized')
 
-# Initialize database on import
-init_db()
+# NOTE: Database initialization moved to user_auth.py (consolidated)
+# oauth_tokens table now created alongside users table on startup
 
 # ============================================================================
 # HELPER FUNCTIONS

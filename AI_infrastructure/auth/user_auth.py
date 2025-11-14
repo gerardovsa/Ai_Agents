@@ -155,9 +155,11 @@ class UserAuthManager:
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             username TEXT UNIQUE NOT NULL,
                             email TEXT UNIQUE NOT NULL,
-                            password_hash TEXT NOT NULL,
+                            password_hash TEXT,
                             role TEXT DEFAULT 'user',
                             primary_gmail TEXT,
+                            has_microsoft_oauth INTEGER DEFAULT 0,
+                            has_google_oauth INTEGER DEFAULT 0,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             metadata TEXT
@@ -226,8 +228,38 @@ class UserAuthManager:
                         )
                     ''')
                     
+                    # OAuth tokens table (Microsoft, Google, etc.)
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS oauth_tokens (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            platform TEXT NOT NULL,
+                            access_token TEXT NOT NULL,
+                            refresh_token TEXT,
+                            token_type TEXT DEFAULT 'Bearer',
+                            expires_at TIMESTAMP,
+                            scope TEXT,
+                            is_valid INTEGER DEFAULT 1,
+                            is_active INTEGER DEFAULT 1,
+                            auto_refresh_enabled INTEGER DEFAULT 1,
+                            last_refreshed_at TIMESTAMP,
+                            refresh_attempts INTEGER DEFAULT 0,
+                            last_refresh_error TEXT,
+                            granted_scopes TEXT,
+                            metadata TEXT,
+                            email TEXT,
+                            profile_name TEXT,
+                            error_count INTEGER DEFAULT 0,
+                            last_error TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(user_id, platform),
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                        )
+                    ''')
+                    
                     conn.commit()
-                    log_db(logger, "User authentication tables initialized")
+                    log_db(logger, "User authentication tables initialized (users, oauth_tokens, sessions, etc.)")
                     break  # Success - exit retry loop
                     
             except sqlite3.OperationalError as e:

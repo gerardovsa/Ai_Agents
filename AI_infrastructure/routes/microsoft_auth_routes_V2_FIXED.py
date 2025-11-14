@@ -252,8 +252,8 @@ def generate_jwt_token(payload: dict):
         logger.error(f" Error creating JWT token: {e}")
         return None
 
-# Initialize database on module load
-init_db()
+# NOTE: Database initialization moved to user_auth.py (consolidated)
+# oauth_tokens table now created alongside users table on startup
 
 # ======================================================================
 # OAUTH ENDPOINTS
