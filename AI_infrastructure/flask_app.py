@@ -126,7 +126,7 @@ from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Initialize prompt_library table BEFORE any routes are registered
+# Initialize database schema BEFORE any routes are registered
 try:
     from init_prompt_library import init_prompt_library_table
     db_path = Config.DATA_DIR / 'ai_infrastructure.db'
@@ -134,6 +134,14 @@ try:
     log_success(logger, "Prompt library table initialized")
 except Exception as e:
     log_error(logger, f"Failed to initialize prompt library table: {e}")
+
+# Run OAuth tokens scope column migration
+try:
+    from migrations.add_scope_column import add_scope_column
+    add_scope_column()
+    log_success(logger, "OAuth tokens schema migration complete")
+except Exception as e:
+    log_error(logger, f"Failed to run OAuth migration: {e}")
 
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp)                                     # Working agent routes with async support
