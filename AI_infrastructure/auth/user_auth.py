@@ -68,9 +68,8 @@ class UserAuthManager:
     
     def __init__(self, db_path: str = None):
         if db_path is None:
-            # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
-            root_dir = Path(__file__).parent.parent.parent
-            db_path = root_dir / 'data' / 'ai_infrastructure.db'
+            from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+            db_path = get_ai_infrastructure_db_path()
         self.db_path = str(db_path)
         self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
         self._init_tables()
@@ -141,13 +140,18 @@ class UserAuthManager:
         return accounts
     
     def _init_tables(self):
-        """Initialize user authentication tables"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            # Enhanced users table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS users (
+        """Initialize user authentication tables with retry logic for multi-worker startup"""
+        import time
+        max_retries = 5
+        
+        for attempt in range(max_retries):
+            try:
+                with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+                    cursor = conn.cursor()
+                    
+                    # Enhanced users table
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
                     email TEXT UNIQUE NOT NULL,
@@ -222,8 +226,20 @@ class UserAuthManager:
                 )
             ''')
             
-            conn.commit()
-            log_db(logger, "User authentication tables initialized")
+                    conn.commit()
+                    log_db(logger, "User authentication tables initialized")
+                    break  # Success - exit retry loop
+                    
+            except sqlite3.OperationalError as e:
+                if ("database is locked" in str(e) or "disk I/O error" in str(e)) and attempt < max_retries - 1:
+                    # Another worker is initializing - wait and retry
+                    time.sleep(0.5 * (attempt + 1))  # Exponential backoff
+                    print(f"⚠ [DB] Table creation retry {attempt + 1}/{max_retries}: {e}")
+                    continue
+                else:
+                    # Either not a recoverable error, or we've exhausted retries
+                    print(f"❌ [DB] Failed to initialize tables after {max_retries} attempts: {e}")
+                    raise
     
     def register_user(self, username: str, email: str, password: str, primary_gmail: str = None, role: str = 'user') -> Dict:
         """

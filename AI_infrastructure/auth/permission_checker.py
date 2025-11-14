@@ -70,8 +70,8 @@ class PermissionChecker:
             db_path: Path to ai_infrastructure.db (auto-detected if None)
         """
         if db_path is None:
-            root_dir = Path(__file__).parent.parent.parent
-            db_path = root_dir / 'data' / 'ai_infrastructure.db'
+            from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+            db_path = get_ai_infrastructure_db_path()
         
         self.db_path = str(db_path)
         

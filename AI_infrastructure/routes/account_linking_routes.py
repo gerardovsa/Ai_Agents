@@ -35,11 +35,9 @@ account_linking_bp = Blueprint('account_linking', __name__, url_prefix='/api/acc
 
 def get_db_connection():
     """Get database connection to ai_infrastructure.db in data/ folder (CORRECT LOCATION)"""
-    from pathlib import Path
-    # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
-    root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    conn = sqlite3.connect(str(db_path))
+    from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+    db_path = get_ai_infrastructure_db_path()
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 

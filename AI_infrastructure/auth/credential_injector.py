@@ -151,8 +151,8 @@ def _save_refreshed_google_token(user_id: int, credentials: Credentials, origina
         original_cred_dict: Original credential dictionary (for metadata)
     """
     # Get database path
-    root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
+    from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+    db_path = get_ai_infrastructure_db_path()
     
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
@@ -523,8 +523,8 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
         expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
         
         # ✅ SAVE REFRESHED TOKEN back to database
-        root_dir = Path(__file__).parent.parent.parent
-        db_path = root_dir / 'data' / 'ai_infrastructure.db'
+        from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+        db_path = get_ai_infrastructure_db_path()
         
         conn = sqlite3.connect(str(db_path))
         cursor = conn.cursor()
@@ -582,8 +582,8 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
         
         # Track refresh failure in database
         try:
-            root_dir = Path(__file__).parent.parent.parent
-            db_path = root_dir / 'data' / 'ai_infrastructure.db'
+            from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+            db_path = get_ai_infrastructure_db_path()
             conn = sqlite3.connect(str(db_path))
             cursor = conn.cursor()
             
@@ -606,8 +606,8 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
         
         # Track refresh failure in database
         try:
-            root_dir = Path(__file__).parent.parent.parent
-            db_path = root_dir / 'data' / 'ai_infrastructure.db'
+            from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+            db_path = get_ai_infrastructure_db_path()
             conn = sqlite3.connect(str(db_path))
             cursor = conn.cursor()
             

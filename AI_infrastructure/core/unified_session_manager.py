@@ -44,9 +44,8 @@ class UnifiedSessionManager:
     def __init__(self, db_path: str = None):
         # Use centralized data folder
         if db_path is None:
-            from pathlib import Path
-            root_dir = Path(__file__).parent.parent.parent  # AI_agents root
-            db_path = str(root_dir / 'data' / 'sessions.db')
+            from AI_infrastructure.utils.db_path_helper import get_sessions_db_path
+            db_path = get_sessions_db_path()
         
         self.db_path = db_path
         self.lock = threading.Lock()  # Manager-level lock

@@ -77,10 +77,9 @@ GOOGLE_SCOPES = [
 def get_db_connection():
     """Get database connection to ai_infrastructure.db in data/ folder (CORRECT LOCATION)"""
     import sqlite3
-    from pathlib import Path
-    # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
-    root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
+    from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+    # CORRECT: Use centralized helper (supports Render /data mount)
+    db_path = get_ai_infrastructure_db_path()
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     print(f'🔷 [DB CONNECTION] Using: {db_path}')  # Debug log

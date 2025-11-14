@@ -106,8 +106,8 @@ def build_user_context(user_id: int, ip_address: Optional[str] = None) -> Dict:
             from pathlib import Path
             import sqlite3
             
-            root_dir = Path(__file__).parent.parent.parent
-            db_path = root_dir / 'data' / 'ai_infrastructure.db'
+            from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+            db_path = get_ai_infrastructure_db_path()
             conn = sqlite3.connect(str(db_path))
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()

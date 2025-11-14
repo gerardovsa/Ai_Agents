@@ -12,6 +12,26 @@ echo "========================================="
 if [ "$RENDER" = "true" ]; then
     echo "✓ Running on Render (production)"
     
+    # Ensure /data directory exists with proper permissions
+    echo "→ Checking /data directory permissions..."
+    if [ ! -d "/data" ]; then
+        echo "  ERROR: /data directory does not exist!"
+        exit 1
+    fi
+    
+    # Make /data writable (Render should handle this, but being explicit)
+    chmod 777 /data 2>/dev/null || echo "  Note: Could not chmod /data (may already have correct permissions)"
+    
+    # Test write permissions
+    if touch /data/.write_test 2>/dev/null; then
+        rm /data/.write_test
+        echo "✓ /data directory is writable"
+    else
+        echo "  ERROR: /data directory is NOT writable!"
+        ls -ld /data
+        exit 1
+    fi
+    
     # Copy database-config.json to persistent disk if it doesn't exist
     if [ ! -f "/data/database-config.json" ]; then
         echo "→ Initializing persistent disk..."
@@ -50,6 +70,19 @@ EOF
     echo ""
     echo "Persistent Disk Contents (/data):"
     ls -lh /data/ || echo "  (empty)"
+    echo ""
+    
+    # Pre-create database files to avoid disk I/O errors
+    echo "→ Initializing database files..."
+    for db_file in ai_infrastructure.db sessions.db stock.db; do
+        if [ ! -f "/data/$db_file" ]; then
+            echo "  Creating /data/$db_file"
+            touch "/data/$db_file"
+            chmod 666 "/data/$db_file"
+        else
+            echo "  ✓ /data/$db_file exists"
+        fi
+    done
     echo ""
 else
     echo "✓ Running locally (development)"

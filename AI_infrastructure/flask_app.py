@@ -49,13 +49,14 @@ log_config(logger, f"MICROSOFT_CLIENT_ID: {'SET' if os.getenv('MICROSOFT_CLIENT_
 log_config(logger, f"MICROSOFT_CLIENT_SECRET: {'SET' if os.getenv('MICROSOFT_CLIENT_SECRET') else 'NOT SET'}")
 
 # Stock Management - ENABLED (using local AI_agents copy)
-STOCK_DB_PATH = str(Path(__file__).parent.parent / 'data' / 'stock_data.db')
+from AI_infrastructure.utils.db_path_helper import get_stock_db_path
+STOCK_DB_PATH = get_stock_db_path()
 STOCK_DB_AVAILABLE = os.path.exists(STOCK_DB_PATH)
 STOCK_DB_CONFIG = {'db_path': STOCK_DB_PATH} if STOCK_DB_AVAILABLE else None
 if STOCK_DB_AVAILABLE:
     log_config(logger, f"Stock management enabled - database found at {STOCK_DB_PATH}")
 else:
-    log_warning(logger, "Stock management disabled - database not found")
+    log_warning(logger, f"Stock management disabled - database not found at {STOCK_DB_PATH}")
 
 # Flask Configuration (inline - no external config.py needed)
 class Config:

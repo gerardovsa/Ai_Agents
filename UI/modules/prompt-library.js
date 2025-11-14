@@ -190,7 +190,20 @@ console.log('[PROMPT LIBRARY] ========================================');
         dropdown.id = 'inline-prompt-dropdown';
         dropdown.className = 'inline-prompt-dropdown';
         dropdown.innerHTML = `
-            <input type="text" class="inline-search" id="inline-search" placeholder="Search prompts...">
+            <div class="prompt-dropdown-header">
+                <div class="prompt-dropdown-title">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <span>Instructions Catalogue</span>
+                </div>
+                <button class="prompt-dropdown-close" onclick="window.closeDropdown()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="prompt-dropdown-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="inline-search" id="inline-search" placeholder="Search prompts...">
+            </div>
             
             <div class="category-filter">
                 <button class="filter-btn active" data-category="all">
@@ -208,14 +221,24 @@ console.log('[PROMPT LIBRARY] ========================================');
                 <button class="filter-btn" data-category="style">
                     <i class="fas fa-comment"></i> Style
                 </button>
+                <button class="filter-btn" data-category="business">
+                    <i class="fas fa-briefcase"></i> Business
+                </button>
+                <button class="filter-btn" data-category="creative">
+                    <i class="fas fa-pen-fancy"></i> Creative
+                </button>
             </div>
 
-            <div id="prompt-list-container"></div>
+            <div class="prompt-list-scroll-area">
+                <div id="prompt-list-container"></div>
+            </div>
 
-            <button class="add-new-prompt-btn" onclick="window.openPromptModal()">
-                <i class="fas fa-plus-circle"></i>
-                <span>Create New Prompt</span>
-            </button>
+            <div class="prompt-dropdown-footer">
+                <button class="add-new-prompt-btn" onclick="window.openPromptModal()">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Create New Prompt</span>
+                </button>
+            </div>
         `;
         chatInputWrapper.insertBefore(dropdown, chatInputWrapper.firstChild);
 
