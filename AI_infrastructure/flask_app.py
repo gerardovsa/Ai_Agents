@@ -148,8 +148,18 @@ except Exception as e:
 try:
     from auth.user_auth import user_auth_manager
     log_success(logger, f"User authentication tables initialized at {user_auth_manager.db_path}")
+    # Verify tables actually exist
+    import sqlite3
+    conn = sqlite3.connect(user_auth_manager.db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    log_success(logger, f"Database tables verified: {', '.join(tables)}")
 except Exception as e:
     log_error(logger, f"Failed to initialize user authentication: {e}")
+    import traceback
+    log_error(logger, traceback.format_exc())
 
 # Run OAuth tokens scope column migration
 try:
