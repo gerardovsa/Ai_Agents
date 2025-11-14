@@ -1,0 +1,380 @@
+/**
+ * Xero Accounting Module Styles
+ * Comprehensive styling for Xero integration
+ */
+
+/* ============================================================================
+   XERO THEME COLORS
+   ============================================================================ */
+:root {
+    --xero-primary: #13B5EA;
+    --xero-secondary: #0E8BC0;
+    --xero-hover: #0F9ED5;
+    --xero-success: #10b981;
+    --xero-warning: #f59e0b;
+    --xero-danger: #ef4444;
+    --xero-info: #3b82f6;
+}
+
+/* ============================================================================
+   BUSINESS SELECTOR
+   ============================================================================ */
+.xero-business-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 12px;
+}
+
+.xero-business-selector label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.xero-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.xero-select:hover {
+    border-color: var(--xero-primary);
+}
+
+.xero-select:focus {
+    outline: none;
+    border-color: var(--xero-primary);
+    box-shadow: 0 0 0 3px rgba(19, 181, 234, 0.1);
+}
+
+/* ============================================================================
+   DASHBOARD
+   ============================================================================ */
+.xero-dashboard {
+    padding: 20px;
+}
+
+.xero-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.xero-stat-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.xero-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.xero-stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+}
+
+.xero-stat-content {
+    flex: 1;
+}
+
+.xero-stat-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.xero-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.xero-stat-change {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.xero-charts-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.xero-chart-container {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.xero-chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.xero-chart {
+    min-height: 300px;
+}
+
+.xero-recent-section {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.xero-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+/* ============================================================================
+   TOOLBAR
+   ============================================================================ */
+.xero-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.xero-toolbar-left,
+.xero-toolbar-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.xero-btn {
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.xero-btn:hover {
+    background: var(--background-hover);
+    border-color: var(--xero-primary);
+}
+
+.xero-btn-primary {
+    background: var(--xero-primary);
+    color: white;
+    border-color: var(--xero-primary);
+}
+
+.xero-btn-primary:hover {
+    background: var(--xero-hover);
+    border-color: var(--xero-hover);
+}
+
+.xero-search {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    width: 250px;
+    transition: all 0.2s;
+}
+
+.xero-search:focus {
+    outline: none;
+    border-color: var(--xero-primary);
+    box-shadow: 0 0 0 3px rgba(19, 181, 234, 0.1);
+}
+
+.xero-filter {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--background-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.xero-filter:hover {
+    border-color: var(--xero-primary);
+}
+
+.xero-filter:focus {
+    outline: none;
+    border-color: var(--xero-primary);
+    box-shadow: 0 0 0 3px rgba(19, 181, 234, 0.1);
+}
+
+/* ============================================================================
+   TABLES
+   ============================================================================ */
+.xero-invoices,
+.xero-contacts,
+.xero-payments,
+.xero-accounts {
+    padding: 20px;
+}
+
+.xero-invoice-number {
+    font-weight: 600;
+    color: var(--xero-primary);
+}
+
+.xero-action-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.xero-action-btn:hover {
+    background: var(--xero-primary);
+    border-color: var(--xero-primary);
+    color: white;
+}
+
+/* ============================================================================
+   BADGES
+   ============================================================================ */
+.xero-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.xero-badge-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--xero-success);
+}
+
+.xero-badge-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--xero-warning);
+}
+
+.xero-badge-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--xero-danger);
+}
+
+.xero-badge-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--xero-info);
+}
+
+.xero-badge-secondary {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--text-muted);
+}
+
+/* ============================================================================
+   REPORTS
+   ============================================================================ */
+.xero-reports {
+    padding: 20px;
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+[data-theme="dark"] .xero-stat-card,
+[data-theme="dark"] .xero-chart-container,
+[data-theme="dark"] .xero-recent-section,
+[data-theme="dark"] .xero-toolbar {
+    background: var(--card-background-dark);
+    border-color: var(--border-color-dark);
+}
+
+[data-theme="dark"] .xero-btn,
+[data-theme="dark"] .xero-search,
+[data-theme="dark"] .xero-filter,
+[data-theme="dark"] .xero-select {
+    background: var(--background-secondary-dark);
+    border-color: var(--border-color-dark);
+    color: var(--text-primary-dark);
+}
+
+[data-theme="dark"] .xero-btn:hover,
+[data-theme="dark"] .xero-search:focus,
+[data-theme="dark"] .xero-filter:focus,
+[data-theme="dark"] .xero-select:focus {
+    border-color: var(--xero-primary);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+@media (max-width: 768px) {
+    .xero-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .xero-charts-row {
+        grid-template-columns: 1fr;
+    }
+
+    .xero-toolbar {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .xero-toolbar-left,
+    .xero-toolbar-right {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .xero-search {
+        width: 100%;
+    }
+}

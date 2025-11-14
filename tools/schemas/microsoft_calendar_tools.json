@@ -1,0 +1,748 @@
+{
+  "platform": "microsoft_calendar",
+  "description": "Microsoft Calendar (Outlook Calendar) - Event scheduling, meeting management, and calendar coordination\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "microsoft_calendar_list_events",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_list_events', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList calendar events within a date range",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date (ISO 8601 format)",
+            "default": "today"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date (ISO 8601 format)",
+            "default": "next 7 days"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of events to return",
+            "default": 50
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "start_date": "2025-10-29T00:00:00Z",
+        "end_date": "2025-11-05T23:59:59Z",
+        "max_results": 50
+      }
+    },
+    {
+      "name": "microsoft_calendar_create_event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_create_event', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Event title"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time (ISO 8601 format)"
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time (ISO 8601 format)"
+          },
+          "body": {
+            "type": "string",
+            "description": "Event description"
+          },
+          "location": {
+            "type": "string",
+            "description": "Event location"
+          },
+          "attendees": {
+            "type": "array",
+            "description": "List of attendee email addresses"
+          },
+          "is_online_meeting": {
+            "type": "boolean",
+            "description": "Create Teams meeting link",
+            "default": false
+          },
+          "reminder_minutes": {
+            "type": "integer",
+            "description": "Reminder time before event (minutes)",
+            "default": 15
+          }
+        },
+        "required": [
+          "user_id",
+          "subject",
+          "start_time",
+          "end_time"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "subject": "Sprint Planning Meeting",
+        "start_time": "2025-10-30T14:00:00Z",
+        "end_time": "2025-10-30T15:00:00Z",
+        "location": "Conference Room A",
+        "attendees": [
+          "john@company.com",
+          "jane@company.com"
+        ],
+        "is_online_meeting": true
+      }
+    },
+    {
+      "name": "microsoft_calendar_get_event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_get_event', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a specific calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "event_id": {
+            "type": "string",
+            "description": "Event ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "event_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T..."
+      }
+    },
+    {
+      "name": "microsoft_calendar_update_event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_update_event', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "event_id": {
+            "type": "string",
+            "description": "Event ID to update"
+          },
+          "updates": {
+            "type": "object",
+            "description": "Fields to update (subject, start, end, location, body, etc.)"
+          }
+        },
+        "required": [
+          "user_id",
+          "event_id",
+          "updates"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T...",
+        "updates": {
+          "subject": "Updated: Sprint Planning",
+          "location": "Virtual - Teams"
+        }
+      }
+    },
+    {
+      "name": "microsoft_calendar_delete_event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_delete_event', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "event_id": {
+            "type": "string",
+            "description": "Event ID to delete"
+          },
+          "notify_attendees": {
+            "type": "boolean",
+            "description": "Send cancellation notice to attendees",
+            "default": true
+          }
+        },
+        "required": [
+          "user_id",
+          "event_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T...",
+        "notify_attendees": true
+      }
+    },
+    {
+      "name": "microsoft_calendar_create_recurring_event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_create_recurring_event', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a recurring calendar event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Event title"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time (ISO 8601 format)"
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time (ISO 8601 format)"
+          },
+          "recurrence_pattern": {
+            "type": "object",
+            "description": "Recurrence pattern (daily, weekly, monthly, yearly)"
+          },
+          "attendees": {
+            "type": "array",
+            "description": "List of attendee email addresses"
+          }
+        },
+        "required": [
+          "user_id",
+          "subject",
+          "start_time",
+          "end_time",
+          "recurrence_pattern"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "subject": "Weekly Team Standup",
+        "start_time": "2025-10-30T09:00:00Z",
+        "end_time": "2025-10-30T09:30:00Z",
+        "recurrence_pattern": {
+          "type": "weekly",
+          "interval": 1,
+          "days_of_week": [
+            "monday",
+            "wednesday",
+            "friday"
+          ],
+          "range": {
+            "type": "endDate",
+            "end_date": "2025-12-31"
+          }
+        },
+        "attendees": [
+          "team@company.com"
+        ]
+      }
+    },
+    {
+      "name": "microsoft_calendar_respond_to_event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_respond_to_event', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAccept, decline, or tentatively accept an event invitation",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "event_id": {
+            "type": "string",
+            "description": "Event ID"
+          },
+          "response": {
+            "type": "string",
+            "description": "Response: 'accept', 'decline', 'tentative'"
+          },
+          "comment": {
+            "type": "string",
+            "description": "Optional comment with response"
+          },
+          "send_response": {
+            "type": "boolean",
+            "description": "Send response to organizer",
+            "default": true
+          }
+        },
+        "required": [
+          "user_id",
+          "event_id",
+          "response"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T...",
+        "response": "accept",
+        "comment": "Looking forward to it!",
+        "send_response": true
+      }
+    },
+    {
+      "name": "microsoft_calendar_get_availability",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_get_availability', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck availability for one or more users",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "attendees": {
+            "type": "array",
+            "description": "List of email addresses to check"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time (ISO 8601 format)"
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time (ISO 8601 format)"
+          },
+          "interval_minutes": {
+            "type": "integer",
+            "description": "Time slot interval in minutes",
+            "default": 30
+          }
+        },
+        "required": [
+          "user_id",
+          "attendees",
+          "start_time",
+          "end_time"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "attendees": [
+          "john@company.com",
+          "jane@company.com"
+        ],
+        "start_time": "2025-10-30T08:00:00Z",
+        "end_time": "2025-10-30T17:00:00Z",
+        "interval_minutes": 30
+      }
+    },
+    {
+      "name": "microsoft_calendar_find_meeting_rooms",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_find_meeting_rooms', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFind available meeting rooms",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time (ISO 8601 format)"
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time (ISO 8601 format)"
+          },
+          "capacity": {
+            "type": "integer",
+            "description": "Minimum room capacity"
+          }
+        },
+        "required": [
+          "user_id",
+          "start_time",
+          "end_time"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "start_time": "2025-10-30T14:00:00Z",
+        "end_time": "2025-10-30T15:00:00Z",
+        "capacity": 10
+      }
+    },
+    {
+      "name": "microsoft_calendar_book_room",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_book_room', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nBook a meeting room for an event",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "event_id": {
+            "type": "string",
+            "description": "Event ID to add room to"
+          },
+          "room_email": {
+            "type": "string",
+            "description": "Room resource email"
+          }
+        },
+        "required": [
+          "user_id",
+          "event_id",
+          "room_email"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "event_id": "AAMkAGI2T...",
+        "room_email": "conferenceroom-a@company.com"
+      }
+    },
+    {
+      "name": "microsoft_calendar_list_calendars",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_list_calendars', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all calendars accessible to the user",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123"
+      }
+    },
+    {
+      "name": "microsoft_calendar_create_calendar",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_create_calendar', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new calendar",
+      "platform": "microsoft_calendar",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "name": {
+            "type": "string",
+            "description": "Calendar name"
+          },
+          "color": {
+            "type": "string",
+            "description": "Calendar color"
+          }
+        },
+        "required": [
+          "user_id",
+          "name"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "name": "Project Alpha",
+        "color": "lightBlue"
+      }
+    },
+    {
+      "name": "microsoft_calendar_smart_find_meeting_time",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_smart_find_meeting_time', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAI-powered meeting time finder based on attendee availability",
+      "platform": "microsoft_calendar",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "attendees": {
+            "type": "array",
+            "description": "List of required attendee emails"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "description": "Meeting duration in minutes"
+          },
+          "date_range_start": {
+            "type": "string",
+            "description": "Start of search window (ISO 8601)"
+          },
+          "date_range_end": {
+            "type": "string",
+            "description": "End of search window (ISO 8601)"
+          },
+          "preferred_times": {
+            "type": "object",
+            "description": "Preferred time slots (business hours, morning, afternoon)",
+            "default": {
+              "business_hours": true
+            }
+          },
+          "include_room": {
+            "type": "boolean",
+            "description": "Also find available meeting room",
+            "default": false
+          }
+        },
+        "required": [
+          "user_id",
+          "attendees",
+          "duration_minutes",
+          "date_range_start",
+          "date_range_end"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "attendees": [
+          "john@company.com",
+          "jane@company.com",
+          "bob@company.com"
+        ],
+        "duration_minutes": 60,
+        "date_range_start": "2025-10-30T00:00:00Z",
+        "date_range_end": "2025-11-03T23:59:59Z",
+        "preferred_times": {
+          "business_hours": true,
+          "time_of_day": "morning"
+        },
+        "include_room": true
+      }
+    },
+    {
+      "name": "microsoft_calendar_smart_schedule_series",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_smart_schedule_series', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nBulk schedule multiple events based on pattern",
+      "platform": "microsoft_calendar",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "events": {
+            "type": "array",
+            "description": "List of events to create with templates"
+          },
+          "check_conflicts": {
+            "type": "boolean",
+            "description": "Check for conflicts before creating",
+            "default": true
+          },
+          "auto_resolve": {
+            "type": "boolean",
+            "description": "Automatically resolve conflicts",
+            "default": false
+          }
+        },
+        "required": [
+          "user_id",
+          "events"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "events": [
+          {
+            "subject": "Team Standup - Week 1",
+            "start": "2025-10-30T09:00:00Z",
+            "duration_minutes": 15,
+            "attendees": [
+              "team@company.com"
+            ]
+          },
+          {
+            "subject": "Sprint Review",
+            "start": "2025-11-01T14:00:00Z",
+            "duration_minutes": 60,
+            "attendees": [
+              "stakeholders@company.com"
+            ]
+          }
+        ],
+        "check_conflicts": true
+      }
+    },
+    {
+      "name": "microsoft_calendar_smart_conflict_resolver",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_smart_conflict_resolver', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDetect and automatically resolve calendar conflicts",
+      "platform": "microsoft_calendar",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start of date range to check (ISO 8601)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End of date range to check (ISO 8601)"
+          },
+          "resolution_strategy": {
+            "type": "string",
+            "description": "Strategy: 'suggest', 'auto_reschedule', 'report_only'",
+            "default": "suggest"
+          },
+          "priority_rules": {
+            "type": "object",
+            "description": "Priority rules for conflict resolution"
+          }
+        },
+        "required": [
+          "user_id",
+          "start_date",
+          "end_date"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "start_date": "2025-10-29T00:00:00Z",
+        "end_date": "2025-11-05T23:59:59Z",
+        "resolution_strategy": "suggest",
+        "priority_rules": {
+          "all_day_events": "high",
+          "with_attendees": "high",
+          "personal": "low"
+        }
+      }
+    },
+    {
+      "name": "microsoft_calendar_get_reminders",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_get_reminders', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet upcoming event reminders",
+      "platform": "microsoft_calendar",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "next_hours": {
+            "type": "integer",
+            "description": "Look ahead time in hours",
+            "default": 24
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "next_hours": 48
+      }
+    },
+    {
+      "name": "microsoft_calendar_set_working_hours",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_calendar_set_working_hours', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSet working hours and availability",
+      "platform": "microsoft_calendar",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "working_hours": {
+            "type": "object",
+            "description": "Working hours configuration per day"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "Timezone identifier"
+          }
+        },
+        "required": [
+          "user_id",
+          "working_hours",
+          "timezone"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "working_hours": {
+          "monday": {
+            "start": "09:00",
+            "end": "17:00"
+          },
+          "tuesday": {
+            "start": "09:00",
+            "end": "17:00"
+          },
+          "friday": {
+            "start": "09:00",
+            "end": "15:00"
+          }
+        },
+        "timezone": "Pacific Standard Time"
+      }
+    }
+  ]
+}

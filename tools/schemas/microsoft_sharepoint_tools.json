@@ -1,0 +1,491 @@
+{
+  "platform": "microsoft_sharepoint",
+  "version": "1.0",
+  "authentication": "microsoft_oauth",
+  "description": "Enterprise content management and collaboration via SharePoint sites, document libraries, and lists\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "required_scopes": [
+    "Sites.ReadWrite.All",
+    "Files.ReadWrite.All"
+  ],
+  "rate_limits": {
+    "requests_per_minute": 120,
+    "requests_per_hour": 5000
+  },
+  "tools": [
+    {
+      "name": "microsoft_sharepoint_get_site",
+      "tier": 2,
+      "category": "Site Management",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_get_site', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet SharePoint site details by ID or URL",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "site_url": {
+            "type": "string",
+            "description": "SharePoint site URL (relative to tenant)"
+          }
+        },
+        "required": []
+      },
+      "returns": "Dict with site details (id, name, web_url, description)"
+    },
+    {
+      "name": "microsoft_sharepoint_list_sites",
+      "tier": 2,
+      "category": "Site Management",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_list_sites', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList followed or accessible SharePoint sites",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "search_query": {
+            "type": "string",
+            "description": "Search term to filter sites"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum sites to return",
+            "default": 50
+          }
+        },
+        "required": []
+      },
+      "returns": "Dict with sites list and count"
+    },
+    {
+      "name": "microsoft_sharepoint_search_content",
+      "tier": 3,
+      "category": "Site Management",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_search_content', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch content across SharePoint sites",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query"
+          },
+          "site_id": {
+            "type": "string",
+            "description": "Optional site ID to limit search scope"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "returns": "Dict with search results (files, lists, pages)"
+    },
+    {
+      "name": "microsoft_sharepoint_list_drives",
+      "tier": 2,
+      "category": "Document Libraries",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_list_drives', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList document libraries in SharePoint site",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      },
+      "returns": "Dict with document libraries (drives) list"
+    },
+    {
+      "name": "microsoft_sharepoint_list_items",
+      "tier": 2,
+      "category": "Document Libraries",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_list_items', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList files and folders in document library",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "drive_id": {
+            "type": "string",
+            "description": "Document library (drive) ID"
+          },
+          "folder_path": {
+            "type": "string",
+            "description": "Optional folder path (default: root)"
+          }
+        },
+        "required": [
+          "site_id",
+          "drive_id"
+        ]
+      },
+      "returns": "Dict with files and folders list"
+    },
+    {
+      "name": "microsoft_sharepoint_upload_file",
+      "tier": 3,
+      "category": "Document Libraries",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_upload_file', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nUpload file to SharePoint document library",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "drive_id": {
+            "type": "string",
+            "description": "Document library (drive) ID"
+          },
+          "file_name": {
+            "type": "string",
+            "description": "File name with extension"
+          },
+          "content": {
+            "type": "string",
+            "description": "File content (base64 for binary)"
+          },
+          "folder_path": {
+            "type": "string",
+            "description": "Optional folder path (default: root)"
+          }
+        },
+        "required": [
+          "site_id",
+          "drive_id",
+          "file_name",
+          "content"
+        ]
+      },
+      "returns": "Dict with uploaded file info"
+    },
+    {
+      "name": "microsoft_sharepoint_create_folder",
+      "tier": 2,
+      "category": "Document Libraries",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_create_folder', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate folder in document library",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "drive_id": {
+            "type": "string",
+            "description": "Document library (drive) ID"
+          },
+          "folder_name": {
+            "type": "string",
+            "description": "Folder name"
+          },
+          "parent_path": {
+            "type": "string",
+            "description": "Parent folder path (default: root)"
+          }
+        },
+        "required": [
+          "site_id",
+          "drive_id",
+          "folder_name"
+        ]
+      },
+      "returns": "Dict with created folder info"
+    },
+    {
+      "name": "microsoft_sharepoint_list_lists",
+      "tier": 2,
+      "category": "SharePoint Lists",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_list_lists', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList SharePoint lists in site",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      },
+      "returns": "Dict with SharePoint lists"
+    },
+    {
+      "name": "microsoft_sharepoint_get_list_items",
+      "tier": 2,
+      "category": "SharePoint Lists",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_get_list_items', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet items from SharePoint list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "SharePoint list ID"
+          },
+          "filter": {
+            "type": "string",
+            "description": "OData filter query"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum items to return",
+            "default": 100
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id"
+        ]
+      },
+      "returns": "Dict with list items"
+    },
+    {
+      "name": "microsoft_sharepoint_create_list_item",
+      "tier": 3,
+      "category": "SharePoint Lists",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_create_list_item', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate item in SharePoint list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "SharePoint list ID"
+          },
+          "fields": {
+            "type": "object",
+            "description": "Field values dict"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id",
+          "fields"
+        ]
+      },
+      "returns": "Dict with created item info"
+    },
+    {
+      "name": "microsoft_sharepoint_update_list_item",
+      "tier": 3,
+      "category": "SharePoint Lists",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_update_list_item', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate item in SharePoint list",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "SharePoint list ID"
+          },
+          "item_id": {
+            "type": "string",
+            "description": "List item ID"
+          },
+          "fields": {
+            "type": "object",
+            "description": "Field values to update"
+          }
+        },
+        "required": [
+          "site_id",
+          "list_id",
+          "item_id",
+          "fields"
+        ]
+      },
+      "returns": "Dict with updated item info"
+    },
+    {
+      "name": "microsoft_sharepoint_get_permissions",
+      "tier": 3,
+      "category": "Permissions",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_get_permissions', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet permissions for site, library, or item",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "drive_id": {
+            "type": "string",
+            "description": "Optional document library ID"
+          },
+          "item_id": {
+            "type": "string",
+            "description": "Optional item ID"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      },
+      "returns": "Dict with permissions list"
+    },
+    {
+      "name": "microsoft_sharepoint_create_share_link",
+      "tier": 3,
+      "category": "Permissions",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_create_share_link', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate sharing link for item",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "drive_id": {
+            "type": "string",
+            "description": "Document library ID"
+          },
+          "item_id": {
+            "type": "string",
+            "description": "Item ID to share"
+          },
+          "link_type": {
+            "type": "string",
+            "description": "Link permission type",
+            "default": "view",
+            "enum": [
+              "view",
+              "edit"
+            ]
+          }
+        },
+        "required": [
+          "site_id",
+          "drive_id",
+          "item_id"
+        ]
+      },
+      "returns": "Dict with sharing link"
+    },
+    {
+      "name": "microsoft_sharepoint_smart_site_audit",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_smart_site_audit', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Comprehensive site health and usage analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "check_permissions": {
+            "type": "boolean",
+            "description": "Analyze permissions",
+            "default": true
+          },
+          "check_storage": {
+            "type": "boolean",
+            "description": "Analyze storage usage",
+            "default": true
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      },
+      "returns": "Dict with comprehensive audit report (storage, permissions, activity, recommendations)"
+    },
+    {
+      "name": "microsoft_sharepoint_smart_bulk_upload",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_smart_bulk_upload', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSMART: Bulk upload files with automatic folder creation",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "drive_id": {
+            "type": "string",
+            "description": "Document library ID"
+          },
+          "files": {
+            "type": "array",
+            "description": "List of file dicts with 'name', 'content', 'path'"
+          }
+        },
+        "required": [
+          "site_id",
+          "drive_id",
+          "files"
+        ]
+      },
+      "returns": "Dict with upload results (success, failed, created_folders)"
+    },
+    {
+      "name": "microsoft_sharepoint_smart_organize_library",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_smart_organize_library', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Auto-organize files by type, date, or metadata",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "drive_id": {
+            "type": "string",
+            "description": "Document library ID"
+          },
+          "rules": {
+            "type": "object",
+            "description": "Organization rules (group_by: 'type'|'date'|'metadata', folder_structure)"
+          }
+        },
+        "required": [
+          "site_id",
+          "drive_id",
+          "rules"
+        ]
+      },
+      "returns": "Dict with organization results (files_moved, folders_created)"
+    },
+    {
+      "name": "microsoft_sharepoint_smart_permission_report",
+      "tier": 1,
+      "category": "SMART Tools",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_sharepoint_smart_permission_report', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Generate detailed permission analysis and recommendations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID"
+          },
+          "include_lists": {
+            "type": "boolean",
+            "description": "Include SharePoint lists in analysis",
+            "default": false
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      },
+      "returns": "Dict with permission report (user_access, group_access, recommendations, security_issues)"
+    }
+  ]
+}

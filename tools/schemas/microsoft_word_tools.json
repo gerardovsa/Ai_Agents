@@ -1,0 +1,748 @@
+{
+  "platform": "microsoft_word",
+  "version": "1.0",
+  "description": "Microsoft Word document creation, editing, and automation tools via Graph API\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "authentication": "microsoft_oauth",
+  "base_url": "https://graph.microsoft.com/v1.0",
+  "tools": [
+    {
+      "name": "microsoft_word_create_document",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_create_document', ...) - DO NOT call directly!\n\nCreate a new Word document in OneDrive",
+      "category": "document_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Document name (will add .docx if not present)"
+          },
+          "content": {
+            "type": "string",
+            "description": "Initial text content (plain text)"
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "OneDrive folder ID (default: root)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "returns": "Dict with document_id, name, web_url, created_datetime"
+    },
+    {
+      "name": "microsoft_word_get_document",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_get_document', ...) - DO NOT call directly!\n\nGet Word document metadata",
+      "category": "document_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "OneDrive item ID of the document"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with document details including name, URLs, dates, size"
+    },
+    {
+      "name": "microsoft_word_list_documents",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_list_documents', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList Word documents in OneDrive folder",
+      "category": "document_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "Folder ID (default: root)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum documents to return",
+            "default": 50
+          }
+        },
+        "required": []
+      },
+      "returns": "Dict with count and list of documents"
+    },
+    {
+      "name": "microsoft_word_delete_document",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_delete_document', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a Word document",
+      "category": "document_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID to delete"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "microsoft_word_get_content",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_get_content', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet document content as text",
+      "category": "content_operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with text content and metadata"
+    },
+    {
+      "name": "microsoft_word_append_text",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_append_text', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend text to document",
+      "category": "content_operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text to append"
+          },
+          "paragraph": {
+            "type": "boolean",
+            "description": "Add as new paragraph (vs inline)",
+            "default": true
+          }
+        },
+        "required": [
+          "document_id",
+          "text"
+        ]
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "microsoft_word_search_text",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_search_text', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch for text in document",
+      "category": "content_operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "search_term": {
+            "type": "string",
+            "description": "Text to search for"
+          }
+        },
+        "required": [
+          "document_id",
+          "search_term"
+        ]
+      },
+      "returns": "Dict with search results"
+    },
+    {
+      "name": "microsoft_word_insert_heading",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_insert_heading', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert heading in document",
+      "category": "formatting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Heading text"
+          },
+          "level": {
+            "type": "integer",
+            "description": "Heading level (1-9)",
+            "default": 1
+          }
+        },
+        "required": [
+          "document_id",
+          "text"
+        ]
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "microsoft_word_insert_table",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_insert_table', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert table in document",
+      "category": "formatting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "rows": {
+            "type": "integer",
+            "description": "Number of rows"
+          },
+          "columns": {
+            "type": "integer",
+            "description": "Number of columns"
+          },
+          "data": {
+            "type": "array",
+            "description": "Optional 2D array of cell data"
+          }
+        },
+        "required": [
+          "document_id",
+          "rows",
+          "columns"
+        ]
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "microsoft_word_insert_image",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_insert_image', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert image in document",
+      "category": "formatting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "image_url": {
+            "type": "string",
+            "description": "URL of image to insert"
+          },
+          "width": {
+            "type": "integer",
+            "description": "Image width in pixels"
+          },
+          "height": {
+            "type": "integer",
+            "description": "Image height in pixels"
+          }
+        },
+        "required": [
+          "document_id",
+          "image_url"
+        ]
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "microsoft_word_apply_style",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_apply_style', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nApply formatting style to document",
+      "category": "formatting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "style_name": {
+            "type": "string",
+            "description": "Style name (e.g., 'Heading 1', 'Normal')"
+          },
+          "scope": {
+            "type": "string",
+            "description": "Apply to 'document', 'paragraph', or 'selection'",
+            "default": "document"
+          }
+        },
+        "required": [
+          "document_id",
+          "style_name"
+        ]
+      },
+      "returns": "Dict with success status"
+    },
+    {
+      "name": "microsoft_word_add_comment",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_add_comment', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd comment to document",
+      "category": "collaboration",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Comment text"
+          },
+          "author": {
+            "type": "string",
+            "description": "Comment author name"
+          }
+        },
+        "required": [
+          "document_id",
+          "text"
+        ]
+      },
+      "returns": "Dict with comment ID"
+    },
+    {
+      "name": "microsoft_word_get_comments",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_get_comments', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet all comments in document",
+      "category": "collaboration",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with comments list"
+    },
+    {
+      "name": "microsoft_word_export_pdf",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_export_pdf', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport document as PDF",
+      "category": "export",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with PDF download URL and file ID"
+    },
+    {
+      "name": "microsoft_word_copy_document",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_copy_document', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCopy document to new location",
+      "category": "document_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Source document ID"
+          },
+          "new_name": {
+            "type": "string",
+            "description": "Name for copied document"
+          },
+          "destination_folder_id": {
+            "type": "string",
+            "description": "Destination folder ID"
+          }
+        },
+        "required": [
+          "document_id",
+          "new_name"
+        ]
+      },
+      "returns": "Dict with new document info and monitor URL"
+    },
+    {
+      "name": "microsoft_word_smart_generate_report",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_generate_report', ...) - DO NOT call directly!\n\nSMART: Generate professionally formatted Word document from structured data. Supports multiple document types (report, proposal, medical, legal, etc.) with intelligent content handling including tables, lists, and images. Creates beautiful documents with title pages, TOC, and auto-styling.",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Document title"
+          },
+          "sections": {
+            "type": "array",
+            "description": "List of section dicts with: heading (required), content (text), level (1-3), tables (2D arrays), lists (bullet/numbered), images (URLs)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "heading": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "integer"
+                },
+                "tables": {
+                  "type": "array"
+                },
+                "lists": {
+                  "type": "array"
+                },
+                "images": {
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "document_type": {
+            "type": "string",
+            "description": "Document type for styling: report (default), proposal, meeting_minutes, invoice, medical, legal, technical, letter",
+            "default": "report",
+            "enum": [
+              "report",
+              "proposal",
+              "meeting_minutes",
+              "invoice",
+              "medical",
+              "legal",
+              "technical",
+              "letter"
+            ]
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "Destination folder ID"
+          },
+          "include_toc": {
+            "type": "boolean",
+            "description": "Include table of contents",
+            "default": true
+          },
+          "export_pdf": {
+            "type": "boolean",
+            "description": "Also export as PDF",
+            "default": false
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata (author, version, department, etc.)"
+          }
+        },
+        "required": [
+          "title",
+          "sections"
+        ]
+      },
+      "returns": "Dict with document_id, web_url, stats (sections/paragraphs/tables/lists/images counts), and optional pdf_id",
+      "use_cases": [
+        "Generate quarterly business reports with financial tables",
+        "Create medical reports with patient data and treatment plans",
+        "Build meeting minutes with agenda items and decisions",
+        "Generate technical documentation with code examples",
+        "Create legal documents with structured sections",
+        "Build proposals with pricing tables and timelines",
+        "Generate invoices with line items and totals"
+      ],
+      "examples": [
+        {
+          "description": "Business Report with Financial Table",
+          "parameters": {
+            "title": "Q3 2025 Financial Report",
+            "document_type": "report",
+            "sections": [
+              {
+                "heading": "Executive Summary",
+                "content": "Strong growth in Q3 2025 with 23% revenue increase.",
+                "level": 1
+              },
+              {
+                "heading": "Financial Performance",
+                "level": 1,
+                "tables": [
+                  [
+                    [
+                      "Metric",
+                      "Q2 2025",
+                      "Q3 2025"
+                    ],
+                    [
+                      "Revenue",
+                      "$145,000",
+                      "$168,000"
+                    ],
+                    [
+                      "Profit",
+                      "$47,000",
+                      "$63,000"
+                    ]
+                  ]
+                ]
+              }
+            ],
+            "include_toc": true
+          }
+        },
+        {
+          "description": "Medical Report",
+          "parameters": {
+            "title": "Patient Report - John Smith",
+            "document_type": "medical",
+            "metadata": {
+              "Patient ID": "12345",
+              "Date": "2025-11-04",
+              "Doctor": "Dr. Sarah Johnson"
+            },
+            "sections": [
+              {
+                "heading": "Patient Information",
+                "tables": [
+                  [
+                    [
+                      "Field",
+                      "Value"
+                    ],
+                    [
+                      "Name",
+                      "John Smith"
+                    ],
+                    [
+                      "Age",
+                      "45"
+                    ],
+                    [
+                      "Condition",
+                      "Hypertension"
+                    ]
+                  ]
+                ]
+              },
+              {
+                "heading": "Treatment Plan",
+                "lists": [
+                  {
+                    "type": "number",
+                    "items": [
+                      "Medication X (5mg daily)",
+                      "Exercise 30 min/day",
+                      "Follow-up in 2 weeks"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "description": "Meeting Minutes",
+          "parameters": {
+            "title": "Budget Review Meeting - Nov 4, 2025",
+            "document_type": "meeting_minutes",
+            "sections": [
+              {
+                "heading": "Attendees",
+                "lists": [
+                  {
+                    "type": "bullet",
+                    "items": [
+                      "John Smith (CFO)",
+                      "Sarah Johnson (Manager)",
+                      "Mike Chen (Analyst)"
+                    ]
+                  }
+                ]
+              },
+              {
+                "heading": "Decisions",
+                "tables": [
+                  [
+                    [
+                      "Item",
+                      "Decision",
+                      "Owner"
+                    ],
+                    [
+                      "Budget",
+                      "Approved",
+                      "John"
+                    ],
+                    [
+                      "Hiring",
+                      "Defer to Q1",
+                      "Sarah"
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "microsoft_word_smart_merge_documents",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_merge_documents', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Merge multiple Word documents into one with page breaks and unified TOC",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_ids": {
+            "type": "array",
+            "description": "List of document IDs to merge"
+          },
+          "output_name": {
+            "type": "string",
+            "description": "Name for merged document"
+          },
+          "add_page_breaks": {
+            "type": "boolean",
+            "description": "Add page break between documents",
+            "default": true
+          },
+          "add_toc": {
+            "type": "boolean",
+            "description": "Generate table of contents",
+            "default": true
+          }
+        },
+        "required": [
+          "document_ids",
+          "output_name"
+        ]
+      },
+      "returns": "Dict with merged document info",
+      "use_cases": [
+        "Combine multiple reports",
+        "Create comprehensive documentation",
+        "Merge team submissions"
+      ]
+    },
+    {
+      "name": "microsoft_word_smart_template_fill",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_template_fill', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Fill template with variables by replacing {{variable_name}} placeholders",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "description": "Template document ID"
+          },
+          "variables": {
+            "type": "object",
+            "description": "Dict of variable_name: value pairs"
+          },
+          "output_name": {
+            "type": "string",
+            "description": "Name for generated document"
+          }
+        },
+        "required": [
+          "template_id",
+          "variables",
+          "output_name"
+        ]
+      },
+      "returns": "Dict with generated document info",
+      "use_cases": [
+        "Generate contracts",
+        "Create personalized letters",
+        "Build reports from templates"
+      ]
+    },
+    {
+      "name": "microsoft_word_smart_extract_data",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_extract_data', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART: Extract structured data from document (headings, tables, lists, images)",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID to extract from"
+          },
+          "extract_type": {
+            "type": "string",
+            "description": "What to extract ('all', 'headings', 'tables', 'images')",
+            "default": "all"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with extracted structured data",
+      "use_cases": [
+        "Parse document content",
+        "Extract tables to CSV",
+        "Analyze document structure"
+      ]
+    },
+    {
+      "name": "microsoft_word_smart_create_from_markdown",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_create_from_markdown', ...) - DO NOT call directly!\n\n🤖 SMART TOOL v2.0: Create professionally formatted Word document from markdown with FULL FORMATTING support. Converts AI-generated markdown into native Word formatting using python-docx library.\n\n✨ COMPLETE MARKDOWN SUPPORT (30+ Features):\n\n📝 TEXT FORMATTING:\n- **bold** or __bold__ → Bold text\n- *italic* or _italic_ → Italic text\n- __underline__ → Underlined text (double underscore)\n- ~~strikethrough~~ → Strikethrough text\n- ==highlight== → Yellow highlighted text\n- `inline code` → Monospace code\n- H~2~O → Subscript (H₂O)\n- x^2^ → Superscript (x²)\n\n📊 STRUCTURE:\n- # to ###### → 6 heading levels (H1-H6)\n- - or * → Bullet lists\n- 1. 2. 3. → Numbered lists\n-   - (2 spaces) → Nested lists (unlimited levels)\n- | Tables | → Professional tables with styling\n- ```code blocks``` → Monospace code blocks\n- > Blockquotes → Indented quotes\n\n🎨 SPECIAL ELEMENTS:\n- --- or *** → Horizontal line\n- <<PAGE-BREAK>> or <<< → Page break\n- ![alt](url) → Images from URLs\n- [Link](url) → Hyperlinks (blue, underlined)\n\n📐 ALIGNMENT:\n- ->centered text<- → Center aligned\n- <-left text → Left aligned\n- right text-> → Right aligned\n\n✅ AUTO-SHAREABLE: Documents automatically shareable with edit permissions\n\nPerfect for: AI reports, technical docs, business proposals, formatted content",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Document name (will add .docx if missing)"
+          },
+          "markdown_content": {
+            "type": "string",
+            "description": "Markdown-formatted text with FULL support: **bold**, *italic*, __underline__, ~~strike~~, ==highlight==, H~2~O, x^2^, tables, lists, images, page breaks, alignment"
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "OneDrive folder ID (optional, default: root)"
+          }
+        },
+        "required": [
+          "title",
+          "markdown_content"
+        ]
+      },
+      "returns": "Dict with document_id, web_url, size, shareable status, share_link",
+      "use_cases": [
+        "Convert AI-generated markdown reports to Word (with highlighting, strikethrough, subscript)",
+        "Create formatted documentation from markdown (with images, page breaks, alignment)",
+        "Generate professional documents with tables, nested lists, and advanced formatting",
+        "Transform markdown notes into Word with full formatting preservation",
+        "Create scientific documents with subscript/superscript (H~2~O, E=mc^2^)",
+        "Build business proposals with highlighted sections and page breaks"
+      ],
+      "examples": [
+        {
+          "description": "Advanced formatted report with all features",
+          "parameters": {
+            "title": "Q4 Sales Report",
+            "markdown_content": "->**Q4 2024 Sales Report**<-\n\n---\n\n# Executive Summary\n\nOur revenue was **$2M**, representing ==**40% growth**==. This is ~~not~~ **excellent** performance!\n\n<<PAGE-BREAK>>\n\n## Key Metrics\n\n| Metric | Q3 | Q4 | Change |\n|--------|----|----|--------|\n| Revenue | $1.4M | $2M | +40% |\n| Customers | 450 | 680 | +51% |\n\n> Important: Growth rate exceeds industry average by **2x**\n\n## Chemical Analysis\n\nWater formula: H~2~O\nEnergy equation: E=mc^2^\n\n## Code Implementation\n\n```python\ndef calculate_growth(old, new):\n    return ((new - old) / old) * 100\n```\n\n## Next Steps\n\n1. **Primary Goals**\n   - Expand to new markets\n   - Hire additional sales team\n2. **Secondary Goals**\n   - Launch new product line\n   - Improve customer retention\n\n---\n\n->*End of Report*<-"
+          }
+        }
+      ]
+    }
+  ],
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 600,
+    "note": "Follows Microsoft Graph API throttling limits"
+  },
+  "required_scopes": [
+    "Files.ReadWrite.All"
+  ]
+}

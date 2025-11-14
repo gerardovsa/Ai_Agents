@@ -1,0 +1,940 @@
+{
+  "platform": "microsoft_teams",
+  "description": "Microsoft Teams - Team collaboration, chat messaging, channels, file sharing, and meetings coordination\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "microsoft_teams_list_teams",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_list_teams', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all teams the user is a member of",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123"
+      }
+    },
+    {
+      "name": "microsoft_teams_create_team",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_create_team', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new team with specified settings",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Team name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Team description"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "Team visibility: 'public' or 'private'",
+            "default": "private"
+          }
+        },
+        "required": [
+          "user_id",
+          "display_name"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "display_name": "Project Alpha Team",
+        "description": "Team for Project Alpha development",
+        "visibility": "private"
+      }
+    },
+    {
+      "name": "microsoft_teams_get_team",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_get_team', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a specific team",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2"
+      }
+    },
+    {
+      "name": "microsoft_teams_list_channels",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_list_channels', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all channels in a team",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2"
+      }
+    },
+    {
+      "name": "microsoft_teams_create_channel",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_create_channel', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new channel in a team",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Channel name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Channel description"
+          },
+          "membership_type": {
+            "type": "string",
+            "description": "Channel type: 'standard' or 'private'",
+            "default": "standard"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "display_name"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "display_name": "Development",
+        "description": "Development discussions"
+      }
+    },
+    {
+      "name": "microsoft_teams_send_channel_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_send_channel_message', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend a message to a team channel",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message content (supports HTML)"
+          },
+          "importance": {
+            "type": "string",
+            "description": "Message importance: 'normal', 'high', 'urgent'",
+            "default": "normal"
+          },
+          "mentions": {
+            "type": "array",
+            "description": "List of user IDs to @mention"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id",
+          "message"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2",
+        "message": "Sprint planning meeting at 2pm today!",
+        "importance": "high"
+      }
+    },
+    {
+      "name": "microsoft_teams_get_channel_messages",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_get_channel_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet messages from a channel",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of messages to retrieve",
+            "default": 50
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2",
+        "max_results": 50
+      }
+    },
+    {
+      "name": "microsoft_teams_reply_to_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_reply_to_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nReply to a message in a channel",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          },
+          "message_id": {
+            "type": "string",
+            "description": "Original message ID"
+          },
+          "reply": {
+            "type": "string",
+            "description": "Reply content"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id",
+          "message_id",
+          "reply"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2",
+        "message_id": "1234567890",
+        "reply": "Sounds good, I'll be there!"
+      }
+    },
+    {
+      "name": "microsoft_teams_add_member",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_add_member', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a member to a team",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "member_email": {
+            "type": "string",
+            "description": "Email address of member to add"
+          },
+          "role": {
+            "type": "string",
+            "description": "Member role: 'owner' or 'member'",
+            "default": "member"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "member_email"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "member_email": "john@company.com",
+        "role": "member"
+      }
+    },
+    {
+      "name": "microsoft_teams_list_members",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_list_members', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all members of a team",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2"
+      }
+    },
+    {
+      "name": "microsoft_teams_send_chat_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_send_chat_message', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend a direct message or group chat message",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "recipients": {
+            "type": "array",
+            "description": "List of recipient user IDs or emails"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message content"
+          }
+        },
+        "required": [
+          "user_id",
+          "recipients",
+          "message"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "recipients": [
+          "john@company.com",
+          "jane@company.com"
+        ],
+        "message": "Quick update on the project status"
+      }
+    },
+    {
+      "name": "microsoft_teams_upload_file",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_upload_file', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nUpload a file to a team channel",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Local file path to upload"
+          },
+          "file_name": {
+            "type": "string",
+            "description": "Name for the file in Teams"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id",
+          "file_path"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2",
+        "file_path": "/path/to/document.pdf",
+        "file_name": "Project Plan.pdf"
+      }
+    },
+    {
+      "name": "microsoft_teams_list_channel_files",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_list_channel_files', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList files in a team channel",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2"
+      }
+    },
+    {
+      "name": "microsoft_teams_create_meeting",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_create_meeting', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Teams meeting",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Meeting subject"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time (ISO 8601 format)"
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time (ISO 8601 format)"
+          },
+          "attendees": {
+            "type": "array",
+            "description": "List of attendee emails"
+          },
+          "body": {
+            "type": "string",
+            "description": "Meeting description"
+          }
+        },
+        "required": [
+          "user_id",
+          "subject",
+          "start_time",
+          "end_time"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "subject": "Sprint Planning",
+        "start_time": "2025-10-29T14:00:00Z",
+        "end_time": "2025-10-29T15:00:00Z",
+        "attendees": [
+          "john@company.com",
+          "jane@company.com"
+        ]
+      }
+    },
+    {
+      "name": "microsoft_teams_search_messages",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_search_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch for messages across teams and channels",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "query": {
+            "type": "string",
+            "description": "Search query"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Optional: Limit search to specific team"
+          },
+          "from_date": {
+            "type": "string",
+            "description": "Optional: Start date for search (ISO 8601)"
+          }
+        },
+        "required": [
+          "user_id",
+          "query"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "query": "project deadline",
+        "from_date": "2025-10-01T00:00:00Z"
+      }
+    },
+    {
+      "name": "microsoft_teams_pin_message",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_pin_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nPin a message in a channel",
+      "platform": "microsoft_teams",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          },
+          "message_id": {
+            "type": "string",
+            "description": "Message ID to pin"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id",
+          "message_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2",
+        "message_id": "1234567890"
+      }
+    },
+    {
+      "name": "microsoft_teams_smart_daily_standup",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_smart_daily_standup', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nPost automated daily standup message with template",
+      "platform": "microsoft_teams",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          },
+          "standup_data": {
+            "type": "object",
+            "description": "Standup information with yesterday, today, blockers"
+          },
+          "mention_team": {
+            "type": "boolean",
+            "description": "Whether to @mention entire team",
+            "default": false
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id",
+          "standup_data"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2",
+        "standup_data": {
+          "date": "2025-10-29",
+          "yesterday": [
+            "Completed API integration",
+            "Fixed 3 bugs"
+          ],
+          "today": [
+            "Work on UI components",
+            "Team meeting"
+          ],
+          "blockers": [
+            "Waiting on design approval"
+          ]
+        },
+        "mention_team": true
+      }
+    },
+    {
+      "name": "microsoft_teams_smart_broadcast_announcement",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_smart_broadcast_announcement', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSend announcement to multiple channels simultaneously",
+      "platform": "microsoft_teams",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "channels": {
+            "type": "array",
+            "description": "List of {team_id, channel_id} objects"
+          },
+          "message": {
+            "type": "string",
+            "description": "Announcement message (supports HTML)"
+          },
+          "importance": {
+            "type": "string",
+            "description": "Message importance: 'normal', 'high', 'urgent'",
+            "default": "high"
+          },
+          "delay_seconds": {
+            "type": "integer",
+            "description": "Delay between posts to avoid rate limiting",
+            "default": 2
+          }
+        },
+        "required": [
+          "user_id",
+          "channels",
+          "message"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "channels": [
+          {
+            "team_id": "19:abc123@thread.tacv2",
+            "channel_id": "19:def456@thread.tacv2"
+          },
+          {
+            "team_id": "19:xyz789@thread.tacv2",
+            "channel_id": "19:uvw012@thread.tacv2"
+          }
+        ],
+        "message": "<h2>System Maintenance</h2><p>Scheduled downtime on Friday 10pm-12am</p>",
+        "importance": "urgent"
+      }
+    },
+    {
+      "name": "microsoft_teams_smart_create_poll",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_smart_create_poll', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a poll in a channel and collect responses",
+      "platform": "microsoft_teams",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          },
+          "question": {
+            "type": "string",
+            "description": "Poll question"
+          },
+          "options": {
+            "type": "array",
+            "description": "List of poll options"
+          },
+          "allow_multiple": {
+            "type": "boolean",
+            "description": "Allow multiple selections",
+            "default": false
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id",
+          "question",
+          "options"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2",
+        "question": "What time works best for sprint planning?",
+        "options": [
+          "9am",
+          "10am",
+          "2pm",
+          "3pm"
+        ],
+        "allow_multiple": true
+      }
+    },
+    {
+      "name": "microsoft_teams_smart_meeting_summary",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_smart_meeting_summary', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nPost meeting summary with action items to channel",
+      "platform": "microsoft_teams",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          },
+          "meeting_title": {
+            "type": "string",
+            "description": "Meeting title"
+          },
+          "attendees": {
+            "type": "array",
+            "description": "List of attendee names"
+          },
+          "key_points": {
+            "type": "array",
+            "description": "Main discussion points"
+          },
+          "action_items": {
+            "type": "array",
+            "description": "Action items with {task, owner, due_date}"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id",
+          "meeting_title",
+          "attendees",
+          "key_points",
+          "action_items"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2",
+        "meeting_title": "Sprint Planning - October 29",
+        "attendees": [
+          "John",
+          "Jane",
+          "Bob"
+        ],
+        "key_points": [
+          "Discussed Q4 priorities",
+          "Reviewed backlog"
+        ],
+        "action_items": [
+          {
+            "task": "Update documentation",
+            "owner": "John",
+            "due_date": "2025-11-01"
+          },
+          {
+            "task": "Design review",
+            "owner": "Jane",
+            "due_date": "2025-10-31"
+          }
+        ]
+      }
+    },
+    {
+      "name": "microsoft_teams_update_team_settings",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_update_team_settings', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate team settings and configuration",
+      "platform": "microsoft_teams",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "settings": {
+            "type": "object",
+            "description": "Settings to update (guestSettings, memberSettings, messagingSettings, funSettings)"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "settings"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "settings": {
+          "messagingSettings": {
+            "allowUserEditMessages": true,
+            "allowUserDeleteMessages": true
+          },
+          "funSettings": {
+            "allowGiphy": true,
+            "giphyContentRating": "moderate"
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_teams_get_channel_tabs",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_teams_get_channel_tabs', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tabs in a channel (apps and integrations)",
+      "platform": "microsoft_teams",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team ID"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "Channel ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "team_id",
+          "channel_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "team_id": "19:abc123@thread.tacv2",
+        "channel_id": "19:def456@thread.tacv2"
+      }
+    }
+  ]
+}
