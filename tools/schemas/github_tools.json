@@ -1,0 +1,128 @@
+{
+  "platform": "github",
+  "description": "GitHub repository and code management tools",
+  "tools": [
+    {
+      "name": "github_create_repo",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new GitHub repository",
+      "platform": "github",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Repository name",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "description": "Repository description",
+          "required": false
+        },
+        "private": {
+          "type": "boolean",
+          "description": "Make repository private",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created repository details with clone URL"
+      }
+    },
+    {
+      "name": "github_commit_file",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCommit a file to a GitHub repository",
+      "platform": "github",
+      "parameters": {
+        "repo": {
+          "type": "string",
+          "description": "Repository name (owner/repo)",
+          "required": true
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path within repository",
+          "required": true
+        },
+        "content": {
+          "type": "string",
+          "description": "File content",
+          "required": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Commit message",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Commit details with SHA"
+      }
+    },
+    {
+      "name": "github_create_pr",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a pull request",
+      "platform": "github",
+      "parameters": {
+        "repo": {
+          "type": "string",
+          "description": "Repository name (owner/repo)",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "PR title",
+          "required": true
+        },
+        "head": {
+          "type": "string",
+          "description": "Head branch",
+          "required": true
+        },
+        "base": {
+          "type": "string",
+          "description": "Base branch",
+          "required": true
+        },
+        "body": {
+          "type": "string",
+          "description": "PR description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created PR with number and URL"
+      }
+    },
+    {
+      "name": "github_get_issues",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList issues from a repository",
+      "platform": "github",
+      "parameters": {
+        "repo": {
+          "type": "string",
+          "description": "Repository name (owner/repo)",
+          "required": true
+        },
+        "state": {
+          "type": "string",
+          "description": "Issue state: 'open', 'closed', or 'all'",
+          "required": false,
+          "default": "open"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of issues",
+          "required": false,
+          "default": 30
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of issues"
+      }
+    }
+  ]
+}

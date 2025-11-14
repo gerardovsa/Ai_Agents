@@ -1,0 +1,322 @@
+{
+  "platform": "google_tasks",
+  "description": "Google Tasks API - Create, manage, and organize tasks and task lists\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "tools": [
+    {
+      "name": "google_tasks_smart_create_project",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_smart_create_project', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🤖 SMART TOOL: Create a complete project with parent task and multiple subtasks in ONE call. Perfect for organizing work into manageable chunks. Use this instead of creating tasks one by one. Examples: 'Create project for website launch with 5 tasks', 'Set up marketing campaign with multiple deliverables', 'Plan event with task breakdown'",
+      "platform": "google_tasks",
+      "category": "smart_bundled",
+      "parameters": {
+        "project_name": {
+          "type": "string",
+          "description": "Name of the project (becomes parent task). Examples: 'Q4 Website Redesign', 'Product Launch Campaign', 'Team Offsite Planning'",
+          "required": true
+        },
+        "tasks_list": {
+          "type": "array",
+          "description": "Array of task objects with 'title' (required), 'notes' (optional), 'due' (optional RFC 3339 date). Example: [{'title': 'Design mockups', 'notes': 'Use Figma', 'due': '2025-10-30T17:00:00.000Z'}, {'title': 'Get approval'}, {'title': 'Implement changes'}]",
+          "required": true
+        },
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID (default: '@default' for primary list)",
+          "required": false
+        },
+        "due_date": {
+          "type": "string",
+          "description": "Project due date in RFC 3339 format. Example: '2025-11-15T17:00:00.000Z'",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Project created with parent task ID, subtask count, and subtask details"
+      },
+      "use_cases": [
+        "Create software sprint with 10 user stories",
+        "Plan event with setup, execution, and cleanup tasks",
+        "Organize marketing campaign with multiple deliverables",
+        "Set up onboarding checklist for new employee",
+        "Break down large goal into actionable steps",
+        "Create content calendar with article topics",
+        "Plan home renovation with phase-by-phase tasks"
+      ],
+      "efficiency": "95% reduction (15 API calls → 1 call for 15-task project)"
+    },
+    {
+      "name": "google_tasks_smart_bulk_complete",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_smart_bulk_complete', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 SMART TOOL: Complete multiple tasks in ONE call. Efficiently marks many tasks as done simultaneously. Use this instead of completing tasks individually. Examples: 'Complete all tasks from yesterday', 'Mark 10 tasks as done', 'Finish all high-priority items'",
+      "platform": "google_tasks",
+      "category": "smart_bundled",
+      "parameters": {
+        "task_ids": {
+          "type": "array",
+          "description": "Array of task IDs to complete. Example: ['task_abc123', 'task_def456', 'task_ghi789']",
+          "required": true
+        },
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID (default: '@default' for primary list)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Summary with total tasks, completed count, failed count, and details"
+      },
+      "use_cases": [
+        "Complete all tasks for finished project",
+        "Mark entire sprint as done",
+        "Clear completed daily checklist",
+        "Finish all preparation tasks before event",
+        "Complete batch of similar tasks",
+        "Clean up old completed tasks"
+      ],
+      "efficiency": "90% reduction (10 calls → 1 call for 10 tasks)"
+    },
+    {
+      "name": "google_tasks_smart_organize_by_priority",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_smart_organize_by_priority', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 SMART TOOL: Automatically analyze and organize tasks by priority in ONE call. Detects urgency keywords (urgent, ASAP, critical, important) and adds [HIGH]/[MEDIUM]/[LOW] prefixes. Use this to quickly prioritize your task list. Examples: 'Organize my tasks', 'Prioritize everything', 'Sort by urgency'",
+      "platform": "google_tasks",
+      "category": "smart_bundled",
+      "parameters": {
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID to organize (default: '@default' for primary list)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Analysis summary with counts by priority level and reorganized task lists"
+      },
+      "use_cases": [
+        "Organize messy task list by priority",
+        "Identify urgent tasks that need attention",
+        "Prepare for weekly review by categorizing tasks",
+        "Help team see what's most important",
+        "Auto-tag tasks based on content",
+        "Sort backlog by urgency"
+      ],
+      "efficiency": "Intelligent analysis + reorganization in ONE call"
+    },
+    {
+      "name": "google_tasks_list_task_lists",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_list_task_lists', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all task lists in the account",
+      "platform": "google_tasks",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Array of task lists with IDs, titles, and timestamps"
+      }
+    },
+    {
+      "name": "google_tasks_create_task_list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_create_task_list', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new task list",
+      "platform": "google_tasks",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Task list title",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created task list with ID and title"
+      }
+    },
+    {
+      "name": "google_tasks_get_task_list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_get_task_list', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a specific task list",
+      "platform": "google_tasks",
+      "parameters": {
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Task list details"
+      }
+    },
+    {
+      "name": "google_tasks_delete_task_list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_delete_task_list', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a task list",
+      "platform": "google_tasks",
+      "parameters": {
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID to delete",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Success status"
+      }
+    },
+    {
+      "name": "google_tasks_list_tasks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_list_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tasks in a task list",
+      "platform": "google_tasks",
+      "parameters": {
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID (default: '@default')",
+          "required": false
+        },
+        "show_completed": {
+          "type": "boolean",
+          "description": "Include completed tasks",
+          "required": false
+        },
+        "show_hidden": {
+          "type": "boolean",
+          "description": "Include hidden tasks",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Array of tasks with details"
+      }
+    },
+    {
+      "name": "google_tasks_create_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_create_task', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new task",
+      "platform": "google_tasks",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Task title",
+          "required": true
+        },
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID (default: '@default')",
+          "required": false
+        },
+        "notes": {
+          "type": "string",
+          "description": "Task notes/description",
+          "required": false
+        },
+        "due": {
+          "type": "string",
+          "description": "Due date in RFC 3339 format (e.g., '2025-10-30T17:00:00.000Z')",
+          "required": false
+        },
+        "parent": {
+          "type": "string",
+          "description": "Parent task ID for creating subtasks",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created task with ID, title, status, due date"
+      }
+    },
+    {
+      "name": "google_tasks_update_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_update_task', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing task",
+      "platform": "google_tasks",
+      "parameters": {
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to update",
+          "required": true
+        },
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID (default: '@default')",
+          "required": false
+        },
+        "title": {
+          "type": "string",
+          "description": "New task title",
+          "required": false
+        },
+        "notes": {
+          "type": "string",
+          "description": "New task notes",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "description": "New status ('needsAction' or 'completed')",
+          "required": false
+        },
+        "due": {
+          "type": "string",
+          "description": "New due date in RFC 3339 format",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated task details"
+      }
+    },
+    {
+      "name": "google_tasks_complete_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_complete_task', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark a task as completed",
+      "platform": "google_tasks",
+      "parameters": {
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to complete",
+          "required": true
+        },
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID (default: '@default')",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated task with completed status"
+      }
+    },
+    {
+      "name": "google_tasks_delete_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_tasks_delete_task', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a task",
+      "platform": "google_tasks",
+      "parameters": {
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to delete",
+          "required": true
+        },
+        "task_list_id": {
+          "type": "string",
+          "description": "Task list ID (default: '@default')",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Success status"
+      }
+    }
+  ],
+  "usage_guide": {
+    "smart_tools_overview": "Google Tasks SMART tools bundle multiple operations for maximum efficiency. Use these for complex workflows.",
+    "decision_tree": {
+      "creating_project": "Use google_tasks_smart_create_project - Create parent task + subtasks in ONE call",
+      "completing_many_tasks": "Use google_tasks_smart_bulk_complete - Complete 10+ tasks simultaneously",
+      "organizing_tasks": "Use google_tasks_smart_organize_by_priority - Auto-detect and categorize by urgency",
+      "single_task": "Use basic google_tasks_create_task or google_tasks_complete_task"
+    },
+    "efficiency_gains": {
+      "project_creation": "95% reduction (15 calls → 1 call for 15-task project)",
+      "bulk_completion": "90% reduction (10 calls → 1 call)",
+      "priority_organization": "Intelligent analysis + batch updates in ONE call"
+    }
+  }
+}

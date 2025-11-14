@@ -1,0 +1,148 @@
+{
+  "platform": "assemblyai",
+  "description": "AssemblyAI speech-to-text and audio analysis tools",
+  "tools": [
+    {
+      "name": "assemblyai_transcribe",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nTranscribe audio or video file to text",
+      "platform": "assemblyai",
+      "parameters": {
+        "audio_file": {
+          "type": "string",
+          "description": "Path to audio/video file or URL",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "Language code (e.g., 'en', 'es', 'fr')",
+          "required": false,
+          "default": "en"
+        },
+        "speaker_labels": {
+          "type": "boolean",
+          "description": "Enable speaker diarization",
+          "required": false,
+          "default": false
+        },
+        "punctuate": {
+          "type": "boolean",
+          "description": "Add punctuation to transcript",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Transcription result with text and metadata"
+      },
+      "examples": [
+        {
+          "description": "Transcribe meeting recording",
+          "parameters": {
+            "audio_file": "/path/to/meeting.mp3",
+            "language": "en",
+            "speaker_labels": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "assemblyai_analyze",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAnalyze audio for sentiment, topics, and key phrases",
+      "platform": "assemblyai",
+      "parameters": {
+        "audio_file": {
+          "type": "string",
+          "description": "Path to audio file or URL",
+          "required": true
+        },
+        "sentiment_analysis": {
+          "type": "boolean",
+          "description": "Enable sentiment analysis",
+          "required": false,
+          "default": true
+        },
+        "auto_chapters": {
+          "type": "boolean",
+          "description": "Generate chapter markers",
+          "required": false,
+          "default": false
+        },
+        "entity_detection": {
+          "type": "boolean",
+          "description": "Detect named entities",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Analysis results with sentiment, topics, and entities"
+      },
+      "examples": [
+        {
+          "description": "Analyze customer call",
+          "parameters": {
+            "audio_file": "/path/to/call.wav",
+            "sentiment_analysis": true,
+            "entity_detection": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "assemblyai_speakers",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nIdentify and label different speakers in audio",
+      "platform": "assemblyai",
+      "parameters": {
+        "audio_file": {
+          "type": "string",
+          "description": "Path to audio file or URL",
+          "required": true
+        },
+        "speakers_expected": {
+          "type": "integer",
+          "description": "Expected number of speakers (optional hint)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Speaker diarization results with timestamps"
+      },
+      "examples": [
+        {
+          "description": "Identify speakers in interview",
+          "parameters": {
+            "audio_file": "/path/to/interview.mp3",
+            "speakers_expected": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "assemblyai_status",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck the status of a transcription job",
+      "platform": "assemblyai",
+      "parameters": {
+        "transcript_id": {
+          "type": "string",
+          "description": "AssemblyAI transcript ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Transcription status and progress"
+      },
+      "examples": [
+        {
+          "description": "Check transcription status",
+          "parameters": {
+            "transcript_id": "abc-123-def-456"
+          }
+        }
+      ]
+    }
+  ]
+}

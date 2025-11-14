@@ -1,0 +1,135 @@
+{
+  "platform": "gmail_smart",
+  "description": "Intelligent Gmail operations with automatic confirmation for expensive operations. These tools analyze email complexity BEFORE fetching full content and request user confirmation when needed.\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "tools": [
+    {
+      "name": "gmail_analyze_email_smart",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_analyze_email_smart', ...) - DO NOT call directly!\n\nSMART email analysis with automatic user confirmation for large/expensive content.\n\nThis is the RECOMMENDED way to read emails. It:\n1. Checks email size and attachments first (lightweight)\n2. Requests user confirmation if content is large (>10k tokens)\n3. Returns parsed content directly if small\n\nUSE THIS when user asks to:\n- 'Read my email'\n- 'What does this email say?'\n- 'Analyze email from X'\n\nThe tool will handle confirmation automatically via multi-turn conversation.",
+      "platform": "gmail_smart",
+      "category": "smart",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Gmail message ID to analyze"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Either parsed email content OR confirmation request",
+        "properties": {
+          "status": "string ('confirmation_required' if large, omitted if small)",
+          "confirmation_prompt": "string (user-friendly prompt if confirmation needed)",
+          "estimated_tokens": "int (token estimate)",
+          "estimated_cost_usd": "float (cost estimate)",
+          "options": "array (user choices: Read Full/Metadata/Cancel)",
+          "...or parsed email content if small": "object"
+        }
+      },
+      "examples": [
+        {
+          "description": "Analyze email (auto-confirms if needed)",
+          "parameters": {
+            "message_id": "msg_abc123"
+          }
+        }
+      ]
+    },
+    {
+      "name": "gmail_analyze_thread_smart",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_analyze_thread_smart', ...) - DO NOT call directly!\n\nSMART thread analysis with automatic confirmation for large threads.\n\nThis tool:\n1. Fetches thread timeline first (lightweight)\n2. Analyzes complexity (message count, attachments)\n3. Requests confirmation if thread is large (>5 messages or >10k tokens)\n4. Returns timeline directly if small\n\nUSE THIS when user asks to:\n- 'Show me the conversation about X'\n- 'What's this email thread about?'\n- 'Read the email chain'\n\nThe tool handles confirmation via multi-turn conversation.",
+      "platform": "gmail_smart",
+      "category": "smart",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "description": "Gmail thread ID to analyze"
+          },
+          "max_messages": {
+            "type": "integer",
+            "description": "Maximum messages to analyze (default: 20)",
+            "default": 20
+          }
+        },
+        "required": [
+          "thread_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Either thread timeline OR confirmation request",
+        "properties": {
+          "status": "string ('confirmation_required' if large)",
+          "confirmation_prompt": "string (if confirmation needed)",
+          "options": "array (PDF/Timeline/Cancel)",
+          "...or thread timeline if small": "object"
+        }
+      },
+      "examples": [
+        {
+          "description": "Analyze thread with auto-confirmation",
+          "parameters": {
+            "thread_id": "thread_12345",
+            "max_messages": 20
+          }
+        }
+      ]
+    },
+    {
+      "name": "gmail_search_smart",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='gmail_search_smart', ...) - DO NOT call directly!\n\nSMART search with intelligent result analysis and suggestions.\n\nThis tool:\n1. Performs Gmail search\n2. Analyzes result complexity\n3. Provides intelligent next-step suggestions\n4. Helps user navigate large result sets\n\nUSE THIS when user asks to:\n- 'Search for emails about X'\n- 'Find messages from Y'\n- 'Show emails with attachment Z'\n\nReturns results plus suggestions for next actions.",
+      "platform": "gmail_smart",
+      "category": "smart",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Gmail search query (same syntax as Gmail search box)"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum results to return (default: 10)",
+            "default": 10
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with intelligent suggestions",
+        "properties": {
+          "messages": "array (search results)",
+          "resultSizeEstimate": "int (total matches)",
+          "suggestion": "string (intelligent next-step suggestion)",
+          "next_actions": "array (suggested tool calls)"
+        }
+      },
+      "examples": [
+        {
+          "description": "Search with smart suggestions",
+          "parameters": {
+            "query": "subject:contract from:john@example.com",
+            "max_results": 10
+          }
+        },
+        {
+          "description": "Find emails with attachments",
+          "parameters": {
+            "query": "has:attachment filename:pdf",
+            "max_results": 5
+          }
+        }
+      ]
+    }
+  ]
+}

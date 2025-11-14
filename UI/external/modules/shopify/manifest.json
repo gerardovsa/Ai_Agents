@@ -1,0 +1,65 @@
+{
+    "id": "shopify",
+    "name": "Shopify E-Commerce",
+    "version": "1.2.1",
+    "description": "Shopify order management, customer analytics, product performance tracking, and webhook monitoring",
+    "icon": "fas fa-shopping-cart",
+    "scriptPath": "external/modules/shopify/shopify.js",
+    "stylePath": "external/modules/shopify/shopify.css",
+    "dependencies": [
+        "https://cdn.plot.ly/plotly-2.27.0.min.js",
+        "https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css",
+        "https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js",
+        "/css/tabulator-enhancements.css",
+        "/js/tabulator-functions.js"
+    ],
+    "colors": {
+        "primary": "#95bf47",
+        "secondary": "#5e8e3e",
+        "hover": "#7ea73f"
+    },
+    "author": "InHouse Print",
+    "settings": {
+        "api_endpoint": "/api/shopify",
+        "backend_url": "http://localhost:5001"
+    },
+    "tabs": [
+        {
+            "id": "dashboard",
+            "name": "Dashboard",
+            "icon": "fas fa-tachometer-alt",
+            "description": "Key metrics and performance overview",
+            "default": true
+        },
+        {
+            "id": "orders",
+            "name": "Orders",
+            "icon": "fas fa-receipt",
+            "description": "Order management and tracking"
+        },
+        {
+            "id": "customers",
+            "name": "Customers",
+            "icon": "fas fa-users",
+            "description": "Customer analytics and segments"
+        },
+        {
+            "id": "products",
+            "name": "Products",
+            "icon": "fas fa-box",
+            "description": "Product performance and catalog"
+        },
+        {
+            "id": "webhooks",
+            "name": "Webhooks",
+            "icon": "fas fa-plug",
+            "description": "Webhook monitoring and health"
+        },
+        {
+            "id": "sql-viewer",
+            "name": "SQL Viewer",
+            "icon": "fas fa-database",
+            "description": "Direct database query interface"
+        }
+    ]
+}

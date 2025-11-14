@@ -1,0 +1,485 @@
+{
+  "category": "calculator",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "quote_calc_business_cards",
+      "description": "Calculate quote for business card printing (1,000 - 10,000 cards). Returns total price including GST, per-unit cost, detailed cost breakdown, and turnaround time. Uses Shopify pricing (no database required).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of business cards to print",
+            "minimum": 1000,
+            "maximum": 10000,
+            "enum": [1000, 2000, 3000, 5000, 10000]
+          },
+          "stock_type": {
+            "type": "string",
+            "description": "Paper stock type",
+            "enum": ["350gsm_satin", "400gsm_uncoated", "350gsm_gloss"],
+            "default": "350gsm_satin"
+          },
+          "finish": {
+            "type": "string",
+            "description": "Cellophane finish type (none = no finish)",
+            "enum": ["none", "gloss_cello", "matt_cello"],
+            "default": "none"
+          },
+          "print_sides": {
+            "type": "string",
+            "description": "Single or double-sided printing",
+            "enum": ["single", "double"],
+            "default": "double"
+          }
+        },
+        "required": ["quantity"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "total_inc_gst": {
+            "type": "number",
+            "description": "Total price including 10% GST"
+          },
+          "price_per_unit": {
+            "type": "number",
+            "description": "Cost per individual business card"
+          },
+          "turnaround": {
+            "type": "string",
+            "description": "Expected turnaround time (e.g., '3-5 business days')"
+          },
+          "breakdown": {
+            "type": "object",
+            "description": "Detailed cost breakdown",
+            "properties": {
+              "paper_cost": {"type": "number"},
+              "print_cost": {"type": "number"},
+              "cello_cost": {"type": "number"},
+              "cutting_cost": {"type": "number"},
+              "subtotal": {"type": "number"},
+              "gst": {"type": "number"}
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "input": {
+            "quantity": 1000,
+            "stock_type": "350gsm_satin",
+            "finish": "gloss_cello",
+            "print_sides": "double"
+          },
+          "output": {
+            "success": true,
+            "total_inc_gst": 156.20,
+            "price_per_unit": 0.156,
+            "turnaround": "3-5 business days",
+            "breakdown": {
+              "paper_cost": 45.00,
+              "print_cost": 60.00,
+              "cello_cost": 30.00,
+              "cutting_cost": 7.00,
+              "subtotal": 142.00,
+              "gst": 14.20
+            }
+          }
+        }
+      ],
+      "backend": {
+        "file": "shopify_calculators/business_card_calculator_shopify.py",
+        "class": "ShopifyBusinessCardCalculator",
+        "method": "calculate"
+      },
+      "api": {
+        "endpoint": "/api/quote-calculator/business-cards",
+        "method": "POST"
+      },
+      "metadata": {
+        "category": "printing",
+        "databaseRequired": false,
+        "estimatedResponseTime": "< 100ms",
+        "costPerCall": "free"
+      }
+    },
+    
+    {
+      "name": "quote_calc_flyers",
+      "description": "Calculate quote for digital printing flyers/leaflets in various sizes (A4, A5, A6, DL). Uses database-driven GOD pricing algorithm. Requires SQL Server connection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of flyers to print",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "size": {
+            "type": "string",
+            "description": "Flyer size",
+            "enum": ["A4", "A5", "A6", "DL", "A3", "custom"]
+          },
+          "stock_id": {
+            "type": "integer",
+            "description": "Database stock ID (get from quote_get_stock_list)",
+            "minimum": 1
+          },
+          "print_mode": {
+            "type": "string",
+            "description": "Printing mode",
+            "enum": ["color", "bw", "mixed"],
+            "default": "color"
+          },
+          "double_sided": {
+            "type": "boolean",
+            "description": "Print on both sides",
+            "default": true
+          }
+        },
+        "required": ["quantity", "size", "stock_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "total_inc_gst": {"type": "number"},
+          "price_per_unit": {"type": "number"},
+          "turnaround": {"type": "string"},
+          "breakdown": {
+            "type": "object",
+            "properties": {
+              "stock_cost": {"type": "number"},
+              "print_cost": {"type": "number"},
+              "guillotine_cost": {"type": "number"},
+              "subtotal": {"type": "number"},
+              "gst": {"type": "number"}
+            }
+          }
+        }
+      },
+      "backend": {
+        "file": "complete_calculator_implementation.py",
+        "class": "ComprehensiveQuoteCalculator",
+        "method": "calculate_flyer_quote"
+      },
+      "api": {
+        "endpoint": "/api/quote-calculator/flyers",
+        "method": "POST"
+      },
+      "metadata": {
+        "category": "printing",
+        "databaseRequired": true,
+        "estimatedResponseTime": "< 500ms"
+      }
+    },
+    
+    {
+      "name": "quote_calc_perfect_bound_books",
+      "description": "Calculate quote for perfect bound books (glued spine). Separate cover and interior stock selection. Uses database-driven GOD pricing. Requires SQL Server connection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of books to print",
+            "minimum": 1
+          },
+          "page_count": {
+            "type": "integer",
+            "description": "Total number of pages (must be divisible by 4)",
+            "minimum": 16,
+            "maximum": 1000
+          },
+          "cover_stock_id": {
+            "type": "integer",
+            "description": "Database stock ID for cover"
+          },
+          "interior_stock_id": {
+            "type": "integer",
+            "description": "Database stock ID for interior pages"
+          },
+          "cover_finish": {
+            "type": "string",
+            "description": "Cover finish type",
+            "enum": ["none", "gloss_cello", "matt_cello", "soft_touch"],
+            "default": "none"
+          }
+        },
+        "required": ["quantity", "page_count", "cover_stock_id", "interior_stock_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "total_inc_gst": {"type": "number"},
+          "price_per_unit": {"type": "number"},
+          "turnaround": {"type": "string"},
+          "breakdown": {
+            "type": "object",
+            "properties": {
+              "cover_cost": {"type": "number"},
+              "interior_cost": {"type": "number"},
+              "binding_cost": {"type": "number"},
+              "finishing_cost": {"type": "number"},
+              "subtotal": {"type": "number"},
+              "gst": {"type": "number"}
+            }
+          }
+        }
+      },
+      "backend": {
+        "file": "complete_calculator_implementation.py",
+        "class": "ComprehensiveQuoteCalculator",
+        "method": "calculate_perfect_bound_quote"
+      },
+      "api": {
+        "endpoint": "/api/quote-calculator/perfect-bound-books",
+        "method": "POST"
+      },
+      "metadata": {
+        "category": "printing",
+        "databaseRequired": true,
+        "estimatedResponseTime": "< 800ms"
+      }
+    },
+    
+    {
+      "name": "quote_calc_booklets",
+      "description": "Calculate quote for saddle-stitched booklets (stapled). Page count must be divisible by 4. Uses database-driven GOD pricing. Requires SQL Server connection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "description": "Number of booklets",
+            "minimum": 1
+          },
+          "page_count": {
+            "type": "integer",
+            "description": "Total pages (must be divisible by 4)",
+            "minimum": 4,
+            "maximum": 48,
+            "multipleOf": 4
+          },
+          "stock_id": {
+            "type": "integer",
+            "description": "Database stock ID for all pages"
+          },
+          "print_mode": {
+            "type": "string",
+            "enum": ["color", "bw"],
+            "default": "color"
+          }
+        },
+        "required": ["quantity", "page_count", "stock_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "total_inc_gst": {"type": "number"},
+          "price_per_unit": {"type": "number"},
+          "turnaround": {"type": "string"},
+          "breakdown": {
+            "type": "object"
+          }
+        }
+      },
+      "backend": {
+        "file": "complete_calculator_implementation.py",
+        "class": "ComprehensiveQuoteCalculator",
+        "method": "calculate_booklet_quote"
+      },
+      "api": {
+        "endpoint": "/api/quote-calculator/booklets",
+        "method": "POST"
+      },
+      "metadata": {
+        "category": "printing",
+        "databaseRequired": true,
+        "estimatedResponseTime": "< 500ms"
+      }
+    },
+    
+    {
+      "name": "quote_calc_letterheads",
+      "description": "Calculate quote for letterhead printing (business stationery). Uses database-driven GOD pricing. Requires SQL Server connection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 10000
+          },
+          "stock_id": {
+            "type": "integer",
+            "description": "Database stock ID (typically 100gsm or 120gsm)"
+          },
+          "print_sides": {
+            "type": "string",
+            "enum": ["single", "double"],
+            "default": "single"
+          }
+        },
+        "required": ["quantity", "stock_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "total_inc_gst": {"type": "number"},
+          "price_per_unit": {"type": "number"},
+          "turnaround": {"type": "string"}
+        }
+      },
+      "backend": {
+        "file": "complete_calculator_implementation.py",
+        "class": "ComprehensiveQuoteCalculator",
+        "method": "calculate_letterhead_quote"
+      },
+      "api": {
+        "endpoint": "/api/quote-calculator/letterheads",
+        "method": "POST"
+      },
+      "metadata": {
+        "category": "printing",
+        "databaseRequired": true,
+        "estimatedResponseTime": "< 300ms"
+      }
+    },
+    
+    {
+      "name": "quote_get_stock_list",
+      "description": "Get list of available paper stocks with details (GSM, size, type, cost). Returns full inventory for use in other calculator tools. Can filter by category (digital, rigid, roll).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Filter by stock category",
+            "enum": ["digital", "rigid", "roll", "all"],
+            "default": "all"
+          },
+          "include_inactive": {
+            "type": "boolean",
+            "description": "Include inactive/discontinued stocks",
+            "default": false
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "stocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "stock_id": {"type": "integer"},
+                "stock_name": {"type": "string"},
+                "gsm": {"type": "integer"},
+                "width": {"type": "number"},
+                "length": {"type": "number"},
+                "cost_per_thousand": {"type": "number"},
+                "category": {"type": "string"},
+                "is_active": {"type": "boolean"}
+              }
+            }
+          },
+          "total": {"type": "integer"}
+        }
+      },
+      "backend": {
+        "file": "complete_calculator_implementation.py",
+        "method": "get_stock_list"
+      },
+      "api": {
+        "endpoint": "/api/quote-calculator/stock-list",
+        "method": "GET"
+      },
+      "metadata": {
+        "category": "reference",
+        "databaseRequired": true,
+        "cacheable": true,
+        "cacheTTL": 3600,
+        "estimatedResponseTime": "< 200ms"
+      }
+    },
+    
+    {
+      "name": "quote_get_calculator_requirements",
+      "description": "Get parameter requirements for a specific calculator (valid stock IDs, size options, quantity ranges). Useful for validating input before calling calculator.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "calculator": {
+            "type": "string",
+            "description": "Calculator name",
+            "enum": [
+              "business_cards",
+              "flyers",
+              "perfect_bound_books",
+              "booklets",
+              "letterheads"
+            ]
+          }
+        },
+        "required": ["calculator"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "calculator": {"type": "string"},
+          "requirements": {
+            "type": "object",
+            "properties": {
+              "quantity_range": {
+                "type": "object",
+                "properties": {
+                  "min": {"type": "integer"},
+                  "max": {"type": "integer"},
+                  "suggested": {"type": "array"}
+                }
+              },
+              "valid_stocks": {"type": "array"},
+              "valid_sizes": {"type": "array"},
+              "valid_finishes": {"type": "array"},
+              "required_parameters": {"type": "array"},
+              "optional_parameters": {"type": "array"}
+            }
+          }
+        }
+      },
+      "backend": {
+        "file": "complete_calculator_implementation.py",
+        "method": "get_calculator_requirements"
+      },
+      "api": {
+        "endpoint": "/api/quote-calculator/requirements/:calculator",
+        "method": "GET"
+      },
+      "metadata": {
+        "category": "reference",
+        "databaseRequired": false,
+        "cacheable": true,
+        "estimatedResponseTime": "< 50ms"
+      }
+    }
+  ],
+  
+  "metadata": {
+    "lastUpdated": "2025-10-30",
+    "totalTools": 7,
+    "toolsWithoutDatabase": 2,
+    "toolsRequiringDatabase": 5
+  }
+}

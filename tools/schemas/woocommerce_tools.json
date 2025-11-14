@@ -1,0 +1,804 @@
+{
+  "platform": "woocommerce",
+  "description": "WooCommerce e-commerce management tools - Complete API coverage for orders, products, customers, analytics, and store management",
+  "tools": [
+    {
+      "name": "woocommerce_get_orders",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRetrieve orders from WooCommerce store with advanced filtering",
+      "platform": "woocommerce",
+      "parameters": {
+        "status": {
+          "type": "string",
+          "description": "Order status filter (pending, processing, on-hold, completed, cancelled, refunded, failed)",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of orders to return (1-100)",
+          "required": false,
+          "default": 10
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page number for pagination",
+          "required": false,
+          "default": 1
+        },
+        "after": {
+          "type": "string",
+          "description": "Limit results to orders created after given ISO8601 date",
+          "required": false
+        },
+        "before": {
+          "type": "string",
+          "description": "Limit results to orders created before given ISO8601 date",
+          "required": false
+        },
+        "customer": {
+          "type": "integer",
+          "description": "Filter by customer ID",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of orders with full details including line items, shipping, billing, and metadata"
+      }
+    },
+    {
+      "name": "woocommerce_get_order",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single order by ID with complete details",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID to retrieve",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete order details"
+      }
+    },
+    {
+      "name": "woocommerce_create_order",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new order programmatically",
+      "platform": "woocommerce",
+      "parameters": {
+        "payment_method": {
+          "type": "string",
+          "description": "Payment method ID",
+          "required": true
+        },
+        "payment_method_title": {
+          "type": "string",
+          "description": "Payment method title",
+          "required": true
+        },
+        "set_paid": {
+          "type": "boolean",
+          "description": "Mark order as paid",
+          "required": false,
+          "default": false
+        },
+        "billing": {
+          "type": "object",
+          "description": "Billing address object",
+          "required": true
+        },
+        "shipping": {
+          "type": "object",
+          "description": "Shipping address object",
+          "required": false
+        },
+        "line_items": {
+          "type": "array",
+          "description": "Array of line items with product_id and quantity",
+          "required": true
+        },
+        "customer_id": {
+          "type": "integer",
+          "description": "Customer ID",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created order with ID"
+      }
+    },
+    {
+      "name": "woocommerce_update_order",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an order's status, notes, or details",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID to update",
+          "required": true
+        },
+        "status": {
+          "type": "string",
+          "description": "New order status",
+          "required": false
+        },
+        "customer_note": {
+          "type": "string",
+          "description": "Customer note",
+          "required": false
+        },
+        "billing": {
+          "type": "object",
+          "description": "Updated billing address",
+          "required": false
+        },
+        "shipping": {
+          "type": "object",
+          "description": "Updated shipping address",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated order details"
+      }
+    },
+    {
+      "name": "woocommerce_delete_order",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete an order permanently",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID to delete",
+          "required": true
+        },
+        "force": {
+          "type": "boolean",
+          "description": "Force delete (bypass trash)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "woocommerce_get_products",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList products from WooCommerce store with advanced filtering",
+      "platform": "woocommerce",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of products (1-100)",
+          "required": false,
+          "default": 10
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page number",
+          "required": false,
+          "default": 1
+        },
+        "search": {
+          "type": "string",
+          "description": "Search term to filter products",
+          "required": false
+        },
+        "category": {
+          "type": "integer",
+          "description": "Filter by category ID",
+          "required": false
+        },
+        "tag": {
+          "type": "integer",
+          "description": "Filter by tag ID",
+          "required": false
+        },
+        "sku": {
+          "type": "string",
+          "description": "Filter by SKU",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "description": "Product status (draft, pending, private, publish)",
+          "required": false
+        },
+        "stock_status": {
+          "type": "string",
+          "description": "Stock status (instock, outofstock, onbackorder)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of products with details"
+      }
+    },
+    {
+      "name": "woocommerce_get_product",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single product by ID",
+      "platform": "woocommerce",
+      "parameters": {
+        "product_id": {
+          "type": "integer",
+          "description": "Product ID to retrieve",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete product details"
+      }
+    },
+    {
+      "name": "woocommerce_create_product",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product in WooCommerce",
+      "platform": "woocommerce",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Product name",
+          "required": true
+        },
+        "type": {
+          "type": "string",
+          "description": "Product type (simple, grouped, external, variable)",
+          "required": false,
+          "default": "simple"
+        },
+        "regular_price": {
+          "type": "string",
+          "description": "Product regular price",
+          "required": true
+        },
+        "sale_price": {
+          "type": "string",
+          "description": "Product sale price",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Product description (HTML allowed)",
+          "required": false
+        },
+        "short_description": {
+          "type": "string",
+          "description": "Product short description",
+          "required": false
+        },
+        "sku": {
+          "type": "string",
+          "description": "Unique SKU",
+          "required": false
+        },
+        "stock_quantity": {
+          "type": "integer",
+          "description": "Stock quantity",
+          "required": false
+        },
+        "manage_stock": {
+          "type": "boolean",
+          "description": "Enable stock management",
+          "required": false,
+          "default": false
+        },
+        "categories": {
+          "type": "array",
+          "description": "Array of category IDs",
+          "required": false
+        },
+        "images": {
+          "type": "array",
+          "description": "Array of image objects with src",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created product with ID"
+      }
+    },
+    {
+      "name": "woocommerce_update_product",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing product",
+      "platform": "woocommerce",
+      "parameters": {
+        "product_id": {
+          "type": "integer",
+          "description": "Product ID to update",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Product name",
+          "required": false
+        },
+        "regular_price": {
+          "type": "string",
+          "description": "Regular price",
+          "required": false
+        },
+        "sale_price": {
+          "type": "string",
+          "description": "Sale price",
+          "required": false
+        },
+        "stock_quantity": {
+          "type": "integer",
+          "description": "Stock quantity",
+          "required": false
+        },
+        "stock_status": {
+          "type": "string",
+          "description": "Stock status (instock, outofstock, onbackorder)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated product"
+      }
+    },
+    {
+      "name": "woocommerce_delete_product",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a product",
+      "platform": "woocommerce",
+      "parameters": {
+        "product_id": {
+          "type": "integer",
+          "description": "Product ID to delete",
+          "required": true
+        },
+        "force": {
+          "type": "boolean",
+          "description": "Force delete (bypass trash)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "woocommerce_get_customers",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList customers from store",
+      "platform": "woocommerce",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of customers (1-100)",
+          "required": false,
+          "default": 10
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page number",
+          "required": false,
+          "default": 1
+        },
+        "search": {
+          "type": "string",
+          "description": "Search term",
+          "required": false
+        },
+        "email": {
+          "type": "string",
+          "description": "Filter by email",
+          "required": false
+        },
+        "role": {
+          "type": "string",
+          "description": "Filter by role (customer, subscriber, etc.)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of customers"
+      }
+    },
+    {
+      "name": "woocommerce_get_customer",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single customer by ID",
+      "platform": "woocommerce",
+      "parameters": {
+        "customer_id": {
+          "type": "integer",
+          "description": "Customer ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Customer details"
+      }
+    },
+    {
+      "name": "woocommerce_create_customer",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new customer",
+      "platform": "woocommerce",
+      "parameters": {
+        "email": {
+          "type": "string",
+          "description": "Customer email",
+          "required": true
+        },
+        "first_name": {
+          "type": "string",
+          "description": "First name",
+          "required": false
+        },
+        "last_name": {
+          "type": "string",
+          "description": "Last name",
+          "required": false
+        },
+        "username": {
+          "type": "string",
+          "description": "Username",
+          "required": false
+        },
+        "password": {
+          "type": "string",
+          "description": "Password",
+          "required": false
+        },
+        "billing": {
+          "type": "object",
+          "description": "Billing address",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created customer"
+      }
+    },
+    {
+      "name": "woocommerce_get_categories",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList product categories",
+      "platform": "woocommerce",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of categories",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of categories"
+      }
+    },
+    {
+      "name": "woocommerce_create_category",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product category",
+      "platform": "woocommerce",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Category name",
+          "required": true
+        },
+        "slug": {
+          "type": "string",
+          "description": "Category slug",
+          "required": false
+        },
+        "parent": {
+          "type": "integer",
+          "description": "Parent category ID",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Category description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created category"
+      }
+    },
+    {
+      "name": "woocommerce_get_coupons",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList discount coupons",
+      "platform": "woocommerce",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of coupons",
+          "required": false,
+          "default": 10
+        },
+        "code": {
+          "type": "string",
+          "description": "Filter by coupon code",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of coupons"
+      }
+    },
+    {
+      "name": "woocommerce_create_coupon",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new discount coupon",
+      "platform": "woocommerce",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "Coupon code",
+          "required": true
+        },
+        "discount_type": {
+          "type": "string",
+          "description": "Discount type (percent, fixed_cart, fixed_product)",
+          "required": true
+        },
+        "amount": {
+          "type": "string",
+          "description": "Discount amount",
+          "required": true
+        },
+        "individual_use": {
+          "type": "boolean",
+          "description": "Allow coupon to be used alone",
+          "required": false
+        },
+        "usage_limit": {
+          "type": "integer",
+          "description": "Usage limit",
+          "required": false
+        },
+        "expiry_date": {
+          "type": "string",
+          "description": "Expiry date (YYYY-MM-DD)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created coupon"
+      }
+    },
+    {
+      "name": "woocommerce_get_refunds",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList refunds for an order",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of refunds"
+      }
+    },
+    {
+      "name": "woocommerce_create_refund",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a refund for an order",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID",
+          "required": true
+        },
+        "amount": {
+          "type": "string",
+          "description": "Refund amount",
+          "required": false
+        },
+        "reason": {
+          "type": "string",
+          "description": "Refund reason",
+          "required": false
+        },
+        "api_refund": {
+          "type": "boolean",
+          "description": "Process refund via payment gateway",
+          "required": false,
+          "default": true
+        },
+        "line_items": {
+          "type": "array",
+          "description": "Line items to refund",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created refund"
+      }
+    },
+    {
+      "name": "woocommerce_get_reports_sales",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet sales reports",
+      "platform": "woocommerce",
+      "parameters": {
+        "period": {
+          "type": "string",
+          "description": "Report period (day, week, month, year)",
+          "required": false,
+          "default": "week"
+        },
+        "date_min": {
+          "type": "string",
+          "description": "Start date (YYYY-MM-DD)",
+          "required": false
+        },
+        "date_max": {
+          "type": "string",
+          "description": "End date (YYYY-MM-DD)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Sales report data"
+      }
+    },
+    {
+      "name": "woocommerce_get_reports_top_sellers",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet top selling products report",
+      "platform": "woocommerce",
+      "parameters": {
+        "period": {
+          "type": "string",
+          "description": "Report period",
+          "required": false,
+          "default": "week"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of products to return",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Top sellers data"
+      }
+    },
+    {
+      "name": "woocommerce_get_order_notes",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet notes for an order",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of order notes"
+      }
+    },
+    {
+      "name": "woocommerce_create_order_note",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a note to an order",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID",
+          "required": true
+        },
+        "note": {
+          "type": "string",
+          "description": "Note content",
+          "required": true
+        },
+        "customer_note": {
+          "type": "boolean",
+          "description": "Is customer note (visible to customer)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created note"
+      }
+    },
+    {
+      "name": "woocommerce_get_shipping_zones",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList shipping zones",
+      "platform": "woocommerce",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of shipping zones"
+      }
+    },
+    {
+      "name": "woocommerce_get_payment_gateways",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList available payment gateways",
+      "platform": "woocommerce",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of payment gateways with settings"
+      }
+    },
+    {
+      "name": "woocommerce_get_tax_rates",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tax rates",
+      "platform": "woocommerce",
+      "parameters": {
+        "class": {
+          "type": "string",
+          "description": "Filter by tax class",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of tax rates"
+      }
+    },
+    {
+      "name": "woocommerce_get_webhooks",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList webhooks",
+      "platform": "woocommerce",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of configured webhooks"
+      }
+    },
+    {
+      "name": "woocommerce_create_webhook",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new webhook",
+      "platform": "woocommerce",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Webhook name",
+          "required": true
+        },
+        "topic": {
+          "type": "string",
+          "description": "Webhook topic (e.g., order.created, product.updated)",
+          "required": true
+        },
+        "delivery_url": {
+          "type": "string",
+          "description": "Delivery URL",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created webhook"
+      }
+    },
+    {
+      "name": "woocommerce_get_system_status",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet WooCommerce system status",
+      "platform": "woocommerce",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "System status information"
+      }
+    }
+  ]
+}

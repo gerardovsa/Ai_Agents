@@ -1,0 +1,662 @@
+{
+  "platform": "google_forms",
+  "description": "Google Forms API - Create forms, add questions, collect responses, analyze data. V2 includes SMART BUNDLED TOOLS for efficient operations.",
+  "version": "2.1.0",
+  "last_updated": "November 10, 2025",
+  "critical_fixes": [
+    "Nov 2025: Two-step form creation (title only → batchUpdate) to comply with API restrictions",
+    "Nov 2025: Removed response_format parameter from AI functions for universal OpenAI model compatibility",
+    "Nov 2025: Properly handles description and documentTitle via batchUpdate (fixes HTTP 400 errors)"
+  ],
+  "authentication_notes": "Google Forms API requires OAuth user credentials (not service accounts). Use http://localhost:5001/api/auth/google/login?user_id=X to authenticate.",
+  "tools": [
+    {
+      "name": "google_forms_create_complete_form",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ PREFERRED METHOD: Create a complete Google Form with all questions in ONE operation. Much more efficient than calling create_form + add_question multiple times. Form is automatically shareable.",
+      "platform": "google_forms",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Form title",
+          "required": true,
+          "example": "Customer Feedback Survey"
+        },
+        "questions": {
+          "type": "array",
+          "description": "List of questions to add. Each question is an object with: type (text|paragraph|multiple_choice|checkbox|dropdown|linear_scale), text (question text), options (array, for choice questions), required (boolean), low_value/high_value/low_label/high_label (for linear_scale)",
+          "required": true,
+          "example": [
+            {
+              "type": "text",
+              "text": "What is your name?",
+              "required": true
+            },
+            {
+              "type": "multiple_choice",
+              "text": "How satisfied are you?",
+              "options": [
+                "Very Satisfied",
+                "Satisfied",
+                "Neutral",
+                "Dissatisfied"
+              ],
+              "required": true
+            },
+            {
+              "type": "paragraph",
+              "text": "Additional comments?",
+              "required": false
+            }
+          ]
+        },
+        "description": {
+          "type": "string",
+          "description": "Form description shown to responders",
+          "required": false,
+          "example": "We value your feedback!"
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make form accessible to anyone with the link",
+          "required": false,
+          "default": true
+        },
+        "collect_email": {
+          "type": "boolean",
+          "description": "Require responders to provide email addresses",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete form details with responder_uri (shareable link), edit_uri (edit link), form_id, and questions_added count"
+      },
+      "usage_notes": "This is the MOST EFFICIENT way to create forms. Use this instead of separate create + add_question calls. The form is automatically shareable by default."
+    },
+    {
+      "name": "google_forms_ai_generate_form",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Generate a complete form from natural language description. AI determines appropriate questions, types, and options automatically. Perfect when you're not sure what questions to ask.",
+      "platform": "google_forms",
+      "category": "ai_powered",
+      "priority": "high",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "description": "Natural language description of the form you want to create",
+          "required": true,
+          "example": "Create a restaurant feedback survey with questions about food quality, service speed, cleanliness, value for money, and likelihood to return. Include ratings and open-ended questions."
+        },
+        "form_type": {
+          "type": "string",
+          "description": "Type of form to generate",
+          "required": false,
+          "default": "survey",
+          "enum": [
+            "survey",
+            "quiz",
+            "registration",
+            "feedback",
+            "assessment"
+          ]
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make form accessible to anyone with the link",
+          "required": false,
+          "default": true
+        },
+        "ai_model": {
+          "type": "string",
+          "description": "OpenAI model to use",
+          "required": false,
+          "default": "gpt-4",
+          "enum": [
+            "gpt-4",
+            "gpt-3.5-turbo"
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete form with responder_uri (link to share), questions_count, and AI generation details"
+      },
+      "usage_notes": "Use this when the user describes what they want in natural language. AI will determine the best questions, types, and options. Requires OPENAI_API_KEY environment variable.",
+      "implementation_notes": "OPENAI COMPATIBILITY FIX (Nov 2025): Uses prompt engineering ('Return ONLY valid JSON') instead of response_format parameter for universal model compatibility. Works with gpt-4, gpt-3.5-turbo, and other OpenAI models."
+    },
+    {
+      "name": "google_forms_bulk_create_multiple",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Create multiple complete forms at once. Most efficient for creating many forms with similar structure (e.g., event registrations for different locations).",
+      "platform": "google_forms",
+      "category": "bulk",
+      "priority": "high",
+      "parameters": {
+        "forms_configs": {
+          "type": "array",
+          "description": "List of form configurations. Each config is an object with: title, description (optional), questions (array of question objects), collect_email (boolean)",
+          "required": true,
+          "example": [
+            {
+              "title": "Event Registration - NYC",
+              "description": "Register for our NYC conference",
+              "questions": [
+                {
+                  "type": "text",
+                  "text": "Full Name",
+                  "required": true
+                },
+                {
+                  "type": "text",
+                  "text": "Email",
+                  "required": true
+                },
+                {
+                  "type": "multiple_choice",
+                  "text": "Attendance Type",
+                  "options": [
+                    "In-Person",
+                    "Virtual"
+                  ],
+                  "required": true
+                }
+              ]
+            },
+            {
+              "title": "Event Registration - LA",
+              "description": "Register for our LA summit",
+              "questions": [
+                {
+                  "type": "text",
+                  "text": "Full Name",
+                  "required": true
+                },
+                {
+                  "type": "text",
+                  "text": "Email",
+                  "required": true
+                }
+              ]
+            }
+          ]
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make all forms accessible to anyone with the link",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Array of all created forms with their responder URIs and details"
+      },
+      "usage_notes": "Use this when creating 2+ forms at once. Much more efficient than creating forms one by one."
+    },
+    {
+      "name": "google_forms_create_form",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a basic Google Form (empty, no questions). NOTE: Use google_forms_create_complete_form instead for better efficiency.\n\nIMPORTANT - API COMPLIANCE (Nov 2025 Fix):\n- Uses two-step process: (1) Create with title only, (2) Add description via batchUpdate\n- This complies with Google Forms API restriction: \"Only info.title can be set when creating a form\"\n- Description and documentTitle are added via separate batchUpdate call if provided",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Form title (REQUIRED - only field allowed during creation)",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "description": "Form description (added via batchUpdate after creation)",
+          "required": false
+        },
+        "document_title": {
+          "type": "string",
+          "description": "Document title in Google Drive (defaults to form title, added via batchUpdate)",
+          "required": false
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make form accessible to anyone with link",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Form with form_id, responder_uri (link to share), edit_uri, and shareability status"
+      },
+      "implementation_notes": "Two-step API process: (1) forms().create() with title only, (2) forms().batchUpdate() for description/documentTitle. This fixes HTTP 400 errors from Nov 2025."
+    },
+    {
+      "name": "google_forms_batch_add_questions",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Add multiple questions to a form at once. More efficient than adding questions one by one.",
+      "platform": "google_forms",
+      "category": "bulk",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "questions_list": {
+          "type": "array",
+          "description": "List of question objects",
+          "required": true,
+          "example": [
+            {
+              "type": "text",
+              "text": "Question 1",
+              "required": true
+            },
+            {
+              "type": "multiple_choice",
+              "text": "Question 2",
+              "options": [
+                "A",
+                "B",
+                "C"
+              ]
+            },
+            {
+              "type": "linear_scale",
+              "text": "Rate this",
+              "low_value": 1,
+              "high_value": 5
+            }
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Batch update result"
+      }
+    },
+    {
+      "name": "google_forms_get_form",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet form structure, questions, and settings",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete form details including all questions"
+      }
+    },
+    {
+      "name": "google_forms_get_responses",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet all responses from a form",
+      "platform": "google_forms",
+      "category": "responses",
+      "priority": "high",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "All responses with count"
+      }
+    },
+    {
+      "name": "google_forms_export_responses_csv",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport form responses as CSV format",
+      "platform": "google_forms",
+      "category": "export",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "CSV data and response count"
+      }
+    },
+    {
+      "name": "google_forms_ai_analyze_responses",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Analyze form responses using AI. Get sentiment, insights, trends, or summary analysis.",
+      "platform": "google_forms",
+      "category": "ai_powered",
+      "priority": "high",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "analysis_type": {
+          "type": "string",
+          "description": "Type of analysis to perform",
+          "required": false,
+          "default": "summary",
+          "enum": [
+            "summary",
+            "sentiment",
+            "insights",
+            "trends",
+            "recommendations"
+          ]
+        },
+        "ai_model": {
+          "type": "string",
+          "description": "OpenAI model to use",
+          "required": false,
+          "default": "gpt-4"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "AI analysis results with response count and insights"
+      },
+      "usage_notes": "Requires OPENAI_API_KEY. Analyzes up to first 50 responses by default."
+    },
+    {
+      "name": "google_forms_clone_form",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nClone an existing form",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID to clone",
+          "required": true
+        },
+        "new_title": {
+          "type": "string",
+          "description": "Title for cloned form",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Cloned form details"
+      }
+    },
+    {
+      "name": "google_forms_delete_form",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a form permanently",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID to delete",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "google_forms_add_text_question",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a text question to a form. NOTE: Use google_forms_batch_add_questions for multiple questions.",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "paragraph": {
+          "type": "boolean",
+          "description": "Use paragraph text (long answer) instead of short text",
+          "required": false,
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Make question required",
+          "required": false,
+          "default": false
+        },
+        "index": {
+          "type": "number",
+          "description": "Position in form (0-based)",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_add_multiple_choice",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a multiple choice question (single selection). NOTE: Use google_forms_batch_add_questions for multiple questions.",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "options": {
+          "type": "array",
+          "description": "Answer options",
+          "required": true,
+          "example": [
+            "Option 1",
+            "Option 2",
+            "Option 3"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Make question required",
+          "required": false,
+          "default": false
+        },
+        "index": {
+          "type": "number",
+          "description": "Position in form",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_add_checkbox",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a checkbox question (multiple selection)",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "options": {
+          "type": "array",
+          "description": "Answer options",
+          "required": true
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Make question required",
+          "required": false,
+          "default": false
+        },
+        "index": {
+          "type": "number",
+          "description": "Position in form",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_add_linear_scale",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a linear scale rating question (e.g., 1-5 stars)",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Question text",
+          "required": true
+        },
+        "low_label": {
+          "type": "string",
+          "description": "Label for lowest value",
+          "required": true,
+          "example": "Poor"
+        },
+        "high_label": {
+          "type": "string",
+          "description": "Label for highest value",
+          "required": true,
+          "example": "Excellent"
+        },
+        "low_value": {
+          "type": "number",
+          "description": "Lowest value",
+          "required": false,
+          "default": 1
+        },
+        "high_value": {
+          "type": "number",
+          "description": "Highest value",
+          "required": false,
+          "default": 5
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Make question required",
+          "required": false,
+          "default": false
+        },
+        "index": {
+          "type": "number",
+          "description": "Position in form",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_update_info",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate form title and description",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "New title",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "New description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update result"
+      }
+    },
+    {
+      "name": "google_forms_get_summary_statistics",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet response statistics and counts",
+      "platform": "google_forms",
+      "category": "analytics",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Statistics including total responses, response dates, and per-question counts"
+      }
+    }
+  ],
+  "usage_instructions": {
+    "creating_forms": {
+      "preferred_method": "Use google_forms_create_complete_form - it creates the form with all questions in ONE call",
+      "ai_method": "Use google_forms_ai_generate_form when the user describes what they want in natural language",
+      "bulk_method": "Use google_forms_bulk_create_multiple when creating 2+ forms at once"
+    },
+    "best_practices": [
+      "Always use smart bundled tools (google_forms_create_complete_form) instead of create + add_question multiple times",
+      "Forms are shareable by default - no need to set permissions manually",
+      "Use AI generation when user provides a description rather than specific questions",
+      "Use bulk operations when working with multiple forms or questions",
+      "Check response count with google_forms_get_responses before analyzing"
+    ],
+    "common_workflows": {
+      "simple_survey": "google_forms_create_complete_form with questions array",
+      "ai_survey": "google_forms_ai_generate_form with prompt",
+      "multiple_events": "google_forms_bulk_create_multiple with configs array",
+      "analyze_responses": "google_forms_get_responses then google_forms_ai_analyze_responses"
+    }
+  }
+}

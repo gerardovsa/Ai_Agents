@@ -1,0 +1,474 @@
+{
+  "shopify_wire_bound_books": {
+    "product_title": "Wire Bound Books",
+    "product_type": "Books",
+    "vendor": "PrintShop",
+    "tags": ["wire-binding", "books", "custom-printing"],
+    "options": [
+      {
+        "name": "Quantity",
+        "field_id": "F1",
+        "type": "number",
+        "required": true,
+        "default_value": 1,
+        "min": 1,
+        "max": 10000
+      },
+      {
+        "name": "Artworks",
+        "field_id": "F2", 
+        "type": "number",
+        "required": true,
+        "default_value": 1,
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "Finish Size",
+        "field_id": "F14",
+        "type": "select",
+        "required": true,
+        "options": [
+          {"title": "A6 Portrait", "price": 8, "imposition": 8},
+          {"title": "A6 Landscape", "price": 8, "imposition": 8},
+          {"title": "DL Portrait", "price": 6, "imposition": 6},
+          {"title": "DL Landscape", "price": 6, "imposition": 6},
+          {"title": "A5 Portrait", "price": 4, "imposition": 4},
+          {"title": "A5 Landscape", "price": 4, "imposition": 4},
+          {"title": "A4 Portrait", "price": 2, "imposition": 2},
+          {"title": "A4 Landscape", "price": 2, "imposition": 2}
+        ]
+      },
+      {
+        "name": "Outer Front Cover",
+        "field_id": "F3",
+        "type": "select",
+        "required": false,
+        "options": [
+          {"title": "Not Required", "price": 0.00},
+          {"title": "Clear PVC", "price": 0.12}
+        ]
+      },
+      {
+        "name": "Printed Front Cover",
+        "field_id": "F4",
+        "type": "select", 
+        "required": false,
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "250GSM Satin", "price": 0.09},
+          {"title": "300GSM Satin", "price": 0.14},
+          {"title": "350GSM Satin", "price": 0.18}
+        ]
+      },
+      {
+        "name": "Cover Print Type",
+        "field_id": "F5",
+        "type": "select",
+        "required": true,
+        "visibility": "visible_if_f4_not_none",
+        "options": [
+          {"title": "1pp Colour", "price": 0.04},
+          {"title": "2pp Colour", "price": 0.08},
+          {"title": "1pp Black & White", "price": 0.01},
+          {"title": "2pp Black & White", "price": 0.02}
+        ]
+      },
+      {
+        "name": "Celloglaze",
+        "field_id": "F6",
+        "type": "select",
+        "required": true,
+        "visibility": "visible_if_f4_satin",
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "1 Side Gloss", "price": 0.41},
+          {"title": "2 Sided Gloss", "price": 0.82},
+          {"title": "1 Side Matt", "price": 0.41},
+          {"title": "2 Sided Matt", "price": 0.82}
+        ]
+      },
+      {
+        "name": "Outer Back Cover",
+        "field_id": "F7",
+        "type": "select",
+        "required": false,
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "Clear PVC", "price": 0.12},
+          {"title": "Black Leather grain", "price": 0.12},
+          {"title": "350GSM Satin Blank", "price": 0.12}
+        ]
+      },
+      {
+        "name": "Printed Back Cover",
+        "field_id": "F8",
+        "type": "select",
+        "required": true,
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "250GSM Satin", "price": 0.09},
+          {"title": "300GSM Satin", "price": 0.14},
+          {"title": "350GSM Satin", "price": 0.18}
+        ]
+      },
+      {
+        "name": "Cover Print Type",
+        "field_id": "F9",
+        "type": "select",
+        "required": true,
+        "visibility": "visible_if_f8_satin",
+        "options": [
+          {"title": "1pp Colour", "price": 0.04},
+          {"title": "2pp Colour", "price": 0.08},
+          {"title": "1pp Black & White", "price": 0.01},
+          {"title": "2pp Black & White", "price": 0.02}
+        ]
+      },
+      {
+        "name": "Celloglaze",
+        "field_id": "F10",
+        "type": "select",
+        "required": false,
+        "visibility": "visible_if_f8_satin",
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "1 Side Gloss", "price": 0.41},
+          {"title": "2 Sided Gloss", "price": 0.82},
+          {"title": "1 Side Matt", "price": 0.41},
+          {"title": "2 Sided Matt", "price": 0.82}
+        ]
+      },
+      {
+        "name": "Internal/Text Pages (pp)",
+        "field_id": "F11",
+        "type": "number",
+        "required": true,
+        "default_value": 1,
+        "min": 1,
+        "max": 500
+      },
+      {
+        "name": "Internal Stock Type",
+        "field_id": "F12",
+        "type": "select",
+        "required": true,
+        "options": [
+          {"title": "Satin 128GSM", "price": 0.054, "thickness": 0.12},
+          {"title": "Satin 150GSM", "price": 0.064, "thickness": 0.135},
+          {"title": "Uncoated Bond 80GSM", "price": 0.075, "thickness": 0.1},
+          {"title": "Uncoated Bond 90GSM", "price": 0.03, "thickness": 0.11},
+          {"title": "Uncoated Bond 100GSM", "price": 0.054, "thickness": 0.125}
+        ]
+      },
+      {
+        "name": "Internal Print Type",
+        "field_id": "F13",
+        "type": "select",
+        "required": true,
+        "options": [
+          {"title": "Full colour", "price": 0.096},
+          {"title": "Black & White", "price": 0.02}
+        ]
+      }
+    ],
+    "pricing_constants": {
+      "guilo_setup": 12,
+      "impos_setup": 15,
+      "stock_waste": 1.05,
+      "extra_arts": 15,
+      "cutting_blk": 500,
+      "cut_cost": 11,
+      "punch_setup": 15,
+      "wirebind_per_book": 1.16,
+      "bindery_labor_per_hour": 70,
+      "punch_sheets_per_hour": 15000,
+      "cello_setup": 25
+    },
+    "wire_binding_tiers": [
+      {"comment": "WARNING: Website uses SPIRAL tiers for WIRE products (BUG!)"},
+      {"comment": "These are SPIRAL tiers - kept to match website behavior"},
+      {"min": 0, "max": 4.7, "price_per_ring": 0.1477},
+      {"min": 4.7, "max": 5.7, "price_per_ring": 0.156},
+      {"min": 5.7, "max": 7.7, "price_per_ring": 0.2146},
+      {"min": 7.7, "max": 8.7, "price_per_ring": 0.2344},
+      {"min": 8.7, "max": 10.7, "price_per_ring": 0.2958},
+      {"min": 10.7, "max": 11.7, "price_per_ring": 0.327},
+      {"min": 11.7, "max": 12.7, "price_per_ring": 0.3966},
+      {"min": 12.7, "max": 15.7, "price_per_ring": 0.518},
+      {"min": 15.7, "max": 18.7, "price_per_ring": 0.565},
+      {"min": 18.7, "max": 21.7, "price_per_ring": 0.6936},
+      {"min": 21.7, "max": 24.7, "price_per_ring": 0.832},
+      {"min": 24.7, "max": 27.7, "price_per_ring": 1.413},
+      {"min": 27.7, "max": 32.7, "price_per_ring": 1.75},
+      {"min": 32.7, "max": 999, "price_per_ring": 2.111}
+    ],
+    "profit_margin_tiers": [
+      {"min": 1, "max": 500, "margin": 0.9},
+      {"min": 500, "max": 1000, "margin": 0.9},
+      {"min": 1000, "max": 1500, "margin": 0.8},
+      {"min": 1500, "max": 2000, "margin": 0.75},
+      {"min": 2000, "max": 2500, "margin": 0.7},
+      {"min": 2500, "max": 3000, "margin": 0.67},
+      {"min": 3000, "max": 4000, "margin": 0.65},
+      {"min": 4000, "max": 5000, "margin": 0.55},
+      {"min": 5000, "max": 7500, "margin": 0.52},
+      {"min": 7500, "max": 10000, "margin": 0.47},
+      {"min": 10000, "max": 15000, "margin": 0.42},
+      {"min": 15000, "max": 100000, "margin": 0.41}
+    ],
+    "gst_calculation": {
+      "rate": 1.15,
+      "surcharge": 44
+    }
+  },
+  "shopify_spiral_bound_books": {
+    "product_title": "Spiral Bound Books", 
+    "product_type": "Books",
+    "vendor": "PrintShop",
+    "tags": ["spiral-binding", "books", "custom-printing"],
+    "options": [
+      {
+        "name": "Quantity",
+        "field_id": "F1",
+        "type": "number",
+        "required": true,
+        "default_value": 1,
+        "min": 1,
+        "max": 10000
+      },
+      {
+        "name": "Artworks",
+        "field_id": "F2",
+        "type": "number", 
+        "required": true,
+        "default_value": 1,
+        "min": 1,
+        "max": 50
+      },
+      {
+        "name": "Finish Size",
+        "field_id": "F14",
+        "type": "select",
+        "required": true,
+        "options": [
+          {"title": "A6 Portrait", "price": 8, "imposition": 8},
+          {"title": "A6 Landscape", "price": 8, "imposition": 8},
+          {"title": "DL Portrait", "price": 6, "imposition": 6},
+          {"title": "DL Landscape", "price": 6, "imposition": 6},
+          {"title": "A5 Portrait", "price": 4, "imposition": 4},
+          {"title": "A5 Landscape", "price": 4, "imposition": 4},
+          {"title": "A4 Portrait", "price": 2, "imposition": 2},
+          {"title": "A4 Landscape", "price": 2, "imposition": 2}
+        ]
+      },
+      {
+        "name": "Outer Front Cover",
+        "field_id": "F3",
+        "type": "select",
+        "required": false,
+        "options": [
+          {"title": "Not Required", "price": 0.00},
+          {"title": "Clear PVC", "price": 0.12}
+        ]
+      },
+      {
+        "name": "Printed Front Cover",
+        "field_id": "F4",
+        "type": "select",
+        "required": false,
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "250GSM Satin", "price": 0.09},
+          {"title": "300GSM Satin", "price": 0.14},
+          {"title": "350GSM Satin", "price": 0.18}
+        ]
+      },
+      {
+        "name": "Cover Print Type",
+        "field_id": "F5",
+        "type": "select",
+        "required": true,
+        "visibility": "visible_if_f4_not_none",
+        "options": [
+          {"title": "1pp Colour", "price": 0.04},
+          {"title": "2pp Colour", "price": 0.08},
+          {"title": "1pp Black & White", "price": 0.01},
+          {"title": "2pp Black & White", "price": 0.02}
+        ]
+      },
+      {
+        "name": "Celloglaze",
+        "field_id": "F6",
+        "type": "select",
+        "required": true,
+        "visibility": "visible_if_f4_satin",
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "1 Side Gloss", "price": 0.41},
+          {"title": "2 Sided Gloss", "price": 0.82},
+          {"title": "1 Side Matt", "price": 0.41},
+          {"title": "2 Sided Matt", "price": 0.82}
+        ]
+      },
+      {
+        "name": "Outer Back Cover",
+        "field_id": "F7",
+        "type": "select",
+        "required": false,
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "Clear PVC", "price": 0.12},
+          {"title": "Black Leather grain", "price": 0.12},
+          {"title": "350GSM Satin Blank", "price": 0.12}
+        ]
+      },
+      {
+        "name": "Printed Back Cover",
+        "field_id": "F8",
+        "type": "select",
+        "required": true,
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "250GSM Satin", "price": 0.09},
+          {"title": "300GSM Satin", "price": 0.14},
+          {"title": "350GSM Satin", "price": 0.18}
+        ]
+      },
+      {
+        "name": "Cover Print Type",
+        "field_id": "F9",
+        "type": "select",
+        "required": true,
+        "visibility": "visible_if_f8_satin",
+        "options": [
+          {"title": "1pp Colour", "price": 0.04},
+          {"title": "2pp Colour", "price": 0.08},
+          {"title": "1pp Black & White", "price": 0.01},
+          {"title": "2pp Black & White", "price": 0.02}
+        ]
+      },
+      {
+        "name": "Celloglaze",
+        "field_id": "F10",
+        "type": "select",
+        "required": false,
+        "visibility": "visible_if_f8_satin",
+        "options": [
+          {"title": "None", "price": 0.00},
+          {"title": "1 Side Gloss", "price": 0.41},
+          {"title": "2 Sided Gloss", "price": 0.82},
+          {"title": "1 Side Matt", "price": 0.41},
+          {"title": "2 Sided Matt", "price": 0.82}
+        ]
+      },
+      {
+        "name": "Internal/Text Pages (pp)",
+        "field_id": "F11",
+        "type": "number",
+        "required": true,
+        "default_value": 1,
+        "min": 1,
+        "max": 500
+      },
+      {
+        "name": "Internal Stock Type",
+        "field_id": "F12",
+        "type": "select",
+        "required": true,
+        "options": [
+          {"title": "Satin 128GSM", "price": 0.054, "thickness": 0.12},
+          {"title": "Satin 150GSM", "price": 0.064, "thickness": 0.135},
+          {"title": "Uncoated Bond 80GSM", "price": 0.075, "thickness": 0.1},
+          {"title": "Uncoated Bond 90GSM", "price": 0.03, "thickness": 0.11},
+          {"title": "Uncoated Bond 100GSM", "price": 0.054, "thickness": 0.125},
+          {"title": "Uncoated Bond 140GSM", "price": 0.072, "thickness": 0.2},
+          {"title": "Satin 300GSM", "price": 0.14, "thickness": 0.4}
+        ]
+      },
+      {
+        "name": "Internal Print Type",
+        "field_id": "F13",
+        "type": "select",
+        "required": true,
+        "options": [
+          {"title": "Full colour", "price": 0.096},
+          {"title": "Black & White", "price": 0.02}
+        ]
+      }
+    ],
+    "pricing_constants": {
+      "guilo_setup": 12,
+      "impos_setup": 15,
+      "stock_waste": 1.05,
+      "extra_arts": 15,
+      "cutting_blk": 500,
+      "cut_cost": 11,
+      "punch_setup": 15,
+      "wirebind_per_book": 1.16,
+      "bindery_labor_per_hour": 70,
+      "punch_sheets_per_hour": 15000,
+      "cello_setup": 25
+    },
+    "spiral_binding_tiers": [
+      {"comment": "WARNING: Website uses WIRE tiers for SPIRAL products (BUG!)"},
+      {"comment": "These are WIRE tiers - kept to match website behavior"},
+      {"max": 8, "price_per_ring": 0.13065},
+      {"max": 10, "price_per_ring": 0.157},
+      {"max": 12, "price_per_ring": 0.2242},
+      {"max": 14, "price_per_ring": 0.25},
+      {"max": 16, "price_per_ring": 0.2895},
+      {"max": 18, "price_per_ring": 0.321},
+      {"max": 20, "price_per_ring": 0.4141},
+      {"max": 22, "price_per_ring": 0.516},
+      {"max": 24, "price_per_ring": 0.563},
+      {"max": 28, "price_per_ring": 0.6392},
+      {"max": 31, "price_per_ring": 0.7172},
+      {"max": 33, "price_per_ring": 0.7558},
+      {"max": 35, "price_per_ring": 0.829},
+      {"max": 38, "price_per_ring": 0.9042},
+      {"max": 41, "price_per_ring": 1.201},
+      {"max": 48, "price_per_ring": 1.248},
+      {"max": 53, "price_per_ring": 1.248},
+      {"max": 999, "price_per_ring": 1.248}
+    ],
+    "profit_margin_tiers": [
+      {"min": 1, "max": 500, "margin": 0.9},
+      {"min": 500, "max": 1000, "margin": 0.9},
+      {"min": 1000, "max": 1500, "margin": 0.8},
+      {"min": 1500, "max": 2000, "margin": 0.75},
+      {"min": 2000, "max": 2500, "margin": 0.7},
+      {"min": 2500, "max": 3000, "margin": 0.67},
+      {"min": 3000, "max": 4000, "margin": 0.65},
+      {"min": 4000, "max": 5000, "margin": 0.55},
+      {"min": 5000, "max": 7500, "margin": 0.52},
+      {"min": 7500, "max": 10000, "margin": 0.47},
+      {"min": 10000, "max": 15000, "margin": 0.42},
+      {"min": 15000, "max": 100000, "margin": 0.41}
+    ],
+    "gst_calculation": {
+      "rate": 1.15,
+      "surcharge": 44
+    }
+  },
+  "visibility_rules": {
+    "visible_if_f4_not_none": "F4 != 'None'",
+    "visible_if_f4_satin": "(F4 == '250GSM Satin') || (F4 == '300GSM Satin') || (F4 == '350GSM Satin')",
+    "visible_if_f8_satin": "(F8 == '250GSM Satin') || (F8 == '300GSM Satin') || (F8 == '350GSM Satin')"
+  },
+  "calculation_formula": {
+    "description": "Exact Shopify DPO JavaScript formula implementation",
+    "steps": [
+      "1. Calculate artwork costs: _a = artworks * 15, _a2 = max(0, _a - 15)",
+      "2. Calculate front cover costs: outFront + totalFrontCoverCost + FrontcelloCost",
+      "3. Calculate back cover costs: outBack + totalBackCoverCost + BackcelloCost", 
+      "4. Calculate content costs: totalContentCost",
+      "5. Calculate binding costs: priceofwire (based on thickness tiers)",
+      "6. Calculate punch costs: punchPrice",
+      "7. Calculate cutting costs: cuttingCost",
+      "8. Sum business cost: BizCost = all costs + setup + per-book labor",
+      "9. Apply profit margin (tiered based on BizCost)",
+      "10. Apply GST: subTotal * 1.15 + 44"
+    ]
+  }
+}

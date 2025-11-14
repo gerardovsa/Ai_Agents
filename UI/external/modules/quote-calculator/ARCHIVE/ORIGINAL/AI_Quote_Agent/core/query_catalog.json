@@ -1,0 +1,1065 @@
+[
+  {
+    "name": "sales_trend_by_month",
+    "category": "Sales & Revenue",
+    "description": "Monthly sales trends showing revenue, order count, and average order value over time",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 6)",
+        "default": 6,
+        "min": 1,
+        "max": 36
+      }
+    },
+    "returns": "Month, TotalRevenue, OrderCount, AvgOrderValue",
+    "visualization": "line_chart",
+    "best_for": "Identifying sales trends, seasonality, growth patterns"
+  },
+  {
+    "name": "monthly_revenue_trend",
+    "category": "Sales & Revenue",
+    "description": "Monthly revenue trend with order counts and average values",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Months to show (default: 24)",
+        "default": 24,
+        "min": 3,
+        "max": 36
+      }
+    },
+    "returns": "YearMonth, TotalRevenue, OrderCount, JobTicketCount, AvgJobValue, UnitsProduced",
+    "visualization": "line_chart_dual_axis",
+    "best_for": "Business performance tracking, seasonality analysis",
+    "validated": true
+  },
+  {
+    "name": "revenue_by_product_type",
+    "category": "Sales & Revenue",
+    "description": "Revenue breakdown by product type (business cards, flyers, books, etc.)",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12,
+        "min": 1,
+        "max": 36
+      },
+      "min_revenue": {
+        "type": "float",
+        "description": "Minimum revenue to include (default: 0)",
+        "default": 0
+      }
+    },
+    "returns": "ProductType, TotalRevenue, OrderCount, AvgPrice",
+    "visualization": "bar_chart",
+    "best_for": "Product performance analysis, identifying top products"
+  },
+  {
+    "name": "revenue_by_customer",
+    "category": "Sales & Revenue",
+    "description": "Top customers by revenue with order count and average order value",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      },
+      "top_n": {
+        "type": "integer",
+        "description": "Number of top customers to return (default: 20)",
+        "default": 20,
+        "min": 5,
+        "max": 100
+      }
+    },
+    "returns": "CustomerName, TotalRevenue, OrderCount, AvgOrderValue, LastOrderDate",
+    "visualization": "bar_chart",
+    "best_for": "Customer profitability, account management, retention focus"
+  },
+  {
+    "name": "customer_retention_cohort",
+    "category": "Customer Analytics",
+    "description": "Customer cohort analysis showing retention rates by first order month",
+    "parameters": {
+      "cohort_months": {
+        "type": "integer",
+        "description": "Number of cohort months to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "CohortMonth, CustomersCount, RetentionRate, ReturningCustomers",
+    "visualization": "heatmap",
+    "best_for": "Understanding customer loyalty, retention patterns"
+  },
+  {
+    "name": "top_customers_detailed",
+    "category": "Customer Analytics",
+    "description": "Top customers with full order history and product preferences",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Months to analyze (default: 12)",
+        "default": 12
+      },
+      "top_n": {
+        "type": "integer",
+        "description": "Number of customers (default: 20)",
+        "default": 20,
+        "min": 5,
+        "max": 100
+      }
+    },
+    "returns": "ClientName, TotalRevenue, OrderCount, JobTicketCount, AvgJobValue, LastOrderDate, DaysSinceLastOrder, TopProduct",
+    "visualization": "table_with_sparkline",
+    "best_for": "Account management, customer relationship planning",
+    "validated": true
+  },
+  {
+    "name": "customer_order_frequency",
+    "category": "Customer Analytics",
+    "description": "Customer segmentation by order frequency (one-time, occasional, regular, frequent)",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Period to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "Segment, CustomerCount, TotalRevenue, AvgOrdersPerCustomer",
+    "visualization": "pie_chart",
+    "best_for": "Customer segmentation, marketing strategy"
+  },
+  {
+    "name": "customer_product_preferences",
+    "category": "Customer Analytics",
+    "description": "What products each customer orders most frequently",
+    "parameters": {
+      "customer_name": {
+        "type": "string",
+        "description": "Customer name (use % for wildcard)",
+        "default": null
+      },
+      "months": {
+        "type": "integer",
+        "description": "Months to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "ClientName, ProductType, OrderCount, TotalQuantity, TotalRevenue, AvgPrice, LastOrderDate",
+    "visualization": "grouped_bar",
+    "best_for": "Personalized quoting, cross-sell recommendations",
+    "validated": true
+  },
+  {
+    "name": "customer_lifetime_value",
+    "category": "Customer Analytics",
+    "description": "Customer lifetime value analysis with total spend and order history",
+    "parameters": {
+      "min_orders": {
+        "type": "integer",
+        "description": "Minimum orders to include (default: 2)",
+        "default": 2
+      },
+      "top_n": {
+        "type": "integer",
+        "description": "Number of top customers to return (default: 50)",
+        "default": 50
+      }
+    },
+    "returns": "CustomerName, LifetimeValue, OrderCount, FirstOrder, LastOrder, DaysSinceLastOrder",
+    "visualization": "scatter_plot",
+    "best_for": "High-value customer identification, account prioritization"
+  },
+  {
+    "name": "product_performance_detail",
+    "category": "Product Analysis",
+    "description": "Detailed product analysis with specifications, volumes, and pricing",
+    "parameters": {
+      "product_type": {
+        "type": "string",
+        "description": "Product type to analyze (e.g., 'business cards', 'flyers')",
+        "default": null
+      },
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 6)",
+        "default": 6
+      }
+    },
+    "returns": "Product, Specification, OrderCount, TotalQuantity, AvgPrice, TotalRevenue",
+    "visualization": "table_with_bar",
+    "best_for": "Product portfolio optimization, pricing strategy"
+  },
+  {
+    "name": "product_turnaround_benchmarks",
+    "category": "Product Analysis",
+    "description": "Average production time by product type (OrderDate to InvoiceDate)",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Months to analyze (default: 6)",
+        "default": 6
+      }
+    },
+    "returns": "ProductType, AvgDays, MinDays, MaxDays, JobCount, ComplexityScore",
+    "visualization": "horizontal_bar",
+    "best_for": "Setting realistic delivery dates, quote accuracy",
+    "validated": true
+  },
+  {
+    "name": "high_value_jobs_list",
+    "category": "Product Analysis",
+    "description": "List of high-value individual jobs (detailed specifications)",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Months to analyze (default: 12)",
+        "default": 12
+      },
+      "min_value": {
+        "type": "float",
+        "description": "Minimum job value (default: 5000)",
+        "default": 5000
+      }
+    },
+    "returns": "ClientName, JobDescription, JobValue, Quantity, OrderDate, ProductionNotes",
+    "visualization": "table",
+    "best_for": "Understanding premium job requirements, specialty pricing",
+    "validated": true
+  },
+  {
+    "name": "binding_finishing_analysis",
+    "category": "Product Analysis",
+    "description": "Analysis of binding types and finishing options with pricing impact",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Months to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "BindType, JobCount, TotalRevenue, AvgJobValue, AvgPages",
+    "visualization": "pie_chart",
+    "best_for": "Finishing option recommendations, pricing strategy",
+    "validated": true
+  },
+  {
+    "name": "paper_stock_usage",
+    "category": "Product Analysis",
+    "description": "Analysis of paper stock usage by type and GSM",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "PaperType, GSM, OrderCount, TotalQuantity, AvgQuantityPerOrder",
+    "visualization": "stacked_bar",
+    "best_for": "Inventory planning, supplier negotiations"
+  },
+  {
+    "name": "finishing_options_popularity",
+    "category": "Product Analysis",
+    "description": "Analysis of finishing options (cellophane, binding, folding) popularity",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "FinishingType, OrderCount, Percentage, AvgPrice",
+    "visualization": "horizontal_bar",
+    "best_for": "Service offering optimization, pricing finishing options"
+  },
+  {
+    "name": "production_turnaround_time",
+    "category": "Operational Metrics",
+    "description": "Analysis of production turnaround times by urgency and product type",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 3)",
+        "default": 3
+      }
+    },
+    "returns": "UrgencyLevel, ProductType, AvgTurnaroundDays, OrderCount",
+    "visualization": "grouped_bar",
+    "best_for": "Production efficiency, capacity planning"
+  },
+  {
+    "name": "current_production_status",
+    "category": "Operational Flow",
+    "description": "Real-time production status showing active jobs by stage with WIP counts",
+    "parameters": {
+      "days_back": {
+        "type": "integer",
+        "description": "Days to look back for active jobs (default: 30)",
+        "default": 30,
+        "min": 1,
+        "max": 90
+      }
+    },
+    "returns": "StageName, JobCount, TotalValue, AvgDaysInStage, OldestJobDate",
+    "visualization": "bar_chart",
+    "best_for": "Real-time production monitoring, bottleneck detection",
+    "validated": true
+  },
+  {
+    "name": "overdue_jobs_alert",
+    "category": "Operational Flow",
+    "description": "Critical alert list of overdue jobs past their DateRequired",
+    "parameters": {
+      "include_completed": {
+        "type": "boolean",
+        "description": "Include completed stages (default: False)",
+        "default": false
+      }
+    },
+    "returns": "ClientName, JobDescription, DaysOverdue, CurrentStage, JobValue, DateRequired",
+    "visualization": "table_alert",
+    "best_for": "Daily production meetings, crisis management",
+    "validated": true
+  },
+  {
+    "name": "priority_work_queue",
+    "category": "Operational Flow",
+    "description": "AI-calculated priority queue for production scheduling",
+    "parameters": {
+      "days_ahead": {
+        "type": "integer",
+        "description": "Days ahead to forecast (default: 3)",
+        "default": 3,
+        "min": 1,
+        "max": 14
+      }
+    },
+    "returns": "TicketID, ClientName, JobDescription, PriorityScore, DueDate, CurrentStage, Urgency",
+    "visualization": "sorted_table",
+    "best_for": "Morning production kickoff, operator assignment",
+    "validated": true
+  },
+  {
+    "name": "bottleneck_detection",
+    "category": "Operational Flow",
+    "description": "Identifies production bottlenecks with WIP limit violations",
+    "parameters": {
+      "wip_threshold": {
+        "type": "integer",
+        "description": "WIP count to flag as bottleneck (default: 5)",
+        "default": 5,
+        "min": 3,
+        "max": 20
+      }
+    },
+    "returns": "StageName, CurrentWIP, RecommendedLimit, OverCapacity, AvgTimeInStage, Status",
+    "visualization": "gauge_chart",
+    "best_for": "Capacity planning, workflow optimization",
+    "validated": true
+  },
+  {
+    "name": "daily_capacity_forecast",
+    "category": "Operational Flow",
+    "description": "7-day capacity forecast showing jobs due vs historical capacity",
+    "parameters": {
+      "days_ahead": {
+        "type": "integer",
+        "description": "Days to forecast (default: 7)",
+        "default": 7,
+        "min": 1,
+        "max": 30
+      }
+    },
+    "returns": "DueDate, DayOfWeek, JobsDue, DigitalJobs, SignageJobs, BinderyJobs, CapacityStatus",
+    "visualization": "stacked_bar",
+    "best_for": "Weekly planning, intake management",
+    "validated": true
+  },
+  {
+    "name": "production_stage_flow",
+    "category": "Operational Flow",
+    "description": "Job flow through production stages (last 30 days movement)",
+    "parameters": {
+      "days": {
+        "type": "integer",
+        "description": "Days to analyze (default: 30)",
+        "default": 30
+      }
+    },
+    "returns": "FromStage, ToStage, JobCount, AvgDaysToMove, BottleneckFlag",
+    "visualization": "sankey_diagram",
+    "best_for": "Process flow analysis, identifying handoff delays",
+    "validated": true
+  },
+  {
+    "name": "urgency_level_distribution",
+    "category": "Operational Flow",
+    "description": "Distribution of jobs by production urgency (Before Lunch, COB, 48hr, etc.)",
+    "parameters": {
+      "days": {
+        "type": "integer",
+        "description": "Days to analyze (default: 30)",
+        "default": 30
+      }
+    },
+    "returns": "UrgencyLevel, Priority, JobCount, TotalValue, AvgJobValue, PercentOfJobs",
+    "visualization": "horizontal_bar",
+    "best_for": "Understanding turnaround pressure, capacity stress",
+    "validated": true
+  },
+  {
+    "name": "job_complexity_analysis",
+    "category": "Operational Flow",
+    "description": "Job complexity scoring for production time estimation",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Months to analyze (default: 6)",
+        "default": 6
+      }
+    },
+    "returns": "ProductType, AvgJobValue, AvgQuantity, ComplexityScore, AvgTurnaroundDays",
+    "visualization": "scatter_plot",
+    "best_for": "AI scheduling, production time estimation",
+    "validated": true
+  },
+  {
+    "name": "daily_production_plan",
+    "category": "Production Planning",
+    "description": "Daily production planning report for digital workflow - prioritizes jobs by due date, urgency, and stage. Calculates production time estimates and identifies bottlenecks.",
+    "parameters": {
+      "days_ahead": {
+        "type": "integer",
+        "description": "Number of days ahead to plan (1=today+tomorrow, 2=today+tomorrow+day after)",
+        "default": 2,
+        "min": 1,
+        "max": 7
+      },
+      "min_ticket_id": {
+        "type": "integer",
+        "description": "Minimum ticket ID to include (use recent tickets instead of InternalInvoiceComplete for performance)",
+        "default": 72680
+      },
+      "stages": {
+        "type": "string",
+        "description": "Comma-separated stage IDs to include (4=9110, 5=Other Digital, 6=OutSource, 7=Cello, 8=Bindery, 11=Ready)",
+        "default": "4,5,6,7,8,11"
+      }
+    },
+    "returns": "TicketID, OrderID, ClientName, QTY, JobType, ShortJobDesc, StageID, StageDescription, Cost, DaysUntilDue, DueDate, UrgencyLevel, UrgencyColor, UrgencyDescription, ShippingDesc, ProductionNotes, EstimatedHours, PriorityScore, PriorityBand, CustomerTier, OrderDate, DaysInSystem",
+    "visualization": "kanban_board",
+    "best_for": "Daily production kickoff, task prioritization, operator assignment",
+    "validated": true
+  },
+  {
+    "name": "stage_capacity_report",
+    "category": "Production Planning",
+    "description": "Calculate available capacity for each production stage - shows hours needed vs hours available, identifies overloaded stages",
+    "parameters": {
+      "min_ticket_id": {
+        "type": "integer",
+        "description": "Minimum ticket ID for recent jobs",
+        "default": 72680
+      },
+      "work_hours_per_day": {
+        "type": "integer",
+        "description": "Available work hours per day per stage",
+        "default": 8,
+        "min": 4,
+        "max": 16
+      },
+      "stages": {
+        "type": "string",
+        "description": "Comma-separated stage IDs to analyze",
+        "default": "4,5,6,7,8,11"
+      }
+    },
+    "returns": "StageID, StageDescription, JobCount, TotalHoursNeeded, HoursAvailableToday, CapacityUtilization, Status, JobsOverdue, JobsDueToday, JobsDueTomorrow, AvgHoursPerJob, HighestPriorityJob",
+    "visualization": "gauge_chart",
+    "best_for": "Capacity planning, identifying overloaded stages, resource allocation",
+    "validated": true
+  },
+  {
+    "name": "weekly_production_forecast",
+    "category": "Production Planning",
+    "description": "7-day production forecast showing daily workload, due dates, and resource requirements",
+    "parameters": {
+      "min_ticket_id": {
+        "type": "integer",
+        "description": "Minimum ticket ID for recent jobs",
+        "default": 72680
+      },
+      "stages": {
+        "type": "string",
+        "description": "Comma-separated stage IDs to forecast",
+        "default": "4,5,6,7,8,11"
+      }
+    },
+    "returns": "DueDate, DayOfWeek, DaysFromToday, JobCount, TotalHoursNeeded, TotalValue, OverdueCount, Stage4Hours, Stage5Hours, Stage7Hours, Stage8Hours, CriticalJobs, HighValueJobs, TopClient",
+    "visualization": "stacked_bar",
+    "best_for": "Weekly planning, workload distribution, intake management",
+    "validated": true
+  },
+  {
+    "name": "bottleneck_detection_advanced",
+    "category": "Production Planning",
+    "description": "Identifies production bottlenecks - stages with overload, delays, or resource constraints. Provides actionable recommendations.",
+    "parameters": {
+      "min_ticket_id": {
+        "type": "integer",
+        "description": "Minimum ticket ID for recent jobs",
+        "default": 72680
+      },
+      "capacity_threshold": {
+        "type": "float",
+        "description": "Capacity utilization % to flag as bottleneck (0.85 = 85%)",
+        "default": 0.85,
+        "min": 0.5,
+        "max": 1.0
+      },
+      "stages": {
+        "type": "string",
+        "description": "Comma-separated stage IDs to analyze",
+        "default": "4,5,6,7,8,11"
+      }
+    },
+    "returns": "StageID, StageDescription, IsBottleneck, BottleneckScore, JobCount, HoursNeeded, HoursAvailable, Utilization, AvgDaysInStage, OverdueJobs, DelayRisk, RecommendedAction",
+    "visualization": "horizontal_bar",
+    "best_for": "Bottleneck identification, process optimization, crisis management",
+    "validated": true
+  },
+  {
+    "name": "order_size_distribution",
+    "category": "Operational Metrics",
+    "description": "Distribution of orders by size ranges (quantity)",
+    "parameters": {
+      "product_type": {
+        "type": "string",
+        "description": "Optional product type filter",
+        "default": null
+      },
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "QuantityRange, OrderCount, TotalRevenue, AvgPrice",
+    "visualization": "histogram",
+    "best_for": "Understanding order patterns, pricing tiers"
+  },
+  {
+    "name": "day_of_week_patterns",
+    "category": "Operational Metrics",
+    "description": "Order intake patterns by day of week (last 6 months)",
+    "parameters": {
+      "weeks": {
+        "type": "integer",
+        "description": "Weeks to analyze (default: 26)",
+        "default": 26
+      }
+    },
+    "returns": "DayOfWeek, DayNumber, AvgOrders, AvgJobTickets, AvgRevenue, FlyerCount, BookCount, SignageCount",
+    "visualization": "grouped_bar",
+    "best_for": "Staffing optimization, capacity planning",
+    "validated": true
+  },
+  {
+    "name": "daily_order_volume",
+    "category": "Operational Metrics",
+    "description": "Daily order volume with day-of-week patterns",
+    "parameters": {
+      "weeks": {
+        "type": "integer",
+        "description": "Number of weeks to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "DayOfWeek, AvgOrders, TotalOrders, PeakOrders",
+    "visualization": "line_chart",
+    "best_for": "Staffing optimization, workload planning"
+  },
+  {
+    "name": "quarterly_performance",
+    "category": "Sales & Revenue",
+    "description": "Quarterly revenue comparison with growth rates",
+    "parameters": {
+      "quarters": {
+        "type": "integer",
+        "description": "Number of quarters (default: 8)",
+        "default": 8,
+        "min": 4,
+        "max": 12
+      }
+    },
+    "returns": "Quarter, Year, TotalRevenue, OrderCount, AvgOrderValue, GrowthRate",
+    "visualization": "bar_chart_with_line",
+    "best_for": "Executive reporting, trend analysis",
+    "validated": true
+  },
+  {
+    "name": "profit_margin_by_product",
+    "category": "Financial Analysis",
+    "description": "Estimated profit margins by product type (requires cost data)",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 6)",
+        "default": 6
+      }
+    },
+    "returns": "ProductType, Revenue, EstimatedCost, EstimatedProfit, MarginPercentage",
+    "visualization": "waterfall_chart",
+    "best_for": "Profitability analysis, pricing strategy"
+  },
+  {
+    "name": "quote_conversion_rate",
+    "category": "Financial Analysis",
+    "description": "Quote-to-order conversion rates by product and customer",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 6)",
+        "default": 6
+      }
+    },
+    "returns": "Period, QuotesGiven, OrdersReceived, ConversionRate, LostRevenue",
+    "visualization": "funnel_chart",
+    "best_for": "Sales effectiveness, pricing competitiveness"
+  },
+  {
+    "name": "apg_workflow_status",
+    "category": "Business Divisions",
+    "description": "APG (American Printing Group) workflow status by stage",
+    "parameters": {
+      "days": {
+        "type": "integer",
+        "description": "Number of days to analyze (default: 30)",
+        "default": 30
+      }
+    },
+    "returns": "WorkflowStage, JobCount, AvgTimeInStage, OldestJob",
+    "visualization": "funnel_chart",
+    "best_for": "APG production monitoring, bottleneck identification"
+  },
+  {
+    "name": "publishing_projects_pipeline",
+    "category": "Business Divisions",
+    "description": "Freeda Publishing projects pipeline and status",
+    "parameters": {
+      "status_filter": {
+        "type": "string",
+        "description": "Filter by status (e.g., 'Active', 'Complete')",
+        "default": null
+      }
+    },
+    "returns": "ProjectName, Status, StartDate, EstimatedCompletion, DaysInProgress",
+    "visualization": "gantt_chart",
+    "best_for": "Publishing project management, timeline tracking"
+  },
+  {
+    "name": "perfect_bound_books_analysis",
+    "category": "Business Divisions",
+    "description": "Perfect Bound Books division analysis with costing details",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 6)",
+        "default": 6
+      }
+    },
+    "returns": "PageRange, OrderCount, AvgCostPerBook, TotalRevenue",
+    "visualization": "scatter_plot",
+    "best_for": "Book printing optimization, cost analysis"
+  },
+  {
+    "name": "year_over_year_comparison",
+    "category": "Comparative Analysis",
+    "description": "Year-over-year comparison of key metrics",
+    "parameters": {
+      "metric": {
+        "type": "string",
+        "description": "Metric to compare ('revenue', 'orders', 'customers')",
+        "default": "revenue"
+      }
+    },
+    "returns": "Month, CurrentYear, PreviousYear, PercentageChange, Difference",
+    "visualization": "line_chart_dual",
+    "best_for": "Growth analysis, performance benchmarking"
+  },
+  {
+    "name": "product_cross_sell_analysis",
+    "category": "Comparative Analysis",
+    "description": "Products frequently ordered together by same customer",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months (default: 12)",
+        "default": 12
+      },
+      "min_occurrences": {
+        "type": "integer",
+        "description": "Minimum co-occurrences (default: 3)",
+        "default": 3
+      }
+    },
+    "returns": "Product1, Product2, CoOccurrences, CrossSellRate",
+    "visualization": "network_graph",
+    "best_for": "Cross-selling opportunities, bundling strategy"
+  },
+  {
+    "name": "on_time_delivery_rate",
+    "category": "Performance & SLA",
+    "description": "Monthly on-time delivery performance tracking (InvoiceDate vs DateRequired)",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12,
+        "min": 1,
+        "max": 36
+      }
+    },
+    "returns": "Month, TotalOrders, OnTimeOrders, OnTimePercentage, AvgDaysLateOrEarly",
+    "visualization": "line_chart",
+    "best_for": "SLA monitoring, service quality tracking, customer satisfaction",
+    "validated": true
+  },
+  {
+    "name": "customer_deadline_realism",
+    "category": "Performance & SLA",
+    "description": "Customer deadline analysis showing who sets realistic vs unrealistic lead times",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      },
+      "min_orders": {
+        "type": "integer",
+        "description": "Minimum orders to include customer (default: 5)",
+        "default": 5
+      }
+    },
+    "returns": "ClientName, TotalOrders, AvgLeadTimeDays, OnTimeRate, DeadlineRealism",
+    "visualization": "scatter_plot",
+    "best_for": "Customer education, expectation management, pricing rush jobs",
+    "validated": true
+  },
+  {
+    "name": "finishing_upsell_analysis",
+    "category": "Upsell & Revenue",
+    "description": "Finishing options adoption rates and price impact by product type",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "ProductType, TotalJobs, CelloAdoptionRate, AvgPriceWithCello, AvgPriceNoCello, CelloValueAdd",
+    "visualization": "horizontal_bar",
+    "best_for": "Upsell training, pricing strategy, revenue optimization",
+    "validated": true
+  },
+  {
+    "name": "boolean_flags_summary",
+    "category": "Upsell & Revenue",
+    "description": "Comprehensive summary of all finishing option flags (cello, fold, stitch, etc.)",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "FlagName, JobsWithFlag, AdoptionRate, AvgPriceWith, AvgPriceWithout, PriceImpact, TotalRevenue",
+    "visualization": "table_with_bar",
+    "best_for": "Understanding finishing options usage, identifying upsell opportunities",
+    "validated": true
+  },
+  {
+    "name": "rush_pricing_impact",
+    "category": "Upsell & Revenue",
+    "description": "Analysis of pricing by urgency level to validate rush pricing strategy",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      },
+      "product_filter": {
+        "type": "string",
+        "description": "Optional product type filter (default: None)",
+        "default": null
+      }
+    },
+    "returns": "UrgencyLevel, ProductType, JobCount, AvgPrice, AvgPricePerUnit, PricePremium",
+    "visualization": "grouped_bar",
+    "best_for": "Rush pricing strategy, dynamic pricing, urgency premiums",
+    "validated": true
+  },
+  {
+    "name": "fold_type_analysis",
+    "category": "Upsell & Revenue",
+    "description": "Analysis of all fold types ordered with frequency and pricing",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "FoldDesc, JobCount, AvgPrice, TotalRevenue, CommonProduct",
+    "visualization": "table",
+    "best_for": "Standardizing fold options, equipment planning, quick quote suggestions",
+    "validated": true
+  },
+  {
+    "name": "department_workload_balance",
+    "category": "Operational Optimization",
+    "description": "Workload distribution across departments (Digital, Signage, Pre-Production)",
+    "parameters": {
+      "days": {
+        "type": "integer",
+        "description": "Number of days to analyze (default: 30)",
+        "default": 30
+      }
+    },
+    "returns": "Department, ActiveJobs, TotalValue, AvgDaysInDept, OldestJob",
+    "visualization": "horizontal_bar",
+    "best_for": "Resource allocation, hiring decisions, capacity balancing",
+    "validated": true
+  },
+  {
+    "name": "popular_specifications",
+    "category": "Operational Optimization",
+    "description": "Most frequently ordered product specifications for quick quote building",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 6)",
+        "default": 6
+      },
+      "product_type": {
+        "type": "string",
+        "description": "Optional product type filter (default: None)",
+        "default": null
+      },
+      "min_orders": {
+        "type": "integer",
+        "description": "Minimum order count to include (default: 5)",
+        "default": 5
+      }
+    },
+    "returns": "ProductType, PaperSize, PaperType, GSM, BindType, OrderCount, AvgPrice, TotalRevenue",
+    "visualization": "table",
+    "best_for": "Quick quote builder, inventory planning, customer preferences",
+    "validated": true
+  },
+  {
+    "name": "customer_reorder_prediction",
+    "category": "Customer Behavior",
+    "description": "Predict customers due for reorder based on historical patterns",
+    "parameters": {
+      "days_overdue": {
+        "type": "integer",
+        "description": "Days past average reorder cycle (default: 7)",
+        "default": 7
+      }
+    },
+    "returns": "ClientName, LastOrderDate, DaysSinceLastOrder, AvgReorderCycle, DaysOverdue, LastProduct",
+    "visualization": "table_alert",
+    "best_for": "Proactive customer outreach, retention campaigns, sales follow-up",
+    "validated": true
+  },
+  {
+    "name": "customer_reorder_prediction_business",
+    "category": "Customer Analytics",
+    "description": "Identifies commercial business customers (printing, signage, marketing) overdue for reorders. Excludes book publishing. Focuses on recent, actionable opportunities for sales outreach campaigns.",
+    "parameters": {
+      "top_n": {
+        "type": "integer",
+        "description": "Number of customers to return (default: 50)",
+        "default": 50,
+        "min": 10,
+        "max": 200
+      },
+      "min_orders": {
+        "type": "integer",
+        "description": "Minimum historical orders (2=new repeats, 5+=loyal) (default: 2)",
+        "default": 2,
+        "min": 2,
+        "max": 10
+      },
+      "min_days_since": {
+        "type": "integer",
+        "description": "Minimum days since last order (default: 90)",
+        "default": 90,
+        "min": 30,
+        "max": 365
+      },
+      "max_years_back": {
+        "type": "integer",
+        "description": "How far back to look (2=recent, actionable) (default: 2)",
+        "default": 2,
+        "min": 1,
+        "max": 5
+      }
+    },
+    "returns": "ClientName, LastOrderDate, DaysSinceLastOrder, AvgOrderCycle, DaysOverdue, LastProduct, LastOrderValue, TotalOrders, JobType",
+    "visualization": "table_alert",
+    "best_for": "Weekly sales outreach, monthly campaigns, high-risk customer alerts. Use for commercial printing customers (business cards, flyers, signage)",
+    "validated": true
+  },
+  {
+    "name": "customer_reorder_prediction_publishing",
+    "category": "Customer Analytics",
+    "description": "Identifies book publishing customers (authors, publishers) overdue for book reprints. Focuses on Perfect Bound, Spiral Bound, and Casebound products with longer reorder cycles.",
+    "parameters": {
+      "top_n": {
+        "type": "integer",
+        "description": "Number of authors/publishers to return (default: 30)",
+        "default": 30,
+        "min": 10,
+        "max": 100
+      },
+      "min_orders": {
+        "type": "integer",
+        "description": "Minimum print runs (2=reprinted once, 3+=proven seller) (default: 2)",
+        "default": 2,
+        "min": 2,
+        "max": 10
+      },
+      "min_days_since": {
+        "type": "integer",
+        "description": "Minimum days since last print run (default: 180)",
+        "default": 180,
+        "min": 90,
+        "max": 730
+      },
+      "max_years_back": {
+        "type": "integer",
+        "description": "How far back to look (3 years for book cycles) (default: 3)",
+        "default": 3,
+        "min": 2,
+        "max": 5
+      }
+    },
+    "returns": "ClientName, LastOrderDate, DaysSinceLastOrder, AvgReprintCycle, DaysOverdue, LastProduct, LastOrderValue, Pages, LastQuantity, TotalPrintRuns, JobType",
+    "visualization": "table_alert",
+    "best_for": "Quarterly reprint campaigns, seasonal pre-campaigns, bestseller VIP programs. Use for book authors and publishers",
+    "validated": true
+  },
+  {
+    "name": "reorder_opportunities_by_product",
+    "category": "Sales & Revenue Optimization",
+    "description": "Identifies customers overdue for reorders of specific product types. Enables targeted product-specific campaigns (e.g., 'Business Card Refresh', 'Spring Signage Push').",
+    "parameters": {
+      "product_type": {
+        "type": "string",
+        "description": "Specific product or NULL for all products (e.g., 'Business Cards - Double Sided', 'Corflute', 'Flyers - Double Sided'). NULL = all products (default: NULL)",
+        "default": null,
+        "optional": true
+      },
+      "top_n": {
+        "type": "integer",
+        "description": "Number of customers to return (default: 50)",
+        "default": 50,
+        "min": 10,
+        "max": 200
+      },
+      "min_orders": {
+        "type": "integer",
+        "description": "Minimum orders of this specific product (default: 2)",
+        "default": 2,
+        "min": 2,
+        "max": 10
+      },
+      "min_days_since": {
+        "type": "integer",
+        "description": "Minimum days since last order (default: 60)",
+        "default": 60,
+        "min": 30,
+        "max": 365
+      },
+      "max_years_back": {
+        "type": "integer",
+        "description": "How far back to look (default: 2)",
+        "default": 2,
+        "min": 1,
+        "max": 5
+      },
+      "sort_by": {
+        "type": "string",
+        "description": "How to prioritize results: 'overdue', 'value', 'frequency' (default: 'overdue')",
+        "default": "overdue",
+        "options": [
+          "overdue",
+          "value",
+          "frequency"
+        ]
+      }
+    },
+    "returns": "ClientName, ProductType, LastOrderDate, DaysSinceLastOrder, TypicalReorderCycle, DaysOverdue, TotalOrders, AvgOrderValue, LastOrderValue, LastProductSpec",
+    "visualization": "table_alert",
+    "best_for": "Product-specific campaigns (business card refresh, spring signage push, sticker reorder automation), monthly campaign calendar. Use to target specific products like business cards, corflutes, stickers, flyers",
+    "validated": true
+  },
+  {
+    "name": "product_bundle_opportunities",
+    "category": "Customer Behavior",
+    "description": "Products frequently ordered together for cross-sell recommendations",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      },
+      "min_co_occurrence": {
+        "type": "integer",
+        "description": "Minimum times products ordered together (default: 5)",
+        "default": 5
+      }
+    },
+    "returns": "Product1, Product2, CoOccurrences, UniqueCustomers, BundleOpportunity",
+    "visualization": "network_graph",
+    "best_for": "Bundle creation, cross-sell strategy, package deals",
+    "validated": true
+  },
+  {
+    "name": "paper_gsm_popularity",
+    "category": "Specification Intelligence",
+    "description": "Paper GSM usage by product type for inventory forecasting",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "PaperType, GSM, ProductType, OrderCount, TotalQuantity, AvgPrice",
+    "visualization": "heatmap",
+    "best_for": "Inventory management, supplier negotiations, stock forecasting",
+    "validated": true
+  },
+  {
+    "name": "binding_by_page_count",
+    "category": "Specification Intelligence",
+    "description": "Binding type recommendations based on page count analysis",
+    "parameters": {
+      "months": {
+        "type": "integer",
+        "description": "Number of months to analyze (default: 12)",
+        "default": 12
+      }
+    },
+    "returns": "PageRange, BindType, OrderCount, AvgPrice, PercentOfRange",
+    "visualization": "stacked_bar",
+    "best_for": "Binding recommendations, calculator validation, quote accuracy",
+    "validated": true
+  }
+]

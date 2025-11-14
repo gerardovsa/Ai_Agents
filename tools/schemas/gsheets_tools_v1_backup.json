@@ -1,0 +1,109 @@
+{
+  "platform": "gsheets",
+  "description": "Google Sheets data management tools",
+  "tools": [
+    {
+      "name": "gsheets_read",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRead data from a Google Sheets spreadsheet",
+      "platform": "gsheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID from URL",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Cell range (e.g., 'Sheet1!A1:D10')",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Cell values as 2D array"
+      },
+      "examples": [
+        {
+          "description": "Read data range",
+          "parameters": {
+            "spreadsheet_id": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+            "range": "Sheet1!A1:D10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "gsheets_write",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nWrite data to a Google Sheets spreadsheet",
+      "platform": "gsheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID from URL",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Cell range to write to",
+          "required": true
+        },
+        "values": {
+          "type": "array",
+          "description": "2D array of values to write",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update confirmation with cells updated"
+      }
+    },
+    {
+      "name": "gsheets_append",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend rows to the end of a sheet",
+      "platform": "gsheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID from URL",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Sheet name and starting column (e.g., 'Sheet1!A:D')",
+          "required": true
+        },
+        "values": {
+          "type": "array",
+          "description": "2D array of values to append",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Append confirmation with range updated"
+      }
+    },
+    {
+      "name": "gsheets_create",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Sheets spreadsheet",
+      "platform": "gsheets",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title",
+          "required": true
+        },
+        "sheets": {
+          "type": "array",
+          "description": "Array of sheet names to create",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created spreadsheet with ID and URL"
+      }
+    }
+  ]
+}

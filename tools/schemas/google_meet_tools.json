@@ -1,0 +1,486 @@
+{
+  "platform": "google_meet",
+  "description": "Google Meet API - Create instant meetings, schedule recurring standups, manage interview series, and create persistent meeting spaces. Includes SMART tools for common workflows.\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "google_meet_create_meeting",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_meeting', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Google Meet meeting via Google Calendar. Returns meet link, calendar event ID, and meeting details.",
+      "platform": "google_meet",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Meeting title"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time in ISO format (e.g., 2025-10-28T14:00:00)"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "description": "Meeting duration in minutes (default: 60)",
+            "default": 60
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of attendee email addresses (optional)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Meeting description (optional)"
+          },
+          "calendar_id": {
+            "type": "string",
+            "description": "Calendar ID (default: 'primary')",
+            "default": "primary"
+          }
+        },
+        "required": [
+          "title",
+          "start_time"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_create_instant_meeting",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_instant_meeting', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate an instant Google Meet meeting starting now. Perfect for ad-hoc discussions or urgent meetings.",
+      "platform": "google_meet",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Meeting title (default: 'Quick Meeting')",
+            "default": "Quick Meeting"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "description": "Duration in minutes (default: 30)",
+            "default": 30
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "google_meet_schedule_recurring_meeting",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_schedule_recurring_meeting', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate a recurring Google Meet series (daily, weekly, or monthly). Same Meet link for all occurrences.",
+      "platform": "google_meet",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Meeting title"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "First meeting start time in ISO format"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "description": "Duration per meeting in minutes"
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "DAILY",
+              "WEEKLY",
+              "MONTHLY"
+            ],
+            "description": "Recurrence frequency"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of occurrences"
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Attendee email addresses (optional)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Meeting description (optional)"
+          }
+        },
+        "required": [
+          "title",
+          "start_time",
+          "duration_minutes",
+          "frequency",
+          "count"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_get_meeting_details",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_get_meeting_details', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet complete details of a Google Meet meeting including attendees, status, and Meet link.",
+      "platform": "google_meet",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "calendar_event_id": {
+            "type": "string",
+            "description": "Calendar event ID of the meeting"
+          }
+        },
+        "required": [
+          "calendar_event_id"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_update_meeting",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_update_meeting', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing Google Meet meeting. Can change title, time, duration, description, or add attendees.",
+      "platform": "google_meet",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "calendar_event_id": {
+            "type": "string",
+            "description": "Calendar event ID of the meeting"
+          },
+          "title": {
+            "type": "string",
+            "description": "New meeting title (optional)"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "New start time in ISO format (optional)"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "description": "New duration in minutes (optional)"
+          },
+          "description": {
+            "type": "string",
+            "description": "New description (optional)"
+          },
+          "add_attendees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Additional attendees to add (optional)"
+          }
+        },
+        "required": [
+          "calendar_event_id"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_cancel_meeting",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_cancel_meeting', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCancel a Google Meet meeting and optionally send cancellation notifications to attendees.",
+      "platform": "google_meet",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "calendar_event_id": {
+            "type": "string",
+            "description": "Calendar event ID of the meeting"
+          },
+          "send_updates": {
+            "type": "boolean",
+            "description": "Send cancellation emails to attendees (default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "calendar_event_id"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_list_upcoming_meetings",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_list_upcoming_meetings', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList upcoming Google Meet meetings. Returns meetings in chronological order.",
+      "platform": "google_meet",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of meetings to return (default: 10)",
+            "default": 10
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "google_meet_create_space",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_space', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a persistent Google Meet space (permanent meeting room). Spaces have a permanent Meet link that can be reused.",
+      "platform": "google_meet",
+      "category": "advanced",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "description": "Display name for the space"
+          }
+        },
+        "required": [
+          "display_name"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_get_space",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_get_space', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a Google Meet space including its permanent Meet link and configuration.",
+      "platform": "google_meet",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string",
+            "description": "Space ID"
+          }
+        },
+        "required": [
+          "space_id"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_get_join_info",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_get_join_info', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet quick join information for a meeting (Meet link, title, time until start).",
+      "platform": "google_meet",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "calendar_event_id": {
+            "type": "string",
+            "description": "Calendar event ID of the meeting"
+          }
+        },
+        "required": [
+          "calendar_event_id"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_create_daily_standup",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_daily_standup', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a complete daily standup series with optimized settings for team standups. Automatically configured with short duration (15 min), recurring daily schedule, structured agenda, and email reminders.",
+      "platform": "google_meet",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "team_name": {
+            "type": "string",
+            "description": "Team name (e.g., 'Engineering Team', 'Marketing Team')"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "First standup time in ISO format (e.g., 2025-10-28T09:00:00)"
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Team member email addresses"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "description": "Duration in minutes (default: 15)",
+            "default": 15
+          },
+          "days_count": {
+            "type": "integer",
+            "description": "Number of days to create standups for (default: 30)",
+            "default": 30
+          }
+        },
+        "required": [
+          "team_name",
+          "start_time",
+          "attendees"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_schedule_interview_series",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_schedule_interview_series', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🎯 SMART: Schedule a complete interview series for a candidate with multiple sessions, different interviewers, and coordinated timing. Each interview gets its own Meet link and calendar event.",
+      "platform": "google_meet",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "candidate_name": {
+            "type": "string",
+            "description": "Candidate's full name"
+          },
+          "candidate_email": {
+            "type": "string",
+            "description": "Candidate's email address"
+          },
+          "interviews": {
+            "type": "array",
+            "description": "List of interview sessions to schedule",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Interview type (e.g., 'Technical Interview', 'Behavioral Interview', 'Manager Round')"
+                },
+                "start_time": {
+                  "type": "string",
+                  "description": "Start time in ISO format"
+                },
+                "duration_minutes": {
+                  "type": "integer",
+                  "description": "Duration in minutes"
+                },
+                "interviewers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Interviewer email addresses"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Optional interview details or focus areas"
+                }
+              },
+              "required": [
+                "title",
+                "start_time",
+                "duration_minutes",
+                "interviewers"
+              ]
+            }
+          }
+        },
+        "required": [
+          "candidate_name",
+          "candidate_email",
+          "interviews"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_create_team_meeting_with_agenda",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_team_meeting_with_agenda', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a structured team meeting with a detailed agenda. Automatically formats agenda items with time estimates and adds preparation notes.",
+      "platform": "google_meet",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Meeting title"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time in ISO format"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "description": "Total meeting duration in minutes"
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Attendee email addresses"
+          },
+          "agenda_items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of agenda items (each as a string)"
+          },
+          "preparation_notes": {
+            "type": "string",
+            "description": "Optional preparation instructions for attendees"
+          }
+        },
+        "required": [
+          "title",
+          "start_time",
+          "duration_minutes",
+          "attendees",
+          "agenda_items"
+        ]
+      }
+    },
+    {
+      "name": "google_meet_create_weekly_review",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_weekly_review', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a weekly review/retrospective series with structured agenda for team reflection and improvement. Includes sections for wins, challenges, priorities, and action items.",
+      "platform": "google_meet",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "team_name": {
+            "type": "string",
+            "description": "Team name"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "First review time in ISO format"
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Team member email addresses"
+          },
+          "weeks_count": {
+            "type": "integer",
+            "description": "Number of weeks (default: 12)",
+            "default": 12
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "description": "Duration in minutes (default: 60)",
+            "default": 60
+          }
+        },
+        "required": [
+          "team_name",
+          "start_time",
+          "attendees"
+        ]
+      }
+    }
+  ]
+}

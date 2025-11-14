@@ -1,0 +1,741 @@
+{
+  "platform": "gmail",
+  "description": "Gmail API - Complete email management, sending, filtering, labels, drafts, and attachments",
+  "tools": [
+    {
+      "name": "gmail_send_email",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an email with attachments and HTML formatting",
+      "platform": "gmail",
+      "parameters": {
+        "to": {
+          "type": "array",
+          "description": "Array of recipient email addresses",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject",
+          "required": true
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body (plain text or HTML)",
+          "required": true
+        },
+        "cc": {
+          "type": "array",
+          "description": "CC recipients",
+          "required": false
+        },
+        "bcc": {
+          "type": "array",
+          "description": "BCC recipients",
+          "required": false
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Array of attachment objects with filename and content",
+          "required": false
+        },
+        "html": {
+          "type": "boolean",
+          "description": "Body is HTML formatted",
+          "required": false,
+          "default": false
+        },
+        "reply_to": {
+          "type": "string",
+          "description": "Reply-to email address",
+          "required": false
+        },
+        "thread_id": {
+          "type": "string",
+          "description": "Thread ID to reply to",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Sent message with ID and thread ID"
+      }
+    },
+    {
+      "name": "gmail_create_draft",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a draft email",
+      "platform": "gmail",
+      "parameters": {
+        "to": {
+          "type": "array",
+          "description": "Recipient emails",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject",
+          "required": true
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body",
+          "required": true
+        },
+        "cc": {
+          "type": "array",
+          "description": "CC recipients",
+          "required": false
+        },
+        "bcc": {
+          "type": "array",
+          "description": "BCC recipients",
+          "required": false
+        },
+        "html": {
+          "type": "boolean",
+          "description": "Body is HTML",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Draft with ID"
+      }
+    },
+    {
+      "name": "gmail_send_draft",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an existing draft",
+      "platform": "gmail",
+      "parameters": {
+        "draft_id": {
+          "type": "string",
+          "description": "Draft ID to send",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Sent message details"
+      }
+    },
+    {
+      "name": "gmail_list_messages",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList emails with advanced filters",
+      "platform": "gmail",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Gmail search query (e.g., 'from:example@gmail.com is:unread')",
+          "required": false
+        },
+        "label_ids": {
+          "type": "array",
+          "description": "Filter by label IDs (INBOX, SENT, TRASH, etc.)",
+          "required": false
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum messages to return (1-500)",
+          "required": false,
+          "default": 100
+        },
+        "include_spam_trash": {
+          "type": "boolean",
+          "description": "Include spam and trash",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of messages with metadata"
+      }
+    },
+    {
+      "name": "gmail_get_message",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet full email details including body and attachments",
+      "platform": "gmail",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Message ID",
+          "required": true
+        },
+        "format": {
+          "type": "string",
+          "description": "Response format: full, metadata, minimal, or raw",
+          "required": false,
+          "default": "full"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete message details"
+      }
+    },
+    {
+      "name": "gmail_get_attachment",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload email attachment",
+      "platform": "gmail",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Message ID",
+          "required": true
+        },
+        "attachment_id": {
+          "type": "string",
+          "description": "Attachment ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Attachment data (base64 encoded)"
+      }
+    },
+    {
+      "name": "gmail_delete_message",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete or trash a message",
+      "platform": "gmail",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Message ID",
+          "required": true
+        },
+        "permanent": {
+          "type": "boolean",
+          "description": "Permanently delete (vs move to trash)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "gmail_modify_message",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nModify message labels (mark as read/unread, archive, etc.)",
+      "platform": "gmail",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Message ID",
+          "required": true
+        },
+        "add_label_ids": {
+          "type": "array",
+          "description": "Labels to add (UNREAD, STARRED, IMPORTANT, etc.)",
+          "required": false
+        },
+        "remove_label_ids": {
+          "type": "array",
+          "description": "Labels to remove",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated message"
+      }
+    },
+    {
+      "name": "gmail_mark_as_read",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark message(s) as read",
+      "platform": "gmail",
+      "parameters": {
+        "message_ids": {
+          "type": "array",
+          "description": "Array of message IDs",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update confirmation"
+      }
+    },
+    {
+      "name": "gmail_mark_as_unread",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark message(s) as unread",
+      "platform": "gmail",
+      "parameters": {
+        "message_ids": {
+          "type": "array",
+          "description": "Array of message IDs",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update confirmation"
+      }
+    },
+    {
+      "name": "gmail_archive_message",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nArchive message (remove from inbox)",
+      "platform": "gmail",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Message ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Archive confirmation"
+      }
+    },
+    {
+      "name": "gmail_unarchive_message",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nUnarchive message (return to inbox)",
+      "platform": "gmail",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Message ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Unarchive confirmation"
+      }
+    },
+    {
+      "name": "gmail_list_labels",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all labels in mailbox",
+      "platform": "gmail",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of labels with IDs and names"
+      }
+    },
+    {
+      "name": "gmail_create_label",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new label",
+      "platform": "gmail",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Label name",
+          "required": true
+        },
+        "label_list_visibility": {
+          "type": "string",
+          "description": "Visibility: labelShow, labelShowIfUnread, or labelHide",
+          "required": false,
+          "default": "labelShow"
+        },
+        "message_list_visibility": {
+          "type": "string",
+          "description": "Message visibility: show or hide",
+          "required": false,
+          "default": "show"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created label with ID"
+      }
+    },
+    {
+      "name": "gmail_update_label",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate label properties",
+      "platform": "gmail",
+      "parameters": {
+        "label_id": {
+          "type": "string",
+          "description": "Label ID",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "New label name",
+          "required": false
+        },
+        "label_list_visibility": {
+          "type": "string",
+          "description": "New visibility",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated label"
+      }
+    },
+    {
+      "name": "gmail_delete_label",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a label",
+      "platform": "gmail",
+      "parameters": {
+        "label_id": {
+          "type": "string",
+          "description": "Label ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "gmail_create_filter",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate email filter rule",
+      "platform": "gmail",
+      "parameters": {
+        "criteria": {
+          "type": "object",
+          "description": "Filter criteria (from, to, subject, query, etc.)",
+          "required": true
+        },
+        "action": {
+          "type": "object",
+          "description": "Actions to apply (addLabelIds, removeLabelIds, forward, etc.)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created filter"
+      }
+    },
+    {
+      "name": "gmail_list_filters",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all filters",
+      "platform": "gmail",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of filters"
+      }
+    },
+    {
+      "name": "gmail_delete_filter",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a filter",
+      "platform": "gmail",
+      "parameters": {
+        "filter_id": {
+          "type": "string",
+          "description": "Filter ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "gmail_get_profile",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet user's Gmail profile",
+      "platform": "gmail",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Email address, messages total, threads total, history ID"
+      }
+    },
+    {
+      "name": "gmail_search_messages",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAdvanced email search with Gmail query syntax",
+      "platform": "gmail",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Gmail search query (supports operators like from:, to:, subject:, has:attachment, after:, before:, newer_than:, older_than:, is:unread, is:starred, label:, filename:, larger:, smaller:)",
+          "required": true
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Max results (1-500)",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with matching messages"
+      },
+      "examples": [
+        {
+          "description": "Find unread emails from specific sender",
+          "parameters": {
+            "query": "from:john@example.com is:unread"
+          }
+        },
+        {
+          "description": "Find emails with PDF attachments from last week",
+          "query": "has:attachment filename:pdf newer_than:7d"
+        },
+        {
+          "description": "Find large emails with attachments",
+          "query": "has:attachment larger:5M"
+        }
+      ]
+    },
+    {
+      "name": "gmail_batch_delete",
+      "description": "Example response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete multiple messages at once",
+      "platform": "gmail",
+      "parameters": {
+        "message_ids": {
+          "type": "array",
+          "description": "Array of message IDs to delete",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Batch deletion confirmation"
+      }
+    },
+    {
+      "name": "gmail_batch_modify",
+      "description": "Example response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nModify multiple messages at once",
+      "platform": "gmail",
+      "parameters": {
+        "message_ids": {
+          "type": "array",
+          "description": "Array of message IDs",
+          "required": true
+        },
+        "add_label_ids": {
+          "type": "array",
+          "description": "Labels to add",
+          "required": false
+        },
+        "remove_label_ids": {
+          "type": "array",
+          "description": "Labels to remove",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Batch modification confirmation"
+      }
+    },
+    {
+      "name": "gmail_watch_mailbox",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSet up push notifications for mailbox changes",
+      "platform": "gmail",
+      "parameters": {
+        "topic_name": {
+          "type": "string",
+          "description": "Google Cloud Pub/Sub topic name",
+          "required": true
+        },
+        "label_ids": {
+          "type": "array",
+          "description": "Labels to watch (omit for all)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Watch response with expiration"
+      }
+    },
+    {
+      "name": "gmail_stop_watch",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nStop mailbox push notifications",
+      "platform": "gmail",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Stop confirmation"
+      }
+    },
+    {
+      "name": "gmail_get_thread",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet complete email thread/conversation",
+      "platform": "gmail",
+      "parameters": {
+        "thread_id": {
+          "type": "string",
+          "description": "Thread ID",
+          "required": true
+        },
+        "format": {
+          "type": "string",
+          "description": "Format: full, metadata, or minimal",
+          "required": false,
+          "default": "full"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Thread with all messages"
+      }
+    },
+    {
+      "name": "gmail_list_threads",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList email threads",
+      "platform": "gmail",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Gmail search query",
+          "required": false
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Max threads (1-500)",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of threads"
+      }
+    },
+    {
+      "name": "gmail_trash_thread",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove entire thread to trash",
+      "platform": "gmail",
+      "parameters": {
+        "thread_id": {
+          "type": "string",
+          "description": "Thread ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Trash confirmation"
+      }
+    },
+    {
+      "name": "gmail_get_history",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet mailbox history changes since a specific point",
+      "platform": "gmail",
+      "parameters": {
+        "start_history_id": {
+          "type": "string",
+          "description": "History ID to start from",
+          "required": true
+        },
+        "history_types": {
+          "type": "array",
+          "description": "Types to include: messageAdded, messageDeleted, labelAdded, labelRemoved",
+          "required": false
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Max results",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "History changes"
+      }
+    },
+    {
+      "name": "gmail_send_email_smtp",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend email via SMTP from specific Gmail account (more reliable than API). Available accounts: gpoli1982@gmail.com, gerardo@vetsuccessacademy.com, gerardo@minivetguide.com, minivetguide@gmail.com, marketing@minivetguide.com",
+      "platform": "gmail",
+      "parameters": {
+        "from_email": {
+          "type": "string",
+          "description": "Sender email address. Must be one of: gpoli1982@gmail.com, gerardo@vetsuccessacademy.com, gerardo@minivetguide.com, minivetguide@gmail.com, marketing@minivetguide.com",
+          "required": true
+        },
+        "to": {
+          "type": "string",
+          "description": "Recipient email address",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject",
+          "required": true
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body (plain text)",
+          "required": true
+        },
+        "cc": {
+          "type": "string",
+          "description": "CC recipients (comma-separated)",
+          "required": false
+        },
+        "bcc": {
+          "type": "string",
+          "description": "BCC recipients (comma-separated)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Success status with email details (from, to, subject, method)"
+      }
+    },
+    {
+      "name": "gmail_send_email_smtp_html",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend HTML formatted email via SMTP from specific Gmail account. Available accounts: gpoli1982@gmail.com, gerardo@vetsuccessacademy.com, gerardo@minivetguide.com, minivetguide@gmail.com, marketing@minivetguide.com",
+      "platform": "gmail",
+      "parameters": {
+        "from_email": {
+          "type": "string",
+          "description": "Sender email address. Must be one of the configured accounts.",
+          "required": true
+        },
+        "to": {
+          "type": "string",
+          "description": "Recipient email address",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject",
+          "required": true
+        },
+        "html_body": {
+          "type": "string",
+          "description": "Email body in HTML format",
+          "required": true
+        },
+        "plain_body": {
+          "type": "string",
+          "description": "Optional plain text fallback",
+          "required": false
+        },
+        "cc": {
+          "type": "string",
+          "description": "CC recipients (comma-separated)",
+          "required": false
+        },
+        "bcc": {
+          "type": "string",
+          "description": "BCC recipients (comma-separated)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Success status with email details"
+      }
+    },
+    {
+      "name": "gmail_list_available_accounts",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all Gmail accounts available for sending via SMTP with their configuration status",
+      "platform": "gmail",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Total count and details of configured email accounts"
+      }
+    }
+  ]
+}

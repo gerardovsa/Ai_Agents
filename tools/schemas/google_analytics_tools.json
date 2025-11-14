@@ -1,0 +1,356 @@
+{
+  "platform": "google_analytics",
+  "description": "Google Analytics API - Web analytics, tracking, and reporting tools",
+  "tools": [
+    {
+      "name": "google_analytics_list_accounts",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all Google Analytics accounts accessible",
+      "platform": "google_analytics",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of Analytics accounts"
+      }
+    },
+    {
+      "name": "google_analytics_list_properties",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList properties for an account",
+      "platform": "google_analytics",
+      "parameters": {
+        "account_id": {
+          "type": "string",
+          "description": "Account ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of properties (GA4 and Universal Analytics)"
+      }
+    },
+    {
+      "name": "google_analytics_get_realtime_report",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet real-time analytics data (last 30 minutes)",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "dimensions": {
+          "type": "array",
+          "description": "Dimensions to include (e.g., ['country', 'deviceCategory'])",
+          "required": false
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Metrics to include (e.g., ['activeUsers', 'screenPageViews'])",
+          "required": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum rows to return",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Real-time analytics data"
+      }
+    },
+    {
+      "name": "google_analytics_run_report",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRun a custom analytics report",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "date_ranges": {
+          "type": "array",
+          "description": "Array of date range objects with startDate and endDate",
+          "required": true
+        },
+        "dimensions": {
+          "type": "array",
+          "description": "Dimensions (e.g., ['date', 'country', 'pagePath'])",
+          "required": false
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Metrics (e.g., ['sessions', 'totalUsers', 'bounceRate'])",
+          "required": true
+        },
+        "dimension_filter": {
+          "type": "object",
+          "description": "Filter to apply to dimensions",
+          "required": false
+        },
+        "metric_filter": {
+          "type": "object",
+          "description": "Filter to apply to metrics",
+          "required": false
+        },
+        "order_bys": {
+          "type": "array",
+          "description": "Sort order specifications",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum rows",
+          "required": false,
+          "default": 1000
+        },
+        "offset": {
+          "type": "integer",
+          "description": "Row offset for pagination",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Report data with dimensions and metrics"
+      }
+    },
+    {
+      "name": "google_analytics_get_page_views",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet page view statistics for a date range",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date (YYYY-MM-DD or 'today', '7daysAgo', etc.)",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date (YYYY-MM-DD or 'today')",
+          "required": true
+        },
+        "page_path": {
+          "type": "string",
+          "description": "Filter by specific page path",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Page view metrics by date and page"
+      }
+    },
+    {
+      "name": "google_analytics_get_user_behavior",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet user behavior metrics (sessions, bounce rate, engagement)",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date",
+          "required": true
+        },
+        "dimensions": {
+          "type": "array",
+          "description": "Group by dimensions (country, city, deviceCategory, etc.)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "User behavior metrics"
+      }
+    },
+    {
+      "name": "google_analytics_get_conversions",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet conversion tracking data",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date",
+          "required": true
+        },
+        "conversion_events": {
+          "type": "array",
+          "description": "Specific conversion event names to track",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Conversion metrics and rates"
+      }
+    },
+    {
+      "name": "google_analytics_get_traffic_sources",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet traffic source breakdown (organic, paid, social, etc.)",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Traffic by source, medium, and campaign"
+      }
+    },
+    {
+      "name": "google_analytics_get_demographics",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet user demographics (age, gender, location)",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Demographic breakdown of users"
+      }
+    },
+    {
+      "name": "google_analytics_get_device_data",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet device and browser statistics",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Metrics by device category, browser, OS"
+      }
+    },
+    {
+      "name": "google_analytics_get_top_pages",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet most visited pages",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date",
+          "required": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of top pages to return",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Top pages by views and engagement"
+      }
+    },
+    {
+      "name": "google_analytics_get_events",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet custom event tracking data",
+      "platform": "google_analytics",
+      "parameters": {
+        "property_id": {
+          "type": "string",
+          "description": "GA4 property ID",
+          "required": true
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date",
+          "required": true
+        },
+        "event_names": {
+          "type": "array",
+          "description": "Specific event names to track",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Event counts and parameters"
+      }
+    }
+  ]
+}

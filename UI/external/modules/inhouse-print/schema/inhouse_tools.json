@@ -1,0 +1,196 @@
+{
+  "platform": "inhouse_print",
+  "description": "InHouse Print specialized tools with progressive discovery system (3 tiers: Entry Point → Domain Guides → Action Tools). ALWAYS start with inhouse_get_domain_guide when user mentions InHouse, quotes, printing, or SQL queries.",
+  "tools": [
+    {
+      "name": "inhouse_get_domain_guide",
+      "description": "TIER 1 ENTRY POINT - ALWAYS call this FIRST when user mentions InHouse Print, quotes, printing, orders, SQL queries, database, stock, or inventory. Maps user intent to appropriate domain (calculator, query, stock, database) and guides to Tier 2 domain-specific tool. Progressive discovery prevents errors by enforcing workflows: get_requirements before calculate, get_schema before execute_sql. DO NOT skip to action tools.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Domain map with 4 domains (calculator, query, stock, database), suggested next tool, workflow enforcement (mandatory steps), critical reminders (don't skip tiers), anti-patterns (common mistakes)"
+      }
+    },
+    {
+      "name": "inhouse_calculator_guide",
+      "description": "TIER 2A - Calculator System Guide. ALWAYS call this BEFORE using any calculator. Explains 10 calculator types (GOD calculator for flyers/business_cards, Shopify calculators for specialized products), parameter requirements system, natural language mappings, historical patterns. MANDATORY NEXT STEP: After reading this, MUST call inhouse_get_calculator_requirements(product_type) to get parameter requirements. DO NOT call calculate_quote without requirements - you'll get parameter errors.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Calculator index (GOD vs Shopify calculators), workflow guidance (3-step mandatory process), natural language handling (text to parameters), historical patterns (common values), error prevention (4 common mistakes), follow-up tool chain (calculator_guide → get_requirements → calculate_quote)"
+      }
+    },
+    {
+      "name": "inhouse_query_guide",
+      "description": "TIER 2B - Query System Guide. Explains pre-built queries (50+ optimized queries across 6 categories) vs custom SQL. CRITICAL: Check pre-built queries FIRST - they are optimized and tested. For custom SQL: MUST call inhouse_database_guide() to get schema BEFORE writing SQL (prevents 'Invalid column name' errors like DateCreated, Width/Height, bt.[Desc]). Two workflows: (1) Pre-built: query_guide → get_query_library_catalog → execute, (2) Custom: query_guide → database_guide (MANDATORY) → execute_sql.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Query categories (6 categories with query counts and examples), workflow guidance (pre-built vs custom SQL), error prevention (4 common mistakes), follow-up tool chains (two options with ASCII diagrams)"
+      }
+    },
+    {
+      "name": "inhouse_stock_guide",
+      "description": "TIER 2C - Stock Management Guide. Explains quick stock tools (query_stock_levels, get_reorder_alerts - ready to use, no schema needed) vs complex stock analysis (requires database_guide for ReorderAlerts table schema). Two workflows: (1) Quick checks: stock_guide → query_stock_levels or get_reorder_alerts (immediate), (2) Complex analysis: stock_guide → database_guide (MANDATORY) → execute_sql.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Stock types (paper stock, materials), common tasks (quick check vs complex analysis), workflow guidance (when schema is needed), error prevention (3 common mistakes), follow-up tool chains (two options with ASCII diagrams)"
+      }
+    },
+    {
+      "name": "inhouse_database_guide",
+      "description": "TIER 2D - Database Schema Guide. ALWAYS call this BEFORE inhouse_execute_sql when writing custom SQL. Provides complete schema with column names, types, relationships, JOIN patterns, SQL templates, and common mistakes. Prevents common errors: DateCreated (doesn't exist in JobTickets - use Orders.OrderDate), Width/Height (don't exist in PaperSize - use ps.[Desc]), bt.[Desc] (doesn't exist - use bt.BindTypeDesc), ColourStatus (is urgency not print color - use PrintType). MANDATORY for custom SQL - DO NOT guess column names.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete schema (Orders, JobTickets, PaperSize, BindType, ReorderAlerts tables with columns, types, foreign keys), SQL patterns (correct query templates), best practices (9 rules), common mistakes (5 errors with WHY they happen and fixes), error prevention (4 warnings), follow-up tool chain (database_guide → write SQL → execute_sql)"
+      }
+    },
+    {
+      "name": "inhouse_get_query_library_catalog",
+      "description": "Get catalog of 50+ pre-built SQL queries for InHouse Print database with parameter requirements and usage examples. Use this to discover available queries before executing SQL.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Optional filter: 'Sales & Revenue', 'Customer Analytics', 'Product Performance', 'Operations & Efficiency', 'Stock Management', 'Production Reports', 'Financial Reports'"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of queries with name, category, description, parameters, and examples"
+      }
+    },
+    {
+      "name": "inhouse_execute_sql",
+      "description": "Execute SQL query against InHousePrintDB (FredDEV) with embedded schema knowledge (500+ lines of corrections). CRITICAL SCHEMA CORRECTIONS: PaperSize has NO Width/Height columns (only SizeID and [Desc]), BindType uses BindTypeDesc (NOT [Desc]!), ColourStatus is production urgency (NOT print color), TicketNotes is PRIMARY source of truth when structured columns are NULL. Always JOIN Orders (o), JobTickets (jt), PaperSize (ps), BindType (bt). Use TOP 20 to limit results.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "SQL query to execute (use TOP 20 for safety)"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "returns": {
+        "type": "array",
+        "description": "Query results as array of row objects"
+      }
+    },
+    {
+      "name": "inhouse_get_calculator_requirements",
+      "description": "Get complete parameter requirements, natural language mappings, historical patterns, and extraction strategies for each calculator type. ALWAYS call this FIRST before calculating quotes to learn what parameters are needed.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "product_type": {
+            "type": "string",
+            "description": "Calculator type: business_cards, flyers, perfect_bound_books, corflute_signs, booklets, wire_bound, spiral_bound, premium_business_cards, economical_business_cards, folded_flyers"
+          }
+        },
+        "required": [
+          "product_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete guidance including parameters (with types, required flags, options), natural_language_mapping (text to parameters), historical_patterns (common values), extraction_strategy (how to parse TicketNotes)"
+      }
+    },
+    {
+      "name": "inhouse_calculate_quote",
+      "description": "Calculate quote for InHouse Print products. Routes to appropriate calculator (GOD calculator for flyers/business_cards, Shopify calculators for specialized products). Always call get_calculator_requirements FIRST to validate parameters.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "product_type": {
+            "type": "string",
+            "description": "Product type matching calculator requirements"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Product-specific parameters from get_calculator_requirements"
+          }
+        },
+        "required": [
+          "product_type",
+          "parameters"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Quote with cost_ex_gst, cost_inc_gst, cost_to_business, profit_margin, specifications, breakdown"
+      }
+    },
+    {
+      "name": "inhouse_query_stock_levels",
+      "description": "Quick inventory check for paper/material stock levels. Faster than SQL query for common stock checks. Returns current levels, reorder points, and status (critical/low/ok).",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "filters": {
+            "type": "object",
+            "description": "Optional filters: stock_type (e.g., 'Satin'), gsm (e.g., 350), status ('critical'|'low'|'ok')"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Array of stocks with stock_id, description, current_level, reorder_point, critical_level, status"
+      }
+    },
+    {
+      "name": "inhouse_get_reorder_alerts",
+      "description": "Quick dashboard of stock shortage alerts. Returns list of stocks below reorder point with alert levels (CRITICAL/WARNING). Use this for proactive stock management.",
+      "platform": "inhouse_print",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Alerts array with stock_id, description, current_level, reorder_point, alert_level, alert_date, plus critical_count and warning_count totals"
+      }
+    }
+  ]
+}

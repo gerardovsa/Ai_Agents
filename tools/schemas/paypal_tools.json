@@ -1,0 +1,410 @@
+{
+  "platform": "paypal",
+  "description": "PayPal API - Online payments, mass payouts, invoices, and transaction management",
+  "tools": [
+    {
+      "name": "paypal_create_order",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a PayPal order for checkout",
+      "platform": "paypal",
+      "parameters": {
+        "amount": {
+          "type": "string",
+          "description": "Order amount (e.g., '100.00')",
+          "required": true
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code (USD, EUR, GBP, etc.)",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "description": "Order description",
+          "required": false
+        },
+        "return_url": {
+          "type": "string",
+          "description": "URL to return after payment approval",
+          "required": true
+        },
+        "cancel_url": {
+          "type": "string",
+          "description": "URL for cancelled payments",
+          "required": true
+        },
+        "items": {
+          "type": "array",
+          "description": "Array of item objects with name, quantity, price",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Order object with approval URL"
+      }
+    },
+    {
+      "name": "paypal_capture_order",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCapture payment for an approved order",
+      "platform": "paypal",
+      "parameters": {
+        "order_id": {
+          "type": "string",
+          "description": "Order ID to capture",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Captured payment details"
+      }
+    },
+    {
+      "name": "paypal_get_order",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet order details",
+      "platform": "paypal",
+      "parameters": {
+        "order_id": {
+          "type": "string",
+          "description": "Order ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Order details and status"
+      }
+    },
+    {
+      "name": "paypal_create_payout",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend mass payout to multiple recipients",
+      "platform": "paypal",
+      "parameters": {
+        "sender_batch_id": {
+          "type": "string",
+          "description": "Unique batch ID",
+          "required": true
+        },
+        "email_subject": {
+          "type": "string",
+          "description": "Email subject for recipients",
+          "required": false
+        },
+        "email_message": {
+          "type": "string",
+          "description": "Email message for recipients",
+          "required": false
+        },
+        "items": {
+          "type": "array",
+          "description": "Array of payout items with recipient_email, amount, currency, note",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Payout batch with status"
+      }
+    },
+    {
+      "name": "paypal_get_payout",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet payout batch status",
+      "platform": "paypal",
+      "parameters": {
+        "payout_batch_id": {
+          "type": "string",
+          "description": "Payout batch ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Payout batch details and item statuses"
+      }
+    },
+    {
+      "name": "paypal_get_payout_item",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet individual payout item details",
+      "platform": "paypal",
+      "parameters": {
+        "payout_item_id": {
+          "type": "string",
+          "description": "Payout item ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Payout item status and details"
+      }
+    },
+    {
+      "name": "paypal_create_invoice",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate an invoice",
+      "platform": "paypal",
+      "parameters": {
+        "recipient_email": {
+          "type": "string",
+          "description": "Recipient email address",
+          "required": true
+        },
+        "items": {
+          "type": "array",
+          "description": "Array of invoice items with name, quantity, unit_price",
+          "required": true
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code",
+          "required": true
+        },
+        "note": {
+          "type": "string",
+          "description": "Note to recipient",
+          "required": false
+        },
+        "terms": {
+          "type": "string",
+          "description": "Payment terms",
+          "required": false
+        },
+        "due_date": {
+          "type": "string",
+          "description": "Due date (YYYY-MM-DD)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created invoice with ID"
+      }
+    },
+    {
+      "name": "paypal_send_invoice",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an invoice to recipient",
+      "platform": "paypal",
+      "parameters": {
+        "invoice_id": {
+          "type": "string",
+          "description": "Invoice ID",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject",
+          "required": false
+        },
+        "note": {
+          "type": "string",
+          "description": "Email note",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Send confirmation"
+      }
+    },
+    {
+      "name": "paypal_get_invoice",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet invoice details",
+      "platform": "paypal",
+      "parameters": {
+        "invoice_id": {
+          "type": "string",
+          "description": "Invoice ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Invoice details and status"
+      }
+    },
+    {
+      "name": "paypal_cancel_invoice",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCancel an invoice",
+      "platform": "paypal",
+      "parameters": {
+        "invoice_id": {
+          "type": "string",
+          "description": "Invoice ID",
+          "required": true
+        },
+        "subject": {
+          "type": "string",
+          "description": "Cancellation email subject",
+          "required": false
+        },
+        "note": {
+          "type": "string",
+          "description": "Cancellation note",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Cancellation confirmation"
+      }
+    },
+    {
+      "name": "paypal_record_payment",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRecord external payment for invoice",
+      "platform": "paypal",
+      "parameters": {
+        "invoice_id": {
+          "type": "string",
+          "description": "Invoice ID",
+          "required": true
+        },
+        "payment_date": {
+          "type": "string",
+          "description": "Payment date (YYYY-MM-DD)",
+          "required": true
+        },
+        "amount": {
+          "type": "string",
+          "description": "Payment amount",
+          "required": true
+        },
+        "payment_method": {
+          "type": "string",
+          "description": "Payment method (CASH, CHECK, etc.)",
+          "required": true
+        },
+        "note": {
+          "type": "string",
+          "description": "Payment note",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Payment record confirmation"
+      }
+    },
+    {
+      "name": "paypal_list_invoices",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList invoices with filters",
+      "platform": "paypal",
+      "parameters": {
+        "page": {
+          "type": "integer",
+          "description": "Page number",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "description": "Items per page (1-100)",
+          "required": false,
+          "default": 20
+        },
+        "status": {
+          "type": "string",
+          "description": "Filter by status: DRAFT, SENT, PAID, CANCELLED, etc.",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of invoices"
+      }
+    },
+    {
+      "name": "paypal_get_transaction",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet transaction details",
+      "platform": "paypal",
+      "parameters": {
+        "transaction_id": {
+          "type": "string",
+          "description": "Transaction ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Transaction details"
+      }
+    },
+    {
+      "name": "paypal_list_transactions",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList transactions for a date range",
+      "platform": "paypal",
+      "parameters": {
+        "start_date": {
+          "type": "string",
+          "description": "Start date (YYYY-MM-DDTHH:MM:SSZ)",
+          "required": true
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date (YYYY-MM-DDTHH:MM:SSZ)",
+          "required": true
+        },
+        "transaction_status": {
+          "type": "string",
+          "description": "Filter by status",
+          "required": false
+        },
+        "page_size": {
+          "type": "integer",
+          "description": "Items per page (1-500)",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of transactions"
+      }
+    },
+    {
+      "name": "paypal_create_refund",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nRefund a captured payment",
+      "platform": "paypal",
+      "parameters": {
+        "capture_id": {
+          "type": "string",
+          "description": "Capture ID",
+          "required": true
+        },
+        "amount": {
+          "type": "string",
+          "description": "Refund amount (omit for full refund)",
+          "required": false
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code",
+          "required": false
+        },
+        "note": {
+          "type": "string",
+          "description": "Refund note",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Refund details"
+      }
+    },
+    {
+      "name": "paypal_get_refund",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet refund details",
+      "platform": "paypal",
+      "parameters": {
+        "refund_id": {
+          "type": "string",
+          "description": "Refund ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Refund status and details"
+      }
+    }
+  ]
+}

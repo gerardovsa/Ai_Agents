@@ -1,0 +1,74 @@
+{
+    "totalTools": 7,
+    "categories": [
+        {
+            "name": "Calculator Tools",
+            "description": "Quote calculation tools for various print products",
+            "tools": [
+                {
+                    "name": "calculate_business_cards",
+                    "description": "Calculate quote for business cards (90x55mm)",
+                    "parameters": [
+                        "quantity",
+                        "stock_type",
+                        "sides"
+                    ]
+                },
+                {
+                    "name": "calculate_flyers",
+                    "description": "Calculate quote for flyers/leaflets",
+                    "parameters": [
+                        "quantity",
+                        "stock_name",
+                        "size",
+                        "sides"
+                    ]
+                },
+                {
+                    "name": "calculate_booklets",
+                    "description": "Calculate quote for saddle-stitched booklets",
+                    "parameters": [
+                        "quantity",
+                        "cover_stock",
+                        "inside_stock",
+                        "pages",
+                        "size"
+                    ]
+                },
+                {
+                    "name": "calculate_perfect_bound_books",
+                    "description": "Calculate quote for perfect bound books",
+                    "parameters": [
+                        "quantity",
+                        "cover_stock",
+                        "inside_stock",
+                        "pages",
+                        "size"
+                    ]
+                },
+                {
+                    "name": "calculate_corflute_signs",
+                    "description": "Calculate quote for corflute signs",
+                    "parameters": [
+                        "quantity",
+                        "width_mm",
+                        "height_mm",
+                        "thickness"
+                    ]
+                },
+                {
+                    "name": "get_stock_list",
+                    "description": "Get list of available paper stocks",
+                    "parameters": []
+                },
+                {
+                    "name": "get_calculator_requirements",
+                    "description": "Get parameter requirements for any calculator",
+                    "parameters": [
+                        "calculator_name"
+                    ]
+                }
+            ]
+        }
+    ]
+}

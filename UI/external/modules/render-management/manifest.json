@@ -1,0 +1,58 @@
+{
+  "id": "render-management",
+  "name": "Render Cloud",
+  "version": "1.0.0",
+  "description": "Manage Render services - deploy, monitor, view logs, and track metrics",
+  "author": "Valor AI",
+  "icon": "fas fa-cloud",
+  "color": "#6C5CE7",
+  "colors": {
+    "primary": "#6C5CE7",
+    "secondary": "#A29BFE",
+    "success": "#00B894",
+    "warning": "#FDCB6E",
+    "danger": "#D63031"
+  },
+  "scriptPath": "external/modules/render-management/render-management.js",
+  "stylePath": "external/modules/render-management/render-management.css",
+  "permissions": [
+    "api:render",
+    "storage:local"
+  ],
+  "dependencies": [
+    "chart.js"
+  ],
+  "tabs": [
+    {
+      "id": "services",
+      "label": "Services",
+      "icon": "fas fa-server",
+      "default": true
+    },
+    {
+      "id": "deployments",
+      "label": "Deployments",
+      "icon": "fas fa-rocket"
+    },
+    {
+      "id": "logs",
+      "label": "Logs",
+      "icon": "fas fa-file-alt"
+    },
+    {
+      "id": "metrics",
+      "label": "Metrics",
+      "icon": "fas fa-chart-line"
+    },
+    {
+      "id": "databases",
+      "label": "Databases",
+      "icon": "fas fa-database"
+    }
+  ],
+  "settings": {
+    "refresh_interval": 30,
+    "log_tail_lines": 100,
+    "metrics_time_range": "1h"
+  }
+}

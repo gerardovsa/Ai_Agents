@@ -1,0 +1,57 @@
+{
+    "id": "communication-hub",
+    "name": "Communication Hub",
+    "version": "1.0.0",
+    "description": "Unified inbox for Gmail and Outlook with AI agent integration. Drag emails to AI sidebar or right-click to send to agents.",
+    "icon": "fas fa-comments",
+    "author": "InHouse Print",
+    "created": "2025-11-10",
+    "colors": {
+        "primary": "#6366f1",
+        "secondary": "#818cf8",
+        "hover": "#4f46e5",
+        "success": "#10b981",
+        "warning": "#f59e0b",
+        "danger": "#ef4444"
+    },
+    "tabs": [
+        {
+            "id": "unified-inbox",
+            "name": "Unified Inbox",
+            "icon": "fas fa-inbox",
+            "description": "All messages from Gmail and Outlook. Drag to AI sidebar or right-click to send to agents."
+        },
+        {
+            "id": "compose",
+            "name": "Compose",
+            "icon": "fas fa-pen",
+            "description": "Send emails via Gmail or Outlook"
+        },
+        {
+            "id": "threads",
+            "name": "Threads",
+            "icon": "fas fa-comments",
+            "description": "Email conversation threads"
+        },
+        {
+            "id": "search",
+            "name": "Search",
+            "icon": "fas fa-search",
+            "description": "Search across all email accounts"
+        }
+    ],
+    "dependencies": [
+        "https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css",
+        "https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    ],
+    "features": [
+        "Drag-and-drop emails to AI sidebar",
+        "Right-click context menu for AI agents",
+        "Multi-account support (Gmail + Outlook)",
+        "Unified inbox view",
+        "Email composition",
+        "Thread grouping",
+        "Full-text search"
+    ]
+}

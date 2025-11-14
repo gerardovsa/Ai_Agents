@@ -1,0 +1,251 @@
+{
+  "platform": "ai_personal_tasks",
+  "description": "AI Personal Task Management - Enables AI to create and manage its own tasks in Google Tasks for persistent memory and work tracking\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "tools": [
+    {
+      "name": "ai_create_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_create_task', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🤖 AI creates a task for itself to remember something. Use this when you need to: remember something for later, track multi-step work, set a reminder for follow-up, or maintain context across conversations. The AI has its own dedicated Google Tasks list.",
+      "platform": "ai_personal_tasks",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Task title - what needs to be done. Examples: 'Follow up with user about Gmail integration', 'Review Google Docs feedback', 'Test new features'",
+          "required": true
+        },
+        "notes": {
+          "type": "string",
+          "description": "Detailed notes/context about the task. Include: what was discussed, what needs to be done, any relevant details. Example: 'User requested bulk email feature. Need to check if they tested it successfully.'",
+          "required": false
+        },
+        "due_date": {
+          "type": "string",
+          "description": "Due date in ISO format YYYY-MM-DD. Example: '2025-10-30'. Leave empty if no deadline.",
+          "required": false
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority level: 'high' (🔴 urgent), 'medium' (🟡 normal), 'low' (🟢 can wait). Default: 'medium'",
+          "required": false,
+          "default": "medium"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Task creation result with task ID"
+      },
+      "use_cases": [
+        "User asks you to remember something → Create task to track it",
+        "Multi-step project started → Create task to continue work later",
+        "User mentions 'remind me' or 'follow up' → Create task with reminder",
+        "Complex work in progress → Create task to resume next session",
+        "User feedback received → Create task to implement suggestion",
+        "Bug reported → Create task to fix and verify",
+        "Feature request noted → Create task to implement when ready"
+      ],
+      "efficiency": "Provides persistent memory across conversations - work is never lost"
+    },
+    {
+      "name": "ai_list_my_tasks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_list_my_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 AI lists its own tasks to check what it's working on. Use this at the start of conversations to resume previous work, or anytime to review pending tasks. Shows tasks from AI's dedicated Google Tasks list.",
+      "platform": "ai_personal_tasks",
+      "parameters": {
+        "show_completed": {
+          "type": "boolean",
+          "description": "Include completed tasks in results. Default: false (only show pending)",
+          "required": false,
+          "default": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of tasks to return. Default: 20",
+          "required": false,
+          "default": 20
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of AI's tasks with details, count, and priorities"
+      },
+      "use_cases": [
+        "Start of new conversation → Check what work is pending",
+        "User asks 'what are you working on?' → List tasks",
+        "Need to prioritize → List tasks to see what's most important",
+        "Resume previous work → Check tasks for context",
+        "Mid-project check-in → See progress on tasks",
+        "User asks 'did you remember X?' → Check task list"
+      ],
+      "efficiency": "Instant access to all pending work - never forget previous conversations"
+    },
+    {
+      "name": "ai_update_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_update_task', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n🤖 AI updates one of its tasks with new information or progress. Use this to: add progress notes, change due dates, update task details, or add new findings.",
+      "platform": "ai_personal_tasks",
+      "parameters": {
+        "task_id": {
+          "type": "string",
+          "description": "ID of the task to update (from ai_list_my_tasks)",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "New title for the task (optional)",
+          "required": false
+        },
+        "notes": {
+          "type": "string",
+          "description": "Updated notes - append new information. Example: 'Update: User confirmed Gmail integration works. Moving to next phase.'",
+          "required": false
+        },
+        "due_date": {
+          "type": "string",
+          "description": "New due date YYYY-MM-DD (optional)",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "description": "'needsAction' or 'completed' (optional)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update result"
+      },
+      "use_cases": [
+        "Made progress on task → Update with progress notes",
+        "User provides feedback → Add to task notes",
+        "Timeline changed → Update due date",
+        "Found new information → Append to notes",
+        "Task scope changed → Update title/notes"
+      ],
+      "efficiency": "Keep tasks current with latest information and progress"
+    },
+    {
+      "name": "ai_complete_task",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_complete_task', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 AI marks one of its tasks as complete. Use this when work is finished, project is done, or issue is resolved. Optionally add completion notes.",
+      "platform": "ai_personal_tasks",
+      "parameters": {
+        "task_id": {
+          "type": "string",
+          "description": "ID of the task to complete (from ai_list_my_tasks)",
+          "required": true
+        },
+        "completion_notes": {
+          "type": "string",
+          "description": "Notes about completion. Example: 'Gmail integration tested and working. User confirmed success.'",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Completion result"
+      },
+      "use_cases": [
+        "Finished implementing feature → Mark task complete",
+        "User confirmed work is done → Complete with notes",
+        "Issue resolved → Mark complete with solution details",
+        "Follow-up completed → Mark task done",
+        "Project phase finished → Complete task"
+      ],
+      "efficiency": "Track completed work and maintain accomplishment history"
+    },
+    {
+      "name": "ai_organize_tasks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_organize_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 AI organizes its tasks by priority using AI analysis. Use this to: prioritize workload, reorder tasks by importance, or focus on high-priority items. AI analyzes task content to determine urgency.",
+      "platform": "ai_personal_tasks",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Organization result with count of reordered tasks"
+      },
+      "use_cases": [
+        "Too many tasks → Organize to focus on most important",
+        "Need to prioritize → Let AI analyze and reorder",
+        "Start of work session → Organize to see top priorities",
+        "User asks 'what's most important?' → Organize and show top tasks"
+      ],
+      "efficiency": "Automatic prioritization saves time deciding what to work on"
+    },
+    {
+      "name": "ai_create_project_tasks",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_create_project_tasks', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🤖 AI creates multiple related tasks for a project in one call. Use this for: breaking down complex work, tracking multi-step projects, or creating project plans. All tasks linked to parent project.",
+      "platform": "ai_personal_tasks",
+      "parameters": {
+        "project_name": {
+          "type": "string",
+          "description": "Name of the project. Example: 'User Dashboard Redesign'",
+          "required": true
+        },
+        "task_list": {
+          "type": "array",
+          "description": "List of task titles. Example: ['Review current design', 'Gather feedback', 'Create mockups', 'Implement changes', 'Test with users']",
+          "required": true
+        },
+        "due_date": {
+          "type": "string",
+          "description": "Due date for all tasks YYYY-MM-DD (optional)",
+          "required": false
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority for all tasks: 'high', 'medium', 'low'. Default: 'high'",
+          "required": false,
+          "default": "high"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Results with created task IDs and project summary"
+      },
+      "use_cases": [
+        "User requests complex feature → Break into project tasks",
+        "Multi-phase work ahead → Create project plan",
+        "Large implementation → Split into trackable steps",
+        "User says 'can you handle X project?' → Create task breakdown"
+      ],
+      "efficiency": "Create entire project structure in one call instead of many individual tasks"
+    },
+    {
+      "name": "ai_check_pending_work",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='ai_check_pending_work', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 AI checks what work is pending from previous sessions. Use this at START of conversations to resume work. Returns summary with high-priority items, overdue tasks, and priorities.",
+      "platform": "ai_personal_tasks",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Summary of pending work with counts by priority, overdue tasks, and top 5 high-priority items"
+      },
+      "use_cases": [
+        "Start of new conversation → Check for pending work",
+        "User returns after time away → Resume previous tasks",
+        "User asks 'where were we?' → Check pending tasks",
+        "Need context from previous session → Review pending work",
+        "User says 'continue' → Check what to continue"
+      ],
+      "efficiency": "Instant context restoration - pick up exactly where you left off"
+    }
+  ],
+  "usage_guide": {
+    "overview": "AI Personal Task Management enables the AI agent to maintain its own persistent to-do list in Google Tasks. This provides memory across conversations and ensures work is never lost.",
+    "decision_tree": {
+      "need_to_remember_something": "Use ai_create_task",
+      "start_of_conversation": "Use ai_check_pending_work first",
+      "check_what_working_on": "Use ai_list_my_tasks",
+      "made_progress_on_task": "Use ai_update_task",
+      "finished_work": "Use ai_complete_task",
+      "complex_project_ahead": "Use ai_create_project_tasks",
+      "too_many_tasks": "Use ai_organize_tasks"
+    },
+    "best_practices": [
+      "Always run ai_check_pending_work at the start of new conversations",
+      "Create tasks immediately when user mentions future work",
+      "Update tasks with progress notes as work is done",
+      "Complete tasks with detailed notes about what was accomplished",
+      "Use high priority for user-requested work",
+      "Use medium priority for improvements and optimizations",
+      "Use low priority for ideas and future enhancements",
+      "Create project tasks for anything with 3+ steps",
+      "Check pending tasks when user asks 'what's next?'"
+    ],
+    "example_workflow": "1. User starts conversation → ai_check_pending_work() shows 'User requested Gmail bulk send feature' → 2. Implement feature → 3. ai_update_task(notes='Implemented bulk send, needs testing') → 4. User tests and confirms → 5. ai_complete_task(notes='Bulk send tested and working')"
+  }
+}

@@ -1,0 +1,257 @@
+{
+  "platform": "resend",
+  "description": "Production-grade email sending via Resend API. Send transactional emails with excellent deliverability from your custom domain.",
+  "tools": [
+    {
+      "name": "resend_send_email",
+      "description": "Send a plain text email via Resend. Use for simple transactional emails, notifications, and alerts. Returns email ID for tracking delivery status.",
+      "platform": "resend",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "from_email": {
+            "type": "string",
+            "description": "Sender email address (must be from verified domain, e.g., 'gerardo@minivetguide.com')"
+          },
+          "to": {
+            "type": "string",
+            "description": "Recipient email address"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject line"
+          },
+          "body": {
+            "type": "string",
+            "description": "Email body content (plain text)"
+          },
+          "cc": {
+            "type": "string",
+            "description": "Optional CC recipient email address"
+          },
+          "bcc": {
+            "type": "string",
+            "description": "Optional BCC recipient email address"
+          },
+          "reply_to": {
+            "type": "string",
+            "description": "Optional reply-to email address"
+          }
+        },
+        "required": [
+          "from_email",
+          "to",
+          "subject",
+          "body"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Email sending result with email_id, delivery status, and confirmation message"
+      },
+      "examples": [
+        {
+          "description": "Send invoice notification",
+          "parameters": {
+            "from_email": "billing@minivetguide.com",
+            "to": "client@example.com",
+            "subject": "Invoice #12345",
+            "body": "Thank you for your business! Your invoice for $500 is attached."
+          }
+        },
+        {
+          "description": "Send password reset email",
+          "parameters": {
+            "from_email": "support@minivetguide.com",
+            "to": "user@example.com",
+            "subject": "Password Reset Request",
+            "body": "Click the link to reset your password: https://minivetguide.com/reset/abc123",
+            "reply_to": "support@minivetguide.com"
+          }
+        }
+      ]
+    },
+    {
+      "name": "resend_send_email_html",
+      "description": "Send an HTML email with rich formatting via Resend. Use for newsletters, marketing emails, invoices with styling, or any email requiring visual design. Includes automatic plain text fallback.",
+      "platform": "resend",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "from_email": {
+            "type": "string",
+            "description": "Sender email address (must be from verified domain)"
+          },
+          "to": {
+            "type": "string",
+            "description": "Recipient email address"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject line"
+          },
+          "html_body": {
+            "type": "string",
+            "description": "Email body content (HTML format with styling)"
+          },
+          "plain_body": {
+            "type": "string",
+            "description": "Plain text version for email clients that don't support HTML (optional)"
+          },
+          "cc": {
+            "type": "string",
+            "description": "Optional CC recipient"
+          },
+          "bcc": {
+            "type": "string",
+            "description": "Optional BCC recipient"
+          },
+          "reply_to": {
+            "type": "string",
+            "description": "Optional reply-to address"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "filename": {
+                  "type": "string",
+                  "description": "Attachment filename"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Base64 encoded file content"
+                }
+              }
+            },
+            "description": "Optional file attachments"
+          }
+        },
+        "required": [
+          "from_email",
+          "to",
+          "subject",
+          "html_body"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Email sending result with email_id and delivery confirmation"
+      },
+      "examples": [
+        {
+          "description": "Send styled invoice email",
+          "parameters": {
+            "from_email": "billing@minivetguide.com",
+            "to": "client@example.com",
+            "subject": "Your Invoice #12345",
+            "html_body": "<html><body><h1>Invoice</h1><p>Amount Due: <strong>$500</strong></p><p>Thank you!</p></body></html>",
+            "plain_body": "Invoice\nAmount Due: $500\nThank you!"
+          }
+        }
+      ]
+    },
+    {
+      "name": "resend_send_batch_emails",
+      "description": "Send multiple emails efficiently in batch. Use for bulk notifications, newsletters to multiple recipients, or mass transactional emails. More efficient than sending individually.",
+      "platform": "resend",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "from_email": {
+            "type": "string",
+            "description": "Sender email address for all emails in batch"
+          },
+          "emails": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "to": {
+                  "type": "string",
+                  "description": "Recipient email address"
+                },
+                "subject": {
+                  "type": "string",
+                  "description": "Email subject"
+                },
+                "body": {
+                  "type": "string",
+                  "description": "Email body (plain text)"
+                },
+                "html": {
+                  "type": "string",
+                  "description": "Optional HTML body"
+                }
+              },
+              "required": [
+                "to",
+                "subject",
+                "body"
+              ]
+            },
+            "description": "Array of emails to send"
+          }
+        },
+        "required": [
+          "from_email",
+          "emails"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Batch results with sent_count, failed_count, and per-email status"
+      },
+      "examples": [
+        {
+          "description": "Send monthly newsletter to subscribers",
+          "parameters": {
+            "from_email": "newsletter@minivetguide.com",
+            "emails": [
+              {
+                "to": "subscriber1@example.com",
+                "subject": "November Newsletter",
+                "body": "Check out this month's updates!"
+              },
+              {
+                "to": "subscriber2@example.com",
+                "subject": "November Newsletter",
+                "body": "Check out this month's updates!"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "resend_get_email_status",
+      "description": "Check delivery status of a previously sent email. Use to track if email was delivered, bounced, or opened. Requires email_id from send operation.",
+      "platform": "resend",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "email_id": {
+            "type": "string",
+            "description": "Email ID returned from resend_send_email or resend_send_email_html"
+          }
+        },
+        "required": [
+          "email_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Email status with delivery state, timestamps, and recipient info"
+      },
+      "examples": [
+        {
+          "description": "Check if invoice email was delivered",
+          "parameters": {
+            "email_id": "re_123abc456def"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "module": "quote-calculator",
+  "version": "1.0.0",
+  "description": "Quote Calculator AI-callable tools for printing business operations",
+  "totalTools": 27,
+  
+  "categories": [
+    {
+      "id": "calculator",
+      "name": "Calculator Tools",
+      "description": "Direct quote calculation for various print products",
+      "schemaFile": "calculator-tools.json",
+      "tools": [
+        "quote_calc_business_cards",
+        "quote_calc_flyers",
+        "quote_calc_perfect_bound_books",
+        "quote_calc_booklets",
+        "quote_calc_letterheads",
+        "quote_get_stock_list",
+        "quote_get_calculator_requirements"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "query-library",
+      "name": "Query Library Tools",
+      "description": "Historical data analysis and business intelligence queries",
+      "schemaFile": "query-library-tools.json",
+      "tools": [
+        "quote_query_sales_trend",
+        "quote_query_revenue_by_product",
+        "quote_query_top_revenue_products",
+        "quote_query_top_customers",
+        "quote_query_customer_lifetime_value",
+        "quote_query_new_vs_repeat",
+        "quote_query_quote_history",
+        "quote_query_average_quote_value",
+        "quote_query_conversion_rate",
+        "quote_query_production_schedule",
+        "quote_query_capacity_utilization",
+        "quote_query_turnaround_analysis",
+        "quote_query_stock_usage",
+        "quote_query_low_stock_alerts",
+        "quote_query_stock_cost_trends"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "smart-tools",
+      "name": "Smart Bundled Tools",
+      "description": "Multi-operation tools that combine multiple queries/calculations for efficiency",
+      "schemaFile": "smart-tools.json",
+      "tools": [
+        "quote_smart_bulk_price_quotes",
+        "quote_smart_price_comparison_report",
+        "quote_smart_customer_quote_history",
+        "quote_smart_profitability_analysis",
+        "quote_export_dashboard_data"
+      ],
+      "status": "ready"
+    }
+  ],
+  
+  "toolRegistration": {
+    "globalRegistry": "ModuleToolRegistry",
+    "prefix": "quote_",
+    "namespace": "quote-calculator",
+    "autoRegister": true
+  },
+  
+  "aiIntegration": {
+    "provider": "anthropic",
+    "models": ["claude-3-5-sonnet-20241022", "claude-sonnet-4"],
+    "supportsToolUse": true,
+    "supportsStreaming": true
+  },
+  
+  "security": {
+    "requireAuthentication": false,
+    "rateLimit": {
+      "enabled": true,
+      "maxRequests": 100,
+      "windowSeconds": 60
+    },
+    "allowedOrigins": ["http://localhost:5001"]
+  },
+  
+  "documentation": {
+    "schemaFormat": "JSON Schema (Draft-07)",
+    "exampleUsage": "README_INTEGRATION.md",
+    "apiReference": "INTEGRATION_GUIDE.md"
+  }
+}

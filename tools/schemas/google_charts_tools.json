@@ -1,0 +1,78 @@
+{
+  "platform": "google_charts",
+  "description": "Google Charts API - Create professional charts in Google Sheets and embed them in Google Docs. Supports 10+ chart types with full customization.",
+  "tools": [
+    {
+      "name": "google_charts_create",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a professional Google Chart in a new Google Sheet. Supports 10+ chart types (column, bar, line, area, pie, scatter, combo, histogram, candlestick, bubble) with full customization including colors, titles, axis labels, stacking, and legend positioning. The chart is embedded in a shareable spreadsheet for easy viewing and editing.",
+      "platform": "google_charts",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title (e.g., 'Q1 Sales Dashboard', 'Revenue Analysis')",
+          "required": true
+        },
+        "chart_type": {
+          "type": "string",
+          "description": "Chart type: 'column', 'bar', 'line', 'area', 'pie', 'scatter', 'combo', 'histogram', 'candlestick', or 'bubble'",
+          "required": true
+        },
+        "data": {
+          "type": "array",
+          "description": "2D array of chart data. First column = labels (x-axis/categories), remaining columns = data series. Example: [['Jan', 10, 20], ['Feb', 15, 25], ['Mar', 12, 22]]",
+          "required": true
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row for columns. Example: ['Month', 'Sales', 'Expenses']",
+          "required": false
+        },
+        "chart_options": {
+          "type": "object",
+          "description": "Optional chart customization: title, subtitle, x_axis_title, y_axis_title, width (px), height (px), position {row, col}, legend_position (bottom/top/left/right/none), colors (hex array like ['#1a73e8', '#34a853']), stacked (bool)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Chart result with spreadsheet_id, sheet_id, chart_id, URL, title, and chart_type"
+      }
+    },
+    {
+      "name": "google_docs_insert_chart",
+      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Google Chart and insert it as an image into a Google Doc. This function creates a temporary spreadsheet with the chart, exports it as an image, and embeds it in the document. Perfect for adding visual data representations to reports, presentations, and documents.",
+      "platform": "google_charts",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Target Google Doc ID where chart will be inserted",
+          "required": true
+        },
+        "chart_data": {
+          "type": "object",
+          "description": "Chart data structure with 'headers' (array) and 'data' (2D array). Example: {'headers': ['Month', 'Sales'], 'data': [['Jan', 100], ['Feb', 150]]}",
+          "required": true
+        },
+        "chart_type": {
+          "type": "string",
+          "description": "Chart type: 'column', 'bar', 'line', 'area', 'pie', 'scatter', 'combo', 'histogram', 'candlestick', or 'bubble' (default: 'column')",
+          "required": false
+        },
+        "chart_options": {
+          "type": "object",
+          "description": "Optional chart customization: title, subtitle, x_axis_title, y_axis_title, width (px), height (px), colors (hex array), legend_position, stacked (bool)",
+          "required": false
+        },
+        "insertion_index": {
+          "type": "integer",
+          "description": "Position in document to insert chart (null = end of document)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Insert result with inserted (bool), image_url, temp_spreadsheet_id, chart_type, and insertion_index"
+      }
+    }
+  ]
+}

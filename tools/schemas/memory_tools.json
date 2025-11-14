@@ -1,0 +1,199 @@
+{
+  "platform": "memory",
+  "description": "AI Memory Management - Persistent context storage for user preferences, facts, and personalization\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "tools": [
+    {
+      "name": "read_user_memories",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='read_user_memories', ...) - DO NOT call directly!\n\nRetrieve user's stored memories. Use this to recall information the user has asked you to remember. Can filter by category (preferences, personal, work, health, general) or tags. Always check memories before responding to understand user context better.",
+      "platform": "memory",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Optional: Filter by category (preferences, personal, work, health, general)",
+            "enum": [
+              "preferences",
+              "personal",
+              "work",
+              "health",
+              "general"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional: Filter by tags (e.g., ['communication', 'timezone', 'deadline'])"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with success status, memories array, and count"
+      },
+      "examples": [
+        {
+          "description": "Get all user memories",
+          "parameters": {}
+        },
+        {
+          "description": "Get only preference-related memories",
+          "parameters": {
+            "category": "preferences"
+          }
+        },
+        {
+          "description": "Get memories tagged with 'work'",
+          "parameters": {
+            "tags": [
+              "work"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "add_user_memory",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='add_user_memory', ...) - DO NOT call directly!\n\nStore a new memory for the user. Use this when the user says 'remember this', 'save this preference', 'keep this in mind', or shares important information they want recalled later. Automatically categorizes and timestamps the memory.",
+      "platform": "memory",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "The memory content to store (what to remember). Should be clear and concise."
+          },
+          "category": {
+            "type": "string",
+            "description": "Category of memory: preferences (communication style, tool preferences), personal (facts about user), work (job-related info), health (medical info), general (other)",
+            "enum": [
+              "preferences",
+              "personal",
+              "work",
+              "health",
+              "general"
+            ],
+            "default": "general"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional: Tags for better organization (e.g., ['timezone', 'deadline', 'communication'])",
+            "default": []
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with success status, created memory object, and confirmation message"
+      },
+      "examples": [
+        {
+          "description": "Remember user's communication preference",
+          "parameters": {
+            "content": "Prefers detailed technical explanations with code examples",
+            "category": "preferences",
+            "tags": [
+              "communication",
+              "detail"
+            ]
+          }
+        },
+        {
+          "description": "Remember user's timezone",
+          "parameters": {
+            "content": "User is in PST timezone (UTC-8)",
+            "category": "personal",
+            "tags": [
+              "timezone",
+              "location"
+            ]
+          }
+        },
+        {
+          "description": "Remember work deadline",
+          "parameters": {
+            "content": "Q4 report deadline is Friday Nov 8, 2025",
+            "category": "work",
+            "tags": [
+              "deadline",
+              "report"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_user_memory",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='update_user_memory', ...) - DO NOT call directly!\n\nUpdate an existing memory's content. Use this when information changes or needs to be refined. Requires the memory ID from read_user_memories.",
+      "platform": "memory",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "memory_id": {
+            "type": "string",
+            "description": "ID of the memory to update (from read_user_memories)"
+          },
+          "content": {
+            "type": "string",
+            "description": "New memory content"
+          }
+        },
+        "required": [
+          "memory_id",
+          "content"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with success status and updated memory"
+      },
+      "examples": [
+        {
+          "description": "Update timezone preference",
+          "parameters": {
+            "memory_id": "mem_abc123",
+            "content": "User is now in EST timezone (UTC-5)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "delete_user_memory",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='delete_user_memory', ...) - DO NOT call directly!\n\nDelete a memory. Use this when the user says 'forget that', 'delete that memory', or when information is no longer relevant. Requires the memory ID from read_user_memories.",
+      "platform": "memory",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "memory_id": {
+            "type": "string",
+            "description": "ID of the memory to delete (from read_user_memories)"
+          }
+        },
+        "required": [
+          "memory_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with success status and remaining memory count"
+      },
+      "examples": [
+        {
+          "description": "Delete a specific memory",
+          "parameters": {
+            "memory_id": "mem_abc123"
+          }
+        }
+      ]
+    }
+  ]
+}

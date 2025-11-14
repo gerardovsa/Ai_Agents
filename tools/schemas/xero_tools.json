@@ -1,0 +1,223 @@
+{
+    "platform": "xero",
+    "description": "Xero Accounting API - Invoices, contacts, accounts, payments, bank transactions",
+    "tools": [
+        {
+            "name": "xero_get_invoices",
+            "description": "Get invoices from Xero. Returns list of invoices with details.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+                        "default": 1
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Invoice status filter (DRAFT, SUBMITTED, AUTHORISED, PAID)"
+                    },
+                    "contact_name": {
+                        "type": "string",
+                        "description": "Filter by contact name (optional)"
+                    },
+                    "invoice_number": {
+                        "type": "string",
+                        "description": "Specific invoice number (optional)"
+                    }
+                },
+                "required": [
+                    "business_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "List of invoices with details"
+            }
+        },
+        {
+            "name": "xero_get_invoice_by_id",
+            "description": "Get a specific invoice by Xero invoice ID",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+                    },
+                    "invoice_id": {
+                        "type": "string",
+                        "description": "Xero invoice GUID"
+                    }
+                },
+                "required": [
+                    "business_id",
+                    "invoice_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Invoice details including number, date, total, status"
+            }
+        },
+        {
+            "name": "xero_get_contacts",
+            "description": "Get contacts (customers/suppliers) from Xero",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+                    },
+                    "search": {
+                        "type": "string",
+                        "description": "Search by contact name (optional)"
+                    }
+                },
+                "required": [
+                    "business_id"
+                ]
+            },
+            "returns": {
+                "type": "array",
+                "description": "List of contacts with details"
+            }
+        },
+        {
+            "name": "xero_create_invoice",
+            "description": "Create a new invoice in Xero",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+                    },
+                    "contact_id": {
+                        "type": "string",
+                        "description": "Xero contact ID (use xero_get_contacts to find)"
+                    },
+                    "invoice_type": {
+                        "type": "string",
+                        "description": "ACCREC (sales) or ACCPAY (bills)",
+                        "default": "ACCREC"
+                    },
+                    "line_items": {
+                        "type": "array",
+                        "description": "Invoice line items",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "description": {
+                                    "type": "string"
+                                },
+                                "quantity": {
+                                    "type": "number"
+                                },
+                                "unit_amount": {
+                                    "type": "number"
+                                },
+                                "account_code": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "description": "Due date (YYYY-MM-DD)"
+                    }
+                },
+                "required": [
+                    "business_id",
+                    "contact_id",
+                    "line_items"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Created invoice with ID and invoice number"
+            }
+        },
+        {
+            "name": "xero_get_accounts",
+            "description": "Get chart of accounts from Xero",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+                    }
+                },
+                "required": [
+                    "business_id"
+                ]
+            },
+            "returns": {
+                "type": "array",
+                "description": "List of accounts with codes and names"
+            }
+        },
+        {
+            "name": "xero_get_bank_transactions",
+            "description": "Get bank transactions from Xero",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+                    },
+                    "from_date": {
+                        "type": "string",
+                        "description": "Start date filter (YYYY-MM-DD)"
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "End date filter (YYYY-MM-DD)"
+                    }
+                },
+                "required": [
+                    "business_id"
+                ]
+            },
+            "returns": {
+                "type": "array",
+                "description": "List of bank transactions"
+            }
+        },
+        {
+            "name": "xero_get_payments",
+            "description": "Get payment records from Xero",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+                    },
+                    "invoice_id": {
+                        "type": "string",
+                        "description": "Filter by invoice ID (optional)"
+                    }
+                },
+                "required": [
+                    "business_id"
+                ]
+            },
+            "returns": {
+                "type": "array",
+                "description": "List of payments"
+            }
+        }
+    ]
+}

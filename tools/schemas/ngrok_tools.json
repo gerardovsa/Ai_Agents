@@ -1,0 +1,106 @@
+{
+  "platform": "ngrok",
+  "description": "Ngrok tunneling and webhook testing tools",
+  "tools": [
+    {
+      "name": "ngrok_start_tunnel",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nStart an HTTP/HTTPS tunnel to localhost",
+      "platform": "ngrok",
+      "parameters": {
+        "port": {
+          "type": "integer",
+          "description": "Local port to expose (e.g., 3000, 8080)",
+          "required": true
+        },
+        "protocol": {
+          "type": "string",
+          "description": "Protocol: 'http' or 'tcp'",
+          "required": false,
+          "default": "http"
+        },
+        "subdomain": {
+          "type": "string",
+          "description": "Custom subdomain (requires paid plan)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Tunnel info with public URL"
+      },
+      "examples": [
+        {
+          "description": "Expose local dev server",
+          "parameters": {
+            "port": 3000,
+            "protocol": "http"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ngrok_list_tunnels",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all active ngrok tunnels",
+      "platform": "ngrok",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of active tunnels with URLs and status"
+      },
+      "examples": [
+        {
+          "description": "Get all tunnels",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "name": "ngrok_stop_tunnel",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nStop a specific ngrok tunnel",
+      "platform": "ngrok",
+      "parameters": {
+        "tunnel_name": {
+          "type": "string",
+          "description": "Name of the tunnel to stop",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Confirmation of tunnel stopped"
+      },
+      "examples": [
+        {
+          "description": "Stop tunnel",
+          "parameters": {
+            "tunnel_name": "http-3000"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ngrok_get_public_url",
+      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet the public URL for a local port",
+      "platform": "ngrok",
+      "parameters": {
+        "port": {
+          "type": "integer",
+          "description": "Local port number",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Public URL for the specified port"
+      },
+      "examples": [
+        {
+          "description": "Get URL for port 8080",
+          "parameters": {
+            "port": 8080
+          }
+        }
+      ]
+    }
+  ]
+}

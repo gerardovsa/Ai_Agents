@@ -1,0 +1,38 @@
+{
+    "id": "database-visualizer",
+    "name": "Database Visualizer",
+    "icon": "fas fa-database",
+    "version": "1.0.0",
+    "description": "View and explore SQLite database schemas, tables, and data",
+    "colors": {
+        "primary": "#8b5cf6",
+        "secondary": "#c4b5fd",
+        "hover": "#7c3aed"
+    },
+    "has_database": false,
+    "tabs": [
+        {
+            "id": "databases",
+            "label": "Databases",
+            "icon": "fas fa-folder-open",
+            "default": true
+        },
+        {
+            "id": "schema",
+            "label": "Schema Explorer",
+            "icon": "fas fa-sitemap"
+        },
+        {
+            "id": "query",
+            "label": "Data Viewer",
+            "icon": "fas fa-table"
+        }
+    ],
+    "dependencies": [
+        "https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css",
+        "https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js",
+        "/css/tabulator-enhancements.css",
+        "/js/tabulator-functions.js",
+        "/external/modules/database-visualizer/database-visualizer-dark-tags.css"
+    ]
+}

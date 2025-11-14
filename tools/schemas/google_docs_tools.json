@@ -1,0 +1,893 @@
+{
+  "platform": "google_docs",
+  "description": "Google Docs API - Create, edit, format documents, manage content, collaborate\n\nCRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "tools": [
+    {
+      "name": "google_docs_smart_create_from_markdown",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_smart_create_from_markdown', ...) - DO NOT call directly!\n\nCRITICAL: DO NOT include emojis in the markdown_content parameter. Use plain text only. Emojis cause formatting errors and encoding issues.\n\nSMART TOOL: Create fully formatted Google Docs from markdown. HEADING HIERARCHY: H1-H3 (####) for document structure, H4 (####) ONLY titles above paragraphs and titles of nummbered or bulleted lists (11pt bold). Supports: # headings (H1-H6, always black), **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, ```blocks```, [links](url), ![images](url), nested bullets/numbers (indent 2 spaces), > blockquotes, --- lines, <<NEW-PAGE>>, <<BOOKMARK:name>> (creates named range for navigation), TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right), and | tables |. Use H4 directly above bulleted/numbered lists.\n\nBOOKMARK SYNTAX: <<BOOKMARK:section_name>> creates a named range that can be linked directly: document_url#bookmark=section_name. Use for table of contents, section navigation, or external references.",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Document title",
+          "required": true
+        },
+        "markdown_content": {
+          "type": "string",
+          "description": "Markdown content (NO EMOJIS - plain text only). HEADING HIERARCHY: H1-H3 for main sections, H4 ONLY for list titles (body text size 11pt bold). Supports: # H1-H6, **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, ```blocks```, [links](url), ![images](url), nested lists (2 spaces), > blockquotes, TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right), | tables |",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with ID, shareable URL, and formatting applied (always BLACK headings, H4=11pt bold for list titles)"
+      }
+    },
+    {
+      "name": "google_docs_smart_update",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_smart_update', ...) - DO NOT call directly!\n\nCRITICAL: DO NOT include emojis in the markdown_content parameter. Use plain text only. Emojis cause formatting errors and encoding issues.\n\nSMART UPDATE: Add formatted markdown to EXISTING Google Docs with only 2 API calls (vs 20+). HEADING HIERARCHY: H1-H3 for document sections, H4 (11pt bold) ONLY for list titles. Supports: # headings (always black), **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, [links](url), <<BOOKMARK:name>> (creates named range), TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right), nested lists, > blockquotes, --- lines, | tables |. Returns end_index for chaining updates.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "ID of EXISTING Google Doc to update",
+          "required": true
+        },
+        "markdown_content": {
+          "type": "string",
+          "description": "Markdown content to insert (NO EMOJIS - plain text only). HEADING HIERARCHY: H1-H3 for sections, H4 ONLY for list titles at 11pt bold. Includes TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right). Same features as smart_create_from_markdown",
+          "required": true
+        },
+        "insertion_position": {
+          "type": "string",
+          "description": "Where to insert: 'end' (append - default), 'start' (beginning), or specific index number",
+          "required": false,
+          "default": "end"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Result with start_index, end_index (for chaining!), operations count, and URL"
+      }
+    },
+    {
+      "name": "google_docs_smart_create_from_markdown_v2",
+      "description": "MUST USE: execute_tool(tool_name='google_docs_smart_create_from_markdown_v2', ...) - DO NOT call directly.\n\nCRITICAL: DO NOT include emojis in the markdown_content parameter. Use plain text only. Emojis cause formatting errors and encoding issues.\n\nSMART TOOL v2.0 (ENHANCED): Create Google Docs from markdown using DOCX conversion with FULL FORMATTING (30+ features). Default font: Arial 11pt (matching Google Docs default - NOT Times New Roman). Faster than API method, much less code, high success rate. Uses python-docx and Drive auto-conversion.\n\nDEFAULT FONT: Arial 11pt (matches Google Docs, NOT Times New Roman)\nHEADING SIZES: H1=20pt, H2=18pt, H3=16pt, H4-H6=11pt (matches Smart V1)\n\nCOMPLETE MARKDOWN SUPPORT:\n\nTEXT FORMATTING:\n- **bold** or __bold__ -> Bold text\n- *italic* or _italic_ -> Italic text\n- __underline__ -> Underlined text (double underscore)\n- ~~strikethrough~~ -> Strikethrough text\n- ==highlight== -> Yellow highlighted text\n- `inline code` -> Monospace code\n- H~2~O -> Subscript (H2O)\n- x^2^ -> Superscript (x2)\n\nSTRUCTURE:\n- # to ###### -> 6 heading levels (H1-H6)\n- - or * -> Bullet lists\n- 1. 2. 3. -> Numbered lists\n-   - (2 spaces) -> Nested lists (unlimited levels)\n- | Tables | -> Professional tables\n- ```code blocks``` -> Monospace code blocks\n- > Blockquotes -> Indented quotes\n\nSPECIAL ELEMENTS:\n- --- or *** -> Horizontal line\n- <<PAGE-BREAK>> or <<< -> Page break\n- <<BOOKMARK:name>> -> Create Word bookmark for navigation\n- <<TOC>> -> Auto-generate table of contents (update in Word)\n- ![alt](url) -> Images from URLs\n- [Link](url) -> Hyperlinks\n\nNAVIGATION FEATURES:\n- Bookmarks: <<BOOKMARK:section_name>> creates Word bookmark\n- TOC: <<TOC>> generates table of contents from headings (requires Word to update page numbers)\n\nALIGNMENT:\n- ->centered text<- -> Center aligned\n- <-left text -> Left aligned\n- right text-> -> Right aligned\n\nADVANTAGES OVER V1:\n- Faster (0.5-2s vs 2-8s)\n- Much less code\n- High success rate\n- Automatic shareability\n- Simpler to use and debug\n\nAUTO-SHAREABLE: Documents automatically shareable with edit permissions.\n\nComplementary to v1 (API-based) - both tools available.",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Document title",
+          "required": true
+        },
+        "markdown_content": {
+          "type": "string",
+          "description": "Markdown content (NO EMOJIS - plain text only). FULL support: **bold**, *italic*, __underline__, ~~strike~~, ==highlight==, H~2~O, x^2^, ![img](url), <<PAGE-BREAK>>, <<BOOKMARK:name>>, <<TOC>>, ->center<-, tables, nested lists, code blocks",
+          "required": true
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Optional Google Drive folder ID to create document in",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with ID, web_url, shareable status, and share_link (automatically shareable with edit access)"
+      },
+      "examples": [
+        {
+          "description": "Create formatted business report with advanced features",
+          "parameters": {
+            "title": "Q4 Business Report",
+            "markdown_content": "->**Q4 2024 Sales Report**<-\n\n---\n\n# Executive Summary\n\nOur Q4 performance exceeded expectations with ==**40% growth**==.\n\n<<PAGE-BREAK>>\n\n## Financial Performance\n\n| Metric | Q3 | Q4 | Change |\n|--------|-----|-----|--------|\n| Revenue | $1.2M | $1.5M | +25% |\n| Customers | 450 | 520 | +15% |\n\n> Important: ~~Target was 30%~~ **Exceeded target by 10%**\n\n## Technical Details\n\nWater formula: H~2~O\nEnergy: E=mc^2^\n\n```python\ndef growth(old, new):\n    return ((new - old) / old) * 100\n```\n\n## Recommendations\n\n1. **Immediate Actions**\n   - Expand marketing budget\n   - Hire 2 sales reps\n2. **Long-term Goals**\n   - Launch new product\n   - Enter Asian market\n\n---\n\n->*Report generated automatically*<-"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_docs_create_document",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_create_document', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Doc",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Document title",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with ID and URL"
+      }
+    },
+    {
+      "name": "google_docs_get_document",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_get_document', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet document content and structure",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete document content with formatting"
+      }
+    },
+    {
+      "name": "google_docs_batch_update",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_batch_update', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nApply multiple updates to document (insert, delete, format text)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "requests": {
+          "type": "array",
+          "description": "Array of update requests (insertText, deleteContentRange, updateTextStyle, etc.)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update results with reply objects"
+      }
+    },
+    {
+      "name": "google_docs_insert_text",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_text', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert text at specific location",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Text to insert",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Character index to insert at (1-based)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Insert confirmation"
+      }
+    },
+    {
+      "name": "google_docs_delete_content",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_delete_content', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete content from document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index (1-based)",
+          "required": true
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index (exclusive)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "google_docs_format_text",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_format_text', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nApply formatting to text range (bold, italic, font, color, etc.)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index",
+          "required": true
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index",
+          "required": true
+        },
+        "bold": {
+          "type": "boolean",
+          "description": "Apply bold",
+          "required": false
+        },
+        "italic": {
+          "type": "boolean",
+          "description": "Apply italic",
+          "required": false
+        },
+        "underline": {
+          "type": "boolean",
+          "description": "Apply underline",
+          "required": false
+        },
+        "font_size": {
+          "type": "integer",
+          "description": "Font size in points",
+          "required": false
+        },
+        "font_family": {
+          "type": "string",
+          "description": "Font family name",
+          "required": false
+        },
+        "foreground_color": {
+          "type": "string",
+          "description": "Text color (hex format #RRGGBB)",
+          "required": false
+        },
+        "background_color": {
+          "type": "string",
+          "description": "Background color (hex format)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Format confirmation"
+      }
+    },
+    {
+      "name": "google_docs_insert_table",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_table', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert table into document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert table",
+          "required": true
+        },
+        "rows": {
+          "type": "integer",
+          "description": "Number of rows",
+          "required": true
+        },
+        "columns": {
+          "type": "integer",
+          "description": "Number of columns",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Inserted table details"
+      }
+    },
+    {
+      "name": "google_docs_insert_image",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_image', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert image into document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert image",
+          "required": true
+        },
+        "image_uri": {
+          "type": "string",
+          "description": "Image URL (must be publicly accessible)",
+          "required": true
+        },
+        "width": {
+          "type": "integer",
+          "description": "Width in points",
+          "required": false
+        },
+        "height": {
+          "type": "integer",
+          "description": "Height in points",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Inserted image details"
+      }
+    },
+    {
+      "name": "google_docs_create_heading",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_create_heading', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate heading (H1, H2, H3, etc.)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Heading text",
+          "required": true
+        },
+        "level": {
+          "type": "integer",
+          "description": "Heading level (1-6)",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert heading",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created heading"
+      }
+    },
+    {
+      "name": "google_docs_create_list",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_create_list', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate bulleted or numbered list",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "items": {
+          "type": "array",
+          "description": "List items",
+          "required": true
+        },
+        "list_type": {
+          "type": "string",
+          "description": "List type: BULLET or NUMBER",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert list",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created list"
+      }
+    },
+    {
+      "name": "google_docs_insert_page_break",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_page_break', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert page break",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert page break",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Insert confirmation"
+      }
+    },
+    {
+      "name": "google_docs_replace_text",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_replace_text', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFind and replace text throughout document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "find_text": {
+          "type": "string",
+          "description": "Text to find",
+          "required": true
+        },
+        "replace_text": {
+          "type": "string",
+          "description": "Replacement text",
+          "required": true
+        },
+        "match_case": {
+          "type": "boolean",
+          "description": "Case-sensitive matching",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Number of replacements made"
+      }
+    },
+    {
+      "name": "google_docs_append_text",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_append_text', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend text to end of document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "text": {
+          "type": "string",
+          "description": "Text to append",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Append confirmation"
+      }
+    },
+    {
+      "name": "google_docs_export_as_pdf",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_export_as_pdf', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport document as PDF",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "PDF file data (base64 encoded)"
+      }
+    },
+    {
+      "name": "google_docs_add_page_numbers",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_add_page_numbers', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nConfigure document for page numbering (starting number). NOTE: Actual page number insertion requires manual step via Google Docs UI: Insert > Page numbers",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "position": {
+          "type": "string",
+          "description": "Page number position: HEADER or FOOTER (default: FOOTER)",
+          "required": false,
+          "default": "FOOTER"
+        },
+        "alignment": {
+          "type": "string",
+          "description": "Page number alignment: LEFT, CENTER, or RIGHT (default: CENTER)",
+          "required": false,
+          "default": "CENTER"
+        },
+        "starting_number": {
+          "type": "integer",
+          "description": "Page number to start from (default: 1)",
+          "required": false,
+          "default": 1
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Configuration result with manual insertion instructions"
+      }
+    },
+    {
+      "name": "google_docs_export_as_html",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_export_as_html', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport document as HTML",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "HTML content"
+      }
+    },
+    {
+      "name": "google_docs_export_as_markdown",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_export_as_markdown', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport document as Markdown",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Markdown content"
+      }
+    },
+    {
+      "name": "google_docs_create_from_template",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_create_from_template', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate document from template with variable substitution",
+      "platform": "google_docs",
+      "parameters": {
+        "template_id": {
+          "type": "string",
+          "description": "Template document ID",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "description": "New document title",
+          "required": true
+        },
+        "variables": {
+          "type": "object",
+          "description": "Variables to replace (e.g., {name: 'John', date: '2025-10-23'})",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with substituted variables"
+      }
+    },
+    {
+      "name": "google_docs_get_suggestions",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_get_suggestions', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet all suggestions/comments in document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of suggestions and comments"
+      }
+    },
+    {
+      "name": "google_docs_create_named_range",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_create_named_range', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate named range for bookmarking/referencing",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Range name",
+          "required": true
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index",
+          "required": true
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created named range"
+      }
+    },
+    {
+      "name": "google_docs_create_professional_report_with_charts",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_create_professional_report_with_charts', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a professional stakeholder-ready Google Doc report with linked Google Sheets charts. Creates CLEAN document (no instructions) with chart placeholders and a separate spreadsheet with interactive charts. Charts have black centered titles, axis labels with units, legends. Document uses Figure 1, Figure 2 format with hyperlinks to exact chart locations. Perfect for financial reports, business analytics, presentations.",
+      "platform": "google_docs",
+      "parameters": {
+        "report_title": {
+          "type": "string",
+          "description": "Title for both document and spreadsheet (e.g., 'Q1 2025 Financial Report')",
+          "required": true
+        },
+        "charts_config": {
+          "type": "array",
+          "description": "Array of chart configurations. Each chart needs: title (str), headers (array of column names), data (2D array), chart_type (COLUMN/BAR/LINE/AREA/PIE), x_axis (label), y_axis (label with units like 'Amount ($)'). Example: [{title: 'Monthly Revenue', headers: ['Month','Revenue ($)'], data: [['Jan',125000],['Feb',138000]], chart_type: 'COLUMN', x_axis: 'Month', y_axis: 'Amount ($)'}]",
+          "required": false
+        },
+        "separate_sheets": {
+          "type": "boolean",
+          "description": "True = each chart in own sheet tab (recommended), False = all charts in one sheet",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains document_id, document_url, spreadsheet_id, spreadsheet_url, charts array (with title/chart_id/data_range/sheet_name/link for each), and instructions string with step-by-step guide for inserting charts"
+      }
+    },
+    {
+      "name": "google_sheets_create",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_create', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Sheets spreadsheet with optional data and headers. Uses official Google Sheets API (no gspread required). Can create empty spreadsheets or populate with data immediately. Auto-formats header row with bold text and gray background.",
+      "platform": "google_sheets",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Title of the new spreadsheet",
+          "required": true
+        },
+        "data": {
+          "type": "array",
+          "description": "Optional 2D array of data rows. Example: [['Alice', 100], ['Bob', 200]]",
+          "required": false
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row. Example: ['Name', 'Score']",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains spreadsheet_id, spreadsheet_url, and success status"
+      }
+    },
+    {
+      "name": "google_sheets_read_data",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_read_data', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRead data from a Google Sheets spreadsheet using official Google Sheets API",
+      "platform": "google_sheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "The spreadsheet ID (from URL)",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Range in A1 notation (e.g., 'Sheet1!A1:D10' or just 'A1:D10')",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains values (2D array), range, and row/column counts"
+      }
+    },
+    {
+      "name": "google_sheets_append_data",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_append_data', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend data to a Google Sheets spreadsheet (adds rows at the end)",
+      "platform": "google_sheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "The spreadsheet ID",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "Range to append to (e.g., 'Sheet1!A:D')",
+          "required": true
+        },
+        "values": {
+          "type": "array",
+          "description": "2D array of values to append. Example: [['Alice', 100], ['Bob', 200]]",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains updated spreadsheet info and number of rows appended"
+      }
+    },
+    {
+      "name": "google_docs_add_formatted_content",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_add_formatted_content', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd sample formatted content to a Google Doc to demonstrate rich text capabilities. Adds: Heading 1, Heading 2, paragraphs with bold/italic text, bulleted lists, numbered lists, and mixed formatting. Useful for testing or creating template documents.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "The document ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains document_id and success status"
+      }
+    },
+    {
+      "name": "google_charts_create",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_charts_create', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a professional Google Chart in a new Google Sheets spreadsheet. Supports 10+ chart types (column, bar, line, area, pie, scatter, combo, histogram, candlestick, bubble) with customization options (title, axis labels, colors, legend, dimensions). Returns spreadsheet with embedded interactive chart.",
+      "platform": "google_sheets",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title (e.g., 'Q1 Sales Chart')",
+          "required": true
+        },
+        "chart_type": {
+          "type": "string",
+          "description": "Chart type: column/bar/line/area/pie/scatter/combo/histogram/candlestick/bubble",
+          "required": true
+        },
+        "data": {
+          "type": "array",
+          "description": "2D array of data. First column = labels/x-axis, remaining = data series. Example: [['Jan', 10, 20], ['Feb', 15, 25]]",
+          "required": true
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row. Example: ['Month', 'Sales', 'Expenses']",
+          "required": false
+        },
+        "chart_options": {
+          "type": "object",
+          "description": "Optional customization: {title: str, subtitle: str, x_axis_title: str, y_axis_title: str, width: int, height: int, legend_position: str, colors: [str], stacked: bool}",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains spreadsheet_id, spreadsheet_url, chart_id, and chart details"
+      }
+    },
+    {
+      "name": "google_docs_insert_chart",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_chart', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Google Chart and insert it as an image into a Google Doc. Creates temporary spreadsheet with chart, exports as PNG, inserts into doc, and cleans up. Supports all chart types from google_charts_create.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Target Google Doc ID",
+          "required": true
+        },
+        "chart_data": {
+          "type": "object",
+          "description": "Chart data: {headers: [str], data: [[values]]}. Example: {headers: ['Month', 'Sales'], data: [['Jan', 100], ['Feb', 150]]}",
+          "required": true
+        },
+        "chart_type": {
+          "type": "string",
+          "description": "Chart type: column/bar/line/area/pie/scatter (default: column)",
+          "required": false,
+          "default": "column"
+        },
+        "chart_options": {
+          "type": "object",
+          "description": "Optional chart customization (same as google_charts_create)",
+          "required": false
+        },
+        "insertion_index": {
+          "type": "integer",
+          "description": "Position in doc to insert chart (null = end of document)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains inserted status, image_url, temp_spreadsheet_id, chart_type, insertion_index"
+      }
+    },
+    {
+      "name": "google_docs_ai_smart_generate_document",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_ai_smart_generate_document', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 SMART TOOL: AI-powered document generation from natural language in ONE call. Takes a prompt like 'Create a product requirements document for a mobile app' and AI generates complete, professionally formatted document with proper structure, headings, lists, tables. Use this instead of manually writing documents.",
+      "platform": "google_docs",
+      "category": "smart_bundled",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "description": "Natural language description of document to create. Examples: 'Create a product requirements document for a mobile fitness app with sections for overview, features, technical specs, timeline', 'Write a professional project proposal for website redesign', 'Generate meeting minutes template'",
+          "required": true
+        },
+        "tone": {
+          "type": "string",
+          "description": "Writing tone: 'professional', 'casual', 'formal', 'technical'",
+          "required": false,
+          "default": "professional"
+        },
+        "share_with": {
+          "type": "array",
+          "description": "Email addresses to share document with",
+          "required": false
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Google Drive folder ID to store document in",
+          "required": false
+        },
+        "include_toc": {
+          "type": "boolean",
+          "description": "Add table of contents at beginning",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "document_id": "string",
+        "document_url": "string",
+        "title": "string (AI-generated)",
+        "generated_content": "string (full markdown content)",
+        "word_count": "integer",
+        "sections": "array of section names"
+      },
+      "use_cases": [
+        "Create product requirements documents",
+        "Generate technical specifications",
+        "Write project proposals with timelines",
+        "Create meeting minutes templates",
+        "Generate policy documents",
+        "Write standard operating procedures"
+      ],
+      "efficiency": "99% faster than manual writing (2 hours → 10 seconds)"
+    },
+    {
+      "name": "google_docs_smart_bulk_create_multiple",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_smart_bulk_create_multiple', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n📚 SMART TOOL: Bulk create multiple Google Docs in ONE call. Creates multiple complete documents simultaneously from markdown or AI generation. Each document can have different content, sharing, and folder settings. Perfect for batch operations.",
+      "platform": "google_docs",
+      "category": "smart_bundled",
+      "parameters": {
+        "documents": {
+          "type": "array",
+          "description": "Array of document configurations. Each can be: {'title': str, 'markdown_content': str} OR {'title': str, 'prompt': str, 'tone': str}. Example: [{'title': 'Q1 Report', 'markdown_content': '# Q1...'}, {'title': 'Q2 Report', 'prompt': 'Create Q2 financial report'}]",
+          "required": true
+        },
+        "share_with": {
+          "type": "array",
+          "description": "Default email addresses to share ALL documents with (can be overridden per document)",
+          "required": false
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Default Google Drive folder for ALL documents (can be overridden per document)",
+          "required": false
+        }
+      },
+      "returns": {
+        "total_created": "integer",
+        "total_failed": "integer",
+        "successful": "array of {title, document_id, document_url}",
+        "failed": "array of {title, error}",
+        "created_documents": "array of full document details"
+      },
+      "use_cases": [
+        "Create 12 monthly report documents at once",
+        "Generate meeting notes for entire quarter",
+        "Create product documentation for multiple features",
+        "Bulk create project proposals for clients",
+        "Generate onboarding docs for new employees",
+        "Create standard templates library"
+      ],
+      "efficiency": "97% reduction in tool calls (20 calls per doc × 5 docs = 100 calls → 1 call)"
+    }
+  ]
+}

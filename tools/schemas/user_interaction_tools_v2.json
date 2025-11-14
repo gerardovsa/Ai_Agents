@@ -1,0 +1,442 @@
+{
+    "platform": "user_interaction",
+    "description": "v2.0 UNIFIED interaction tool - request_user_interaction() handles all interaction types (confirmation, choice, input, control) in one clean function. Supports auto-submit OR text-insert button behaviors. Old tools deprecated but still functional.",
+    "tools": [
+        {
+            "name": "request_user_interaction",
+            "description": "UNIFIED user interaction tool - handles all interaction types in ONE function.\n\nMODES:\n- 'confirmation': Yes/No with cost/risk transparency\n- 'choice': Multiple options (single or multi-select)\n- 'input': Free-form text/number input with optional suggestions\n- 'control': Pause/Stop/Explain/Continue buttons for long operations\n\nBUTTON BEHAVIORS:\n- 'submit': Click button → send immediately to AI\n- 'insert': Click button → populate input field (user can edit before sending)\n\nCONTROL BUTTONS (NEW!):\n- Pause: AI stops, shows options (Continue/Modify/Explain)\n- Stop: AI stops, shows progress with resource links\n- Explain: AI provides detailed update with links to files/URLs\n- Continue: AI resumes from pause\n\nUSE THIS INSTEAD OF:\n- request_user_confirmation() → mode='confirmation'\n- request_user_choice() → mode='choice'\n- request_user_input() → mode='input'\n\nEXAMPLE USAGE:\n- Confirmation: request_user_interaction(message='Read 3 PDFs?', mode='confirmation', level='high')\n- Choice: request_user_interaction(message='Which thread?', mode='choice', options=[...])\n- Control: request_user_interaction(message='Processing...', mode='control', control_type='pause')",
+            "platform": "user_interaction",
+            "category": "interaction",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "description": "Main message/question to show user (REQUIRED)"
+                    },
+                    "interaction_mode": {
+                        "type": "string",
+                        "description": "Type of interaction",
+                        "enum": [
+                            "confirmation",
+                            "choice",
+                            "input",
+                            "control"
+                        ],
+                        "default": "choice"
+                    },
+                    "options": {
+                        "type": "array",
+                        "description": "Button options (auto-generated for control mode). Format: [{label, value, description, insert_text}]",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "label": {
+                                    "type": "string",
+                                    "description": "Button text"
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "description": "Value returned when clicked"
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "description": "Explanation of this option"
+                                },
+                                "insert_text": {
+                                    "type": "string",
+                                    "description": "Text to insert into input field (for text-insert buttons)"
+                                }
+                            },
+                            "required": [
+                                "label",
+                                "value"
+                            ]
+                        }
+                    },
+                    "allow_custom_input": {
+                        "type": "boolean",
+                        "description": "Show text field alongside buttons? User can click button OR type custom text. Default: true",
+                        "default": true
+                    },
+                    "button_behavior": {
+                        "type": "string",
+                        "description": "Button click behavior: 'submit' (instant send) or 'insert' (populate input field). Control mode always uses 'insert'. Default: 'submit'",
+                        "enum": [
+                            "submit",
+                            "insert"
+                        ],
+                        "default": "submit"
+                    },
+                    "control_type": {
+                        "type": "string",
+                        "description": "If mode='control', specify which buttons: 'pause', 'stop', 'explain', 'continue', or 'all' (default)",
+                        "enum": [
+                            "pause",
+                            "stop",
+                            "explain",
+                            "continue",
+                            "all"
+                        ]
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": "Additional context/explanation about the request"
+                    },
+                    "level": {
+                        "type": "string",
+                        "description": "Risk/importance level: 'low', 'medium', 'high', 'critical'",
+                        "enum": [
+                            "low",
+                            "medium",
+                            "high",
+                            "critical"
+                        ],
+                        "default": "medium"
+                    },
+                    "estimated_tokens": {
+                        "type": "integer",
+                        "description": "Estimated token cost if user confirms (helps user understand resource usage)"
+                    },
+                    "estimated_cost_usd": {
+                        "type": "number",
+                        "description": "Estimated dollar cost if user confirms (transparency)"
+                    },
+                    "is_destructive": {
+                        "type": "boolean",
+                        "description": "Is this operation destructive/irreversible? (adds warning styling)",
+                        "default": false
+                    },
+                    "affected_items": {
+                        "type": "array",
+                        "description": "List of items that will be affected (files, emails, records, etc.)",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "input_placeholder": {
+                        "type": "string",
+                        "description": "Placeholder text for text input field",
+                        "default": "Type your response..."
+                    },
+                    "validation": {
+                        "type": "object",
+                        "description": "Input validation rules (for mode='input')",
+                        "properties": {
+                            "required": {
+                                "type": "boolean"
+                            },
+                            "min": {
+                                "type": "number"
+                            },
+                            "max": {
+                                "type": "number"
+                            },
+                            "pattern": {
+                                "type": "string",
+                                "description": "Regex pattern"
+                            },
+                            "error_message": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "message"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Interaction request that pauses conversation. User responds via button OR text field - both continue conversation with same context.",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "user_interaction_request_v2"
+                        ]
+                    },
+                    "interaction_mode": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "context": {
+                        "type": "string"
+                    },
+                    "options": {
+                        "type": "array"
+                    },
+                    "allow_custom_input": {
+                        "type": "boolean"
+                    },
+                    "button_behavior": {
+                        "type": "string"
+                    },
+                    "input_placeholder": {
+                        "type": "string"
+                    },
+                    "level": {
+                        "type": "string"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "properties": {
+                            "estimated_tokens": {
+                                "type": "integer"
+                            },
+                            "estimated_cost_usd": {
+                                "type": "number"
+                            },
+                            "is_destructive": {
+                                "type": "boolean"
+                            },
+                            "affected_items": {
+                                "type": "array"
+                            },
+                            "validation": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "ui_config": {
+                        "type": "object",
+                        "description": "UI rendering configuration",
+                        "properties": {
+                            "show_buttons": {
+                                "type": "boolean"
+                            },
+                            "show_text_input": {
+                                "type": "boolean"
+                            },
+                            "button_mode": {
+                                "type": "string"
+                            },
+                            "layout": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Confirmation with cost transparency",
+                    "parameters": {
+                        "message": "Should I read the full email with 3 PDF attachments?",
+                        "interaction_mode": "confirmation",
+                        "context": "Email from john@example.com, 12 MB total",
+                        "options": [
+                            {
+                                "label": "Read Full Content",
+                                "value": "confirm",
+                                "description": "Parse email and all PDFs"
+                            },
+                            {
+                                "label": "Metadata Only",
+                                "value": "metadata",
+                                "description": "Just subject and sender"
+                            },
+                            {
+                                "label": "Cancel",
+                                "value": "cancel"
+                            }
+                        ],
+                        "estimated_tokens": 25000,
+                        "estimated_cost_usd": 0.075,
+                        "level": "high",
+                        "allow_custom_input": true
+                    }
+                },
+                {
+                    "description": "Simple choice",
+                    "parameters": {
+                        "message": "Which email thread should I analyze?",
+                        "interaction_mode": "choice",
+                        "options": [
+                            {
+                                "label": "Contract Review (5 messages)",
+                                "value": "thread_1"
+                            },
+                            {
+                                "label": "Project Discussion (12 messages)",
+                                "value": "thread_2"
+                            },
+                            {
+                                "label": "Q4 Planning (8 messages)",
+                                "value": "thread_3"
+                            }
+                        ],
+                        "allow_custom_input": true
+                    }
+                },
+                {
+                    "description": "Input with suggestions",
+                    "parameters": {
+                        "message": "Which sender should I search for?",
+                        "interaction_mode": "input",
+                        "options": [
+                            {
+                                "label": "john@example.com",
+                                "value": "john@example.com"
+                            },
+                            {
+                                "label": "jane@example.com",
+                                "value": "jane@example.com"
+                            }
+                        ],
+                        "input_placeholder": "Enter email address...",
+                        "validation": {
+                            "required": true,
+                            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+                            "error_message": "Please enter a valid email"
+                        }
+                    }
+                },
+                {
+                    "description": "Control buttons (text-insert) for long operation",
+                    "parameters": {
+                        "message": "Analyzing 50 emails - this may take time...",
+                        "interaction_mode": "control",
+                        "control_type": "all",
+                        "button_behavior": "insert"
+                    },
+                    "user_experience": [
+                        "User sees: [⏸️ Pause] [⏹️ Stop] [📊 Explain] [▶️ Continue] buttons",
+                        "User clicks [⏸️ Pause]",
+                        "Text 'Pause please' appears in input field",
+                        "User can edit: 'Pause please and show me the first 5 results'",
+                        "User presses Send → AI receives edited text",
+                        "AI pauses, shows progress, offers options to continue/modify"
+                    ]
+                },
+                {
+                    "description": "Specific control button (pause only)",
+                    "parameters": {
+                        "message": "Processing large dataset...",
+                        "interaction_mode": "control",
+                        "control_type": "pause"
+                    },
+                    "result": "Shows only [⏸️ Pause] button with text-insert behavior"
+                }
+            ]
+        },
+        {
+            "name": "inform_user",
+            "description": "Inform user of something important WITHOUT pausing conversation (non-blocking).\n\nUSE THIS for:\n- Status updates ('Found 5 emails, analyzing most recent...')\n- Warnings ('API rate limit approaching')\n- Success messages ('Email sent successfully')\n- Progress updates ('Processing file 3 of 10...')\n\nConversation CONTINUES automatically.",
+            "platform": "user_interaction",
+            "category": "interaction",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "description": "The information to show"
+                    },
+                    "level": {
+                        "type": "string",
+                        "description": "Importance level",
+                        "enum": [
+                            "info",
+                            "success",
+                            "warning",
+                            "error"
+                        ],
+                        "default": "info"
+                    },
+                    "actions": {
+                        "type": "array",
+                        "description": "Optional quick actions user can take",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "label": {
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "message"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Information message (non-blocking)"
+            }
+        },
+        {
+            "name": "suggest_next_actions",
+            "description": "Suggest follow-up actions after completing a task.\n\nUSE THIS at end of operations:\n- After analyzing email: [Reply] [Schedule Meeting] [Create Task]\n- After generating report: [Download] [Share] [Schedule Next]\n- After search: [Refine Search] [Export Results] [Save Query]\n\nProvides helpful next steps.",
+            "platform": "user_interaction",
+            "category": "interaction",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "completed_action": {
+                        "type": "string",
+                        "description": "What was just completed"
+                    },
+                    "suggestions": {
+                        "type": "array",
+                        "description": "List of suggested next actions",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "label": {
+                                    "type": "string",
+                                    "description": "Action button text"
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "description": "What this action does"
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "description": "Value returned if clicked"
+                                }
+                            },
+                            "required": [
+                                "label",
+                                "value"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "completed_action",
+                    "suggestions"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Suggestion list"
+            }
+        }
+    ],
+    "deprecated_tools": [
+        {
+            "name": "request_user_confirmation",
+            "status": "DEPRECATED - Use request_user_interaction(mode='confirmation') instead",
+            "migration": "Replace request_user_confirmation(...) with request_user_interaction(message=question, interaction_mode='confirmation', ...)",
+            "still_functional": true
+        },
+        {
+            "name": "request_user_choice",
+            "status": "DEPRECATED - Use request_user_interaction(mode='choice') instead",
+            "migration": "Replace request_user_choice(...) with request_user_interaction(message=question, interaction_mode='choice', options=choices, ...)",
+            "still_functional": true
+        },
+        {
+            "name": "request_user_input",
+            "status": "DEPRECATED - Use request_user_interaction(mode='input') instead",
+            "migration": "Replace request_user_input(...) with request_user_interaction(message=prompt, interaction_mode='input', ...)",
+            "still_functional": true
+        }
+    ]
+}
