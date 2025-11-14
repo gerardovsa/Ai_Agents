@@ -23,6 +23,10 @@ import os
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# CRITICAL: Import centralized database path helper (Render compatibility)
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.db_path_helper import get_ai_infrastructure_db_path
+
 from Microsoft_365_Connection.microsoft365_oauth_manager import (
     microsoft_oauth_manager,
     get_microsoft_auth_url,
@@ -89,11 +93,10 @@ MICROSOFT_SCOPES = [
 # ======================================================================
 
 def get_db_connection():
-    """Get SQLite database connection to data/ai_infrastructure.db (CORRECT LOCATION)"""
-    from pathlib import Path
-    # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
-    root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
+    """Get SQLite database connection to ai_infrastructure.db (CORRECT LOCATION)"""
+    # CRITICAL: Use centralized helper (supports Render /data mount)
+    # Import moved to top of file for Render compatibility
+    db_path = get_ai_infrastructure_db_path()
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     logger.info(f'🔷 [DB CONNECTION] Using: {db_path}')  # Debug log

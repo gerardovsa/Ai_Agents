@@ -21,6 +21,11 @@ from pathlib import Path
 from dotenv import dotenv_values
 import sqlite3
 import random
+import sys
+
+# CRITICAL: Add parent directory to path for imports (Render compatibility)
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.db_path_helper import get_ai_infrastructure_db_path
 
 google_auth_bp = Blueprint('google_auth', __name__, url_prefix='/api/auth/google')
 
@@ -95,9 +100,8 @@ GOOGLE_SCOPES = [
 
 def get_db_connection():
     """Get database connection to ai_infrastructure.db in data/ folder (CORRECT LOCATION)"""
-    import sqlite3
-    from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
     # CORRECT: Use centralized helper (supports Render /data mount)
+    # Import moved to top of file for Render compatibility
     db_path = get_ai_infrastructure_db_path()
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
