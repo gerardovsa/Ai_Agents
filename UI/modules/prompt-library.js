@@ -242,10 +242,186 @@ console.log('[PROMPT LIBRARY] ========================================');
         `;
         chatInputWrapper.insertBefore(dropdown, chatInputWrapper.firstChild);
 
-        // Modal is now in HTML file - no need to create it dynamically
-        console.log('[PROMPT LIBRARY] Modal loaded from HTML file');
+        // Create tabbed modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'prompt-modal-overlay';
+        modalOverlay.className = 'prompt-modal-overlay';
+        modalOverlay.onclick = function(event) {
+            if (event.target === this) window.closePromptModal();
+        };
+        
+        modalOverlay.innerHTML = `
+            <div class="prompt-modal">
+                <div class="prompt-modal-header">
+                    <h3>Instructions Catalogue</h3>
+                    <button class="prompt-modal-close" onclick="window.closePromptModal()">&times;</button>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="prompt-modal-tabs">
+                    <button class="prompt-tab active" data-tab="create" onclick="window.switchPromptTab('create')">
+                        <i class="fas fa-plus"></i> Create New
+                    </button>
+                    <button class="prompt-tab" data-tab="edit" onclick="window.switchPromptTab('edit')">
+                        <i class="fas fa-pencil-alt"></i> Edit Existing
+                    </button>
+                </div>
 
-        console.log('[PROMPT LIBRARY] HTML templates injected');
+                <div class="prompt-modal-body">
+                    <!-- CREATE TAB -->
+                    <div id="create-tab" class="tab-content active">
+                        <form id="prompt-form" onsubmit="event.preventDefault(); window.savePrompt();">
+                            <div class="form-group">
+                                <label for="prompt-title"><i class="fas fa-heading"></i> Prompt Title</label>
+                                <input type="text" id="prompt-title" class="form-control" placeholder="e.g., Code Review Assistant" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="prompt-category"><i class="fas fa-folder"></i> Category</label>
+                                <select id="prompt-category" class="form-control" required>
+                                    <option value="development">Development</option>
+                                    <option value="analysis">Analysis</option>
+                                    <option value="data">Data & SQL</option>
+                                    <option value="style">Communication Style</option>
+                                    <option value="business">Business</option>
+                                    <option value="creative">Creative</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-bolt"></i> Prompt Type</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
+                                        <span>Quick Action</span>
+                                        <small>Short directive (e.g., "Be concise")</small>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
+                                        <span>Full Prompt</span>
+                                        <small>Complete instructions with context</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="prompt-short-desc"><i class="fas fa-align-left"></i> Short Description</label>
+                                <input type="text" id="prompt-short-desc" class="form-control" placeholder="Brief description shown in dropdown">
+                            </div>
+                            <div class="form-group">
+                                <label for="prompt-text"><i class="fas fa-file-alt"></i> Prompt Text</label>
+                                <textarea id="prompt-text" class="form-control" rows="6" placeholder="Enter your prompt instructions here..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="prompt-tags"><i class="fas fa-tags"></i> Tags</label>
+                                <input type="text" id="prompt-tags" class="form-control" placeholder="code, review, python (comma-separated)">
+                            </div>
+                            <div class="form-group">
+                                <label for="prompt-visibility"><i class="fas fa-eye"></i> Visibility</label>
+                                <select id="prompt-visibility" class="form-control">
+                                    <option value="private">Private (only you)</option>
+                                    <option value="workspace">Workspace (all members)</option>
+                                    <option value="public">Public (everyone)</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- EDIT TAB -->
+                    <div id="edit-tab" class="tab-content">
+                        <div class="edit-prompt-selector">
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">
+                                <i class="fas fa-list"></i> Select Prompt to Edit
+                            </label>
+                            <div class="edit-search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="edit-search" class="form-control" placeholder="Search your prompts..." oninput="window.filterEditPrompts(this.value)">
+                            </div>
+                            <div id="edit-prompts-container" class="edit-prompts-scrollable"></div>
+                        </div>
+
+                        <div id="edit-form-container" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-default);">
+                            <div style="background: rgba(88, 166, 255, 0.1); border: 1px solid var(--accent-primary); border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+                                <i class="fas fa-info-circle" style="color: var(--accent-primary);"></i>
+                                <span style="color: var(--text-primary); font-size: 13px; margin-left: 8px;">
+                                    Editing: <strong id="editing-prompt-name"></strong>
+                                </span>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-prompt-title"><i class="fas fa-heading"></i> Prompt Title</label>
+                                <input type="text" id="edit-prompt-title" class="form-control" placeholder="e.g., Code Review Assistant" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-prompt-category"><i class="fas fa-folder"></i> Category</label>
+                                <select id="edit-prompt-category" class="form-control" required>
+                                    <option value="development">Development</option>
+                                    <option value="analysis">Analysis</option>
+                                    <option value="data">Data & SQL</option>
+                                    <option value="style">Communication Style</option>
+                                    <option value="business">Business</option>
+                                    <option value="creative">Creative</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-bolt"></i> Prompt Type</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="edit-prompt-type" id="edit-type-quick" value="quick_action">
+                                        <span>Quick Action</span>
+                                        <small>Short directive (e.g., "Be concise")</small>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="edit-prompt-type" id="edit-type-full" value="full_prompt">
+                                        <span>Full Prompt</span>
+                                        <small>Complete instructions with context</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-prompt-short-desc"><i class="fas fa-align-left"></i> Short Description</label>
+                                <input type="text" id="edit-prompt-short-desc" class="form-control" placeholder="Brief description shown in dropdown">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-prompt-text"><i class="fas fa-file-alt"></i> Prompt Text</label>
+                                <textarea id="edit-prompt-text" class="form-control" rows="6" placeholder="Enter your prompt instructions here..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-prompt-tags"><i class="fas fa-tags"></i> Tags</label>
+                                <input type="text" id="edit-prompt-tags" class="form-control" placeholder="code, review, python (comma-separated)">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-prompt-visibility"><i class="fas fa-eye"></i> Visibility</label>
+                                <select id="edit-prompt-visibility" class="form-control">
+                                    <option value="private">Private (only you)</option>
+                                    <option value="workspace">Workspace (all members)</option>
+                                    <option value="public">Public (everyone)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="prompt-modal-footer">
+                    <div id="create-footer" class="footer-content active">
+                        <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
+                        <button class="btn-primary" onclick="window.savePrompt()">
+                            <i class="fas fa-save"></i> Create Prompt
+                        </button>
+                    </div>
+                    <div id="edit-footer" class="footer-content">
+                        <button id="delete-prompt-btn" class="btn-delete" onclick="window.deletePrompt()">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
+                        <button class="btn-primary" onclick="window.saveEditedPrompt()">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modalOverlay);
+
+        console.log('[PROMPT LIBRARY] HTML templates and modal injected');
     }
 
     /**
