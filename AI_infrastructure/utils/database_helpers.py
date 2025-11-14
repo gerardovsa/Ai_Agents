@@ -132,9 +132,13 @@ def get_pooled_sqlite_connection(db_path: str, timeout: float = 30.0):
         try:
             # Verify connection is still valid
             conn.execute("SELECT 1")
-            yield conn
-            conn.commit()  # Commit on successful exit
-            return
+            try:
+                yield conn
+                conn.commit()  # Commit on successful exit
+            except Exception as e:
+                conn.rollback()  # Rollback on error
+                raise
+            return  # Exit context manager properly
         except sqlite3.Error:
             # Connection broken, remove from pool
             try:

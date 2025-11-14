@@ -1680,3 +1680,315 @@ def synergy_checklist_add_sub_item(
         
     except requests.exceptions.RequestException as e:
         raise SynergyError(f"Failed to add sub-item to session {session_id}: {str(e)}")
+
+
+# ============================================================
+# INTERNAL DOCUMENTS
+# ============================================================
+
+def synergy_create_internal_doc(
+    session_id: str,
+    title: str,
+    content: str,
+    format: str = "markdown",
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Create an internal document within a Synergy session
+    
+    This stores long-form content (meeting notes, drafts, summaries) directly
+    in the Synergy database without requiring external Drive/OneDrive.
+    
+    Content is stored as MARKDOWN for AI-friendly processing. The document will
+    appear in the session's Documents section. Users can click to open an editor
+    modal where they can:
+    - Edit content with live markdown preview
+    - Export to Word/Google Docs/PDF/Email
+    - Copy doc_id for AI processing
+    
+    Args:
+        session_id: Synergy session ID (format: sess_YYYYMMDD_HHMM_title)
+        title: Document title (e.g., 'Meeting Summary', 'Q4 Strategy')
+        content: Document content in MARKDOWN format. Supports:
+                 - **bold**, *italic*
+                 - # headers (H1), ## (H2), etc.
+                 - - bullet lists
+                 - - [ ] checklists
+                 - Links, code blocks, etc.
+        format: Content format (default: 'markdown'). Can be 'html' but markdown
+                is preferred for AI editability
+        **kwargs: Additional parameters (e.g., _user_id)
+    
+    Returns:
+        Dict with:
+        - success: bool
+        - doc_id: str (format: int_doc_<timestamp>) - SAVE THIS for later retrieval
+        - title: str
+        - preview: str (first 100 chars of content)
+        - message: str
+        
+    Example:
+        result = synergy_create_internal_doc(
+            session_id='sess_20251114_1200_project_alpha',
+            title='Meeting Summary - Nov 14',
+            content='''# Meeting Summary
+            
+## Attendees
+- John Smith
+- Sarah Johnson
+
+## Key Decisions
+1. **Budget Approved** - $50K for Q1
+2. **Timeline Set** - Launch by March 15
+
+## Action Items
+- [ ] John: Draft project proposal
+- [ ] Sarah: Schedule follow-up meeting
+
+## Next Steps
+Review proposal next week.'''
+        )
+        
+        # Returns: {"success": True, "doc_id": "int_doc_1731600000123", ...}
+        # User can paste "int_doc_1731600000123" in chat for AI to read it
+    """
+    try:
+        response = requests.post(
+            f'{SYNERGY_API_BASE}/internal-doc/create',
+            json={
+                'session_id': session_id,
+                'title': title,
+                'content': content,
+                'format': format,
+                'created_by': kwargs.get('_user_id', 'ai_agent')
+            }
+        )
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        return {
+            'success': True,
+            'doc_id': data.get('doc_id'),
+            'title': data.get('title'),
+            'preview': data.get('preview', content[:100]),
+            'message': f"✅ Created internal document: {title}. Doc ID: {data.get('doc_id')} (user can paste in chat for AI to read)"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to create internal document: {str(e)}")
+
+
+def synergy_update_internal_doc(
+    doc_id: str,
+    content: Optional[str] = None,
+    title: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Update an existing internal document's content or title
+    
+    This increments the version number for tracking changes. Use when user
+    requests modifications to an existing internal document.
+    
+    Args:
+        doc_id: Internal document ID (format: int_doc_<timestamp>)
+        content: Updated content in markdown (optional)
+        title: Updated title (optional)
+        **kwargs: Additional parameters
+    
+    Returns:
+        Dict with success status, updated version, and message
+        
+    Example:
+        result = synergy_update_internal_doc(
+            doc_id='int_doc_1731600000123',
+            content='# Updated Summary\n\nNew content here...'
+        )
+    """
+    try:
+        updates = {}
+        if content is not None:
+            updates['content'] = content
+        if title is not None:
+            updates['title'] = title
+            
+        if not updates:
+            return {
+                'success': False,
+                'error': 'No updates provided (need content or title)'
+            }
+        
+        response = requests.put(
+            f'{SYNERGY_API_BASE}/internal-doc/{doc_id}',
+            json=updates
+        )
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        return {
+            'success': True,
+            'doc_id': doc_id,
+            'version': data.get('version'),
+            'message': f"✅ Updated internal document (version {data.get('version')})"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to update internal document {doc_id}: {str(e)}")
+
+
+def synergy_get_internal_doc(
+    doc_id: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Retrieve the full content of an internal document
+    
+    Use this when user pastes a doc_id in chat and asks you to read,
+    summarize, or process the document.
+    
+    Args:
+        doc_id: Internal document ID (format: int_doc_<timestamp>)
+        **kwargs: Additional parameters
+    
+    Returns:
+        Dict with:
+        - success: bool
+        - doc_id: str
+        - session_id: str
+        - title: str
+        - content: str (complete markdown content)
+        - format: str
+        - version: int
+        - created_at: str
+        - updated_at: str
+        - created_by: str
+        
+    Example:
+        # User pastes in chat: "Summarize int_doc_1731600000123"
+        doc = synergy_get_internal_doc(doc_id='int_doc_1731600000123')
+        # Now you can read doc['content'] and provide summary
+    """
+    try:
+        response = requests.get(f'{SYNERGY_API_BASE}/internal-doc/{doc_id}')
+        response.raise_for_status()
+        data = response.json()
+        
+        return {
+            'success': True,
+            'doc_id': data.get('doc_id'),
+            'session_id': data.get('session_id'),
+            'title': data.get('title'),
+            'content': data.get('content'),
+            'format': data.get('format'),
+            'version': data.get('version'),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at'),
+            'created_by': data.get('created_by')
+        }
+        
+    except requests.exceptions.RequestException as e:
+        if 'Not Found' in str(e) or '404' in str(e):
+            raise SynergyError(f"Internal document {doc_id} not found")
+        raise SynergyError(f"Failed to get internal document {doc_id}: {str(e)}")
+
+
+def synergy_export_internal_doc(
+    doc_id: str,
+    export_format: str,
+    email_to: Optional[str] = None,
+    email_subject: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Export an internal document to various formats
+    
+    Converts markdown content to formatted output and exports to:
+    - 'word': Creates .docx file in OneDrive
+    - 'google_doc': Creates Google Doc in Drive
+    - 'pdf': Creates Word doc then converts to PDF
+    - 'email': Sends document content via Gmail
+    
+    User must have OAuth credentials configured for the target platform.
+    
+    Args:
+        doc_id: Internal document ID to export
+        export_format: 'word', 'google_doc', 'pdf', or 'email'
+        email_to: Recipient email (required for 'email' format)
+        email_subject: Email subject (optional, for 'email' format)
+        **kwargs: Additional parameters (includes _user_id for OAuth)
+    
+    Returns:
+        Dict with:
+        - success: bool
+        - url: str (for word/google_doc - opens in browser)
+        - file_id: str (for OneDrive)
+        - document_id: str (for Google Docs)
+        - message: str (for email confirmation)
+        - format: str
+        
+    Example:
+        # Export to Word
+        result = synergy_export_internal_doc(
+            doc_id='int_doc_1731600000123',
+            export_format='word'
+        )
+        # Returns: {"success": True, "url": "https://onedrive.live.com/...", ...}
+        
+        # Send via email
+        result = synergy_export_internal_doc(
+            doc_id='int_doc_1731600000123',
+            export_format='email',
+            email_to='user@example.com',
+            email_subject='Meeting Summary - Nov 14'
+        )
+    """
+    try:
+        if export_format == 'email' and not email_to:
+            return {
+                'success': False,
+                'error': 'email_to is required for email export format'
+            }
+        
+        payload = {}
+        if email_to:
+            payload['to'] = email_to
+        if email_subject:
+            payload['subject'] = email_subject
+            
+        # Add user_id header for OAuth credential injection
+        headers = {}
+        if kwargs.get('_user_id'):
+            headers['X-User-ID'] = str(kwargs.get('_user_id'))
+        
+        response = requests.post(
+            f'{SYNERGY_API_BASE}/internal-doc/{doc_id}/export/{export_format}',
+            json=payload,
+            headers=headers
+        )
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        format_names = {
+            'word': 'Word document',
+            'google_doc': 'Google Doc',
+            'pdf': 'PDF',
+            'email': 'email'
+        }
+        
+        return {
+            'success': True,
+            'doc_id': doc_id,
+            'format': export_format,
+            'url': data.get('url'),
+            'file_id': data.get('file_id'),
+            'document_id': data.get('document_id'),
+            'message': data.get('message') or f"✅ Exported as {format_names.get(export_format, export_format)}"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        if 'Permission denied' in str(e):
+            raise SynergyError(f"Export failed: User needs to configure {export_format} OAuth credentials")
+        raise SynergyError(f"Failed to export internal document {doc_id}: {str(e)}")

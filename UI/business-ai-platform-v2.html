@@ -1450,6 +1450,302 @@
             transition: opacity 0.3s ease 0.1s;
         }
 
+        /* ==================== DEVICE LOCK/UNLOCK BUTTONS ==================== */
+        .lock-unlock-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .lock-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 6px;
+            font-size: 12px;
+            color: #ff6b35;
+            font-weight: 500;
+        }
+
+        .lock-status-badge i {
+            font-size: 11px;
+        }
+
+        .lock-btn,
+        .unlock-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .lock-btn {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+        }
+
+        .lock-btn:hover {
+            background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+        }
+
+        .unlock-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .unlock-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .lock-btn:active,
+        .unlock-btn:active {
+            transform: translateY(0);
+        }
+
+        .lock-btn i,
+        .unlock-btn i {
+            font-size: 11px;
+        }
+
+        /* Locked thread styling */
+        .thread-item.locked,
+        .ai-chat-header-info.locked {
+            border-color: #ff6b35;
+            box-shadow: 0 0 0 1px rgba(255, 107, 53, 0.2);
+        }
+
+        .ai-chat-input-container.locked-read-only {
+            opacity: 0.6;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .ai-chat-input-container.locked-read-only::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.05);
+            pointer-events: none;
+        }
+
+        .lock-read-only-banner {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #856404;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .lock-read-only-banner i {
+            font-size: 16px;
+            color: #ff6b35;
+        }
+
+        .lock-read-only-banner strong {
+            color: #ff6b35;
+        }
+
+        /* Device Name Settings Modal */
+        .device-name-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .device-name-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .device-name-modal {
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent-primary);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .device-name-modal-overlay.active .device-name-modal {
+            transform: scale(1);
+        }
+
+        .device-name-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .device-name-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .device-name-modal-title i {
+            color: var(--accent-primary);
+            font-size: 20px;
+        }
+
+        .device-name-modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid var(--border-default);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .device-name-modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--accent-error);
+            border-color: var(--accent-error);
+        }
+
+        .device-name-modal-body {
+            margin-bottom: 20px;
+        }
+
+        .device-name-modal-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .device-name-modal-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .device-name-modal-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .device-name-modal-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .device-name-modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .device-name-modal-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .device-name-modal-btn.cancel {
+            background: transparent;
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+        }
+
+        .device-name-modal-btn.cancel:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-secondary);
+        }
+
+        .device-name-modal-btn.save {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #4a8fe7 100%);
+            color: white;
+        }
+
+        .device-name-modal-btn.save:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+        }
+
+        /* Edit device name button in lock controls */
+        .edit-device-name-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .edit-device-name-btn:hover {
+            background: var(--bg-hover);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .edit-device-name-btn i {
+            font-size: 11px;
+        }
+
         .add-tag-btn {
             display: inline-flex;
             align-items: center;
@@ -20402,6 +20698,41 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                 <i class="fas fa-plus"></i> Tag
                             </button>
                         </div>
+                        
+                        <!-- ROW 6: Lock/Unlock Controls (Device Lock Feature) -->
+                        <div class="lock-unlock-container" id="lock-controls-${thread.id}" style="display: none;">
+                            <!-- Lock Status Badge (shown when locked by another device) -->
+                            <div class="lock-status-badge" id="lock-status-${thread.id}" style="display: none;">
+                                <i class="fas fa-lock"></i>
+                                <span>Locked to <strong id="lock-device-name-${thread.id}">Unknown Device</strong></span>
+                            </div>
+                            
+                            <!-- Lock Button (shown when thread is unlocked) -->
+                            <button class="lock-btn" id="lock-btn-${thread.id}" 
+                                    onclick="event.stopPropagation(); DeviceLockManager.lockThread('${thread.id}')"
+                                    title="Lock this thread to your current device"
+                                    style="display: none;">
+                                <i class="fas fa-lock"></i>
+                                <span>Lock Thread</span>
+                            </button>
+                            
+                            <!-- Unlock Button (shown when thread is locked by this device) -->
+                            <button class="unlock-btn" id="unlock-btn-${thread.id}" 
+                                    onclick="event.stopPropagation(); DeviceLockManager.unlockThread('${thread.id}')"
+                                    title="Unlock this thread for all devices"
+                                    style="display: none;">
+                                <i class="fas fa-unlock"></i>
+                                <span>Unlock Thread</span>
+                            </button>
+                            
+                            <!-- Edit Device Name Button -->
+                            <button class="edit-device-name-btn" 
+                                    onclick="event.stopPropagation(); DeviceLockManager.showDeviceNameModal()"
+                                    title="Set a custom name for this device">
+                                <i class="fas fa-edit"></i>
+                                <span id="current-device-name-display">Edit Device Name</span>
+                            </button>
+                        </div>
                     </div>`;
                 }
             },
@@ -23676,6 +24007,367 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             }, 500);
         }
 
+        // ==================== DEVICE LOCK MANAGER ====================
+
+        const DeviceLockManager = {
+            deviceId: null,
+            deviceName: null,
+
+            async init() {
+                console.log('🔒 [Device Lock] Initializing...');
+
+                // Generate or retrieve device ID
+                this.deviceId = localStorage.getItem('device_id');
+                if (!this.deviceId) {
+                    this.deviceId = this.generateDeviceId();
+                    localStorage.setItem('device_id', this.deviceId);
+                }
+
+                // Set device name
+                this.deviceName = this.getDeviceName();
+
+                // Register device with backend
+                await this.registerDevice();
+
+                console.log('✅ [Device Lock] Initialized:', { deviceId: this.deviceId, deviceName: this.deviceName });
+            },
+
+            generateDeviceId() {
+                return `browser-${navigator.userAgent.substring(0, 10).replace(/\s+/g, '-')}-${Date.now()}`;
+            },
+
+            getDeviceName() {
+                // Check for custom device name first
+                const customName = localStorage.getItem('device_custom_name');
+                if (customName) {
+                    return customName;
+                }
+
+                // Fall back to auto-detected name
+                const ua = navigator.userAgent;
+                if (ua.includes('Chrome')) return 'Chrome Browser';
+                if (ua.includes('Firefox')) return 'Firefox Browser';
+                if (ua.includes('Safari')) return 'Safari Browser';
+                if (ua.includes('Edge')) return 'Edge Browser';
+                return 'Unknown Browser';
+            },
+
+            setCustomDeviceName(name) {
+                if (name && name.trim().length > 0) {
+                    localStorage.setItem('device_custom_name', name.trim());
+                    this.deviceName = name.trim();
+                    // Re-register device with new name
+                    this.registerDevice();
+                    // Update all UI displays
+                    const display = document.getElementById('current-device-name-display');
+                    if (display) {
+                        display.textContent = name.trim();
+                    }
+                    console.log('✅ [Device Lock] Custom device name set:', name.trim());
+                } else {
+                    console.error('❌ [Device Lock] Invalid device name');
+                }
+            },
+
+            showDeviceNameModal() {
+                // Create modal if it doesn't exist
+                let modal = document.getElementById('device-name-modal-overlay');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'device-name-modal-overlay';
+                    modal.className = 'device-name-modal-overlay';
+                    modal.innerHTML = `
+                        <div class="device-name-modal">
+                            <div class="device-name-modal-header">
+                                <div class="device-name-modal-title">
+                                    <i class="fas fa-desktop"></i>
+                                    <span>Name This Device</span>
+                                </div>
+                                <button class="device-name-modal-close" onclick="DeviceLockManager.closeDeviceNameModal()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="device-name-modal-body">
+                                <label class="device-name-modal-label" for="device-name-input">
+                                    Device Nickname
+                                </label>
+                                <input type="text" 
+                                       id="device-name-input" 
+                                       class="device-name-modal-input"
+                                       placeholder="e.g., Work Laptop, Home Desktop, John's Chrome"
+                                       maxlength="50"
+                                       value="${this.deviceName || ''}">
+                                <div class="device-name-modal-hint">
+                                    This name will be shown when this device locks a thread. Makes it easier to identify in multi-device scenarios.
+                                </div>
+                            </div>
+                            <div class="device-name-modal-footer">
+                                <button class="device-name-modal-btn cancel" onclick="DeviceLockManager.closeDeviceNameModal()">
+                                    Cancel
+                                </button>
+                                <button class="device-name-modal-btn save" onclick="DeviceLockManager.saveDeviceName()">
+                                    Save Name
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+
+                    // Add click-outside-to-close
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            this.closeDeviceNameModal();
+                        }
+                    });
+
+                    // Add Enter key to save
+                    const input = modal.querySelector('#device-name-input');
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            this.saveDeviceName();
+                        } else if (e.key === 'Escape') {
+                            this.closeDeviceNameModal();
+                        }
+                    });
+                }
+
+                // Show modal
+                modal.classList.add('active');
+                setTimeout(() => {
+                    const input = document.getElementById('device-name-input');
+                    if (input) {
+                        input.focus();
+                        input.select();
+                    }
+                }, 100);
+            },
+
+            closeDeviceNameModal() {
+                const modal = document.getElementById('device-name-modal-overlay');
+                if (modal) {
+                    modal.classList.remove('active');
+                }
+            },
+
+            saveDeviceName() {
+                const input = document.getElementById('device-name-input');
+                if (input && input.value.trim()) {
+                    this.setCustomDeviceName(input.value);
+                    this.closeDeviceNameModal();
+                    alert(`Device name updated to: "${input.value.trim()}"`);
+                } else {
+                    alert('Please enter a valid device name');
+                }
+            },
+
+            async registerDevice() {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/device/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            device_id: this.deviceId,
+                            device_name: this.deviceName,
+                            user_id: UserAuth.user?.user_id || UserAuth.user?.id || 1,
+                            device_fingerprint: navigator.userAgent
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('✅ [Device Lock] Device registered:', result);
+                    } else {
+                        console.error('❌ [Device Lock] Registration failed:', result.error);
+                    }
+                } catch (error) {
+                    console.error('❌ [Device Lock] Registration error:', error);
+                }
+            },
+
+            async lockThread(threadId) {
+                try {
+                    console.log(`🔒 [Device Lock] Locking thread ${threadId}...`);
+
+                    const response = await fetch(`${API_BASE_URL}/api/thread/${threadId}/lock`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            device_id: this.deviceId,
+                            user_id: UserAuth.user?.user_id || UserAuth.user?.id || 1
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log('✅ [Device Lock] Thread locked:', result);
+
+                        // Update UI - add locked border
+                        const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
+                        threadCards.forEach(card => card.classList.add('locked'));
+
+                        // Show unlock button, hide lock button
+                        const lockBtn = document.getElementById(`lock-btn-${threadId}`);
+                        const unlockBtn = document.getElementById(`unlock-btn-${threadId}`);
+                        const lockStatus = document.getElementById(`lock-status-${threadId}`);
+
+                        if (lockBtn) lockBtn.style.display = 'none';
+                        if (unlockBtn) unlockBtn.style.display = 'inline-flex';
+                        if (lockStatus) {
+                            lockStatus.style.display = 'none';
+                        }
+
+                        this.showNotification(`Thread locked to ${this.deviceName}`, 'success');
+                    } else {
+                        console.error('❌ [Device Lock] Lock failed:', result.error);
+                        this.showNotification(`Failed to lock: ${result.error}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ [Device Lock] Lock error:', error);
+                    this.showNotification('Failed to lock thread', 'error');
+                }
+            },
+
+            async unlockThread(threadId) {
+                try {
+                    console.log(`🔓 [Device Lock] Unlocking thread ${threadId}...`);
+
+                    const response = await fetch(`${API_BASE_URL}/api/thread/${threadId}/unlock`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            device_id: this.deviceId,
+                            user_id: UserAuth.user?.user_id || UserAuth.user?.id || 1
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log('✅ [Device Lock] Thread unlocked:', result);
+
+                        // Update UI - remove locked border
+                        const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
+                        threadCards.forEach(card => card.classList.remove('locked'));
+
+                        // Show lock button, hide unlock button
+                        const lockBtn = document.getElementById(`lock-btn-${threadId}`);
+                        const unlockBtn = document.getElementById(`unlock-btn-${threadId}`);
+                        const lockStatus = document.getElementById(`lock-status-${threadId}`);
+
+                        if (lockBtn) lockBtn.style.display = 'inline-flex';
+                        if (unlockBtn) unlockBtn.style.display = 'none';
+                        if (lockStatus) lockStatus.style.display = 'none';
+
+                        // Re-enable chat input if this was the active thread
+                        const chatInput = document.querySelector('.ai-chat-input-container');
+                        if (chatInput) chatInput.classList.remove('locked-read-only');
+
+                        this.showNotification('Thread unlocked', 'success');
+                    } else {
+                        console.error('❌ [Device Lock] Unlock failed:', result.error);
+                        this.showNotification(`Failed to unlock: ${result.error}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ [Device Lock] Unlock error:', error);
+                    this.showNotification('Failed to unlock thread', 'error');
+                }
+            },
+
+            async checkLockStatus(threadId) {
+                try {
+                    const response = await fetch(
+                        `${API_BASE_URL}/api/thread/${threadId}/lock-status?device_id=${this.deviceId}&user_id=${UserAuth.user?.user_id || UserAuth.user?.id || 1}`
+                    );
+
+                    const result = await response.json();
+
+                    if (result.locked) {
+                        // Thread is locked
+                        if (result.is_current_device) {
+                            // Locked by this device - show unlock button
+                            this.showUnlockButton(threadId);
+                        } else {
+                            // Locked by another device - show status badge + disable editing
+                            this.showLockedStatus(threadId, result.locked_to_device);
+                            if (!result.can_edit) {
+                                this.disableChatInput();
+                            }
+                        }
+                    } else {
+                        // Thread is unlocked - show lock button
+                        this.showLockButton(threadId);
+                    }
+
+                    return result;
+                } catch (error) {
+                    console.error('❌ [Device Lock] Status check error:', error);
+                    return null;
+                }
+            },
+
+            showLockButton(threadId) {
+                const container = document.getElementById(`lock-controls-${threadId}`);
+                const lockBtn = document.getElementById(`lock-btn-${threadId}`);
+                const unlockBtn = document.getElementById(`unlock-btn-${threadId}`);
+                const lockStatus = document.getElementById(`lock-status-${threadId}`);
+
+                if (container) container.style.display = 'flex';
+                if (lockBtn) lockBtn.style.display = 'inline-flex';
+                if (unlockBtn) unlockBtn.style.display = 'none';
+                if (lockStatus) lockStatus.style.display = 'none';
+            },
+
+            showUnlockButton(threadId) {
+                const container = document.getElementById(`lock-controls-${threadId}`);
+                const lockBtn = document.getElementById(`lock-btn-${threadId}`);
+                const unlockBtn = document.getElementById(`unlock-btn-${threadId}`);
+                const lockStatus = document.getElementById(`lock-status-${threadId}`);
+
+                if (container) container.style.display = 'flex';
+                if (lockBtn) lockBtn.style.display = 'none';
+                if (unlockBtn) unlockBtn.style.display = 'inline-flex';
+                if (lockStatus) lockStatus.style.display = 'none';
+            },
+
+            showLockedStatus(threadId, deviceName) {
+                const container = document.getElementById(`lock-controls-${threadId}`);
+                const lockBtn = document.getElementById(`lock-btn-${threadId}`);
+                const unlockBtn = document.getElementById(`unlock-btn-${threadId}`);
+                const lockStatus = document.getElementById(`lock-status-${threadId}`);
+                const deviceNameEl = document.getElementById(`lock-device-name-${threadId}`);
+
+                if (container) container.style.display = 'flex';
+                if (lockBtn) lockBtn.style.display = 'none';
+                if (unlockBtn) unlockBtn.style.display = 'none';
+                if (lockStatus) lockStatus.style.display = 'inline-flex';
+                if (deviceNameEl) deviceNameEl.textContent = deviceName || 'Another Device';
+
+                // Add locked border to thread card
+                const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
+                threadCards.forEach(card => card.classList.add('locked'));
+            },
+
+            disableChatInput() {
+                const chatInput = document.querySelector('.ai-chat-input-container');
+                if (chatInput) {
+                    chatInput.classList.add('locked-read-only');
+                }
+            },
+
+            enableChatInput() {
+                const chatInput = document.querySelector('.ai-chat-input-container');
+                if (chatInput) {
+                    chatInput.classList.remove('locked-read-only');
+                }
+            },
+
+            showNotification(message, type = 'info') {
+                console.log(`${type === 'error' ? '❌' : '✅'} [Device Lock] ${message}`);
+                // TODO: Add toast notification UI
+            }
+        };
+
         // ==================== USER AUTHENTICATION SYSTEM ====================
 
         const UserAuth = {
@@ -25662,6 +26354,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             // No OAuth token in URL - proceed with normal init
             UserAuth.init();
+
+            // Initialize Device Lock Manager after authentication
+            setTimeout(() => {
+                if (UserAuth.user) {
+                    DeviceLockManager.init();
+                }
+            }, 1000);
         }
 
         if (document.readyState === 'loading') {

@@ -1365,6 +1365,135 @@
                 "type": "object",
                 "description": "Updated session with new sub-item added"
             }
+        },
+        {
+            "name": "synergy_create_internal_doc",
+            "description": "Create an internal document within a Synergy session. This stores long-form content (meeting notes, drafts, summaries) directly in the Synergy database without requiring external Drive/OneDrive. Content is stored as MARKDOWN for AI-friendly processing. The document will appear in the session's Documents section with a preview. Users can click to open an editor modal where they can edit, preview markdown rendering, export to Word/Google Docs/PDF/Email, and copy the doc_id for AI processing.",
+            "platform": "synergy",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "session_id": {
+                        "type": "string",
+                        "description": "Synergy session ID to attach document to (required). Format: sess_YYYYMMDD_HHMM_title"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Document title (required). Keep concise (e.g., 'Meeting Summary', 'Q4 Strategy Draft', 'Technical Spec')"
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Document content in MARKDOWN format (required). Supports: **bold**, *italic*, # headers, - bullet lists, - [ ] checklists, etc. This will be rendered in the preview tab and can be exported to formatted documents."
+                    },
+                    "format": {
+                        "type": "string",
+                        "enum": [
+                            "markdown",
+                            "html"
+                        ],
+                        "description": "Content format (default: markdown). Use 'markdown' for AI-generated content (recommended). 'html' is available but markdown is preferred for editability."
+                    }
+                },
+                "required": [
+                    "session_id",
+                    "title",
+                    "content"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Created document with doc_id (format: int_doc_<timestamp>), title, preview (first 100 chars), and success status. Save the doc_id - user can paste it in chat for AI to retrieve/process the document."
+            }
+        },
+        {
+            "name": "synergy_update_internal_doc",
+            "description": "Update an existing internal document's content or title. This increments the version number for tracking changes. Use this when user requests modifications to an existing internal document, or when you need to add content to a document you previously created.",
+            "platform": "synergy",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {
+                        "type": "string",
+                        "description": "Internal document ID (required). Format: int_doc_<timestamp>. User can copy this from the UI or you can retrieve it from synergy_get_session()."
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Updated document content in markdown (optional). If provided, replaces existing content. Supports full markdown syntax."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Updated document title (optional). If provided, changes the document title."
+                    }
+                },
+                "required": [
+                    "doc_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Updated document with new version number and updated_at timestamp"
+            }
+        },
+        {
+            "name": "synergy_get_internal_doc",
+            "description": "Retrieve the full content of an internal document by its doc_id. Use this when user pastes a doc_id in chat and asks you to read, summarize, or process the document. Returns the complete markdown content, metadata, and version history.",
+            "platform": "synergy",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {
+                        "type": "string",
+                        "description": "Internal document ID (required). Format: int_doc_<timestamp>"
+                    }
+                },
+                "required": [
+                    "doc_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Full document including doc_id, session_id, title, content (complete markdown), format, version number, created_at, updated_at, and created_by"
+            }
+        },
+        {
+            "name": "synergy_export_internal_doc",
+            "description": "Export an internal document to various formats: Word (.docx in OneDrive), Google Doc (in Drive), PDF (via Word conversion), or send via Email (Gmail). The markdown content is automatically converted to formatted output. User must have OAuth credentials configured for the target platform.",
+            "platform": "synergy",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {
+                        "type": "string",
+                        "description": "Internal document ID to export (required). Format: int_doc_<timestamp>"
+                    },
+                    "export_format": {
+                        "type": "string",
+                        "enum": [
+                            "word",
+                            "google_doc",
+                            "pdf",
+                            "email"
+                        ],
+                        "description": "Export format (required). 'word' = .docx in OneDrive, 'google_doc' = Google Docs, 'pdf' = Word then convert, 'email' = send via Gmail"
+                    },
+                    "email_to": {
+                        "type": "string",
+                        "description": "Recipient email address (required only for 'email' format). Example: 'user@example.com'"
+                    },
+                    "email_subject": {
+                        "type": "string",
+                        "description": "Email subject line (optional, only for 'email' format). Defaults to 'Document: <title>'"
+                    }
+                },
+                "required": [
+                    "doc_id",
+                    "export_format"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Export result with success status, URL (for word/google_doc/pdf), file_id (for OneDrive), document_id (for Google Docs), or message (for email). The exported document will have formatted markdown rendering (bold, italic, headers, lists, etc.)"
+            }
         }
     ]
 }

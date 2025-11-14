@@ -143,6 +143,14 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to run OAuth migration: {e}")
 
+# Initialize user_sessions table for JWT tokens
+try:
+    from migrations.init_user_sessions_table import init_user_sessions_table
+    init_user_sessions_table()
+    log_success(logger, "User sessions table initialized")
+except Exception as e:
+    log_error(logger, f"Failed to initialize user_sessions table: {e}")
+
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp)                                     # Working agent routes with async support
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
