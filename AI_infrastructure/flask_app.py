@@ -127,6 +127,15 @@ from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Initialize Render databases FIRST (creates empty database files if needed)
+if os.getenv('RENDER') == 'true':
+    try:
+        from scripts.deployment.init_render_databases import main as init_databases
+        init_databases()
+        log_success(logger, "Render databases initialized")
+    except Exception as e:
+        log_error(logger, f"Failed to initialize Render databases: {e}")
+
 # Initialize database schema BEFORE any routes are registered
 try:
     from init_prompt_library import init_prompt_library_table
