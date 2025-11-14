@@ -4654,6 +4654,7 @@
             display: flex;
             flex-direction: column;
             gap: var(--space-2);
+            margin-bottom: 10px;
             pointer-events: auto;
         }
 
@@ -10654,7 +10655,7 @@
                         </div>
                     </div>
 
-                    <div class="ai-chat-input-wrapper">
+                    <div class="ai-chat-input-wrapper" style="display: none;">
                         <div class="ai-chat-attached-files" id="ai-chat-attached-files"></div>
                         <div class="ai-chat-input-controls">
                             <!-- Center: Textarea -->
@@ -15569,24 +15570,25 @@
                 // Update quick-nav badge to highlight it
                 this.updateQuickNavBadge(agentId);
 
-                // CRITICAL: Enable input field now that thread is loaded
-                const inputEl = document.querySelector(`#agent-${agentId} .agent-chat-input`);
+                // CRITICAL: Show input area wrapper now that thread is loaded
+                const agentInputArea = document.querySelector(`#agent-${agentId} .agent-input-area`);
+                if (agentInputArea) {
+                    agentInputArea.style.display = 'flex';
+                    console.log(`[UI] Showed agent-${agentId} input area (thread loaded)`);
+                }
+
+                // Also ensure input field is enabled
+                const inputEl = document.querySelector(`#agent-${agentId} textarea`);
                 const sendBtn = document.querySelector(`#agent-${agentId} .agent-send-btn`);
 
                 if (inputEl) {
                     inputEl.disabled = false;
                     inputEl.placeholder = "Type your message...";
-                    inputEl.style.opacity = '1';
-                    inputEl.style.cursor = 'text';
                 }
 
                 if (sendBtn) {
                     sendBtn.disabled = false;
-                    sendBtn.style.opacity = '1';
-                    sendBtn.style.cursor = 'pointer';
                 }
-
-                console.log(`[ENABLED] Input enabled for agent-${agentId}`);
 
                 console.log(`[OK] Thread loaded into ${this.getAgentName(agentId)} with ${thread.messages ? thread.messages.length : 0} messages (TwoRule rendering)`);
 
@@ -18850,11 +18852,18 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                         // Update Prime header with current thread info
                         this.updatePrimeHeader(thread);
+
+                        // Show Prime input wrapper (thread is loaded)
+                        const primeInputWrapper = document.querySelector('.ai-chat-input-wrapper');
+                        if (primeInputWrapper) {
+                            primeInputWrapper.style.display = 'flex';
+                            console.log('[UI] Showed Prime input wrapper (thread loaded)');
+                        }
                     }
                 } else {
                     // [NEW] No threads exist - show "Start New Chat" button
                     console.log('📭 No existing threads, showing Start New Chat button');
-                    this.showStartNewChatButton('ai-chat-messages');
+                    this.showStartNewChatButton('ai-chat-messages', 'prime');
 
                     // Initialize welcome message
                     this.initWelcomeMessage('prime');
@@ -19713,15 +19722,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 this.updatePrimeHeader(threadId);
                 this.syncAppState(threadId);
 
-                // CRITICAL: Enable Prime input field now that thread is loaded
-                const primeInput = document.getElementById('chat-input');
-                const primeSendBtn = document.querySelector('.send-btn');
-
-                if (primeInput) {
-                    primeInput.disabled = false;
-                    primeInput.placeholder = "Type your message...";
-                    primeInput.style.opacity = '1';
-                    primeInput.style.cursor = 'text';
+                // Show Prime input wrapper (thread is now loaded)
+                const primeInputWrapper = document.querySelector('.ai-chat-input-wrapper');
+                if (primeInputWrapper) {
+                    primeInputWrapper.style.display = 'flex';
+                    console.log('[UI] Showed Prime input wrapper (thread switched)');
                 }
 
                 if (primeSendBtn) {
@@ -21918,45 +21923,23 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                 container.innerHTML = emptyStateHtml;
 
-                // CRITICAL: Disable input field and send button to prevent typing without a thread
+                // CRITICAL: Hide input wrapper to prevent typing without a thread
                 if (location && location.startsWith('agent-')) {
                     const agentId = location.replace('agent-', '');
-                    const inputEl = document.querySelector(`#agent-${agentId} .agent-chat-input`);
-                    const sendBtn = document.querySelector(`#agent-${agentId} .agent-send-btn`);
+                    const agentInputArea = document.querySelector(`#agent-${agentId} .agent-input-area`);
 
-                    if (inputEl) {
-                        inputEl.disabled = true;
-                        inputEl.placeholder = "Click 'Start New Chat' to begin...";
-                        inputEl.style.opacity = '0.5';
-                        inputEl.style.cursor = 'not-allowed';
+                    if (agentInputArea) {
+                        agentInputArea.style.display = 'none';
+                        console.log(`[EMPTY STATE] Input area hidden for agent-${agentId}`);
                     }
-
-                    if (sendBtn) {
-                        sendBtn.disabled = true;
-                        sendBtn.style.opacity = '0.5';
-                        sendBtn.style.cursor = 'not-allowed';
-                    }
-
-                    console.log(`[EMPTY STATE] Input disabled for agent-${agentId}`);
                 } else if (location === 'prime') {
-                    // Also disable Prime input if showing empty state
-                    const primeInput = document.getElementById('chat-input');
-                    const primeSendBtn = document.querySelector('.send-btn');
+                    // Hide Prime input wrapper when showing empty state
+                    const primeInputWrapper = document.querySelector('.ai-chat-input-wrapper');
 
-                    if (primeInput) {
-                        primeInput.disabled = true;
-                        primeInput.placeholder = "Click 'Start New Chat' to begin...";
-                        primeInput.style.opacity = '0.5';
-                        primeInput.style.cursor = 'not-allowed';
+                    if (primeInputWrapper) {
+                        primeInputWrapper.style.display = 'none';
+                        console.log(`[EMPTY STATE] Input wrapper hidden for Prime`);
                     }
-
-                    if (primeSendBtn) {
-                        primeSendBtn.disabled = true;
-                        primeSendBtn.style.opacity = '0.5';
-                        primeSendBtn.style.cursor = 'not-allowed';
-                    }
-
-                    console.log(`[EMPTY STATE] Input disabled for Prime`);
                 }
 
                 console.log(`[NEW] Showing "Start New Chat" button in ${location}`);
@@ -23118,6 +23101,21 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     }
 
                     this.renderThreadList();
+
+                    // Show input area now that thread is created
+                    if (location === 'prime') {
+                        const primeInputWrapper = document.querySelector('.ai-chat-input-wrapper');
+                        if (primeInputWrapper) {
+                            primeInputWrapper.style.display = 'flex';
+                            console.log('[UI] Showed Prime input wrapper (new chat started)');
+                        }
+                    } else if (agentId) {
+                        const agentInputArea = document.querySelector(`#agent-${agentId} .agent-input-area`);
+                        if (agentInputArea) {
+                            agentInputArea.style.display = 'flex';
+                            console.log(`[UI] Showed agent-${agentId} input area (new chat started)`);
+                        }
+                    }
 
                     const locationName = location === 'prime' ? 'AI Chat' : (MultiAgent ? MultiAgent.getAgentName(agentId) : location);
                     showNotification(`New chat started in ${locationName}`, 'success');
@@ -34113,127 +34111,220 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
     </div>
 
     <!-- REMOVED: Duplicate prompt modal - now injected by prompt-library.js -->
-                    <form id="OLD-FORM-REMOVED">
-                        <!-- Prompt Title -->
-                        <div class="form-group">
-                            <label for="prompt-title">
-                                <i class="fas fa-heading"></i> Prompt Title
-                            </label>
-                            <input type="text" id="prompt-title" class="form-control"
-                                placeholder="e.g., Code Review Assistant" required>
-                        </div>
+    <form id="OLD-FORM-REMOVED">
+        <!-- Prompt Title -->
+        <div class="form-group">
+            <label for="prompt-title">
+                <i class="fas fa-heading"></i> Prompt Title
+            </label>
+            <input type="text" id="prompt-title" class="form-control" placeholder="e.g., Code Review Assistant"
+                required>
+        </div>
 
-                        <!-- Category -->
-                        <div class="form-group">
-                            <label for="prompt-category">
-                                <i class="fas fa-folder"></i> Category
-                            </label>
-                            <select id="prompt-category" class="form-control" required>
-                                <option value="development">Development</option>
-                                <option value="analysis">Analysis</option>
-                                <option value="data">Data & SQL</option>
-                                <option value="style">Communication Style</option>
-                                <option value="business">Business</option>
-                                <option value="creative">Creative</option>
-                            </select>
-                        </div>
+        <!-- Category -->
+        <div class="form-group">
+            <label for="prompt-category">
+                <i class="fas fa-folder"></i> Category
+            </label>
+            <select id="prompt-category" class="form-control" required>
+                <option value="development">Development</option>
+                <option value="analysis">Analysis</option>
+                <option value="data">Data & SQL</option>
+                <option value="style">Communication Style</option>
+                <option value="business">Business</option>
+                <option value="creative">Creative</option>
+            </select>
+        </div>
 
-                        <!-- Type -->
-                        <div class="form-group">
-                            <label>
-                                <i class="fas fa-bolt"></i> Prompt Type
-                            </label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
-                                    <span>Quick Action</span>
-                                    <small>Short directive (e.g., "Be concise")</small>
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
-                                    <span>Full Prompt</span>
-                                    <small>Complete instructions with context</small>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Short Description -->
-                        <div class="form-group">
-                            <label for="prompt-short-desc">
-                                <i class="fas fa-align-left"></i> Short Description
-                            </label>
-                            <input type="text" id="prompt-short-desc" class="form-control"
-                                placeholder="Brief description shown in dropdown">
-                        </div>
-
-                        <!-- Prompt Text -->
-                        <div class="form-group">
-                            <label for="prompt-text">
-                                <i class="fas fa-file-alt"></i> Prompt Text
-                            </label>
-                            <textarea id="prompt-text" class="form-control" rows="6"
-                                placeholder="Enter your prompt instructions here..." required></textarea>
-                        </div>
-
-                        <!-- Tags -->
-                        <div class="form-group">
-                            <label for="prompt-tags">
-                                <i class="fas fa-tags"></i> Tags
-                            </label>
-                            <input type="text" id="prompt-tags" class="form-control"
-                                placeholder="code, review, python (comma-separated)">
-                        </div>
-
-                        <!-- Visibility -->
-                        <div class="form-group">
-                            <label for="prompt-visibility">
-                                <i class="fas fa-eye"></i> Visibility
-                            </label>
-                            <select id="prompt-visibility" class="form-control">
-                                <option value="private">Private (only you)</option>
-                                <option value="workspace">Workspace (all members)</option>
-                                <option value="public">Public (everyone)</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- EDIT TAB -->
-                <div id="edit-tab" class="tab-content">
-                    <div class="edit-prompt-list">
-                        <div class="edit-search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="edit-search" class="form-control"
-                                placeholder="Search your prompts..." oninput="window.filterEditPrompts(this.value)">
-                        </div>
-                        <div id="edit-prompts-container" class="edit-prompts-scrollable">
-                            <!-- Prompts will be loaded here by JavaScript -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="prompt-modal-footer">
-                <!-- Create tab footer -->
-                <div id="create-footer" class="footer-content active">
-                    <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
-                    <button class="btn-primary" onclick="window.savePrompt()">
-                        <i class="fas fa-save"></i> Create Prompt
-                    </button>
-                </div>
-                <!-- Edit tab footer -->
-                <div id="edit-footer" class="footer-content">
-                    <button id="delete-prompt-btn" class="btn-delete" onclick="window.deletePrompt()">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                    <div style="flex: 1;"></div>
-                    <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
-                    <button class="btn-primary" onclick="window.saveEditedPrompt()">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
-                </div>
+        <!-- Type -->
+        <div class="form-group">
+            <label>
+                <i class="fas fa-bolt"></i> Prompt Type
+            </label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
+                    <span>Quick Action</span>
+                    <small>Short directive (e.g., "Be concise")</small>
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
+                    <span>Full Prompt</span>
+                    <small>Complete instructions with context</small>
+                </label>
             </div>
         </div>
+
+        <!-- Short Description -->
+        <div class="form-group">
+            <label for="prompt-short-desc">
+                <i class="fas fa-align-left"></i> Short Description
+            </label>
+            <input type="text" id="prompt-short-desc" class="form-control"
+                placeholder="Brief description shown in dropdown">
+        </div>
+
+        <!-- Prompt Text -->
+        <div class="form-group">
+            <label for="prompt-text">
+                <i class="fas fa-file-alt"></i> Prompt Text
+            </label>
+            <textarea id="prompt-text" class="form-control" rows="6"
+                placeholder="Enter your prompt instructions here..." required></textarea>
+        </div>
+
+        <!-- Tags -->
+        <div class="form-group">
+            <label for="prompt-tags">
+                <i class="fas fa-tags"></i> Tags
+            </label>
+            <input type="text" id="prompt-tags" class="form-control"
+                placeholder="code, review, python (comma-separated)">
+        </div>
+
+        <!-- Visibility -->
+        <div class="form-group">
+            <label for="prompt-visibility">
+                <i class="fas fa-eye"></i> Visibility
+            </label>
+            <select id="prompt-visibility" class="form-control">
+                <option value="private">Private (only you)</option>
+                <option value="workspace">Workspace (all members)</option>
+                <option value="public">Public (everyone)</option>
+            </select>
+        </div>
+    </form>
+    </div>
+
+    <!-- EDIT TAB -->
+    <div id="edit-tab" class="tab-content">
+        <!-- Prompt Selector List -->
+        <div class="edit-prompt-selector">
+            <label
+                style="display: block; font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">
+                <i class="fas fa-list"></i> Select Prompt to Edit
+            </label>
+            <div class="edit-search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="edit-search" class="form-control" placeholder="Search your prompts..."
+                    oninput="window.filterEditPrompts(this.value)">
+            </div>
+            <div id="edit-prompts-container" class="edit-prompts-scrollable">
+                <!-- Prompts will be loaded here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Edit Form (Hidden until prompt selected) -->
+        <div id="edit-form-container"
+            style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-default);">
+            <div
+                style="background: rgba(88, 166, 255, 0.1); border: 1px solid var(--accent-primary); border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+                <i class="fas fa-info-circle" style="color: var(--accent-primary);"></i>
+                <span style="color: var(--text-primary); font-size: 13px; margin-left: 8px;">
+                    Editing: <strong id="editing-prompt-name"></strong>
+                </span>
+            </div>
+
+            <!-- Reuse same form fields as Create tab -->
+            <div class="form-group">
+                <label for="edit-prompt-title">
+                    <i class="fas fa-heading"></i> Prompt Title
+                </label>
+                <input type="text" id="edit-prompt-title" class="form-control" placeholder="e.g., Code Review Assistant"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-prompt-category">
+                    <i class="fas fa-folder"></i> Category
+                </label>
+                <select id="edit-prompt-category" class="form-control" required>
+                    <option value="development">Development</option>
+                    <option value="analysis">Analysis</option>
+                    <option value="data">Data & SQL</option>
+                    <option value="style">Communication Style</option>
+                    <option value="business">Business</option>
+                    <option value="creative">Creative</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-bolt"></i> Prompt Type
+                </label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="edit-prompt-type" id="edit-type-quick" value="quick_action">
+                        <span>Quick Action</span>
+                        <small>Short directive (e.g., "Be concise")</small>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="edit-prompt-type" id="edit-type-full" value="full_prompt">
+                        <span>Full Prompt</span>
+                        <small>Complete instructions with context</small>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-prompt-short-desc">
+                    <i class="fas fa-align-left"></i> Short Description
+                </label>
+                <input type="text" id="edit-prompt-short-desc" class="form-control"
+                    placeholder="Brief description shown in dropdown">
+            </div>
+
+            <div class="form-group">
+                <label for="edit-prompt-text">
+                    <i class="fas fa-file-alt"></i> Prompt Text
+                </label>
+                <textarea id="edit-prompt-text" class="form-control" rows="6"
+                    placeholder="Enter your prompt instructions here..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-prompt-tags">
+                    <i class="fas fa-tags"></i> Tags
+                </label>
+                <input type="text" id="edit-prompt-tags" class="form-control"
+                    placeholder="code, review, python (comma-separated)">
+            </div>
+
+            <div class="form-group">
+                <label for="edit-prompt-visibility">
+                    <i class="fas fa-eye"></i> Visibility
+                </label>
+                <select id="edit-prompt-visibility" class="form-control">
+                    <option value="private">Private (only you)</option>
+                    <option value="workspace">Workspace (all members)</option>
+                    <option value="public">Public (everyone)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <div class="prompt-modal-footer">
+        <!-- Create tab footer -->
+        <div id="create-footer" class="footer-content active">
+            <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
+            <button class="btn-primary" onclick="window.savePrompt()">
+                <i class="fas fa-save"></i> Create Prompt
+            </button>
+        </div>
+        <!-- Edit tab footer -->
+        <div id="edit-footer" class="footer-content">
+            <button id="delete-prompt-btn" class="btn-delete" onclick="window.deletePrompt()">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <div style="flex: 1;"></div>
+            <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
+            <button class="btn-primary" onclick="window.saveEditedPrompt()">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </div>
+    </div>
     </div>
 
     <!-- ==================== PROMPT LIBRARY MODAL ==================== -->

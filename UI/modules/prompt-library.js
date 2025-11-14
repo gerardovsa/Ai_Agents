@@ -633,45 +633,182 @@ console.log('[PROMPT LIBRARY] ========================================');
     // ==================== MODAL LOGIC ====================
 
     /**
-     * Open modal for creating/editing prompt
+     * Open modal - now with tabs
      */
-    window.openPromptModal = function (promptId = null) {
-        editingPromptId = promptId;
+    window.openPromptModal = function (promptId = null, openTab = null) {
         const modal = document.getElementById('prompt-modal-overlay');
-        const title = document.getElementById('prompt-modal-title');
-        const deleteBtn = document.getElementById('delete-prompt-btn');
+        if (!modal) {
+            console.error('Modal not found!');
+            return;
+        }
 
-        if (!modal) return;
-
-        if (promptId) {
-            // Edit mode
-            const prompt = allPrompts.find(p => p.id === promptId);
-            if (!prompt) return;
-
-            title.textContent = 'Edit Prompt';
-            deleteBtn?.classList.remove('hidden');
-
-            // Fill form
-            document.getElementById('prompt-title').value = prompt.name;
-            document.getElementById('prompt-category').value = prompt.category;
-            document.getElementById('prompt-short-desc').value = prompt.description || '';
-            document.getElementById('prompt-text').value = prompt.prompt_text;
-            document.getElementById('prompt-tags').value = prompt.tags || '';
-            document.getElementById('prompt-visibility').value = prompt.visibility || 'private';
-
-            if (prompt.type === 'quick_action') {
-                document.getElementById('type-quick').checked = true;
-            } else {
-                document.getElementById('type-full').checked = true;
-            }
+        // Determine which tab to open
+        if (openTab) {
+            window.switchPromptTab(openTab);
+        } else if (promptId) {
+            // If promptId provided, switch to edit tab and select that prompt
+            window.switchPromptTab('edit');
+            setTimeout(() => window.selectPromptForEdit(promptId), 100);
         } else {
-            // Create mode
-            title.textContent = 'Create New Prompt';
-            deleteBtn?.classList.add('hidden');
+            // Default to create tab
+            window.switchPromptTab('create');
             document.getElementById('prompt-form')?.reset();
         }
 
+        // Load prompts for edit tab
+        window.loadEditPrompts();
+
         modal.classList.add('show');
+    };
+
+    /**
+     * Switch between Create and Edit tabs
+     */
+    window.switchPromptTab = function (tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.prompt-tab').forEach(tab => {
+            if (tab.dataset.tab === tabName) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(`${tabName}-tab`)?.classList.add('active');
+
+        // Update footer
+        document.querySelectorAll('.footer-content').forEach(footer => {
+            footer.classList.remove('active');
+        });
+        document.getElementById(`${tabName}-footer`)?.classList.add('active');
+
+        // Reset form if switching to create tab
+        if (tabName === 'create') {
+            document.getElementById('prompt-form')?.reset();
+            editingPromptId = null;
+        } else if (tabName === 'edit') {
+            // Hide edit form until a prompt is selected
+            const editFormContainer = document.getElementById('edit-form-container');
+            if (editFormContainer) {
+                editFormContainer.style.display = 'none';
+            }
+            // Clear selection
+            document.querySelectorAll('.edit-prompt-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            editingPromptId = null;
+        }
+    };
+
+    /**
+     * Load prompts into edit tab
+     */
+    window.loadEditPrompts = function () {
+        const container = document.getElementById('edit-prompts-container');
+        if (!container) return;
+
+        if (allPrompts.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                    <p>No prompts yet. Create your first one!</p>
+                </div>
+            `;
+            return;
+        }
+
+        const promptsHtml = allPrompts.map(prompt => {
+            const icon = prompt.type === 'quick_action' ? 'fa-bolt' : 'fa-list-ul';
+            const typeLabel = prompt.type === 'quick_action' ? 'Quick' : 'Detailed';
+            const typeClass = prompt.type === 'quick_action' ? 'quick' : 'detailed';
+            
+            return `
+                <div class="edit-prompt-item" onclick="window.selectPromptForEdit(${prompt.id})">
+                    <div class="edit-prompt-item-header">
+                        <i class="fas ${icon} edit-prompt-item-icon"></i>
+                        <span class="edit-prompt-item-name">${escapeHtml(prompt.name)}</span>
+                        <span class="edit-prompt-item-type ${typeClass}">${typeLabel}</span>
+                    </div>
+                    ${prompt.description ? `<p class="edit-prompt-item-desc">${escapeHtml(prompt.description)}</p>` : ''}
+                    <span class="edit-prompt-item-category">${escapeHtml(prompt.category)}</span>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = promptsHtml;
+    };
+
+    /**
+     * Filter prompts in edit tab
+     */
+    window.filterEditPrompts = function (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const items = document.querySelectorAll('.edit-prompt-item');
+        
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (text.includes(term)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    };
+
+    /**
+     * Select a prompt for editing
+     */
+    window.selectPromptForEdit = function (promptId) {
+        const prompt = allPrompts.find(p => p.id === promptId);
+        if (!prompt) return;
+
+        // Update UI - highlight selected item
+        document.querySelectorAll('.edit-prompt-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        event?.currentTarget?.classList.add('selected');
+
+        // Store the editing ID
+        editingPromptId = promptId;
+
+        // Show the edit form container
+        const editFormContainer = document.getElementById('edit-form-container');
+        if (editFormContainer) {
+            editFormContainer.style.display = 'block';
+            
+            // Scroll to form
+            setTimeout(() => {
+                editFormContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        // Update the "Editing" label
+        const editingNameLabel = document.getElementById('editing-prompt-name');
+        if (editingNameLabel) {
+            editingNameLabel.textContent = prompt.name;
+        }
+
+        // Fill the edit form with this prompt's data
+        document.getElementById('edit-prompt-title').value = prompt.name;
+        document.getElementById('edit-prompt-category').value = prompt.category;
+        document.getElementById('edit-prompt-short-desc').value = prompt.description || '';
+        document.getElementById('edit-prompt-text').value = prompt.prompt_text;
+        document.getElementById('edit-prompt-tags').value = prompt.tags || '';
+        document.getElementById('edit-prompt-visibility').value = prompt.visibility || 'private';
+
+        if (prompt.type === 'quick_action') {
+            document.getElementById('edit-type-quick').checked = true;
+        } else {
+            document.getElementById('edit-type-full').checked = true;
+        }
+
+        // Show edit footer buttons
+        document.getElementById('edit-footer').classList.add('active');
+        document.getElementById('create-footer').classList.remove('active');
     };
 
     /**
@@ -681,19 +818,24 @@ console.log('[PROMPT LIBRARY] ========================================');
         const modal = document.getElementById('prompt-modal-overlay');
         if (modal) modal.classList.remove('show');
         editingPromptId = null;
+        
+        // Clear selection
+        document.querySelectorAll('.edit-prompt-item').forEach(item => {
+            item.classList.remove('selected');
+        });
     };
 
     /**
-     * Save prompt
+     * Save new prompt (Create tab)
      */
     window.savePrompt = async function () {
-        const name = document.getElementById('prompt-title')?.value;
+        const name = document.getElementById('prompt-title')?.value?.trim();
         const category = document.getElementById('prompt-category')?.value;
-        const description = document.getElementById('prompt-short-desc')?.value;
-        const promptText = document.getElementById('prompt-text')?.value;
-        const tags = document.getElementById('prompt-tags')?.value;
+        const description = document.getElementById('prompt-short-desc')?.value?.trim();
+        const promptText = document.getElementById('prompt-text')?.value?.trim();
+        const tags = document.getElementById('prompt-tags')?.value?.trim();
         const visibility = document.getElementById('prompt-visibility')?.value || 'private';
-        const type = document.querySelector('input[name="promptType"]:checked')?.value || 'quick_action';
+        const type = document.querySelector('input[name="prompt-type"]:checked')?.value || 'quick_action';
 
         if (!name || !category || !promptText) {
             showNotification('Please fill in all required fields', 'error');
@@ -713,9 +855,56 @@ console.log('[PROMPT LIBRARY] ========================================');
         const result = await savePromptToApi(promptData);
 
         if (result) {
+            showNotification('Prompt created successfully!', 'success');
             // Reload prompts
             await fetchPromptLibrary();
             renderPromptList();
+            window.loadEditPrompts(); // Refresh edit tab list
+            window.closePromptModal();
+        }
+    };
+
+    /**
+     * Save edited prompt (Edit tab)
+     */
+    window.saveEditedPrompt = async function () {
+        if (!editingPromptId) {
+            showNotification('No prompt selected for editing', 'error');
+            return;
+        }
+
+        const name = document.getElementById('edit-prompt-title')?.value?.trim();
+        const category = document.getElementById('edit-prompt-category')?.value;
+        const description = document.getElementById('edit-prompt-short-desc')?.value?.trim();
+        const promptText = document.getElementById('edit-prompt-text')?.value?.trim();
+        const tags = document.getElementById('edit-prompt-tags')?.value?.trim();
+        const visibility = document.getElementById('edit-prompt-visibility')?.value || 'private';
+        const type = document.querySelector('input[name="edit-prompt-type"]:checked')?.value || 'quick_action';
+
+        if (!name || !category || !promptText) {
+            showNotification('Please fill in all required fields', 'error');
+            return;
+        }
+
+        const promptData = {
+            id: editingPromptId,
+            name: name,
+            category: category,
+            type: type,
+            description: description,
+            prompt_text: promptText,
+            tags: tags,
+            visibility: visibility
+        };
+
+        const result = await savePromptToApi(promptData);
+
+        if (result) {
+            showNotification('Prompt updated successfully!', 'success');
+            // Reload prompts
+            await fetchPromptLibrary();
+            renderPromptList();
+            window.loadEditPrompts(); // Refresh edit tab list
             window.closePromptModal();
         }
     };
