@@ -161,13 +161,15 @@ except Exception as e:
     import traceback
     log_error(logger, traceback.format_exc())
 
-# Run OAuth tokens scope column migration
+# Run OAuth tokens schema migrations (add missing columns)
 try:
-    from migrations.add_scope_column import add_scope_column
-    add_scope_column()
-    log_success(logger, "OAuth tokens schema migration complete")
+    from migrations.add_missing_oauth_columns import add_missing_oauth_columns
+    added = add_missing_oauth_columns()
+    log_success(logger, f"OAuth tokens schema migration complete ({added} columns added)")
 except Exception as e:
     log_error(logger, f"Failed to run OAuth migration: {e}")
+    import traceback
+    log_error(logger, traceback.format_exc())
 
 # Initialize user_sessions table for JWT tokens
 try:
