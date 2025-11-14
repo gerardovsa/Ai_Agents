@@ -43,7 +43,15 @@ def add_missing_oauth_columns():
         'ip_address_granted': 'TEXT',
         'account_identifier': 'TEXT',
         'account_name': 'TEXT',
-        'is_primary_account': 'BOOLEAN DEFAULT 0'
+        'is_primary_account': 'BOOLEAN DEFAULT 0',
+        'refresh_attempts': 'INTEGER DEFAULT 0',
+        'last_refresh_error': 'TEXT',
+        'auto_refresh_enabled': 'BOOLEAN DEFAULT 1',
+        'granted_scopes': 'TEXT',
+        'email': 'TEXT',
+        'profile_name': 'TEXT',
+        'error_count': 'INTEGER DEFAULT 0',
+        'last_error': 'TEXT'
     }
     
     # Add missing columns
