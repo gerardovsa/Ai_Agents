@@ -1351,3 +1351,157 @@ def delete_assignment(location):
         return error_response(f'Failed to delete assignment: {str(e)}', 500)
 
 
+# ============================================================
+# DEVICE LOCK/UNLOCK (Multi-Device Locking Feature)
+# ============================================================
+
+@thread_bp.route('/<thread_id>/lock', methods=['POST'])
+def lock_thread(thread_id):
+    """
+    Lock a thread to a specific device
+    
+    Body:
+        device_id (str, required): Unique device identifier
+        device_name (str, required): Human-readable device name
+    
+    Returns:
+        {
+            "success": true,
+            "locked_by_device": "device_123",
+            "locked_by_device_name": "Chrome Browser",
+            "locked_at": "2025-11-14T10:30:00"
+        }
+    """
+    try:
+        data = request.get_json()
+        device_id = data.get('device_id')
+        device_name = data.get('device_name')
+        
+        if not device_id or not device_name:
+            return error_response('device_id and device_name required', 400)
+        
+        # Update thread with lock info
+        locked_at = datetime.now().isoformat()
+        
+        query = """
+            UPDATE threads 
+            SET locked_by_device = ?,
+                locked_by_device_name = ?,
+                locked_at = ?
+            WHERE id = ?
+        """
+        
+        result = execute_sqlite_update(
+            get_sessions_database_path(),
+            query,
+            (device_id, device_name, locked_at, thread_id)
+        )
+        
+        if result['rows_affected'] == 0:
+            return error_response('Thread not found', 404)
+        
+        print(f"[DEVICE LOCK] Thread {thread_id} locked to device {device_name} ({device_id})")
+        
+        return success_response({
+            'thread_id': thread_id,
+            'locked_by_device': device_id,
+            'locked_by_device_name': device_name,
+            'locked_at': locked_at
+        }, message=f'Thread locked to {device_name}')
+    
+    except Exception as e:
+        print(f"[DEVICE LOCK ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Failed to lock thread: {str(e)}', 500)
+
+
+@thread_bp.route('/<thread_id>/unlock', methods=['POST'])
+def unlock_thread(thread_id):
+    """
+    Unlock a thread (remove device lock)
+    
+    Returns:
+        {
+            "success": true,
+            "message": "Thread unlocked successfully"
+        }
+    """
+    try:
+        # Clear lock fields
+        query = """
+            UPDATE threads 
+            SET locked_by_device = NULL,
+                locked_by_device_name = NULL,
+                locked_at = NULL
+            WHERE id = ?
+        """
+        
+        result = execute_sqlite_update(
+            get_sessions_database_path(),
+            query,
+            (thread_id,)
+        )
+        
+        if result['rows_affected'] == 0:
+            return error_response('Thread not found', 404)
+        
+        print(f"[DEVICE LOCK] Thread {thread_id} unlocked")
+        
+        return success_response({
+            'thread_id': thread_id
+        }, message='Thread unlocked successfully')
+    
+    except Exception as e:
+        print(f"[DEVICE UNLOCK ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Failed to unlock thread: {str(e)}', 500)
+
+
+@thread_bp.route('/<thread_id>/lock-status', methods=['GET'])
+def get_lock_status(thread_id):
+    """
+    Get current lock status of a thread
+    
+    Returns:
+        {
+            "success": true,
+            "locked": true,
+            "locked_by_device": "device_123",
+            "locked_by_device_name": "Chrome Browser",
+            "locked_at": "2025-11-14T10:30:00"
+        }
+    """
+    try:
+        query = """
+            SELECT locked_by_device, locked_by_device_name, locked_at
+            FROM threads
+            WHERE id = ?
+        """
+        
+        result = execute_sqlite_query(
+            get_sessions_database_path(),
+            query,
+            (thread_id,)
+        )
+        
+        if not result['rows']:
+            return error_response('Thread not found', 404)
+        
+        row = result['rows'][0]
+        locked = bool(row.get('locked_by_device'))
+        
+        return success_response({
+            'thread_id': thread_id,
+            'locked': locked,
+            'locked_by_device': row.get('locked_by_device'),
+            'locked_by_device_name': row.get('locked_by_device_name'),
+            'locked_at': row.get('locked_at')
+        })
+    
+    except Exception as e:
+        print(f"[DEVICE LOCK STATUS ERROR] {str(e)}")
+        return error_response(f'Failed to get lock status: {str(e)}', 500)
+
+

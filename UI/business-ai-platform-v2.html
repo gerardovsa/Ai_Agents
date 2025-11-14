@@ -2306,7 +2306,7 @@
             gap: var(--space-2);
             position: relative;
             overflow: hidden;
-            min-height: 120px;
+            min-height: 115px;
             /* COMPACT: Show only 3 rows */
         }
 
@@ -2335,7 +2335,7 @@
             border-color: var(--accent-primary);
             box-shadow: 0 4px 16px rgba(88, 166, 255, 0.3);
             transform: translateY(-2px);
-            min-height: 250px;
+            min-height: 240px;
             /* EXPAND: Show all rows (increased for full content) */
             z-index: 10;
             /* Lift above other cards */
@@ -2428,6 +2428,7 @@
         .thread-item-title-row {
             width: 100%;
             margin-bottom: 6px;
+            margin-top: 6px;
         }
 
         .thread-item-title {
@@ -3111,7 +3112,6 @@
         .thread-item-agent-badge {
             font-size: 11px;
             color: var(--text-primary);
-            margin-top: 6px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -18368,6 +18368,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                 UserAuth.user.user_id = backendUserId;
                                 window.currentUserId = backendUserId; // Initialize global user ID for settings save
                                 localStorage.setItem('userProfile', JSON.stringify(data.profile));
+
+                                // Initialize Device Lock Manager after user profile is loaded
+                                if (typeof DeviceLockManager !== 'undefined' && !DeviceLockManager.deviceId) {
+                                    DeviceLockManager.init();
+                                }
+
                                 console.log('✅ [USER CHECK] User data updated from backend');
                             } else {
                                 console.log('✅ [USER CHECK] User ID verified - cached data is correct');
@@ -20477,7 +20483,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         </div>
                         
                         <!-- ROW 2: Meta Info (messages, date, time) -->
-                        <div class="thread-item-meta" style="display: flex; align-items: center; gap: 12px; flex: 1; margin-top: 6px;">
+                        <div class="thread-item-meta" style="display: flex; align-items: center; gap: 12px; flex: 1;">
                             <span class="thread-meta-item" title="Message count">
                                 <i class="fas fa-comments"></i> ${msgCount} msgs
                             </span>
@@ -20699,8 +20705,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             </button>
                         </div>
                         
-                        <!-- ROW 6: Lock/Unlock Controls (Device Lock Feature) -->
-                        <div class="lock-unlock-container" id="lock-controls-${thread.id}" style="display: none;">
+                        <!-- ROW 6: Lock/Unlock Controls (Device Lock Feature) - FULL MODE -->
+                        <div class="lock-unlock-container" id="lock-controls-${thread.id}" style="display: flex; margin-top: 8px;">
                             <!-- Lock Status Badge (shown when locked by another device) -->
                             <div class="lock-status-badge" id="lock-status-${thread.id}" style="display: none;">
                                 <i class="fas fa-lock"></i>
@@ -20710,8 +20716,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             <!-- Lock Button (shown when thread is unlocked) -->
                             <button class="lock-btn" id="lock-btn-${thread.id}" 
                                     onclick="event.stopPropagation(); DeviceLockManager.lockThread('${thread.id}')"
-                                    title="Lock this thread to your current device"
-                                    style="display: none;">
+                                    title="Lock this thread to your current device">
                                 <i class="fas fa-lock"></i>
                                 <span>Lock Thread</span>
                             </button>
@@ -20719,8 +20724,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             <!-- Unlock Button (shown when thread is locked by this device) -->
                             <button class="unlock-btn" id="unlock-btn-${thread.id}" 
                                     onclick="event.stopPropagation(); DeviceLockManager.unlockThread('${thread.id}')"
-                                    title="Unlock this thread for all devices"
-                                    style="display: none;">
+                                    title="Unlock this thread for all devices">
                                 <i class="fas fa-unlock"></i>
                                 <span>Unlock Thread</span>
                             </button>
@@ -24188,7 +24192,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 try {
                     console.log(`🔒 [Device Lock] Locking thread ${threadId}...`);
 
-                    const response = await fetch(`${API_BASE_URL}/api/thread/${threadId}/lock`, {
+                    const response = await fetch(`${API_BASE_URL}/api/threads/${threadId}/lock`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -24232,7 +24236,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 try {
                     console.log(`🔓 [Device Lock] Unlocking thread ${threadId}...`);
 
-                    const response = await fetch(`${API_BASE_URL}/api/thread/${threadId}/unlock`, {
+                    const response = await fetch(`${API_BASE_URL}/api/threads/${threadId}/unlock`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -24277,7 +24281,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             async checkLockStatus(threadId) {
                 try {
                     const response = await fetch(
-                        `${API_BASE_URL}/api/thread/${threadId}/lock-status?device_id=${this.deviceId}&user_id=${UserAuth.user?.user_id || UserAuth.user?.id || 1}`
+                        `${API_BASE_URL}/api/threads/${threadId}/lock-status?device_id=${this.deviceId}&user_id=${UserAuth.user?.user_id || UserAuth.user?.id || 1}`
                     );
 
                     const result = await response.json();
@@ -24624,6 +24628,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     UserAuth.user = profile;
                     window.currentUserId = profile.id || profile.user_id; // Initialize global user ID for settings save
                     localStorage.setItem('userProfile', JSON.stringify(profile));
+
+                    // Initialize Device Lock Manager after user profile is loaded
+                    if (typeof DeviceLockManager !== 'undefined' && !DeviceLockManager.deviceId) {
+                        DeviceLockManager.init();
+                    }
 
                     // Update header button
                     const userNameEl = document.getElementById('userName');

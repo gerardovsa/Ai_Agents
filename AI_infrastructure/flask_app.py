@@ -151,6 +151,14 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to initialize user_sessions table: {e}")
 
+# Add refresh_attempts column to oauth_tokens table
+try:
+    from migrations.add_refresh_attempts_column import add_refresh_attempts_column
+    add_refresh_attempts_column()
+    log_success(logger, "OAuth tokens refresh_attempts column added")
+except Exception as e:
+    log_error(logger, f"Failed to add refresh_attempts column: {e}")
+
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp)                                     # Working agent routes with async support
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)

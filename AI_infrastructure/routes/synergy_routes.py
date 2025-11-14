@@ -939,3 +939,308 @@ def unlink_thread_from_synergy(session_id):
     except Exception as e:
         print(f"[SYNERGY SYNC ERROR] Failed to unlink thread: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================
+# INTERNAL DOCUMENTS (Markdown docs inside Synergy sessions)
+# ============================================================
+
+@synergy_bp.route('/internal-doc/create', methods=['POST'])
+def create_internal_doc():
+    """
+    Create a new internal document inside a Synergy session
+    
+    Body:
+        {
+            "session_id": "sess_123",
+            "title": "Project Draft",
+            "content": "# Header\\n\\nContent...",
+            "format": "markdown",
+            "created_by": "agent_deepseek"
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "doc_id": "int_doc_1731600000123",
+            "title": "Project Draft",
+            "session_id": "sess_123"
+        }
+    """
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        title = data.get('title', 'Untitled Document')
+        content = data.get('content', '')
+        doc_format = data.get('format', 'markdown')
+        created_by = data.get('created_by', 'system')
+        
+        if not session_id:
+            return jsonify({'success': False, 'error': 'session_id required'}), 400
+        
+        # Generate doc ID
+        import time
+        doc_id = f"int_doc_{int(time.time() * 1000)}"
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verify session exists
+        cursor.execute('SELECT session_id FROM synergy_sessions WHERE session_id = ?', (session_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Insert document
+        cursor.execute('''
+            INSERT INTO synergy_internal_docs 
+            (doc_id, session_id, title, content, format, created_by, created_at, updated_at, version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (doc_id, session_id, title, content, doc_format, created_by, 
+              datetime.now().isoformat(), datetime.now().isoformat(), 1))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[INTERNAL DOC] Created document {doc_id} in session {session_id}: {title}")
+        
+        return jsonify({
+            'success': True,
+            'doc_id': doc_id,
+            'title': title,
+            'session_id': session_id,
+            'created_at': datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to create: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/internal-doc/<doc_id>', methods=['GET'])
+def get_internal_doc(doc_id):
+    """
+    Retrieve an internal document by ID
+    
+    Returns:
+        {
+            "success": true,
+            "doc_id": "int_doc_123",
+            "session_id": "sess_456",
+            "title": "Project Draft",
+            "content": "# Content...",
+            "format": "markdown",
+            "created_at": "...",
+            "updated_at": "...",
+            "version": 1
+        }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT doc_id, session_id, title, content, format, 
+                   created_at, updated_at, created_by, version
+            FROM synergy_internal_docs
+            WHERE doc_id = ?
+        ''', (doc_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'success': False, 'error': 'Document not found'}), 404
+        
+        doc = {
+            'doc_id': row['doc_id'],
+            'session_id': row['session_id'],
+            'title': row['title'],
+            'content': row['content'],
+            'format': row['format'],
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at'],
+            'created_by': row['created_by'],
+            'version': row['version']
+        }
+        
+        return jsonify({'success': True, **doc})
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to retrieve {doc_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/internal-doc/<doc_id>', methods=['PUT'])
+def update_internal_doc(doc_id):
+    """
+    Update an internal document
+    
+    Body:
+        {
+            "title": "Updated Title",
+            "content": "Updated content..."
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "doc_id": "int_doc_123",
+            "version": 2
+        }
+    """
+    try:
+        data = request.get_json()
+        title = data.get('title')
+        content = data.get('content')
+        
+        if not title and not content:
+            return jsonify({'success': False, 'error': 'title or content required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current version
+        cursor.execute('SELECT version FROM synergy_internal_docs WHERE doc_id = ?', (doc_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Document not found'}), 404
+        
+        new_version = row['version'] + 1
+        
+        # Build update query
+        updates = []
+        params = []
+        
+        if title:
+            updates.append('title = ?')
+            params.append(title)
+        if content is not None:  # Allow empty string
+            updates.append('content = ?')
+            params.append(content)
+        
+        updates.append('updated_at = ?')
+        params.append(datetime.now().isoformat())
+        updates.append('version = ?')
+        params.append(new_version)
+        
+        params.append(doc_id)
+        
+        query = f"UPDATE synergy_internal_docs SET {', '.join(updates)} WHERE doc_id = ?"
+        cursor.execute(query, params)
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[INTERNAL DOC] Updated document {doc_id} (version {new_version})")
+        
+        return jsonify({
+            'success': True,
+            'doc_id': doc_id,
+            'version': new_version,
+            'updated_at': datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to update {doc_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/internal-doc/<doc_id>', methods=['DELETE'])
+def delete_internal_doc(doc_id):
+    """
+    Delete an internal document
+    
+    Returns:
+        {
+            "success": true,
+            "doc_id": "int_doc_123"
+        }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM synergy_internal_docs WHERE doc_id = ?', (doc_id,))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Document not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[INTERNAL DOC] Deleted document {doc_id}")
+        
+        return jsonify({
+            'success': True,
+            'doc_id': doc_id,
+            'message': 'Document deleted successfully'
+        })
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to delete {doc_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/internal-doc/list/<session_id>', methods=['GET'])
+def list_internal_docs(session_id):
+    """
+    List all internal documents for a Synergy session
+    
+    Returns:
+        {
+            "success": true,
+            "session_id": "sess_123",
+            "documents": [
+                {
+                    "doc_id": "int_doc_123",
+                    "title": "Document 1",
+                    "format": "markdown",
+                    "created_at": "...",
+                    "updated_at": "...",
+                    "version": 1
+                }
+            ]
+        }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT doc_id, title, format, created_at, updated_at, created_by, version
+            FROM synergy_internal_docs
+            WHERE session_id = ?
+            ORDER BY created_at DESC
+        ''', (session_id,))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        documents = [{
+            'doc_id': row['doc_id'],
+            'title': row['title'],
+            'format': row['format'],
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at'],
+            'created_by': row['created_by'],
+            'version': row['version']
+        } for row in rows]
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'count': len(documents),
+            'documents': documents
+        })
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to list documents for {session_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
