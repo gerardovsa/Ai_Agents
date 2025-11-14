@@ -192,7 +192,7 @@ console.log('[PROMPT LIBRARY] ========================================');
         dropdown.innerHTML = `
             <div class="prompt-dropdown-header">
                 <div class="prompt-dropdown-title">
-                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <i class="fas fa-bolt"></i>
                     <span>Instructions Catalogue</span>
                 </div>
                 <button class="prompt-dropdown-close" onclick="window.closeDropdown()">
@@ -200,32 +200,37 @@ console.log('[PROMPT LIBRARY] ========================================');
                 </button>
             </div>
             
-            <div class="prompt-dropdown-search">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" class="inline-search" id="inline-search" placeholder="Search prompts...">
+            <div class="prompt-dropdown-search-row">
+                <div class="search-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="inline-search" id="inline-search" placeholder="Search prompts...">
+                </div>
+                <select class="category-dropdown" id="category-dropdown">
+                    <option value="all">All Categories</option>
+                    <option value="development">Development</option>
+                    <option value="analysis">Analysis</option>
+                    <option value="data">Data & SQL</option>
+                    <option value="style">Communication Style</option>
+                    <option value="business">Business</option>
+                    <option value="creative">Creative</option>
+                </select>
             </div>
             
-            <div class="category-filter">
-                <button class="filter-btn active" data-category="all">
+            <div class="action-buttons-row">
+                <button class="action-btn active" data-filter="all" onclick="window.filterPromptsByType('all')">
                     <i class="fas fa-th"></i> All
                 </button>
-                <button class="filter-btn" data-category="development">
-                    <i class="fas fa-code"></i> Dev
+                <button class="action-btn" data-filter="quick" onclick="window.filterPromptsByType('quick')">
+                    <i class="fas fa-bolt"></i> Quick
                 </button>
-                <button class="filter-btn" data-category="analysis">
-                    <i class="fas fa-chart-bar"></i> Analysis
+                <button class="action-btn" data-filter="detailed" onclick="window.filterPromptsByType('detailed')">
+                    <i class="fas fa-list-ul"></i> Detailed
                 </button>
-                <button class="filter-btn" data-category="data">
-                    <i class="fas fa-database"></i> Data
+                <button class="action-btn action-btn-edit" onclick="window.toggleEditMode()">
+                    <i class="fas fa-pencil-alt"></i> Edit
                 </button>
-                <button class="filter-btn" data-category="style">
-                    <i class="fas fa-comment"></i> Style
-                </button>
-                <button class="filter-btn" data-category="business">
-                    <i class="fas fa-briefcase"></i> Business
-                </button>
-                <button class="filter-btn" data-category="creative">
-                    <i class="fas fa-pen-fancy"></i> Creative
+                <button class="action-btn action-btn-create" onclick="window.openPromptModal()">
+                    <i class="fas fa-plus"></i> Create New
                 </button>
             </div>
 
@@ -233,12 +238,7 @@ console.log('[PROMPT LIBRARY] ========================================');
                 <div id="prompt-list-container"></div>
             </div>
 
-            <div class="prompt-dropdown-footer">
-                <button class="add-new-prompt-btn" onclick="window.openPromptModal()">
-                    <i class="fas fa-plus-circle"></i>
-                    <span>Create New Prompt</span>
-                </button>
-            </div>
+            <div class="prompt-dropdown-footer-border"></div>
         `;
         chatInputWrapper.insertBefore(dropdown, chatInputWrapper.firstChild);
 
@@ -365,14 +365,13 @@ console.log('[PROMPT LIBRARY] ========================================');
             console.error('[PROMPT LIBRARY] ERROR: Button not found! Cannot attach click listener.');
         }
 
-        // Category filter buttons
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                filterPrompts(this.dataset.category);
+        // Category dropdown change
+        const categoryDropdown = document.getElementById('category-dropdown');
+        if (categoryDropdown) {
+            categoryDropdown.addEventListener('change', function (e) {
+                filterPrompts(e.target.value);
             });
-        });
+        }
 
         // Search input
         const searchInput = document.getElementById('inline-search');
@@ -769,6 +768,112 @@ console.log('[PROMPT LIBRARY] ========================================');
         }
         return requestData;
     };
+
+    /**
+     * Filter prompts by type (quick/detailed/all)
+     */
+    window.filterPromptsByType = function (filterType) {
+        // Update active button
+        document.querySelectorAll('.action-btn[data-filter]').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        const activeBtn = document.querySelector(`.action-btn[data-filter="${filterType}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // Filter prompts
+        const category = document.getElementById('category-dropdown')?.value || 'all';
+        const searchTerm = document.getElementById('inline-search')?.value || '';
+        
+        let filteredPrompts = [...allPrompts];
+
+        // Filter by category
+        if (category !== 'all') {
+            filteredPrompts = filteredPrompts.filter(p => p.category === category);
+        }
+
+        // Filter by type
+        if (filterType === 'quick') {
+            filteredPrompts = filteredPrompts.filter(p => p.type === 'quick_action');
+        } else if (filterType === 'detailed') {
+            filteredPrompts = filteredPrompts.filter(p => p.type === 'full_prompt');
+        }
+
+        // Filter by search term
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            filteredPrompts = filteredPrompts.filter(p =>
+                p.name.toLowerCase().includes(term) ||
+                (p.description && p.description.toLowerCase().includes(term)) ||
+                (p.tags && p.tags.toLowerCase().includes(term))
+            );
+        }
+
+        // Render filtered prompts
+        renderFilteredPrompts(filteredPrompts);
+    };
+
+    /**
+     * Toggle edit mode for prompts
+     */
+    window.toggleEditMode = function () {
+        const editBtn = document.querySelector('.action-btn-edit');
+        const isEditMode = editBtn.classList.toggle('active');
+        
+        // Toggle visibility of edit buttons
+        const editButtons = document.querySelectorAll('.prompt-edit-btn');
+        editButtons.forEach(btn => {
+            btn.style.display = isEditMode ? 'flex' : 'none';
+        });
+        
+        console.log('[PROMPT LIBRARY] Edit mode:', isEditMode ? 'ON' : 'OFF');
+    };
+
+    /**
+     * Render filtered prompts (helper function)
+     */
+    function renderFilteredPrompts(prompts) {
+        const container = document.getElementById('prompt-list-container');
+        if (!container) return;
+
+        prompts.sort((a, b) => a.name.localeCompare(b.name));
+
+        if (prompts.length === 0) {
+            container.innerHTML = `
+                <div class="prompt-empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No prompts found</p>
+                    <p class="text-muted">Try adjusting your search or filters</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = prompts.map(prompt => {
+            const isSelected = selectedPrompts.some(p => p.id === prompt.id);
+            const iconClass = categoryIcons[prompt.category] || 'fa-bolt';
+
+            return `
+                <div class="prompt-list-item ${isSelected ? 'selected' : ''}" 
+                     data-id="${prompt.id}">
+                    <div class="prompt-clickable" onclick="window.togglePromptSelection(${prompt.id})">
+                        <i class="prompt-icon fas ${iconClass}"></i>
+                        <div class="prompt-info">
+                            <div class="prompt-name">${escapeHtml(prompt.name)}</div>
+                            <div class="prompt-description">${escapeHtml(prompt.description || '')}</div>
+                        </div>
+                        <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
+                            ${prompt.type === 'quick_action' ? 'Quick' : 'Detailed'}
+                        </span>
+                    </div>
+                    <button class="prompt-edit-btn" style="display: none;"
+                            onclick="event.stopPropagation(); window.openPromptModal(${prompt.id})"
+                            title="Edit prompt">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
 
     // ==================== UTILITY FUNCTIONS ====================
 

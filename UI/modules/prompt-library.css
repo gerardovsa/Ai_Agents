@@ -243,17 +243,23 @@
     border-color: var(--accent-error, #f85149);
 }
 
-/* Search Section */
-.prompt-dropdown-search {
+/* Search Row (Search + Category Dropdown) */
+.prompt-dropdown-search-row {
+    display: flex;
+    gap: 12px;
     padding: 16px 20px;
     border-bottom: 1px solid var(--border-default, #30363d);
-    position: relative;
     flex-shrink: 0;
 }
 
-.prompt-dropdown-search .search-icon {
+.search-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.search-wrapper .search-icon {
     position: absolute;
-    left: 32px;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted, #9ca3af);
@@ -282,39 +288,63 @@
     color: var(--text-muted, #9ca3af);
 }
 
-/* Category filters */
-.category-filter {
+/* Category Dropdown */
+.category-dropdown {
+    min-width: 180px;
+    padding: 10px 12px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    color: var(--text-primary, #f3f4f6);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-dropdown:hover {
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+.category-dropdown:focus {
+    outline: none;
+    border-color: var(--accent-primary, #58a6ff);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+}
+
+/* Action Buttons Row (All/Quick/Detailed/Edit/Create) */
+.action-buttons-row {
     display: flex;
     gap: 8px;
     padding: 12px 20px;
     border-bottom: 1px solid var(--border-default, #30363d);
-    flex-wrap: wrap;
     background: var(--bg-secondary, #161b22);
     flex-shrink: 0;
 }
 
-.filter-btn {
-    padding: 8px 14px;
+.action-btn {
+    padding: 10px 16px;
     background: var(--bg-tertiary, #1c2128);
     border: 1px solid var(--border-default, #30363d);
     border-radius: 8px;
     color: var(--text-secondary, #d1d5db);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    white-space: nowrap;
 }
 
-.filter-btn:hover {
+.action-btn:hover {
     border-color: var(--accent-primary, #58a6ff);
     color: var(--text-primary, #f3f4f6);
     transform: translateY(-1px);
 }
 
-.filter-btn.active {
+.action-btn.active {
     background: var(--accent-primary, #58a6ff);
     border-color: var(--accent-primary, #58a6ff);
     color: white;
@@ -322,8 +352,33 @@
     box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
 }
 
-.filter-btn i {
-    font-size: 13px;
+.action-btn i {
+    font-size: 14px;
+}
+
+/* Special styling for Edit button */
+.action-btn-edit {
+    margin-left: auto;
+}
+
+.action-btn-edit.active {
+    background: var(--accent-warning, #d29922);
+    border-color: var(--accent-warning, #d29922);
+    box-shadow: 0 2px 8px rgba(210, 153, 34, 0.3);
+}
+
+/* Special styling for Create button */
+.action-btn-create {
+    background: rgba(63, 185, 80, 0.1);
+    border-color: var(--accent-success, #3fb950);
+    color: var(--accent-success, #3fb950);
+}
+
+.action-btn-create:hover {
+    background: rgba(63, 185, 80, 0.2);
+    border-color: var(--accent-success, #3fb950);
+    color: var(--accent-success, #3fb950);
+    box-shadow: 0 2px 8px rgba(63, 185, 80, 0.3);
 }
 
 /* Scrollable area for prompt list */
@@ -479,41 +534,12 @@
     transform: scale(0.95);
 }
 
-/* Dropdown Footer */
-.prompt-dropdown-footer {
-    padding: 16px 20px;
+/* Dropdown Footer - Simple 20px Border */
+.prompt-dropdown-footer-border {
+    height: 20px;
     background: var(--bg-secondary, #161b22);
     border-top: 1px solid var(--border-default, #30363d);
     flex-shrink: 0;
-}
-
-/* Create new prompt button */
-.add-new-prompt-btn {
-    width: 100%;
-    padding: 12px 16px;
-    background: rgba(63, 185, 80, 0.1);
-    border: 2px dashed var(--accent-success, #3fb950);
-    border-radius: 8px;
-    color: var(--accent-success, #3fb950);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-}
-
-.add-new-prompt-btn:hover {
-    background: rgba(63, 185, 80, 0.2);
-    border-style: solid;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(63, 185, 80, 0.3);
-}
-
-.add-new-prompt-btn i {
-    font-size: 16px;
 }
 
 /* Empty state */
