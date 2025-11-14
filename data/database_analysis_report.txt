@@ -7,7 +7,7 @@ DATABASE STRUCTURE WITH EXAMPLE DATA
 ####################################################################################################
 DATABASE: ai_infrastructure.db
 Location: c:\Users\gpoli\GIT\AI_agents\data\ai_infrastructure.db
-Size: 634,880 bytes
+Size: 638,976 bytes
 Tables: 16
 ####################################################################################################
 
@@ -44,7 +44,7 @@ Tables: 16
     device_fingerprint             TEXT           
       Examples: "", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Apple..."
     last_seen_at                   TIMESTAMP      
-      Examples: "2025-11-14 02:36:49", "2025-11-14 02:36:51", "2025-11-14 06:05:36"
+      Examples: "2025-11-14 02:36:49", "2025-11-14 02:36:51", "2025-11-14 15:16:44"
     created_at                     TIMESTAMP      
       Examples: "2025-11-14 02:35:34", "2025-11-14 02:35:36", "2025-11-14 03:25:31"
 
@@ -109,6 +109,10 @@ Tables: 16
       Examples: 0
     last_error                     TEXT           
       Examples: (all NULL)
+    profile_picture_url            TEXT           
+      Examples: (all NULL)
+    profile_data                   TEXT           
+      Examples: (all NULL)
 
   Foreign Keys:
     user_id -> users.id
@@ -154,7 +158,7 @@ Tables: 16
     name                                          
       Examples: "users", "workspaces", "user_sessions"
     seq                                           
-      Examples: 14, 12, 558
+      Examples: 14, 12, 566
 
   TABLE: thread_lock_history - 11 rows
   ------------------------------------------------------------------------------------------------
@@ -328,7 +332,7 @@ Tables: 16
   Foreign Keys:
     user_id -> users.id
 
-  TABLE: user_sessions - 457 rows
+  TABLE: user_sessions - 465 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 86, 114, 115
@@ -987,7 +991,7 @@ Tables: 11
     metadata                       TEXT           
       Examples: (table empty)
 
-  TABLE: messages - 213 rows
+  TABLE: messages - 219 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 1, 2, 3
@@ -1094,7 +1098,7 @@ Tables: 11
     name                                          
       Examples: "threads", "messages", "users"
     seq                                           
-      Examples: 82, 213, 14
+      Examples: 82, 219, 14
 
   TABLE: thread_shares - 0 rows
   ------------------------------------------------------------------------------------------------
@@ -2503,28 +2507,43 @@ Size: 225,280 bytes
 Tables: 2
 ####################################################################################################
 
-  TABLE: synergy_internal_docs - 1 rows
+  TABLE: synergy_internal_docs - 16 rows
   ------------------------------------------------------------------------------------------------
     doc_id                         TEXT            [PK]
-      Examples: "int_doc_1763096878807"
+      Examples: "int_doc_1763096878807", "int_doc_1763123292825", "int_doc_1763123320829"
     session_id                     TEXT            [NOT NULL]
-      Examples: "sess_20251114_1507_internal_docs_test_session"
+      Examples: "sess_20251114_0558_ap:_anthropic_invoice_#3iu1ijh", "sess_20251114_0558_orders:_100_windscreen_banners", "sess_20251114_1507_internal_docs_test_session"
     title                          TEXT            [NOT NULL]
-      Examples: "Meeting Notes"
+      Examples: "Meeting Notes", "New Document", "New Spreadsheet"
     content                        TEXT            [NOT NULL]
       Examples: "## Meeting with client
 
-Date: 2025-11-14"
+Date: 2025-11-14", "", "
+                                <p><i>ok so wa..."
     format                         TEXT            [NOT NULL]
-      Examples: "markdown"
+      Examples: "markdown", "json"
     created_at                     TEXT           
-      Examples: "2025-11-14T15:07:58.808374"
+      Examples: "2025-11-14T15:07:58.808374", "2025-11-14T22:28:12.825941", "2025-11-14T22:28:40.830394"
     updated_at                     TEXT           
-      Examples: "2025-11-14T15:07:58.808381"
+      Examples: "2025-11-14T15:07:58.808381", "2025-11-14T22:28:12.825946", "2025-11-14T22:28:40.830405"
     created_by                     TEXT           
       Examples: "system"
     version                        INTEGER        
-      Examples: 1
+      Examples: 1, 6, 2
+    content_json                   TEXT           
+      Examples: "{"type":"doc","content":[]}", "[]", "[["","","","","","","","","",""],["","","","asd..."
+    doc_type                       TEXT           
+      Examples: "richtext", "spreadsheet"
+    linked_to_ai                   BOOLEAN        
+      Examples: 0
+    share_url                      TEXT           
+      Examples: "/internal-docs/test-g", "/internal-docs/test-doic-sheets", "/internal-docs/test-doic"
+    description                    TEXT           
+      Examples: (all NULL)
+    tags                           TEXT           
+      Examples: (all NULL)
+    slug                           TEXT           
+      Examples: "test-g", "test-doic-sheets", "test-doic"
 
   Foreign Keys:
     session_id -> synergy_sessions.session_id
@@ -2599,7 +2618,7 @@ Date: 2025-11-14"
 SCRIPT DATABASE ACCESS ANALYSIS
 ====================================================================================================
 
-Total scripts with database access: 437
+Total scripts with database access: 449
 
 
 ####################################################################################################
@@ -2620,8 +2639,8 @@ DIRECTORY: AI_infrastructure
   FILE: check_schema.py (37 lines)
   Tables: pathlib, sqlite_master
 
-  FILE: flask_app.py (1269 lines)
-  Tables: DataFrame, JobTickets, Quote_DigitalStocks, UI, client, core, dotenv, environment, flask, flask_cors
+  FILE: flask_app.py (1307 lines)
+  Tables: AI_infrastructure, DataFrame, JobTickets, Quote_DigitalStocks, UI, auth, client, core, dotenv, environment
 
   FILE: flask_integration.py (254 lines)
   Tables: AI_infrastructure, flask, queue, typing
@@ -2643,13 +2662,13 @@ DIRECTORY: AI_infrastructure\auth
 ####################################################################################################
 
   FILE: credential_injector.py (746 lines)
-  Tables: agent, auth, data, database, datetime, gmail, google, googleapiclient, oauth_tokens, pathlib
+  Tables: AI_infrastructure, agent, auth, data, database, datetime, gmail, google, googleapiclient, oauth_tokens
 
   FILE: permission_checker.py (486 lines)
-  Tables: datetime, pathlib, typing, users
+  Tables: AI_infrastructure, datetime, pathlib, typing, users
 
-  FILE: user_auth.py (1369 lines)
-  Tables: Authorization, DB, OAuth, datetime, dotenv, flask, functools, header, oauth_tokens, pathlib
+  FILE: user_auth.py (1442 lines)
+  Tables: AI_infrastructure, Authorization, DB, OAuth, datetime, dotenv, flask, functools, header, oauth_tokens
 
 ####################################################################################################
 DIRECTORY: AI_infrastructure\builders
@@ -2765,6 +2784,14 @@ DIRECTORY: AI_infrastructure\meta_tools
 DIRECTORY: AI_infrastructure\migrations
 ####################################################################################################
 
+  FILE: add_all_missing_oauth_columns.py (92 lines)
+  Tables: OAuth, pathlib
+
+  FILE: add_missing_oauth_columns.py (86 lines)
+  Database Connections:
+    Line 20: /data/ai_infrastructure.db
+  Tables: pathlib
+
   FILE: add_refresh_attempts_column.py (68 lines)
   Tables: pathlib, table
 
@@ -2781,14 +2808,14 @@ DIRECTORY: AI_infrastructure\migrations
 DIRECTORY: AI_infrastructure\routes
 ####################################################################################################
 
-  FILE: account_linking_routes.py (743 lines)
-  Tables: JWT, account_link_requests, datetime, dotenv, flask, one, pathlib, secondary, the, token
+  FILE: account_linking_routes.py (741 lines)
+  Tables: AI_infrastructure, JWT, account_link_requests, datetime, dotenv, flask, one, secondary, the, token
 
   FILE: agent_routes_v4.py (2323 lines)
   Tables: ALL, Claude, Feature, Flask, IP, In_House_SQL, JSON, JWT, agent, agent_state_manager
 
-  FILE: auth_routes.py (545 lines)
-  Tables: auth, database, flask, linked, oauth_tokens, pathlib, system, user_platform_credentials, users
+  FILE: auth_routes.py (544 lines)
+  Tables: AI_infrastructure, auth, database, flask, linked, oauth_tokens, pathlib, system, user_platform_credentials, users
 
   FILE: chat_routes.py (276 lines)
   Tables: PDF, core, datetime, flask
@@ -2860,11 +2887,14 @@ DIRECTORY: AI_infrastructure\utils
   FILE: database_helpers.py (366 lines)
   Tables: concurrent, contextlib, pathlib, pool, sqlite_master, typing, users
 
+  FILE: db_path_helper.py (90 lines)
+  Tables: pathlib, this
+
   FILE: db_safety.py (190 lines)
   Tables: args, datetime, functools, pathlib
 
   FILE: email_alias_helpers.py (354 lines)
-  Tables: a, datetime, pathlib, typing, user_email_aliases, users
+  Tables: AI_infrastructure, a, datetime, pathlib, typing, user_email_aliases, users
 
   FILE: error_handler.py (363 lines)
   Tables: pathlib, successful, typing, utils
@@ -2884,9 +2914,6 @@ DIRECTORY: AI_infrastructure\utils
   FILE: logger.py (227 lines)
   Tables: datetime, pathlib, utils
 
-  FILE: logger_config.py (215 lines)
-  Tables: parent, typing
-
 ####################################################################################################
 DIRECTORY: AI_infrastructure\workspace
 ####################################################################################################
@@ -2895,7 +2922,7 @@ DIRECTORY: AI_infrastructure\workspace
   Tables: AI_infrastructure
 
   FILE: access_control.py (481 lines)
-  Tables: enum, pathlib, typing, workspace_users, workspaces
+  Tables: AI_infrastructure, enum, pathlib, typing, workspace_users, workspaces
 
   FILE: constants.py (243 lines)
   Tables: enum, typing, workspace
@@ -2904,7 +2931,7 @@ DIRECTORY: AI_infrastructure\workspace
   Tables: workspace
 
   FILE: invitation_manager.py (511 lines)
-  Tables: datetime, pathlib, typing, workspace_invitations, workspace_users, workspaces
+  Tables: AI_infrastructure, datetime, pathlib, typing, workspace_invitations, workspace_users, workspaces
 
   FILE: models.py (137 lines)
   Tables: datetime, pydantic, typing
@@ -2913,10 +2940,10 @@ DIRECTORY: AI_infrastructure\workspace
   Tables: datetime, pydantic, typing
 
   FILE: slug_generator.py (388 lines)
-  Tables: check, names, pathlib, threads, typing, workspaces
+  Tables: AI_infrastructure, check, names, pathlib, threads, typing, workspaces
 
   FILE: workspace_manager.py (769 lines)
-  Tables: datetime, pathlib, sessions, typing, users, workspace, workspace_users, workspaces
+  Tables: AI_infrastructure, datetime, pathlib, sessions, typing, users, workspace, workspace_users, workspaces
 
 ####################################################################################################
 DIRECTORY: ARCHIVE_OCT30_2025\test_scripts
@@ -2929,7 +2956,7 @@ DIRECTORY: ARCHIVE_OCT30_2025\test_scripts
 API ROUTES TO DATABASE CONNECTIONS
 ====================================================================================================
 
-Total API routes: 193
+Total API routes: 195
 
 
 ####################################################################################################
@@ -2941,16 +2968,16 @@ DATABASE: Get database connection to ai_infrastructure.db
 DATABASE: ai_infrastructure.db
 ####################################################################################################
   /categories                                        Tables: pathlib, datetime
-  /details                                           Tables: ai_infrastructure, pathlib, sessions
-  /workspace/callback                                Tables: pathlib, users, auth
+  /details                                           Tables: pathlib, synergy_sessions, thread_assignments
+  /workspace/callback                                Tables: pathlib, credentials, googleapiclient
 
 ####################################################################################################
 DATABASE: sessions.db
 ####################################################################################################
-  /assignments/<location>                            Tables: pathlib, users, request
+  /assignments/<location>                            Tables: pathlib, JWT, the
 
 ####################################################################################################
-ROUTES WITHOUT EXPLICIT DATABASE (189 routes)
+ROUTES WITHOUT EXPLICIT DATABASE (191 routes)
 ####################################################################################################
   /link-status in account_linking_routes.py
   /initiate-link in account_linking_routes.py
@@ -2972,16 +2999,16 @@ ROUTES WITHOUT EXPLICIT DATABASE (189 routes)
 INCONSISTENCY DETECTION REPORT
 ====================================================================================================
 
-WARNING - Total Issues: 2531
-  HIGH: 2531
+WARNING - Total Issues: 2582
+  HIGH: 2582
   MEDIUM: 0
 
 
 ####################################################################################################
-HIGH SEVERITY (2531)
+HIGH SEVERITY (2582)
 ####################################################################################################
 
-  MISSING_TABLE (2531 issues):
+  MISSING_TABLE (2582 issues):
     ERROR: References non-existent table: pathlib
     File: AI_infrastructure\check_oauth_temp.py
     Table: pathlib
@@ -2990,37 +3017,37 @@ HIGH SEVERITY (2531)
     File: AI_infrastructure\check_schema.py
     Table: pathlib
 
-    ERROR: References non-existent table: logs
-    File: AI_infrastructure\flask_app.py
-    Table: logs
-
-    ERROR: References non-existent table: flask
-    File: AI_infrastructure\flask_app.py
-    Table: flask
-
     ERROR: References non-existent table: environment
     File: AI_infrastructure\flask_app.py
     Table: environment
 
-    ERROR: References non-existent table: DataFrame
+    ERROR: References non-existent table: flask_socketio
     File: AI_infrastructure\flask_app.py
-    Table: DataFrame
-
-    ERROR: References non-existent table: core
-    File: AI_infrastructure\flask_app.py
-    Table: core
-
-    ERROR: References non-existent table: room
-    File: AI_infrastructure\flask_app.py
-    Table: room
+    Table: flask_socketio
 
     ERROR: References non-existent table: migrations
     File: AI_infrastructure\flask_app.py
     Table: migrations
 
-    ERROR: References non-existent table: Quote_DigitalStocks
+    ERROR: References non-existent table: dotenv
     File: AI_infrastructure\flask_app.py
-    Table: Quote_DigitalStocks
+    Table: dotenv
+
+    ERROR: References non-existent table: client
+    File: AI_infrastructure\flask_app.py
+    Table: client
+
+    ERROR: References non-existent table: routes
+    File: AI_infrastructure\flask_app.py
+    Table: routes
+
+    ERROR: References non-existent table: room
+    File: AI_infrastructure\flask_app.py
+    Table: room
+
+    ERROR: References non-existent table: waitress
+    File: AI_infrastructure\flask_app.py
+    Table: waitress
 
 
 ####################################################################################################
@@ -3093,5 +3120,5 @@ COMMON ISSUES:
 
 ====================================================================================================
 ANALYSIS COMPLETE
-Generated: 2025-11-14 16:15:01
+Generated: 2025-11-15 01:25:57
 ====================================================================================================

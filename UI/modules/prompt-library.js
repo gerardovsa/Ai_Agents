@@ -382,16 +382,8 @@ console.log('[PROMPT LIBRARY] ========================================');
             }
         });
 
-        // Close modal when clicking overlay
-        const modalOverlay = document.getElementById('prompt-modal-overlay');
-        if (modalOverlay) {
-            modalOverlay.addEventListener('click', function (e) {
-                if (e.target === this) {
-                    window.closePromptModal();
-                }
-            });
-        }
-
+        // Close sidebar when clicking outside (handled by global click listener above)
+        
         console.log('[PROMPT LIBRARY] Event listeners setup complete');
     }
 
@@ -944,17 +936,12 @@ console.log('[PROMPT LIBRARY] ========================================');
     };
 
     /**
-     * Close modal
+     * DEPRECATED: Use closeSidebar() instead
+     * Kept for backward compatibility
      */
     window.closePromptModal = function () {
-        const modal = document.getElementById('prompt-modal-overlay');
-        if (modal) modal.classList.remove('show');
-        editingPromptId = null;
-
-        // Clear selection
-        document.querySelectorAll('.edit-prompt-item').forEach(item => {
-            item.classList.remove('selected');
-        });
+        console.log('[PROMPT LIBRARY] closePromptModal is deprecated. Redirecting to closeSidebar()');
+        window.closeSidebar();
     };
 
     /**
@@ -992,7 +979,9 @@ console.log('[PROMPT LIBRARY] ========================================');
             await fetchPromptLibrary();
             renderPromptList();
             window.loadEditPrompts(); // Refresh edit tab list
-            window.closePromptModal();
+            // Clear form and return to browse
+            document.getElementById('prompt-form')?.reset();
+            switchSidebarTab('browse');
         }
     };
 
@@ -1037,7 +1026,7 @@ console.log('[PROMPT LIBRARY] ========================================');
             await fetchPromptLibrary();
             renderPromptList();
             window.loadEditPrompts(); // Refresh edit tab list
-            window.closePromptModal();
+            switchSidebarTab('browse'); // Return to browse tab
         }
     };
 
@@ -1062,7 +1051,7 @@ console.log('[PROMPT LIBRARY] ========================================');
             renderPromptList();
             updateActivePromptsBar();
             updateButtonBadge();
-            window.closePromptModal();
+            switchSidebarTab('browse'); // Return to browse tab
         }
     };
 
@@ -1211,13 +1200,50 @@ console.log('[PROMPT LIBRARY] ========================================');
      */
     function showNotification(message, type = 'info') {
         // Try to use existing notification system
-        if (window.showNotification) {
+        if (window.showNotification && typeof window.showNotification === 'function') {
             window.showNotification(message, type);
             return;
         }
 
-        // Fallback to console
-        console.log(`[PROMPT LIBRARY] ${type.toUpperCase()}: ${message} `);
+        // Fallback to custom toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100000;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideInRight 0.3s ease-out;
+        `;
+
+        const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+        toast.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    document.body.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+
+        console.log(`[PROMPT LIBRARY] ${type.toUpperCase()}: ${message}`);
     }
 
     /**

@@ -88,23 +88,34 @@ def extract_data():
             print(f'[ERROR] Failed to recover messages: {e}')
             recovered['errors'].append(f'Messages table: {str(e)[:50]}')
         
-        # Try to recover thread assignments
-        print('[STEP 3] Recovering thread assignments...')
+        # Try to recover thread assignments (if table exists)
+        print('[STEP 3] Recovering thread assignments (if present)...')
         try:
-            backup_cursor.execute('SELECT * FROM thread_assignments')
-            assignments = backup_cursor.fetchall()
-            columns = [desc[0] for desc in backup_cursor.description]
-            
-            for assign in assignments:
-                try:
-                    placeholders = ','.join(['?' for _ in columns])
-                    cols = ','.join(columns)
-                    new_cursor.execute(f'INSERT OR IGNORE INTO thread_assignments ({cols}) VALUES ({placeholders})', assign)
-                    recovered['assignments'] += 1
-                except Exception as e:
-                    recovered['errors'].append(f'Assignment error: {str(e)[:50]}')
-            
-            print(f'[OK] Recovered {recovered["assignments"]} assignments')
+            # Check whether the assignments table exists in the backup
+            backup_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='thread_assignments'")
+            if not backup_cursor.fetchone():
+                print('[SKIP] thread_assignments table not present in backup - skipping assignments recovery')
+            else:
+                backup_cursor.execute('SELECT * FROM thread_assignments')
+                assignments = backup_cursor.fetchall()
+                columns = [desc[0] for desc in backup_cursor.description]
+
+                for assign in assignments:
+                    try:
+                        placeholders = ','.join(['?' for _ in columns])
+                        cols = ','.join(columns)
+                        # Only attempt insert if destination table exists
+                        try:
+                            new_cursor.execute(f'INSERT OR IGNORE INTO thread_assignments ({cols}) VALUES ({placeholders})', assign)
+                            recovered['assignments'] += 1
+                        except sqlite3.OperationalError:
+                            # Target DB doesn't have thread_assignments table - skip
+                            recovered['errors'].append('Target DB missing thread_assignments table; skipped inserting assignments')
+                            break
+                    except Exception as e:
+                        recovered['errors'].append(f'Assignment error: {str(e)[:50]}')
+
+                print(f'[OK] Recovered {recovered["assignments"]} assignments')
         except Exception as e:
             print(f'[ERROR] Failed to recover assignments: {e}')
             recovered['errors'].append(f'Assignments table: {str(e)[:50]}')

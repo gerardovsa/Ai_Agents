@@ -58,13 +58,21 @@ for session in sessions:
         except:
             pass
 
-# 3. Check thread_assignments table
-print("\n3. Thread_assignments table:")
-cursor.execute("SELECT * FROM thread_assignments WHERE user_id = 12")
-assignments = cursor.fetchall()
-print(f"   Found {len(assignments)} rows")
-for row in assignments:
-    print(f"   - session_id: {row['session_id']}, location: {row['location']}")
+# 3. Check threads.location (primary source per architectural decision)
+print("\n3. Thread locations (from threads.location in sessions.db):")
+sessions_conn = sqlite3.connect(str(root_dir / 'data' / 'sessions.db'))
+sessions_conn.row_factory = sqlite3.Row
+sessions_cursor = sessions_conn.cursor()
+sessions_cursor.execute("""
+    SELECT id, thread_slug, name, location 
+    FROM threads 
+    WHERE location IS NOT NULL AND location != 'prime'
+    ORDER BY updated_at DESC
+""")
+thread_locations = sessions_cursor.fetchall()
+print(f"   Found {len(thread_locations)} threads with agent assignments")
+for row in thread_locations:
+    print(f"   - thread_slug: {row['thread_slug']}, name: {row['name']}, location: {row['location']}")
 
 conn.close()
 

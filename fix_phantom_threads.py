@@ -30,12 +30,36 @@ print(f"\n1. Threads table ({len(threads)} rows) for user_id=12:")
 for row in threads:
     print(f"   - id: {row['id']}, session_id: {row['session_id']}, created: {row['created_at']}")
 
-# 2. Check thread_assignments table
-cursor.execute("SELECT agent_id, session_id, assigned_at FROM thread_assignments ORDER BY assigned_at DESC")
-assignments = cursor.fetchall()
-print(f"\n2. Thread assignments ({len(assignments)} rows):")
-for row in assignments:
-    print(f"   - agent_id: {row['agent_id']}, session_id: {row['session_id']}, assigned: {row['assigned_at']}")
+# 2. Check thread_assignments table (if present), otherwise show threads with location
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='thread_assignments'")
+if cursor.fetchone():
+    try:
+        cursor.execute("SELECT agent_id, session_id, assigned_at FROM thread_assignments ORDER BY assigned_at DESC")
+        assignments = cursor.fetchall()
+        print(f"\n2. Thread assignments ({len(assignments)} rows):")
+        for row in assignments:
+            print(f"   - agent_id: {row['agent_id']}, session_id: {row['session_id']}, assigned: {row['assigned_at']}")
+    except Exception as e:
+        print(f"[WARN] Failed to read thread_assignments: {e}")
+        assignments = []
+else:
+    print('\n[INFO] thread_assignments table not found - deriving assignments from threads.location')
+    # Attempt to derive assignments from threads.location
+    # Note: threads table may live in sessions.db - try to open sessions.db if available
+    try:
+        import sqlite3 as _sqlite3
+        sess_conn = _sqlite3.connect('data/sessions.db')
+        sess_conn.row_factory = _sqlite3.Row
+        sc = sess_conn.cursor()
+        sc.execute("SELECT id, thread_slug, location FROM threads WHERE location IS NOT NULL")
+        assignments = []
+        for r in sc.fetchall():
+            assignments.append({'agent_id': r['location'], 'session_id': str(r['id']), 'assigned_at': None})
+            print(f"   - derived agent: {r['location']}, session_id: {r['id']}")
+        sess_conn.close()
+    except Exception as ex:
+        print(f"[ERROR] Could not derive assignments from threads.location: {ex}")
+        assignments = []
 
 # 3. Find phantom assignments (assignments without matching threads)
 thread_session_ids = set(row['session_id'] for row in threads)
@@ -83,11 +107,14 @@ print("\n" + "="*60)
 print("FINAL STATE")
 print("="*60)
 
-cursor.execute("SELECT agent_id, session_id FROM thread_assignments")
-final_assignments = cursor.fetchall()
-print(f"\nThread assignments remaining: {len(final_assignments)}")
-for row in final_assignments:
-    print(f"   - agent_id: {row['agent_id']}, session_id: {row['session_id']}")
+if cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='thread_assignments'").fetchone():
+    cursor.execute("SELECT agent_id, session_id FROM thread_assignments")
+    final_assignments = cursor.fetchall()
+    print(f"\nThread assignments remaining: {len(final_assignments)}")
+    for row in final_assignments:
+        print(f"   - agent_id: {row['agent_id']}, session_id: {row['session_id']}")
+else:
+    print('\n[INFO] No thread_assignments table - final assignments derived from threads.location shown above (if any)')
 
 conn.close()
 print("\n[DONE]")

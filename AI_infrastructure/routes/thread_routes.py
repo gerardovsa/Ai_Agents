@@ -935,7 +935,7 @@ def get_threads_details():
     Get detailed information for multiple threads including agent assignments
     
     SYNERGY INTEGRATION: Used to display linked threads in Synergy cards
-    Fetches thread details from threads table and agent assignments from thread_assignments table
+    Fetches thread details from threads table and agent assignments from threads.location column
     
     Body params:
         thread_ids (list): Array of thread IDs to fetch details for
@@ -962,10 +962,10 @@ def get_threads_details():
         placeholders = ','.join(['?' for _ in thread_ids])
         print(f"[THREADS DETAILS] Step 5: Placeholders: {placeholders}")
         
-        # Query threads from sessions.db
+        # Query threads from sessions.db (includes location column for agent assignments)
         print("[THREADS DETAILS] Step 6: Getting database path...")
-        # Note: thread_assignments is in ai_infrastructure.db, not sessions.db
-        # We need to query sessions.db for threads, then join with assignments separately
+        # Note: threads.location is the primary source of truth for agent assignments
+        # See: THREAD_LOCATION_ARCHITECTURE.md
         db_path = get_sessions_database_path()
         print(f"[THREADS DETAILS] Step 7: DB path: {db_path}")
         query = f"""
@@ -988,44 +988,29 @@ def get_threads_details():
         threads = execute_sqlite_query(db_path, query, params)
         print(f"[THREADS DETAILS] Step 9: Got {len(threads)} threads")
         
-        # Now get agent assignments from ai_infrastructure.db
-        print("[THREADS DETAILS] Step 10: Getting agent assignments...")
-        from pathlib import Path
-        import sqlite3
-        root_dir = Path(__file__).parent.parent.parent
-        ai_db = root_dir / 'data' / 'ai_infrastructure.db'
-        print(f"[THREADS DETAILS] Step 11: AI DB path: {ai_db}")
-        
+        # Populate agent assignments from threads.location (primary source)
+        print("[THREADS DETAILS] Step 10: Populating assignments from threads.location...")
         assignments = {}
         try:
-            print("[THREADS DETAILS] Step 12: Connecting to AI DB...")
-            conn = sqlite3.connect(str(ai_db))
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            print("[THREADS DETAILS] Step 13: Connected, querying assignments...")
-            
-            # thread_assignments uses session_id (which matches thread.id or thread.thread_slug)
-            for thread_id in thread_ids:
-                cursor.execute("""
-                    SELECT session_id, location 
-                    FROM thread_assignments 
-                    WHERE session_id = ?
-                    ORDER BY updated_at DESC
-                    LIMIT 1
-                """, (thread_id,))
-                
-                row = cursor.fetchone()
-                if row:
-                    assignments[thread_id] = {
-                        'location': row['location'],  # e.g., "alpha-3", "prime"
-                        'agent_name': row['location'].upper() if row['location'] else 'No Agent'
+            for t in threads:
+                loc = t.get('location')
+                if loc:
+                    # Map by both id (string) and thread_slug for lookups later
+                    assignments[str(t.get('id'))] = {
+                        'location': loc,
+                        'agent_name': loc.upper()
                     }
-            
-            conn.close()
-            print(f"[THREADS DETAILS] Step 14: Got {len(assignments)} assignments")
+                    thread_slug = t.get('thread_slug')
+                    if thread_slug:
+                        assignments[thread_slug] = {
+                            'location': loc,
+                            'agent_name': loc.upper()
+                        }
+            print(f"[THREADS DETAILS] Step 14: Got {len(assignments)} assignments from threads.location")
         except Exception as e:
-            print(f"[THREADS] Warning: Could not fetch agent assignments: {e}")
-            print("[THREADS DETAILS] Step 14b: Assignment lookup failed (non-fatal)")
+            # Extremely unlikely, but keep logging safe fallback
+            print(f"[THREADS] Warning: Failed to populate assignments from threads.location: {e}")
+            assignments = {}
         
         # Convert to list of dicts
         print("[THREADS DETAILS] Step 15: Building result array...")

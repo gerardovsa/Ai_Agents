@@ -39,7 +39,9 @@ db_path = Path('data/ai_infrastructure.db')
 conn = sqlite3.connect(str(db_path))
 cursor = conn.cursor()
 
-cursor.execute('SELECT * FROM thread_assignments WHERE user_id = 14')
+# NOTE: thread_assignments table is unused per THREAD_LOCATION_ARCHITECTURE.md
+# Using threads.location instead
+cursor.execute('SELECT id, thread_slug, name, location FROM threads WHERE user_id = 14 AND location IS NOT NULL')
 assignments = cursor.fetchall()
 print(f'\nFound {len(assignments)} thread assignments for user 14:')
 for assignment in assignments:

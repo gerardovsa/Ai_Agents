@@ -466,93 +466,77 @@ class InternalDocsManager {
                 <div class="doc-editor-toolbar" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-default); flex-shrink: 0;">
                     <!-- Row/Column Actions -->
                     <div class="toolbar-group" style="display: flex; gap: 4px; padding-right: 8px; border-right: 1px solid var(--border-default);">
-                        <button class="toolbar-btn" title="Add Row Below" onclick="window.internalDocsManager.addRow('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Add Row Below" onclick="window.internalDocsManager.addRow('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-plus" style="font-size: 14px;"></i>
-                            <span>Row</span>
                         </button>
-                        <button class="toolbar-btn" title="Add Column Right" onclick="window.internalDocsManager.addColumn('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Add Column Right" onclick="window.internalDocsManager.addColumn('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-plus" style="font-size: 14px;"></i>
-                            <span>Column</span>
                         </button>
-                        <button class="toolbar-btn" title="Delete Selected Rows" onclick="window.internalDocsManager.deleteRow('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Delete Selected Rows" onclick="window.internalDocsManager.deleteRow('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-minus" style="font-size: 14px;"></i>
-                            <span>Row</span>
                         </button>
-                        <button class="toolbar-btn" title="Delete Selected Columns" onclick="window.internalDocsManager.deleteColumn('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Delete Selected Columns" onclick="window.internalDocsManager.deleteColumn('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-minus" style="font-size: 14px;"></i>
-                            <span>Column</span>
                         </button>
                     </div>
                     
                     <!-- Formatting Actions -->
                     <div class="toolbar-group" style="display: flex; gap: 4px; padding-right: 8px; border-right: 1px solid var(--border-default);">
-                        <button class="toolbar-btn" title="Merge Cells" onclick="window.internalDocsManager.mergeCells('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Merge Cells" onclick="window.internalDocsManager.mergeCells('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-object-group" style="font-size: 14px;"></i>
-                            <span>Merge</span>
                         </button>
-                        <button class="toolbar-btn" title="Unmerge Cells" onclick="window.internalDocsManager.unmergeCells('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Unmerge Cells" onclick="window.internalDocsManager.unmergeCells('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-object-ungroup" style="font-size: 14px;"></i>
-                            <span>Unmerge</span>
                         </button>
                     </div>
                     
                     <!-- Clipboard Actions -->
                     <div class="toolbar-group" style="display: flex; gap: 4px; padding-right: 8px; border-right: 1px solid var(--border-default);">
-                        <button class="toolbar-btn" title="Copy" onclick="window.internalDocsManager.copySelection('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Copy" onclick="window.internalDocsManager.copySelection('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-copy" style="font-size: 14px;"></i>
-                            <span>Copy</span>
                         </button>
-                        <button class="toolbar-btn" title="Paste" onclick="window.internalDocsManager.pasteSelection('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Paste" onclick="window.internalDocsManager.pasteSelection('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-paste" style="font-size: 14px;"></i>
-                            <span>Paste</span>
                         </button>
-                        <button class="toolbar-btn" title="Clear Contents" onclick="window.internalDocsManager.clearSelection('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Clear Contents" onclick="window.internalDocsManager.clearSelection('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-eraser" style="font-size: 14px;"></i>
-                            <span>Clear</span>
                         </button>
                     </div>
                     
                     <!-- Sorting/Filtering -->
                     <div class="toolbar-group" style="display: flex; gap: 4px; padding-right: 8px; border-right: 1px solid var(--border-default);">
-                        <button class="toolbar-btn" title="Sort Ascending" onclick="window.internalDocsManager.sortAscending('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Sort Ascending" onclick="window.internalDocsManager.sortAscending('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-sort-amount-down" style="font-size: 14px;"></i>
-                            <span>Sort ↑</span>
                         </button>
-                        <button class="toolbar-btn" title="Sort Descending" onclick="window.internalDocsManager.sortDescending('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Sort Descending" onclick="window.internalDocsManager.sortDescending('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-sort-amount-up" style="font-size: 14px;"></i>
-                            <span>Sort ↓</span>
                         </button>
                     </div>
                     
                     <!-- Undo/Redo -->
                     <div class="toolbar-group" style="display: flex; gap: 4px; padding-right: 8px; border-right: 1px solid var(--border-default);">
-                        <button class="toolbar-btn" title="Undo" onclick="window.internalDocsManager.undoSpreadsheet('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Undo" onclick="window.internalDocsManager.undoSpreadsheet('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-undo" style="font-size: 14px;"></i>
-                            <span>Undo</span>
                         </button>
-                        <button class="toolbar-btn" title="Redo" onclick="window.internalDocsManager.redoSpreadsheet('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Redo" onclick="window.internalDocsManager.redoSpreadsheet('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-redo" style="font-size: 14px;"></i>
-                            <span>Redo</span>
                         </button>
                     </div>
                     
                     <!-- Export/Share -->
                     <div class="toolbar-group" style="display: flex; gap: 4px;">
-                        <button class="toolbar-btn" title="Export CSV" onclick="window.internalDocsManager.exportDocument('${doc.doc_id}', 'csv')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Export CSV" onclick="window.internalDocsManager.exportDocument('${doc.doc_id}', 'csv')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-file-csv" style="font-size: 14px;"></i>
-                            <span>CSV</span>
                         </button>
-                        <button class="toolbar-btn" title="Copy Share Link" onclick="window.internalDocsManager.copyDocumentUrl('${doc.doc_id}')" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                        <button class="toolbar-btn" title="Copy Share Link" onclick="window.internalDocsManager.copyDocumentUrl('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                             <i class="fas fa-link" style="font-size: 14px;"></i>
-                            <span>Copy Link</span>
                         </button>
                     </div>
                     
                     <!-- SAVE BUTTON (Prominent) -->
                     <div class="toolbar-group" style="display: flex; gap: 4px; margin-left: auto; padding-left: 8px; border-left: 1px solid var(--border-default);">
-                        <button class="toolbar-btn" title="Save Spreadsheet Now" onclick="window.internalDocsManager.saveDocumentContent('${doc.doc_id}', JSON.stringify(window.internalDocsManager.handsontableInstances['${doc.doc_id}'].getData()), null, true)" style="padding: 10px 24px; display: flex; align-items: center; gap: 10px; background: var(--accent-primary); border: 1px solid var(--accent-primary); border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: white; box-shadow: 0 2px 8px rgba(79, 108, 255, 0.3);">
+                        <button class="toolbar-btn" title="Save Spreadsheet" onclick="window.internalDocsManager.saveSpreadsheetWithNotification('${doc.doc_id}')" style="padding: 10px 14px; background: var(--accent-primary); border: 1px solid var(--accent-primary); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: white; box-shadow: 0 2px 8px rgba(79, 108, 255, 0.3);">
                             <i class="fas fa-save" style="font-size: 16px;"></i>
-                            <span>SAVE</span>
                         </button>
                     </div>
                 </div>
@@ -799,16 +783,62 @@ class InternalDocsManager {
             <span style="color: var(--text-muted); font-size: 13px;">Version 1</span>
         `;
 
-        popup.footerRightElement.innerHTML = `
-            <button class="popup-action-btn" onclick="window.internalDocsManager.exportDocument('${doc.doc_id}', 'csv')" style="background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
-                <i class="fas fa-download"></i>
-                <span>Export CSV</span>
-            </button>
-            <button class="popup-action-btn primary" onclick="window.internalDocsManager.saveDocumentContent('${doc.doc_id}', JSON.stringify(window.internalDocsManager.handsontableInstances['${doc.doc_id}'].getData()), null, true)" style="background: var(--accent-primary); border: 1px solid var(--accent-primary); border-radius: 6px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; color: white;">
-                <i class="fas fa-save"></i>
-                <span>Save Now</span>
-            </button>
+        popup.footerRightElement.innerHTML = ``;
+    }
+
+    /**
+     * Save spreadsheet with toast notification
+     */
+    async saveSpreadsheetWithNotification(docId) {
+        const hot = this.handsontableInstances[docId];
+        if (!hot) {
+            console.error('Handsontable instance not found for:', docId);
+            return;
+        }
+
+        const data = hot.getData();
+        const popup = this.popupWindows[`doc-${docId}`];
+
+        await this.saveDocumentContent(docId, JSON.stringify(data), popup, true);
+
+        // Show toast notification
+        this.showToast('Document saved successfully!', 'success');
+    }
+
+    /**
+     * Show toast notification
+     */
+    showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#10b981' : '#f44336'};
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 100000;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
         `;
+        toast.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}" style="font-size: 18px;"></i>
+            <span>${message}</span>
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => document.body.removeChild(toast), 300);
+        }, 2500);
     }
 
     /**
@@ -1082,11 +1112,11 @@ class InternalDocsManager {
     }
 
     /**
-     * Copy document URL to clipboard
+     * Copy document URL to clipboard with detailed context for AI agents
      */
     async copyDocumentUrl(docId) {
         try {
-            // Fetch document to get share_url
+            // Fetch document to get full details
             const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
                 headers: {
                     'X-User-ID': String(this.currentUser.user_id)
@@ -1099,11 +1129,51 @@ class InternalDocsManager {
                 throw new Error('Failed to fetch document');
             }
 
-            // Use share_url if available, otherwise fall back to doc_id
+            // Fetch session details to get session title/slug
+            let sessionTitle = 'Unknown Session';
+            let sessionSlug = data.session_id;
+            try {
+                const sessionResponse = await fetch(`${this.apiBaseUrl}/api/synergy/session/${data.session_id}`, {
+                    headers: {
+                        'X-User-ID': String(this.currentUser.user_id)
+                    }
+                });
+                const sessionData = await sessionResponse.json();
+                if (sessionData.success) {
+                    sessionTitle = sessionData.title || sessionData.session_id;
+                    // Extract slug from session_id (format: sess_timestamp_slug)
+                    const parts = sessionData.session_id.split('_');
+                    if (parts.length > 2) {
+                        sessionSlug = parts.slice(2).join('_');
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not fetch session details:', e);
+            }
+
+            // Build comprehensive context for AI agents
             const slug = data.slug || docId;
             const url = `${window.location.origin}/internal-docs/${slug}`;
 
-            await navigator.clipboard.writeText(url);
+            // Create detailed context text
+            const contextText = `Internal Document Reference:
+
+Title: ${data.title}
+Document Type: ${data.doc_type || 'richtext'}
+Document Slug: ${slug}
+
+Session: ${sessionTitle}
+Session Slug: ${sessionSlug}
+Session ID: ${data.session_id}
+
+Format: ${data.format || 'markdown'}
+Created: ${data.created_at}
+${data.description ? `Description: ${data.description}\n` : ''}${data.tags ? `Tags: ${data.tags}\n` : ''}
+Direct URL: ${url}
+
+Note: Use the document slug "${slug}" to reference this document in Synergy sessions.`;
+
+            await navigator.clipboard.writeText(contextText);
 
             // Show success message
             const message = document.createElement('div');
@@ -1125,7 +1195,7 @@ class InternalDocsManager {
             `;
             message.innerHTML = `
                 <i class="fas fa-check-circle"></i>
-                <span>Link copied to clipboard!</span>
+                <span>Document details copied to clipboard!</span>
             `;
             document.body.appendChild(message);
 
@@ -1135,7 +1205,7 @@ class InternalDocsManager {
                 setTimeout(() => document.body.removeChild(message), 300);
             }, 2000);
 
-            console.log('Document URL copied:', url);
+            console.log('Document context copied:\n', contextText);
         } catch (error) {
             console.error('Failed to copy URL:', error);
             alert('Failed to copy link to clipboard');
