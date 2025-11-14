@@ -106,7 +106,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 10px;
+    padding: 7px 10px;
     background: var(--bg-secondary, #161b22);
     border: 1px solid var(--border-default, #30363d);
     border-radius: 6px;
@@ -472,7 +472,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 16px;
+    padding: 7px 10px;
     cursor: pointer;
     min-width: 0;
 }
@@ -917,4 +917,273 @@
 
 .text-muted {
     color: var(--text-muted, #9ca3af);
+}
+
+/* ==================== PROMPT MODAL ==================== */
+
+.prompt-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.prompt-modal-overlay.show {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.prompt-modal {
+    background: var(--bg-primary, #0d1117);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 12px;
+    width: 600px;
+    max-width: 90%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.prompt-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-default, #30363d);
+}
+
+.prompt-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #f0f6fc);
+}
+
+.prompt-modal-close {
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    color: var(--text-secondary, #8b949e);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.prompt-modal-close:hover {
+    background: var(--bg-tertiary, #161b22);
+    color: var(--text-primary, #f0f6fc);
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+.prompt-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    max-height: calc(90vh - 160px);
+}
+
+.prompt-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.prompt-modal-body::-webkit-scrollbar-track {
+    background: var(--bg-secondary, #161b22);
+    border-radius: 4px;
+}
+
+.prompt-modal-body::-webkit-scrollbar-thumb {
+    background: var(--border-default, #30363d);
+    border-radius: 4px;
+}
+
+.prompt-modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover, #484f58);
+}
+
+.prompt-modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-default, #30363d);
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary, #f0f6fc);
+    margin-bottom: 8px;
+}
+
+.form-group label i {
+    margin-right: 6px;
+    color: var(--accent-primary, #58a6ff);
+    font-size: 13px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-primary, #f0f6fc);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent-primary, #58a6ff);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.form-control::placeholder {
+    color: var(--text-muted, #6e7681);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+    font-family: 'Courier New', monospace;
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+/* Radio Group */
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.radio-label:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    background: rgba(88, 166, 255, 0.05);
+}
+
+.radio-label input[type="radio"] {
+    margin: 2px 10px 0 0;
+    cursor: pointer;
+}
+
+.radio-label span {
+    display: block;
+    font-weight: 500;
+    color: var(--text-primary, #f0f6fc);
+    margin-bottom: 2px;
+}
+
+.radio-label small {
+    display: block;
+    color: var(--text-muted, #6e7681);
+    font-size: 12px;
+    margin-left: 22px;
+}
+
+/* Modal Buttons */
+.btn-primary,
+.btn-secondary,
+.btn-delete {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--accent-primary, #58a6ff);
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    background: #4a8fd8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-secondary, #8b949e);
+    border: 1px solid var(--border-default, #30363d);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-tertiary, #161b22);
+    color: var(--text-primary, #f0f6fc);
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+.btn-delete {
+    background: transparent;
+    color: var(--accent-error, #f85149);
+    border: 1px solid var(--accent-error, #f85149);
+}
+
+.btn-delete:hover {
+    background: rgba(248, 81, 73, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-delete.hidden {
+    display: none;
 }

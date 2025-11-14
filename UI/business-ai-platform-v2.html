@@ -7661,7 +7661,7 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
-            color: #374151;
+            color: var(--text-secondary);
             font-size: 14px;
         }
 
@@ -28459,7 +28459,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
         .form-group label {
             display: block;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: var(--space-2);
@@ -29102,7 +29102,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #34495e;
+            font-size: 14px;
         }
 
         .form-control {
@@ -34107,6 +34107,107 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 <button class="btn btn-secondary" onclick="closeMemoryModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="saveMemory()">
                     <i class="fas fa-save"></i> Save Memory
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PROMPT LIBRARY MODAL ==================== -->
+    <div id="prompt-modal-overlay" class="prompt-modal-overlay">
+        <div class="prompt-modal">
+            <div class="prompt-modal-header">
+                <h3 id="prompt-modal-title">Create New Prompt</h3>
+                <button class="prompt-modal-close" onclick="window.closePromptModal()">&times;</button>
+            </div>
+            <div class="prompt-modal-body">
+                <form id="prompt-form" onsubmit="event.preventDefault(); window.savePrompt();">
+                    <!-- Prompt Title -->
+                    <div class="form-group">
+                        <label for="prompt-title">
+                            <i class="fas fa-heading"></i> Prompt Title
+                        </label>
+                        <input type="text" id="prompt-title" class="form-control" placeholder="e.g., Code Review Assistant" required>
+                    </div>
+
+                    <!-- Category -->
+                    <div class="form-group">
+                        <label for="prompt-category">
+                            <i class="fas fa-folder"></i> Category
+                        </label>
+                        <select id="prompt-category" class="form-control" required>
+                            <option value="development">Development</option>
+                            <option value="analysis">Analysis</option>
+                            <option value="data">Data & SQL</option>
+                            <option value="style">Communication Style</option>
+                            <option value="business">Business</option>
+                            <option value="creative">Creative</option>
+                        </select>
+                    </div>
+
+                    <!-- Type -->
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-bolt"></i> Prompt Type
+                        </label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
+                                <span>Quick Action</span>
+                                <small>Short directive (e.g., "Be concise")</small>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
+                                <span>Full Prompt</span>
+                                <small>Complete instructions with context</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Short Description -->
+                    <div class="form-group">
+                        <label for="prompt-short-desc">
+                            <i class="fas fa-align-left"></i> Short Description
+                        </label>
+                        <input type="text" id="prompt-short-desc" class="form-control" placeholder="Brief description shown in dropdown">
+                    </div>
+
+                    <!-- Prompt Text -->
+                    <div class="form-group">
+                        <label for="prompt-text">
+                            <i class="fas fa-file-alt"></i> Prompt Text
+                        </label>
+                        <textarea id="prompt-text" class="form-control" rows="6" placeholder="Enter your prompt instructions here..." required></textarea>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="form-group">
+                        <label for="prompt-tags">
+                            <i class="fas fa-tags"></i> Tags
+                        </label>
+                        <input type="text" id="prompt-tags" class="form-control" placeholder="code, review, python (comma-separated)">
+                    </div>
+
+                    <!-- Visibility -->
+                    <div class="form-group">
+                        <label for="prompt-visibility">
+                            <i class="fas fa-eye"></i> Visibility
+                        </label>
+                        <select id="prompt-visibility" class="form-control">
+                            <option value="private">Private (only you)</option>
+                            <option value="workspace">Workspace (all members)</option>
+                            <option value="public">Public (everyone)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="prompt-modal-footer">
+                <button id="delete-prompt-btn" class="btn-delete hidden" onclick="window.deletePrompt()">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <div style="flex: 1;"></div>
+                <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
+                <button class="btn-primary" onclick="window.savePrompt()">
+                    <i class="fas fa-save"></i> Save Prompt
                 </button>
             </div>
         </div>
