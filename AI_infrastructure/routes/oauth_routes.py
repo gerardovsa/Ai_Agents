@@ -229,7 +229,10 @@ def oauth_workspace_callback():
         
         # Redirect to main app with JWT token
         print(f" OAuth login successful, redirecting with JWT token")
-        return redirect(f'http://localhost:5001/?token={jwt_token}')
+        frontend_url = request.url_root.rstrip('/')
+        if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
+            frontend_url = frontend_url.replace('http://', 'https://')
+        return redirect(f'{frontend_url}/?token={jwt_token}')
         
     except Exception as e:
         print(f" OAuth callback error: {e}")

@@ -347,7 +347,7 @@ def microsoft_callback():
         redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI')
         if not redirect_uri:
             base_url = request.url_root.rstrip('/')
-            if 'onrender.com' in request.host:
+            if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
                 base_url = base_url.replace('http://', 'https://')
             redirect_uri = base_url + '/api/auth/microsoft/callback'
         auth_result = authenticate_user_with_microsoft(code, redirect_uri)
@@ -502,7 +502,7 @@ def microsoft_callback():
         
         # CRITICAL: Redirect to correct frontend URL based on environment
         frontend_url = request.url_root.rstrip('/')
-        if 'onrender.com' in request.host:
+        if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
             frontend_url = frontend_url.replace('http://', 'https://')
         
         return redirect(f"{frontend_url}{return_url}?token={jwt_token}")
@@ -640,7 +640,7 @@ def get_microsoft_config():
     redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI')
     if not redirect_uri:
         base_url = request.url_root.rstrip('/')
-        if 'onrender.com' in request.host:
+        if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
             base_url = base_url.replace('http://', 'https://')
         redirect_uri = base_url + '/api/auth/microsoft/callback'
     
@@ -665,7 +665,7 @@ logger.info("="*80)
 logger.info("Microsoft OAuth routes loaded (V2 Fixed Version)")
 logger.info("   - Writes to: oauth_tokens table (24 columns)")
 client_id_check = os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID', 'NOT SET')
-redirect_uri_check = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI', 'http://localhost:5001/api/auth/microsoft/callback')
+redirect_uri_check = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI') or 'http://localhost:5001/api/auth/microsoft/callback'
 tenant_check = os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
 logger.info(f"   - Client ID: {client_id_check[:20]}...")
 logger.info(f"   - Redirect URI: {redirect_uri_check}")

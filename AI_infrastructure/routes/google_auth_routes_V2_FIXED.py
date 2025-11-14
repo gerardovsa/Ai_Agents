@@ -36,8 +36,25 @@ GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('G
 
 # CRITICAL: Redirect URI must be set dynamically based on environment
 # On Render, use HTTPS. Locally, use HTTP.
-# This will be finalized in the /login route based on request.host
-GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI') or _config.get('GOOGLE_REDIRECT_URI', 'http://localhost:5001/api/auth/google/callback')
+# Priority: OS env (Render) > .env.master (local) > None (will build dynamically)
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI') or _config.get('GOOGLE_REDIRECT_URI')
+
+def _ensure_https_redirect_uri(base_uri=None, path='/api/auth/google/callback'):
+    """Ensure redirect URI uses HTTPS on Render, HTTP locally"""
+    if base_uri:
+        return base_uri
+    
+    # Build from request
+    from flask import request
+    if request:
+        base_url = request.url_root.rstrip('/')
+        # Force HTTPS on Render
+        if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
+            base_url = base_url.replace('http://', 'https://')
+        return base_url + path
+    
+    # Fallback for local development
+    return f'http://localhost:5001{path}'
 
 # Google OAuth Endpoints
 GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
@@ -277,7 +294,10 @@ def google_login():
                 # If token is still valid (not expired), skip OAuth
                 if datetime.utcnow() < expires_at:
                     print('✅ [GOOGLE OAUTH] User already has valid tokens - skipping OAuth')
-                    return redirect(f'http://localhost:5001/?token={jwt_token}&platform=google&status=already_connected')
+                    frontend_url = request.url_root.rstrip('/')
+                    if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
+                        frontend_url = frontend_url.replace('http://', 'https://')
+                    return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=already_connected')
                 
                 # If token expired but we have refresh_token, auto-refresh
                 if token_row['refresh_token']:
@@ -300,13 +320,8 @@ def google_login():
     
     # CRITICAL: Get redirect URI dynamically based on environment
     # Priority: OS env var > .env.master > auto-detect from request
-    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or _config.get('GOOGLE_REDIRECT_URI')
-    if not redirect_uri:
-        # Fallback: build from request, but force HTTPS if on Render
-        base_url = request.url_root.rstrip('/')
-        if 'onrender.com' in request.host:
-            base_url = base_url.replace('http://', 'https://')
-        redirect_uri = base_url + '/api/auth/google/callback'
+    # Use env var first, then build dynamically with HTTPS on Render
+    redirect_uri = _ensure_https_redirect_uri(GOOGLE_REDIRECT_URI)
     
     print(f'🔷 [GOOGLE OAUTH] Using redirect URI: {redirect_uri}')
     
@@ -348,7 +363,7 @@ def google_callback():
     
     # Build frontend URL based on environment
     frontend_url = request.url_root.rstrip('/')
-    if 'onrender.com' in request.host:
+    if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
         frontend_url = frontend_url.replace('http://', 'https://')
     
     if not state or state != stored_state:
@@ -369,13 +384,8 @@ def google_callback():
         print('🔷 [GOOGLE OAUTH] Exchanging code for tokens...')
         
         # CRITICAL: Use same redirect URI as in /login route
-        redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or _config.get('GOOGLE_REDIRECT_URI')
-        if not redirect_uri:
-            # Fallback: build from request, but force HTTPS if on Render
-            base_url = request.url_root.rstrip('/')
-            if 'onrender.com' in request.host:
-                base_url = base_url.replace('http://', 'https://')
-            redirect_uri = base_url + '/api/auth/google/callback'
+        # Use env var first, then build dynamically with HTTPS on Render
+        redirect_uri = _ensure_https_redirect_uri(GOOGLE_REDIRECT_URI)
         
         print(f'🔷 [GOOGLE OAUTH] Using redirect URI for token exchange: {redirect_uri}')
         
@@ -854,7 +864,7 @@ def google_config():
     {
         "configured": true,
         "client_id": "123456...xyz",
-        "redirect_uri": "http://localhost:5001/api/auth/google/callback",
+        "redirect_uri": os.getenv('GOOGLE_REDIRECT_URI') or "http://localhost:5001/api/auth/google/callback",
         "scopes": ["openid", "email", ...]
     }
     """
