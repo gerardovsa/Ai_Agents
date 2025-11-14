@@ -34,6 +34,7 @@ import sqlite3
 from datetime import datetime, timedelta
 import jwt as pyjwt
 import json
+import random
 sys.path.append('C:/Users/gpoli/GIT/AI_agents/AI_infrastructure')
 from utils.email_alias_helpers import get_user_id_by_email, add_email_alias
 from pathlib import Path
@@ -168,10 +169,27 @@ def get_user_by_id(user_id: int):
         return None
 
 def create_user(email: str, username: str, role: str = 'user'):
-    """Create new user in database"""
+    """Create new user in database with comprehensive error handling"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Check if user already exists
+        cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        existing = cursor.fetchone()
+        if existing:
+            logger.warning(f"User already exists with email {email}, returning existing user")
+            conn.close()
+            return get_user_by_email(email)
+        
+        # Make username unique if collision
+        cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
+        if cursor.fetchone():
+            # Add random suffix to username
+            import random
+            username = f"{username}_{random.randint(1000, 9999)}"
+            logger.info(f"Username collision, using: {username}")
+        
         cursor.execute('''
             INSERT INTO users (username, email, password_hash, role, created_at)
             VALUES (?, ?, ?, ?, ?)
@@ -182,8 +200,20 @@ def create_user(email: str, username: str, role: str = 'user'):
         
         logger.info(f"Created new user: {email} (ID: {user_id})")
         return get_user_by_email(email)
+    except sqlite3.IntegrityError as e:
+        logger.error(f"Integrity constraint violation: {e}")
+        # Try to get existing user
+        try:
+            existing_user = get_user_by_email(email)
+            if existing_user:
+                logger.info(f"Returning existing user after constraint violation")
+                return existing_user
+        except Exception:
+            pass
+        logger.error(f"Failed to handle constraint violation")
+        return None
     except Exception as e:
-        logger.error(f" Error creating user: {e}")
+        logger.error(f"Error creating user: {e}")
         return None
 
 def generate_jwt_token(payload: dict):

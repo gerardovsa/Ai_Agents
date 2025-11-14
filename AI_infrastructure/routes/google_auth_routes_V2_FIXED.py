@@ -19,6 +19,8 @@ import json
 from functools import wraps
 from pathlib import Path
 from dotenv import dotenv_values
+import sqlite3
+import random
 
 google_auth_bp = Blueprint('google_auth', __name__, url_prefix='/api/auth/google')
 
@@ -194,24 +196,59 @@ def get_user_by_email_from_user_id(user_id):
     return dict(user) if user else None
 
 def create_user(email, username=None):
-    """Create new user from OAuth login"""
+    """Create new user from OAuth login with comprehensive error handling"""
     if not username:
         username = email.split('@')[0]
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-        INSERT INTO users (username, email, password_hash, role) 
-        VALUES (?, ?, ?, ?)
-    ''', (username, email, 'oauth_google', 'user'))
-    
-    user_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    
-    print(f'Created new user: {username} (ID: {user_id})')
-    return user_id
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if user already exists
+        cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        existing = cursor.fetchone()
+        if existing:
+            print(f'⚠️ User already exists with email {email}, returning existing ID: {existing[0]}')
+            conn.close()
+            return existing[0]
+        
+        # Make username unique if collision
+        cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
+        if cursor.fetchone():
+            # Add random suffix to username
+            import random
+            username = f"{username}_{random.randint(1000, 9999)}"
+            print(f'ℹ️ Username collision, using: {username}')
+        
+        cursor.execute('''
+            INSERT INTO users (username, email, password_hash, role) 
+            VALUES (?, ?, ?, ?)
+        ''', (username, email, 'oauth_google', 'user'))
+        
+        user_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        print(f'✅ Created new user: {username} (ID: {user_id})')
+        return user_id
+    except sqlite3.IntegrityError as e:
+        print(f'❌ [DB ERROR] Integrity constraint violation: {e}')
+        # Try to get existing user
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+            existing = cursor.fetchone()
+            conn.close()
+            if existing:
+                print(f'ℹ️ Returning existing user ID: {existing[0]}')
+                return existing[0]
+        except Exception:
+            pass
+        raise Exception(f"Failed to create user: {e}")
+    except Exception as e:
+        print(f'❌ [DB ERROR] Failed to create user: {e}')
+        raise Exception(f"Failed to create user: {e}")
 
 def generate_jwt_token(user_data):
     """Generate JWT token for user session"""
@@ -445,9 +482,16 @@ def google_callback():
             user_id = user['id']
             print(f'[GOOGLE OAUTH] Existing user found: {user["username"]} (ID: {user_id})')
         else:
-            user_id = create_user(email, email.split('@')[0])
-            user = get_user_by_email(email)
-            print(f'[GOOGLE OAUTH] New user created: {user["username"]} (ID: {user_id})')
+            try:
+                user_id = create_user(email, email.split('@')[0])
+                user = get_user_by_email(email)
+                print(f'✅ [GOOGLE OAUTH] New user created: {user["username"]} (ID: {user_id})')
+            except Exception as e:
+                print(f'❌ [GOOGLE OAUTH] Failed to create user: {e}')
+                frontend_url = request.url_root.rstrip('/')
+                if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
+                    frontend_url = frontend_url.replace('http://', 'https://')
+                return redirect(f'{frontend_url}/?error=user_creation_failed&message={str(e)}')
         
         # ====================================================================
         # STEP 4: Store or update tokens in oauth_tokens table
