@@ -10,6 +10,7 @@ reused across requests, preventing the "database disk image is malformed" errors
 
 import sqlite3
 import threading
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -162,12 +163,26 @@ def get_pooled_sqlite_connection(db_path: str, timeout: float = 30.0):
     conn.row_factory = sqlite3.Row
     
     # Enable WAL mode for 10x better concurrency
-    conn.execute('PRAGMA journal_mode=WAL')
+    # Skip on Render - ephemeral filesystem doesn't support WAL
+    is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
+    
+    if not is_render:
+        try:
+            conn.execute('PRAGMA journal_mode=WAL')
+        except sqlite3.OperationalError:
+            # Fallback to DELETE mode if WAL fails
+            conn.execute('PRAGMA journal_mode=DELETE')
+    else:
+        conn.execute('PRAGMA journal_mode=DELETE')
     
     # Optimize for performance and concurrency
-    conn.execute('PRAGMA synchronous=NORMAL')  # Faster than FULL, still safe with WAL
+    conn.execute('PRAGMA synchronous=NORMAL')  # Faster than FULL, still safe
     conn.execute('PRAGMA cache_size=-64000')  # 64MB cache (negative = KB)
-    conn.execute('PRAGMA mmap_size=268435456')  # 256MB memory-mapped I/O
+    
+    # Skip mmap on Render - can cause issues with ephemeral filesystem
+    if not is_render:
+        conn.execute('PRAGMA mmap_size=268435456')  # 256MB memory-mapped I/O
+    
     conn.execute('PRAGMA temp_store=MEMORY')  # Store temp tables in memory
     
     # Store in thread-local pool

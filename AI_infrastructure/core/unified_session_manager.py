@@ -73,8 +73,19 @@ class UnifiedSessionManager:
                 conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
                 
                 # Enable WAL mode for better concurrency (multiple readers, one writer)
-                # This might fail if another worker is initializing - that's OK, we retry
-                conn.execute("PRAGMA journal_mode=WAL")
+                # Skip WAL mode on Render - ephemeral filesystem doesn't support it
+                is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
+                
+                if not is_render:
+                    try:
+                        conn.execute("PRAGMA journal_mode=WAL")
+                        self.logger.info(" [DB] WAL mode enabled (local/persistent filesystem)")
+                    except sqlite3.OperationalError as e:
+                        self.logger.warning(f" [DB] WAL mode failed (expected on ephemeral FS): {e}")
+                        conn.execute("PRAGMA journal_mode=DELETE")  # Fallback to DELETE mode
+                else:
+                    self.logger.info(" [DB] Using DELETE journal mode (Render ephemeral filesystem)")
+                    conn.execute("PRAGMA journal_mode=DELETE")
                 
                 # Optimize for performance
                 conn.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe

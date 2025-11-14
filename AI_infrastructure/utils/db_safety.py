@@ -84,10 +84,23 @@ def optimize_database(db_path):
         cursor = conn.cursor()
         
         # Set optimized pragmas
-        cursor.execute('PRAGMA journal_mode = WAL')  # Write-Ahead Logging
+        # Skip WAL on Render - ephemeral filesystem doesn't support it
+        is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
+        if not is_render:
+            try:
+                cursor.execute('PRAGMA journal_mode = WAL')  # Write-Ahead Logging
+            except sqlite3.OperationalError:
+                cursor.execute('PRAGMA journal_mode = DELETE')
+        else:
+            cursor.execute('PRAGMA journal_mode = DELETE')
+        
         cursor.execute('PRAGMA synchronous = NORMAL')  # Faster but safe
         cursor.execute('PRAGMA temp_store = MEMORY')  # Use memory for temp
-        cursor.execute('PRAGMA mmap_size = 30000000000')  # Memory-mapped I/O
+        
+        # Skip mmap on Render
+        if not is_render:
+            cursor.execute('PRAGMA mmap_size = 30000000000')  # Memory-mapped I/O
+        
         cursor.execute('PRAGMA page_size = 4096')  # Optimal page size
         
         # Vacuum to reclaim space and reorganize
@@ -150,7 +163,17 @@ class SafeConnection:
             raise sqlite3.DatabaseError(f"Database health check failed: {self.db_path}")
         
         self.conn = sqlite3.connect(self.db_path, timeout=self.timeout)
-        self.conn.execute('PRAGMA journal_mode = WAL')
+        
+        # Skip WAL on Render - ephemeral filesystem doesn't support it
+        is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
+        if not is_render:
+            try:
+                self.conn.execute('PRAGMA journal_mode = WAL')
+            except sqlite3.OperationalError:
+                self.conn.execute('PRAGMA journal_mode = DELETE')
+        else:
+            self.conn.execute('PRAGMA journal_mode = DELETE')
+        
         return self.conn
     
     def __exit__(self, exc_type, exc_val, exc_tb):

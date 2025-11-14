@@ -2,7 +2,7 @@
 Custom Poster Printing Shopify Calculator
 Exact implementation of Shopify JavaScript formula for Custom Poster Printing
 
-Based on: c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_Custom_Poster_Printing.json specification
+Based on: c:/Users/gpoli/GIT/In_House_SQL/G_Folder/Quote_Calculator/shopify/Shopify_Custom_Poster_Printing.json specification
 Platform: Shopify (separate from WooCommerce calculators)
 Fields: 6 fields (Shopify-specific structure)
 Key Features: Tiered padding rates, profit margins, double GST application
@@ -40,7 +40,7 @@ class CustomPosterPrintingShopifyCalculator:
     - DOUBLE GST APPLICATION (Shopify-specific: Total * 1.1 * 1.1)
     """
     
-    CONFIG_FILE = "c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_Custom_Poster_Printing.json"
+    CONFIG_FILE = r"c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_Custom_Poster_Printing.json"
     
     def __init__(self, config_path: str = None):
         """Initialize Custom Poster Printing Shopify calculator"""

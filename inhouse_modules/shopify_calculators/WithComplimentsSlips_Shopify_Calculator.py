@@ -2,7 +2,7 @@
 With Compliments Slips Shopify Calculator
 Exact implementation of Shopify JavaScript formula for With Compliments Slips
 
-Based on: c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_With_Compliments_Slips.json specification
+Based on: c:/Users/gpoli/GIT/In_House_SQL/G_Folder/Quote_Calculator/shopify/Shopify_With_Compliments_Slips.json specification
 Platform: Shopify (separate from WooCommerce calculators)
 Fields: 6 fields (Shopify-specific structure)
 Key Features: Tiered padding rates, profit margins, double GST application
@@ -40,7 +40,7 @@ class WithComplimentsSlipsShopifyCalculator:
     - DOUBLE GST APPLICATION (Shopify-specific: Total * 1.1 * 1.1)
     """
     
-    CONFIG_FILE = "c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_With_Compliments_Slips.json"
+    CONFIG_FILE = r"c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_With_Compliments_Slips.json"
     
     def __init__(self, config_path: str = None):
         """Initialize With Compliments Slips Shopify calculator"""

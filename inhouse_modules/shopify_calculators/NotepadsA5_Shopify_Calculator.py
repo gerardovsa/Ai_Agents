@@ -2,7 +2,7 @@
 Notepads A5 Shopify Calculator
 Exact implementation of Shopify JavaScript formula for Notepads A5
 
-Based on: c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_Notepads_A5.json specification
+Based on: c:/Users/gpoli/GIT/In_House_SQL/G_Folder/Quote_Calculator/shopify/Shopify_Notepads_A5.json specification
 Platform: Shopify (separate from WooCommerce calculators)
 Fields: 6 fields (Shopify-specific structure)
 Key Features: Tiered padding rates, profit margins, double GST application
@@ -40,7 +40,7 @@ class NotepadsA5ShopifyCalculator:
     - DOUBLE GST APPLICATION (Shopify-specific: Total * 1.1 * 1.1)
     """
     
-    CONFIG_FILE = "c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_Notepads_A5.json"
+    CONFIG_FILE = r"c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify\Shopify_Notepads_A5.json"
     
     def __init__(self, config_path: str = None):
         """Initialize Notepads A5 Shopify calculator"""
