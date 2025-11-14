@@ -127,14 +127,13 @@ from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Initialize Render databases FIRST (creates empty database files if needed)
+# Ensure /data directory exists on Render (persistent disk mount)
 if os.getenv('RENDER') == 'true':
-    try:
-        from scripts.deployment.init_render_databases import main as init_databases
-        init_databases()
-        log_success(logger, "Render databases initialized")
-    except Exception as e:
-        log_error(logger, f"Failed to initialize Render databases: {e}")
+    data_dir = Path('/data')
+    if not data_dir.exists():
+        log_warning(logger, f"/data directory does not exist - checking Render disk mount")
+    else:
+        log_success(logger, f"/data directory exists - Render persistent disk mounted")
 
 # Initialize database schema BEFORE any routes are registered
 try:
@@ -293,7 +292,7 @@ def serve_ui_static(filename):
 CORS(app, 
      resources={r"/api/*": {"origins": "*"}},
      supports_credentials=True,
-     allow_headers=["Content-Type", "Authorization"],
+     allow_headers=["Content-Type", "Authorization", "x-user-id", "X-User-ID"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 )
 
@@ -510,7 +509,7 @@ def health_check():
     
     # Add CORS headers explicitly
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-user-id,X-User-ID')
     response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
     
     return response
