@@ -251,8 +251,9 @@ def microsoft_login():
         state = secrets.token_urlsafe(32)
         session['microsoft_oauth_state'] = state
         
-        # Get redirect URI
-        redirect_uri = request.url_root.rstrip('/') + '/api/auth/microsoft/callback'
+        # Get redirect URI from environment variable (CRITICAL: Use HTTPS for Render)
+        # request.url_root returns http:// on Render (internal), but Azure needs https://
+        redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI') or (request.url_root.rstrip('/') + '/api/auth/microsoft/callback')
         
         # Store original redirect for after login
         return_url = request.args.get('return_url', '/')
@@ -329,7 +330,8 @@ def microsoft_callback():
         # ====================================================================
         # STEP 3: Exchange code for tokens
         # ====================================================================
-        redirect_uri = request.url_root.rstrip('/') + '/api/auth/microsoft/callback'
+        # Get redirect URI from environment variable (CRITICAL: Use HTTPS for Render)
+        redirect_uri = _config.get('MICROSOFT_REDIRECT_URI', request.url_root.rstrip('/') + '/api/auth/microsoft/callback')
         auth_result = authenticate_user_with_microsoft(code, redirect_uri)
         
         if not auth_result['success']:
@@ -611,7 +613,8 @@ def get_microsoft_config():
     client_secret = _config.get('MICROSOFT_CLIENT_SECRET', '')
     tenant_id = _config.get('MICROSOFT_TENANT_ID', 'common')
     
-    redirect_uri = request.url_root.rstrip('/') + '/api/auth/microsoft/callback'
+    # Get redirect URI from environment variable (CRITICAL: Use HTTPS for Render)
+    redirect_uri = os.getenv('MICROSOFT_REDIRECT_URI') or _config.get('MICROSOFT_REDIRECT_URI') or (request.url_root.rstrip('/') + '/api/auth/microsoft/callback')
     
     return jsonify({
         'success': True,
