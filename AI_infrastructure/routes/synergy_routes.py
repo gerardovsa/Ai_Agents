@@ -972,7 +972,9 @@ def create_internal_doc():
         session_id = data.get('session_id')
         title = data.get('title', 'Untitled Document')
         content = data.get('content', '')
+        content_json = data.get('content_json')
         doc_format = data.get('format', 'markdown')
+        doc_type = data.get('doc_type', 'richtext')  # 'richtext' or 'spreadsheet'
         created_by = data.get('created_by', 'system')
         
         if not session_id:
@@ -980,10 +982,29 @@ def create_internal_doc():
         
         # Generate doc ID
         import time
+        import re
         doc_id = f"int_doc_{int(time.time() * 1000)}"
         
+        # Generate slug from title
+        slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
+        if not slug:
+            slug = doc_id
+        
+        # Ensure slug uniqueness
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        original_slug = slug
+        counter = 1
+        while True:
+            cursor.execute('SELECT doc_id FROM synergy_internal_docs WHERE slug = ?', (slug,))
+            if not cursor.fetchone():
+                break
+            slug = f"{original_slug}-{counter}"
+            counter += 1
+        
+        # Generate share URL
+        share_url = f"/internal-docs/{slug}"
         
         # Verify session exists
         cursor.execute('SELECT session_id FROM synergy_sessions WHERE session_id = ?', (session_id,))
@@ -991,24 +1012,27 @@ def create_internal_doc():
             conn.close()
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
-        # Insert document
+        # Insert document with slug and share_url
         cursor.execute('''
             INSERT INTO synergy_internal_docs 
-            (doc_id, session_id, title, content, format, created_by, created_at, updated_at, version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (doc_id, session_id, title, content, doc_format, created_by, 
-              datetime.now().isoformat(), datetime.now().isoformat(), 1))
+            (doc_id, session_id, title, content, content_json, format, doc_type, 
+             created_by, created_at, updated_at, version, linked_to_ai, slug, share_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (doc_id, session_id, title, content, content_json, doc_format, doc_type,
+              created_by, datetime.now().isoformat(), datetime.now().isoformat(), 1, 0, slug, share_url))
         
         conn.commit()
         conn.close()
         
-        print(f"[INTERNAL DOC] Created document {doc_id} in session {session_id}: {title}")
+        print(f"[INTERNAL DOC] Created document {doc_id} in session {session_id}: {title} (slug: {slug})")
         
         return jsonify({
             'success': True,
             'doc_id': doc_id,
             'title': title,
             'session_id': session_id,
+            'slug': slug,
+            'share_url': share_url,
             'created_at': datetime.now().isoformat()
         })
     
@@ -1042,8 +1066,9 @@ def get_internal_doc(doc_id):
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT doc_id, session_id, title, content, format, 
-                   created_at, updated_at, created_by, version
+            SELECT doc_id, session_id, title, content, content_json, format, doc_type,
+                   created_at, updated_at, created_by, version, linked_to_ai,
+                   slug, share_url, description, tags
             FROM synergy_internal_docs
             WHERE doc_id = ?
         ''', (doc_id,))
@@ -1059,11 +1084,18 @@ def get_internal_doc(doc_id):
             'session_id': row['session_id'],
             'title': row['title'],
             'content': row['content'],
+            'content_json': row['content_json'],
             'format': row['format'],
+            'doc_type': row['doc_type'] or 'richtext',
             'created_at': row['created_at'],
             'updated_at': row['updated_at'],
             'created_by': row['created_by'],
-            'version': row['version']
+            'version': row['version'],
+            'linked_to_ai': bool(row['linked_to_ai']),
+            'slug': row['slug'],
+            'share_url': row['share_url'],
+            'description': row['description'],
+            'tags': row['tags']
         }
         
         return jsonify({'success': True, **doc})
@@ -1095,9 +1127,10 @@ def update_internal_doc(doc_id):
         data = request.get_json()
         title = data.get('title')
         content = data.get('content')
+        content_json = data.get('content_json')
         
-        if not title and not content:
-            return jsonify({'success': False, 'error': 'title or content required'}), 400
+        if not title and not content and not content_json:
+            return jsonify({'success': False, 'error': 'title, content, or content_json required'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -1122,6 +1155,9 @@ def update_internal_doc(doc_id):
         if content is not None:  # Allow empty string
             updates.append('content = ?')
             params.append(content)
+        if content_json is not None:
+            updates.append('content_json = ?')
+            params.append(content_json)
         
         updates.append('updated_at = ?')
         params.append(datetime.now().isoformat())
@@ -1215,7 +1251,8 @@ def list_internal_docs(session_id):
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT doc_id, title, format, created_at, updated_at, created_by, version
+            SELECT doc_id, title, format, doc_type, created_at, updated_at, created_by, version, linked_to_ai,
+                   slug, share_url, description, tags
             FROM synergy_internal_docs
             WHERE session_id = ?
             ORDER BY created_at DESC
@@ -1228,10 +1265,16 @@ def list_internal_docs(session_id):
             'doc_id': row['doc_id'],
             'title': row['title'],
             'format': row['format'],
+            'doc_type': row['doc_type'] or 'richtext',
             'created_at': row['created_at'],
             'updated_at': row['updated_at'],
             'created_by': row['created_by'],
-            'version': row['version']
+            'version': row['version'],
+            'linked_to_ai': bool(row['linked_to_ai']),
+            'slug': row['slug'],
+            'share_url': row['share_url'],
+            'description': row['description'],
+            'tags': row['tags']
         } for row in rows]
         
         return jsonify({
@@ -1243,4 +1286,216 @@ def list_internal_docs(session_id):
     
     except Exception as e:
         print(f"[INTERNAL DOC ERROR] Failed to list documents for {session_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/internal-doc/<doc_id>/link-ai', methods=['POST'])
+def link_doc_to_ai(doc_id):
+    """
+    Link document to AI session
+    
+    Body:
+        {
+            "session_id": "sess_123",
+            "user_id": 1
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "doc_id": "int_doc_123",
+            "linked": true
+        }
+    """
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update document to link to AI
+        cursor.execute("""
+            UPDATE synergy_internal_docs
+            SET linked_to_ai = 1, session_id = ?
+            WHERE doc_id = ?
+        """, (session_id, doc_id))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Document not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[INTERNAL DOC] Linked document {doc_id} to AI session {session_id}")
+        
+        return jsonify({
+            'success': True,
+            'doc_id': doc_id,
+            'linked': True,
+            'session_id': session_id
+        })
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to link {doc_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/internal-doc/<doc_id>/export/<format>', methods=['POST'])
+def export_internal_doc(doc_id, format):
+    """
+    Export document to specified format
+    
+    Formats: markdown, html, word, google_doc, pdf, excel, csv
+    
+    Body:
+        {
+            "user_id": 1
+        }
+    
+    Returns:
+        For files: Binary download
+        For URLs: {"success": true, "url": "https://..."}
+    """
+    try:
+        # Get document
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT doc_id, title, content, content_json, doc_type
+            FROM synergy_internal_docs
+            WHERE doc_id = ?
+        """, (doc_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'success': False, 'error': 'Document not found'}), 404
+        
+        doc_title = row['title']
+        doc_content = row['content']
+        doc_json = row['content_json']
+        doc_type = row['doc_type']
+        
+        # Handle different export formats
+        if format == 'markdown':
+            from flask import send_file
+            import io
+            
+            buffer = io.BytesIO(doc_content.encode('utf-8'))
+            buffer.seek(0)
+            
+            return send_file(
+                buffer,
+                mimetype='text/markdown',
+                as_attachment=True,
+                download_name=f"{doc_title}.md"
+            )
+        
+        elif format == 'html':
+            import markdown
+            html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>{doc_title}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }}
+        h1 {{ color: #333; }}
+        code {{ background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }}
+        pre {{ background: #f4f4f4; padding: 16px; border-radius: 6px; overflow-x: auto; }}
+    </style>
+</head>
+<body>
+{markdown.markdown(doc_content, extensions=['tables', 'fenced_code'])}
+</body>
+</html>"""
+            
+            buffer = io.BytesIO(html_content.encode('utf-8'))
+            buffer.seek(0)
+            
+            return send_file(
+                buffer,
+                mimetype='text/html',
+                as_attachment=True,
+                download_name=f"{doc_title}.html"
+            )
+        
+        elif format == 'word':
+            # TODO: Implement Word export (requires python-docx)
+            return jsonify({
+                'success': False,
+                'error': 'Word export not yet implemented. Install python-docx and implement conversion.'
+            }), 501
+        
+        elif format == 'google_doc':
+            # TODO: Implement Google Docs export (requires google_workspace tools)
+            return jsonify({
+                'success': False,
+                'error': 'Google Docs export not yet implemented. Use google_docs_create tool.'
+            }), 501
+        
+        elif format == 'pdf':
+            # TODO: Implement PDF export (requires reportlab or weasyprint)
+            return jsonify({
+                'success': False,
+                'error': 'PDF export not yet implemented. Install weasyprint or reportlab.'
+            }), 501
+        
+        elif format == 'excel' or format == 'csv':
+            if doc_type != 'spreadsheet':
+                return jsonify({
+                    'success': False,
+                    'error': 'Document is not a spreadsheet'
+                }), 400
+            
+            # Parse JSON data
+            import json as json_lib
+            try:
+                data = json_lib.loads(doc_json or doc_content)
+            except:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid spreadsheet data'
+                }), 400
+            
+            if format == 'csv':
+                import csv
+                import io
+                
+                output = io.StringIO()
+                writer = csv.writer(output)
+                
+                for row in data:
+                    writer.writerow(row)
+                
+                buffer = io.BytesIO(output.getvalue().encode('utf-8'))
+                buffer.seek(0)
+                
+                return send_file(
+                    buffer,
+                    mimetype='text/csv',
+                    as_attachment=True,
+                    download_name=f"{doc_title}.csv"
+                )
+            
+            else:  # excel
+                # TODO: Implement Excel export (requires openpyxl)
+                return jsonify({
+                    'success': False,
+                    'error': 'Excel export not yet implemented. Install openpyxl.'
+                }), 501
+        
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Unknown format: {format}'
+            }), 400
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to export {doc_id} as {format}: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500

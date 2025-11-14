@@ -45,7 +45,7 @@ def database_needs_initialization(db_path):
         return True
 
 def init_ai_infrastructure_db():
-    """Initialize ai_infrastructure.db with core tables"""
+    """Initialize ai_infrastructure.db with core tables from SQL schema file"""
     if is_render():
         db_path = '/data/ai_infrastructure.db'
     else:
@@ -57,12 +57,23 @@ def init_ai_infrastructure_db():
     
     print(f"🔧 Initializing ai_infrastructure.db at {db_path}")
     
-    # Core schema will be created by UserAuthManager._init_tables()
-    # This function just ensures the file exists
-    conn = sqlite3.connect(db_path)
-    conn.close()
+    # Load schema from SQL file (exported from local database)
+    schema_file = Path(__file__).parent / 'ai_infrastructure_schema.sql'
     
-    print(f"✅ Created database file at {db_path}")
+    if schema_file.exists():
+        print(f"📂 Loading schema from: {schema_file}")
+        with open(schema_file, 'r') as f:
+            schema_sql = f.read()
+        
+        conn = sqlite3.connect(db_path)
+        conn.executescript(schema_sql)
+        conn.close()
+        
+        print(f"✅ Initialized ai_infrastructure.db with existing schema")
+    else:
+        print(f"⚠️ Schema file not found, creating empty database")
+        conn = sqlite3.connect(db_path)
+        conn.close()
 
 def init_sessions_db():
     """Initialize sessions.db for Flask sessions"""

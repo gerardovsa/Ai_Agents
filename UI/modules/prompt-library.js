@@ -185,99 +185,81 @@ console.log('[PROMPT LIBRARY] ========================================');
         activePromptsBar.className = 'active-prompts-bar';
         chatInputWrapper.insertBefore(activePromptsBar, chatInputWrapper.firstChild);
 
-        // Create inline dropdown
-        const dropdown = document.createElement('div');
-        dropdown.id = 'inline-prompt-dropdown';
-        dropdown.className = 'inline-prompt-dropdown';
-        dropdown.innerHTML = `
-            <div class="prompt-dropdown-header">
-                <div class="prompt-dropdown-title">
+        // Create UNIFIED SIDEBAR (replaces dropdown + modal)
+        // Only shows when user clicks bolt icon - NOT on page load
+        const sidebar = document.createElement('div');
+        sidebar.id = 'prompt-sidebar';
+        sidebar.className = 'prompt-sidebar'; // NO 'show' class - starts hidden
+        sidebar.innerHTML = `
+            <div class="prompt-sidebar-header">
+                <div class="prompt-sidebar-title">
                     <i class="fas fa-bolt"></i>
                     <span>Instructions Catalogue</span>
                 </div>
-                <button class="prompt-dropdown-close" onclick="window.closeDropdown()">
-                    <i class="fas fa-times"></i>
+            </div>
+            
+            <!-- TABS -->
+            <div class="prompt-sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="browse" onclick="window.switchSidebarTab('browse')">
+                    <i class="fas fa-list"></i> Browse
+                </button>
+                <button class="sidebar-tab" data-tab="editor" onclick="window.switchSidebarTab('editor')">
+                    <i class="fas fa-edit"></i> <span id="editor-tab-label">Create New</span>
                 </button>
             </div>
             
-            <div class="prompt-dropdown-search-row">
-                <div class="search-wrapper">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="inline-search" id="inline-search" placeholder="Search prompts...">
-                </div>
-                <select class="category-dropdown" id="category-dropdown">
-                    <option value="all">All Categories</option>
-                    <option value="development">Development</option>
-                    <option value="analysis">Analysis</option>
-                    <option value="data">Data & SQL</option>
-                    <option value="style">Communication Style</option>
-                    <option value="business">Business</option>
-                    <option value="creative">Creative</option>
-                </select>
-            </div>
-            
-            <div class="action-buttons-row">
-                <button class="action-btn active" data-filter="all" data-tooltip="Show All" onclick="window.filterPromptsByType('all')">
-                    <i class="fas fa-th"></i>
-                </button>
-                <button class="action-btn" data-filter="quick" data-tooltip="Quick Actions" onclick="window.filterPromptsByType('quick')">
-                    <i class="fas fa-bolt"></i>
-                </button>
-                <button class="action-btn" data-filter="detailed" data-tooltip="Detailed Prompts" onclick="window.filterPromptsByType('detailed')">
-                    <i class="fas fa-list-ul"></i>
-                </button>
-                <button class="action-btn action-btn-edit" data-tooltip="Toggle Edit Mode" onclick="window.toggleEditMode()">
-                    <i class="fas fa-pencil-alt"></i>
-                </button>
-                <button class="action-btn action-btn-create" data-tooltip="Create New Prompt" onclick="window.openPromptModal()">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
+            <div class="prompt-sidebar-body">
+                <!-- TAB 1: BROWSE PROMPTS -->
+                <div id="browse-tab" class="sidebar-tab-content active">
+                    <div class="prompt-dropdown-search-row">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="inline-search" id="inline-search" placeholder="Search prompts...">
+                        </div>
+                        <select class="category-dropdown" id="category-dropdown">
+                            <option value="all">All Categories</option>
+                            <option value="development">Development</option>
+                            <option value="analysis">Analysis</option>
+                            <option value="data">Data & SQL</option>
+                            <option value="style">Communication Style</option>
+                            <option value="business">Business</option>
+                            <option value="creative">Creative</option>
+                        </select>
+                    </div>
+                    
+                    <div class="action-buttons-row">
+                        <button class="action-btn active" data-filter="all" data-tooltip="Show All" onclick="window.filterPromptsByType('all')">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button class="action-btn" data-filter="quick" data-tooltip="Quick Actions" onclick="window.filterPromptsByType('quick')">
+                            <i class="fas fa-bolt"></i>
+                        </button>
+                        <button class="action-btn" data-filter="detailed" data-tooltip="Detailed Prompts" onclick="window.filterPromptsByType('detailed')">
+                            <i class="fas fa-list-ul"></i>
+                        </button>
+                        <button class="action-btn action-btn-create" data-tooltip="Create New Prompt" onclick="window.showEditorTab()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
 
-            <div class="prompt-list-scroll-area">
-                <div id="prompt-list-container"></div>
-            </div>
-
-            <div class="prompt-dropdown-footer-border"></div>
-        `;
-        chatInputWrapper.insertBefore(dropdown, chatInputWrapper.firstChild);
-
-        // Create tabbed modal overlay
-        const modalOverlay = document.createElement('div');
-        modalOverlay.id = 'prompt-modal-overlay';
-        modalOverlay.className = 'prompt-modal-overlay';
-        modalOverlay.onclick = function(event) {
-            if (event.target === this) window.closePromptModal();
-        };
-        
-        modalOverlay.innerHTML = `
-            <div class="prompt-modal">
-                <div class="prompt-modal-header">
-                    <h3>Instructions Catalogue</h3>
-                    <button class="prompt-modal-close" onclick="window.closePromptModal()">&times;</button>
+                    <div class="prompt-list-scroll-area">
+                        <div id="prompt-list-container"></div>
+                    </div>
                 </div>
                 
-                <!-- Tabs -->
-                <div class="prompt-modal-tabs">
-                    <button class="prompt-tab active" data-tab="create" onclick="window.switchPromptTab('create')">
-                        <i class="fas fa-plus"></i> Create New
-                    </button>
-                    <button class="prompt-tab" data-tab="edit" onclick="window.switchPromptTab('edit')">
-                        <i class="fas fa-pencil-alt"></i> Edit Existing
-                    </button>
-                </div>
-
-                <div class="prompt-modal-body">
-                    <!-- CREATE TAB -->
-                    <div id="create-tab" class="tab-content active">
-                        <form id="prompt-form" onsubmit="event.preventDefault(); window.savePrompt();">
-                            <div class="form-group">
-                                <label for="prompt-title"><i class="fas fa-heading"></i> Prompt Title</label>
-                                <input type="text" id="prompt-title" class="form-control" placeholder="e.g., Code Review Assistant" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="prompt-category"><i class="fas fa-folder"></i> Category</label>
-                                <select id="prompt-category" class="form-control" required>
+                <!-- TAB 2: CREATE/EDIT (UNIFIED FORM) -->
+                <div id="editor-tab" class="sidebar-tab-content">
+                    <form id="prompt-form" onsubmit="event.preventDefault(); window.savePrompt();">
+                        <input type="hidden" id="editing-prompt-id" value="">
+                        
+                        <div class="form-group">
+                            <label for="prompt-title"><i class="fas fa-heading"></i> Prompt Title</label>
+                            <input type="text" id="prompt-title" class="form-control" placeholder="e.g., Code Review Assistant" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="prompt-category"><i class="fas fa-folder"></i> Category</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="prompt-category" class="form-control" required style="flex: 1;">
                                     <option value="development">Development</option>
                                     <option value="analysis">Analysis</option>
                                     <option value="data">Data & SQL</option>
@@ -285,143 +267,70 @@ console.log('[PROMPT LIBRARY] ========================================');
                                     <option value="business">Business</option>
                                     <option value="creative">Creative</option>
                                 </select>
-                            </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-bolt"></i> Prompt Type</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
-                                        <span>Quick Action</span>
-                                        <small>Short directive (e.g., "Be concise")</small>
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
-                                        <span>Full Prompt</span>
-                                        <small>Complete instructions with context</small>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="prompt-short-desc"><i class="fas fa-align-left"></i> Short Description</label>
-                                <input type="text" id="prompt-short-desc" class="form-control" placeholder="Brief description shown in dropdown">
-                            </div>
-                            <div class="form-group">
-                                <label for="prompt-text"><i class="fas fa-file-alt"></i> Prompt Text</label>
-                                <textarea id="prompt-text" class="form-control" rows="6" placeholder="Enter your prompt instructions here..." required></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="prompt-tags"><i class="fas fa-tags"></i> Tags</label>
-                                <input type="text" id="prompt-tags" class="form-control" placeholder="code, review, python (comma-separated)">
-                            </div>
-                            <div class="form-group">
-                                <label for="prompt-visibility"><i class="fas fa-eye"></i> Visibility</label>
-                                <select id="prompt-visibility" class="form-control">
-                                    <option value="private">Private (only you)</option>
-                                    <option value="workspace">Workspace (all members)</option>
-                                    <option value="public">Public (everyone)</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- EDIT TAB -->
-                    <div id="edit-tab" class="tab-content">
-                        <div class="edit-prompt-selector">
-                            <label style="display: block; font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">
-                                <i class="fas fa-list"></i> Select Prompt to Edit
-                            </label>
-                            <div class="edit-search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="edit-search" class="form-control" placeholder="Search your prompts..." oninput="window.filterEditPrompts(this.value)">
-                            </div>
-                            <div id="edit-prompts-container" class="edit-prompts-scrollable"></div>
-                        </div>
-
-                        <div id="edit-form-container" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-default);">
-                            <div style="background: rgba(88, 166, 255, 0.1); border: 1px solid var(--accent-primary); border-radius: 6px; padding: 12px; margin-bottom: 16px;">
-                                <i class="fas fa-info-circle" style="color: var(--accent-primary);"></i>
-                                <span style="color: var(--text-primary); font-size: 13px; margin-left: 8px;">
-                                    Editing: <strong id="editing-prompt-name"></strong>
-                                </span>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-prompt-title"><i class="fas fa-heading"></i> Prompt Title</label>
-                                <input type="text" id="edit-prompt-title" class="form-control" placeholder="e.g., Code Review Assistant" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-prompt-category"><i class="fas fa-folder"></i> Category</label>
-                                <select id="edit-prompt-category" class="form-control" required>
-                                    <option value="development">Development</option>
-                                    <option value="analysis">Analysis</option>
-                                    <option value="data">Data & SQL</option>
-                                    <option value="style">Communication Style</option>
-                                    <option value="business">Business</option>
-                                    <option value="creative">Creative</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-bolt"></i> Prompt Type</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="edit-prompt-type" id="edit-type-quick" value="quick_action">
-                                        <span>Quick Action</span>
-                                        <small>Short directive (e.g., "Be concise")</small>
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="edit-prompt-type" id="edit-type-full" value="full_prompt">
-                                        <span>Full Prompt</span>
-                                        <small>Complete instructions with context</small>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-prompt-short-desc"><i class="fas fa-align-left"></i> Short Description</label>
-                                <input type="text" id="edit-prompt-short-desc" class="form-control" placeholder="Brief description shown in dropdown">
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-prompt-text"><i class="fas fa-file-alt"></i> Prompt Text</label>
-                                <textarea id="edit-prompt-text" class="form-control" rows="6" placeholder="Enter your prompt instructions here..." required></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-prompt-tags"><i class="fas fa-tags"></i> Tags</label>
-                                <input type="text" id="edit-prompt-tags" class="form-control" placeholder="code, review, python (comma-separated)">
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-prompt-visibility"><i class="fas fa-eye"></i> Visibility</label>
-                                <select id="edit-prompt-visibility" class="form-control">
-                                    <option value="private">Private (only you)</option>
-                                    <option value="workspace">Workspace (all members)</option>
-                                    <option value="public">Public (everyone)</option>
-                                </select>
+                                <button type="button" class="btn-icon" onclick="window.addNewCategory()" title="Add Category" style="padding: 8px 12px; background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
                         </div>
-                    </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-bolt"></i> Prompt Type</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
+                                    <span>Quick Action</span>
+                                    <small>Short directive (e.g., "Be concise")</small>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
+                                    <span>Full Prompt</span>
+                                    <small>Complete instructions with context</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="prompt-short-desc"><i class="fas fa-align-left"></i> Short Description</label>
+                            <input type="text" id="prompt-short-desc" class="form-control" placeholder="Brief description shown in dropdown">
+                        </div>
+                        <div class="form-group">
+                            <label for="prompt-text"><i class="fas fa-file-alt"></i> Prompt Text</label>
+                            <textarea id="prompt-text" class="form-control" rows="8" placeholder="Enter your prompt instructions here..." required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="prompt-tags"><i class="fas fa-tags"></i> Tags</label>
+                            <input type="text" id="prompt-tags" class="form-control" placeholder="code, review, python (comma-separated)">
+                        </div>
+                        <div class="form-group">
+                            <label for="prompt-visibility"><i class="fas fa-eye"></i> Visibility</label>
+                            <select id="prompt-visibility" class="form-control">
+                                <option value="private">Private (only you)</option>
+                                <option value="workspace">Workspace (all members)</option>
+                                <option value="public">Public (everyone)</option>
+                            </select>
+                        </div>
+                    </form>
                 </div>
-                
-                <div class="prompt-modal-footer">
-                    <div id="create-footer" class="footer-content active">
-                        <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
-                        <button class="btn-primary" onclick="window.savePrompt()">
-                            <i class="fas fa-save"></i> Create Prompt
-                        </button>
-                    </div>
-                    <div id="edit-footer" class="footer-content">
-                        <button id="delete-prompt-btn" class="btn-delete" onclick="window.deletePrompt()">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                        <div style="flex: 1;"></div>
-                        <button class="btn-secondary" onclick="window.closePromptModal()">Cancel</button>
-                        <button class="btn-primary" onclick="window.saveEditedPrompt()">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
-                    </div>
+            </div>
+            
+            <!-- FOOTER -->
+            <div class="prompt-sidebar-footer">
+                <div id="browse-footer" class="footer-content active">
+                    <button class="btn-secondary" onclick="window.closeSidebar()">Close</button>
+                </div>
+                <div id="editor-footer" class="footer-content">
+                    <button id="delete-btn" class="btn-delete" onclick="window.deletePrompt()" style="display:none;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    <div style="flex: 1;"></div>
+                    <button class="btn-secondary" onclick="window.cancelEditor()">Cancel</button>
+                    <button class="btn-primary" onclick="window.savePrompt()">
+                        <i class="fas fa-save"></i> <span id="save-btn-text">Create</span>
+                    </button>
                 </div>
             </div>
         `;
-        
-        document.body.appendChild(modalOverlay);
+        chatInputWrapper.insertBefore(sidebar, chatInputWrapper.firstChild);
 
-        console.log('[PROMPT LIBRARY] HTML templates and modal injected');
+        console.log('[PROMPT LIBRARY] Unified sidebar created (starts hidden)');
     }
 
     /**
@@ -489,18 +398,15 @@ console.log('[PROMPT LIBRARY] ========================================');
     // ==================== DROPDOWN LOGIC ====================
 
     /**
-     * Toggle prompt dropdown visibility
+     * Toggle sidebar visibility (replaces old dropdown)
      */
     function togglePromptDropdown() {
-        console.log('[PROMPT LIBRARY] togglePromptDropdown called');
-        const dropdown = document.getElementById('inline-prompt-dropdown');
+        console.log('[PROMPT LIBRARY] togglePromptDropdown called (using sidebar)');
+        const sidebar = document.getElementById('prompt-sidebar');
         const triggerBtn = document.getElementById('ai-chat-prompt-library-btn');
 
-        console.log('[PROMPT LIBRARY] Dropdown element:', dropdown);
-        console.log('[PROMPT LIBRARY] Button element:', triggerBtn);
-
-        if (!dropdown) {
-            console.error('[PROMPT LIBRARY] ERROR: Dropdown element not found!');
+        if (!sidebar) {
+            console.error('[PROMPT LIBRARY] ERROR: Sidebar element not found!');
             return;
         }
 
@@ -510,30 +416,185 @@ console.log('[PROMPT LIBRARY] ========================================');
         }
 
         isDropdownOpen = !isDropdownOpen;
-        console.log('[PROMPT LIBRARY] isDropdownOpen:', isDropdownOpen);
+        console.log('[PROMPT LIBRARY] Sidebar open:', isDropdownOpen);
 
         if (isDropdownOpen) {
-            console.log('[PROMPT LIBRARY] Opening dropdown...');
-            dropdown.classList.add('show');
+            console.log('[PROMPT LIBRARY] Opening sidebar...');
+            sidebar.classList.add('show');
             triggerBtn.classList.add('active');
+            // Always start on Browse tab
+            window.switchSidebarTab('browse');
             document.getElementById('inline-search')?.focus();
-            console.log('[PROMPT LIBRARY] Dropdown should now be visible');
         } else {
-            console.log('[PROMPT LIBRARY] Closing dropdown...');
-            closeDropdown();
+            console.log('[PROMPT LIBRARY] Closing sidebar...');
+            window.closeSidebar();
         }
     }
 
     /**
-     * Close dropdown
+     * Close sidebar
      */
-    function closeDropdown() {
-        const dropdown = document.getElementById('inline-prompt-dropdown');
+    function closeSidebar() {
+        const sidebar = document.getElementById('prompt-sidebar');
         const triggerBtn = document.getElementById('ai-chat-prompt-library-btn');
 
-        if (dropdown) dropdown.classList.remove('show');
+        if (sidebar) sidebar.classList.remove('show');
         if (triggerBtn) triggerBtn.classList.remove('active');
         isDropdownOpen = false;
+        console.log('[PROMPT LIBRARY] Sidebar closed');
+    }
+
+    /**
+     * Switch between Browse and Editor tabs
+     */
+    function switchSidebarTab(tabName) {
+        console.log('[PROMPT LIBRARY] Switching to tab:', tabName);
+
+        // Update tab buttons
+        const tabs = document.querySelectorAll('.sidebar-tab');
+        tabs.forEach(tab => {
+            if (tab.dataset.tab === tabName) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        // Update tab content
+        const browseTab = document.getElementById('browse-tab');
+        const editorTab = document.getElementById('editor-tab');
+
+        if (tabName === 'browse') {
+            browseTab?.classList.add('active');
+            editorTab?.classList.remove('active');
+            document.getElementById('browse-footer')?.classList.add('active');
+            document.getElementById('editor-footer')?.classList.remove('active');
+        } else if (tabName === 'editor') {
+            browseTab?.classList.remove('active');
+            editorTab?.classList.add('active');
+            document.getElementById('browse-footer')?.classList.remove('active');
+            document.getElementById('editor-footer')?.classList.add('active');
+        }
+    }
+
+    /**
+     * Show editor tab (for creating new or editing existing prompt)
+     * @param {number} promptId - Optional: If provided, loads prompt for editing
+     */
+    function showEditorTab(promptId = null) {
+        console.log('[PROMPT LIBRARY] showEditorTab called, promptId:', promptId);
+
+        if (promptId) {
+            // EDIT MODE: Load existing prompt
+            const prompt = allPrompts.find(p => p.id === promptId);
+            if (prompt) {
+                console.log('[PROMPT LIBRARY] Loading prompt for editing:', prompt.name);
+
+                // Set editing ID
+                document.getElementById('editing-prompt-id').value = promptId;
+
+                // Populate form (map to correct database columns)
+                document.getElementById('prompt-title').value = prompt.name || '';
+                document.getElementById('prompt-category').value = prompt.category || 'development';
+                document.getElementById('prompt-short-desc').value = prompt.description || '';
+                document.getElementById('prompt-text').value = prompt.prompt_text || '';
+
+                // Handle tags - could be array or comma-separated string
+                let tagsValue = '';
+                if (prompt.tags) {
+                    if (Array.isArray(prompt.tags)) {
+                        tagsValue = prompt.tags.join(', ');
+                    } else if (typeof prompt.tags === 'string') {
+                        tagsValue = prompt.tags;
+                    }
+                }
+                document.getElementById('prompt-tags').value = tagsValue;
+
+                document.getElementById('prompt-visibility').value = prompt.visibility || 'private';
+
+                // Set prompt type
+                if (prompt.type === 'quick_action') {
+                    document.getElementById('type-quick').checked = true;
+                } else {
+                    document.getElementById('type-full').checked = true;
+                }
+
+                // Update UI for edit mode
+                document.getElementById('editor-tab-label').textContent = 'Edit Prompt';
+                document.getElementById('save-btn-text').textContent = 'Save Changes';
+                document.getElementById('delete-btn').style.display = 'block';
+            }
+        } else {
+            // CREATE MODE: Clear form
+            document.getElementById('editing-prompt-id').value = '';
+            document.getElementById('prompt-form').reset();
+            document.getElementById('type-quick').checked = true;
+
+            // Update UI for create mode
+            document.getElementById('editor-tab-label').textContent = 'Create New';
+            document.getElementById('save-btn-text').textContent = 'Create';
+            document.getElementById('delete-btn').style.display = 'none';
+        }
+
+        // Switch to editor tab
+        switchSidebarTab('editor');
+    }
+
+    /**
+     * Cancel editor and return to browse tab
+     */
+    function cancelEditor() {
+        console.log('[PROMPT LIBRARY] Canceling editor');
+
+        // Clear form
+        document.getElementById('prompt-form').reset();
+        document.getElementById('editing-prompt-id').value = '';
+
+        // Switch back to browse tab
+        switchSidebarTab('browse');
+    }
+
+    // Expose functions globally
+    window.closeSidebar = closeSidebar;
+    window.switchSidebarTab = switchSidebarTab;
+    window.showEditorTab = showEditorTab;
+    window.cancelEditor = cancelEditor;
+
+    /**
+     * Initialize modal drag functionality
+     */
+    function initializeModalDrag() {
+        const modal = document.querySelector('.prompt-modal');
+        const header = document.querySelector('.prompt-modal-header');
+
+        if (!modal || !header) return;
+
+        let isDragging = false;
+        let currentX, currentY, initialX, initialY;
+
+        header.style.cursor = 'move';
+
+        header.addEventListener('mousedown', function (e) {
+            if (e.target.classList.contains('prompt-modal-close')) return;
+            isDragging = true;
+            initialX = e.clientX - (modal.offsetLeft || 0);
+            initialY = e.clientY - (modal.offsetTop || 0);
+            modal.style.position = 'fixed';
+        });
+
+        document.addEventListener('mousemove', function (e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+            modal.style.left = currentX + 'px';
+            modal.style.top = currentY + 'px';
+            modal.style.transform = 'none';
+        });
+
+        document.addEventListener('mouseup', function () {
+            isDragging = false;
+        });
     }
 
     /**
@@ -579,7 +640,7 @@ console.log('[PROMPT LIBRARY] ========================================');
             const iconClass = categoryIcons[prompt.category] || 'fa-bolt';
 
             return `
-                <div class="prompt-list-item ${isSelected ? 'selected' : ''}" 
+                <div class="prompt-list-item ${isSelected ? 'selected' : ''}"
                      onclick="window.togglePromptSelection(${prompt.id})"
                      data-id="${prompt.id}">
                     <i class="prompt-icon fas ${iconClass}"></i>
@@ -587,9 +648,16 @@ console.log('[PROMPT LIBRARY] ========================================');
                         <div class="prompt-name">${escapeHtml(prompt.name)}</div>
                         <div class="prompt-description">${escapeHtml(prompt.description || '')}</div>
                     </div>
-                    <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
-                        ${prompt.type === 'quick_action' ? 'Quick' : 'Full'}
-                    </span>
+                    <div class="prompt-actions">
+                        <button class="prompt-edit-btn" 
+                                onclick="event.stopPropagation(); window.showEditorTab(${prompt.id});"
+                                title="Edit prompt">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
+                            ${prompt.type === 'quick_action' ? 'Quick' : 'Full'}
+                        </span>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -655,7 +723,7 @@ console.log('[PROMPT LIBRARY] ========================================');
         const promptTags = selectedPrompts.map(prompt => {
             const iconClass = categoryIcons[prompt.category] || 'fa-bolt';
             return `
-                <div class="active-prompt-tag">
+            <div class="active-prompt-tag">
                     <i class="icon fas ${iconClass}"></i>
                     <span class="name">${escapeHtml(prompt.name)}</span>
                     <span class="remove" onclick="window.removePrompt(${prompt.id})">×</span>
@@ -665,7 +733,7 @@ console.log('[PROMPT LIBRARY] ========================================');
 
         bar.innerHTML = `
             ${promptTags}
-            <button class="clear-all-prompts" onclick="window.clearAllPrompts()">Clear All</button>
+        <button class="clear-all-prompts" onclick="window.clearAllPrompts()">Clear All</button>
         `;
     }
 
@@ -713,32 +781,16 @@ console.log('[PROMPT LIBRARY] ========================================');
     // ==================== MODAL LOGIC ====================
 
     /**
-     * Open modal - now with tabs
+     * OLD MODAL CODE - DISABLED (Use window.showEditorTab instead)
      */
     window.openPromptModal = function (promptId = null, openTab = null) {
-        const modal = document.getElementById('prompt-modal-overlay');
-        if (!modal) {
-            console.error('Modal not found!');
-            return;
-        }
-
-        // Determine which tab to open
-        if (openTab) {
-            window.switchPromptTab(openTab);
-        } else if (promptId) {
-            // If promptId provided, switch to edit tab and select that prompt
-            window.switchPromptTab('edit');
-            setTimeout(() => window.selectPromptForEdit(promptId), 100);
+        console.log('[PROMPT LIBRARY] openPromptModal is deprecated. Use window.showEditorTab() instead.');
+        // Redirect to new sidebar system
+        if (promptId) {
+            window.showEditorTab(promptId);
         } else {
-            // Default to create tab
-            window.switchPromptTab('create');
-            document.getElementById('prompt-form')?.reset();
+            window.showEditorTab();
         }
-
-        // Load prompts for edit tab
-        window.loadEditPrompts();
-
-        modal.classList.add('show');
     };
 
     /**
@@ -758,13 +810,13 @@ console.log('[PROMPT LIBRARY] ========================================');
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.remove('active');
         });
-        document.getElementById(`${tabName}-tab`)?.classList.add('active');
+        document.getElementById(`${tabName} -tab`)?.classList.add('active');
 
         // Update footer
         document.querySelectorAll('.footer-content').forEach(footer => {
             footer.classList.remove('active');
         });
-        document.getElementById(`${tabName}-footer`)?.classList.add('active');
+        document.getElementById(`${tabName} -footer`)?.classList.add('active');
 
         // Reset form if switching to create tab
         if (tabName === 'create') {
@@ -793,7 +845,7 @@ console.log('[PROMPT LIBRARY] ========================================');
 
         if (allPrompts.length === 0) {
             container.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+            <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
                     <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
                     <p>No prompts yet. Create your first one!</p>
                 </div>
@@ -807,14 +859,14 @@ console.log('[PROMPT LIBRARY] ========================================');
             const typeClass = prompt.type === 'quick_action' ? 'quick' : 'detailed';
 
             return `
-                <div class="edit-prompt-item" onclick="window.selectPromptForEdit(${prompt.id})">
-                    <div class="edit-prompt-item-header">
-                        <i class="fas ${icon} edit-prompt-item-icon"></i>
-                        <span class="edit-prompt-item-name">${escapeHtml(prompt.name)}</span>
-                        <span class="edit-prompt-item-type ${typeClass}">${typeLabel}</span>
-                    </div>
+            <div class="edit-prompt-item" onclick="window.selectPromptForEdit(${prompt.id})">
+                <div class="edit-prompt-item-header">
+                    <i class="fas ${icon} edit-prompt-item-icon"></i>
+                    <span class="edit-prompt-item-name">${escapeHtml(prompt.name)}</span>
+                    <span class="edit-prompt-item-type ${typeClass}">${typeLabel}</span>
+                </div>
                     ${prompt.description ? `<p class="edit-prompt-item-desc">${escapeHtml(prompt.description)}</p>` : ''}
-                    <span class="edit-prompt-item-category">${escapeHtml(prompt.category)}</span>
+        <span class="edit-prompt-item-category">${escapeHtml(prompt.category)}</span>
                 </div>
             `;
         }).join('');
@@ -1108,7 +1160,7 @@ console.log('[PROMPT LIBRARY] ========================================');
 
         if (prompts.length === 0) {
             container.innerHTML = `
-                <div class="prompt-empty-state">
+            <div class="prompt-empty-state">
                     <i class="fas fa-inbox"></i>
                     <p>No prompts found</p>
                     <p class="text-muted">Try adjusting your search or filters</p>
@@ -1122,8 +1174,7 @@ console.log('[PROMPT LIBRARY] ========================================');
             const iconClass = categoryIcons[prompt.category] || 'fa-bolt';
 
             return `
-                <div class="prompt-list-item ${isSelected ? 'selected' : ''}" 
-                     data-id="${prompt.id}">
+            <div class="prompt-list-item ${isSelected ? 'selected' : ''}" data-id="${prompt.id}">
                     <div class="prompt-clickable" onclick="window.togglePromptSelection(${prompt.id})">
                         <i class="prompt-icon fas ${iconClass}"></i>
                         <div class="prompt-info">
@@ -1166,7 +1217,35 @@ console.log('[PROMPT LIBRARY] ========================================');
         }
 
         // Fallback to console
-        console.log(`[PROMPT LIBRARY] ${type.toUpperCase()}: ${message}`);
+        console.log(`[PROMPT LIBRARY] ${type.toUpperCase()}: ${message} `);
+    }
+
+    /**
+     * Add new category to dropdown
+     */
+    window.addNewCategory = function () {
+        const newCategory = prompt('Enter new category name:');
+        if (newCategory && newCategory.trim()) {
+            const categorySelect = document.getElementById('prompt-category');
+            const categoryValue = newCategory.trim().toLowerCase().replace(/\s+/g, '_');
+            const categoryLabel = newCategory.trim();
+
+            // Check if category already exists
+            const exists = Array.from(categorySelect.options).some(opt => opt.value === categoryValue);
+            if (exists) {
+                alert('This category already exists!');
+                return;
+            }
+
+            // Add new option
+            const option = document.createElement('option');
+            option.value = categoryValue;
+            option.textContent = categoryLabel;
+            categorySelect.appendChild(option);
+            categorySelect.value = categoryValue;
+
+            console.log('[PROMPT LIBRARY] Added new category:', categoryLabel);
+        }
     }
 
     // ==================== INITIALIZATION ====================

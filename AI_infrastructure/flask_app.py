@@ -171,6 +171,16 @@ except Exception as e:
     import traceback
     log_error(logger, traceback.format_exc())
 
+# CRITICAL: Fix users table OAuth columns (has_microsoft_oauth, has_google_oauth)
+try:
+    from migrations.fix_users_oauth_columns import run_migration
+    added = run_migration()
+    log_success(logger, f"Users OAuth columns migration complete ({added} columns added)")
+except Exception as e:
+    log_error(logger, f"Failed to fix users OAuth columns: {e}")
+    import traceback
+    log_error(logger, traceback.format_exc())
+
 # Initialize user_sessions table for JWT tokens
 try:
     from migrations.init_user_sessions_table import init_user_sessions_table

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internal Docs Module - Integration Example</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Internal Docs Module -->
+    <link rel="stylesheet" href="internal-docs.css">
+    <script src="internal-docs.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 36px;
+            background: linear-gradient(135deg, #4f6cff 0%, #6b8aff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .demo-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .demo-section h2 {
+            margin-bottom: 20px;
+            color: #4f6cff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #4f6cff 0%, #6b8aff 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 16px 24px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 108, 255, 0.4);
+        }
+
+        .demo-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .demo-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .doc-list {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .doc-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .doc-item:hover {
+            background: rgba(79, 108, 255, 0.2);
+            border-color: #4f6cff;
+            transform: translateX(5px);
+        }
+
+        .doc-item[draggable="true"]::before {
+            content: '⋮⋮';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 18px;
+        }
+
+        .doc-item[draggable="true"]:active {
+            cursor: grabbing;
+            opacity: 0.7;
+        }
+
+        .doc-icon {
+            font-size: 24px;
+            color: #4f6cff;
+        }
+
+        .doc-info {
+            flex: 1;
+        }
+
+        .doc-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .doc-meta {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .doc-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .doc-action-btn {
+            background: rgba(79, 108, 255, 0.2);
+            border: 1px solid rgba(79, 108, 255, 0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #ffffff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .doc-action-btn:hover {
+            background: rgba(79, 108, 255, 0.4);
+        }
+
+        .session-zones {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .session-card {
+            background: rgba(16, 185, 129, 0.1);
+            border: 2px dashed rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .session-card.drag-over {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            border-style: solid;
+        }
+
+        .session-card h3 {
+            margin-bottom: 8px;
+            color: #10b981;
+        }
+
+        .session-card p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .status-message {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #10b981;
+            display: none;
+            margin-top: 16px;
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .status-message.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .code-example {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            overflow-x: auto;
+        }
+
+        .code-example pre {
+            color: #10b981;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1><i class="fas fa-file-alt"></i> Internal Docs Module - Integration Demo</h1>
+
+        <!-- Create Documents Section -->
+        <div class="demo-section">
+            <h2><i class="fas fa-plus-circle"></i> Create Documents</h2>
+            <div class="button-grid">
+                <button class="demo-btn" onclick="createRichTextDoc()">
+                    <i class="fas fa-file-alt"></i>
+                    Create Rich Text Doc
+                </button>
+                <button class="demo-btn" onclick="createSpreadsheet()">
+                    <i class="fas fa-table"></i>
+                    Create Spreadsheet
+                </button>
+                <button class="demo-btn secondary" onclick="createSampleDoc()">
+                    <i class="fas fa-magic"></i>
+                    Create Sample Document
+                </button>
+            </div>
+            <div id="create-status" class="status-message"></div>
+        </div>
+
+        <!-- Existing Documents Section -->
+        <div class="demo-section">
+            <h2><i class="fas fa-folder-open"></i> Your Documents (Drag to Sessions)</h2>
+            <div class="doc-list" id="doc-list">
+                <!-- Documents will be populated here -->
+                <div class="doc-item" draggable="true" data-doc-id="doc-example-1" data-doc-title="Meeting Notes"
+                    onclick="openDoc('doc-example-1')">
+                    <i class="fas fa-file-alt doc-icon"></i>
+                    <div class="doc-info">
+                        <div class="doc-title">Meeting Notes</div>
+                        <div class="doc-meta">Rich Text • v3 • 2 hours ago</div>
+                    </div>
+                    <div class="doc-actions">
+                        <button class="doc-action-btn"
+                            onclick="event.stopPropagation(); copyDocId('doc-example-1', 'Meeting Notes')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="doc-item" draggable="true" data-doc-id="doc-example-2" data-doc-title="Budget Calculator"
+                    onclick="openDoc('doc-example-2')">
+                    <i class="fas fa-table doc-icon"></i>
+                    <div class="doc-info">
+                        <div class="doc-title">Budget Calculator</div>
+                        <div class="doc-meta">Spreadsheet • v1 • 1 day ago</div>
+                    </div>
+                    <div class="doc-actions">
+                        <button class="doc-action-btn"
+                            onclick="event.stopPropagation(); copyDocId('doc-example-2', 'Budget Calculator')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="doc-item" draggable="true" data-doc-id="doc-example-3" data-doc-title="Project Requirements"
+                    onclick="openDoc('doc-example-3')">
+                    <i class="fas fa-file-alt doc-icon"></i>
+                    <div class="doc-info">
+                        <div class="doc-title">Project Requirements</div>
+                        <div class="doc-meta">Rich Text • v5 • 3 days ago</div>
+                    </div>
+                    <div class="doc-actions">
+                        <button class="doc-action-btn"
+                            onclick="event.stopPropagation(); copyDocId('doc-example-3', 'Project Requirements')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Session Zones (Drop Targets) -->
+        <div class="demo-section">
+            <h2><i class="fas fa-link"></i> Link Documents to AI Sessions</h2>
+            <p style="margin-bottom: 16px; color: rgba(255, 255, 255, 0.7);">
+                Drag documents from above and drop on a session to link them. Linked documents become part of the AI's
+                context.
+            </p>
+            <div class="session-zones">
+                <div class="session-card drop-zone" data-session-id="synergy-123" ondrop="handleDocDrop(event)"
+                    ondragover="allowDrop(event)" ondragenter="event.target.classList.add('drag-over')"
+                    ondragleave="event.target.classList.remove('drag-over')">
+                    <i class="fas fa-comments" style="font-size: 32px; margin-bottom: 12px;"></i>
+                    <h3>Planning Session</h3>
+                    <p>Drop document here to link</p>
+                </div>
+
+                <div class="session-card drop-zone" data-session-id="synergy-456" ondrop="handleDocDrop(event)"
+                    ondragover="allowDrop(event)" ondragenter="event.target.classList.add('drag-over')"
+                    ondragleave="event.target.classList.remove('drag-over')">
+                    <i class="fas fa-code" style="font-size: 32px; margin-bottom: 12px;"></i>
+                    <h3>Development Session</h3>
+                    <p>Drop document here to link</p>
+                </div>
+
+                <div class="session-card drop-zone" data-session-id="synergy-789" ondrop="handleDocDrop(event)"
+                    ondragover="allowDrop(event)" ondragenter="event.target.classList.add('drag-over')"
+                    ondragleave="event.target.classList.remove('drag-over')">
+                    <i class="fas fa-chart-line" style="font-size: 32px; margin-bottom: 12px;"></i>
+                    <h3>Analytics Session</h3>
+                    <p>Drop document here to link</p>
+                </div>
+            </div>
+            <div id="drop-status" class="status-message"></div>
+        </div>
+
+        <!-- Code Examples Section -->
+        <div class="demo-section">
+            <h2><i class="fas fa-code"></i> Code Examples</h2>
+
+            <h3 style="margin-top: 20px; margin-bottom: 12px; color: rgba(255, 255, 255, 0.8);">
+                Create Document
+            </h3>
+            <div class="code-example">
+                <pre>const doc = await internalDocs.createDocument({
+    sessionId: 'synergy-123',
+    title: 'Project Requirements',
+    type: 'richtext',
+    content: '# Requirements\n\n- Feature 1\n- Feature 2'
+});
+
+console.log('Created:', doc.doc_id);</pre>
+            </div>
+
+            <h3 style="margin-top: 20px; margin-bottom: 12px; color: rgba(255, 255, 255, 0.8);">
+                Open Document
+            </h3>
+            <div class="code-example">
+                <pre>await internalDocs.openDocument('doc-123456789');</pre>
+            </div>
+
+            <h3 style="margin-top: 20px; margin-bottom: 12px; color: rgba(255, 255, 255, 0.8);">
+                Copy Doc ID for Chat
+            </h3>
+            <div class="code-example">
+                <pre>await internalDocs.copyDocIdToClipboard('doc-123456789');
+// Copies: [DOC:doc-123456789:Document Title]
+// Paste in chat to reference document</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize module (auto-initializes, but we can customize)
+        console.log('[Demo] Internal Docs module loaded:', !!window.internalDocs);
+
+        // Create rich text document
+        async function createRichTextDoc() {
+            showStatus('create-status', 'Creating rich text document...', false);
+
+            try {
+                const doc = await internalDocs.createDocument({
+                    sessionId: 'demo-session-' + Date.now(),
+                    title: 'New Document ' + new Date().toLocaleTimeString(),
+                    type: 'richtext',
+                    content: '# Welcome!\n\nStart typing here...'
+                });
+
+                showStatus('create-status', `Document created: ${doc.doc_id}`, true);
+
+                // Add to list
+                addDocToList(doc.doc_id, doc.title || 'Untitled', 'richtext');
+
+                // Open it
+                setTimeout(() => {
+                    internalDocs.openDocument(doc.doc_id);
+                }, 1000);
+
+            } catch (error) {
+                showStatus('create-status', 'Error: ' + error.message, false);
+            }
+        }
+
+        // Create spreadsheet
+        async function createSpreadsheet() {
+            showStatus('create-status', 'Creating spreadsheet...', false);
+
+            try {
+                const doc = await internalDocs.createDocument({
+                    sessionId: 'demo-session-' + Date.now(),
+                    title: 'New Spreadsheet ' + new Date().toLocaleTimeString(),
+                    type: 'spreadsheet',
+                    content: JSON.stringify([
+                        ['Item', 'Cost', 'Qty', 'Total'],
+                        ['Product A', 100, 5, '=B2*C2'],
+                        ['Product B', 50, 10, '=B3*C3'],
+                        ['', '', 'Total:', '=SUM(D2:D3)']
+                    ])
+                });
+
+                showStatus('create-status', `Spreadsheet created: ${doc.doc_id}`, true);
+
+                // Add to list
+                addDocToList(doc.doc_id, doc.title || 'Untitled', 'spreadsheet');
+
+                // Open it
+                setTimeout(() => {
+                    internalDocs.openDocument(doc.doc_id);
+                }, 1000);
+
+            } catch (error) {
+                showStatus('create-status', 'Error: ' + error.message, false);
+            }
+        }
+
+        // Create sample document with rich content
+        async function createSampleDoc() {
+            showStatus('create-status', 'Creating sample document...', false);
+
+            const sampleContent = `# Project Overview
+
+## Introduction
+This is a **sample document** with *rich formatting* to demonstrate the capabilities of the internal docs system.
+
+## Features
+- Rich text editing with TipTap
+- Spreadsheets with 200+ formulas
+- Real-time collaboration
+- AI integration
+- Export to multiple formats
+
+## Code Example
+\`\`\`javascript
+async function example() {
+    const doc = await internalDocs.createDocument({
+        title: 'My Doc',
+        type: 'richtext'
+    });
+}
+\`\`\`
+
+## Table Example
+| Feature | Status | Priority |
+|---------|--------|----------|
+| Rich Text | ✅ Complete | High |
+| Spreadsheet | ✅ Complete | High |
+| Collaboration | ✅ Complete | Medium |
+
+> **Note:** This is a blockquote with important information.
+
+---
+
+Created on ${new Date().toLocaleString()}`;
+
+            try {
+                const doc = await internalDocs.createDocument({
+                    sessionId: 'demo-session-' + Date.now(),
+                    title: 'Sample Document',
+                    type: 'richtext',
+                    content: sampleContent
+                });
+
+                showStatus('create-status', `Sample document created: ${doc.doc_id}`, true);
+
+                // Add to list
+                addDocToList(doc.doc_id, 'Sample Document', 'richtext');
+
+                // Open it
+                setTimeout(() => {
+                    internalDocs.openDocument(doc.doc_id);
+                }, 1000);
+
+            } catch (error) {
+                showStatus('create-status', 'Error: ' + error.message, false);
+            }
+        }
+
+        // Open document
+        function openDoc(docId) {
+            console.log('[Demo] Opening document:', docId);
+            internalDocs.openDocument(docId);
+        }
+
+        // Copy document ID to clipboard
+        async function copyDocId(docId, title) {
+            await internalDocs.copyDocIdToClipboard(docId);
+            showStatus('create-status', `Copied: [DOC:${docId}:${title}] - Paste in chat!`, true);
+        }
+
+        // Drag & drop handlers
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function handleDocDrop(event) {
+            event.preventDefault();
+            event.target.classList.remove('drag-over');
+
+            const docId = event.dataTransfer.getData('doc-id');
+            const docTitle = event.dataTransfer.getData('doc-title');
+            const sessionId = event.target.closest('.session-card').dataset.sessionId;
+
+            console.log('[Demo] Linking document:', { docId, sessionId });
+
+            // Link to session
+            internalDocs.linkToAISession(docId, sessionId)
+                .then(success => {
+                    if (success) {
+                        showStatus('drop-status',
+                            `✅ Linked "${docTitle}" to session ${sessionId}`,
+                            true);
+                    } else {
+                        showStatus('drop-status',
+                            `❌ Failed to link document`,
+                            false);
+                    }
+                });
+        }
+
+        // Setup drag events for doc items
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('doc-item')) {
+                e.dataTransfer.setData('doc-id', e.target.dataset.docId);
+                e.dataTransfer.setData('doc-title', e.target.dataset.docTitle);
+                e.dataTransfer.effectAllowed = 'copy';
+            }
+        });
+
+        // Add document to list
+        function addDocToList(docId, title, type) {
+            const docList = document.getElementById('doc-list');
+
+            const docItem = document.createElement('div');
+            docItem.className = 'doc-item';
+            docItem.draggable = true;
+            docItem.dataset.docId = docId;
+            docItem.dataset.docTitle = title;
+            docItem.onclick = () => openDoc(docId);
+
+            const icon = type === 'spreadsheet' ? 'fa-table' : 'fa-file-alt';
+            const typeLabel = type === 'spreadsheet' ? 'Spreadsheet' : 'Rich Text';
+
+            docItem.innerHTML = `
+                <i class="fas ${icon} doc-icon"></i>
+                <div class="doc-info">
+                    <div class="doc-title">${title}</div>
+                    <div class="doc-meta">${typeLabel} • v1 • just now</div>
+                </div>
+                <div class="doc-actions">
+                    <button class="doc-action-btn" onclick="event.stopPropagation(); copyDocId('${docId}', '${title}')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            `;
+
+            docList.insertBefore(docItem, docList.firstChild);
+        }
+
+        // Show status message
+        function showStatus(elementId, message, isSuccess) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.textContent = message;
+            statusEl.className = 'status-message show' + (isSuccess ? '' : ' error');
+
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, 5000);
+        }
+
+        console.log('[Demo] Integration example loaded successfully!');
+        console.log('[Demo] Available functions:', {
+            createRichTextDoc: 'Create a new rich text document',
+            createSpreadsheet: 'Create a new spreadsheet',
+            createSampleDoc: 'Create a sample document with rich content',
+            openDoc: 'Open an existing document',
+            copyDocId: 'Copy document ID to clipboard',
+            internalDocs: 'Global InternalDocsManager instance'
+        });
+    </script>
+</body>
+
+</html>
