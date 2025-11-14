@@ -242,104 +242,8 @@ console.log('[PROMPT LIBRARY] ========================================');
         `;
         chatInputWrapper.insertBefore(dropdown, chatInputWrapper.firstChild);
 
-        // Create modal overlay
-        const modalOverlay = document.createElement('div');
-        modalOverlay.id = 'prompt-modal-overlay';
-        modalOverlay.className = 'prompt-modal-overlay';
-        modalOverlay.innerHTML = `
-            <div class="prompt-modal">
-                <div class="prompt-modal-header">
-                    <h2><i class="fas fa-bolt"></i> <span id="prompt-modal-title">Create New Prompt</span></h2>
-                    <button class="prompt-modal-close" onclick="window.closePromptModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="prompt-modal-body">
-                    <form id="prompt-form">
-                        <div class="form-group">
-                            <label class="form-label">Prompt Title <span class="required">*</span></label>
-                            <input type="text" class="form-input" id="prompt-title" placeholder="e.g., Expert Coder" required>
-                            <div class="form-help">A clear, descriptive name for the prompt</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Category <span class="required">*</span></label>
-                            <div class="category-management">
-                                <select class="form-select" id="prompt-category" required>
-                                    <option value="">Select Category</option>
-                                    <option value="development">Development</option>
-                                    <option value="analysis">Analysis</option>
-                                    <option value="data">Data & SQL</option>
-                                    <option value="style">Style</option>
-                                    <option value="business">Business</option>
-                                    <option value="creative">Creative</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Prompt Type <span class="required">*</span></label>
-                            <div class="radio-group">
-                                <div class="radio-option">
-                                    <input type="radio" id="type-quick" name="promptType" value="quick_action" checked>
-                                    <label for="type-quick">Quick Action (Short, focused)</label>
-                                </div>
-                                <div class="radio-option">
-                                    <input type="radio" id="type-full" name="promptType" value="full_prompt">
-                                    <label for="type-full">Full Prompt (Detailed, long)</label>
-                                </div>
-                            </div>
-                            <div class="form-help">
-                                Quick Action: Brief instructions (e.g., "Be concise", "Use type hints")<br>
-                                Full Prompt: Comprehensive instructions with examples and guidelines
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Short Description</label>
-                            <input type="text" class="form-input" id="prompt-short-desc" placeholder="One-line description for the dropdown" maxlength="100">
-                            <div class="form-help">Brief description shown in prompt list (50-100 characters)</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Prompt Content <span class="required">*</span></label>
-                            <textarea class="form-textarea large" id="prompt-text" placeholder="Enter the full prompt instructions..." required></textarea>
-                            <div class="form-help">
-                                The actual prompt text that will be injected into the AI's system prompt.<br>
-                                Be specific and clear about what you want the AI to do.
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Tags (comma-separated)</label>
-                            <input type="text" class="form-input" id="prompt-tags" placeholder="python, coding, best-practices">
-                            <div class="form-help">Keywords for search and discovery</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Visibility</label>
-                            <select class="form-select" id="prompt-visibility">
-                                <option value="private">Private (Only me)</option>
-                                <option value="workspace">Workspace (Team)</option>
-                                <option value="public">Public (Everyone)</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="prompt-modal-footer">
-                    <button class="btn btn-secondary" onclick="window.closePromptModal()">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button class="btn btn-danger hidden" id="delete-prompt-btn" onclick="window.deletePrompt()">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                    <button class="btn btn-primary" onclick="window.savePrompt()">
-                        <i class="fas fa-save"></i> Save Prompt
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modalOverlay);
+        // Modal is now in HTML file - no need to create it dynamically
+        console.log('[PROMPT LIBRARY] Modal loaded from HTML file');
 
         console.log('[PROMPT LIBRARY] HTML templates injected');
     }
@@ -725,7 +629,7 @@ console.log('[PROMPT LIBRARY] ========================================');
             const icon = prompt.type === 'quick_action' ? 'fa-bolt' : 'fa-list-ul';
             const typeLabel = prompt.type === 'quick_action' ? 'Quick' : 'Detailed';
             const typeClass = prompt.type === 'quick_action' ? 'quick' : 'detailed';
-            
+
             return `
                 <div class="edit-prompt-item" onclick="window.selectPromptForEdit(${prompt.id})">
                     <div class="edit-prompt-item-header">
@@ -748,7 +652,7 @@ console.log('[PROMPT LIBRARY] ========================================');
     window.filterEditPrompts = function (searchTerm) {
         const term = searchTerm.toLowerCase();
         const items = document.querySelectorAll('.edit-prompt-item');
-        
+
         items.forEach(item => {
             const text = item.textContent.toLowerCase();
             if (text.includes(term)) {
@@ -779,7 +683,7 @@ console.log('[PROMPT LIBRARY] ========================================');
         const editFormContainer = document.getElementById('edit-form-container');
         if (editFormContainer) {
             editFormContainer.style.display = 'block';
-            
+
             // Scroll to form
             setTimeout(() => {
                 editFormContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -818,7 +722,7 @@ console.log('[PROMPT LIBRARY] ========================================');
         const modal = document.getElementById('prompt-modal-overlay');
         if (modal) modal.classList.remove('show');
         editingPromptId = null;
-        
+
         // Clear selection
         document.querySelectorAll('.edit-prompt-item').forEach(item => {
             item.classList.remove('selected');
