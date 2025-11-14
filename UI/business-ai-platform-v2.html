@@ -26455,10 +26455,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
 
 
-        .card-collapsed-view,
-        .card-expanded-view {
-            transition: all 0.3s ease;
-        }
+        /* ========================================
+         * Card Collapsed/Expanded View Visibility
+         * ========================================
+         * Note: No transitions on these views - display: none/block cannot be animated
+         * Attempting to transition causes visual glitches (spasm/merge) on initial load
+         * Specific transitions are applied to child elements that need animation
+         */
 
         /* Control visibility based on data-expanded attribute */
         .kanban-card[data-expanded="false"] .card-collapsed-view {
@@ -26488,6 +26491,16 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
         .card-expanded-view {
             padding: var(--space-3);
+        }
+
+        /* Smooth transitions for animatable properties only */
+        .kanban-card[data-expanded="true"] {
+            transition: height 0.3s ease, max-height 0.3s ease;
+        }
+
+        /* Prevent layout shift during transitions */
+        .kanban-card {
+            will-change: auto;
         }
 
         .card-title-large {
@@ -28841,7 +28854,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                                                                                         ${expandedHTML}
                                                                                                                                         `;
 
+                // Add card to DOM first (before triggering any transitions)
                 container.appendChild(card);
+
+                // Force browser reflow to prevent FOUC (Flash of Unstyled Content)
+                // This ensures the card is fully rendered before any CSS transitions apply
+                void card.offsetHeight;
 
                 // DRAG-DROP INTEGRATION: Drop zone is handled by inline HTML attributes
                 // See line ~28925: ondrop="synergyBoard.handleThreadDrop(event, '${session.session_id}')"

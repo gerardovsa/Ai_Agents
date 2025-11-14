@@ -56,19 +56,45 @@ class PromptInjectionManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Table for user's custom prompts
+        # Table for prompt library (replaces user_custom_prompts)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS user_custom_prompts (
+            CREATE TABLE IF NOT EXISTS prompt_library (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
+                workspace_id INTEGER,
+                name VARCHAR(200) NOT NULL,
+                category VARCHAR(50) NOT NULL,
+                type VARCHAR(20) NOT NULL DEFAULT 'quick_action',
+                description TEXT,
                 prompt_text TEXT NOT NULL,
-                category TEXT,
-                is_quick_action INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id)
+                tags TEXT,
+                visibility VARCHAR(20) NOT NULL DEFAULT 'private',
+                usage_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
+        """)
+        
+        # Create indexes for prompt_library performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_prompt_library_user_id 
+            ON prompt_library(user_id)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_prompt_library_workspace_id 
+            ON prompt_library(workspace_id)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_prompt_library_category 
+            ON prompt_library(category)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_prompt_library_visibility 
+            ON prompt_library(visibility)
         """)
         
         # Table for user's prompt preferences (saved combinations)
@@ -408,7 +434,7 @@ Consider usability, accessibility, and user satisfaction."""
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT prompt_text FROM user_custom_prompts
+            SELECT prompt_text FROM prompt_library
             WHERE user_id = ? AND name = ?
             ORDER BY updated_at DESC LIMIT 1
         """, (user_id, prompt_name))
@@ -495,10 +521,13 @@ Consider usability, accessibility, and user satisfaction."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
+        # Convert is_quick_action to type field
+        prompt_type = 'quick_action' if is_quick_action else 'full_prompt'
+        
         cursor.execute("""
-            INSERT INTO user_custom_prompts (user_id, name, prompt_text, category, is_quick_action)
-            VALUES (?, ?, ?, ?, ?)
-        """, (user_id, name, prompt_text, category, 1 if is_quick_action else 0))
+            INSERT INTO prompt_library (user_id, name, prompt_text, category, type, visibility)
+            VALUES (?, ?, ?, ?, ?, 'private')
+        """, (user_id, name, prompt_text, category or 'custom', prompt_type))
         
         prompt_id = cursor.lastrowid
         conn.commit()
@@ -590,8 +619,8 @@ Consider usability, accessibility, and user satisfaction."""
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT id, name, category, is_quick_action, created_at
-            FROM user_custom_prompts
+            SELECT id, name, category, type, created_at
+            FROM prompt_library
             WHERE user_id = ?
             ORDER BY created_at DESC
         """, (user_id,))
@@ -602,7 +631,8 @@ Consider usability, accessibility, and user satisfaction."""
                 'id': row[0],
                 'name': row[1],
                 'category': row[2],
-                'is_quick_action': bool(row[3]),
+                'is_quick_action': row[3] == 'quick_action',
+                'type': row[3],
                 'created_at': row[4]
             })
         
