@@ -136,6 +136,13 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to initialize prompt library table: {e}")
 
+# Initialize user authentication tables (users, oauth_tokens, etc.)
+try:
+    from auth.user_auth import user_auth_manager
+    log_success(logger, f"User authentication tables initialized at {user_auth_manager.db_path}")
+except Exception as e:
+    log_error(logger, f"Failed to initialize user authentication: {e}")
+
 # Run OAuth tokens scope column migration
 try:
     from migrations.add_scope_column import add_scope_column
