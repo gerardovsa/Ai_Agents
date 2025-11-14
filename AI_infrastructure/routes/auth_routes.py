@@ -234,11 +234,10 @@ def get_profile():
         # Determine authentication platform based on password_hash
         import sqlite3
         import os
-        from pathlib import Path
         
-        # Use centralized database path
-        root_dir = Path(__file__).parent.parent.parent
-        db_path = root_dir / 'data' / 'ai_infrastructure.db'
+        # Use centralized database path helper (Render-aware)
+        from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+        db_path = get_ai_infrastructure_db_path()
         
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row

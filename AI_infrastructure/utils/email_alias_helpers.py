@@ -14,9 +14,9 @@ from typing import Optional, Dict, List, Tuple
 import json
 from pathlib import Path
 
-# Use centralized database path
-root_dir = Path(__file__).parent.parent.parent
-DB_PATH = str(root_dir / 'data' / 'ai_infrastructure.db')
+# Use centralized database path helper (Render-aware)
+from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+DB_PATH = get_ai_infrastructure_db_path()
 
 
 def get_user_id_by_email(email: str) -> Optional[int]:
