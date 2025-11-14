@@ -52,6 +52,12 @@ services:
       - key: ENVIRONMENT
         value: "production"
       
+      - key: FLASK_ENV
+        value: "production"
+      
+      - key: DEBUG
+        value: "False"
+      
       - key: PORT
         value: "10000"  # Render default port
       
@@ -90,10 +96,10 @@ services:
       
       # Update this after deployment with your Render URL
       - key: GOOGLE_REDIRECT_URI
-        value: https://ai-agents-backend.onrender.com/api/auth/google/callback
+        value: https://ai-agents-backend-singapore.onrender.com/api/auth/google/callback
       
       - key: GOOGLE_OAUTH_REDIRECT_URI
-        value: https://ai-agents-backend.onrender.com/oauth2callback
+        value: https://ai-agents-backend-singapore.onrender.com/oauth2callback
       
       - key: GOOGLE_OAUTH_SCOPES
         value: https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/calendar.readonly
