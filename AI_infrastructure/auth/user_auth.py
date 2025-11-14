@@ -152,80 +152,80 @@ class UserAuthManager:
                     # Enhanced users table
                     cursor.execute('''
                         CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    role TEXT DEFAULT 'user',
-                    primary_gmail TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    metadata TEXT
-                )
-            ''')
-            
-            # Gmail accounts linked to users
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_gmail_accounts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    gmail_address TEXT NOT NULL,
-                    display_name TEXT,
-                    access_token TEXT,
-                    refresh_token TEXT,
-                    token_expiry TIMESTAMP,
-                    is_primary BOOLEAN DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                    UNIQUE(user_id, gmail_address)
-                )
-            ''')
-            
-            # User sessions (JWT tokens)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_sessions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    token TEXT UNIQUE NOT NULL,
-                    ip_address TEXT,
-                    user_agent TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    expires_at TIMESTAMP NOT NULL,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            ''')
-            
-            # NEW: Platform credentials table (stores API keys/tokens per user per platform)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_platform_credentials (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    platform TEXT NOT NULL,
-                    credential_type TEXT NOT NULL,
-                    credential_key TEXT NOT NULL,
-                    credential_value TEXT NOT NULL,
-                    is_active BOOLEAN DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    metadata TEXT,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                    UNIQUE(user_id, platform, credential_key)
-                )
-            ''')
-            
-            # Update workspaces table to link to users
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS workspaces (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    name TEXT NOT NULL,
-                    description TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    metadata TEXT,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            ''')
-            
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            username TEXT UNIQUE NOT NULL,
+                            email TEXT UNIQUE NOT NULL,
+                            password_hash TEXT NOT NULL,
+                            role TEXT DEFAULT 'user',
+                            primary_gmail TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            metadata TEXT
+                        )
+                    ''')
+                    
+                    # Gmail accounts linked to users
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS user_gmail_accounts (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            gmail_address TEXT NOT NULL,
+                            display_name TEXT,
+                            access_token TEXT,
+                            refresh_token TEXT,
+                            token_expiry TIMESTAMP,
+                            is_primary BOOLEAN DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                            UNIQUE(user_id, gmail_address)
+                        )
+                    ''')
+                    
+                    # User sessions (JWT tokens)
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS user_sessions (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            token TEXT UNIQUE NOT NULL,
+                            ip_address TEXT,
+                            user_agent TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            expires_at TIMESTAMP NOT NULL,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                        )
+                    ''')
+                    
+                    # NEW: Platform credentials table (stores API keys/tokens per user per platform)
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS user_platform_credentials (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            platform TEXT NOT NULL,
+                            credential_type TEXT NOT NULL,
+                            credential_key TEXT NOT NULL,
+                            credential_value TEXT NOT NULL,
+                            is_active BOOLEAN DEFAULT 1,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            metadata TEXT,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                            UNIQUE(user_id, platform, credential_key)
+                        )
+                    ''')
+                    
+                    # Update workspaces table to link to users
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS workspaces (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            name TEXT NOT NULL,
+                            description TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            metadata TEXT,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                        )
+                    ''')
+                    
                     conn.commit()
                     log_db(logger, "User authentication tables initialized")
                     break  # Success - exit retry loop
@@ -240,6 +240,10 @@ class UserAuthManager:
                     # Either not a recoverable error, or we've exhausted retries
                     print(f"❌ [DB] Failed to initialize tables after {max_retries} attempts: {e}")
                     raise
+            except Exception as e:
+                # Catch any other unexpected errors
+                print(f"❌ [DB] Unexpected error during table initialization: {e}")
+                raise
     
     def register_user(self, username: str, email: str, password: str, primary_gmail: str = None, role: str = 'user') -> Dict:
         """
