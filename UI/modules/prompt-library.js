@@ -217,20 +217,20 @@ console.log('[PROMPT LIBRARY] ========================================');
             </div>
             
             <div class="action-buttons-row">
-                <button class="action-btn active" data-filter="all" onclick="window.filterPromptsByType('all')">
-                    <i class="fas fa-th"></i> All
+                <button class="action-btn active" data-filter="all" data-tooltip="Show All" onclick="window.filterPromptsByType('all')">
+                    <i class="fas fa-th"></i>
                 </button>
-                <button class="action-btn" data-filter="quick" onclick="window.filterPromptsByType('quick')">
-                    <i class="fas fa-bolt"></i> Quick
+                <button class="action-btn" data-filter="quick" data-tooltip="Quick Actions" onclick="window.filterPromptsByType('quick')">
+                    <i class="fas fa-bolt"></i>
                 </button>
-                <button class="action-btn" data-filter="detailed" onclick="window.filterPromptsByType('detailed')">
-                    <i class="fas fa-list-ul"></i> Detailed
+                <button class="action-btn" data-filter="detailed" data-tooltip="Detailed Prompts" onclick="window.filterPromptsByType('detailed')">
+                    <i class="fas fa-list-ul"></i>
                 </button>
-                <button class="action-btn action-btn-edit" onclick="window.toggleEditMode()">
-                    <i class="fas fa-pencil-alt"></i> Edit
+                <button class="action-btn action-btn-edit" data-tooltip="Toggle Edit Mode" onclick="window.toggleEditMode()">
+                    <i class="fas fa-pencil-alt"></i>
                 </button>
-                <button class="action-btn action-btn-create" onclick="window.openPromptModal()">
-                    <i class="fas fa-plus"></i> Create New
+                <button class="action-btn action-btn-create" data-tooltip="Create New Prompt" onclick="window.openPromptModal()">
+                    <i class="fas fa-plus"></i>
                 </button>
             </div>
 
@@ -783,7 +783,7 @@ console.log('[PROMPT LIBRARY] ========================================');
         // Filter prompts
         const category = document.getElementById('category-dropdown')?.value || 'all';
         const searchTerm = document.getElementById('inline-search')?.value || '';
-        
+
         let filteredPrompts = [...allPrompts];
 
         // Filter by category
@@ -818,13 +818,13 @@ console.log('[PROMPT LIBRARY] ========================================');
     window.toggleEditMode = function () {
         const editBtn = document.querySelector('.action-btn-edit');
         const isEditMode = editBtn.classList.toggle('active');
-        
+
         // Toggle visibility of edit buttons
         const editButtons = document.querySelectorAll('.prompt-edit-btn');
         editButtons.forEach(btn => {
             btn.style.display = isEditMode ? 'flex' : 'none';
         });
-        
+
         console.log('[PROMPT LIBRARY] Edit mode:', isEditMode ? 'ON' : 'OFF');
     };
 
