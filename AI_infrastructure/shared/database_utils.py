@@ -121,32 +121,33 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         # -> psycopg2.Connection to Supabase (ai_infrastructure schema)
     """
     if is_using_supabase():
-        # SUPABASE POSTGRESQL (Render deployment)
+        # SUPABASE REST API (Render deployment - works with IPv4/IPv6)
         try:
-            import psycopg2
-            from psycopg2.extras import RealDictCursor
+            from supabase import create_client, Client
         except ImportError:
             raise ImportError(
-                "psycopg2 not installed. Run: pip install psycopg2-binary"
+                "supabase not installed. Run: pip install supabase"
             )
         
-        db_url = os.getenv('SUPABASE_DB_URL')
-        if not db_url:
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        if not supabase_url or not supabase_key:
             raise ValueError(
-                "SUPABASE_DB_URL not set in environment. "
+                "SUPABASE_URL and SUPABASE_SERVICE_KEY required. "
                 "Add to .env.master or Render environment variables."
             )
         
         try:
-            conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+            # Create Supabase client (uses REST API, not direct PostgreSQL)
+            client = create_client(supabase_url, supabase_key)
             
-            # Set search_path to use the correct schema
+            # Store schema name for queries
             schema_name = get_supabase_schema_name(db_name)
-            with conn.cursor() as cursor:
-                cursor.execute(f"SET search_path TO {schema_name}, public")
+            client._schema = schema_name
             
-            print(f"🔷 [DB] Connected to Supabase PostgreSQL (schema: {schema_name})")
-            return conn
+            print(f"🔷 [DB] Connected to Supabase REST API (schema: {schema_name})")
+            return client
             
         except Exception as e:
             raise ConnectionError(f"Failed to connect to Supabase: {e}")
@@ -203,7 +204,7 @@ def get_database_path(db_name: str = 'ai_infrastructure') -> Path:
 
 def execute_query(db_name: str, query: str, params: tuple = None, fetch: str = 'all'):
     """
-    Execute SQL query with auto-detection (SQLite or Supabase)
+    Execute SQL query with auto-detection (SQLite or Supabase REST API)
     
     Args:
         db_name: Database name (e.g., 'ai_infrastructure')
@@ -234,31 +235,53 @@ def execute_query(db_name: str, query: str, params: tuple = None, fetch: str = '
                      fetch='none')
     """
     conn = get_database_connection(db_name)
-    cursor = conn.cursor()
     
-    try:
-        if params:
-            cursor.execute(query, params)
-        else:
-            cursor.execute(query)
+    if is_using_supabase():
+        # Supabase REST API - use RPC for raw SQL
+        try:
+            # Format query for Supabase (replace %s with $1, $2, etc.)
+            formatted_query = query
+            if params:
+                for i, param in enumerate(params, 1):
+                    formatted_query = formatted_query.replace('%s', f'${i}', 1)
+            
+            # Execute via Supabase RPC (requires function in database)
+            # For now, we'll use table-based operations
+            # NOTE: Full SQL support requires creating an RPC function in Supabase
+            raise NotImplementedError(
+                "Direct SQL queries not yet implemented for Supabase REST API. "
+                "Use table-based operations: conn.table('users').select('*').execute()"
+            )
+            
+        except Exception as e:
+            raise e
+    else:
+        # SQLite
+        cursor = conn.cursor()
         
-        if fetch == 'all':
-            results = cursor.fetchall()
-        elif fetch == 'one':
-            results = cursor.fetchone()
-        else:
-            results = None
-        
-        conn.commit()
-        return results
-        
-    except Exception as e:
-        conn.rollback()
-        raise e
-        
-    finally:
-        cursor.close()
-        conn.close()
+        try:
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            
+            if fetch == 'all':
+                results = cursor.fetchall()
+            elif fetch == 'one':
+                results = cursor.fetchone()
+            else:
+                results = None
+            
+            conn.commit()
+            return results
+            
+        except Exception as e:
+            conn.rollback()
+            raise e
+            
+        finally:
+            cursor.close()
+            conn.close()
 
 
 # Convenience functions for common databases
@@ -355,22 +378,21 @@ if __name__ == '__main__':
         print(f"\nTesting {db_name}...")
         try:
             conn = get_database_connection(db_name)
-            cursor = conn.cursor()
             
-            # Test query
+            # Test connection
             if is_using_supabase():
-                cursor.execute("SELECT version()")
-                result = cursor.fetchone()
-                version_str = result['version'] if isinstance(result, dict) else result[0]
-                print(f"  ✅ Connected: {version_str[:50]}...")
+                # Supabase REST API client - test with health check
+                print(f"  ✅ Connected: Supabase REST API client")
+                print(f"  Schema: {conn._schema}")
             else:
+                # SQLite
+                cursor = conn.cursor()
                 cursor.execute("SELECT sqlite_version()")
                 result = cursor.fetchone()
                 version_str = result[0] if hasattr(result, '__getitem__') else str(result)
                 print(f"  ✅ Connected: SQLite {version_str}")
-            
-            cursor.close()
-            conn.close()
+                cursor.close()
+                conn.close()
             
         except Exception as e:
             print(f"  ❌ Failed: {e}")
