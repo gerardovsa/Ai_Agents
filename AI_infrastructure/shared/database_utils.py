@@ -46,7 +46,7 @@ def is_using_supabase() -> bool:
     Check if application should use Supabase PostgreSQL
     
     Returns:
-        bool: True if USE_SUPABASE=true AND (RENDER=true OR explicit override), 
+        bool: True if USE_SUPABASE=true AND RENDER=true, 
               False for local SQLite development
     
     Environment Variables:
@@ -56,8 +56,8 @@ def is_using_supabase() -> bool:
     
     Priority:
         1. USE_SQLITE=true → Force SQLite (for local dev)
-        2. RENDER=true → Use Supabase (deployment)
-        3. USE_SUPABASE=true AND RENDER not set → SQLite (safe default)
+        2. RENDER=true AND USE_SUPABASE=true → Use Supabase (deployment)
+        3. Otherwise → SQLite (safe default)
     """
     # Check for explicit SQLite override (highest priority)
     if os.getenv('USE_SQLITE', 'false').lower() == 'true':
@@ -121,55 +121,77 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         # -> psycopg2.Connection to Supabase (ai_infrastructure schema)
     """
     if is_using_supabase():
-        # SUPABASE REST API (Render deployment - works with IPv4/IPv6)
+        # SUPABASE POSTGRESQL (Render deployment)
         try:
-            from supabase import create_client, Client
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
         except ImportError:
             raise ImportError(
-                "supabase not installed. Run: pip install supabase"
+                "psycopg2 not installed. Run: pip install psycopg2-binary"
             )
         
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-        
-        if not supabase_url or not supabase_key:
+        # Get connection string from environment
+        db_url = os.getenv('SUPABASE_DB_URL')
+        if not db_url:
             raise ValueError(
-                "SUPABASE_URL and SUPABASE_SERVICE_KEY required. "
-                "Add to .env.master or Render environment variables."
+                "SUPABASE_DB_URL not set in environment. "
+                "Required format: postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
             )
         
         try:
-            # Create Supabase client (uses REST API, not direct PostgreSQL)
-            client = create_client(supabase_url, supabase_key)
+            # Connect to Supabase (supports both IPv4 and IPv6)
+            # Render paid plans have IPv6 outbound support
+            conn = psycopg2.connect(
+                db_url,
+                cursor_factory=RealDictCursor,
+                connect_timeout=30,  # Longer timeout for international connections
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5
+            )
             
-            # Store schema name for queries
+            # Set search_path to use the correct schema
             schema_name = get_supabase_schema_name(db_name)
-            client._schema = schema_name
+            with conn.cursor() as cursor:
+                # Create schema if it doesn't exist
+                cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+                cursor.execute(f"SET search_path TO {schema_name}, public")
             
-            print(f"🔷 [DB] Connected to Supabase REST API (schema: {schema_name})")
-            return client
-            
-        except Exception as e:
-            raise ConnectionError(f"Failed to connect to Supabase: {e}")
-    
-    else:
-        # SQLITE (Local development)
-        # Find project root (go up from AI_infrastructure/shared/)
-        root_dir = Path(__file__).parent.parent.parent
-        db_path = root_dir / 'data' / f'{db_name}.db'
-        
-        # Ensure data directory exists
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        try:
-            conn = sqlite3.connect(str(db_path))
-            conn.row_factory = sqlite3.Row
-            
-            print(f"🔷 [DB] Connected to SQLite: {db_path}")
+            conn.commit()
+            print(f"🔷 [DB] Connected to Supabase PostgreSQL (schema: {schema_name})")
             return conn
             
         except Exception as e:
-            raise ConnectionError(f"Failed to connect to SQLite: {e}")
+            print(f"⚠️  [DB] Supabase connection failed: {e}")
+            print(f"⚠️  [DB] Falling back to SQLite on persistent disk")
+            # Fall through to SQLite fallback
+            pass
+    
+    # SQLITE (Local development OR Supabase fallback)
+    # Find project root (go up from AI_infrastructure/shared/)
+    root_dir = Path(__file__).parent.parent.parent
+    
+    # Check if running on Render
+    if os.getenv('RENDER') == 'true':
+        # Use /data persistent disk on Render
+        db_path = Path('/data') / f'{db_name}.db'
+    else:
+        # Use local data/ folder for development
+        db_path = root_dir / 'data' / f'{db_name}.db'
+    
+    # Ensure directory exists
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        
+        print(f"🔷 [DB] Connected to SQLite: {db_path}")
+        return conn
+        
+    except Exception as e:
+        raise ConnectionError(f"Failed to connect to SQLite: {e}")
 
 
 def get_database_path(db_name: str = 'ai_infrastructure') -> Path:
