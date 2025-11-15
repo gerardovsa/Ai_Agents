@@ -1789,8 +1789,15 @@ select.form-control {
 }
 
 @keyframes starPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.3); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.3);
+    }
 }
 
 .prompt-usage-count {
@@ -1853,7 +1860,7 @@ select.form-control {
 }
 
 /* When sidebar is open, overlay panel slides in next to it */
-.prompt-sidebar.show ~ .overlay-panel {
+.prompt-sidebar.show~.overlay-panel {
     right: 450px;
 }
 

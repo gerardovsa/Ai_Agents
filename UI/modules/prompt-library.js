@@ -704,7 +704,7 @@ console.log('[PROMPT LIBRARY] ========================================');
     /**
      * Filter by quick action (Recent, Favorites, Most Used)
      */
-    window.filterByQuickAction = function(filter) {
+    window.filterByQuickAction = function (filter) {
         console.log('[PROMPT LIBRARY] Quick action filter:', filter);
         currentFilter = filter;
 
@@ -724,7 +724,7 @@ console.log('[PROMPT LIBRARY] ========================================');
     /**
      * Toggle favorite status
      */
-    window.toggleFavorite = async function(promptId) {
+    window.toggleFavorite = async function (promptId) {
         if (favoritePromptIds.has(promptId)) {
             favoritePromptIds.delete(promptId);
         } else {
@@ -757,15 +757,15 @@ console.log('[PROMPT LIBRARY] ========================================');
         }
 
         breadcrumb.style.display = 'flex';
-        
+
         let html = '<i class="fas fa-bolt"></i>';
-        
+
         if (category) {
             const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
             const iconClass = categoryIcons[category] || 'fa-bolt';
             html += `<i class="fas fa-chevron-right"></i><span><i class="fas ${iconClass}"></i> ${categoryLabel}</span>`;
         }
-        
+
         if (promptName) {
             html += `<i class="fas fa-chevron-right"></i><span>${escapeHtml(promptName)}</span>`;
         }
@@ -1036,7 +1036,7 @@ console.log('[PROMPT LIBRARY] ========================================');
             selectedPrompts.push(prompt);
             currentPromptContext = { category: prompt.category, name: prompt.name };
             updateBreadcrumb(prompt.category, prompt.name);
-            
+
             // Increment usage count (TODO: save to backend)
             incrementUsageCount(promptId);
         }

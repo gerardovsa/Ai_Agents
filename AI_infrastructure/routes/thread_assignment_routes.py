@@ -39,6 +39,32 @@ logger = logging.getLogger(__name__)
 thread_assignment_bp = Blueprint('thread_assignments', __name__)
 
 
+def get_row_value(row, column_name_or_index):
+    """
+    Get value from row that works with both SQLite (dict-like) and PostgreSQL (tuple)
+    
+    Args:
+        row: Database row (sqlite3.Row or psycopg2 tuple)
+        column_name_or_index: Column name (for SQLite) or index (for PostgreSQL)
+    
+    Returns:
+        Value from the row
+    """
+    if row is None:
+        return None
+    
+    # SQLite Row object (dict-like access)
+    if hasattr(row, 'keys'):
+        return row[column_name_or_index]
+    
+    # PostgreSQL tuple (index access)
+    if isinstance(column_name_or_index, str):
+        # If we got a column name but have a tuple, use index 0 (first column)
+        return row[0]
+    else:
+        return row[column_name_or_index]
+
+
 def get_db_connection():
     """Get connection to ai_infrastructure.db (users table is here)"""
     from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
@@ -47,7 +73,9 @@ def get_db_connection():
     print(f'🔷 [Thread Assignments] Using: {db_path}')
     
     conn = get_database_connection('ai_infrastructure')
-    conn.row_factory = sqlite3.Row
+    # Only set row_factory for SQLite connections (not PostgreSQL)
+    if hasattr(conn, 'row_factory'):
+        conn.row_factory = sqlite3.Row
     return conn
 
 
@@ -91,9 +119,10 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         row = cursor.fetchone()
         
         # Parse metadata
-        if row and row['metadata']:
+        metadata_value = get_row_value(row, 'metadata')
+        if metadata_value:
             try:
-                metadata = json.loads(row['metadata'])
+                metadata = json.loads(metadata_value)
             except json.JSONDecodeError:
                 metadata = {}
         else:
@@ -186,8 +215,18 @@ def get_thread_assignments():
         
         row = cursor.fetchone()
         
-        if not row or not row['metadata']:
+        if not row:
             logger.info(f"No metadata found for user {user_id}")
+            return jsonify({
+                'success': True,
+                'assignments': {}
+            })
+        
+        # Get metadata value (works with both SQLite and PostgreSQL)
+        metadata_value = get_row_value(row, 'metadata')
+        
+        if not metadata_value:
+            logger.info(f"Empty metadata for user {user_id}")
             return jsonify({
                 'success': True,
                 'assignments': {}
@@ -195,7 +234,7 @@ def get_thread_assignments():
         
         # Parse metadata JSON
         try:
-            metadata = json.loads(row['metadata'])
+            metadata = json.loads(metadata_value)
             assignments = metadata.get('thread_assignments', {})
             
             logger.info(f"Loaded {len(assignments)} thread assignments for user {user_id}")
@@ -276,9 +315,10 @@ def save_thread_assignments():
         row = cursor.fetchone()
         
         # Parse or create metadata
-        if row and row['metadata']:
+        metadata_value = get_row_value(row, 'metadata')
+        if metadata_value:
             try:
-                metadata = json.loads(row['metadata'])
+                metadata = json.loads(metadata_value)
             except json.JSONDecodeError:
                 logger.warning(f"Invalid JSON in user {user_id} metadata, resetting")
                 metadata = {}
@@ -403,9 +443,12 @@ def clear_location(location):
         cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
         row = cursor.fetchone()
         
-        if row and row['metadata']:
+        metadata_value = get_row_value(row, 'metadata')
+        if metadata_value:
             try:
-                metadata = json.loads(row['metadata'])
+                metadata = json.loads(metadata_value)
+                metadata = json.loads(metadata_value)
+                metadata = json.loads(metadata_value)
                 assignments = metadata.get('thread_assignments', {})
                 
                 if location in assignments:
@@ -468,9 +511,10 @@ def get_thread_location(session_id):
         row = cursor.fetchone()
         conn.close()
         
-        if row and row['metadata']:
+        metadata_value = get_row_value(row, 'metadata')
+        if metadata_value:
             try:
-                metadata = json.loads(row['metadata'])
+                metadata = json.loads(metadata_value)
                 assignments = metadata.get('thread_assignments', {})
                 
                 # Find location for this thread
@@ -528,9 +572,10 @@ def validate_assignments():
         errors = []
         fixed = 0
         
-        if row and row['metadata']:
+        metadata_value = get_row_value(row, 'metadata')
+        if metadata_value:
             try:
-                metadata = json.loads(row['metadata'])
+                metadata = json.loads(metadata_value)
                 assignments = metadata.get('thread_assignments', {})
                 
                 # Check for duplicate thread assignments

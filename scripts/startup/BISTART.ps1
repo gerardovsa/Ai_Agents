@@ -49,7 +49,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$UI
 # Wait 2 seconds for UI server to start
 Start-Sleep -Seconds 2
 
-Write-Host "[3/3] Opening Platform in Browser..." -ForegroundColor Green
+Write-Host "[3/4] Opening Platform in Browser..." -ForegroundColor Green
 Write-Host ""
 
 # Open browser to platform

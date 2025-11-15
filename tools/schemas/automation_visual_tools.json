@@ -1,0 +1,446 @@
+{
+    "platform": "automation_visual",
+    "description": "Visual automation workflow builder with AI interpretation. Create drag-and-drop workflows with natural language, let AI understand connections and execute scheduled tasks. Integrates with scheduler for autonomous execution.",
+    "tools": [
+        {
+            "name": "automation_parse_visual_flow",
+            "description": "Parse visual automation JSON and interpret user intent. Analyzes shapes, connections, colors, positions to understand workflow logic. Returns AI interpretation with suggested tools and execution sequence.",
+            "platform": "automation_visual",
+            "category": "smart",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "visual_flow_json": {
+                        "type": "string",
+                        "description": "JSON string containing shapes array (with id, type, position, text, color) and connections array (with from, to)"
+                    },
+                    "automation_title": {
+                        "type": "string",
+                        "description": "User's title for the automation"
+                    },
+                    "user_context": {
+                        "type": "string",
+                        "description": "Optional: Additional context about user's workflow preferences"
+                    }
+                },
+                "required": [
+                    "visual_flow_json"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "AI interpretation of the visual workflow",
+                "properties": {
+                    "interpretation": {
+                        "type": "string",
+                        "description": "Natural language explanation of what the automation does"
+                    },
+                    "tools_sequence": {
+                        "type": "array",
+                        "description": "Ordered list of tool names to execute"
+                    },
+                    "execution_plan": {
+                        "type": "array",
+                        "description": "Detailed steps with tool calls and parameters"
+                    },
+                    "suggestions": {
+                        "type": "array",
+                        "description": "AI suggestions for improvements"
+                    },
+                    "complexity_score": {
+                        "type": "integer",
+                        "description": "1-10 scale of workflow complexity"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Parse email management workflow",
+                    "parameters": {
+                        "visual_flow_json": "{\"shapes\": [{\"id\": \"s1\", \"type\": \"circle\", \"text\": \"Check Outlook at 7am\", \"color\": \"#0078d4\"}], \"connections\": []}",
+                        "automation_title": "Daily Email Check"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "automation_create_refined_version",
+            "description": "Generate refined visual automation with AI improvements. Takes user's rough workflow, adds proper shapes/colors/connections, fills in missing steps, and returns enhanced version ready for activation.",
+            "platform": "automation_visual",
+            "category": "smart",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "original_automation_id": {
+                        "type": "string",
+                        "description": "ID of user's original automation"
+                    },
+                    "original_visual_flow": {
+                        "type": "string",
+                        "description": "Original visual flow JSON string"
+                    },
+                    "improvements": {
+                        "type": "array",
+                        "description": "List of improvements to apply (e.g., 'Add error handling', 'Include notification step')"
+                    },
+                    "tools_sequence": {
+                        "type": "array",
+                        "description": "Ordered list of tools the AI plans to use"
+                    },
+                    "execution_prompt": {
+                        "type": "string",
+                        "description": "AI-generated prompt for autonomous execution"
+                    }
+                },
+                "required": [
+                    "original_visual_flow",
+                    "tools_sequence",
+                    "execution_prompt"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Refined automation ready for use",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "New automation ID (original_id + '_refined')"
+                    },
+                    "visual_flow_json": {
+                        "type": "string",
+                        "description": "Enhanced visual flow with proper shapes/colors"
+                    },
+                    "execution_prompt": {
+                        "type": "string",
+                        "description": "Prompt for AI to execute this automation"
+                    },
+                    "tools_sequence": {
+                        "type": "array",
+                        "description": "Final tool execution order"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Parse email management workflow",
+                    "parameters": {
+                        "visual_flow_json": "{\"shapes\": [{\"id\": \"s1\", \"type\": \"circle\", \"text\": \"Check Outlook at 7am\", \"color\": \"#0078d4\"}], \"connections\": []}",
+                        "automation_title": "Daily Email Check"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "automation_create_refined_version",
+            "description": "Generate refined visual automation with AI improvements. Takes user's rough workflow, adds proper shapes/colors/connections, fills in missing steps, and returns enhanced version ready for activation.",
+            "platform": "automation_visual",
+            "category": "smart",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "original_automation_id": {
+                        "type": "string",
+                        "description": "ID of user's original automation"
+                    },
+                    "original_visual_flow": {
+                        "type": "string",
+                        "description": "Original visual flow JSON string"
+                    },
+                    "improvements": {
+                        "type": "array",
+                        "description": "List of improvements to apply"
+                    },
+                    "tools_sequence": {
+                        "type": "array",
+                        "description": "Ordered list of tools the AI plans to use"
+                    },
+                    "execution_prompt": {
+                        "type": "string",
+                        "description": "AI-generated prompt for autonomous execution"
+                    }
+                },
+                "required": [
+                    "original_visual_flow",
+                    "tools_sequence",
+                    "execution_prompt"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Refined automation ready for use"
+            },
+            "examples": [
+                {
+                    "description": "Refine rough email workflow",
+                    "parameters": {
+                        "original_automation_id": "auto_123",
+                        "original_visual_flow": "{\"shapes\": [...]}",
+                        "improvements": [
+                            "Add Synergy summary step"
+                        ],
+                        "tools_sequence": [
+                            "outlook_list_messages",
+                            "synergy_create_session",
+                            "gmail_send_email"
+                        ],
+                        "execution_prompt": "Daily email management workflow"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "automation_save",
+            "description": "Save visual automation to database. Stores visual flow JSON, execution prompt, tools sequence, and metadata. Returns automation ID for later loading.",
+            "platform": "automation_visual",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Unique automation ID (auto-generated if not provided)"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Automation title"
+                    },
+                    "visual_flow_json": {
+                        "type": "string",
+                        "description": "JSON string with shapes and connections"
+                    },
+                    "execution_prompt": {
+                        "type": "string",
+                        "description": "AI prompt for autonomous execution"
+                    },
+                    "tools_sequence": {
+                        "type": "array",
+                        "description": "Ordered list of tool names"
+                    },
+                    "parent_automation_id": {
+                        "type": "string",
+                        "description": "Optional: ID of parent automation (for refined versions)"
+                    }
+                },
+                "required": [
+                    "title",
+                    "visual_flow_json",
+                    "execution_prompt"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Saved automation details",
+                "properties": {
+                    "automation_id": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        {
+            "name": "automation_list",
+            "description": "List user's saved automations with optional filters. Returns metadata for all automations without full visual flow JSON.",
+            "platform": "automation_visual",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filter_active": {
+                        "type": "boolean",
+                        "description": "Filter by active status"
+                    },
+                    "filter_scheduled": {
+                        "type": "boolean",
+                        "description": "Filter by scheduled status"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum results to return",
+                        "default": 50
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "array",
+                "description": "List of automation metadata objects"
+            }
+        },
+        {
+            "name": "automation_load",
+            "description": "Load full automation details including visual flow JSON. Used to restore automation on canvas or for AI analysis.",
+            "platform": "automation_visual",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Automation ID to load"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Complete automation with visual flow, prompt, tools, metadata"
+            }
+        },
+        {
+            "name": "automation_activate_schedule",
+            "description": "Activate automation on scheduler with cron schedule or datetime trigger. Creates scheduled task that executes automation autonomously at specified times.",
+            "platform": "automation_visual",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Automation to schedule"
+                    },
+                    "trigger_type": {
+                        "type": "string",
+                        "description": "Schedule type: 'cron', 'datetime', 'webhook'",
+                        "enum": [
+                            "cron",
+                            "datetime",
+                            "webhook"
+                        ]
+                    },
+                    "cron_schedule": {
+                        "type": "string",
+                        "description": "Cron expression (e.g., '0 7 * * *' for 7am daily)"
+                    },
+                    "datetime_trigger": {
+                        "type": "string",
+                        "description": "ISO datetime for one-time execution"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "description": "User's timezone (default: UTC)"
+                    },
+                    "requires_approval": {
+                        "type": "boolean",
+                        "description": "Whether to ask user before executing",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "automation_id",
+                    "trigger_type"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Scheduled task details",
+                "properties": {
+                    "task_id": {
+                        "type": "string"
+                    },
+                    "next_run": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        {
+            "name": "automation_deactivate",
+            "description": "Deactivate scheduled automation. Removes from scheduler but keeps in database for later reactivation.",
+            "platform": "automation_visual",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Automation to deactivate"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Deactivation confirmation"
+            }
+        },
+        {
+            "name": "automation_get_execution_history",
+            "description": "Get history of automation executions with results, errors, and agent conversation threads. Shows what happened during each autonomous execution.",
+            "platform": "automation_visual",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Automation ID"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum executions to return",
+                        "default": 10
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "array",
+                "description": "List of execution records with status, thread_id, tools_used, result_summary"
+            }
+        },
+        {
+            "name": "automation_delete",
+            "description": "Delete automation from database. Also deactivates any scheduled tasks. This is permanent and cannot be undone.",
+            "platform": "automation_visual",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Automation to delete"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Deletion confirmation"
+            }
+        },
+        {
+            "name": "automation_export_to_canvas",
+            "description": "Export automation as visual JSON for canvas rendering. Returns format compatible with frontend canvas for drag-and-drop display.",
+            "platform": "automation_visual",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Automation to export"
+                    },
+                    "format": {
+                        "type": "string",
+                        "description": "Export format: 'simplified' or 'detailed'",
+                        "enum": [
+                            "simplified",
+                            "detailed"
+                        ],
+                        "default": "detailed"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Canvas-compatible JSON with shapes, connections, metadata"
+            }
+        }
+    ]
+}

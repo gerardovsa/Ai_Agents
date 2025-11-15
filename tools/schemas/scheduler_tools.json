@@ -1,0 +1,368 @@
+{
+    "platform": "scheduler",
+    "description": "AI Automation Scheduler - Create, manage, and execute scheduled tasks with thread/agent linking. Supports cron expressions, datetime triggers, webhooks, and conditional execution. AI agents can create automations for users.",
+    "tools": [
+        {
+            "name": "scheduler_create_task",
+            "description": "Create a scheduled automation task. Links to threads, agents, and Synergy sessions. Supports recurring (cron) and one-time (datetime) schedules. Use when user asks to 'schedule', 'automate', 'remind me', 'send daily/weekly', etc. Returns task_id for management.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_name": {
+                        "type": "string",
+                        "description": "Clear, descriptive task name (REQUIRED). Example: 'Daily Sales Report Email'"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "What this task does and why. Example: 'Send daily analytics report to management team'"
+                    },
+                    "trigger_type": {
+                        "type": "string",
+                        "enum": [
+                            "cron",
+                            "datetime",
+                            "webhook",
+                            "conditional",
+                            "manual"
+                        ],
+                        "description": "Schedule type: 'cron' (recurring), 'datetime' (one-time), 'webhook' (external), 'conditional' (event-based), 'manual' (on-demand only)"
+                    },
+                    "cron_expression": {
+                        "type": "string",
+                        "description": "Cron expression for recurring tasks. Examples: '0 9 * * 1-5' (Mon-Fri 9am), '0 * * * *' (hourly), '0 0 * * 0' (Sunday midnight). Required if trigger_type='cron'."
+                    },
+                    "datetime_trigger": {
+                        "type": "string",
+                        "description": "ISO datetime for one-time execution. Example: '2025-11-16T14:00:00Z'. Required if trigger_type='datetime'."
+                    },
+                    "action_type": {
+                        "type": "string",
+                        "enum": [
+                            "resume_session",
+                            "send_message",
+                            "execute_tool",
+                            "run_workflow"
+                        ],
+                        "description": "What to do: 'resume_session' (resume Synergy), 'send_message' (chat with agent), 'execute_tool' (run specific tool), 'run_workflow' (multi-step automation)"
+                    },
+                    "synergy_session_id": {
+                        "type": "string",
+                        "description": "Link to Synergy session (if action_type='resume_session'). Example: 'sess_12345678'"
+                    },
+                    "thread_id": {
+                        "type": "string",
+                        "description": "Conversation thread to use. Links task to specific chat context."
+                    },
+                    "agent_name": {
+                        "type": "string",
+                        "description": "Which AI agent executes this task. Examples: 'Prime Agent', 'Email Agent', 'Research Agent', 'Marketing Agent'"
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Where task runs in UI. Examples: 'dashboard', 'synergy_sidebar', 'agent_panel'"
+                    },
+                    "action_payload": {
+                        "type": "object",
+                        "description": "Action-specific configuration. For 'send_message': {message: 'text'}. For 'execute_tool': {tool_name: 'x', tool_params: {}}. For 'run_workflow': {steps: [...]}"
+                    },
+                    "context_instructions": {
+                        "type": "string",
+                        "description": "Additional instructions for AI when executing. Example: 'Include last 7 days of data. Use professional tone.'"
+                    },
+                    "requires_approval": {
+                        "type": "boolean",
+                        "description": "If true, user must approve before task runs. Default: false. Use for sensitive operations (emails, payments, deletions)."
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "description": "If false, task is disabled and won't run. Default: true."
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Tags for organization. Example: ['reports', 'email', 'daily']"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "description": "Priority 1-10 (10 = highest). Default: 5."
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "description": "Max execution time in seconds. Default: 300 (5 minutes)."
+                    },
+                    "max_retries": {
+                        "type": "integer",
+                        "description": "Max retry attempts on failure. Default: 3."
+                    },
+                    "retry_delay_seconds": {
+                        "type": "integer",
+                        "description": "Seconds to wait before retry. Default: 300 (5 minutes)."
+                    }
+                },
+                "required": [
+                    "task_name",
+                    "trigger_type",
+                    "action_type"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Created task with task_id, full task object, and success message"
+            },
+            "examples": [
+                {
+                    "description": "Daily report email every weekday at 9am",
+                    "parameters": {
+                        "task_name": "Daily Sales Report",
+                        "description": "Send daily analytics to management",
+                        "trigger_type": "cron",
+                        "cron_expression": "0 9 * * 1-5",
+                        "action_type": "resume_session",
+                        "synergy_session_id": "sess_reports",
+                        "agent_name": "Email Agent",
+                        "context_instructions": "Include last 24 hours of data"
+                    }
+                },
+                {
+                    "description": "One-time birthday reminder",
+                    "parameters": {
+                        "task_name": "John's Birthday Reminder",
+                        "trigger_type": "datetime",
+                        "datetime_trigger": "2025-12-01T08:00:00Z",
+                        "action_type": "send_message",
+                        "thread_id": "thread_abc123",
+                        "agent_name": "Prime Agent",
+                        "action_payload": {
+                            "message": "Reminder: John's birthday today!"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "scheduler_list_tasks",
+            "description": "List scheduled tasks with optional filters. Returns all tasks user has created or AI has created on their behalf. Use to show upcoming automations, check task status, or find specific tasks.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "synergy_session_id": {
+                        "type": "string",
+                        "description": "Filter by Synergy session ID"
+                    },
+                    "thread_id": {
+                        "type": "string",
+                        "description": "Filter by thread ID"
+                    },
+                    "agent_name": {
+                        "type": "string",
+                        "description": "Filter by agent name"
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "description": "Filter by enabled status (true/false)"
+                    },
+                    "created_by": {
+                        "type": "string",
+                        "enum": [
+                            "user",
+                            "ai"
+                        ],
+                        "description": "Filter by creator: 'user' (manual) or 'ai' (AI-created)"
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "List of tasks with count, each task includes task_id, task_name, schedule info, next_execution_time"
+            }
+        },
+        {
+            "name": "scheduler_get_task",
+            "description": "Get detailed information about a specific task. Returns full task configuration, execution statistics, and schedule info. Use to check task details before updating or to show user task status.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID to retrieve (REQUIRED). Example: 'task_20251115_093000_Daily_Report'"
+                    }
+                },
+                "required": [
+                    "task_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Complete task object with configuration, statistics (execution_count, failure_count, last_execution_time, next_execution_time)"
+            }
+        },
+        {
+            "name": "scheduler_update_task",
+            "description": "Update an existing task. Can change schedule, enable/disable, update configuration. Use when user asks to 'change schedule', 'disable task', 'update automation', etc. Only specified fields are updated.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID to update (REQUIRED)"
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "description": "Enable or disable task"
+                    },
+                    "cron_expression": {
+                        "type": "string",
+                        "description": "New cron schedule"
+                    },
+                    "datetime_trigger": {
+                        "type": "string",
+                        "description": "New datetime trigger"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "description": "New priority (1-10)"
+                    },
+                    "context_instructions": {
+                        "type": "string",
+                        "description": "Updated AI instructions"
+                    },
+                    "action_payload": {
+                        "type": "object",
+                        "description": "Updated action configuration"
+                    }
+                },
+                "required": [
+                    "task_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Updated task object with success message"
+            }
+        },
+        {
+            "name": "scheduler_delete_task",
+            "description": "Delete a scheduled task permanently. Task will be removed from scheduler and database. Use when user asks to 'cancel automation', 'remove task', 'delete schedule'.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID to delete (REQUIRED)"
+                    }
+                },
+                "required": [
+                    "task_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success message confirming deletion"
+            }
+        },
+        {
+            "name": "scheduler_execute_now",
+            "description": "Manually trigger immediate execution of a task, ignoring schedule. Task will run right now regardless of next_execution_time. Use when user asks to 'run now', 'test task', 'trigger immediately'.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID to execute (REQUIRED)"
+                    }
+                },
+                "required": [
+                    "task_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Execution triggered message with task_id"
+            }
+        },
+        {
+            "name": "scheduler_get_history",
+            "description": "Get execution history for a task. Shows past runs with timestamps, duration, success/failure status, and error messages. Use to debug failed tasks or show execution logs.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID to get history for (REQUIRED)"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max number of executions to return. Default: 50"
+                    }
+                },
+                "required": [
+                    "task_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "List of past executions with execution_id, started_at, completed_at, status, result_data, error_message, execution_duration_ms"
+            }
+        },
+        {
+            "name": "scheduler_approve_task",
+            "description": "Approve a task that requires approval. Task will be scheduled after approval. Use when task has requires_approval=true and user gives approval.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID to approve (REQUIRED)"
+                    },
+                    "approval_note": {
+                        "type": "string",
+                        "description": "Optional approval note/comment"
+                    }
+                },
+                "required": [
+                    "task_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success message, task will be scheduled"
+            }
+        },
+        {
+            "name": "scheduler_reject_task",
+            "description": "Reject a task that requires approval. Task will be disabled and won't run. Use when user denies approval for a task.",
+            "platform": "scheduler",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID to reject (REQUIRED)"
+                    },
+                    "approval_note": {
+                        "type": "string",
+                        "description": "Reason for rejection"
+                    }
+                },
+                "required": [
+                    "task_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success message, task will be disabled"
+            }
+        }
+    ]
+}

@@ -10,6 +10,8 @@ WORKDIR /app
 # - curl: For health checks and API calls
 # - git: For potential git operations in tools
 # - build-essential: For compiling Python packages with C extensions
+# - libpq-dev: For psycopg2 PostgreSQL connections (Supabase)
+# - postgresql-client: For PostgreSQL command-line tools
 # - unixodbc unixodbc-dev: For pyodbc SQL Server connections
 # - freetds-dev: For pymssql SQL Server connections
 # - tesseract-ocr: For pytesseract OCR text extraction
@@ -18,6 +20,8 @@ RUN apt-get update && \
     curl \
     git \
     build-essential \
+    libpq-dev \
+    postgresql-client \
     unixodbc \
     unixodbc-dev \
     freetds-dev \

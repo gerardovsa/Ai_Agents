@@ -6,6 +6,7 @@ REM Usage: Just run BISTART.bat or type "BISTART" in terminal
 echo.
 echo ============================================================
 echo    BUSINESS AI PLATFORM LAUNCHER
+echo    [SUPABASE MODE - PostgreSQL Database]
 echo ============================================================
 echo.
 
@@ -30,7 +31,29 @@ if not exist "%UI_DIR%\business-ai-platform-v2.html" (
     exit /b 1
 )
 
-echo [0/2] Checking for existing Flask servers on port 5001...
+echo [0/4] Cleaning up zombie Python processes...
+
+REM Kill ALL Python processes first
+setlocal enabledelayedexpansion
+set PYTHON_KILLED=0
+
+for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq python.exe" /NH 2^>nul') do (
+    set PID=%%a
+    echo       Stopping Python PID !PID!...
+    taskkill /F /PID !PID! >nul 2>&1
+    set PYTHON_KILLED=1
+)
+
+if !PYTHON_KILLED! equ 1 (
+    timeout /t 2 /nobreak >nul
+    echo       [OK] All Python processes stopped
+) else (
+    echo       [OK] No Python processes to clean
+)
+endlocal
+echo.
+
+echo [1/4] Checking for existing Flask servers on port 5001...
 
 REM Kill processes using port 5001 (Flask backend only)
 REM Use more reliable netstat parsing
@@ -60,18 +83,19 @@ if !FOUND_PROCESS! equ 1 (
 endlocal
 echo.
 
-echo [1/2] Starting Flask Backend...
+echo [2/4] Starting Flask Backend with Supabase...
 echo       Location: %FLASK_DIR%
 echo       Port: 5001
+echo       Database: Supabase PostgreSQL
 echo.
 
-REM Start Flask in new terminal window with UTF-8 encoding
-start "Flask Backend (Port 5001)" cmd /k "cd /d %FLASK_DIR% && set PYTHONIOENCODING=utf-8 && python flask_app.py"
+REM Start Flask in new terminal window with UTF-8 encoding and Supabase environment variables
+start "Flask Backend - Supabase Mode" cmd /k "cd /d %FLASK_DIR% && set PYTHONIOENCODING=utf-8 && set USE_SUPABASE=true && set RENDER=true && set SUPABASE_URL=https://ryoicrdifiqhqpsnjmdo.supabase.co && set SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5b2ljcmRpZmlxaHFwc25qbWRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjY2NDI0NSwiZXhwIjoyMDc4MjQwMjQ1fQ.ebI6qfDzSt1skNm0hsBD-blyR7AJJUej5BcN-Bpp3PI && set SUPABASE_DB_URL=postgresql://postgres:inhouseprint@db.ryoicrdifiqhqpsnjmdo.supabase.co:5432/postgres && echo. && echo [SUPABASE MODE] Connected to PostgreSQL Database && echo. && python flask_app.py"
 
 REM Wait 3 seconds for Flask to initialize
 timeout /t 3 /nobreak >nul
 
-echo [2/2] Opening Platform in Browser...
+echo [3/4] Opening Platform in Browser...
 echo.
 
 REM Open browser to platform (direct file access)

@@ -5,6 +5,7 @@
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "   BUSINESS AI PLATFORM LAUNCHER" -ForegroundColor Yellow
+Write-Host "   [SUPABASE MODE - PostgreSQL Database]" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -27,7 +28,25 @@ if (-not (Test-Path "$UI_DIR\business-ai-platform-v2.html")) {
     exit 1
 }
 
-Write-Host "[0/2] Checking for existing Flask servers on port 5001..." -ForegroundColor Yellow
+Write-Host "[0/4] Cleaning up zombie Python processes..." -ForegroundColor Yellow
+
+# Kill ALL Python processes (Flask zombies + any leftover processes)
+$pythonProcs = Get-Process python -ErrorAction SilentlyContinue
+if ($pythonProcs) {
+    Write-Host "      Found $($pythonProcs.Count) Python process(es) - stopping all..." -ForegroundColor Yellow
+    foreach ($proc in $pythonProcs) {
+        Write-Host "      Stopping PID $($proc.Id)..." -ForegroundColor Gray
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Seconds 2
+    Write-Host "      [OK] All Python processes stopped" -ForegroundColor Green
+}
+else {
+    Write-Host "      [OK] No Python processes to clean" -ForegroundColor Green
+}
+Write-Host ""
+
+Write-Host "[1/4] Checking for existing Flask servers on port 5001..." -ForegroundColor Yellow
 
 # Method 1: Try Get-NetTCPConnection (works on Windows 10+)
 try {
@@ -73,18 +92,34 @@ catch {
 }
 Write-Host ""
 
-Write-Host "[1/2] Starting Flask Backend..." -ForegroundColor Green
+Write-Host "[2/4] Starting Flask Backend with Supabase..." -ForegroundColor Green
 Write-Host "      Location: $FLASK_DIR" -ForegroundColor Gray
 Write-Host "      Port: 5001" -ForegroundColor Gray
+Write-Host "      Database: Supabase PostgreSQL" -ForegroundColor Cyan
 Write-Host ""
 
-# Start Flask in new PowerShell window
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$FLASK_DIR'; `$env:PYTHONIOENCODING='utf-8'; Write-Host 'Flask Backend Running on http://localhost:5001' -ForegroundColor Green; python flask_app.py"
+# Start Flask in new PowerShell window with Supabase environment variables
+$flaskCommand = @"
+Set-Location '$FLASK_DIR'
+`$env:PYTHONIOENCODING='utf-8'
+`$env:USE_SUPABASE='true'
+`$env:RENDER='true'
+`$env:SUPABASE_URL='https://ryoicrdifiqhqpsnjmdo.supabase.co'
+`$env:SUPABASE_SERVICE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5b2ljcmRpZmlxaHFwc25qbWRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjY2NDI0NSwiZXhwIjoyMDc4MjQwMjQ1fQ.ebI6qfDzSt1skNm0hsBD-blyR7AJJUej5BcN-Bpp3PI'
+`$env:SUPABASE_DB_URL='postgresql://postgres:inhouseprint@db.ryoicrdifiqhqpsnjmdo.supabase.co:5432/postgres'
+Write-Host ''
+Write-Host '[SUPABASE MODE] Connected to PostgreSQL Database' -ForegroundColor Cyan
+Write-Host 'Flask Backend Running on http://localhost:5001' -ForegroundColor Green
+Write-Host ''
+python flask_app.py
+"@
+
+Start-Process powershell -ArgumentList "-NoExit", "-Command", $flaskCommand
 
 # Wait 3 seconds for Flask to initialize
 Start-Sleep -Seconds 3
 
-Write-Host "[2/2] Opening Platform in Browser..." -ForegroundColor Green
+Write-Host "[3/4] Opening Platform in Browser..." -ForegroundColor Green
 Write-Host ""
 
 # Open browser to platform (direct file access)

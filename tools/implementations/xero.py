@@ -57,20 +57,46 @@ def xero_get_invoices(business_id: int = 1, status: Optional[str] = None,
     """Get invoices from Xero. Returns structured result or error info."""
     try:
         client = _get_client(business_id)
-        token = _extract_token(kwargs)
-        # The client implementation may accept access_token keyword or have its own token flow
-        if hasattr(client, 'get_invoices'):
-            invoices = client.get_invoices(status=status, contact_name=contact_name,
-                                           invoice_number=invoice_number, access_token=token)
-        else:
-            # Fall back to a generic request method if available
-            if hasattr(client, 'request_invoices'):
-                invoices = client.request_invoices(status=status, contact_name=contact_name,
-                                                   invoice_number=invoice_number, access_token=token)
-            else:
-                raise RuntimeError('XeroAPIClient does not implement get_invoices')
-
-        return {"success": True, "business_id": business_id, "invoices": invoices}
+        
+        # Build where clause for filtering
+        where_clauses = []
+        if status:
+            where_clauses.append(f'Status=="{status}"')
+        if contact_name:
+            where_clauses.append(f'Contact.Name.Contains("{contact_name}")')
+        if invoice_number:
+            where_clauses.append(f'InvoiceNumber=="{invoice_number}"')
+        
+        params = {}
+        if where_clauses:
+            params['where'] = ' AND '.join(where_clauses)
+        
+        # Use the make_request method that exists in XeroAPIClient
+        data = client.make_request('GET', 'Invoices', params=params)
+        invoices = data.get('Invoices', [])
+        
+        # Format invoices for AI consumption
+        formatted_invoices = []
+        for inv in invoices:
+            formatted_invoices.append({
+                'invoice_id': inv.get('InvoiceID'),
+                'invoice_number': inv.get('InvoiceNumber'),
+                'contact_name': inv.get('Contact', {}).get('Name'),
+                'date': inv.get('Date'),
+                'due_date': inv.get('DueDate'),
+                'status': inv.get('Status'),
+                'total': inv.get('Total'),
+                'amount_due': inv.get('AmountDue'),
+                'currency': inv.get('CurrencyCode')
+            })
+        
+        return {
+            "success": True, 
+            "business_id": business_id, 
+            "business_name": client.config['name'],
+            "invoice_count": len(formatted_invoices),
+            "invoices": formatted_invoices
+        }
     except Exception as e:
         return {
             "success": False,
@@ -80,68 +106,187 @@ def xero_get_invoices(business_id: int = 1, status: Optional[str] = None,
 
 
 def xero_get_invoice_by_id(business_id: int = 1, invoice_id: str = None, **kwargs) -> Dict[str, Any]:
+    """Get specific invoice by ID from Xero."""
     try:
         if not invoice_id:
             raise ValueError('invoice_id is required')
         client = _get_client(business_id)
-        token = _extract_token(kwargs)
-        if hasattr(client, 'get_invoice_by_id'):
-            inv = client.get_invoice_by_id(invoice_id=invoice_id, access_token=token)
-        else:
-            raise RuntimeError('XeroAPIClient does not implement get_invoice_by_id')
-        return {"success": True, "invoice": inv}
+        
+        # Use make_request to get invoice by ID
+        data = client.make_request('GET', f'Invoices/{invoice_id}')
+        invoices = data.get('Invoices', [])
+        
+        if not invoices:
+            return {
+                "success": False,
+                "error": f"Invoice not found: {invoice_id}"
+            }
+        
+        invoice = invoices[0]
+        
+        return {
+            "success": True,
+            "business_id": business_id,
+            "business_name": client.config['name'],
+            "invoice": {
+                'invoice_id': invoice.get('InvoiceID'),
+                'invoice_number': invoice.get('InvoiceNumber'),
+                'contact_name': invoice.get('Contact', {}).get('Name'),
+                'date': invoice.get('Date'),
+                'due_date': invoice.get('DueDate'),
+                'status': invoice.get('Status'),
+                'total': invoice.get('Total'),
+                'amount_due': invoice.get('AmountDue'),
+                'amount_paid': invoice.get('AmountPaid'),
+                'currency': invoice.get('CurrencyCode'),
+                'line_items': invoice.get('LineItems', [])
+            }
+        }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
 def xero_get_contacts(business_id: int = 1, search: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    """Get contacts (customers/suppliers) from Xero."""
     try:
         client = _get_client(business_id)
-        token = _extract_token(kwargs)
-        if hasattr(client, 'get_contacts'):
-            contacts = client.get_contacts(search=search, access_token=token)
-        else:
-            raise RuntimeError('XeroAPIClient does not implement get_contacts')
-        return {"success": True, "business_id": business_id, "contacts": contacts}
+        
+        params = {}
+        if search:
+            params['where'] = f'Name.Contains("{search}")'
+        
+        # Use make_request to get contacts
+        data = client.make_request('GET', 'Contacts', params=params)
+        contacts = data.get('Contacts', [])
+        
+        # Format contacts for AI consumption
+        formatted_contacts = []
+        for contact in contacts:
+            formatted_contacts.append({
+                'contact_id': contact.get('ContactID'),
+                'name': contact.get('Name'),
+                'email': contact.get('EmailAddress'),
+                'phone': contact.get('PhoneNumbers', [{}])[0].get('PhoneNumber') if contact.get('PhoneNumbers') else None,
+                'is_customer': contact.get('IsCustomer'),
+                'is_supplier': contact.get('IsSupplier')
+            })
+        
+        return {
+            "success": True,
+            "business_id": business_id,
+            "business_name": client.config['name'],
+            "contact_count": len(formatted_contacts),
+            "contacts": formatted_contacts
+        }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
 def xero_get_accounts(business_id: int = 1, **kwargs) -> Dict[str, Any]:
+    """Get chart of accounts from Xero."""
     try:
         client = _get_client(business_id)
-        token = _extract_token(kwargs)
-        if hasattr(client, 'get_accounts'):
-            accounts = client.get_accounts(access_token=token)
-        else:
-            raise RuntimeError('XeroAPIClient does not implement get_accounts')
-        return {"success": True, "business_id": business_id, "accounts": accounts}
+        
+        # Use make_request to get accounts
+        data = client.make_request('GET', 'Accounts')
+        accounts = data.get('Accounts', [])
+        
+        # Format accounts for AI consumption
+        formatted_accounts = []
+        for account in accounts:
+            formatted_accounts.append({
+                'account_id': account.get('AccountID'),
+                'code': account.get('Code'),
+                'name': account.get('Name'),
+                'type': account.get('Type'),
+                'tax_type': account.get('TaxType'),
+                'enable_payments': account.get('EnablePaymentsToAccount')
+            })
+        
+        return {
+            "success": True,
+            "business_id": business_id,
+            "business_name": client.config['name'],
+            "account_count": len(formatted_accounts),
+            "accounts": formatted_accounts
+        }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
 def xero_get_bank_transactions(business_id: int = 1, from_date: Optional[str] = None,
                                to_date: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    """Get bank transactions from Xero."""
     try:
         client = _get_client(business_id)
-        token = _extract_token(kwargs)
-        if hasattr(client, 'get_bank_transactions'):
-            txns = client.get_bank_transactions(from_date=from_date, to_date=to_date, access_token=token)
-        else:
-            raise RuntimeError('XeroAPIClient does not implement get_bank_transactions')
-        return {"success": True, "business_id": business_id, "bank_transactions": txns}
+        
+        params = {}
+        where_clauses = []
+        if from_date:
+            where_clauses.append(f'Date>=DateTime({from_date})')
+        if to_date:
+            where_clauses.append(f'Date<=DateTime({to_date})')
+        
+        if where_clauses:
+            params['where'] = ' AND '.join(where_clauses)
+        
+        # Use make_request to get bank transactions
+        data = client.make_request('GET', 'BankTransactions', params=params)
+        transactions = data.get('BankTransactions', [])
+        
+        # Format transactions for AI consumption
+        formatted_transactions = []
+        for txn in transactions:
+            formatted_transactions.append({
+                'transaction_id': txn.get('BankTransactionID'),
+                'date': txn.get('Date'),
+                'type': txn.get('Type'),
+                'contact_name': txn.get('Contact', {}).get('Name'),
+                'total': txn.get('Total'),
+                'status': txn.get('Status')
+            })
+        
+        return {
+            "success": True,
+            "business_id": business_id,
+            "business_name": client.config['name'],
+            "transaction_count": len(formatted_transactions),
+            "transactions": formatted_transactions
+        }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
 def xero_get_payments(business_id: int = 1, invoice_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    """Get payment records from Xero."""
     try:
         client = _get_client(business_id)
-        token = _extract_token(kwargs)
-        if hasattr(client, 'get_payments'):
-            payments = client.get_payments(invoice_id=invoice_id, access_token=token)
-        else:
-            raise RuntimeError('XeroAPIClient does not implement get_payments')
-        return {"success": True, "business_id": business_id, "payments": payments}
+        
+        params = {}
+        if invoice_id:
+            params['where'] = f'Invoice.InvoiceID==Guid("{invoice_id}")'
+        
+        # Use make_request to get payments
+        data = client.make_request('GET', 'Payments', params=params)
+        payments = data.get('Payments', [])
+        
+        # Format payments for AI consumption
+        formatted_payments = []
+        for payment in payments:
+            formatted_payments.append({
+                'payment_id': payment.get('PaymentID'),
+                'date': payment.get('Date'),
+                'amount': payment.get('Amount'),
+                'invoice_number': payment.get('Invoice', {}).get('InvoiceNumber'),
+                'status': payment.get('Status')
+            })
+        
+        return {
+            "success": True,
+            "business_id": business_id,
+            "business_name": client.config['name'],
+            "payment_count": len(formatted_payments),
+            "payments": formatted_payments
+        }
     except Exception as e:
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}

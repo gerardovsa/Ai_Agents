@@ -100,6 +100,8 @@ from routes.account_linking_routes import account_linking_bp  # NEW: Account lin
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
 from routes.database_visualizer_routes import database_visualizer_bp  # NEW: Database visualizer module
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
+from routes.scheduler_routes import scheduler_bp  # NEW: AI Automation Scheduler
+from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
 
 # Optional: InHousePrint production workflow (requires pymssql)
 try:
@@ -209,6 +211,14 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to add refresh_attempts column: {e}")
 
+# Initialize automation tables
+try:
+    from routes.automation_routes import init_automation_tables
+    init_automation_tables()
+    log_success(logger, "Automation tables initialized (visual_automations, automation_executions)")
+except Exception as e:
+    log_error(logger, f"Failed to initialize automation tables: {e}")
+
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp)                                     # Working agent routes with async support
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
@@ -224,6 +234,8 @@ app.register_blueprint(account_linking_bp)                           # NEW: Acco
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
 app.register_blueprint(database_visualizer_bp)                       # NEW: Database visualizer (5 endpoints)
 app.register_blueprint(synergy_bp)                                   # NEW: Synergy Dashboard (6 endpoints: /api/synergy/*)
+app.register_blueprint(scheduler_bp)                                 # NEW: AI Automation Scheduler (10 endpoints: /api/scheduler/*)
+app.register_blueprint(automation_bp)                                # NEW: Visual Automation Canvas (9 endpoints: /api/automation/*)
 if INHOUSE_KANBAN_AVAILABLE:
     app.register_blueprint(inhouse_kanban_bp)                        # NEW: InHousePrint production workflow (5 endpoints)
 app.register_blueprint(kanban_analytics_bp)                          # NEW: Kanban Analytics SQLite (15 endpoints: /api/kanban-analytics/*)
@@ -1242,6 +1254,20 @@ def internal_error(error):
 # SERVE UI (STATIC FILES)
 # ============================================================================
 # UI route already defined above at line 72-80 - no duplicate needed
+
+# ============================================================================
+# START SCHEDULER
+# ============================================================================
+
+# Initialize and start automation scheduler
+from scheduler import start_scheduler
+try:
+    scheduler = start_scheduler()
+    log_success(logger, "Automation scheduler started")
+except Exception as e:
+    log_error(logger, f"Failed to start scheduler: {e}")
+    import traceback
+    log_error(logger, traceback.format_exc())
 
 # ============================================================================
 # RUN APP

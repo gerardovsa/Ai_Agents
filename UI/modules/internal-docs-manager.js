@@ -291,28 +291,46 @@ class InternalDocsManager {
                     linked_to_ai: data.linked_to_ai
                 };
 
-                // Update popup title with editable input
+                // Format creation date
+                const createdDate = doc.created_at ? new Date(doc.created_at) : new Date();
+                const formattedDate = createdDate.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Update popup title with editable input (20px font, auto-width)
                 popup.titleElement.innerHTML = `
-                    <div style="display: flex; flex-direction: column; width: 100%;">
-                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                            <i class="fas fa-${doc.doc_type === 'spreadsheet' ? 'table' : 'file-alt'}"></i>
+                    <div style="display: flex; flex-direction: column; flex: 1; gap: 6px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-${doc.doc_type === 'spreadsheet' ? 'table' : 'file-alt'}" style="font-size: 18px; color: var(--accent-primary);"></i>
                             <input type="text" value="${doc.title || 'Untitled'}" 
                                 id="doc-title-edit-${docId}"
                                 style="background: transparent; border: none; color: var(--text-primary); 
-                                font-size: 14px; font-weight: 600; flex: 1; padding: 4px 8px; border-radius: 4px;"
+                                font-size: 20px; font-weight: 600; padding: 4px 8px; border-radius: 4px; width: auto; min-width: 150px; max-width: 600px;"
                                 onblur="window.internalDocsManager.updateDocumentTitle('${docId}', this.value)"
+                                oninput="this.style.width = Math.max(150, Math.min(600, (this.value.length * 12) + 20)) + 'px'"
                                 onkeypress="if(event.key==='Enter'){this.blur();}">
-                            <span class="doc-type-badge">${doc.doc_type === 'spreadsheet' ? 'Spreadsheet' : 'Document'}</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); margin-top: 4px; padding-left: 24px;">
-                            <i class="fas fa-folder" style="font-size: 10px;"></i>
-                            <span>Session: ${doc.session_id}</span>
-                            <span style="margin: 0 4px;">•</span>
-                            <span>Doc ID: ${doc.doc_id}</span>
-                            <span style="margin: 0 4px;">•</span>
-                            <i class="fas fa-link" style="font-size: 10px;"></i>
-                            <span id="doc-share-url-${docId}" style="color: var(--accent-primary); cursor: pointer;" onclick="window.internalDocsManager.copyDocumentUrl('${docId}')" title="Click to copy share URL">Loading URL...</span>
+                        <div style="display: flex; align-items: center; gap: 8px; padding-left: 30px;">
+                            <i class="fas fa-clock" style="font-size: 10px; color: var(--text-muted);"></i>
+                            <span style="color: var(--text-muted); font-size: 11px;">Created ${formattedDate}</span>
                         </div>
+                        <details style="padding-left: 30px; margin-top: 4px;" ${doc.description ? 'open' : ''}>
+                            <summary style="cursor: pointer; color: var(--text-muted); font-size: 11px; user-select: none;">
+                                <i class="fas fa-align-left" style="font-size: 10px; margin-right: 4px;"></i>
+                                Description
+                            </summary>
+                            <div style="margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; border-left: 3px solid var(--accent-primary);">
+                                <textarea id="doc-description-${docId}" 
+                                    placeholder="Add a description for this ${doc.doc_type}..."
+                                    style="width: 100%; min-height: 60px; background: transparent; border: none; color: var(--text-primary); font-size: 12px; resize: vertical; padding: 4px;"
+                                    onblur="window.internalDocsManager.updateDocumentDescription('${docId}', this.value)"
+                                    onclick="event.stopPropagation()">${doc.description || ''}</textarea>
+                            </div>
+                        </details>
                     </div>
                 `;
 
@@ -326,13 +344,26 @@ class InternalDocsManager {
                 // Load and display share URL
                 this.loadShareUrl(docId);
 
-                // Update footer with save status
+                // Update footer with save status and metadata row
                 popup.footerLeftElement.innerHTML = `
-                    <div class="save-status saved">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Saved</span>
+                    <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="save-status saved">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Saved</span>
+                            </div>
+                            <span style="color: var(--text-muted); font-size: 11px;">Version ${doc.version || 1}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted);">
+                            <i class="fas fa-folder" style="font-size: 10px;"></i>
+                            <span>Session: ${doc.session_id}</span>
+                            <span style="margin: 0 4px;">•</span>
+                            <span>Doc ID: ${doc.doc_id}</span>
+                            <span style="margin: 0 4px;">•</span>
+                            <i class="fas fa-link" style="font-size: 10px;"></i>
+                            <span id="doc-share-url-${docId}" style="color: var(--accent-primary); cursor: pointer;" onclick="window.internalDocsManager.copyDocumentUrl('${docId}')" title="Click to copy share URL">/internal-docs/${docId}</span>
+                        </div>
                     </div>
-                    <span style="color: var(--text-muted); font-size: 11px;">Version ${doc.version || 1}</span>
                 `;
             } else {
                 popup.bodyElement.innerHTML = `
@@ -1246,6 +1277,34 @@ Note: Use the document slug "${slug}" to reference this document in Synergy sess
         } catch (error) {
             console.error('Error updating title:', error);
             alert('Failed to update title');
+        }
+    }
+
+    /**
+     * Update document description
+     */
+    async updateDocumentDescription(docId, newDescription) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-ID': String(this.currentUser.user_id)
+                },
+                body: JSON.stringify({
+                    description: newDescription
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('✅ Description updated');
+            } else {
+                console.error('Failed to update description:', data.error);
+            }
+        } catch (error) {
+            console.error('Error updating description:', error);
         }
     }
 
