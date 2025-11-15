@@ -57,7 +57,7 @@ for db in DATABASES:
         # Validate FILE_ID format
         if re.match(r'^[a-zA-Z0-9_-]+$', file_id):
             file_ids[db['name']] = file_id
-            print(f"  ✓ Got FILE_ID: {file_id}")
+            print(f"  [OK] Got FILE_ID: {file_id}")
             break
         else:
             print(f"  ✗ Invalid FILE_ID format. Try again.")
@@ -139,7 +139,7 @@ print("=" * 80)
 print("STEP 3: Next Actions")
 print("=" * 80)
 print()
-print(f"✓ Commands saved to: {output_file}")
+print(f"[OK] Commands saved to: {output_file}")
 print()
 print("TO EXECUTE:")
 print("1. Go to: https://dashboard.render.com/web/srv-d4b2723uibrs73ff02t0/shell")

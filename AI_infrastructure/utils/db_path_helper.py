@@ -59,6 +59,22 @@ def get_stock_db_path() -> str:
         return str(root_dir / 'data' / 'stock.db')
 
 
+def get_synergy_sessions_db_path() -> str:
+    """
+    Get path to synergy_sessions.db
+    
+    Returns:
+        - /data/synergy_sessions.db on Render (persistent disk)
+        - <project_root>/data/synergy_sessions.db locally
+    """
+    if os.getenv('RENDER') == 'true':
+        return '/data/synergy_sessions.db'
+    else:
+        # Calculate from this file: AI_infrastructure/utils/db_path_helper.py -> AI_agents/
+        root_dir = Path(__file__).parent.parent.parent
+        return str(root_dir / 'data' / 'synergy_sessions.db')
+
+
 def ensure_data_directory():
     """
     Ensure /data directory exists with proper permissions on Render

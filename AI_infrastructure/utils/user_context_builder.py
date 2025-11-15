@@ -105,11 +105,15 @@ def build_user_context(user_id: int, ip_address: Optional[str] = None) -> Dict:
         try:
             from pathlib import Path
             import sqlite3
+            import sys
             
-            from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
-            db_path = get_ai_infrastructure_db_path()
-            conn = sqlite3.connect(str(db_path))
-            conn.row_factory = sqlite3.Row
+            # Add parent directory for imports
+            sys.path.insert(0, str(Path(__file__).parent.parent))
+            from shared.database_utils import get_database_connection
+            
+            conn = get_database_connection('ai_infrastructure')
+            if hasattr(conn, 'row_factory'):  # SQLite
+                conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             cursor.execute("""

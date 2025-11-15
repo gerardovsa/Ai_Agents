@@ -52,7 +52,7 @@ def init_ai_infrastructure_db():
         db_path = Path(__file__).parent.parent.parent / 'data' / 'ai_infrastructure.db'
     
     if not database_needs_initialization(db_path):
-        print(f"✅ ai_infrastructure.db already initialized (has tables)")
+        print(f"[OK] ai_infrastructure.db already initialized (has tables)")
         return
     
     print(f"🔧 Initializing ai_infrastructure.db at {db_path}")
@@ -69,7 +69,7 @@ def init_ai_infrastructure_db():
         conn.executescript(schema_sql)
         conn.close()
         
-        print(f"✅ Initialized ai_infrastructure.db with existing schema")
+        print(f"[OK] Initialized ai_infrastructure.db with existing schema")
     else:
         print(f"⚠️ Schema file not found, creating empty database")
         conn = sqlite3.connect(db_path)
@@ -83,7 +83,7 @@ def init_sessions_db():
         db_path = Path(__file__).parent.parent.parent / 'data' / 'sessions.db'
     
     if not database_needs_initialization(db_path):
-        print(f"✅ sessions.db already initialized")
+        print(f"[OK] sessions.db already initialized")
         return
     
     print(f"🔧 Initializing sessions.db at {db_path}")
@@ -105,7 +105,7 @@ def init_sessions_db():
     conn.commit()
     conn.close()
     
-    print(f"✅ Initialized sessions.db")
+    print(f"[OK] Initialized sessions.db")
 
 def init_stock_db():
     """Initialize stock_data.db (InHousePrint inventory)"""
@@ -115,7 +115,7 @@ def init_stock_db():
         db_path = Path(__file__).parent.parent.parent / 'data' / 'stock_data.db'
     
     if not database_needs_initialization(db_path):
-        print(f"✅ stock_data.db already initialized")
+        print(f"[OK] stock_data.db already initialized")
         return
     
     print(f"🔧 Initializing stock_data.db at {db_path}")
@@ -124,7 +124,7 @@ def init_stock_db():
     conn = sqlite3.connect(db_path)
     conn.close()
     
-    print(f"✅ Created stock_data.db (will be populated on first use)")
+    print(f"[OK] Created stock_data.db (will be populated on first use)")
 
 def init_synergy_db():
     """Initialize synergy_sessions.db"""
@@ -134,7 +134,7 @@ def init_synergy_db():
         db_path = Path(__file__).parent.parent.parent / 'data' / 'synergy_sessions.db'
     
     if not database_needs_initialization(db_path):
-        print(f"✅ synergy_sessions.db already initialized")
+        print(f"[OK] synergy_sessions.db already initialized")
         return
     
     print(f"🔧 Initializing synergy_sessions.db at {db_path}")
@@ -142,7 +142,7 @@ def init_synergy_db():
     conn = sqlite3.connect(db_path)
     conn.close()
     
-    print(f"✅ Created synergy_sessions.db")
+    print(f"[OK] Created synergy_sessions.db")
 
 def main():
     """Initialize all databases on first deployment"""
@@ -162,7 +162,7 @@ def main():
     init_synergy_db()
     
     print("=" * 60)
-    print("✅ Database initialization complete!")
+    print("[OK] Database initialization complete!")
     print("=" * 60)
 
 if __name__ == '__main__':

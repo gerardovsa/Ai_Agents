@@ -6,9 +6,13 @@ Generates unique, collision-resistant slugs for workspaces and threads.
 
 import re
 import sqlite3
+import sys
 import secrets
 from typing import Optional, Set
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.database_utils import get_database_connection
 
 
 class SlugGenerator:
@@ -47,10 +51,11 @@ class SlugGenerator:
         
         self.db_path = str(db_path)
     
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+    def _get_connection(self):
+        """Get database connection (SQLite or Supabase)"""
+        conn = get_database_connection('ai_infrastructure')
+        if hasattr(conn, 'row_factory'):  # SQLite
+            conn.row_factory = sqlite3.Row
         return conn
     
     def _slugify(self, text: str) -> str:

@@ -175,7 +175,22 @@ class SupabaseMigration:
                 for col in table_info['columns']:
                     col_id, col_name, col_type, not_null, default_val, is_pk = col
                     
-                    pg_type = self.sqlite_to_postgresql_type(col_type)
+                    # Special handling for columns with mixed INTEGER/TEXT data
+                    if db_name == 'sessions' and table_name == 'threads' and col_name == 'synergy_card_id':
+                        pg_type = 'TEXT'  # Contains session IDs like "sess_20251101_1410..."
+                    elif db_name == 'stock_data' and table_name == 'extracted_jobs' and col_name == 'stock_id':
+                        pg_type = 'TEXT'  # Contains values like "TEMP_unknown_0", "T1", and integers
+                    elif db_name == 'stock_data' and table_name == 'extracted_jobs' and col_name == 'color_pages':
+                        pg_type = 'TEXT'  # Contains descriptive text like "9 pages color, 231 pages B&W"
+                    elif db_name == 'stock_data' and table_name == 'extracted_jobs' and col_name == 'bw_pages':
+                        pg_type = 'TEXT'  # May contain descriptive text
+                    elif db_name == 'stock_data' and (table_name == 'extracted_jobs' or table_name == 'unified_stocks') and col_name == 'gsm':
+                        pg_type = 'TEXT'  # Contains "mixed", "custom" and integer values
+                    elif db_name == 'stock_data' and table_name == 'unified_stocks' and col_name == 'durability_rating':
+                        pg_type = 'TEXT'  # Contains descriptive ratings like "2 - Medium-term Indoor (6-24 months...)"
+                    else:
+                        pg_type = self.sqlite_to_postgresql_type(col_type)
+                    
                     col_def = f'"{col_name}" {pg_type}'
                     
                     if not_null:
@@ -216,10 +231,10 @@ class SupabaseMigration:
                     columns.append(f'PRIMARY KEY ({pk_cols})')
                 
                 # Drop table if exists (for clean migration)
-                cursor.execute(f'DROP TABLE IF EXISTS {full_table} CASCADE')
+                cursor.execute(f'DROP TABLE IF EXISTS "{schema_name}"."{table_name}" CASCADE')
                 
                 # Create table
-                create_sql = f'CREATE TABLE {full_table} (\n  ' + ',\n  '.join(columns) + '\n)'
+                create_sql = f'CREATE TABLE "{schema_name}"."{table_name}" (\n  ' + ',\n  '.join(columns) + '\n)'
                 cursor.execute(create_sql)
                 
                 print(f"  ✓ Created table: {full_table}")
@@ -271,8 +286,8 @@ class SupabaseMigration:
                 column_names = [col[1] for col in table_info['columns']]
                 column_types = {col[1]: self.sqlite_to_postgresql_type(col[2]) for col in table_info['columns']}
                 
-                # Prepare PostgreSQL insert
-                full_table = f'{schema_name}.{table_name}'
+                # Prepare PostgreSQL insert (quote table name to preserve case)
+                full_table = f'"{schema_name}"."{table_name}"'
                 columns_str = ', '.join([f'"{col}"' for col in column_names])
                 
                 # Convert rows to tuples with type casting
@@ -328,7 +343,7 @@ class SupabaseMigration:
         
         for table_name, table_info in analysis['tables'].items():
             expected_count = table_info['row_count']
-            full_table = f'{schema_name}.{table_name}'
+            full_table = f'"{schema_name}"."{table_name}"'
             
             cursor.execute(f'SELECT COUNT(*) FROM {full_table}')
             actual_count = cursor.fetchone()[0]
@@ -460,7 +475,7 @@ def load_credentials_from_env_master():
     
     # Extract Supabase credentials
     supabase_url = credentials.get('SUPABASE_URL')
-    supabase_key = credentials.get('SUPABASE_SERVICE_ROLE_SECRET')  # Use service role for migration
+    supabase_key = credentials.get('SUPABASE_SERVICE_KEY')  # Use service role for migration
     supabase_db_url = credentials.get('SUPABASE_DB_URL')
     project_name = credentials.get('SUPABASE_PROJECT_NAME', 'Unknown')
     
@@ -468,7 +483,7 @@ def load_credentials_from_env_master():
         print("\n✗ Error: Missing Supabase credentials in .env.master")
         print("Required:")
         print("  - SUPABASE_URL")
-        print("  - SUPABASE_SERVICE_ROLE_SECRET")
+        print("  - SUPABASE_SERVICE_KEY")
         print("  - SUPABASE_DB_URL")
         sys.exit(1)
     

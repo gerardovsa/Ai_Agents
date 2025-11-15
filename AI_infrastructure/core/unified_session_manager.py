@@ -55,8 +55,10 @@ class UnifiedSessionManager:
         self.queues: Dict[str, Queue] = {}        # {session_id: Queue()}
         self.locks: Dict[str, threading.Lock] = {}  # {session_id: Lock()}
         
-        # DO NOT create directory - data folder must already exist
-        # Centralized database location: AI_agents/data/
+        # Ensure data directory exists (CRITICAL for first-time setup)
+        from pathlib import Path
+        db_dir = Path(self.db_path).parent
+        db_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize database (tables only)
         self._init_db()

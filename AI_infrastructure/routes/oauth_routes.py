@@ -12,6 +12,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
+from shared.database_utils import get_database_connection
 
 # Add parent directory to path
 import sys
@@ -167,8 +168,7 @@ def oauth_workspace_callback():
         from pathlib import Path
         # CORRECT: Use data/ai_infrastructure.db (not AI_infrastructure/ai_infrastructure.db)
         root_dir = Path(__file__).parent.parent.parent
-        db_path = root_dir / 'data' / 'ai_infrastructure.db'
-        conn = sqlite3.connect(str(db_path))
+        conn = get_database_connection('ai_infrastructure')
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         

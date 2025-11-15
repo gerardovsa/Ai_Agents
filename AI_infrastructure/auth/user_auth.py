@@ -68,7 +68,7 @@ class UserAuthManager:
     
     def __init__(self, db_path: str = None):
         if db_path is None:
-            from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
+            from utils.db_path_helper import get_ai_infrastructure_db_path
             db_path = get_ai_infrastructure_db_path()
         self.db_path = str(db_path)
         self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
@@ -211,18 +211,34 @@ class UserAuthManager:
                     ''')
                     
                     # NEW: Platform credentials table (stores API keys/tokens per user per platform)
+                    # 
+                    # PURPOSE: Non-OAuth credentials (API keys, secrets, custom tokens)
+                    # DIFFERS FROM oauth_tokens: Static credentials vs OAuth flow with auto-refresh
+                    # 
+                    # USE CASES:
+                    # - Stripe API keys (pk_live_..., sk_live_...)
+                    # - SendGrid API keys
+                    # - AWS credentials (access_key_id, secret_access_key)
+                    # - GitHub personal access tokens
+                    # - Twilio account SID + auth token
+                    # - Custom REST API bearer tokens
+                    # - Per-user database credentials
+                    # 
+                    # SECURITY: credential_value MUST be encrypted (use AES-256)
+                    # See: docs/DATABASE_CREDENTIALS_ARCHITECTURE.md
+                    #
                     cursor.execute('''
                         CREATE TABLE IF NOT EXISTS user_platform_credentials (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             user_id INTEGER NOT NULL,
-                            platform TEXT NOT NULL,
-                            credential_type TEXT NOT NULL,
-                            credential_key TEXT NOT NULL,
-                            credential_value TEXT NOT NULL,
+                            platform TEXT NOT NULL,              -- 'stripe', 'sendgrid', 'aws', 'github', etc.
+                            credential_type TEXT NOT NULL,       -- 'api_key', 'secret', 'token', 'password'
+                            credential_key TEXT NOT NULL,        -- Public key (e.g., Stripe pk_live_...)
+                            credential_value TEXT NOT NULL,      -- Private key (MUST BE ENCRYPTED!)
                             is_active BOOLEAN DEFAULT 1,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            metadata TEXT,
+                            metadata TEXT,                       -- JSON: environment, region, extra config
                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                             UNIQUE(user_id, platform, credential_key)
                         )

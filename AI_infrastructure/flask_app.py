@@ -42,6 +42,9 @@ if os.path.exists(env_file_path):
 else:
     log_config(logger, "Using environment variables from system (production/Render)")
 
+# Import centralized database connection utility
+from shared.database_utils import get_database_connection
+
 log_config(logger, f"ANTHROPIC_API_KEY: {'SET' if os.getenv('ANTHROPIC_API_KEY') else 'NOT SET'}")
 log_config(logger, f"OPENAI_API_KEY: {'SET' if os.getenv('OPENAI_API_KEY') else 'NOT SET'}")
 log_config(logger, f"DEEPSEEK_API_KEY_1: {'SET' if os.getenv('DEEPSEEK_API_KEY_1') else 'NOT SET'}")
@@ -149,13 +152,22 @@ try:
     from auth.user_auth import user_auth_manager
     log_success(logger, f"User authentication tables initialized at {user_auth_manager.db_path}")
     # Verify tables actually exist
-    import sqlite3
-    conn = sqlite3.connect(user_auth_manager.db_path)
+    conn = get_database_connection('ai_infrastructure')
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = [row[0] for row in cursor.fetchall()]
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'" if str(type(conn).__name__) == 'Connection' else "SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
+    rows = cursor.fetchall()
+    # Handle both SQLite (tuples) and PostgreSQL (tuples or DictRow)
+    if rows and len(rows) > 0:
+        # Try to access first element - works for both tuples and postgres rows
+        try:
+            tables = [row[0] if isinstance(row, (tuple, list)) else row['name' if 'name' in row else 'tablename'] for row in rows]
+        except (KeyError, TypeError, IndexError):
+            # Fallback: just get first item from each row
+            tables = [list(row.values())[0] if hasattr(row, 'values') else row[0] for row in rows]
+    else:
+        tables = []
     conn.close()
-    log_success(logger, f"Database tables verified: {', '.join(tables)}")
+    log_success(logger, f"Database tables verified: {len(tables)} tables found")
 except Exception as e:
     log_error(logger, f"Failed to initialize user authentication: {e}")
     import traceback

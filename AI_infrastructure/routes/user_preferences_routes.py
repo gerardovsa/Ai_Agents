@@ -40,6 +40,7 @@ from datetime import datetime
 import logging
 import jwt
 from pathlib import Path
+from shared.database_utils import get_database_connection
 from AI_infrastructure.core.ip_location import build_geolocation_context
 
 logging.basicConfig(level=logging.INFO)
@@ -51,9 +52,10 @@ user_preferences_bp = Blueprint('user_preferences', __name__, url_prefix='/api/u
 def get_db_connection():
     """Get database connection to ai_infrastructure.db in data/ folder"""
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
+    conn = get_database_connection('ai_infrastructure')
+    # Set row_factory only for SQLite (PostgreSQL doesn't support this attribute)
+    if hasattr(conn, 'row_factory'):
+        conn.row_factory = sqlite3.Row
     return conn
 
 

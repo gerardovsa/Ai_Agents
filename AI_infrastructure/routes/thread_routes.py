@@ -1257,6 +1257,7 @@ def delete_assignment(location):
     try:
         import sqlite3
         from pathlib import Path
+        from shared.database_utils import get_database_connection
         import json
         
         # Clean location (remove extra spaces)
@@ -1287,9 +1288,7 @@ def delete_assignment(location):
         
         # FIXED: Use sessions.db with users.metadata column (same as thread_assignment_routes.py)
         root_dir = Path(__file__).parent.parent.parent
-        db_path = root_dir / 'data' / 'sessions.db'
-        
-        conn = sqlite3.connect(str(db_path))
+        conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
         # Ensure user row exists

@@ -18,6 +18,17 @@ from datetime import datetime, timedelta
 import logging
 import sys
 import jwt
+from pathlib import Path
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Import database utility with auto-detection
+from shared.database_utils import (
+    get_ai_infrastructure_connection, 
+    is_using_supabase,
+    adapt_sql_for_database
+)
 
 # No sys.path.append needed - utils is in same parent directory
 from utils.email_alias_helpers import (
@@ -34,12 +45,14 @@ logger = logging.getLogger(__name__)
 account_linking_bp = Blueprint('account_linking', __name__, url_prefix='/api/account')
 
 def get_db_connection():
-    """Get database connection to ai_infrastructure.db in data/ folder (CORRECT LOCATION)"""
-    from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
-    db_path = get_ai_infrastructure_db_path()
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """
+    Get database connection to ai_infrastructure database
+    
+    Auto-detects environment:
+    - Local dev: SQLite in data/ai_infrastructure.db
+    - Render: Supabase PostgreSQL (ai_infrastructure schema)
+    """
+    return get_ai_infrastructure_connection()
 
 def verify_jwt_token(token):
     """Verify JWT token and return payload"""
@@ -56,11 +69,16 @@ def verify_jwt_token(token):
 
 def init_account_linking_tables():
     """Initialize account linking tables if they don't exist"""
+    # Skip initialization if using Supabase (tables already migrated)
+    if is_using_supabase():
+        logger.info("[INIT] Using Supabase - skipping table creation (already migrated)")
+        return
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Table for linked accounts
-    cursor.execute('''
+    # Table for linked accounts (with database-specific SQL)
+    sql_user_account_links = adapt_sql_for_database('''
         CREATE TABLE IF NOT EXISTS user_account_links (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             primary_user_id INTEGER NOT NULL,
@@ -76,9 +94,10 @@ def init_account_linking_tables():
             UNIQUE(primary_user_id, linked_user_id)
         )
     ''')
+    cursor.execute(sql_user_account_links)
     
-    # Table for pending link requests
-    cursor.execute('''
+    # Table for pending link requests (with database-specific SQL)
+    sql_account_link_requests = adapt_sql_for_database('''
         CREATE TABLE IF NOT EXISTS account_link_requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -91,12 +110,19 @@ def init_account_linking_tables():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ''')
+    cursor.execute(sql_account_link_requests)
     
     # Add is_primary field to users table if not exists
     try:
-        cursor.execute('ALTER TABLE users ADD COLUMN is_primary BOOLEAN DEFAULT 1')
-    except sqlite3.OperationalError:
-        pass  # Column already exists
+        if is_using_supabase():
+            # PostgreSQL syntax
+            cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT true')
+        else:
+            # SQLite syntax
+            cursor.execute('ALTER TABLE users ADD COLUMN is_primary BOOLEAN DEFAULT 1')
+    except (sqlite3.OperationalError, Exception) as e:
+        # Column already exists or other error - safe to ignore
+        pass
     
     conn.commit()
     conn.close()

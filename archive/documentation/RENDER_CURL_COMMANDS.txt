@@ -1,0 +1,35 @@
+RENDER SHELL COMMANDS - Copy/Paste These
+==========================================
+
+Navigate to /data:
+cd /data
+
+Create backup (optional):
+mkdir -p backup_$(date +%Y%m%d_%H%M%S) && cp *.db backup_$(date +%Y%m%d_%H%M%S)/ 2>/dev/null
+
+Download sessions.db (NEW - with threads table):
+curl -L 'https://drive.google.com/uc?export=download&id=1rIdxHdtNA3EbX4qxMtmYCH54ABksXVOl' -o sessions.db
+
+Download synergy_sessions.db:
+curl -L 'https://drive.google.com/uc?export=download&id=1-oeXwkjnmmv1YhPkorfF1l8NKyAqzTpT' -o synergy_sessions.db
+
+Download ai_infrastructure.db:
+curl -L 'https://drive.google.com/uc?export=download&id=1-rPnKW17I0X4d0rm9QlLm_4713fgcmb9' -o ai_infrastructure.db
+
+Download kanban_analytics.db:
+curl -L 'https://drive.google.com/uc?export=download&id=1ER9szXpTqliIjRTsqdFTWoiFc3AfNI2R' -o kanban_analytics.db
+
+Download stock_data.db:
+curl -L 'https://drive.google.com/uc?export=download&id=1fd9Z0zJ_7ajg-Bu8sB3WM2bRSa1UmDVu' -o stock_data.db
+
+Verify downloads:
+ls -lh *.db
+
+Check threads table:
+sqlite3 sessions.db "SELECT COUNT(*) FROM threads;"
+
+==========================================
+Expected Output:
+- sessions.db should now have threads table
+- OAuth columns should exist in ai_infrastructure.db
+- File sizes: sessions.db ~0.71MB, ai_infrastructure.db ~0.61MB

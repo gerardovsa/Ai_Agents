@@ -44,7 +44,7 @@ Tables: 16
     device_fingerprint             TEXT           
       Examples: "", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Apple..."
     last_seen_at                   TIMESTAMP      
-      Examples: "2025-11-14 02:36:49", "2025-11-14 02:36:51", "2025-11-14 15:16:44"
+      Examples: "2025-11-14 02:36:49", "2025-11-14 02:36:51", "2025-11-15 00:37:08"
     created_at                     TIMESTAMP      
       Examples: "2025-11-14 02:35:34", "2025-11-14 02:35:36", "2025-11-14 03:25:31"
 
@@ -158,7 +158,7 @@ Tables: 16
     name                                          
       Examples: "users", "workspaces", "user_sessions"
     seq                                           
-      Examples: 14, 12, 566
+      Examples: 14, 12, 567
 
   TABLE: thread_lock_history - 11 rows
   ------------------------------------------------------------------------------------------------
@@ -332,7 +332,7 @@ Tables: 16
   Foreign Keys:
     user_id -> users.id
 
-  TABLE: user_sessions - 465 rows
+  TABLE: user_sessions - 466 rows
   ------------------------------------------------------------------------------------------------
     id                             INTEGER         [PK]
       Examples: 86, 114, 115
@@ -972,7 +972,7 @@ Trim size: A6 (scale file down from A4) Conten..."
 ####################################################################################################
 DATABASE: sessions.db
 Location: c:\Users\gpoli\GIT\AI_agents\data\sessions.db
-Size: 733,184 bytes
+Size: 745,472 bytes
 Tables: 11
 ####################################################################################################
 
@@ -2529,9 +2529,9 @@ Date: 2025-11-14", "", "
     created_by                     TEXT           
       Examples: "system"
     version                        INTEGER        
-      Examples: 1, 6, 2
+      Examples: 1, 13, 6
     content_json                   TEXT           
-      Examples: "{"type":"doc","content":[]}", "[]", "[["","","","","","","","","",""],["","","","asd..."
+      Examples: "{"type":"doc","content":[]}", "[]", "[["","","","","","","","","","",null],["","",""..."
     doc_type                       TEXT           
       Examples: "richtext", "spreadsheet"
     linked_to_ai                   BOOLEAN        
@@ -2618,7 +2618,7 @@ Date: 2025-11-14", "", "
 SCRIPT DATABASE ACCESS ANALYSIS
 ====================================================================================================
 
-Total scripts with database access: 449
+Total scripts with database access: 453
 
 
 ####################################################################################################
@@ -2668,7 +2668,7 @@ DIRECTORY: AI_infrastructure\auth
   Tables: AI_infrastructure, datetime, pathlib, typing, users
 
   FILE: user_auth.py (1442 lines)
-  Tables: AI_infrastructure, Authorization, DB, OAuth, datetime, dotenv, flask, functools, header, oauth_tokens
+  Tables: Authorization, DB, OAuth, datetime, dotenv, flask, functools, header, oauth_tokens, pathlib
 
 ####################################################################################################
 DIRECTORY: AI_infrastructure\builders
@@ -2808,14 +2808,14 @@ DIRECTORY: AI_infrastructure\migrations
 DIRECTORY: AI_infrastructure\routes
 ####################################################################################################
 
-  FILE: account_linking_routes.py (741 lines)
-  Tables: AI_infrastructure, JWT, account_link_requests, datetime, dotenv, flask, one, secondary, the, token
+  FILE: account_linking_routes.py (767 lines)
+  Tables: JWT, account_link_requests, datetime, dotenv, flask, one, pathlib, secondary, shared, the
 
-  FILE: agent_routes_v4.py (2323 lines)
+  FILE: agent_routes_v4.py (2313 lines)
   Tables: ALL, Claude, Feature, Flask, IP, In_House_SQL, JSON, JWT, agent, agent_state_manager
 
-  FILE: auth_routes.py (544 lines)
-  Tables: AI_infrastructure, auth, database, flask, linked, oauth_tokens, pathlib, system, user_platform_credentials, users
+  FILE: auth_routes.py (543 lines)
+  Tables: AI_infrastructure, auth, database, flask, linked, oauth_tokens, pathlib, shared, system, user_platform_credentials
 
   FILE: chat_routes.py (276 lines)
   Tables: PDF, core, datetime, flask
@@ -2837,6 +2837,13 @@ DIRECTORY: AI_infrastructure\routes
 
   FILE: file_routes.py (194 lines)
   Tables: config, flask, pathlib, utils
+
+####################################################################################################
+DIRECTORY: AI_infrastructure\shared
+####################################################################################################
+
+  FILE: database_utils.py (379 lines)
+  Tables: AI_infrastructure, dotenv, pathlib, project, psycopg2, typing, users
 
 ####################################################################################################
 DIRECTORY: AI_infrastructure\sync
@@ -2887,7 +2894,7 @@ DIRECTORY: AI_infrastructure\utils
   FILE: database_helpers.py (366 lines)
   Tables: concurrent, contextlib, pathlib, pool, sqlite_master, typing, users
 
-  FILE: db_path_helper.py (90 lines)
+  FILE: db_path_helper.py (106 lines)
   Tables: pathlib, this
 
   FILE: db_safety.py (190 lines)
@@ -2945,13 +2952,6 @@ DIRECTORY: AI_infrastructure\workspace
   FILE: workspace_manager.py (769 lines)
   Tables: AI_infrastructure, datetime, pathlib, sessions, typing, users, workspace, workspace_users, workspaces
 
-####################################################################################################
-DIRECTORY: ARCHIVE_OCT30_2025\test_scripts
-####################################################################################################
-
-  FILE: verify_stock_module.py (216 lines)
-  Tables: pathlib
-
 ====================================================================================================
 API ROUTES TO DATABASE CONNECTIONS
 ====================================================================================================
@@ -2962,22 +2962,10 @@ Total API routes: 195
 ####################################################################################################
 DATABASE: Get database connection to ai_infrastructure.db
 ####################################################################################################
-  /categories                                        Tables: pathlib, datetime
+  /categories                                        Tables: datetime, shared, pathlib
 
 ####################################################################################################
-DATABASE: ai_infrastructure.db
-####################################################################################################
-  /categories                                        Tables: pathlib, datetime
-  /details                                           Tables: pathlib, synergy_sessions, thread_assignments
-  /workspace/callback                                Tables: pathlib, credentials, googleapiclient
-
-####################################################################################################
-DATABASE: sessions.db
-####################################################################################################
-  /assignments/<location>                            Tables: pathlib, JWT, the
-
-####################################################################################################
-ROUTES WITHOUT EXPLICIT DATABASE (191 routes)
+ROUTES WITHOUT EXPLICIT DATABASE (194 routes)
 ####################################################################################################
   /link-status in account_linking_routes.py
   /initiate-link in account_linking_routes.py
@@ -2999,16 +2987,16 @@ ROUTES WITHOUT EXPLICIT DATABASE (191 routes)
 INCONSISTENCY DETECTION REPORT
 ====================================================================================================
 
-WARNING - Total Issues: 2582
-  HIGH: 2582
+WARNING - Total Issues: 2617
+  HIGH: 2617
   MEDIUM: 0
 
 
 ####################################################################################################
-HIGH SEVERITY (2582)
+HIGH SEVERITY (2617)
 ####################################################################################################
 
-  MISSING_TABLE (2582 issues):
+  MISSING_TABLE (2617 issues):
     ERROR: References non-existent table: pathlib
     File: AI_infrastructure\check_oauth_temp.py
     Table: pathlib
@@ -3017,37 +3005,37 @@ HIGH SEVERITY (2582)
     File: AI_infrastructure\check_schema.py
     Table: pathlib
 
-    ERROR: References non-existent table: environment
+    ERROR: References non-existent table: client
     File: AI_infrastructure\flask_app.py
-    Table: environment
+    Table: client
 
-    ERROR: References non-existent table: flask_socketio
+    ERROR: References non-existent table: utils
     File: AI_infrastructure\flask_app.py
-    Table: flask_socketio
+    Table: utils
+
+    ERROR: References non-existent table: pathlib
+    File: AI_infrastructure\flask_app.py
+    Table: pathlib
 
     ERROR: References non-existent table: migrations
     File: AI_infrastructure\flask_app.py
     Table: migrations
 
-    ERROR: References non-existent table: dotenv
+    ERROR: References non-existent table: flask
     File: AI_infrastructure\flask_app.py
-    Table: dotenv
+    Table: flask
 
-    ERROR: References non-existent table: client
+    ERROR: References non-existent table: init_prompt_library
     File: AI_infrastructure\flask_app.py
-    Table: client
+    Table: init_prompt_library
 
-    ERROR: References non-existent table: routes
+    ERROR: References non-existent table: flask_cors
     File: AI_infrastructure\flask_app.py
-    Table: routes
+    Table: flask_cors
 
-    ERROR: References non-existent table: room
+    ERROR: References non-existent table: AI_infrastructure
     File: AI_infrastructure\flask_app.py
-    Table: room
-
-    ERROR: References non-existent table: waitress
-    File: AI_infrastructure\flask_app.py
-    Table: waitress
+    Table: AI_infrastructure
 
 
 ####################################################################################################
@@ -3120,5 +3108,5 @@ COMMON ISSUES:
 
 ====================================================================================================
 ANALYSIS COMPLETE
-Generated: 2025-11-15 01:25:57
+Generated: 2025-11-15 11:47:59
 ====================================================================================================

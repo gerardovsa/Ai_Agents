@@ -4,7 +4,7 @@
 # Region: Singapore (optimized for Australia)
 # Deployment Type: Docker
 # Repository: gerardovsa/AI_agents
-# branch: v5
+# branch: v6
 
 services:
   # ==================== AI Agents Backend Service ====================
@@ -24,7 +24,7 @@ services:
     
     # Repository configuration (for reference only, image is pre-built)
     repo: https://github.com/gerardovsa/AI_agents
-    branch: v5
+    branch: v6
     
     # Deployment settings
     autoDeploy: true  # Auto-deploy on git push
@@ -45,6 +45,16 @@ services:
       # Flask configuration
       - key: PYTHONUNBUFFERED
         value: "1"
+      
+      # UTF-8 encoding for emoji support
+      - key: PYTHONIOENCODING
+        value: "utf-8"
+      
+      - key: LANG
+        value: "en_US.UTF-8"
+      
+      - key: LC_ALL
+        value: "en_US.UTF-8"
       
       - key: RENDER
         value: "true"
@@ -105,8 +115,23 @@ services:
         value: https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/calendar.readonly
       
       # ==================== Database Configuration ====================
-      # SQLite databases stored on persistent disk (10GB mounted at /data)
-      # Survives deployments and restarts
+      # Supabase PostgreSQL (Production) or SQLite (Local Dev)
+      # Controlled by USE_SUPABASE environment variable
+      
+      # Supabase Configuration (Production)
+      - key: USE_SUPABASE
+        value: "true"  # Enable Supabase PostgreSQL
+      
+      - key: SUPABASE_URL
+        sync: false  # Add manually: https://ryoicrdifiqhqpsnjmdo.supabase.co
+      
+      - key: SUPABASE_SERVICE_KEY
+        sync: false  # Add manually from Supabase dashboard
+      
+      - key: SUPABASE_DB_URL
+        sync: false  # Add manually: Connection pooler URL (port 6543)
+      
+      # SQLite Fallback (if Supabase disabled)
       - key: DATABASE_PATH
         value: /data/ai_infrastructure.db
       

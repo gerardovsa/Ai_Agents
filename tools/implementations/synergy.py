@@ -1858,7 +1858,8 @@ def synergy_get_internal_doc(
         - doc_id: str
         - session_id: str
         - title: str
-        - content: str (complete markdown content)
+        - content: str (complete markdown content, HTML stripped)
+        - content_html: str (original HTML content)
         - format: str
         - version: int
         - created_at: str
@@ -1871,16 +1872,58 @@ def synergy_get_internal_doc(
         # Now you can read doc['content'] and provide summary
     """
     try:
+        import re
+        import json
+        
         response = requests.get(f'{SYNERGY_API_BASE}/internal-doc/{doc_id}')
         response.raise_for_status()
         data = response.json()
+        
+        doc_type = data.get('doc_type', 'richtext')
+        
+        # For spreadsheets, use structured JSON data
+        if doc_type == 'spreadsheet':
+            content_json = data.get('content_json', '[]')
+            try:
+                spreadsheet_data = json.loads(content_json) if isinstance(content_json, str) else content_json
+                # Format spreadsheet as readable text for AI
+                clean_content = f"Spreadsheet: {data.get('title')}\n\n"
+                if isinstance(spreadsheet_data, list) and len(spreadsheet_data) > 0:
+                    # First row as headers
+                    headers = spreadsheet_data[0] if len(spreadsheet_data) > 0 else []
+                    clean_content += "Columns: " + " | ".join(str(h) for h in headers) + "\n\n"
+                    # Data rows
+                    for row_idx, row in enumerate(spreadsheet_data[1:], 1):
+                        clean_content += f"Row {row_idx}: " + " | ".join(str(cell) for cell in row) + "\n"
+                else:
+                    clean_content += "Empty spreadsheet"
+            except json.JSONDecodeError:
+                clean_content = "Spreadsheet data format error"
+        else:
+            # For richtext documents, strip HTML to get clean text
+            raw_content = data.get('content', '')
+            clean_content = re.sub(r'<[^>]+>', '', raw_content)
+            clean_content = clean_content.strip()
+            
+            # Replace multiple whitespace with single space
+            clean_content = re.sub(r'\s+', ' ', clean_content)
+            
+            # Replace common HTML entities
+            clean_content = clean_content.replace('&nbsp;', ' ')
+            clean_content = clean_content.replace('&amp;', '&')
+            clean_content = clean_content.replace('&lt;', '<')
+            clean_content = clean_content.replace('&gt;', '>')
+            clean_content = clean_content.replace('&quot;', '"')
         
         return {
             'success': True,
             'doc_id': data.get('doc_id'),
             'session_id': data.get('session_id'),
             'title': data.get('title'),
-            'content': data.get('content'),
+            'doc_type': doc_type,
+            'content': clean_content,  # Clean text for AI (parsed based on doc_type)
+            'content_html': data.get('content', ''),  # Original HTML (for richtext)
+            'content_json': data.get('content_json', ''),  # Structured data (for spreadsheet)
             'format': data.get('format'),
             'version': data.get('version'),
             'created_at': data.get('created_at'),

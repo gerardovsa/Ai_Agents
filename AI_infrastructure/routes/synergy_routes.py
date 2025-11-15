@@ -18,19 +18,27 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
+from shared.database_utils import get_database_connection
+import sys
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Import database utility with auto-detection
+from shared.database_utils import get_synergy_sessions_connection, is_using_supabase
 
 synergy_bp = Blueprint('synergy', __name__, url_prefix='/api/synergy')
 
-# Database path
-ROOT_DIR = Path(__file__).parent.parent.parent
-DB_PATH = ROOT_DIR / 'data' / 'synergy_sessions.db'
-
 
 def get_db_connection():
-    """Get database connection to synergy_sessions.db"""
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
+    """
+    Get database connection to synergy_sessions database
+    
+    Auto-detects environment:
+    - Local dev: SQLite in data/synergy_sessions.db
+    - Render: Supabase PostgreSQL (synergy_sessions schema)
+    """
+    return get_synergy_sessions_connection()
 
 
 def normalize_next_steps(steps):
@@ -191,8 +199,17 @@ def normalize_checklist(items):
 
 
 def init_database():
-    """Initialize Synergy database if it doesn't exist"""
-    os.makedirs(DB_PATH.parent, exist_ok=True)
+    """
+    Initialize Synergy database if it doesn't exist
+    
+    Auto-detects environment:
+    - Local dev: Creates SQLite database in data/synergy_sessions.db
+    - Render: Uses existing Supabase PostgreSQL schema (synergy_sessions)
+    """
+    # Skip initialization if using Supabase (tables already migrated)
+    if is_using_supabase():
+        print("🔷 [SYNERGY] Using Supabase - skipping table creation (already migrated)")
+        return
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -227,18 +244,29 @@ def init_database():
     
     # Add missing columns if they don't exist
     try:
-        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN thread_ids TEXT')
-    except sqlite3.OperationalError:
+        if is_using_supabase():
+            # PostgreSQL syntax
+            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS thread_ids TEXT')
+        else:
+            # SQLite syntax
+            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN thread_ids TEXT')
+    except (sqlite3.OperationalError, Exception):
         pass  # Column already exists
     
     try:
-        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN assigned_agents TEXT')
-    except sqlite3.OperationalError:
+        if is_using_supabase():
+            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS assigned_agents TEXT')
+        else:
+            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN assigned_agents TEXT')
+    except (sqlite3.OperationalError, Exception):
         pass  # Column already exists
     
     try:
-        cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN column_position INTEGER DEFAULT 0')
-    except sqlite3.OperationalError:
+        if is_using_supabase():
+            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS column_position INTEGER DEFAULT 0')
+        else:
+            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN column_position INTEGER DEFAULT 0')
+    except (sqlite3.OperationalError, Exception):
         pass  # Column already exists
     
     conn.commit()

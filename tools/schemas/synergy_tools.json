@@ -1436,7 +1436,7 @@
         },
         {
             "name": "synergy_get_internal_doc",
-            "description": "Retrieve the full content of an internal document by its doc_id. Use this when user pastes a doc_id in chat and asks you to read, summarize, or process the document. Returns the complete markdown content, metadata, and version history.",
+            "description": "Retrieve the full content of an internal document by its doc_id. Intelligently handles both richtext and spreadsheet documents. For richtext: strips HTML and returns clean text. For spreadsheets: parses JSON data and formats as readable table. Use this when user pastes a doc_id in chat and asks you to read, summarize, or process the document.",
             "platform": "synergy",
             "parameters": {
                 "type": "object",
@@ -1452,7 +1452,7 @@
             },
             "returns": {
                 "type": "object",
-                "description": "Full document including doc_id, session_id, title, content (complete markdown), format, version number, created_at, updated_at, and created_by"
+                "description": "Full document with doc_id, title, doc_type (richtext/spreadsheet), content (clean parsed text), content_html (original HTML for richtext), content_json (structured data for spreadsheet), version, timestamps, and metadata"
             }
         },
         {

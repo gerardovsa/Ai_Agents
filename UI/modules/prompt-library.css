@@ -701,18 +701,17 @@
 }
 
 .sidebar-tab-content {
-    display: none;
+    display: none !important;
     height: 100%;
     animation: fadeIn 0.2s;
 }
 
 .sidebar-tab-content.active {
-    display: flex;
+    display: flex !important;
     flex-direction: column;
 }
 
 #browse-tab {
-    display: flex;
     flex-direction: column;
     gap: 0;
 }
@@ -724,6 +723,19 @@
 #browse-tab .prompt-list-scroll-area {
     flex: 1;
     overflow-y: auto;
+}
+
+#editor-tab {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+#editor-tab #prompt-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
 }
 
 #prompt-list-container {
@@ -1473,7 +1485,58 @@ select.form-control {
     cursor: pointer;
 }
 
-/* Radio Group */
+/* Prompt Type Buttons */
+.prompt-type-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.prompt-type-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    background: var(--bg-secondary, #161b22);
+    border: 2px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    color: var(--text-primary, #f0f6fc);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.prompt-type-btn:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    background: var(--bg-hover, #1c2128);
+}
+
+.prompt-type-btn.active {
+    border-color: var(--accent-primary, #58a6ff);
+    background: rgba(88, 166, 255, 0.1);
+}
+
+.prompt-type-btn i {
+    font-size: 20px;
+    color: var(--accent-primary, #58a6ff);
+    margin-bottom: 8px;
+}
+
+.prompt-type-btn span {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.prompt-type-btn small {
+    font-size: 12px;
+    color: var(--text-muted, #6e7681);
+    display: block;
+    line-height: 1.4;
+}
+
+/* Radio Group - DEPRECATED (keeping for backwards compatibility) */
 .radio-group {
     display: flex;
     flex-direction: column;
@@ -1567,4 +1630,270 @@ select.form-control {
 
 .btn-delete.hidden {
     display: none;
+}
+
+/* ==================== QUICK ACTIONS BAR ==================== */
+.quick-actions-bar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--bg-primary, #0d1117);
+    border-bottom: 1px solid var(--border-default, #30363d);
+}
+
+.quick-action-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 8px;
+    background: var(--bg-secondary, #161b22);
+    border: 2px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-secondary, #8b949e);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+}
+
+.quick-action-btn i {
+    font-size: 18px;
+}
+
+.quick-action-btn:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    background: var(--bg-hover, #1c2128);
+    color: var(--text-primary, #f0f6fc);
+}
+
+.quick-action-btn.active {
+    border-color: var(--accent-primary, #58a6ff);
+    background: rgba(88, 166, 255, 0.1);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.quick-action-btn span {
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==================== BREADCRUMB ==================== */
+.prompt-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: var(--bg-primary, #0d1117);
+    border-bottom: 1px solid var(--border-default, #30363d);
+    font-size: 13px;
+    color: var(--text-secondary, #8b949e);
+}
+
+.prompt-breadcrumb i.fa-bolt {
+    color: var(--accent-primary, #58a6ff);
+}
+
+.prompt-breadcrumb i.fa-chevron-right {
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+.prompt-breadcrumb span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.prompt-breadcrumb span:last-child {
+    color: var(--text-primary, #f0f6fc);
+    font-weight: 500;
+}
+
+/* ==================== CATEGORY GROUPING ==================== */
+.category-group {
+    margin-bottom: 16px;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--bg-primary, #0d1117);
+    border-left: 3px solid var(--accent-primary, #58a6ff);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary, #f0f6fc);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.category-header i {
+    font-size: 16px;
+}
+
+.category-count {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 8px;
+    background: var(--bg-secondary, #161b22);
+    border-radius: 12px;
+    color: var(--text-secondary, #8b949e);
+}
+
+.category-items {
+    padding: 0;
+}
+
+.category-items .prompt-list-item {
+    margin-left: 0;
+    border-left: 3px solid transparent;
+    transition: border-left-color 0.2s ease;
+}
+
+.category-items .prompt-list-item:hover {
+    border-left-color: inherit;
+}
+
+/* ==================== PROMPT LIST ITEM ENHANCEMENTS ==================== */
+.prompt-list-item {
+    border-left: 3px solid transparent;
+}
+
+.prompt-star-btn {
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #6e7681);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.prompt-star-btn:hover {
+    color: var(--accent-warning, #d29922);
+    transform: scale(1.1);
+}
+
+.prompt-star-btn.active {
+    color: var(--accent-warning, #d29922);
+}
+
+.prompt-star-btn.active i {
+    animation: starPulse 0.3s ease;
+}
+
+@keyframes starPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+}
+
+.prompt-usage-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(248, 129, 73, 0.1);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-warning, #d29922);
+}
+
+.prompt-usage-count i {
+    font-size: 12px;
+}
+
+/* ==================== Z-INDEX LAYERING SYSTEM ==================== */
+/* Chat interface - Base layer */
+.chat-container,
+.chat-input-wrapper {
+    z-index: 0;
+}
+
+/* Prompt sidebar - Layer 1 */
+.prompt-sidebar {
+    z-index: 1000;
+}
+
+/* Modals and overlays - Layer 2 */
+.prompt-modal,
+.overlay-panel {
+    z-index: 2000;
+}
+
+/* Notifications and tooltips - Layer 3 */
+.notification-toast,
+.tooltip {
+    z-index: 3000;
+}
+
+/* ==================== OVERLAY PANEL SUPPORT ==================== */
+.overlay-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 600px;
+    height: 100vh;
+    background: var(--bg-secondary, #161b22);
+    border-left: 1px solid var(--border-default, #30363d);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.overlay-panel.show {
+    transform: translateX(0);
+}
+
+/* When sidebar is open, overlay panel slides in next to it */
+.prompt-sidebar.show ~ .overlay-panel {
+    right: 450px;
+}
+
+.overlay-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-default, #30363d);
+    background: var(--bg-primary, #0d1117);
+}
+
+.overlay-panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #f0f6fc);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.overlay-panel-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #8b949e);
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.overlay-panel-close:hover {
+    background: var(--bg-hover, #1c2128);
+    color: var(--text-primary, #f0f6fc);
+}
+
+.overlay-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
 }

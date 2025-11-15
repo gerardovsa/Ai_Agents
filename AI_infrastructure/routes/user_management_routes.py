@@ -39,6 +39,7 @@ from flask import Blueprint, request, jsonify
 import sqlite3
 import json
 from pathlib import Path
+from shared.database_utils import get_database_connection
 from typing import Dict, List, Any, Optional
 import sys
 import os
@@ -60,9 +61,7 @@ def get_db_connection():
     CRITICAL: Always use data/ai_infrastructure.db (CORRECT LOCATION)
     """
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    
-    conn = sqlite3.connect(str(db_path))
+    conn = get_database_connection('ai_infrastructure')
     conn.row_factory = sqlite3.Row
     return conn
 

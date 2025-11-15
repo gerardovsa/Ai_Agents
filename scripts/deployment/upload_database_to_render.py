@@ -14,7 +14,7 @@ root_dir = Path(__file__).parent.parent.parent
 local_db = root_dir / 'data' / 'ai_infrastructure.db'
 
 if not local_db.exists():
-    print(f"❌ Database not found at: {local_db}")
+    print(f"[ERROR] Database not found at: {local_db}")
     exit(1)
 
 db_size_mb = local_db.stat().st_size / (1024 * 1024)

@@ -23,6 +23,9 @@ console.log('[PROMPT LIBRARY] ========================================');
     let allPrompts = [];
     let editingPromptId = null;
     let isDropdownOpen = false;
+    let currentFilter = 'all';  // Track current filter: all, recent, favorites, most_used
+    let favoritePromptIds = new Set();  // Track favorited prompts
+    let currentPromptContext = null;  // Track currently selected prompt for breadcrumb
 
     // Category icon mapping (Font Awesome)
     const categoryIcons = {
@@ -32,6 +35,16 @@ console.log('[PROMPT LIBRARY] ========================================');
         'style': 'fa-comment',
         'business': 'fa-briefcase',
         'creative': 'fa-pen-fancy'
+    };
+
+    // Category border colors
+    const categoryColors = {
+        'development': '#58a6ff',  // Blue
+        'analysis': '#3fb950',     // Green
+        'data': '#d29922',         // Orange
+        'style': '#bc8cff',        // Purple
+        'business': '#f85149',     // Red
+        'creative': '#f778ba'      // Pink
     };
 
     // ==================== API INTEGRATION ====================
@@ -155,6 +168,9 @@ console.log('[PROMPT LIBRARY] ========================================');
     function initPromptLibrary() {
         console.log('[PROMPT LIBRARY] Initializing...');
 
+        // Load favorites from localStorage
+        loadFavorites();
+
         // Inject HTML templates into DOM
         injectHtmlTemplates();
 
@@ -196,6 +212,9 @@ console.log('[PROMPT LIBRARY] ========================================');
                     <i class="fas fa-bolt"></i>
                     <span>Instructions Catalogue</span>
                 </div>
+                <div id="prompt-breadcrumb" class="prompt-breadcrumb" style="display: none;">
+                    <!-- Breadcrumb will be populated dynamically -->
+                </div>
             </div>
             
             <!-- TABS -->
@@ -211,6 +230,26 @@ console.log('[PROMPT LIBRARY] ========================================');
             <div class="prompt-sidebar-body">
                 <!-- TAB 1: BROWSE PROMPTS -->
                 <div id="browse-tab" class="sidebar-tab-content active">
+                    <!-- QUICK ACTIONS BAR -->
+                    <div class="quick-actions-bar">
+                        <button class="quick-action-btn active" data-filter="all" onclick="window.filterByQuickAction('all')" title="Show All Prompts">
+                            <i class="fas fa-th"></i>
+                            <span>All</span>
+                        </button>
+                        <button class="quick-action-btn" data-filter="recent" onclick="window.filterByQuickAction('recent')" title="Recently Used">
+                            <i class="fas fa-clock"></i>
+                            <span>Recent</span>
+                        </button>
+                        <button class="quick-action-btn" data-filter="favorites" onclick="window.filterByQuickAction('favorites')" title="Favorite Prompts">
+                            <i class="fas fa-star"></i>
+                            <span>Favorites</span>
+                        </button>
+                        <button class="quick-action-btn" data-filter="most_used" onclick="window.filterByQuickAction('most_used')" title="Most Used">
+                            <i class="fas fa-fire"></i>
+                            <span>Top Used</span>
+                        </button>
+                    </div>
+
                     <div class="prompt-dropdown-search-row">
                         <div class="search-wrapper">
                             <i class="fas fa-search search-icon"></i>
@@ -228,7 +267,7 @@ console.log('[PROMPT LIBRARY] ========================================');
                     </div>
                     
                     <div class="action-buttons-row">
-                        <button class="action-btn active" data-filter="all" data-tooltip="Show All" onclick="window.filterPromptsByType('all')">
+                        <button class="action-btn active" data-filter="all" data-tooltip="Show All Types" onclick="window.filterPromptsByType('all')">
                             <i class="fas fa-th"></i>
                         </button>
                         <button class="action-btn" data-filter="quick" data-tooltip="Quick Actions" onclick="window.filterPromptsByType('quick')">
@@ -274,18 +313,19 @@ console.log('[PROMPT LIBRARY] ========================================');
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-bolt"></i> Prompt Type</label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio" name="prompt-type" id="type-quick" value="quick_action" checked>
+                            <div class="prompt-type-buttons">
+                                <button type="button" class="prompt-type-btn active" data-type="quick_action" onclick="window.selectPromptType('quick_action')">
+                                    <i class="fas fa-bolt"></i>
                                     <span>Quick Action</span>
                                     <small>Short directive (e.g., "Be concise")</small>
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="prompt-type" id="type-full" value="full_prompt">
+                                </button>
+                                <button type="button" class="prompt-type-btn" data-type="full_prompt" onclick="window.selectPromptType('full_prompt')">
+                                    <i class="fas fa-list-ul"></i>
                                     <span>Full Prompt</span>
                                     <small>Complete instructions with context</small>
-                                </label>
+                                </button>
                             </div>
+                            <input type="hidden" id="prompt-type-value" value="quick_action">
                         </div>
                         <div class="form-group">
                             <label for="prompt-short-desc"><i class="fas fa-align-left"></i> Short Description</label>
@@ -383,7 +423,7 @@ console.log('[PROMPT LIBRARY] ========================================');
         });
 
         // Close sidebar when clicking outside (handled by global click listener above)
-        
+
         console.log('[PROMPT LIBRARY] Event listeners setup complete');
     }
 
@@ -444,9 +484,11 @@ console.log('[PROMPT LIBRARY] ========================================');
 
         // Update tab buttons
         const tabs = document.querySelectorAll('.sidebar-tab');
+        console.log('[PROMPT LIBRARY] Found', tabs.length, 'tab buttons');
         tabs.forEach(tab => {
             if (tab.dataset.tab === tabName) {
                 tab.classList.add('active');
+                console.log('[PROMPT LIBRARY] Activated tab button:', tabName);
             } else {
                 tab.classList.remove('active');
             }
@@ -455,17 +497,56 @@ console.log('[PROMPT LIBRARY] ========================================');
         // Update tab content
         const browseTab = document.getElementById('browse-tab');
         const editorTab = document.getElementById('editor-tab');
+        const browseFooter = document.getElementById('browse-footer');
+        const editorFooter = document.getElementById('editor-footer');
+
+        console.log('[PROMPT LIBRARY] Tab elements found:', {
+            browseTab: !!browseTab,
+            editorTab: !!editorTab,
+            browseFooter: !!browseFooter,
+            editorFooter: !!editorFooter
+        });
 
         if (tabName === 'browse') {
-            browseTab?.classList.add('active');
-            editorTab?.classList.remove('active');
-            document.getElementById('browse-footer')?.classList.add('active');
-            document.getElementById('editor-footer')?.classList.remove('active');
+            if (browseTab) {
+                browseTab.classList.add('active');
+                console.log('[PROMPT LIBRARY] Browse tab activated');
+            }
+            if (editorTab) {
+                editorTab.classList.remove('active');
+                console.log('[PROMPT LIBRARY] Editor tab deactivated');
+            }
+            if (browseFooter) browseFooter.classList.add('active');
+            if (editorFooter) editorFooter.classList.remove('active');
+
+            // Reset editor tab to "Create New" mode when going back to browse
+            const editingIdInput = document.getElementById('editing-prompt-id');
+            const editorLabel = document.getElementById('editor-tab-label');
+            const saveBtnText = document.getElementById('save-btn-text');
+            const deleteBtn = document.getElementById('delete-btn');
+            const promptForm = document.getElementById('prompt-form');
+
+            if (editingIdInput) editingIdInput.value = '';
+            if (editorLabel) editorLabel.textContent = 'Create New';
+            if (saveBtnText) saveBtnText.textContent = 'Create';
+            if (deleteBtn) deleteBtn.style.display = 'none';
+            if (promptForm) promptForm.reset();
+
+            console.log('[PROMPT LIBRARY] Editor reset to Create New mode');
         } else if (tabName === 'editor') {
-            browseTab?.classList.remove('active');
-            editorTab?.classList.add('active');
-            document.getElementById('browse-footer')?.classList.remove('active');
-            document.getElementById('editor-footer')?.classList.add('active');
+            if (browseTab) {
+                browseTab.classList.remove('active');
+                console.log('[PROMPT LIBRARY] Browse tab deactivated');
+            }
+            if (editorTab) {
+                editorTab.classList.add('active');
+                console.log('[PROMPT LIBRARY] Editor tab activated, display:', window.getComputedStyle(editorTab).display);
+            }
+            if (browseFooter) browseFooter.classList.remove('active');
+            if (editorFooter) {
+                editorFooter.classList.add('active');
+                console.log('[PROMPT LIBRARY] Editor footer activated');
+            }
         }
     }
 
@@ -476,20 +557,64 @@ console.log('[PROMPT LIBRARY] ========================================');
     function showEditorTab(promptId = null) {
         console.log('[PROMPT LIBRARY] showEditorTab called, promptId:', promptId);
 
-        if (promptId) {
-            // EDIT MODE: Load existing prompt
-            const prompt = allPrompts.find(p => p.id === promptId);
-            if (prompt) {
-                console.log('[PROMPT LIBRARY] Loading prompt for editing:', prompt.name);
+        // FIRST: Ensure sidebar is open
+        const sidebar = document.getElementById('prompt-sidebar');
+        const triggerBtn = document.getElementById('ai-chat-prompt-library-btn');
+
+        if (!sidebar) {
+            console.error('[PROMPT LIBRARY] ERROR: Sidebar not found in DOM!');
+            return;
+        }
+
+        if (!sidebar.classList.contains('show')) {
+            console.log('[PROMPT LIBRARY] Opening sidebar for editor...');
+            sidebar.classList.add('show');
+            if (triggerBtn) triggerBtn.classList.add('active');
+            isDropdownOpen = true;
+        }
+
+        // Switch to editor tab FIRST (before trying to populate fields)
+        switchSidebarTab('editor');
+
+        // Small delay to ensure DOM is ready after tab switch
+        setTimeout(() => {
+            if (promptId) {
+                // EDIT MODE: Load existing prompt
+                const prompt = allPrompts.find(p => p.id === promptId);
+                if (!prompt) {
+                    console.error('[PROMPT LIBRARY] ERROR: Prompt not found with ID:', promptId);
+                    return;
+                }
+
+                console.log('[PROMPT LIBRARY] Loading prompt for editing:', prompt);
+
+                // Verify all form elements exist
+                const titleInput = document.getElementById('prompt-title');
+                const categorySelect = document.getElementById('prompt-category');
+                const descInput = document.getElementById('prompt-short-desc');
+                const textArea = document.getElementById('prompt-text');
+                const tagsInput = document.getElementById('prompt-tags');
+                const visibilitySelect = document.getElementById('prompt-visibility');
+                const editingIdInput = document.getElementById('editing-prompt-id');
+
+                if (!titleInput || !categorySelect || !descInput || !textArea) {
+                    console.error('[PROMPT LIBRARY] ERROR: Form elements not found!', {
+                        titleInput: !!titleInput,
+                        categorySelect: !!categorySelect,
+                        descInput: !!descInput,
+                        textArea: !!textArea
+                    });
+                    return;
+                }
 
                 // Set editing ID
-                document.getElementById('editing-prompt-id').value = promptId;
+                if (editingIdInput) editingIdInput.value = promptId;
 
                 // Populate form (map to correct database columns)
-                document.getElementById('prompt-title').value = prompt.name || '';
-                document.getElementById('prompt-category').value = prompt.category || 'development';
-                document.getElementById('prompt-short-desc').value = prompt.description || '';
-                document.getElementById('prompt-text').value = prompt.prompt_text || '';
+                titleInput.value = prompt.name || '';
+                categorySelect.value = prompt.category || 'development';
+                descInput.value = prompt.description || '';
+                textArea.value = prompt.prompt_text || '';
 
                 // Handle tags - could be array or comma-separated string
                 let tagsValue = '';
@@ -500,36 +625,45 @@ console.log('[PROMPT LIBRARY] ========================================');
                         tagsValue = prompt.tags;
                     }
                 }
-                document.getElementById('prompt-tags').value = tagsValue;
+                if (tagsInput) tagsInput.value = tagsValue;
 
-                document.getElementById('prompt-visibility').value = prompt.visibility || 'private';
+                if (visibilitySelect) visibilitySelect.value = prompt.visibility || 'private';
 
-                // Set prompt type
-                if (prompt.type === 'quick_action') {
-                    document.getElementById('type-quick').checked = true;
-                } else {
-                    document.getElementById('type-full').checked = true;
-                }
+                // Set prompt type (button-based)
+                const promptType = prompt.type || 'quick_action';
+                window.selectPromptType(promptType);
 
                 // Update UI for edit mode
-                document.getElementById('editor-tab-label').textContent = 'Edit Prompt';
-                document.getElementById('save-btn-text').textContent = 'Save Changes';
-                document.getElementById('delete-btn').style.display = 'block';
+                const editorLabel = document.getElementById('editor-tab-label');
+                const saveBtnText = document.getElementById('save-btn-text');
+                const deleteBtn = document.getElementById('delete-btn');
+
+                if (editorLabel) editorLabel.textContent = 'Edit Prompt';
+                if (saveBtnText) saveBtnText.textContent = 'Save Changes';
+                if (deleteBtn) deleteBtn.style.display = 'block';
+
+                console.log('[PROMPT LIBRARY] Form populated successfully');
+            } else {
+                // CREATE MODE: Clear form
+                const editingIdInput = document.getElementById('editing-prompt-id');
+                const promptForm = document.getElementById('prompt-form');
+
+                if (editingIdInput) editingIdInput.value = '';
+                if (promptForm) promptForm.reset();
+                window.selectPromptType('quick_action');
+
+                // Update UI for create mode
+                const editorLabel = document.getElementById('editor-tab-label');
+                const saveBtnText = document.getElementById('save-btn-text');
+                const deleteBtn = document.getElementById('delete-btn');
+
+                if (editorLabel) editorLabel.textContent = 'Create New';
+                if (saveBtnText) saveBtnText.textContent = 'Create';
+                if (deleteBtn) deleteBtn.style.display = 'none';
+
+                console.log('[PROMPT LIBRARY] Create mode initialized');
             }
-        } else {
-            // CREATE MODE: Clear form
-            document.getElementById('editing-prompt-id').value = '';
-            document.getElementById('prompt-form').reset();
-            document.getElementById('type-quick').checked = true;
-
-            // Update UI for create mode
-            document.getElementById('editor-tab-label').textContent = 'Create New';
-            document.getElementById('save-btn-text').textContent = 'Create';
-            document.getElementById('delete-btn').style.display = 'none';
-        }
-
-        // Switch to editor tab
-        switchSidebarTab('editor');
+        }, 50); // 50ms delay to ensure tab switch completes
     }
 
     /**
@@ -546,11 +680,120 @@ console.log('[PROMPT LIBRARY] ========================================');
         switchSidebarTab('browse');
     }
 
+    /**
+     * Select prompt type (for button-based selection)
+     */
+    function selectPromptType(type) {
+        console.log('[PROMPT LIBRARY] Selecting prompt type:', type);
+
+        // Update hidden input
+        const typeInput = document.getElementById('prompt-type-value');
+        if (typeInput) typeInput.value = type;
+
+        // Update button states
+        const buttons = document.querySelectorAll('.prompt-type-btn');
+        buttons.forEach(btn => {
+            if (btn.dataset.type === type) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    /**
+     * Filter by quick action (Recent, Favorites, Most Used)
+     */
+    window.filterByQuickAction = function(filter) {
+        console.log('[PROMPT LIBRARY] Quick action filter:', filter);
+        currentFilter = filter;
+
+        // Update active button
+        document.querySelectorAll('.quick-action-btn').forEach(btn => {
+            if (btn.dataset.filter === filter) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Re-render list
+        renderPromptList();
+    };
+
+    /**
+     * Toggle favorite status
+     */
+    window.toggleFavorite = async function(promptId) {
+        if (favoritePromptIds.has(promptId)) {
+            favoritePromptIds.delete(promptId);
+        } else {
+            favoritePromptIds.add(promptId);
+        }
+
+        // Save to localStorage
+        localStorage.setItem('favorite_prompts', JSON.stringify([...favoritePromptIds]));
+
+        // TODO: Save to backend API
+        // await saveFavoriteToApi(promptId, favoritePromptIds.has(promptId));
+
+        // Re-render to update star icon
+        renderPromptList(
+            document.getElementById('category-dropdown')?.value || 'all',
+            document.getElementById('inline-search')?.value || ''
+        );
+    };
+
+    /**
+     * Update breadcrumb with current context
+     */
+    function updateBreadcrumb(category, promptName) {
+        const breadcrumb = document.getElementById('prompt-breadcrumb');
+        if (!breadcrumb) return;
+
+        if (!category && !promptName) {
+            breadcrumb.style.display = 'none';
+            return;
+        }
+
+        breadcrumb.style.display = 'flex';
+        
+        let html = '<i class="fas fa-bolt"></i>';
+        
+        if (category) {
+            const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
+            const iconClass = categoryIcons[category] || 'fa-bolt';
+            html += `<i class="fas fa-chevron-right"></i><span><i class="fas ${iconClass}"></i> ${categoryLabel}</span>`;
+        }
+        
+        if (promptName) {
+            html += `<i class="fas fa-chevron-right"></i><span>${escapeHtml(promptName)}</span>`;
+        }
+
+        breadcrumb.innerHTML = html;
+    }
+
+    /**
+     * Load favorites from localStorage
+     */
+    function loadFavorites() {
+        try {
+            const saved = localStorage.getItem('favorite_prompts');
+            if (saved) {
+                const ids = JSON.parse(saved);
+                favoritePromptIds = new Set(ids);
+            }
+        } catch (error) {
+            console.error('[PROMPT LIBRARY] Failed to load favorites:', error);
+        }
+    }
+
     // Expose functions globally
     window.closeSidebar = closeSidebar;
     window.switchSidebarTab = switchSidebarTab;
     window.showEditorTab = showEditorTab;
     window.cancelEditor = cancelEditor;
+    window.selectPromptType = selectPromptType;
 
     /**
      * Initialize modal drag functionality
@@ -598,8 +841,21 @@ console.log('[PROMPT LIBRARY] ========================================');
 
         let filteredPrompts = [...allPrompts];
 
+        // Apply quick action filters
+        if (currentFilter === 'recent') {
+            // Get prompts sorted by updated_at (most recent first)
+            filteredPrompts.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+            filteredPrompts = filteredPrompts.slice(0, 10);  // Show top 10 recent
+        } else if (currentFilter === 'favorites') {
+            filteredPrompts = filteredPrompts.filter(p => favoritePromptIds.has(p.id));
+        } else if (currentFilter === 'most_used') {
+            // Sort by usage_count descending
+            filteredPrompts.sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0));
+            filteredPrompts = filteredPrompts.slice(0, 10);  // Show top 10 most used
+        }
+
         // Filter by category
-        if (filter !== 'all') {
+        if (filter !== 'all' && currentFilter === 'all') {
             filteredPrompts = filteredPrompts.filter(p => p.category === filter);
         }
 
@@ -613,10 +869,22 @@ console.log('[PROMPT LIBRARY] ========================================');
             );
         }
 
-        // Sort by name
-        filteredPrompts.sort((a, b) => a.name.localeCompare(b.name));
+        // Group by category for visual hierarchy
+        if (currentFilter === 'all' && !searchTerm && filter === 'all') {
+            renderGroupedPrompts(filteredPrompts);
+        } else {
+            renderFlatPrompts(filteredPrompts);
+        }
+    }
 
-        if (filteredPrompts.length === 0) {
+    /**
+     * Render prompts grouped by category with headers
+     */
+    function renderGroupedPrompts(prompts) {
+        const container = document.getElementById('prompt-list-container');
+        if (!container) return;
+
+        if (prompts.length === 0) {
             container.innerHTML = `
                 <div class="prompt-empty-state">
                     <i class="fas fa-inbox"></i>
@@ -627,35 +895,113 @@ console.log('[PROMPT LIBRARY] ========================================');
             return;
         }
 
-        container.innerHTML = filteredPrompts.map(prompt => {
-            const isSelected = selectedPrompts.some(p => p.id === prompt.id);
-            const iconClass = categoryIcons[prompt.category] || 'fa-bolt';
+        // Group prompts by category
+        const grouped = {};
+        prompts.forEach(prompt => {
+            if (!grouped[prompt.category]) {
+                grouped[prompt.category] = [];
+            }
+            grouped[prompt.category].push(prompt);
+        });
 
-            return `
-                <div class="prompt-list-item ${isSelected ? 'selected' : ''}"
-                     onclick="window.togglePromptSelection(${prompt.id})"
-                     data-id="${prompt.id}">
-                    <i class="prompt-icon fas ${iconClass}"></i>
-                    <div class="prompt-info">
-                        <div class="prompt-name">${escapeHtml(prompt.name)}</div>
-                        <div class="prompt-description">${escapeHtml(prompt.description || '')}</div>
+        // Sort each group by name
+        Object.keys(grouped).forEach(category => {
+            grouped[category].sort((a, b) => a.name.localeCompare(b.name));
+        });
+
+        // Render with category headers
+        const categoryOrder = ['development', 'analysis', 'data', 'style', 'business', 'creative'];
+        let html = '';
+
+        categoryOrder.forEach(category => {
+            if (!grouped[category] || grouped[category].length === 0) return;
+
+            const iconClass = categoryIcons[category] || 'fa-bolt';
+            const borderColor = categoryColors[category] || '#58a6ff';
+            const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
+
+            html += `
+                <div class="category-group" data-category="${category}">
+                    <div class="category-header" style="border-left-color: ${borderColor};">
+                        <i class="fas ${iconClass}" style="color: ${borderColor};"></i>
+                        <span>${categoryLabel}</span>
+                        <span class="category-count">${grouped[category].length}</span>
                     </div>
-                    <div class="prompt-actions">
-                        <button class="prompt-edit-btn" 
-                                onclick="event.stopPropagation(); window.showEditorTab(${prompt.id});"
-                                title="Edit prompt">
-                            <i class="fas fa-pencil-alt"></i>
-                        </button>
-                        <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
-                            ${prompt.type === 'quick_action' ? 'Quick' : 'Full'}
-                        </span>
+                    <div class="category-items">
+                        ${grouped[category].map(prompt => renderPromptItem(prompt, borderColor)).join('')}
                     </div>
                 </div>
             `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    /**
+     * Render prompts in flat list (no grouping)
+     */
+    function renderFlatPrompts(prompts) {
+        const container = document.getElementById('prompt-list-container');
+        if (!container) return;
+
+        if (prompts.length === 0) {
+            container.innerHTML = `
+                <div class="prompt-empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No prompts found</p>
+                    <p class="text-muted">Try adjusting your search or filters</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort by name
+        prompts.sort((a, b) => a.name.localeCompare(b.name));
+
+        container.innerHTML = prompts.map(prompt => {
+            const borderColor = categoryColors[prompt.category] || '#58a6ff';
+            return renderPromptItem(prompt, borderColor);
         }).join('');
     }
 
     /**
+     * Render single prompt item HTML
+     */
+    function renderPromptItem(prompt, borderColor) {
+        const isSelected = selectedPrompts.some(p => p.id === prompt.id);
+        const isFavorite = favoritePromptIds.has(prompt.id);
+        const iconClass = categoryIcons[prompt.category] || 'fa-bolt';
+        const usageCount = prompt.usage_count || 0;
+
+        return `
+            <div class="prompt-list-item ${isSelected ? 'selected' : ''}" 
+                 onclick="window.togglePromptSelection(${prompt.id})"
+                 data-id="${prompt.id}"
+                 style="border-left-color: ${borderColor};">
+                <i class="prompt-icon fas ${iconClass}" style="color: ${borderColor};"></i>
+                <div class="prompt-info">
+                    <div class="prompt-name">${escapeHtml(prompt.name)}</div>
+                    <div class="prompt-description">${escapeHtml(prompt.description || '')}</div>
+                </div>
+                <div class="prompt-actions">
+                    <button class="prompt-star-btn ${isFavorite ? 'active' : ''}" 
+                            onclick="event.stopPropagation(); window.toggleFavorite(${prompt.id});"
+                            title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    ${usageCount > 0 ? `<span class="prompt-usage-count" title="Used ${usageCount} times"><i class="fas fa-fire"></i>${usageCount}</span>` : ''}
+                    <button class="prompt-edit-btn" 
+                            onclick="event.stopPropagation(); window.showEditorTab(${prompt.id});"
+                            title="Edit prompt">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
+                        ${prompt.type === 'quick_action' ? 'Quick' : 'Full'}
+                    </span>
+                </div>
+            </div>
+        `;
+    }    /**
      * Filter prompts by category
      */
     function filterPrompts(category) {
@@ -683,9 +1029,16 @@ console.log('[PROMPT LIBRARY] ========================================');
         if (index > -1) {
             // Remove
             selectedPrompts.splice(index, 1);
+            currentPromptContext = null;
+            updateBreadcrumb();
         } else {
             // Add
             selectedPrompts.push(prompt);
+            currentPromptContext = { category: prompt.category, name: prompt.name };
+            updateBreadcrumb(prompt.category, prompt.name);
+            
+            // Increment usage count (TODO: save to backend)
+            incrementUsageCount(promptId);
         }
 
         updateActivePromptsBar();
@@ -697,6 +1050,20 @@ console.log('[PROMPT LIBRARY] ========================================');
 
         console.log('[PROMPT LIBRARY] Selected prompts:', selectedPrompts.length);
     };
+
+    /**
+     * Increment usage count for a prompt
+     */
+    async function incrementUsageCount(promptId) {
+        const prompt = allPrompts.find(p => p.id === promptId);
+        if (!prompt) return;
+
+        // Increment locally
+        prompt.usage_count = (prompt.usage_count || 0) + 1;
+
+        // TODO: Save to backend API
+        // await updatePromptUsageCount(promptId, prompt.usage_count);
+    }
 
     /**
      * Update active prompts bar
@@ -954,7 +1321,7 @@ console.log('[PROMPT LIBRARY] ========================================');
         const promptText = document.getElementById('prompt-text')?.value?.trim();
         const tags = document.getElementById('prompt-tags')?.value?.trim();
         const visibility = document.getElementById('prompt-visibility')?.value || 'private';
-        const type = document.querySelector('input[name="prompt-type"]:checked')?.value || 'quick_action';
+        const type = document.getElementById('prompt-type-value')?.value || 'quick_action';
 
         if (!name || !category || !promptText) {
             showNotification('Please fill in all required fields', 'error');

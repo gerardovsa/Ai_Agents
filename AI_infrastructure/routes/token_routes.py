@@ -24,14 +24,14 @@ LAST MODIFIED: 2025-11-14 - Initial implementation
 from flask import Blueprint, jsonify, request
 import sqlite3
 from pathlib import Path
+from shared.database_utils import get_database_connection
 
 token_routes = Blueprint('token_routes', __name__)
 
 def get_db_connection():
     """Get database connection to sessions.db"""
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'sessions.db'
-    conn = sqlite3.connect(str(db_path))
+    conn = get_database_connection('ai_infrastructure')
     conn.row_factory = sqlite3.Row
     return conn
 

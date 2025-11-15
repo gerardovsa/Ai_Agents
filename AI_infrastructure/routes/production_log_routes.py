@@ -13,6 +13,7 @@ Endpoints for managing production log entries:
 from flask import Blueprint, request, jsonify
 import sqlite3
 from pathlib import Path
+from shared.database_utils import get_database_connection
 from datetime import datetime
 import logging
 
@@ -23,8 +24,7 @@ production_log_bp = Blueprint('production_log', __name__, url_prefix='/api/produ
 
 def get_db_connection():
     """Get database connection to kanban analytics"""
-    db_path = Path(__file__).parent.parent.parent / 'data' / 'kanban_analytics.db'
-    conn = sqlite3.connect(str(db_path))
+    conn = get_database_connection('kanban_analytics')
     conn.row_factory = sqlite3.Row
     return conn
 

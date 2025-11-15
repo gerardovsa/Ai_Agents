@@ -29,6 +29,7 @@ LAST MODIFIED: 2025-11-05 - Initial implementation
 
 from flask import Blueprint, request, jsonify
 from pathlib import Path
+from shared.database_utils import get_database_connection
 import sqlite3
 import json
 import logging
@@ -45,7 +46,7 @@ def get_db_connection():
     
     print(f'🔷 [Thread Assignments] Using: {db_path}')
     
-    conn = sqlite3.connect(str(db_path))
+    conn = get_database_connection('ai_infrastructure')
     conn.row_factory = sqlite3.Row
     return conn
 

@@ -27,6 +27,14 @@ if str(root_dir) not in sys.path:
 if str(tools_dir) not in sys.path:
     sys.path.insert(0, str(tools_dir))
 
+# Import db path helpers
+sys.path.insert(0, str(root_dir / 'AI_infrastructure'))
+from shared.database_utils import (
+    get_database_connection,
+    get_synergy_sessions_connection,
+    is_using_supabase
+)
+
 # Import from tools directory
 import registry_v3
 RegistryV3 = registry_v3.RegistryV3
@@ -960,15 +968,8 @@ CRITICAL: NO BULK TOOL SCHEMAS!
     # Check if this thread is linked to a Synergy project
     # If yes, inject project context into system prompt
     try:
-        from pathlib import Path
-        import sqlite3
-        
         # Get thread info from sessions.db
-        root_dir = Path(__file__).parent.parent.parent
-        sessions_db = root_dir / 'data' / 'sessions.db'
-        
-        conn = sqlite3.connect(str(sessions_db))
-        conn.row_factory = sqlite3.Row
+        conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
         # Find thread by session_id (thread.id = session_id in most cases)
@@ -986,9 +987,7 @@ CRITICAL: NO BULK TOOL SCHEMAS!
             synergy_card_id = thread_row['synergy_card_id']
             
             # Fetch Synergy project details
-            synergy_db = root_dir / 'data' / 'synergy_sessions.db'
-            conn = sqlite3.connect(str(synergy_db))
-            conn.row_factory = sqlite3.Row
+            conn = get_database_connection('synergy_sessions')
             cursor = conn.cursor()
             
             cursor.execute("""
@@ -1118,15 +1117,8 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
     # If yes, prepend project context to the user's current message
     synergy_context_prefix = ""
     try:
-        from pathlib import Path
-        import sqlite3
-        
         # Get thread info from sessions.db
-        root_dir = Path(__file__).parent.parent.parent
-        sessions_db = root_dir / 'data' / 'sessions.db'
-        
-        conn = sqlite3.connect(str(sessions_db))
-        conn.row_factory = sqlite3.Row
+        conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
         # Find thread by session_id
@@ -1144,9 +1136,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
             synergy_card_id = thread_row['synergy_card_id']
             
             # Fetch Synergy project details
-            synergy_db = root_dir / 'data' / 'synergy_sessions.db'
-            conn = sqlite3.connect(str(synergy_db))
-            conn.row_factory = sqlite3.Row
+            conn = get_database_connection('synergy_sessions')
             cursor = conn.cursor()
             
             cursor.execute("""

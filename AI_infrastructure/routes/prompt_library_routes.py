@@ -377,13 +377,13 @@ def list_categories():
 
 import sqlite3
 from pathlib import Path
+from shared.database_utils import get_database_connection
 from datetime import datetime
 
 def get_db_connection():
     """Get database connection to ai_infrastructure.db"""
     root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    conn = sqlite3.connect(str(db_path))
+    conn = get_database_connection('ai_infrastructure')
     conn.row_factory = sqlite3.Row
     return conn
 

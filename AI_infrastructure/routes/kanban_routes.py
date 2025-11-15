@@ -35,9 +35,18 @@ logger = logging.getLogger(__name__)
 # Create blueprint
 kanban_bp = Blueprint('kanban', __name__, url_prefix='/api/kanban')
 
-# Database paths
-SYNERGY_DB = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'synergy_sessions.db')
-AI_INFRASTRUCTURE_DB = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'ai_infrastructure.db')
+# Import database path helpers
+from pathlib import Path
+from shared.database_utils import get_database_connection
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Import database utility with auto-detection
+from shared.database_utils import (
+    get_synergy_sessions_connection,
+    get_ai_infrastructure_connection,
+    is_using_supabase
+)
 
 
 # ============================================
@@ -45,16 +54,24 @@ AI_INFRASTRUCTURE_DB = os.path.join(os.path.dirname(__file__), '..', '..', 'data
 # ============================================
 
 def get_synergy_db():
-    """Get connection to Synergy database"""
-    conn = sqlite3.connect(SYNERGY_DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """
+    Get connection to Synergy database
+    
+    Auto-detects environment:
+    - Local dev: SQLite in data/synergy_sessions.db
+    - Render: Supabase PostgreSQL (synergy_sessions schema)
+    """
+    return get_synergy_sessions_connection()
 
 def get_ai_db():
-    """Get connection to AI Infrastructure database"""
-    conn = sqlite3.connect(AI_INFRASTRUCTURE_DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """
+    Get connection to AI Infrastructure database
+    
+    Auto-detects environment:
+    - Local dev: SQLite in data/ai_infrastructure.db
+    - Render: Supabase PostgreSQL (ai_infrastructure schema)
+    """
+    return get_ai_infrastructure_connection()
 
 
 # ============================================

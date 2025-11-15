@@ -10,9 +10,14 @@ Handles all workspace lifecycle operations including:
 """
 
 import sqlite3
+import sys
 import secrets
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.database_utils import get_database_connection
 from pathlib import Path
 
 from .constants import (
@@ -93,10 +98,11 @@ class WorkspaceManager:
         
         self.db_path = str(db_path)
     
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection with Row factory"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+    def _get_connection(self):
+        """Get database connection (SQLite or Supabase)"""
+        conn = get_database_connection('ai_infrastructure')
+        if hasattr(conn, 'row_factory'):  # SQLite
+            conn.row_factory = sqlite3.Row
         return conn
     
     def _generate_workspace_slug(self) -> str:

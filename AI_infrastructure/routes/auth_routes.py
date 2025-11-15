@@ -7,6 +7,7 @@ User login, registration, and Gmail OAuth integration
 
 from flask import Blueprint, request, jsonify
 from auth.user_auth import user_auth_manager, require_auth
+from shared.database_utils import get_database_connection
 
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
@@ -239,7 +240,7 @@ def get_profile():
         from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
         db_path = get_ai_infrastructure_db_path()
         
-        conn = sqlite3.connect(str(db_path))
+        conn = get_database_connection('ai_infrastructure')
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT password_hash FROM users WHERE id = ?', (user_id,))
@@ -400,9 +401,7 @@ def revoke_tokens():
         
         # Connect to database
         root_dir = Path(__file__).parent.parent.parent
-        db_path = root_dir / 'data' / 'ai_infrastructure.db'
-        
-        conn = sqlite3.connect(str(db_path))
+        conn = get_database_connection('ai_infrastructure')
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         

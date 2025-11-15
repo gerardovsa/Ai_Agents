@@ -9,9 +9,14 @@ credentials instead of using service accounts.
 
 import sqlite3
 import os
+import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
 from google.oauth2.credentials import Credentials
+
+# Add AI_infrastructure to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / 'AI_infrastructure'))
+from shared.database_utils import get_database_connection
 
 
 def get_oauth_credentials_from_db(user_id: int) -> Optional[Dict[str, Any]]:
@@ -40,10 +45,11 @@ def get_oauth_credentials_from_db(user_id: int) -> Optional[Dict[str, Any]]:
             print(f"⚠️  Database not found: {db_path}")
             return None
         
-        print(f"🔍 Loading Google OAuth credentials for user_id={user_id} from {db_path}")
+        print(f"🔍 Loading Google OAuth credentials for user_id={user_id}")
         
-        conn = sqlite3.connect(str(db_path))
-        conn.row_factory = sqlite3.Row
+        conn = get_database_connection('ai_infrastructure')
+        if hasattr(conn, 'row_factory'):  # SQLite
+            conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         # Query oauth_tokens table

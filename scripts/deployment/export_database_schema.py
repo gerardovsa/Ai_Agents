@@ -31,7 +31,7 @@ def export_schema(db_path, output_file):
         for table_sql in tables:
             f.write(table_sql[0] + ";\n\n")
     
-    print(f"✅ Exported schema to: {output_file}")
+    print(f"[OK] Exported schema to: {output_file}")
     print(f"   Tables exported: {len(tables)}")
 
 if __name__ == '__main__':
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         deployment_dir / 'synergy_sessions_schema.sql'
     )
     
-    print("\n✅ All schemas exported!")
+    print("\n[OK] All schemas exported!")
     print("📝 Next steps:")
     print("   1. Commit these .sql files to git")
     print("   2. They'll be used on first Render deployment")

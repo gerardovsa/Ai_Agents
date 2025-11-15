@@ -31,19 +31,23 @@ LAST MODIFIED: 2025-11-04 - Initial implementation
 """
 
 import sqlite3
+import sys
 import json
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
+# Add AI_infrastructure to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'AI_infrastructure'))
+from shared.database_utils import get_database_connection
+
 
 def get_db_connection():
-    """Get database connection to ai_infrastructure.db in data/ folder"""
-    root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
+    """Get database connection (SQLite or Supabase)"""
+    conn = get_database_connection('ai_infrastructure')
+    if hasattr(conn, 'row_factory'):  # SQLite
+        conn.row_factory = sqlite3.Row
     return conn
 
 

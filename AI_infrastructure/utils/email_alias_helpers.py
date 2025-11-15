@@ -13,10 +13,13 @@ from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 import json
 from pathlib import Path
+import sys
 
-# Use centralized database path helper (Render-aware)
-from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
-DB_PATH = get_ai_infrastructure_db_path()
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Use centralized database connection utility (SQLite + Supabase support)
+from shared.database_utils import get_database_connection
 
 
 def get_user_id_by_email(email: str) -> Optional[int]:
@@ -34,7 +37,7 @@ def get_user_id_by_email(email: str) -> Optional[int]:
         if user_id:
             print(f"Found user: {user_id}")
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_database_connection('ai_infrastructure')
     cursor = conn.cursor()
     
     try:
@@ -89,7 +92,7 @@ def add_email_alias(
         if success:
             print("Email linked successfully!")
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_database_connection('ai_infrastructure')
     cursor = conn.cursor()
     
     try:
@@ -157,7 +160,7 @@ def get_user_emails(user_id: int) -> Dict[str, List[str]]:
         print(f"Primary: {emails['primary']}")
         print(f"Aliases: {emails['aliases']}")
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_database_connection('ai_infrastructure')
     cursor = conn.cursor()
     
     try:
@@ -214,7 +217,7 @@ def remove_email_alias(alias_email: str, user_id: int) -> Tuple[bool, str]:
     Example:
         success, msg = remove_email_alias('john@company.com', 123)
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_database_connection('ai_infrastructure')
     cursor = conn.cursor()
     
     try:
@@ -268,7 +271,7 @@ def get_alias_info(alias_email: str) -> Optional[Dict]:
     Returns:
         Dict with alias details or None if not found
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_database_connection('ai_infrastructure')
     cursor = conn.cursor()
     
     try:
@@ -314,7 +317,7 @@ def count_user_aliases(user_id: int) -> int:
     Returns:
         Number of aliases (not including primary email)
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_database_connection('ai_infrastructure')
     cursor = conn.cursor()
     
     try:
