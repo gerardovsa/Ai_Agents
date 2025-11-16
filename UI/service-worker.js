@@ -28,9 +28,9 @@ const HEAVY_LIBRARIES = [
     'https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration@2.1.13/dist/index.umd.min.js',
     'https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration-cursor@2.1.13/dist/index.umd.min.js',
 
-    // Yjs Collaboration
-    'https://cdn.jsdelivr.net/npm/yjs@13.6.10/dist/yjs.min.js',
-    'https://cdn.jsdelivr.net/npm/y-websocket@1.5.0/dist/y-websocket.min.js',
+    // Yjs Collaboration - DISABLED (causing 404 errors, not needed yet)
+    // 'https://cdn.jsdelivr.net/npm/yjs@13.6.10/dist/yjs.min.js',
+    // 'https://cdn.jsdelivr.net/npm/y-websocket@1.5.0/dist/y-websocket.min.js',
 
     // Handsontable Spreadsheet
     'https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js',

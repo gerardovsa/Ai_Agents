@@ -28905,18 +28905,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     ]);
                     console.log('  ✅ TipTap Extensions loaded');
 
-                    // STEP 4: TipTap Collaboration (depends on core + Yjs - 400KB)
-                    await Promise.all([
-                        this.loadScript('yjs', 'https://cdn.jsdelivr.net/npm/yjs@13.6.10/dist/yjs.min.js'),
-                        this.loadScript('y-websocket', 'https://cdn.jsdelivr.net/npm/y-websocket@1.5.0/dist/y-websocket.min.js')
-                    ]);
-                    console.log('  ✅ Yjs loaded');
-
-                    await Promise.all([
-                        this.loadScript('tiptap-collaboration', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration@2.1.13/dist/index.umd.min.js'),
-                        this.loadScript('tiptap-collaboration-cursor', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration-cursor@2.1.13/dist/index.umd.min.js')
-                    ]);
-                    console.log('  ✅ TipTap Collaboration loaded');
+                    // STEP 4: Skip Yjs Collaboration (not implemented yet, causing 404 errors)
+                    // Real-time collaboration will be added in future version
+                    console.log('  ⚠️  Skipping Yjs collaboration libraries (not needed yet)');
 
                     // STEP 5: Handsontable (1.8MB - can load in parallel with others)
                     await Promise.all([
