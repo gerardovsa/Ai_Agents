@@ -8674,10 +8674,10 @@
         }
 
         .modal-close {
-            background: none;
-            border: none;
+            background: transparent;
+            border: 1px solid var(--border-default);
             font-size: 24px;
-            color: #6b7280;
+            color: var(--text-secondary);
             cursor: pointer;
             padding: 0;
             width: 32px;
@@ -8690,8 +8690,8 @@
         }
 
         .modal-close:hover {
-            background: #f3f4f6;
-            color: #111827;
+            color: var(--accent-error);
+            border: 1px solid var(--accent-error);
         }
 
         .modal-body {
@@ -13664,10 +13664,10 @@
                 }
 
                 // Toggle sidebar visibility
-                const sidebar = document.getElementById('synergy-sidebar-panel');
+                const sidebar = document.getElementById('synergy-sidebar');
                 if (sidebar) {
-                    sidebar.classList.toggle('open');
-                    const isOpen = sidebar.classList.contains('open');
+                    sidebar.classList.toggle('collapsed');
+                    const isOpen = !sidebar.classList.contains('collapsed');
                     console.log(`${isOpen ? '▶️' : '◀️'} [SYNERGY SIDEBAR] Sidebar ${isOpen ? 'opened' : 'closed'}`);
                 }
             },
@@ -14294,13 +14294,13 @@
                     filtered = filtered.filter(s =>
                         s.title?.toLowerCase().includes(query) ||
                         s.description?.toLowerCase().includes(query) ||
-                        s.category?.toLowerCase().includes(query)
+                        s.kanban_column?.toLowerCase().includes(query)
                     );
                 }
 
                 // Apply category filter
                 if (this.currentFilter !== 'all') {
-                    filtered = filtered.filter(s => s.category === this.currentFilter);
+                    filtered = filtered.filter(s => s.kanban_column === this.currentFilter);
                 }
 
                 return filtered;
@@ -33554,18 +33554,27 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             color: #2c3e50;
         }
 
+
+
         .modal-close {
-            background: none;
-            border: none;
+            background: transparent;
+            border: 1px solid var(--border-default);
             font-size: 24px;
-            color: #95a5a6;
+            color: var(--text-secondary);
             cursor: pointer;
-            padding: 5px 10px;
-            transition: color 0.2s;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
         }
 
         .modal-close:hover {
-            color: #e74c3c;
+            color: var(--accent-error);
+            border: 1px solid var(--accent-error);
         }
 
         .modal-body {

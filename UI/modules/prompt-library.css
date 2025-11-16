@@ -624,7 +624,7 @@
     align-items: center;
     padding: 20px;
     border-bottom: 1px solid var(--border-default);
-    background: var(--bg-primary);
+    background: var(--bg-secondary);
 }
 
 .prompt-sidebar-title {
@@ -693,6 +693,7 @@
 
 .sidebar-tab.active {
     color: var(--accent-primary);
+    background: var(--bg-secondary);
     border-bottom-color: var(--accent-primary);
 }
 
