@@ -373,6 +373,127 @@ def get_sessions_simple():
         }), 500
 
 
+@synergy_bp.route('/sessions/batch', methods=['GET'])
+def get_sessions_with_internal_docs():
+    """
+    Batch load all sessions with their internal docs count in a SINGLE optimized query.
+    This replaces the N+1 query pattern (1 session list + N internal doc queries).
+    
+    Returns:
+    {
+        'success': True,
+        'sessions': [
+            {
+                'session_id': 'sess_xxx',
+                'title': 'Session Title',
+                'internal_docs_count': 5,
+                'internal_docs': [
+                    {'doc_id': 'doc_xxx', 'title': 'Doc Title', ...}
+                ],
+                ... all other session fields
+            }
+        ]
+    }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Step 1: Load all active sessions
+        cursor.execute("""
+            SELECT * FROM synergy_sessions 
+            WHERE status != 'archived'
+            ORDER BY last_active DESC
+        """)
+        
+        sessions_rows = cursor.fetchall()
+        sessions = []
+        session_ids = []
+        
+        for row in sessions_rows:
+            session = dict(row)
+            session_ids.append(session['session_id'])
+            
+            # Parse JSON fields
+            for field in ['platforms_involved', 'tags', 'documents', 'links', 
+                         'next_steps', 'assignees', 'recent_activity', 'checklist',
+                         'thread_ids', 'assigned_agents']:
+                if session.get(field):
+                    try:
+                        session[field] = json.loads(session[field])
+                    except:
+                        session[field] = []
+            
+            # Initialize internal docs array
+            session['internal_docs'] = []
+            session['internal_docs_count'] = 0
+            sessions.append(session)
+        
+        # Step 2: Batch load ALL internal docs for ALL sessions in ONE query
+        if session_ids:
+            placeholders = ','.join('?' for _ in session_ids)
+            cursor.execute(f"""
+                SELECT 
+                    session_id,
+                    doc_id,
+                    title,
+                    doc_type,
+                    version,
+                    created_at,
+                    updated_at,
+                    slug,
+                    share_url
+                FROM internal_docs
+                WHERE session_id IN ({placeholders})
+                ORDER BY session_id, created_at DESC
+            """, session_ids)
+            
+            docs_rows = cursor.fetchall()
+            
+            # Group internal docs by session_id
+            docs_by_session = {}
+            for doc_row in docs_rows:
+                doc = dict(doc_row)
+                sess_id = doc.pop('session_id')
+                
+                if sess_id not in docs_by_session:
+                    docs_by_session[sess_id] = []
+                
+                docs_by_session[sess_id].append({
+                    'doc_id': doc['doc_id'],
+                    'title': doc['title'],
+                    'type': 'internal_doc',
+                    'doc_type': doc.get('doc_type', 'richtext'),
+                    'version': doc.get('version', 1),
+                    'created_at': doc.get('created_at'),
+                    'updated_at': doc.get('updated_at'),
+                    'slug': doc.get('slug'),
+                    'share_url': doc.get('share_url')
+                })
+            
+            # Attach internal docs to sessions
+            for session in sessions:
+                sess_id = session['session_id']
+                if sess_id in docs_by_session:
+                    session['internal_docs'] = docs_by_session[sess_id]
+                    session['internal_docs_count'] = len(docs_by_session[sess_id])
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'sessions': sessions,
+            'total_count': len(sessions)
+        })
+    
+    except Exception as e:
+        print(f'[SYNERGY BATCH ERROR] {str(e)}')
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @synergy_bp.route('', methods=['GET'])
 def get_sessions_bulk():
     """

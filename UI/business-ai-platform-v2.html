@@ -33359,8 +33359,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             async loadSessions() {
                 try {
-                    console.log('[SYNERGY] Loading sessions from API...');
-                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/list`, {
+                    console.log('[SYNERGY] Loading sessions with internal docs (BATCH)...');
+                    const startTime = performance.now();
+                    
+                    // NEW: Use batch endpoint that loads sessions + internal docs in 1-2 queries
+                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/sessions/batch`, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json'
@@ -33372,12 +33375,20 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     }
 
                     const data = await response.json();
-                    // Handle both array response and wrapped response {sessions: [...]}
-                    this.sessions = Array.isArray(data) ? data : (data.sessions || []);
-                    console.log('[SYNERGY] Sessions loaded from API:', this.sessions.length);
+                    if (data.success) {
+                        this.sessions = data.sessions || [];
+                        const endTime = performance.now();
+                        const loadTime = (endTime - startTime).toFixed(0);
+                        console.log(`[SYNERGY] ✅ Batch loaded ${this.sessions.length} sessions with internal docs in ${loadTime}ms`);
+                        
+                        // Calculate total internal docs
+                        const totalDocs = this.sessions.reduce((sum, s) => sum + (s.internal_docs_count || 0), 0);
+                        console.log(`[SYNERGY] 📄 Total internal docs: ${totalDocs}`);
+                    } else {
+                        throw new Error(data.error || 'Batch load failed');
+                    }
 
-                    // Load internal docs for each session
-                    await this.loadInternalDocsForSessions();
+                    // NO LONGER NEEDED: loadInternalDocsForSessions() - already loaded in batch!
                 } catch (error) {
                     console.warn('[SYNERGY] API unavailable, using mock data:', error.message);
                     // Fallback to mock data if API is unavailable
@@ -33386,8 +33397,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 }
             },
 
-            async loadInternalDocsForSessions() {
-                console.log('[INTERNAL DOCS] Loading internal docs for all sessions...');
+            // ⚠️ DEPRECATED: Old N+1 query pattern (kept for reference)
+            // This method was making 1 API call per session, causing 30+ concurrent connections.
+            // Now using batch endpoint /api/synergy/sessions/batch instead.
+            async loadInternalDocsForSessions_DEPRECATED() {
+                console.warn('[INTERNAL DOCS] ⚠️ This method is deprecated - use batch endpoint instead');
+                console.log('[INTERNAL DOCS] Loading internal docs for all sessions (N+1 pattern)...');
                 const promises = this.sessions.map(async (session) => {
                     try {
                         const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/list/${session.session_id}`, {
@@ -33939,6 +33954,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 let tags = this.parseJsonField(session.tags, []);
                 let nextSteps = this.parseJsonField(session.next_steps, []);
                 let documents = this.parseJsonField(session.documents, []);
+                
+                // ✅ NEW: Merge batch-loaded internal_docs with existing documents
+                const internalDocs = session.internal_docs || [];
+                if (internalDocs.length > 0) {
+                    documents = [...documents, ...internalDocs];
+                }
 
                 // Force to array if parseJsonField failed
                 if (!Array.isArray(nextSteps)) {
@@ -34037,13 +34058,19 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             renderCardExpanded(session, priorityEmoji, statusClass, timeAgo) {
                 // Parse JSON fields safely
-                const documents = this.parseJsonField(session.documents, []);
+                let documents = this.parseJsonField(session.documents, []);
                 const links = this.parseJsonField(session.links, []);
                 const nextSteps = this.parseJsonField(session.next_steps, []);
                 const assignees = this.parseJsonField(session.assignees, []);
                 const tags = this.parseJsonField(session.tags, []);
                 const recentActivity = this.parseJsonField(session.recent_activity, []);
                 const checklist = this.parseJsonField(session.checklist, []);
+
+                // ✅ NEW: Merge batch-loaded internal_docs with existing documents
+                const internalDocs = session.internal_docs || [];
+                if (internalDocs.length > 0) {
+                    documents = [...documents, ...internalDocs];
+                }
 
                 // Documents - Always show section, filter empty items
                 let docsHTML = '';
