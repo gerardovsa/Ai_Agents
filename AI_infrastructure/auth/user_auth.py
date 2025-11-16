@@ -39,7 +39,7 @@ NOTES:
 - OAUTH: User OAuth tokens stored in oauth_tokens table (platform, access_token, refresh_token)
 - DECORATOR: @require_auth adds user_id to Flask request context
 
-LAST MODIFIED: 2025-11-02 - Added oauth_tokens table support for credential injection
+LAST MODIFIED: 2025-11-17 - Removed SQLite remnants for Supabase migration
 """
 
 import os
@@ -457,7 +457,6 @@ class UserAuthManager:
         """
         try:
             conn = self._get_db_connection()
-            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             # Find user by username or email
@@ -601,7 +600,6 @@ class UserAuthManager:
             print(f"\n📊 STAGE 2.2: Database Token Lookup")
             # Check if token exists in sessions and hasn't expired
             conn = self._get_db_connection()
-            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             try:
                 
@@ -948,7 +946,6 @@ class UserAuthManager:
         """
         try:
             with get_connection('ai_infrastructure') as conn:
-                conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
                 # Get OAuth tokens from oauth_tokens table (NEW V2_FIXED schema)
@@ -1042,7 +1039,6 @@ class UserAuthManager:
         """
         try:
             with get_connection('ai_infrastructure') as conn:
-                conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
                 # Get OAuth tokens from oauth_tokens table

@@ -39,9 +39,7 @@ def get_db_connection():
     Returns:
         Database connection with row_factory for dict-like access
     """
-    import sqlite3
     conn = get_database_connection('ai_infrastructure')
-    conn.row_factory = sqlite3.Row
     return conn
 
 
@@ -61,9 +59,7 @@ def init_automation_tables():
     - automation_executions: Tracks execution history and results
     """
     try:
-        import sqlite3
         conn = get_database_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         # Check if we're using PostgreSQL or SQLite

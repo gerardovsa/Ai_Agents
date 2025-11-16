@@ -184,7 +184,6 @@ class AutomationScheduler:
         """Load existing tasks from database on startup"""
         try:
             conn = get_connection('ai_infrastructure')
-            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             cursor.execute('''
@@ -253,7 +252,6 @@ class AutomationScheduler:
     def _execute_task(self, task_id: str):
         """Execute a scheduled task"""
         conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         # Get task details
@@ -450,7 +448,6 @@ class AutomationScheduler:
     def _check_pending_approvals(self):
         """Check for tasks pending approval and notify users"""
         conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -547,7 +544,6 @@ class AutomationScheduler:
             
             # Get updated task and reschedule
             conn = get_connection('ai_infrastructure')
-            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = ?', (task_id,))
             task = cursor.fetchone()
@@ -580,7 +576,6 @@ class AutomationScheduler:
     def get_task(self, task_id: str) -> Optional[Dict]:
         """Get task by ID"""
         conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = ?', (task_id,))
         task = cursor.fetchone()
@@ -591,7 +586,6 @@ class AutomationScheduler:
     def list_tasks(self, filters: Optional[Dict] = None) -> List[Dict]:
         """List all tasks with optional filters"""
         conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         query = 'SELECT * FROM scheduled_tasks WHERE 1=1'
@@ -620,7 +614,6 @@ class AutomationScheduler:
     def get_execution_history(self, task_id: str, limit: int = 50) -> List[Dict]:
         """Get execution history for a task"""
         conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         cursor.execute('''

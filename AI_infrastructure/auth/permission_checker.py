@@ -34,7 +34,7 @@ NOTES:
 - Work hours: HH:MM format (e.g., '09:00' to '17:00')
 - Usage limits: Daily API call counter (TODO: implement tracking)
 
-LAST MODIFIED: 2025-11-10 - Initial implementation for parent-child user hierarchy
+LAST MODIFIED: 2025-11-17 - Removed SQLite remnants for Supabase migration
 """
 
 import json
@@ -98,7 +98,6 @@ class PermissionChecker:
             Dict with all permission fields, or None if user not found
         """
         conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         try:
