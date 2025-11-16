@@ -233,17 +233,13 @@ def get_profile():
         workspace_id = user_auth_manager.get_user_workspace(user_id)
         
         # Determine authentication platform based on password_hash
-        import sqlite3
-        import os
-        
-        # Use centralized database path helper (Render-aware)
-        from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
-        db_path = get_ai_infrastructure_db_path()
+        from shared.database_utils import convert_sql_placeholders
         
         conn = get_database_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute('SELECT password_hash FROM users WHERE id = ?', (user_id,))
+        
+        query = convert_sql_placeholders('SELECT password_hash FROM users WHERE id = ?')
+        cursor.execute(query, (user_id,))
         user_row = cursor.fetchone()
         
         auth_platform = None
@@ -254,14 +250,15 @@ def get_profile():
             elif password_hash == 'oauth_microsoft' or password_hash == 'OAUTH_USER_NO_PASSWORD':
                 # Support both 'oauth_microsoft' (new) and 'OAUTH_USER_NO_PASSWORD' (legacy)
                 # Check OAuth tokens to determine which platform
-                from AI_infrastructure.shared.database_utils import is_using_supabase
+                from shared.database_utils import is_using_supabase
                 bool_true = True if is_using_supabase() else 1
                 
-                cursor.execute('''
+                query2 = convert_sql_placeholders('''
                     SELECT platform FROM oauth_tokens 
                     WHERE user_id = ? AND is_active = ?
                     ORDER BY created_at DESC LIMIT 1
-                ''', (user_id, bool_true))
+                ''')
+                cursor.execute(query2, (user_id, bool_true))
                 token_row = cursor.fetchone()
                 if token_row:
                     auth_platform = token_row['platform']  # 'google' or 'microsoft'
@@ -276,13 +273,13 @@ def get_profile():
         microsoft_oauth_connected = False
         
         # Get database-agnostic boolean and datetime
-        from AI_infrastructure.shared.database_utils import is_using_supabase
+        from shared.database_utils import is_using_supabase
         bool_true = True if is_using_supabase() else 1
         now_sql = "NOW()" if is_using_supabase() else "datetime('now')"
         
         # Always check for Google OAuth tokens (regardless of auth_platform)
         # ✅ FIX: Check oauth_tokens table (where Google/Microsoft OAuth actually stores tokens)
-        cursor.execute(f'''
+        query3 = convert_sql_placeholders(f'''
             SELECT COUNT(*) as count 
             FROM oauth_tokens 
             WHERE user_id = ? 
@@ -290,13 +287,14 @@ def get_profile():
             AND access_token IS NOT NULL
             AND (is_active = ? OR is_active IS NULL)
             AND (expires_at IS NULL OR expires_at > {now_sql})
-        ''', (user_id, bool_true))
+        ''')
+        cursor.execute(query3, (user_id, bool_true))
         result = cursor.fetchone()
         google_oauth_connected = (result['count'] if isinstance(result, dict) else result[0]) > 0 if result else False
         
         # Always check for Microsoft OAuth tokens (regardless of auth_platform)
         # ✅ FIX: Check oauth_tokens table (where Google/Microsoft OAuth actually stores tokens)
-        cursor.execute(f'''
+        query4 = convert_sql_placeholders(f'''
             SELECT COUNT(*) as count 
             FROM oauth_tokens 
             WHERE user_id = ? 
@@ -304,7 +302,8 @@ def get_profile():
             AND access_token IS NOT NULL
             AND (is_active = ? OR is_active IS NULL)
             AND (expires_at IS NULL OR expires_at > {now_sql})
-        ''', (user_id, bool_true))
+        ''')
+        cursor.execute(query4, (user_id, bool_true))
         result = cursor.fetchone()
         microsoft_oauth_connected = (result['count'] if isinstance(result, dict) else result[0]) > 0 if result else False
         

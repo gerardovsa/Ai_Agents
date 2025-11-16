@@ -45,34 +45,27 @@ def is_using_supabase() -> bool:
     """
     Check if application should use Supabase PostgreSQL
     
+    PRODUCTION MODE: Always returns True unless USE_SQLITE=true (localhost dev only)
+    
     Returns:
-        bool: True if SUPABASE_URL is set OR USE_SUPABASE=true
-              False only if USE_SQLITE=true (explicit override)
+        bool: True (always use Supabase in production)
+              False only if USE_SQLITE=true (localhost development override)
     
     Environment Variables:
-        USE_SQLITE: Set to 'true' to force SQLite (overrides everything)
-        SUPABASE_URL: If set, automatically use Supabase
-        USE_SUPABASE: Set to 'true' to enable Supabase
+        USE_SQLITE: Set to 'true' to force SQLite (localhost development only)
+        SUPABASE_DB_URL: Required for production (auto-detected)
     
     Priority:
-        1. USE_SQLITE=true → Force SQLite (explicit override)
-        2. SUPABASE_URL exists → Use Supabase (auto-detect)
-        3. USE_SUPABASE=true → Use Supabase (explicit enable)
-        4. Otherwise → SQLite (safe default)
+        1. USE_SQLITE=true → Force SQLite (localhost development only)
+        2. Otherwise → Always Supabase (production default)
     """
-    # Check for explicit SQLite override (highest priority)
+    # Check for explicit SQLite override (localhost development only)
     if os.getenv('USE_SQLITE', 'false').lower() == 'true':
+        print("⚠️ [DB] Using SQLite (development mode - USE_SQLITE=true)")
         return False
     
-    # Check if Supabase credentials exist (auto-detect)
-    supabase_url = os.getenv('SUPABASE_URL')
-    if supabase_url:
-        return True
-    
-    # Check USE_SUPABASE setting (explicit enable)
-    use_supabase = os.getenv('USE_SUPABASE', 'false').lower() == 'true'
-    
-    return use_supabase
+    # Production: Always use Supabase (no SQLite fallback)
+    return True
 
 
 def get_supabase_schema_name(db_name: str) -> str:
@@ -249,11 +242,9 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             print(f"{'='*70}\n")
             raise ConnectionError(f"Supabase connection failed: {e}")
     
-    # SQLITE (Local development ONLY - Supabase must succeed first)
+    # SQLITE (Local development ONLY - requires USE_SQLITE=true)
     # Find project root (go up from AI_infrastructure/shared/)
     root_dir = Path(__file__).parent.parent.parent
-    
-    # This code only runs if USE_SUPABASE is not set
     db_path = root_dir / 'data' / f'{db_name}.db'
     
     # Ensure directory exists
@@ -264,6 +255,7 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         conn.row_factory = sqlite3.Row
         
         print(f"🔷 [DB] Connected to SQLite (LOCAL DEV): {db_path}")
+        print(f"⚠️ [DB] USE_SQLITE=true - Production should use Supabase!")
         
         # Wrap connection to provide automatic placeholder conversion
         return DatabaseConnection(conn)

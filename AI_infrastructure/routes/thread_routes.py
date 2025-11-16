@@ -9,9 +9,8 @@ from datetime import datetime, timedelta
 
 # Import infrastructure
 from core.agent_state_manager import agent_state_manager
-from utils.database_helpers import (
-    execute_sqlite_query, execute_sqlite_update,
-    get_sessions_database_path, DatabaseConnectionError  # FIXED: Use sessions.db, not stock db
+from shared.database_utils import (
+    get_database_connection, is_using_supabase, convert_sql_placeholders
 )
 from utils.response_helpers import (
     success_response, error_response, list_response,
@@ -140,7 +139,7 @@ def list_threads():
         ?user_id=1 (required): User ID to list threads for
         ?limit=50 (optional): Max threads to return
     
-    Returns list of threads from sessions.db threads table
+    Returns list of threads from sessions schema (Supabase) or sessions.db (SQLite)
     """
     try:
         user_id = request.args.get('user_id')
@@ -149,9 +148,11 @@ def list_threads():
         
         limit = int(request.args.get('limit', 50))
         
-        # Query threads from database with message counts and metadata
-        db_path = get_sessions_database_path()
+        # Get database connection (auto-detects SQLite vs Supabase)
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
         
+        # Build query with proper placeholders
         query = """
             SELECT 
                 t.id,
@@ -184,12 +185,16 @@ def list_threads():
             LIMIT ?
         """
         
-        # execute_sqlite_query returns list of dicts directly
-        rows = execute_sqlite_query(db_path, query, (user_id, limit))
+        # Convert ? placeholders to %s for PostgreSQL
+        query = convert_sql_placeholders(query)
+        
+        # Execute query
+        cursor.execute(query, (user_id, limit))
+        rows = cursor.fetchall()
         
         threads = []
         for row in rows:
-            # Rows are returned as dicts from execute_sqlite_query
+            # Rows returned as dicts (RealDictCursor for Supabase, Row for SQLite)
             thread_data = {
                 'id': row['thread_slug'],
                 'thread_id': row['id'],  # Internal database ID
@@ -214,6 +219,9 @@ def list_threads():
                 'archived': False  # Default for now, add column later if needed
             }
             threads.append(thread_data)
+        
+        cursor.close()
+        conn.close()
         
         return success_response({
             'threads': threads,

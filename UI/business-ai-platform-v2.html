@@ -15105,7 +15105,7 @@
             if (typeof ThreadManager !== 'undefined') {
                 await ThreadManager.init();
                 console.log('✅ ThreadManager initialized with user token');
-                
+
                 // Restore thread assignments in Multi-Agent after threads loaded
                 if (typeof MultiAgent !== 'undefined' && MultiAgent.restoreThreadAssignments) {
                     MultiAgent.restoreThreadAssignments();
@@ -28719,12 +28719,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 const urlParams = new URLSearchParams(window.location.search);
                 const hasOAuthToken = urlParams.has('token');
 
-                // DEVELOPMENT MODE: Auto-login for localhost testing
-                // BUT SKIP if there's an OAuth callback token
-                if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !hasOAuthToken) {
+                // DEVELOPMENT MODE: Auto-login for localhost testing (opt-in with ?dev=true)
+                // Usage: http://localhost:5001/?dev=true to enable auto-login
+                // Default: false (requires real OAuth)
+                const devModeEnabled = urlParams.get('dev') === 'true';
+
+                if (devModeEnabled && !hasOAuthToken && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
                     const hasDevUser = localStorage.getItem('dev_mode_user');
                     if (!hasDevUser) {
-                        console.log('🔧§ [DEV MODE] Setting up default test user for device lock testing...');
+                        console.log('🔧§ [DEV MODE] Dev mode enabled via ?dev=true - Auto-login as test user');
                         // Create a mock token and user for local testing
                         const mockUser = {
                             id: 1,
@@ -28739,7 +28742,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         localStorage.setItem('userProfile', JSON.stringify(mockUser));
                         localStorage.setItem('dev_mode_user', 'true');
                         console.log('✅ [DEV MODE] Auto-logged in as test user');
-                        this.showMainApp();
+                        // DON'T call showMainApp() here - let DOMContentLoaded flow handle it
+                        // This prevents double initialization
                         return;
                     }
                 }
@@ -28880,30 +28884,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 const startTime = performance.now();
 
                 try {
-                    // STEP 1: TipTap Core (MUST load first - 800KB)
-                    await this.loadScript('tiptap-core', 'https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.13/dist/index.umd.min.js');
-                    // Wait for global object to be available
-                    await this.waitForGlobal('window.tiptapCore || window.TiptapCore');
-                    console.log('  ✅ TipTap Core loaded');
-
-                    // STEP 2: TipTap StarterKit (depends on core - 600KB)
-                    await this.loadScript('tiptap-starterkit', 'https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.1.13/dist/index.umd.min.js');
-                    // Small delay to ensure core is fully initialized
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    console.log('  ✅ TipTap StarterKit loaded');
-
-                    // STEP 3: TipTap Extensions (depend on core - load SEQUENTIALLY)
-                    // Must load one-by-one to avoid race conditions
-                    await this.loadScript('tiptap-placeholder', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-placeholder@2.1.13/dist/index.umd.min.js');
-                    await new Promise(resolve => setTimeout(resolve, 50));
-
-                    await this.loadScript('tiptap-link', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-link@2.1.13/dist/index.umd.min.js');
-                    await new Promise(resolve => setTimeout(resolve, 50));
-
-                    await this.loadScript('tiptap-mention', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-mention@2.1.13/dist/index.umd.min.js');
-                    await new Promise(resolve => setTimeout(resolve, 50));
-
-                    console.log('  ✅ TipTap Extensions loaded');
+                    // ⚠️ SKIPPING TIPTAP: UMD builds don't expose proper globals, causing initialization errors
+                    // TipTap rich text editor will be added later using ES modules instead of UMD
+                    console.log('  ⏭️ Skipping TipTap libraries (not currently used in UI)');
 
                     // STEP 4: Skip Yjs Collaboration (not implemented yet, causing 404 errors)
                     // Real-time collaboration will be added in future version
