@@ -13285,23 +13285,52 @@
         // ==================== SYNERGY SIDEBAR (Left Side Panel) ====================
         const SynergySidebar = {
             sessions: [],
+            sessionsLoaded: false,
             pinnedSessions: new Set(),
             expandedSessions: new Set(),
             currentView: 'list',
             currentFilter: 'all',
             searchQuery: '',
 
+            async toggleSidebar() {
+                console.log('🔷 [SYNERGY SIDEBAR] Toggle clicked');
+                
+                // Lazy load sessions on first sidebar open
+                if (!this.sessionsLoaded) {
+                    console.log('⏳ [SYNERGY SIDEBAR] First use - lazy loading sessions...');
+                    await this.loadSessions();
+                }
+                
+                // Toggle sidebar visibility
+                const sidebar = document.getElementById('synergy-sidebar-panel');
+                if (sidebar) {
+                    sidebar.classList.toggle('open');
+                    const isOpen = sidebar.classList.contains('open');
+                    console.log(`${isOpen ? '▶️' : '◀️'} [SYNERGY SIDEBAR] Sidebar ${isOpen ? 'opened' : 'closed'}`);
+                }
+            },
+
             async loadSessions() {
                 try {
-                    console.log('[SYNERGY SIDEBAR] Loading sessions...');
-                    const response = await fetch(`${API_BASE_URL}/api/synergy/list`);
+                    console.log('🔷 [SYNERGY SIDEBAR] Lazy loading sessions with batch endpoint...');
+                    const startTime = performance.now();
+                    
+                    // Use batch endpoint for optimized loading
+                    const response = await fetch(`${API_BASE_URL}/api/synergy/sessions/batch`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
                     const result = await response.json();
-                    this.sessions = result.sessions || [];
-                    console.log(`[SYNERGY SIDEBAR] Loaded ${this.sessions.length} sessions`);
+                    if (result.success) {
+                        this.sessions = result.sessions || [];
+                        this.sessionsLoaded = true;
+                        const endTime = performance.now();
+                        const loadTime = (endTime - startTime).toFixed(0);
+                        console.log(`✅ [SYNERGY SIDEBAR] Batch loaded ${this.sessions.length} sessions in ${loadTime}ms`);
+                    } else {
+                        throw new Error(result.error || 'Batch load failed');
+                    }
 
                     // Load pinned sessions from localStorage
                     const stored = localStorage.getItem('synergy_pinned');
@@ -13311,7 +13340,7 @@
 
                     this.renderSessions();
                 } catch (error) {
-                    console.error('[SYNERGY SIDEBAR] Failed to load sessions:', error);
+                    console.error('❌ [SYNERGY SIDEBAR] Failed to load sessions:', error);
                     showNotification('Failed to load Synergy sessions', 'error');
                 }
             },
@@ -13920,7 +13949,9 @@
                 this.renderSessions();
             },
 
-            toggleSidebar() {
+            // ⚠️ DEPRECATED: Old toggleSidebar method (keeping for backward compatibility)
+            // The new method above handles lazy loading
+            toggleSidebar_OLD() {
                 const sidebar = document.getElementById('synergy-sidebar');
                 const toggle = document.getElementById('synergy-sidebar-toggle');
                 const container = document.querySelector('.platform-container');
@@ -13930,7 +13961,10 @@
                     sidebar.classList.remove('collapsed');
                     toggle.style.display = 'none';
                     container.setAttribute('data-synergy-side', side);
-                    this.loadSessions();
+                    // Lazy load sessions on first open
+                    if (!this.sessionsLoaded) {
+                        this.loadSessions();
+                    }
                 } else {
                     sidebar.classList.add('collapsed');
                     toggle.style.display = 'flex';
@@ -14733,6 +14767,10 @@
                 console.log('✅ Internal Docs Manager initialized after authentication');
             }
 
+            // ⚠️ LAZY LOADING: Do NOT initialize Synergy board here
+            // It will load on-demand when user clicks Synergy dashboard or sidebar
+            console.log('⏳ [SYNERGY] Lazy loading enabled - sessions will load on first use');
+
             // INITIALIZE WELCOME MESSAGE with quick tip
             if (typeof ThreadManager !== 'undefined' && ThreadManager.initWelcomeMessage) {
                 ThreadManager.initWelcomeMessage('prime');
@@ -15230,23 +15268,23 @@
                 targetTab.classList.add('active');
                 AppState.currentTab = tabId;
 
-                // SPECIAL HANDLING: Load synergy sessions when switching to synergy tab
+                // SPECIAL HANDLING: Lazy load synergy sessions when switching to synergy tab
                 if (tabId === 'synergy') {
-                    console.log('[SYNERGY] Tab activated, loading kanban board...');
+                    console.log('🔷 [SYNERGY] Dashboard tab activated - LAZY LOADING sessions...');
                     // DO NOT open sidebar - only load dashboard
 
-                    // Load sessions into KANBAN BOARD ONLY
+                    // Load sessions into KANBAN BOARD ONLY (lazy load on first access)
                     // Wait for synergyBoard to be defined (it's loaded later in the page)
                     const initSynergyBoard = () => {
                         if (typeof window.synergyBoard !== 'undefined' && window.synergyBoard) {
-                            console.log('[SYNERGY] synergyBoard found, initializing...');
+                            console.log('🔷 [SYNERGY] synergyBoard found, initializing with batch load...');
                             window.synergyBoard.ensureInitialized()
                                 .then(() => {
-                                    console.log('[SYNERGY] Board initialized, calling refreshBoard()...');
+                                    console.log('✅ [SYNERGY] Board initialized and sessions loaded');
                                     window.synergyBoard.refreshBoard();
                                 })
                                 .catch(err => {
-                                    console.error('[SYNERGY] Error initializing board:', err);
+                                    console.error('❌ [SYNERGY] Error initializing board:', err);
                                     // Try refreshBoard anyway
                                     if (typeof window.synergyBoard.refreshBoard === 'function') {
                                         window.synergyBoard.refreshBoard();
