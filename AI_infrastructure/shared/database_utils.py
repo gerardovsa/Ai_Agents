@@ -431,9 +431,15 @@ class DatabaseCursor:
     def __init__(self, connection):
         self.connection = connection
         if is_using_supabase():
-            # PostgreSQL cursor
-            import psycopg2.extras
-            self._cursor = connection._wrapped_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            # PostgreSQL cursor - but check if connection is actually PostgreSQL
+            import sqlite3
+            if isinstance(connection._wrapped_conn, sqlite3.Connection):
+                # Supabase failed, fell back to SQLite - don't use cursor_factory
+                self._cursor = connection._wrapped_conn.cursor()
+            else:
+                # Actual PostgreSQL connection
+                import psycopg2.extras
+                self._cursor = connection._wrapped_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         else:
             # SQLite cursor
             self._cursor = connection._wrapped_conn.cursor()
