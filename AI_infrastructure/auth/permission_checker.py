@@ -38,7 +38,8 @@ LAST MODIFIED: 2025-11-10 - Initial implementation for parent-child user hierarc
 """
 
 import json
-import sqlite3
+import sqlite3  # Keep for type hints
+from shared.db_connection_wrapper import get_connection
 from datetime import datetime, time
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
@@ -96,7 +97,7 @@ class PermissionChecker:
         Returns:
             Dict with all permission fields, or None if user not found
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = get_connection('ai_infrastructure')
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         

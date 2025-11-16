@@ -43,7 +43,8 @@ LAST MODIFIED: 2025-11-02 - Added oauth_tokens table support for credential inje
 """
 
 import os
-import sqlite3
+import sqlite3  # Keep for type hints
+from shared.db_connection_wrapper import get_connection
 from pathlib import Path
 from dotenv import dotenv_values
 
@@ -159,7 +160,7 @@ class UserAuthManager:
         
         for attempt in range(max_retries):
             try:
-                with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+                with get_connection('ai_infrastructure') as conn:
                     cursor = conn.cursor()
                     
                     # Enhanced users table - EXACT MATCH to existing schema
@@ -345,7 +346,7 @@ class UserAuthManager:
             # Hash password
             password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
                 # Create user
@@ -424,7 +425,7 @@ class UserAuthManager:
         
         # Store session in database
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
                     INSERT INTO user_sessions (user_id, token, expires_at)
@@ -702,7 +703,7 @@ class UserAuthManager:
             Success status
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
                 # If setting as primary, unset other primary accounts
@@ -737,7 +738,7 @@ class UserAuthManager:
     
     def get_user_gmail_accounts(self, user_id: int) -> List[Dict]:
         """Get all Gmail accounts linked to user"""
-        with sqlite3.connect(self.db_path) as conn:
+        with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT gmail_address, display_name, is_primary, created_at
@@ -758,7 +759,7 @@ class UserAuthManager:
     
     def get_user_workspace(self, user_id: int) -> Optional[int]:
         """Get user's default workspace ID"""
-        with sqlite3.connect(self.db_path) as conn:
+        with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id FROM workspaces WHERE user_id = ? LIMIT 1
@@ -786,7 +787,7 @@ class UserAuthManager:
             Success status
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
                 metadata_json = json.dumps(metadata) if metadata else None
@@ -831,7 +832,7 @@ class UserAuthManager:
         Returns:
             Dict of credential_key -> credential_value
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             # Try oauth_tokens table first (NEW schema)
@@ -869,7 +870,7 @@ class UserAuthManager:
         Returns:
             Credential value or None
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             # Try oauth_tokens table first (NEW schema)
@@ -903,7 +904,7 @@ class UserAuthManager:
         Returns:
             List of platform names
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
             # Get platforms from oauth_tokens table (NEW schema)
@@ -939,7 +940,7 @@ class UserAuthManager:
         Returns None if user doesn't have Google OAuth credentials
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
@@ -1033,7 +1034,7 @@ class UserAuthManager:
         Returns None if user doesn't have Microsoft OAuth credentials
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
@@ -1198,7 +1199,7 @@ def require_auth(f):
             microsoft_email: Microsoft email address
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
                 # Store or update Microsoft tokens in oauth_tokens table (NEW schema)
@@ -1246,7 +1247,7 @@ def require_auth(f):
             Dict with Microsoft tokens or None
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
                 # Query oauth_tokens table (NEW schema)
@@ -1300,7 +1301,7 @@ def require_auth(f):
             User dict or None
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
                 cursor.execute('''
@@ -1354,7 +1355,7 @@ def require_auth(f):
                 # OAuth users don't have password - use secure random placeholder
                 password_hash = bcrypt.hashpw(os.urandom(32), bcrypt.gensalt()).decode('utf-8')
             
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
                 # Create user with metadata
@@ -1420,7 +1421,7 @@ def require_auth(f):
             JWT token string
         """
         # Get user info
-        with sqlite3.connect(self.db_path) as conn:
+        with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT username, email, role FROM users WHERE id = ?', (user_id,))
             row = cursor.fetchone()
@@ -1447,7 +1448,7 @@ def require_auth(f):
         token = jwt.encode(payload, self.jwt_secret, algorithm='HS256')
         
         # Store session
-        with sqlite3.connect(self.db_path) as conn:
+        with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO user_sessions (user_id, token, expires_at)
@@ -1473,7 +1474,7 @@ def require_auth(f):
             payload = jwt.decode(token, self.jwt_secret, algorithms=['HS256'])
             
             # Check session exists in database
-            with sqlite3.connect(self.db_path) as conn:
+            with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
                     SELECT user_id FROM user_sessions

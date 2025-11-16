@@ -1586,14 +1586,6 @@
             transform: rotate(3deg);
         }
 
-        .thread-item.dragging-to-synergy {
-            opacity: 0.7;
-            cursor: grabbing;
-            transform: scale(0.95);
-            box-shadow: 0 8px 24px rgba(88, 166, 255, 0.4);
-            border: 2px solid var(--accent-primary);
-        }
-
         .thread-item.drag-ghost {
             position: fixed;
             pointer-events: none;
@@ -1760,129 +1752,6 @@
 
         .thread-item-agent-badge i {
             font-size: 11px;
-        }
-
-        /* Synergy Linked Thread Cards - NEW DESIGN matching thread-item style */
-        .synergy-linked-threads-container {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-2);
-            margin-top: var(--space-2);
-        }
-
-        .synergy-linked-thread-card {
-            padding: var(--space-2);
-            border-radius: 6px;
-            border: 1px solid var(--border-default);
-            background: var(--bg-secondary);
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-1);
-        }
-
-        .synergy-linked-thread-card:hover {
-            background: rgba(88, 166, 255, 0.08);
-            border-color: var(--accent-primary);
-            box-shadow: 0 2px 6px rgba(88, 166, 255, 0.15);
-        }
-
-        .synergy-thread-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: var(--space-2);
-        }
-
-        .synergy-thread-title {
-            flex: 1;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-            cursor: pointer;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            transition: color 0.2s ease;
-        }
-
-        .synergy-thread-title:hover {
-            color: var(--accent-primary);
-            text-decoration: underline;
-        }
-
-        .synergy-thread-unlink-btn {
-            padding: 4px 8px;
-            background: transparent;
-            border: 1px solid var(--border-default);
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: var(--text-tertiary);
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .synergy-thread-unlink-btn:hover {
-            background: #ef4444;
-            border-color: #ef4444;
-            color: white;
-            transform: scale(1.05);
-        }
-
-        .synergy-thread-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: var(--space-2);
-        }
-
-        .synergy-thread-meta-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            flex-wrap: wrap;
-        }
-
-        .synergy-thread-meta-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 11px;
-            color: var(--text-secondary);
-            white-space: nowrap;
-        }
-
-        .synergy-thread-meta-item i {
-            font-size: 10px;
-            color: var(--text-tertiary);
-        }
-
-        .synergy-thread-agent-badge {
-            font-size: 11px;
-            color: white;
-            background: #8b5cf6;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .synergy-thread-agent-badge.main {
-            background: var(--text-tertiary);
-            color: var(--text-primary);
-        }
-
-        .synergy-thread-agent-badge i {
-            font-size: 10px;
         }
 
         /* Synergy Row */
@@ -2224,8 +2093,7 @@
             border-radius: 8px;
             padding: var(--space-3);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            z-index: 1050;
-            /* Higher than thread-menu (1000) but not excessive */
+            z-index: 10000;
             min-width: 280px;
             display: none;
             animation: modalSlideIn 0.2s ease;
@@ -2360,7 +2228,7 @@
             display: flex;
             flex-direction: column;
             gap: var(--space-4);
-            transition: padding-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
         }
 
         /* Drag and Drop Visual Feedback (Added Nov 8, 2025) */
@@ -2434,12 +2302,6 @@
             justify-content: center;
             flex-shrink: 0;
             font-size: 14px;
-        }
-
-        .ai-message-avatar i {
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .ai-message-toggle {
@@ -2561,8 +2423,6 @@
             background: var(--accent-primary);
             color: white;
             border-color: var(--accent-primary);
-            text-align: right;
-            margin-left: auto;
         }
 
         /* ==================== TOOL USAGE MESSAGE ==================== */
@@ -2674,8 +2534,7 @@
 
         /* Tool Bubble */
         .tool-bubble {
-            max-width: 100%;
-            width: 100%;
+            max-width: 80%;
         }
 
         .tool-bubble .ai-message-header {
@@ -2860,11 +2719,6 @@
 
         .tool-status-running .ai-message-avatar i {
             animation: spinCog 2s linear infinite;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
         }
 
         .tool-status-complete .ai-message-avatar {
@@ -2890,8 +2744,6 @@
             background: rgba(0, 0, 0, 0.2);
             border-left: 3px solid rgba(139, 92, 246, 0.5);
             border-radius: 6px;
-            width: 100%;
-            max-width: 100%;
         }
 
         .nested-tool .ai-message-header {
@@ -3415,203 +3267,16 @@
             border-radius: 6px;
         }
 
-        /* ==================== TWO-RULE MARKDOWN PROCESSOR STYLES ==================== */
-        /* Critical styles for TwoRuleStreamProcessor markdown rendering */
-
-        .two-rule-markdown-container {
-            width: 100%;
-            max-width: 100%;
-            overflow: hidden;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .two-rule-markdown-content {
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-
-        /* CODE BLOCK CONTAINMENT - Critical Fix */
-        .two-rule-markdown-content pre,
-        .two-rule-markdown-content .code-block {
-            max-width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-            word-wrap: normal;
-            overflow-wrap: normal;
-            white-space: pre;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-default);
-            border-radius: 6px;
-            padding: var(--space-3);
-            margin: var(--space-3) 0;
-            box-sizing: border-box;
-        }
-
-        .two-rule-markdown-content pre code,
-        .two-rule-markdown-content .code-block code {
-            background: transparent;
-            padding: 0;
-            border: none;
-            font-family: var(--font-mono);
-            font-size: 13px;
-            line-height: 1.5;
-            color: var(--text-primary);
-            display: block;
-            max-width: 100%;
-            overflow-x: auto;
-        }
-
-        /* INLINE CODE - Different from code blocks */
-        .two-rule-markdown-content code:not(pre code):not(.code-block code) {
-            background: var(--bg-primary);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: var(--font-mono);
-            font-size: 13px;
-            color: #79c0ff;
-            border: 1px solid rgba(88, 166, 255, 0.2);
-        }
-
-        /* HEADINGS IN CODE BLOCKS - Must be plain text */
-        .two-rule-markdown-content pre h1,
-        .two-rule-markdown-content pre h2,
-        .two-rule-markdown-content pre h3,
-        .two-rule-markdown-content pre h4,
-        .two-rule-markdown-content pre h5,
-        .two-rule-markdown-content pre h6,
-        .two-rule-markdown-content .code-block h1,
-        .two-rule-markdown-content .code-block h2,
-        .two-rule-markdown-content .code-block h3,
-        .two-rule-markdown-content .code-block h4,
-        .two-rule-markdown-content .code-block h5,
-        .two-rule-markdown-content .code-block h6 {
-            font-size: inherit !important;
-            font-weight: normal !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            color: inherit !important;
-            background: transparent !important;
-            display: inline !important;
-        }
-
-        /* MARKDOWN ELEMENTS IN CODE BLOCKS - Force plain text rendering */
-        .two-rule-markdown-content pre strong,
-        .two-rule-markdown-content pre em,
-        .two-rule-markdown-content pre a,
-        .two-rule-markdown-content .code-block strong,
-        .two-rule-markdown-content .code-block em,
-        .two-rule-markdown-content .code-block a {
-            font-weight: inherit !important;
-            font-style: inherit !important;
-            color: inherit !important;
-            text-decoration: none !important;
-        }
-
-        /* NORMAL MARKDOWN HEADINGS - Outside code blocks */
-        .two-rule-markdown-content h1,
-        .two-rule-markdown-content h2,
-        .two-rule-markdown-content h3,
-        .two-rule-markdown-content h4,
-        .two-rule-markdown-content h5,
-        .two-rule-markdown-content h6 {
-            margin: var(--space-4) 0 var(--space-2) 0;
-            font-weight: 600;
-            line-height: 1.3;
-            color: var(--text-primary);
-        }
-
-        .two-rule-markdown-content h1 {
-            font-size: 24px;
-            border-bottom: 2px solid var(--border-default);
-            padding-bottom: var(--space-2);
-        }
-
-        .two-rule-markdown-content h2 {
-            font-size: 20px;
-            border-bottom: 1px solid var(--border-default);
-            padding-bottom: var(--space-2);
-        }
-
-        .two-rule-markdown-content h3 {
-            font-size: 18px;
-        }
-
-        .two-rule-markdown-content h4 {
-            font-size: 16px;
-        }
-
-        .two-rule-markdown-content h5 {
-            font-size: 14px;
-        }
-
-        .two-rule-markdown-content h6 {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        /* LISTS, PARAGRAPHS, OTHER MARKDOWN */
-        .two-rule-markdown-content p {
-            margin: 0 0 var(--space-3) 0;
-            line-height: 1.6;
-        }
-
-        .two-rule-markdown-content ul,
-        .two-rule-markdown-content ol {
-            margin: var(--space-3) 0;
-            padding-left: 24px;
-            line-height: 1.8;
-        }
-
-        .two-rule-markdown-content li {
-            margin: var(--space-1) 0;
-        }
-
-        .two-rule-markdown-content blockquote {
-            border-left: 3px solid var(--accent-primary);
-            padding-left: var(--space-3);
-            margin: var(--space-3) 0;
-            color: var(--text-secondary);
-            font-style: italic;
-        }
-
-        .two-rule-markdown-content a {
-            color: var(--accent-primary);
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-        .two-rule-markdown-content a:hover {
-            color: #79c0ff;
-            text-decoration: underline;
-        }
-
         .ai-chat-input-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            position: relative;
             padding: var(--space-4);
-            background: transparent;
-            transition: background 0.3s ease;
-            z-index: 100;
-            pointer-events: none;
-        }
-
-        /* Keep transparent on hover and focus */
-        .ai-chat-input-container:hover,
-        .ai-chat-input-container:focus-within,
-        .ai-chat-input-container.active {
-            background: transparent;
+            border-top: 1px solid var(--border-default);
         }
 
         .ai-chat-input-wrapper {
             display: flex;
             flex-direction: column;
             gap: var(--space-2);
-            pointer-events: auto;
         }
 
         .ai-chat-input-controls {
@@ -3620,14 +3285,8 @@
             align-items: center;
         }
 
-        /* Center textarea */
-        .ai-chat-center {
-            flex: 1;
-            display: flex;
-        }
-
-        /* Right button column - all buttons vertically stacked */
-        .ai-chat-right-buttons {
+        /* Left buttons column */
+        .ai-chat-left-buttons {
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -3639,250 +3298,40 @@
             width: 32px;
             height: 32px;
             padding: 0;
-            background: transparent;
-            color: rgba(139, 148, 158, 0.5);
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .ai-chat-send-btn {
-            width: 32px;
-            height: 32px;
-            padding: 0;
-            background: transparent;
-            color: var(--accent-primary);
-            border: 1px solid var(--accent-primary);
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            opacity: 0.5;
-        }
-
-        .ai-chat-input-container:hover .ai-chat-attach-btn,
-        .ai-chat-input-container:hover .ai-chat-feedback-btn {
-            background: transparent;
-            border: 1px solid var(--border-default, #30363d);
-            color: var(--text-primary);
-        }
-
-        .ai-chat-input-container:hover .ai-chat-send-btn {
-            background: var(--accent-primary);
+            background: var(--bg-tertiary, #1c2128);
             color: white;
-            border: 1px solid var(--accent-primary);
-            opacity: 1;
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
         }
 
         .ai-chat-attach-btn:hover,
         .ai-chat-feedback-btn:hover {
-            background: transparent !important;
+            background: var(--bg-hover, #21262d);
             color: var(--accent-primary);
-            border-color: var(--accent-primary) !important;
+            border-color: var(--accent-primary);
             transform: scale(1.05);
-        }
-
-        .ai-chat-send-btn:hover {
-            background: var(--accent-primary) !important;
-            transform: scale(1.1);
-            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
         }
 
         .ai-chat-attach-btn input[type="file"] {
             display: none;
         }
 
-        /* Auto-scroll toggle button */
-        .ai-chat-autoscroll-btn {
-            background: transparent;
-            border: 1px solid transparent;
-            color: rgba(139, 148, 158, 0.5);
-            cursor: pointer;
-            padding: 8px;
+        /* Center textarea */
+        .ai-chat-center {
+            flex: 1;
+            display: flex;
+        }
+
+        /* Right button column */
+        .ai-chat-right-buttons {
+            display: flex;
             width: 32px;
-            height: 32px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .ai-chat-input-container:hover .ai-chat-autoscroll-btn {
-            color: var(--text-secondary);
-            border-color: var(--border-default);
-        }
-
-        .ai-chat-autoscroll-btn:hover {
-            background: transparent !important;
-            border-color: var(--accent-primary) !important;
-            transform: scale(1.05);
-        }
-
-        .ai-chat-autoscroll-btn.active {
-            color: var(--accent-primary);
-            border-color: var(--accent-primary);
-        }
-
-        /* Keep active color on hover - override hover state */
-        .ai-chat-autoscroll-btn.active:hover {
-            color: var(--accent-primary) !important;
-        }
-
-        /* ==================== USER FEEDBACK CONTAINER ==================== */
-        .user-feedback-container {
-            position: relative;
-            display: none;
-            flex-direction: column;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-default);
-            border-radius: 8px;
-            margin-bottom: var(--space-3);
-            overflow: hidden;
-            opacity: 0;
-            max-height: 0;
-            transition: all 0.3s ease;
-            pointer-events: auto;
-        }
-
-        .user-feedback-container.active {
-            display: flex;
-            opacity: 1;
-            max-height: 300px;
-        }
-
-        .feedback-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: var(--space-3);
-            background: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-default);
-        }
-
-        .feedback-header-left {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-        }
-
-        .feedback-header-icon {
-            color: var(--accent-primary);
-            font-size: 16px;
-        }
-
-        .feedback-header-text {
-            color: var(--text-primary);
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .feedback-close-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            padding: var(--space-1);
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 24px;
-            height: 24px;
-        }
-
-        .feedback-close-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-
-        .feedback-body {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-2);
-            padding: var(--space-3);
-        }
-
-        .feedback-textarea {
-            width: 100%;
-            min-height: 80px;
-            padding: var(--space-2);
-            background: var(--bg-primary);
-            border: 1px solid var(--border-default);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 14px;
-            resize: vertical;
-            transition: all 0.2s ease;
-        }
-
-        .feedback-textarea:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-            background: var(--bg-secondary);
-        }
-
-        .feedback-textarea::placeholder {
-            color: var(--text-tertiary);
-        }
-
-        .feedback-quick-buttons {
-            display: flex;
-            gap: var(--space-2);
-            align-items: center;
-        }
-
-        .feedback-quick-btn {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-default);
-            color: var(--text-secondary);
-            padding: var(--space-2);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-        }
-
-        .feedback-quick-btn:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            transform: scale(1.05);
-        }
-
-        .feedback-send-btn {
-            background: var(--accent-primary);
-            border: 1px solid var(--accent-primary);
-            color: var(--text-on-accent);
-            padding: var(--space-2) var(--space-3);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: var(--space-1);
-            margin-left: auto;
-            font-weight: 500;
-        }
-
-        .feedback-send-btn:hover {
-            background: var(--accent-primary-hover);
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
         }
 
         .ai-chat-input.drag-over {
@@ -3931,8 +3380,8 @@
 
         .ai-chat-input {
             width: 100%;
-            background: rgba(13, 17, 23, 0.2);
-            border: 1px solid rgba(48, 54, 61, 0.3);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
             border-radius: 6px;
             padding: var(--space-3);
             color: var(--text-primary);
@@ -3943,22 +3392,12 @@
             max-height: 300px;
             overflow-y: auto;
             line-height: 1.5;
-            transition: all 0.3s ease;
-        }
-
-        .ai-chat-input-container:hover .ai-chat-input {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-default);
-        }
-
-        .ai-chat-input:hover {
-            border-color: var(--accent-primary) !important;
+            transition: border-color 0.2s ease;
         }
 
         .ai-chat-input:focus {
             outline: none;
-            background: var(--bg-primary) !important;
-            border-color: var(--accent-primary) !important;
+            border-color: var(--accent-primary);
         }
 
         /* ==================== SCROLLBAR STYLING ==================== */
@@ -4417,25 +3856,18 @@
         .agent-title-wrapper {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: var(--space-2);
             flex: 1;
-            text-align: center;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            pointer-events: none;
         }
 
         .agent-header h2 {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             margin: 0;
             color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: var(--space-2);
-            white-space: nowrap;
         }
 
         .agent-header h2 i {
@@ -4598,15 +4030,16 @@
         .agent-status-indicator {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 3px 8px;
-            border-radius: 12px;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
             background: var(--bg-secondary);
             border: 1px solid var(--border-default);
             transition: all 0.3s ease;
-            margin: 4px auto;
-            width: fit-content;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 12px;
         }
 
         .agent-header-controls {
@@ -4671,8 +4104,8 @@
         }
 
         .status-dot {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             transition: all 0.3s ease;
         }
@@ -4700,7 +4133,7 @@
         }
 
         .status-text {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-secondary);
         }
@@ -5292,36 +4725,25 @@
 
         .agent-input-group {
             display: flex;
-            gap: 8px;
-            align-items: stretch;
-        }
-
-        .agent-input-center {
-            flex: 1;
-            display: flex;
-        }
-
-        .agent-input-right-buttons {
-            display: flex;
             flex-direction: column;
-            gap: 6px;
-            width: 32px;
+            gap: 0;
+            position: relative;
         }
 
         .agent-input-group textarea {
             flex: 1;
-            background: var(--bg-primary);
+            background: var(--bg-tertiary);
             border: 1px solid var(--border-default);
-            border-radius: 6px;
+            border-radius: 8px 8px 0 0;
             padding: var(--space-3);
+            padding-bottom: 44px;
+            /* Space for action buttons */
             color: var(--text-primary);
             font-size: 14px;
-            line-height: 1.5;
             resize: none;
             font-family: var(--font-primary);
             min-height: 80px;
             max-height: 200px;
-            overflow-y: auto;
             transition: border-color 0.2s ease;
         }
 
@@ -5335,80 +4757,54 @@
             background: rgba(59, 130, 246, 0.05);
         }
 
-        /* Scrollbar styling for agent textarea */
-        .agent-input-group textarea::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .agent-input-group textarea::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .agent-input-group textarea::-webkit-scrollbar-thumb {
-            background: var(--border-default);
-            border-radius: 4px;
-            transition: background 0.2s ease;
-        }
-
-        .agent-input-group textarea::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-primary);
-        }
-
-        .agent-input-group textarea {
-            scrollbar-color: var(--border-default) transparent;
-            scrollbar-width: thin;
-        }
-
-        .agent-input-group textarea:hover {
-            scrollbar-color: var(--accent-primary) transparent;
-        }
-
         /* Action buttons container at bottom of textarea */
 
         .agent-attach-btn,
         .agent-send-btn {
+            background: transparent;
+            border: none;
             width: 32px;
             height: 32px;
-            padding: 0;
             border-radius: 6px;
+            color: var(--text-secondary);
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
-            border: 1px solid var(--border-default);
+            font-size: 16px;
+
         }
 
         .agent-attach-btn {
-            background: var(--bg-tertiary);
-            color: white;
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            z-index: 10;
         }
+
 
         .agent-attach-btn:hover {
             background: var(--bg-hover);
-            color: var(--accent-primary);
-            border-color: var(--accent-primary);
-            transform: scale(1.05);
+            color: var(--text-primary);
         }
 
         .agent-send-btn {
-            background: var(--accent-hover, #4a93e0);
             color: white;
-            border: none;
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            z-index: 10;
         }
 
         .agent-send-btn:hover:not(:disabled) {
-            background: var(--accent-primary, #58a6ff);
+            background: #4493e8;
             transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
         }
 
         .agent-send-btn:disabled {
-            background: var(--bg-tertiary);
-            color: var(--text-muted);
+            opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
         }
 
         .agent-file-input {
@@ -7004,17 +6400,17 @@
                 <i class="fas fa-file-alt"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="stock" title="Stock Management">
+            <!-- <button class="sidebar-icon-btn" data-tab="stock" title="Stock Management">
                 <i class="fas fa-boxes"></i>
-            </button>
+            </button> -->
 
             <button class="sidebar-icon-btn" data-tab="transcripts" title="Transcript Processing">
                 <i class="fas fa-microphone"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="scheduling" title="Scheduling & Forms">
+            <!-- <button class="sidebar-icon-btn" data-tab="scheduling" title="Scheduling & Forms">
                 <i class="fas fa-calendar"></i>
-            </button>
+            </button> -->
 
             <button class="sidebar-icon-btn" data-tab="automation" title="Automation Workflows">
                 <i class="fas fa-project-diagram"></i>
@@ -8322,26 +7718,18 @@
                                         placeholder="marketing, urgent, backend">
                                 </div>
 
-                                <!-- Linked Threads Section - Shows thread-info cards -->
-                                <div class="form-section">
-                                    <div class="section-header">
-                                        <label><i class="fas fa-comments"></i> Linked Threads</label>
-                                        <small
-                                            style="color: var(--text-muted); font-size: 12px; font-weight: normal; margin-left: 8px;">Drag
-                                            threads from history to link them</small>
-                                    </div>
-                                    <div id="modal-linked-threads-container"
-                                        class="synergy-linked-threads-container thread-drop-zone"
-                                        style="min-height: 60px; padding: 12px; background: var(--bg-tertiary); border: 2px dashed var(--border-color); border-radius: 4px;">
-                                        <div class="thread-list-empty"
-                                            style="text-align: center; color: var(--text-muted); padding: 20px;">
-                                            <i class="fas fa-comments"
-                                                style="font-size: 24px; opacity: 0.3; margin-bottom: 8px;"></i>
-                                            <div>No threads linked yet</div>
-                                            <div style="font-size: 12px; margin-top: 4px;">Drag threads from history to
-                                                link them to this card</div>
-                                        </div>
-                                    </div>
+                                <!-- Thread IDs -->
+                                <div class="form-group">
+                                    <label for="edit-thread-ids">Thread IDs (comma-separated)</label>
+                                    <input type="text" id="edit-thread-ids" class="form-control"
+                                        placeholder="thread_abc123, thread_def456">
+                                </div>
+
+                                <!-- Assigned Agents -->
+                                <div class="form-group">
+                                    <label for="edit-assigned-agents">Assigned Agents (comma-separated)</label>
+                                    <input type="text" id="edit-assigned-agents" class="form-control"
+                                        placeholder="Research Agent, Email Agent, Data Agent">
                                 </div>
 
                                 <!-- Notes -->
@@ -8645,26 +8033,27 @@
                     <div class="ai-chat-input-wrapper">
                         <div class="ai-chat-attached-files" id="ai-chat-attached-files"></div>
                         <div class="ai-chat-input-controls">
-                            <!-- Center: Textarea -->
-                            <div class="ai-chat-center">
-                                <textarea class="ai-chat-input" id="ai-chat-input" rows="3"></textarea>
-                            </div>
-
-                            <!-- Right: All buttons (Auto-scroll, Feedback, Attach, Send) -->
-                            <div class="ai-chat-right-buttons">
-                                <button class="ai-chat-autoscroll-btn active" id="ai-chat-autoscroll-btn"
-                                    title="Toggle auto-scroll to bottom" onclick="toggleAutoScroll()">
-                                    <i class="fas fa-angle-double-down"></i>
-                                </button>
-                                <button class="ai-chat-feedback-btn" id="ai-chat-feedback-btn"
-                                    title="Give feedback to AI" onclick="toggleFeedbackContainer()">
-                                    <i class="fas fa-comment-dots"></i>
-                                </button>
+                            <!-- Left: Attach and Feedback buttons -->
+                            <div class="ai-chat-left-buttons">
                                 <button class="ai-chat-attach-btn" id="ai-chat-attach-btn" title="Attach files">
                                     <i class="fas fa-paperclip"></i>
                                     <input type="file" id="ai-chat-file-input" multiple
                                         accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" />
                                 </button>
+                                <button class="ai-chat-feedback-btn" id="ai-chat-feedback-btn"
+                                    title="Give feedback to AI" onclick="toggleFeedbackContainer()">
+                                    <i class="fas fa-comment-dots"></i>
+                                </button>
+                            </div>
+
+                            <!-- Center: Textarea -->
+                            <div class="ai-chat-center">
+                                <textarea class="ai-chat-input" id="ai-chat-input" rows="3"
+                                    placeholder="Ask me anything about your business... (Drag & drop files here)"></textarea>
+                            </div>
+
+                            <!-- Right: Send button -->
+                            <div class="ai-chat-right-buttons">
                                 <button class="ai-chat-send-btn" id="ai-chat-send-btn" title="Send message">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
@@ -10069,65 +9458,6 @@
         }
 
         // ==================== AI CHAT PANEL ====================
-        // Auto-scroll state
-        let autoScrollEnabled = true;
-
-        // Perform auto-scroll with extra 50px clearance
-        function performAutoScroll() {
-            if (!autoScrollEnabled) return;
-
-            const messagesContainer = document.querySelector('.ai-chat-messages');
-            if (!messagesContainer) return;
-
-            // Scroll to bottom + 50px extra for clearance
-            setTimeout(() => {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight + 50;
-                console.log(`[AUTO-SCROLL] Scrolled to: ${messagesContainer.scrollTop} (height: ${messagesContainer.scrollHeight})`);
-            }, 50);
-        }
-
-        // Toggle auto-scroll functionality
-        function toggleAutoScroll() {
-            autoScrollEnabled = !autoScrollEnabled;
-            const btn = document.getElementById('ai-chat-autoscroll-btn');
-
-            if (autoScrollEnabled) {
-                btn?.classList.add('active');
-                btn?.setAttribute('title', 'Auto-scroll enabled - Click to disable');
-                // Scroll to bottom immediately when re-enabled
-                performAutoScroll();
-            } else {
-                btn?.classList.remove('active');
-                btn?.setAttribute('title', 'Auto-scroll disabled - Click to enable');
-            }
-
-            console.log(`[AUTO-SCROLL] ${autoScrollEnabled ? 'Enabled' : 'Disabled'}`);
-        }
-
-        // Update messages container padding based on input container height
-        function updateMessagesBottomPadding() {
-            const inputContainer = document.querySelector('.ai-chat-input-container');
-            const messagesContainer = document.querySelector('.ai-chat-messages');
-            if (!inputContainer || !messagesContainer) return;
-
-            // Get the actual height of the input container
-            const containerHeight = inputContainer.offsetHeight;
-
-            // Add bottom padding to messages to push them up
-            messagesContainer.style.paddingBottom = `${containerHeight + 16}px`;
-
-            // Auto-scroll to bottom if enabled
-            performAutoScroll();
-        }
-
-        // Remove bottom padding from messages container
-        function resetMessagesBottomPadding() {
-            const messagesContainer = document.querySelector('.ai-chat-messages');
-            if (!messagesContainer) return;
-
-            messagesContainer.style.paddingBottom = 'var(--space-4)';
-        }
-
         function initChatPanel() {
             const toggleBtn = document.getElementById('toggle-chat-btn');
             const closeBtn = document.getElementById('chat-close-btn');
@@ -10145,58 +9475,9 @@
             input.style.height = 'auto';
             input.style.height = Math.min(input.scrollHeight, 300) + 'px';
 
-            // Initialize without padding (messages go to bottom)
-            resetMessagesBottomPadding();
-
-            // Detect user scrolling up to disable auto-scroll
-            const messagesContainer = document.querySelector('.ai-chat-messages');
-            if (messagesContainer) {
-                let scrollTimeout;
-                let lastScrollTop = messagesContainer.scrollTop;
-
-                messagesContainer.addEventListener('scroll', () => {
-                    // Clear previous timeout
-                    clearTimeout(scrollTimeout);
-
-                    // Debounce scroll detection (only act after scrolling stops)
-                    scrollTimeout = setTimeout(() => {
-                        const currentScrollTop = messagesContainer.scrollTop;
-                        const maxScroll = messagesContainer.scrollHeight - messagesContainer.clientHeight;
-                        const distanceFromBottom = maxScroll - currentScrollTop;
-
-                        // Only disable if user scrolled UP and is MORE than 100px from bottom
-                        if (currentScrollTop < lastScrollTop && distanceFromBottom > 100 && autoScrollEnabled) {
-                            autoScrollEnabled = false;
-                            const btn = document.getElementById('ai-chat-autoscroll-btn');
-                            btn?.classList.remove('active');
-                            btn?.setAttribute('title', 'Auto-scroll disabled - Click to enable');
-                            console.log(`[AUTO-SCROLL] Disabled (user scrolled up - distance from bottom: ${distanceFromBottom}px)`);
-                        }
-
-                        lastScrollTop = currentScrollTop;
-                    }, 150); // 150ms debounce
-                });
-            }
-
             toggleBtn.addEventListener('click', toggleChat);
             closeBtn.addEventListener('click', toggleChat);
             sendBtn.addEventListener('click', sendChatMessage);
-
-            // Add padding to messages when user clicks/focuses input area
-            const inputContainer = document.querySelector('.ai-chat-input-container');
-            input.addEventListener('focus', () => {
-                inputContainer?.classList.add('active');
-                updateMessagesBottomPadding();
-            });
-            input.addEventListener('blur', () => {
-                // Delay removal to allow for smooth transition
-                setTimeout(() => {
-                    if (document.activeElement !== input && input.value.trim() === '') {
-                        inputContainer?.classList.remove('active');
-                        resetMessagesBottomPadding();
-                    }
-                }, 200);
-            });
 
             // File attachment button click
             attachBtn.addEventListener('click', () => {
@@ -10240,11 +9521,6 @@
                 // Set height to scrollHeight but respect min/max
                 const newHeight = Math.min(input.scrollHeight, 300);
                 input.style.height = newHeight + 'px';
-
-                // Update messages padding as textarea expands
-                if (inputContainer?.classList.contains('active')) {
-                    setTimeout(() => updateMessagesBottomPadding(), 0);
-                }
             });
 
             // Handle paste events (sometimes needed for correct height calculation)
@@ -10538,15 +9814,10 @@
                 addChatMessage('user', message);
             }
             input.value = '';
-
+            
             // Reset textarea height after clearing
             input.style.height = 'auto';
             input.style.height = Math.min(input.scrollHeight, 300) + 'px';
-
-            // Reset messages padding and input background after sending
-            const inputContainer = document.querySelector('.ai-chat-input-container');
-            inputContainer?.classList.remove('active');
-            resetMessagesBottomPadding();
 
             // CRITICAL: Add user message to conversation history BEFORE sending request
             AppState.chatMessages.push({
@@ -12887,16 +12158,10 @@
                     threadId: threadInfo?.threadId
                 });
 
-                // CRITICAL: Exit early if header element doesn't exist yet
-                if (!headerEl) {
-                    console.warn(`[WARN] updateAgentHeader: Header element not found for agent-${agentId}, skipping update`);
-                    return;
-                }
-
-                // Also update collapsed bar status (safe - doesn't throw on null)
+                // Also update collapsed bar status
                 this.updateCollapsedStatus(agentId);
 
-                if (threadInfo) {
+                if (headerEl && threadInfo) {
                     // Get thread details from ThreadManager
                     let messageCount = 0;
                     let tags = [];
@@ -13026,10 +12291,9 @@
                 this.setLoadedThread(agentId, thread.id, thread.title);
 
                 // Clear agent's messages
-                const messagesContainer = document.getElementById(`messages-${agentId}`);
+                const messagesContainer = document.querySelector(`#agent-${agentId} .agent-messages`);
                 if (!messagesContainer) {
                     console.error(`[ERROR] Messages container not found for agent-${agentId}`);
-                    console.log(`[DEBUG] Looking for: messages-${agentId}`);
                     return;
                 }
 
@@ -13101,16 +12365,16 @@
                     // Shrink to normal width
                     column.classList.remove('wide');
 
-                    // Change icon to widen (right chevron)
-                    icon.className = 'fas fa-chevron-right';
+                    // Change icon back to expand arrows
+                    icon.className = 'fas fa-arrows-alt-h';
 
                     console.log(`[SIZE] ${this.getAgentName(agentId)} width: 400px(normal)`);
                 } else {
                     // Expand to wide width
                     column.classList.add('wide');
 
-                    // Change icon to narrow (left chevron)
-                    icon.className = 'fas fa-chevron-left';
+                    // Change icon to compress
+                    icon.className = 'fas fa-compress-alt';
 
                     console.log(`[SIZE] ${this.getAgentName(agentId)} width: 600px(wide)`);
                 }
@@ -13283,6 +12547,7 @@
                             // Tag thread with agent name
                             const agentName = MultiAgent.getAgentName(agentId);
                             thread.agent = agentName;
+                            ThreadManager.saveThreads();
                             console.log(`[OK] Tagged thread "${thread.title}" with agent: ${agentName} `);
 
                             // Load thread messages into agent with TwoRuleStreamProcessor
@@ -13336,6 +12601,7 @@
 
                             const agentName = MultiAgent.getAgentName(agentIdNum);
                             thread.agent = agentName;
+                            ThreadManager.saveThreads();
 
                             setTimeout(() => {
                                 const messagesContainer = document.querySelector(`#agent-${agentIdNum} .agent-messages-container`);
@@ -13380,9 +12646,9 @@
                         const hadWide = column.classList.contains('wide');
                         column.classList.remove('wide');
 
-                        // Reset icon to default (right chevron)
+                        // Reset icon to default (expand arrows)
                         if (icon) {
-                            icon.className = 'fas fa-chevron-right';
+                            icon.className = 'fas fa-arrows-alt-h';
                         }
 
                         if (hadWide) {
@@ -13405,7 +12671,7 @@
 
                             // Reset icon to default
                             if (icon) {
-                                icon.className = 'fas fa-chevron-right';
+                                icon.className = 'fas fa-arrows-alt-h';
                             }
 
                             console.log(`[LOCK][LATE WIDTH ENFORCEMENT @${delay}ms] Removed 'wide' from ${MultiAgent.getAgentName(i)} `);
@@ -13433,13 +12699,13 @@
 
             const loadedThread = MultiAgent.getLoadedThread(agentId);
             const threadInfoHtml = loadedThread
-                ? `<div class="agent-thread-loaded">
+                ? `< div class="agent-thread-loaded" >
                     <i class="fas fa-comments"></i>
                     <span class="agent-thread-title">${loadedThread.threadTitle}</span>
                     <button class="agent-thread-clear" onclick="event.stopPropagation(); MultiAgent.clearLoadedThread(${agentId})" title="Clear thread">
                         <i class="fas fa-times"></i>
                     </button>
-                   </div>`
+                   </div > `
                 : '<div class="agent-no-thread"><i class="fas fa-inbox"></i> No thread loaded</div>';
 
             column.innerHTML = `
@@ -13456,32 +12722,31 @@
                 </div>
 
                 <div class="agent-header">
-                    <!-- Header Top Row: [Collapse] [Agent Title] [Width Toggle] [Hamburger] -->
-                    <div class="agent-header-top">
-                        <button class="collapse-btn" onclick="event.stopPropagation(); MultiAgent.collapseColumn(${agentId})" title="Collapse column">
-                            <i class="fas fa-chevron-down"></i>
+                    <!-- Status Indicator (centered) -->
+                    <div class="agent-status-indicator" id="status-${agentId}" data-status="ready">
+                        <div class="status-dot"></div>
+                        <span class="status-text">Ready</span>
+                    </div>
+
+                    <!-- Header Controls (top right) -->
+                    <div class="agent-header-controls">
+                        <button class="width-toggle-btn" onclick="event.stopPropagation(); MultiAgent.toggleColumnWidth(${agentId})" title="Toggle column width">
+                            <i class="fas fa-arrows-alt-h" id="width-icon-${agentId}"></i>
                         </button>
-                        
-                        <div class="agent-title-wrapper">
-                            <h2><i class="fas ${MultiAgent.getAgentIcon(agentId)}"></i> ${agentName}</h2>
-                        </div>
-                        
-                        <div class="agent-header-controls">
-                            <button class="width-toggle-btn" onclick="event.stopPropagation(); MultiAgent.toggleColumnWidth(${agentId})" title="Toggle column width">
-                                <i class="fas fa-chevron-right" id="width-icon-${agentId}"></i>
-                            </button>
-                            <button class="agent-hamburger-button" onclick="event.stopPropagation(); toggleAgentMenu(${agentId})">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </div>
+                        <button class="collapse-btn" onclick="event.stopPropagation(); MultiAgent.collapseColumn(${agentId})" title="Collapse column">
+                            <i class="fas fa-compress-alt"></i>
+                        </button>
+                        <button class="agent-hamburger-button" onclick="event.stopPropagation(); toggleAgentMenu(${agentId})">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
                     </div>
 
                     <div class="agent-menu-dropdown" id="menu-${agentId}">
                         <div class="agent-menu-item" onclick="event.stopPropagation(); newChat(${agentId})">
                             <i class="fas fa-plus"></i> New Chat
                         </div>
-                        <div class="agent-menu-item" onclick="event.stopPropagation(); ThreadManager.toggleThreadMenu(); toggleAgentMenu(${agentId})">
-                            <i class="fas fa-history"></i> Thread History
+                        <div class="agent-menu-item" onclick="event.stopPropagation(); showLoadThreadDialog(${agentId})">
+                            <i class="fas fa-download"></i> Load Thread
                         </div>
                         <div class="agent-menu-divider"></div>
                         <div class="agent-menu-item close-agent" onclick="event.stopPropagation(); closeAgentColumn(${agentId})">
@@ -13489,78 +12754,22 @@
                         </div>
                     </div>
 
+                    <div class="agent-header-top">
+                        <div class="agent-title-wrapper">
+                            <h2><i class="fas ${MultiAgent.getAgentIcon(agentId)}"></i> ${agentName}</h2>
+                        </div>
+                    </div>
                     <div class="agent-thread-info" id="thread-info-${agentId}">
                         ${threadInfoHtml}
-                    </div>
-
-                    <!-- Status Indicator (centered below) -->
-                    <div class="agent-status-indicator" id="status-${agentId}" data-status="ready">
-                        <div class="status-dot"></div>
-                        <span class="status-text">Ready</span>
                     </div>
                 </div>
                 
                 <div class="agent-messages-container" id="messages-${agentId}">
-                    ${threadInfoHtml ? `
-                        <div class="agent-message assistant">
-                            <div class="agent-message-bubble">
-                                ${MultiAgent.getAgentWelcomeMessage(agentId, agentName)}
-                            </div>
+                    <div class="agent-message assistant">
+                        <div class="agent-message-bubble">
+                            ${MultiAgent.getAgentWelcomeMessage(agentId, agentName)}
                         </div>
-                    ` : `
-                        <div class="empty-chat-state" style="
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            height: 100%;
-                            padding: var(--space-8);
-                            gap: var(--space-4);
-                        ">
-                            <div style="font-size: 48px; opacity: 0.3;">🤖</div>
-                            <h3 style="margin: 0; color: var(--text-primary);">${agentName}</h3>
-                            <p style="margin: 0; color: var(--text-secondary); text-align: center;">
-                                No active thread. Start a new chat or load from history.
-                            </p>
-                            <button
-                                onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}')"
-                                style="
-                                    padding: var(--space-3) var(--space-6);
-                                    background: transparent;
-                                    color: var(--text-primary);
-                                    border: 1px solid var(--border-default);
-                                    border-radius: 6px;
-                                    font-size: 16px;
-                                    font-weight: 600;
-                                    cursor: pointer;
-                                    transition: all 0.2s;
-                                "
-                                onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)';"
-                                onmouseout="this.style.borderColor='var(--border-default)'; this.style.color='var(--text-primary)';"
-                            >
-                                <i class="fas fa-plus" style="margin-right: var(--space-2);"></i>
-                                Start New Chat
-                            </button>
-                            <button 
-                                onclick="event.stopPropagation(); ThreadManager.toggleThreadMenu()" 
-                                style="
-                                    padding: var(--space-2) var(--space-4);
-                                    background: transparent;
-                                    color: var(--text-secondary);
-                                    border: 1px solid var(--border-default);
-                                    border-radius: var(--radius-md);
-                                    font-size: 14px;
-                                    cursor: pointer;
-                                    transition: all 0.2s;
-                                "
-                                onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)';"
-                                onmouseout="this.style.borderColor='var(--border-default)'; this.style.color='var(--text-secondary)';"
-                            >
-                                <i class="fas fa-history" style="margin-right: var(--space-2);"></i>
-                                View Thread History
-                            </button>
-                        </div>
-                    `}
+                    </div>
                 </div>
                 
                 <div class="agent-input-area">
@@ -13568,20 +12777,14 @@
                     <div id="agent-attached-files-${agentId}" class="agent-attached-files"></div>
                     
                     <div class="agent-input-group">
-                        <!-- Center: Textarea -->
-                        <div class="agent-input-center">
-                            <textarea id="input-${agentId}" onkeydown="handleAgentKeypress(event, ${agentId})"></textarea>
-                        </div>
+                        <textarea id="input-${agentId}" placeholder="Message Agent ${agentName}..." onkeydown="handleAgentKeypress(event, ${agentId})"></textarea>
 
-                        <!-- Right: Action buttons -->
-                        <div class="agent-input-right-buttons">
                             <button id="attach-${agentId}" class="agent-attach-btn" title="Attach files">
                                 <i class="fas fa-paperclip"></i>
                             </button>
                             <button id="send-${agentId}" class="agent-send-btn" onclick="sendAgentMessage(${agentId})">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
-                        </div>
 
                         <input type="file" id="file-input-${agentId}" class="agent-file-input" multiple accept="application/pdf,image/*" style="display: none;">
                     </div>
@@ -13909,11 +13112,7 @@
 
             // Update thread's agent assignment
             thread.agent = `multi-agent-${agentId}`;
-
-            // Save to backend if ThreadManager has the method
-            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.saveThreadToBackend === 'function') {
-                ThreadManager.saveThreadToBackend(thread.id);
-            }
+            ThreadManager.saveThreads();
 
             console.log(`Thread "${thread.title}" loaded into ${agentName}`);
             showNotification(`Thread loaded into ${agentName}`, 'success', 2000);
@@ -13986,43 +13185,6 @@
             return content;
         }
 
-        /**
-         * Validate that all tool_use blocks have matching tool_result blocks
-         * Prevents Claude API error 400: tool_use without tool_result
-         */
-        function validateToolPairs(messages) {
-            const issues = [];
-
-            messages.forEach((msg, idx) => {
-                if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-                    const toolUseIds = msg.content
-                        .filter(b => b.type === 'tool_use')
-                        .map(b => b.id);
-
-                    const toolResultIds = msg.content
-                        .filter(b => b.type === 'tool_result')
-                        .map(b => b.tool_use_id);
-
-                    // Check for orphaned tool_use blocks
-                    const orphanedTools = toolUseIds.filter(id => !toolResultIds.includes(id));
-
-                    if (orphanedTools.length > 0) {
-                        issues.push({
-                            messageIndex: idx,
-                            role: msg.role,
-                            orphanedToolIds: orphanedTools,
-                            message: `Message ${idx} has ${orphanedTools.length} tool_use blocks without tool_result`
-                        });
-                    }
-                }
-            });
-
-            return {
-                valid: issues.length === 0,
-                issues: issues
-            };
-        }
-
         function closeAgentColumn(agentId) {
             if (confirm(`Close Agent ${getAgentName(agentId)}?`)) {
                 const column = document.getElementById(`agent-${agentId}`);
@@ -14044,16 +13206,29 @@
         }
 
         function newChat(agentId) {
-            // Open proper thread creation modal for this agent
-            const location = `agent-${agentId}`;
+            const messagesContainer = document.getElementById(`messages-${agentId}`);
+            if (messagesContainer) {
+                // Clean up any existing processors
+                messagesContainer.querySelectorAll('[data-processor-initialized]').forEach(bubble => {
+                    if (bubble.processor && typeof bubble.processor.cleanup === 'function') {
+                        bubble.processor.cleanup();
+                    }
+                });
 
-            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.showNewChatModal === 'function') {
-                ThreadManager.showNewChatModal(location);
-                toggleAgentMenu(agentId);
-            } else {
-                console.error('[newChat] ThreadManager.showNewChatModal not available');
-                showNotification('Unable to start new chat', 'error');
+                messagesContainer.innerHTML = `
+            < div class="agent-message assistant" >
+                <div class="agent-message-bubble">
+                    👋 <strong>Agent ${getAgentName(agentId)} ready!</strong><br><br>
+                        New conversation started!
+                    </div>
+                </div>
+        `;
             }
+
+            // Reset session
+            MultiAgent.sessions[agentId] = generateSessionId();
+            toggleAgentMenu(agentId);
+            showNotification('New chat started', 'success');
         }
 
         function handleAgentKeypress(event, agentId) {
@@ -14097,6 +13272,7 @@
                 currentThread = ThreadManager.threads.find(t => t.id === threadId);
                 currentThread.agent = agentName;
                 currentThread.title = `${agentName} Chat`;
+                ThreadManager.saveThreads();
             }
 
             // Update status
@@ -14133,37 +13309,14 @@
                 // Get current thread for this agent
                 const currentThread = ThreadManager.getThreadByAgent(getAgentName(agentId));
 
-                // Build conversation history - FILTER OUT thinking blocks, KEEP tool_result
+                // Build conversation history - FILTER OUT thinking and tool_result blocks
                 const conversationHistory = currentThread ? currentThread.messages.map(msg => ({
                     role: msg.role,
                     content: filterContentForAPI(msg.content)  // 🔥 CRITICAL: Filter before sending to API
                 })) : [];
 
-                // VALIDATE tool_use/tool_result pairs before sending
-                const validation = validateToolPairs(conversationHistory);
-                if (!validation.valid) {
-                    console.error(`[API VALIDATION] Found orphaned tool_use blocks:`, validation.issues);
-                    validation.issues.forEach(issue => {
-                        console.error(`  Message ${issue.messageIndex}: ${issue.orphanedToolIds.length} orphaned tools:`, issue.orphanedToolIds);
-                    });
-
-                    // Filter out messages with orphaned tool_use blocks to prevent API error
-                    const validMessages = conversationHistory.filter((msg, idx) => {
-                        const hasIssue = validation.issues.some(issue => issue.messageIndex === idx);
-                        if (hasIssue) {
-                            console.warn(`[API VALIDATION] Removing message ${idx} with orphaned tool_use blocks`);
-                        }
-                        return !hasIssue;
-                    });
-
-                    // Replace conversationHistory with cleaned version
-                    conversationHistory.length = 0;
-                    conversationHistory.push(...validMessages);
-                    console.log(`[API VALIDATION] Cleaned history: ${validMessages.length} valid messages`);
-                }
-
                 console.log(`[Agent ${getAgentName(agentId)}] Thread loaded:`, currentThread ? currentThread.title : 'New thread');
-                console.log(`[Agent ${getAgentName(agentId)}] History: ${conversationHistory.length} messages (thinking blocks filtered out, tool pairs validated)`);
+                console.log(`[Agent ${getAgentName(agentId)}] History: ${conversationHistory.length} messages (thinking blocks filtered out)`);
 
                 // Prepare request based on whether files are attached
                 let response;
@@ -14267,48 +13420,7 @@
                     }
 
                     // Add tool_use blocks AND their corresponding tool_result blocks
-                    // CRITICAL: Wait for all tools to complete before saving
-                    const toolBubbles = result.toolBubbles;
-                    const toolWaitPromises = [];
-
-                    toolBubbles.forEach(bubble => {
-                        const isComplete = bubble.classList.contains('tool-status-complete');
-                        const isError = bubble.classList.contains('tool-status-error');
-
-                        if (!isComplete && !isError) {
-                            // Tool still running - create promise to wait for completion
-                            const toolId = bubble.getAttribute('data-tool-id');
-                            const waitPromise = new Promise((resolve) => {
-                                const checkInterval = setInterval(() => {
-                                    const nowComplete = bubble.classList.contains('tool-status-complete');
-                                    const nowError = bubble.classList.contains('tool-status-error');
-                                    if (nowComplete || nowError) {
-                                        clearInterval(checkInterval);
-                                        console.log(`[TOOL WAIT] Tool ${toolId} completed, ready to save`);
-                                        resolve();
-                                    }
-                                }, 100); // Check every 100ms
-
-                                // Timeout after 30 seconds
-                                setTimeout(() => {
-                                    clearInterval(checkInterval);
-                                    console.warn(`[TOOL WAIT] Tool ${toolId} timed out after 30s, saving anyway`);
-                                    resolve();
-                                }, 30000);
-                            });
-                            toolWaitPromises.push(waitPromise);
-                        }
-                    });
-
-                    // Wait for all tools to complete (with timeout)
-                    if (toolWaitPromises.length > 0) {
-                        console.log(`[TOOL WAIT] Waiting for ${toolWaitPromises.length} tools to complete before saving...`);
-                        await Promise.all(toolWaitPromises);
-                        console.log(`[TOOL WAIT] All tools completed, proceeding with save`);
-                    }
-
-                    // Now build fullContent with completed tool results
-                    toolBubbles.forEach(bubble => {
+                    result.toolBubbles.forEach(bubble => {
                         const toolId = bubble.getAttribute('data-tool-id');
                         const contentDiv = bubble.querySelector('.ai-message-content');
 
@@ -14325,7 +13437,7 @@
                                 input: {} // Input already displayed in bubble
                             });
 
-                            // Add corresponding tool_result block
+                            // CRITICAL FIX: Add corresponding tool_result block
                             // Extract result from the bubble's result section
                             const resultSection = bubble.querySelector('.tool-result-content, details');
                             const isError = bubble.classList.contains('tool-status-error');
@@ -14340,15 +13452,6 @@
                                     tool_use_id: toolId,
                                     content: resultText,
                                     is_error: isError
-                                });
-                            } else {
-                                // Tool didn't complete (timed out) - add placeholder result
-                                console.warn(`[TOOL RESULT] Tool ${toolId} incomplete, adding placeholder result`);
-                                fullContent.push({
-                                    type: 'tool_result',
-                                    tool_use_id: toolId,
-                                    content: 'Tool execution timed out',
-                                    is_error: true
                                 });
                             }
                         }
@@ -14370,7 +13473,7 @@
                     });
 
                     threadForSaving.updated = new Date().toISOString();
-                    // Thread will be saved to backend via saveThreadToBackend
+                    ThreadManager.saveThreads();
                     console.log(`💾 Saved to thread: ${threadForSaving.title} (${result.toolBubbles.length} tools used, thinking: ${result.fullThinkingContent ? 'yes' : 'no'})`);
 
                     // Save messages to backend after multi-agent completes
@@ -14379,15 +13482,6 @@
 
             } catch (error) {
                 console.error(`[Agent ${agentId}] Error:`, error);
-
-                // Remove typing indicator if still present
-                const messagesContainer = document.getElementById(`messages-${agentId}`);
-                const typingIndicator = messagesContainer?.querySelector('.typing-indicator');
-                if (typingIndicator) {
-                    typingIndicator.closest('.agent-message')?.remove();
-                    console.log(`[Agent ${agentId}] Removed typing indicator on error`);
-                }
-
                 addAgentMessage(agentId, 'ai', ` Error: ${error.message}`);
                 updateAgentStatus(agentId, 'error', 'Error');
             } finally {
@@ -16128,7 +15222,7 @@
                     this.showStartNewChatButton('ai-chat-messages');
                 }
 
-                // this.startAutoSave(); // REMOVED: Auto-save disabled, saves happen after each AI response
+                this.startAutoSave();
                 this.renderThreadList();
 
                 // Restore thread assignments from database
@@ -16169,7 +15263,6 @@
             updateCurrentThread(messages) {
                 const thread = this.getCurrentThread();
                 if (thread) {
-                    console.log(`[UPDATE THREAD] Updating thread ${thread.id} with ${messages.length} messages`);
                     thread.messages = messages;
                     thread.updated = new Date().toISOString();
                     // Update title from first user message
@@ -16187,14 +15280,11 @@
                     this.syncAppState(thread.id);
 
                     // CRITICAL: Save messages to database (not just thread metadata)
-                    console.log(`[UPDATE THREAD] Calling saveMessagesToBackend for thread ${thread.id}`);
                     this.saveMessagesToBackend(thread);
 
                     // Also save thread metadata (async, don't wait)
                     this.saveThreadToBackend(thread);
                     this.renderThreadList();
-                } else {
-                    console.error('[UPDATE THREAD ERROR] No current thread found!');
                 }
             },
 
@@ -16394,7 +15484,7 @@
                 });
             },
 
-            async deleteThread(threadId) {
+            deleteThread(threadId) {
                 const thread = this.threads.find(t => t.id === threadId);
                 if (!thread) return;
 
@@ -16402,34 +15492,19 @@
                 showConfirmation(
                     'Delete Thread?',
                     `Are you sure you want to delete "${thread.title}"? This action cannot be undone.`,
-                    async () => {
-                        try {
-                            // Delete from backend first
-                            const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/${threadId}`, {
-                                method: 'DELETE'
-                            });
+                    () => {
+                        // Confirmed - delete the thread
+                        this.threads = this.threads.filter(t => t.id !== threadId);
+                        // TODO: Call backend delete API when implemented
 
-                            if (response.ok) {
-                                // Remove from local array
-                                this.threads = this.threads.filter(t => t.id !== threadId);
-
-                                // If deleting current thread, show new chat modal
-                                if (this.currentThreadId === threadId) {
-                                    this.showNewChatModal('prime');
-                                } else {
-                                    this.renderThreadList();
-                                }
-
-                                showNotification(`Thread "${thread.title}" deleted successfully`, 'success');
-                                console.log('Thread deleted:', thread.title);
-                            } else {
-                                const error = await response.json();
-                                showNotification(`Failed to delete thread: ${error.error || 'Unknown error'}`, 'error');
-                            }
-                        } catch (error) {
-                            console.error('[deleteThread] Error:', error);
-                            showNotification('Error deleting thread', 'error');
+                        // If deleting current thread, show new chat modal
+                        if (this.currentThreadId === threadId) {
+                            this.showNewChatModal('prime');
+                        } else {
+                            this.renderThreadList();
                         }
+
+                        console.log('Thread deleted:', thread.title);
                     }
                 );
             },
@@ -16553,31 +15628,19 @@
                 }
             },
 
-            async archiveThread(threadId) {
+            archiveThread(threadId) {
                 const thread = this.threads.find(t => t.id === threadId);
                 if (!thread) return;
                 showConfirmation(
                     'Archive Thread?',
                     `Archive "${thread.title}"? You can restore it later from the Archived filter.`,
-                    async () => {
-                        try {
-                            thread.archived = true;
-                            thread.updated = new Date().toISOString();
-
-                            const success = await this.saveThreadToBackend(thread);
-
-                            if (success) {
-                                this.renderThreadList();
-                                showNotification('Thread archived successfully', 'success');
-                            } else {
-                                // Revert on failure
-                                thread.archived = false;
-                                showNotification('Failed to archive thread', 'error');
-                            }
-                        } catch (error) {
-                            console.error('[archiveThread] Error:', error);
-                            thread.archived = false;
-                            showNotification('Error archiving thread', 'error');
+                    () => {
+                        thread.archived = true;
+                        thread.updated = new Date().toISOString();
+                        this.saveThreadToBackend(thread);
+                        this.renderThreadList();
+                        if (typeof showNotification === 'function') {
+                            showNotification('Thread archived', 'success', 2000);
                         }
                     }
                 );
@@ -18021,32 +17084,6 @@
                     const newThreadId = newThread.id || newThread.thread_id;
                     console.log(`✅ [OK] [createThreadWithMetadata] Thread created:`, newThreadId);
 
-                    // Add thread to threads array immediately so it's available for header update
-                    const threadObject = {
-                        id: newThreadId,
-                        title: title,
-                        created: new Date().toISOString(),
-                        updated: new Date().toISOString(),
-                        user_id: 12,
-                        tags: tags || [],
-                        synergy_card_id: synergySessionId || null,
-                        location: location,
-                        agent: location === 'prime' ? 'main' : location,
-                        messages: [],
-                        message_count: 0,
-                        metadata: {}
-                    };
-
-                    // Add to threads array if not already there
-                    const existingIndex = this.threads.findIndex(t => t.id === newThreadId);
-                    if (existingIndex === -1) {
-                        this.threads.unshift(threadObject);
-                        console.log(`[OK] Thread ${newThreadId} added to threads array`);
-                    } else {
-                        this.threads[existingIndex] = threadObject;
-                        console.log(`[OK] Thread ${newThreadId} updated in threads array`);
-                    }
-
                     // 2. If Synergy session selected, update it bidirectionally
                     if (synergySessionId) {
                         console.log(`🔗 [createThreadWithMetadata] Linking to Synergy session:`, synergySessionId);
@@ -18141,22 +17178,9 @@
                     // Update AppState for Prime
                     // UPDATE UI (Added Nov 8, 2025)
                     if (location === 'prime') {
-                        // Ensure header container is visible
-                        const primeHeaderInfo = document.getElementById('prime-thread-info');
-                        if (primeHeaderInfo) {
-                            primeHeaderInfo.style.display = 'block';
-                        }
-
                         // Update Prime header with comprehensive function
                         this.updatePrimeHeader(newThreadId);
                         this.syncAppState(newThreadId);
-
-                        // Ensure the thread title shows (not "No thread loaded")
-                        const titleEl = document.getElementById('prime-thread-title');
-                        if (titleEl && titleEl.textContent === 'No thread loaded') {
-                            titleEl.textContent = title;
-                        }
-
                         console.log(`[OK] [createThreadWithMetadata] Prime header updated for thread: ${newThreadId}`);
                     }
 
@@ -19524,15 +18548,19 @@
             document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(async () => {
                     await ThreadManager.init();
-                    // Note: restoreThreadAssignments() is called INSIDE ThreadManager.init()
-                    // No need to call it again here (was causing duplicate restoration)
+                    // After threads are loaded, restore thread assignments in Multi-Agent
+                    if (typeof MultiAgent !== 'undefined' && MultiAgent.restoreThreadAssignments) {
+                        MultiAgent.restoreThreadAssignments();
+                    }
                 }, 500);
             });
         } else {
             setTimeout(async () => {
                 await ThreadManager.init();
-                // Note: restoreThreadAssignments() is called INSIDE ThreadManager.init()
-                // No need to call it again here (was causing duplicate restoration)
+                // After threads are loaded, restore thread assignments in Multi-Agent
+                if (typeof MultiAgent !== 'undefined' && MultiAgent.restoreThreadAssignments) {
+                    MultiAgent.restoreThreadAssignments();
+                }
             }, 500);
         }
 
@@ -21635,30 +20663,6 @@
             opacity: 0.3;
         }
 
-        /* Thread Drop Zone Styling */
-        .kanban-card.thread-drop-zone {
-            border: 2px dashed var(--accent-primary);
-            background: rgba(88, 166, 255, 0.08);
-            box-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
-        }
-
-        .kanban-card.thread-drop-zone::before {
-            content: 'Drop thread here to link';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(88, 166, 255, 0.15);
-            color: var(--accent-primary);
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            pointer-events: none;
-            z-index: 10;
-            border: 2px dashed var(--accent-primary);
-        }
-
         /* Card Header */
         .card-header {
             display: flex;
@@ -23605,7 +22609,6 @@
 
                 // Initialize drag and drop
                 this.initializeDragula();
-                this.initializeThreadToSynergyDragDrop();
 
                 // Render all cards
                 this.renderAllCards();
@@ -23915,116 +22918,10 @@
 
                 // Event listeners
                 this.drake.on('drop', (el, target, source, sibling) => {
-                    this.handleCardDrop(el, target, source, sibling);
+                    this.handleCardDrop(el, target, source);
                 });
 
                 console.log('Dragula initialized');
-            },
-
-            /**
-             * Initialize drag-and-drop from thread list to Synergy cards
-             * Enables dragging thread-item elements and dropping them on kanban-card elements
-             */
-            initializeThreadToSynergyDragDrop() {
-                console.log('[SYNERGY] Initializing thread-to-card drag-and-drop');
-
-                // Add drag event listeners to all thread items
-                const setupThreadDrag = () => {
-                    const threadItems = document.querySelectorAll('.thread-item');
-                    threadItems.forEach(threadItem => {
-                        // Skip if already set up
-                        if (threadItem.dataset.synergyDragSetup) return;
-                        threadItem.dataset.synergyDragSetup = 'true';
-
-                        threadItem.addEventListener('dragstart', (e) => {
-                            const threadId = threadItem.dataset.threadId;
-                            console.log('[SYNERGY-DRAG] Thread drag started:', threadId);
-                            e.dataTransfer.setData('thread-id', threadId);
-                            e.dataTransfer.effectAllowed = 'link';
-                            threadItem.classList.add('dragging-to-synergy');
-                        });
-
-                        threadItem.addEventListener('dragend', (e) => {
-                            threadItem.classList.remove('dragging-to-synergy');
-                            // Remove drop zone indicators from all cards
-                            document.querySelectorAll('.kanban-card.thread-drop-zone').forEach(card => {
-                                card.classList.remove('thread-drop-zone');
-                            });
-                        });
-                    });
-                };
-
-                // Set up drop zones on Synergy cards
-                const setupCardDropZones = () => {
-                    const cards = document.querySelectorAll('.kanban-card');
-                    cards.forEach(card => {
-                        // Skip if already set up
-                        if (card.dataset.synergyDropSetup) return;
-                        card.dataset.synergyDropSetup = 'true';
-
-                        card.addEventListener('dragover', (e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'link';
-                            card.classList.add('thread-drop-zone');
-                        });
-
-                        card.addEventListener('dragleave', (e) => {
-                            // Only remove if leaving the card completely
-                            if (!card.contains(e.relatedTarget)) {
-                                card.classList.remove('thread-drop-zone');
-                            }
-                        });
-
-                        card.addEventListener('drop', async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            card.classList.remove('thread-drop-zone');
-
-                            const threadId = e.dataTransfer.getData('thread-id');
-                            const sessionId = card.dataset.sessionId;
-
-                            if (threadId && sessionId) {
-                                console.log('[SYNERGY-DROP] Thread dropped on card:', { threadId, sessionId });
-                                await this.linkThreadToSession(threadId, sessionId);
-                            }
-                        });
-                    });
-                };
-
-                // Initial setup
-                setupThreadDrag();
-                setupCardDropZones();
-
-                // Re-setup when cards are rendered
-                const observer = new MutationObserver((mutations) => {
-                    let shouldSetup = false;
-                    mutations.forEach(mutation => {
-                        if (mutation.addedNodes.length > 0) {
-                            mutation.addedNodes.forEach(node => {
-                                if (node.classList && (node.classList.contains('kanban-card') || node.classList.contains('thread-item'))) {
-                                    shouldSetup = true;
-                                }
-                            });
-                        }
-                    });
-                    if (shouldSetup) {
-                        setTimeout(() => {
-                            setupThreadDrag();
-                            setupCardDropZones();
-                        }, 100);
-                    }
-                });
-
-                // Observe the kanban board, thread list, and edit modal for new elements
-                const kanbanBoard = document.querySelector('.synergy-dashboard');
-                const threadList = document.querySelector('.thread-list');
-                const editModal = document.getElementById('edit-card-modal');
-
-                if (kanbanBoard) observer.observe(kanbanBoard, { childList: true, subtree: true });
-                if (threadList) observer.observe(threadList, { childList: true, subtree: true });
-                if (editModal) observer.observe(editModal, { childList: true, subtree: true });
-
-                console.log('[SYNERGY] Thread-to-card drag-and-drop initialized');
             },
 
             renderAllCards() {
@@ -24382,13 +23279,23 @@
 
                                                                                                                                             ${session.thread_ids && this.parseJsonField(session.thread_ids, []).length > 0 ? `
                             <div class="card-section" id="threads-section-${session.session_id}">
-                                <div class="section-title">
-                                    <i class="fas fa-comments"></i> Linked Threads (${this.parseJsonField(session.thread_ids, []).length})
+                                <div class="section-title"><i class="fas fa-comments"></i> Linked Threads (${this.parseJsonField(session.thread_ids, []).length})</div>
+                                <div class="thread-list-loading">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading threads...
                                 </div>
-                                <div class="synergy-linked-threads-container">
-                                    <div class="thread-list-loading">
-                                        <i class="fas fa-spinner fa-spin"></i> Loading threads...
-                                    </div>
+                            </div>
+                        ` : ''}
+
+                                                                                                                                            ${session.assigned_agents && this.parseJsonField(session.assigned_agents, []).length > 0 ? `
+                            <div class="card-section">
+                                <div class="section-title"><i class="fas fa-robot"></i> Assigned Agents (${this.parseJsonField(session.assigned_agents, []).length})</div>
+                                <div class="agent-list">
+                                    ${this.parseJsonField(session.assigned_agents, []).map(agent => `
+                                        <div class="agent-item">
+                                            <i class="fas fa-brain"></i>
+                                            <span class="agent-name">${this.escapeHtml(agent)}</span>
+                                        </div>
+                                    `).join('')}
                                 </div>
                             </div>
                         ` : ''}
@@ -24442,10 +23349,12 @@
                                                                                                                                         `;
             },
 
-            async handleCardDrop(el, target, source, sibling) {
+            async handleCardDrop(el, target, source) {
                 const sessionId = el.dataset.sessionId;
                 const newColumn = target.dataset.column;
                 const oldColumn = source.dataset.column;
+
+                if (newColumn === oldColumn) return;
 
                 console.log(`🔀 Card moved: ${sessionId} → ${newColumn}`);
 
@@ -24468,13 +23377,8 @@
                         session.status = statusMap[newColumn] || 'active';
                     }
 
-                    // Update column
-                    if (newColumn !== oldColumn) {
-                        await this.updateSessionColumn(sessionId, newColumn);
-                    }
-
-                    // Update positions for all cards in the target column
-                    await this.updateColumnPositions(target);
+                    // Simulate API call (replace with actual API call)
+                    await this.updateSessionColumn(sessionId, newColumn);
 
                     // Update UI
                     this.updateColumnCounts();
@@ -24489,37 +23393,6 @@
 
                     // Revert on error
                     source.appendChild(el);
-                }
-            },
-
-            /**
-             * Update positions for all cards in a column after reordering
-             */
-            async updateColumnPositions(columnContainer) {
-                const cards = columnContainer.querySelectorAll('.kanban-card');
-                const updates = [];
-
-                cards.forEach((card, index) => {
-                    updates.push({
-                        session_id: card.dataset.sessionId,
-                        position: index
-                    });
-                });
-
-                if (updates.length === 0) return;
-
-                try {
-                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/update-positions`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cards: updates })
-                    });
-
-                    if (response.ok) {
-                        console.log(`✅ Updated ${updates.length} card positions`);
-                    }
-                } catch (error) {
-                    console.error('Failed to update card positions:', error);
                 }
             },
 
@@ -25577,7 +24450,7 @@
             },
 
             /**
-             * Render linked threads with agent badges - REDESIGNED to match thread-item style
+             * Render linked threads with agent badges
              * SYNERGY INTEGRATION FEATURE - Shows threads connected to this project
              */
             async renderLinkedThreads(threadIds) {
@@ -25599,82 +24472,40 @@
                     }
 
                     const result = await response.json();
+                    const threads = result.data || result; // Handle both {success, data} format and direct array
 
-                    // Handle both {success: true, data: [...]} and direct array formats
-                    const threads = result.data || result;
-
-                    if (!threads || !Array.isArray(threads) || threads.length === 0) {
+                    if (!threads || threads.length === 0) {
                         return '<div class="no-threads"><i class="fas fa-link-slash"></i> No threads found</div>';
                     }
 
-                    // Build HTML for each thread using thread-item style
+                    // Build HTML for each thread
                     const threadsHTML = threads.map(thread => {
-                        const threadName = this.escapeHtml(thread.name || thread.thread_slug || 'Untitled Thread');
-                        const messageCount = thread.message_count || 0;
-
-                        // Format date and time
-                        const updatedDate = new Date(thread.updated || thread.created);
-                        const dateStr = updatedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                        const timeStr = updatedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-                        // Agent badge with icon
-                        const agentIcons = {
-                            'prime': 'fa-robot',
-                            '1': 'fa-user-astronaut',
-                            '2': 'fa-user-secret',
-                            '3': 'fa-user-ninja'
-                        };
-                        const agentNames = {
-                            'prime': 'Prime',
-                            '1': 'Agent-1',
-                            '2': 'Agent-2',
-                            '3': 'Agent-3'
-                        };
-                        const agentId = thread.agent_id || 'prime';
-                        const agentIcon = agentIcons[agentId] || 'fa-robot';
-                        const agentLabel = agentNames[agentId] || `Agent-${agentId}`;
-                        const agentClass = agentId === 'prime' ? 'main' : '';
+                        const agentBadge = thread.agent_id ? `<span class="agent-badge agent-${thread.agent_id}">${thread.agent_name || `Agent-${thread.agent_id}`}</span>` : '<span class="agent-badge agent-none">No Agent</span>';
+                        const threadName = this.escapeHtml(thread.name || thread.thread_slug || thread.id);
 
                         return `
-                            <div class="synergy-linked-thread-card" data-thread-id="${thread.id}">
-                                <!-- Thread Title Row -->
-                                <div class="synergy-thread-header">
-                                    <span class="synergy-thread-title" 
-                                          onclick="synergyBoard.openThread('${thread.id}', '${agentId}')"
-                                          title="Click to open: ${threadName}">
-                                        ${threadName}
-                                    </span>
-                                    <button class="synergy-thread-unlink-btn"
-                                            onclick="event.stopPropagation(); synergyBoard.unlinkThreadFromSession('${thread.id}', this)"
-                                            title="Unlink thread from this session">
-                                        <i class="fas fa-unlink"></i>
-                                    </button>
-                                </div>
-                                
-                                <!-- Thread Meta Row: msgs, date, time, agent -->
-                                <div class="synergy-thread-meta">
-                                    <div class="synergy-thread-meta-left">
-                                        <span class="synergy-thread-meta-item" title="Message count">
-                                            <i class="fas fa-comments"></i> ${messageCount} msgs
-                                        </span>
-                                        <span class="synergy-thread-meta-item" title="Last updated">
-                                            <i class="fas fa-calendar"></i> ${dateStr}
-                                        </span>
-                                        <span class="synergy-thread-meta-item" title="Time">
-                                            <i class="fas fa-clock"></i> ${timeStr}
-                                        </span>
+                            <div class="linked-thread" onclick="synergyBoard.openThread('${thread.id}', '${thread.agent_id || 'prime'}')">
+                                <div class="thread-icon"><i class="fas fa-comments"></i></div>
+                                <div class="thread-info">
+                                    <div class="thread-name">${threadName}</div>
+                                    <div class="thread-meta">
+                                        ${agentBadge}
+                                        <span class="thread-time">${this.formatTimeAgo(thread.updated || thread.created)}</span>
                                     </div>
-                                    <span class="synergy-thread-agent-badge ${agentClass}">
-                                        <i class="fas ${agentIcon}"></i> ${agentLabel}
-                                    </span>
                                 </div>
                             </div>
                         `;
                     }).join('');
 
                     return `
-                        <div class="synergy-linked-threads-container">
-                            ${threadsHTML}
+                        <div class="linked-threads-container">
+                            <div class="linked-threads-header">
+                                <i class="fas fa-comments"></i> 
+                                <span>Linked Threads (${threads.length})</span>
+                            </div>
+                            <div class="linked-threads-list">
+                                ${threadsHTML}
+                            </div>
                         </div>
                     `;
 
@@ -25702,164 +24533,6 @@
                     window.threadManager.loadThread(threadId, agentId);
                 } else {
                     alert(`Would open thread: ${threadId} in agent: ${agentId}\n(ThreadManager integration pending)`);
-                }
-            },
-
-            /**
-             * Unlink a thread from current Synergy session
-             * Removes thread from thread_ids array without deleting the thread itself
-             */
-            async unlinkThreadFromSession(threadId, buttonElement) {
-                console.log(`[SYNERGY] Unlinking thread ${threadId}`);
-
-                // Get session ID from the card or edit modal
-                let sessionId = null;
-
-                // Check if we're in edit modal
-                const editModal = document.getElementById('edit-card-modal');
-                if (editModal && editModal.classList.contains('active')) {
-                    sessionId = document.getElementById('edit-session-id')?.value;
-                }
-
-                // If not in modal, find the card containing this thread
-                if (!sessionId) {
-                    const threadCard = buttonElement.closest('.synergy-linked-thread-card');
-                    const container = threadCard?.closest('.synergy-linked-threads-container');
-                    if (container) {
-                        // Find the session card that contains this
-                        const sessionCard = container.closest('[data-session-id]');
-                        sessionId = sessionCard?.dataset.sessionId;
-                    }
-                }
-
-                if (!sessionId) {
-                    console.error('[SYNERGY] Could not determine session ID for unlink');
-                    alert('Error: Could not determine session');
-                    return;
-                }
-
-                // Confirm before unlinking
-                if (!confirm(`Unlink this thread from the session?\n\nThe thread will not be deleted, just removed from this Synergy session.`)) {
-                    return;
-                }
-
-                try {
-                    // Call API to update thread_ids
-                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}/unlink-thread`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ thread_id: threadId })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Failed to unlink thread: ${response.status}`);
-                    }
-
-                    console.log(`[SYNERGY] Thread ${threadId} unlinked from session ${sessionId}`);
-
-                    // Update local data
-                    const session = this.sessions.find(s => s.session_id === sessionId);
-                    if (session) {
-                        let threadIds = this.parseJsonField(session.thread_ids, []);
-                        threadIds = threadIds.filter(id => id !== threadId);
-                        session.thread_ids = JSON.stringify(threadIds);
-                    }
-
-                    // Remove the thread card from DOM
-                    const threadCard = buttonElement.closest('.synergy-linked-thread-card');
-                    if (threadCard) {
-                        threadCard.style.opacity = '0';
-                        threadCard.style.transform = 'translateX(-20px)';
-                        setTimeout(() => threadCard.remove(), 200);
-                    }
-
-                    // Update the count in the section title if visible
-                    const sectionTitle = document.querySelector('.section-title');
-                    if (sectionTitle && sectionTitle.textContent.includes('Linked Threads')) {
-                        const newCount = this.parseJsonField(session.thread_ids, []).length;
-                        sectionTitle.innerHTML = `<i class="fas fa-comments"></i> Linked Threads (${newCount})`;
-                    }
-
-                    // Show success notification
-                    this.showNotification('Thread unlinked successfully', 'success');
-
-                } catch (error) {
-                    console.error('[SYNERGY] Error unlinking thread:', error);
-                    alert('Failed to unlink thread. Please try again.');
-                }
-            },
-
-            /**
-             * Link a thread to a Synergy session via drag-and-drop
-             * Called when a thread-item is dropped on a Synergy card
-             */
-            async linkThreadToSession(threadId, sessionId) {
-                console.log(`[SYNERGY] Linking thread ${threadId} to session ${sessionId}`);
-
-                try {
-                    // Get current thread_ids for this session
-                    const session = this.sessions.find(s => s.session_id === sessionId);
-                    if (!session) {
-                        throw new Error('Session not found');
-                    }
-
-                    let threadIds = this.parseJsonField(session.thread_ids, []);
-
-                    // Check if already linked
-                    if (threadIds.includes(threadId)) {
-                        this.showNotification('Thread already linked to this session', 'info');
-                        return;
-                    }
-
-                    // Add thread ID
-                    threadIds.push(threadId);
-
-                    // Call API to update
-                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}/link-thread`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ thread_id: threadId })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Failed to link thread: ${response.status}`);
-                    }
-
-                    console.log(`[SYNERGY] Thread ${threadId} linked to session ${sessionId}`);
-
-                    // Update local data
-                    session.thread_ids = JSON.stringify(threadIds);
-
-                    // Refresh the card's linked threads section if it's expanded
-                    const card = document.querySelector(`[data-session-id="${sessionId}"]`);
-                    if (card && card.dataset.expanded === 'true') {
-                        await this.refreshCardLinkedThreads(sessionId);
-                    }
-
-                    // Show success notification
-                    this.showNotification('Thread linked successfully!', 'success');
-
-                } catch (error) {
-                    console.error('[SYNERGY] Error linking thread:', error);
-                    this.showNotification('Failed to link thread', 'error');
-                }
-            },
-
-            /**
-             * Refresh the linked threads section of a specific card
-             */
-            async refreshCardLinkedThreads(sessionId) {
-                const session = this.sessions.find(s => s.session_id === sessionId);
-                if (!session) return;
-
-                const threadIds = this.parseJsonField(session.thread_ids, []);
-                const threadsHTML = await this.renderLinkedThreads(threadIds);
-
-                // Find the linked threads container in the card
-                const card = document.querySelector(`[data-session-id="${sessionId}"]`);
-                const threadsContainer = card?.querySelector('.section-content');
-                if (threadsContainer && threadsContainer.parentElement.querySelector('.section-title')?.textContent.includes('Linked Threads')) {
-                    threadsContainer.innerHTML = threadsHTML;
                 }
             },
 
@@ -25894,22 +24567,8 @@
                 document.getElementById('edit-tags').value = tags.length > 0 ? tags.join(', ') : '';
                 document.getElementById('edit-notes').value = session.notes || '';
                 document.getElementById('edit-assignees').value = assignees.length > 0 ? assignees.join(', ') : '';
-
-                // Load linked threads into modal's thread container
-                const modalThreadsContainer = document.getElementById('modal-linked-threads-container');
-                if (modalThreadsContainer && threadIds.length > 0) {
-                    // Render threads in the modal using the same format as cards
-                    this.renderLinkedThreads(session.session_id, threadIds, modalThreadsContainer);
-                } else if (modalThreadsContainer) {
-                    // Show empty state
-                    modalThreadsContainer.innerHTML = `
-                        <div class="thread-list-empty" style="text-align: center; color: var(--text-muted); padding: 20px;">
-                            <i class="fas fa-comments" style="font-size: 24px; opacity: 0.3; margin-bottom: 8px;"></i>
-                            <div>No threads linked yet</div>
-                            <div style="font-size: 12px; margin-top: 4px;">Drag threads from history to link them to this card</div>
-                        </div>
-                    `;
-                }
+                document.getElementById('edit-thread-ids').value = threadIds.length > 0 ? threadIds.join(', ') : '';
+                document.getElementById('edit-assigned-agents').value = assignedAgents.length > 0 ? assignedAgents.join(', ') : '';
 
                 // Due date and time
                 if (session.due_date) {
@@ -26949,98 +25608,10 @@
             container.appendChild(toolBubble);
             console.log('[OK] [Tool Use] Created standalone tool bubble (will group on completion)');
 
-            // Auto-scroll to bottom with extra clearance
-            performAutoScroll();
+            // Scroll
+            container.scrollTop = container.scrollHeight;
 
             return toolBubble;
-        }
-
-        /**
-         * Update thread message with tool_result block after tool completes
-         * CRITICAL: Claude API requires tool_use blocks to be followed by tool_result blocks
-         */
-        function updateThreadWithToolResult(toolId, resultData) {
-            try {
-                // Find the active thread for the agent
-                const agentMatch = document.querySelector(`[data-tool-id="${toolId}"]`)?.closest('[id^="agent-"]');
-                if (!agentMatch) {
-                    console.warn('[WARN] [Tool Result Update] Cannot find agent for tool:', toolId);
-                    return;
-                }
-
-                const agentId = agentMatch.id.replace('agent-', '');
-                const agentName = `agent-${agentId}`;
-                const currentThread = ThreadManager.getThreadByAgent(agentName);
-
-                if (!currentThread || !currentThread.messages || currentThread.messages.length === 0) {
-                    console.warn('[WARN] [Tool Result Update] No thread found for agent:', agentName);
-                    return;
-                }
-
-                // Find the last assistant message (the one with tool_use blocks)
-                let lastAssistantMessage = null;
-                for (let i = currentThread.messages.length - 1; i >= 0; i--) {
-                    if (currentThread.messages[i].role === 'assistant') {
-                        lastAssistantMessage = currentThread.messages[i];
-                        break;
-                    }
-                }
-
-                if (!lastAssistantMessage) {
-                    console.warn('[WARN] [Tool Result Update] No assistant message found');
-                    return;
-                }
-
-                // Ensure content is an array
-                if (typeof lastAssistantMessage.content === 'string') {
-                    lastAssistantMessage.content = [{ type: 'text', text: lastAssistantMessage.content }];
-                }
-
-                if (!Array.isArray(lastAssistantMessage.content)) {
-                    console.error('[ERROR] [Tool Result Update] Message content is not an array');
-                    return;
-                }
-
-                // Check if tool_result already exists for this toolId
-                const existingResultIndex = lastAssistantMessage.content.findIndex(
-                    block => block.type === 'tool_result' && block.tool_use_id === toolId
-                );
-
-                if (existingResultIndex !== -1) {
-                    console.log('[OK] [Tool Result Update] Tool result already exists for:', toolId);
-                    return;
-                }
-
-                // Find the tool_use block index
-                const toolUseIndex = lastAssistantMessage.content.findIndex(
-                    block => block.type === 'tool_use' && block.id === toolId
-                );
-
-                if (toolUseIndex === -1) {
-                    console.warn('[WARN] [Tool Result Update] Tool use block not found for:', toolId);
-                    return;
-                }
-
-                // Create tool_result block
-                const toolResultBlock = {
-                    type: 'tool_result',
-                    tool_use_id: toolId,
-                    content: resultData.content || resultData.result || 'Tool executed successfully',
-                    is_error: resultData.is_error || false
-                };
-
-                // Insert tool_result immediately after tool_use
-                lastAssistantMessage.content.splice(toolUseIndex + 1, 0, toolResultBlock);
-
-                console.log('[OK] [Tool Result Update] Added tool_result block for:', toolId);
-                console.log('📋 [Tool Result Update] Updated content blocks:', lastAssistantMessage.content.length);
-
-                // Save updated thread to backend
-                ThreadManager.saveMessagesToBackend(currentThread);
-
-            } catch (error) {
-                console.error('[ERROR] [Tool Result Update] Failed:', error);
-            }
         }
 
         /**
@@ -27070,11 +25641,6 @@
                 toolBubble.classList.add('tool-status-complete');
                 console.log('[OK] [Tool Result] Success status - glowing green');
             }
-
-            // CRITICAL FIX: Update thread message with tool_result block
-            // This ensures Claude API gets complete tool_use + tool_result pairs
-            updateThreadWithToolResult(toolId, data);
-
 
             const statusDiv = toolBubble.querySelector('.tool-status');
             if (statusDiv) {
@@ -27146,9 +25712,6 @@
                 resultDiv.appendChild(resultDetails);
 
                 statusDiv.after(resultDiv);
-
-                // Auto-scroll after adding result
-                performAutoScroll();
             }
 
             // MOVE TO GROUP: If there's a current tool group and this is NOT the first tool
@@ -27185,9 +25748,6 @@
                 groupContainer.appendChild(toolBubble);
 
                 console.log('[OK] [Tool Group] Tool moved into group container');
-
-                // Auto-scroll after moving tool to group
-                performAutoScroll();
             }
         }
 
@@ -27264,8 +25824,8 @@
                 contentDiv.textContent = existingBubble._fullText;
             }
 
-            // Auto-scroll to bottom with extra clearance
-            performAutoScroll();
+            // Scroll
+            container.scrollTop = container.scrollHeight;
 
             return existingBubble;
         }
@@ -27306,7 +25866,7 @@
                                                                                                                                                                                     </div>
             `;
             container.appendChild(errorBubble);
-            performAutoScroll();
+            container.scrollTop = container.scrollHeight;
         }
 
         // ========================================

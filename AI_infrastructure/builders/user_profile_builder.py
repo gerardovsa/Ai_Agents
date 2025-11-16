@@ -10,7 +10,8 @@ Responsibilities:
 """
 
 from typing import Dict, Any, Optional
-import sqlite3
+import sqlite3  # Keep for type hints
+from shared.db_connection_wrapper import get_connection
 import sys
 from pathlib import Path
 
@@ -62,7 +63,7 @@ class UserProfileBuilder:
 
     def _get_db_connection(self) -> sqlite3.Connection:
         """Get database connection with row factory."""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_connection('ai_infrastructure')
         conn.row_factory = sqlite3.Row
         return conn
 

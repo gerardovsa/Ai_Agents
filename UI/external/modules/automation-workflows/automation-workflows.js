@@ -222,7 +222,7 @@ class AutomationCanvas {
         // Type label (above shape)
         const typeLabel = document.createElement('div');
         typeLabel.className = 'shape-type-label';
-        typeLabel.textContent = this.getShapeTypeLabel(shape.type);
+        typeLabel.innerHTML = this.getShapeTypeLabel(shape.type);
 
         // Text input
         const textInput = document.createElement('textarea');
@@ -1232,25 +1232,25 @@ class AutomationCanvas {
 
     getShapeTypeLabel(type) {
         const labels = {
-            'trigger': 'TRIGGER',
-            'action': 'ACTION',
-            'decision': 'DECISION',
-            'end': 'END',
-            'blank': 'BLANK',
-            'wait': 'WAIT',
-            'schedule': 'SCHEDULE',
-            'database': 'DATABASE',
-            'output': 'OUTPUT',
-            'tool': 'TOOL',
-            'instructions': 'INSTRUCTIONS',
+            'trigger': '<i class="fas fa-bolt"></i> TRIGGER',
+            'action': '<i class="fas fa-play"></i> ACTION',
+            'decision': '<i class="fas fa-code-branch"></i> DECISION',
+            'end': '<i class="fas fa-flag"></i> END',
+            'blank': '<i class="fas fa-square"></i> BLANK',
+            'wait': '<i class="fas fa-hand-paper"></i> WAIT',
+            'schedule': '<i class="fas fa-calendar"></i> SCHEDULE',
+            'database': '<i class="fas fa-database"></i> DATABASE',
+            'output': '<i class="fas fa-file-export"></i> OUTPUT',
+            'tool': '<i class="fas fa-cog"></i> TOOL',
+            'instructions': '<i class="fas fa-info-circle"></i> INSTRUCTIONS',
             // Legacy mappings
-            'rectangle': 'ACTION',
-            'rounded': 'ACTION',
-            'hexagon': 'TRIGGER',
-            'circle': 'END',
-            'diamond': 'DECISION'
+            'rectangle': '<i class="fas fa-play"></i> ACTION',
+            'rounded': '<i class="fas fa-play"></i> ACTION',
+            'hexagon': '<i class="fas fa-bolt"></i> TRIGGER',
+            'circle': '<i class="fas fa-flag"></i> END',
+            'diamond': '<i class="fas fa-code-branch"></i> DECISION'
         };
-        return labels[type] || 'BLANK';
+        return labels[type] || '<i class="fas fa-square"></i> BLANK';
     }
 
     async deleteWorkflow(workflowId) {

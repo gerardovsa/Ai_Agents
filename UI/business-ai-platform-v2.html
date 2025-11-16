@@ -105,7 +105,8 @@
 
     <!-- ==================== AUTOMATION WORKFLOWS MODULE ==================== -->
     <!-- Visual automation canvas with drag-and-drop flow builder -->
-    <link rel="stylesheet" href="modules/automation-workflows.css">
+    <link rel="stylesheet" href="external/modules/automation-workflows/automation-workflows.css">
+    <script src="external/modules/automation-workflows/automation-canvas-extensions.js" defer></script>
 
     <style>
         /* ==================== ROOT VARIABLES ==================== */
@@ -17418,14 +17419,72 @@
                                             } else if (data.type === 'error') {
                                                 console.error('[ERROR] [ERROR EVENT] Stream error:', data.error);
                                                 console.error('[CHART] Error details:', JSON.stringify(data.error, null, 2));
-                                                fullResponse = `Error: ${JSON.stringify(data.error)}`;
-                                                // Update the message to show the error
-                                                const lastMsg = document.querySelector('.ai-message.assistant:last-child .ai-message-content');
-                                                if (lastMsg) {
-                                                    lastMsg.innerHTML = `<div style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border-left: 4px solid #ef4444;">
-                                                        <strong> Stream Error:</strong><br>
-                                                        <pre style="margin-top: 8px; white-space: pre-wrap;">${JSON.stringify(data.error, null, 2)}</pre>
-                                                    </div>`;
+
+                                                // Check if it's a 413 error (request too large)
+                                                const is413Error = data.error && (
+                                                    data.error.includes('413') ||
+                                                    data.error.includes('request_too_large') ||
+                                                    data.error.includes('Request exceeds the maximum size')
+                                                );
+
+                                                if (is413Error) {
+                                                    console.error('[413 ERROR] Request too large - clearing failed message and reloading thread');
+
+                                                    // Remove the last assistant message (failed response)
+                                                    const lastAssistantMsg = document.querySelector('.ai-message.assistant:last-child');
+                                                    if (lastAssistantMsg) {
+                                                        lastAssistantMsg.remove();
+                                                    }
+
+                                                    // Remove from conversation history
+                                                    if (AppState.chatMessages.length > 0 && AppState.chatMessages[AppState.chatMessages.length - 1].role === 'assistant') {
+                                                        AppState.chatMessages.pop();
+                                                    }
+
+                                                    // Add to Updates container
+                                                    const container = document.getElementById('notification-container');
+                                                    const notification = document.createElement('div');
+                                                    notification.className = 'notification error';
+                                                    notification.innerHTML = `
+                                                        <div class="notification-icon">
+                                                            <i class="fas fa-exclamation-triangle"></i>
+                                                        </div>
+                                                        <div class="notification-content">
+                                                            <div class="notification-message">
+                                                                <strong>Conversation Too Large</strong><br>
+                                                                Request exceeded API limits. Truncating conversation and reloading thread...
+                                                            </div>
+                                                        </div>
+                                                        <button class="notification-close" onclick="this.parentElement.remove()">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    `;
+                                                    container.appendChild(notification);
+                                                    setTimeout(() => notification.remove(), 4000);
+
+                                                    // Reload the thread after 2 seconds to clear state
+                                                    setTimeout(() => {
+                                                        if (typeof ThreadManager !== 'undefined' && ThreadManager.currentThreadSlug) {
+                                                            console.log('[413 RECOVERY] Reloading thread:', ThreadManager.currentThreadSlug);
+                                                            ThreadManager.loadThread(ThreadManager.currentThreadSlug);
+                                                        } else {
+                                                            console.log('[413 RECOVERY] No thread to reload, refreshing chat');
+                                                            location.reload();
+                                                        }
+                                                    }, 2000);
+
+                                                    fullResponse = ''; // Clear response to prevent adding to history
+                                                } else {
+                                                    // Regular error handling
+                                                    fullResponse = `Error: ${JSON.stringify(data.error)}`;
+                                                    // Update the message to show the error
+                                                    const lastMsg = document.querySelector('.ai-message.assistant:last-child .ai-message-content');
+                                                    if (lastMsg) {
+                                                        lastMsg.innerHTML = `<div style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border-left: 4px solid #ef4444;">
+                                                            <strong> Stream Error:</strong><br>
+                                                            <pre style="margin-top: 8px; white-space: pre-wrap;">${JSON.stringify(data.error, null, 2)}</pre>
+                                                        </div>`;
+                                                    }
                                                 }
                                             }
                                         }
@@ -17521,6 +17580,62 @@
                     stack: error.stack
                 });
                 removeThinkingIndicator();
+
+                // Check if it's a 413 error from catch block
+                const is413Error = error.message && (
+                    error.message.includes('413') ||
+                    error.message.includes('request_too_large') ||
+                    error.message.includes('Request exceeds the maximum size')
+                );
+
+                if (is413Error) {
+                    console.error('[413 ERROR] Request too large caught in error handler');
+
+                    // Remove the last assistant message if it exists
+                    const lastAssistantMsg = document.querySelector('.ai-message.assistant:last-child');
+                    if (lastAssistantMsg) {
+                        lastAssistantMsg.remove();
+                    }
+
+                    // Remove from conversation history
+                    if (AppState.chatMessages.length > 0 && AppState.chatMessages[AppState.chatMessages.length - 1].role === 'assistant') {
+                        AppState.chatMessages.pop();
+                    }
+
+                    // Add to Updates container
+                    const container = document.getElementById('notification-container');
+                    const notification = document.createElement('div');
+                    notification.className = 'notification error';
+                    notification.innerHTML = `
+                        <div class="notification-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-message">
+                                <strong>Conversation Too Large</strong><br>
+                                Request exceeded API limits. Truncating conversation and reloading thread...
+                            </div>
+                        </div>
+                        <button class="notification-close" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    container.appendChild(notification);
+                    setTimeout(() => notification.remove(), 4000);
+
+                    // Reload the thread after 2 seconds
+                    setTimeout(() => {
+                        if (typeof ThreadManager !== 'undefined' && ThreadManager.currentThreadSlug) {
+                            console.log('[413 RECOVERY] Reloading thread:', ThreadManager.currentThreadSlug);
+                            ThreadManager.loadThread(ThreadManager.currentThreadSlug);
+                        } else {
+                            console.log('[413 RECOVERY] No thread to reload, refreshing chat');
+                            location.reload();
+                        }
+                    }, 2000);
+
+                    return; // Exit early to prevent adding error message
+                }
 
                 // More helpful error messages
                 let errorMsg = 'Sorry, I encountered an error. ';
@@ -25756,63 +25871,54 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     return;
                 }
 
-                // Create "Start New Chat" button UI
+                // Create welcome container UI
                 const emptyStateHtml = `
-                                                <div class="empty-chat-state" style="
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        height: 100%;
-                        padding: var(--space-8);
-                        gap: var(--space-4);
-                    ">
-                                                    <div style="font-size: 48px; opacity: 0.3;"></div>
-                                                    <h3 style="margin: 0; color: var(--text-primary);">No Active Chat</h3>
-                                                    <p style="margin: 0; color: var(--text-secondary); text-align: center;">
-                                                        ${this.threads.length > 0 ? 'Start a new conversation or load from Thread History' : 'Start your first conversation'}
-                                                    </p>
-                                                    <button
-                                                        onclick="event.stopPropagation(); ThreadManager.showNewChatModal('${location}')"
-                                                        style="
-                                padding: var(--space-3) var(--space-6);
-                                background: transparent;
-                                color: var(--text-primary);
-                                border: 1px solid var(--border-default);
-                                border-radius: 6px;
-                                font-size: 16px;
-                                font-weight: 600;
-                                cursor: pointer;
-                                transition: all 0.2s;
-                            "
-                                                        onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)';"
-                                                        onmouseout="this.style.borderColor='var(--border-default)'; this.style.color='var(--text-primary)';"
-                                                    >
-                                                        <i class="fas fa-plus" style="margin-right: var(--space-2);"></i>
-                                                        Start New Chat
-                                                    </button>
-                                                    ${this.threads.length > 0 ? `
-                            <button 
-                                onclick="event.stopPropagation(); ThreadManager.toggleThreadMenu()" 
-                                style="
-                                    padding: var(--space-2) var(--space-4);
-                                    background: transparent;
-                                    color: var(--text-secondary);
-                                    border: 1px solid var(--border-default);
-                                    border-radius: var(--radius-md);
-                                    font-size: 14px;
-                                    cursor: pointer;
-                                    transition: all 0.2s;
-                                "
-                                onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)';"
-                                onmouseout="this.style.borderColor='var(--border-default)'; this.style.color='var(--text-secondary)';"
-                            >
-                                <i class="fas fa-history" style="margin-right: var(--space-2);"></i>
-                                View Thread History
-                            </button>
-                        ` : ''}
-                                                </div>
-                                                `;
+                    <div class="welcome-container" id="${location}-welcome-container" style="margin-top: 40px;">
+                        <div class="welcome-content">
+                            <div class="welcome-icon">
+                                <i class="fas fa-moon" style="color: rgb(139, 92, 246);"></i>
+                            </div>
+                            <h3 class="welcome-title" id="${location}-welcome-title">Midnight Momentum!</h3>
+                            <p class="welcome-subtitle" id="${location}-welcome-subtitle">The quiet hours are perfect for deep work. What's the mission?</p>
+
+                            <div class="quick-tip-card" id="${location}-quick-tip">
+                                <div class="quick-tip-icon">
+                                    <i class="fas fa-lightbulb"></i>
+                                </div>
+                                <div class="quick-tip-content">
+                                    <span class="quick-tip-label">Quick Tip</span>
+                                    <p class="quick-tip-text">Right-click thread cards for quick actions: archive, delete, copy ID, or export conversation history.</p>
+                                </div>
+                            </div>
+
+                            <div class="welcome-stats">
+                                <div class="welcome-stat-card">
+                                    <i class="fas fa-tools"></i>
+                                    <div class="stat-content">
+                                        <strong>594 tools</strong>
+                                        <span>20+ platforms</span>
+                                    </div>
+                                </div>
+                                <div class="welcome-stat-card">
+                                    <i class="fas fa-project-diagram"></i>
+                                    <div class="stat-content">
+                                        <strong>Interactive</strong>
+                                        <span>visualizations</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="welcome-actions">
+                                <button class="welcome-btn welcome-btn-primary" onclick="ThreadManager.showNewChatModal('${location}')">
+                                    <i class="fas fa-plus"></i> Start New Chat
+                                </button>
+                                <button class="welcome-btn welcome-btn-secondary" onclick="ThreadManager.toggleThreadMenu(); event.stopPropagation();">
+                                    <i class="fas fa-history"></i> Thread History
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
 
                 container.innerHTML = emptyStateHtml;
 
@@ -40143,7 +40249,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
     <!-- ==================== AUTOMATION WORKFLOWS MODULE ==================== -->
     <!-- Visual automation canvas JavaScript with drag-and-drop functionality -->
-    <script src="modules/automation-workflows.js"></script>
+    <script src="external/modules/automation-workflows/automation-workflows.js"></script>
 
     <!-- ==================== INTERNAL DOCS MANAGER MODULE ==================== -->
     <!-- Complete document management system with TipTap and Handsontable -->

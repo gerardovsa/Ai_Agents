@@ -862,17 +862,26 @@ class InternalDocsManager {
     // ⚠️ NEW: Call this AFTER user authentication
     async loadUserProfile() {
         try {
+            // Check if UserAuth and token are available
+            if (!window.UserAuth || !window.UserAuth.token) {
+                console.warn('⚠️ [Internal Docs] UserAuth token not available yet, using defaults');
+                return;
+            }
+
             const response = await fetch(`${this.apiBaseUrl}/api/auth/profile`, {
-                headers: window.UserAuth ? window.UserAuth.getAuthHeaders() : {}
+                headers: window.UserAuth.getAuthHeaders()
             });
+
             if (response.ok) {
                 const data = await response.json();
                 this.currentUser.email = data.profile?.email || data.email || 'user@example.com';
                 this.currentUser.user_id = data.profile?.id || data.user_id || 1;
                 console.log('✅ InternalDocsManager user profile loaded:', this.currentUser.email);
+            } else {
+                console.warn(`⚠️ [Internal Docs] Profile fetch failed: ${response.status}`);
             }
         } catch (error) {
-            console.warn('Could not load user profile, using defaults');
+            console.warn('⚠️ [Internal Docs] Could not load user profile, using defaults:', error.message);
         }
     }
 

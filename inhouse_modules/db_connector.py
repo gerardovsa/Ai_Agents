@@ -12,19 +12,9 @@ Requirements:
 Usage:
     python db_connector.py --interactive
     python db_connector.py --query "SELECT * FROM Orders LIMIT 10"
-
-NOTE: This file is LEGACY and NOT USED in production.
-      The actual implementation uses pymssql in AI_infrastructure/routes/inhouse_kanban_routes.py
 """
 
-# Make pyodbc optional (prevents Docker build failures)
-try:
-    import pyodbc
-    PYODBC_AVAILABLE = True
-except ImportError:
-    PYODBC_AVAILABLE = False
-    pyodbc = None
-
+import pyodbc
 import pandas as pd
 import json
 import argparse
@@ -41,12 +31,6 @@ class InHousePrintDB:
     
     def __init__(self, config_path: str = None):
         """Initialize database connection with configuration."""
-        if not PYODBC_AVAILABLE:
-            raise ImportError(
-                "pyodbc is not available. This is a legacy module.\n"
-                "Use pymssql-based routes instead: AI_infrastructure/routes/inhouse_kanban_routes.py"
-            )
-        
         if config_path is None:
             # Default to the config in the parent directory structure
             import os

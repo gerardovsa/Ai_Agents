@@ -56,7 +56,8 @@ LAST MODIFIED: 2025-11-02 - Added OAuth token auto-refresh for Google and Micros
 import os
 import sys
 import requests
-import sqlite3
+import sqlite3  # Keep for type hints
+from shared.db_connection_wrapper import get_connection
 from pathlib import Path
 from typing import Callable, Dict, Any, Optional
 from datetime import datetime, timedelta
@@ -154,7 +155,7 @@ def _save_refreshed_google_token(user_id: int, credentials: Credentials, origina
     from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
     db_path = get_ai_infrastructure_db_path()
     
-    conn = sqlite3.connect(str(db_path))
+    conn = get_connection('ai_infrastructure')
     cursor = conn.cursor()
     
     try:
@@ -526,7 +527,7 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
         from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
         db_path = get_ai_infrastructure_db_path()
         
-        conn = sqlite3.connect(str(db_path))
+        conn = get_connection('ai_infrastructure')
         cursor = conn.cursor()
         
         try:
@@ -584,7 +585,7 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
         try:
             from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
             db_path = get_ai_infrastructure_db_path()
-            conn = sqlite3.connect(str(db_path))
+            conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
             
             cursor.execute('''
@@ -608,7 +609,7 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
         try:
             from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
             db_path = get_ai_infrastructure_db_path()
-            conn = sqlite3.connect(str(db_path))
+            conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
             
             cursor.execute('''
