@@ -6,6 +6,10 @@ Handles multi-user thread access, sharing, and permissions.
 CRITICAL: Uses sessions.db (thread_users and thread_shares tables)
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.database_utils import get_database_connection
 import sqlite3
 import secrets
 import json
@@ -50,7 +54,7 @@ class ThreadSharingManager:
     
     def _get_connection(self) -> sqlite3.Connection:
         """Get database connection"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection('sessions')
         conn.row_factory = sqlite3.Row
         return conn
     

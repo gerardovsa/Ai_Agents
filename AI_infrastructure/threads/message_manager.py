@@ -9,6 +9,10 @@ Handles all message-related operations including:
 - Message metadata management
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.database_utils import get_database_connection
 import sqlite3
 import json
 from typing import List, Optional, Dict, Any
@@ -74,7 +78,7 @@ class MessageManager:
     
     def _get_connection(self) -> sqlite3.Connection:
         """Get database connection with Row factory"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection('sessions')
         conn.row_factory = sqlite3.Row
         return conn
     

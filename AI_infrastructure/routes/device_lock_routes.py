@@ -1,21 +1,44 @@
 """
 Device Lock Management Routes
 Handles thread locking/unlocking per device for multi-user isolation
+
+CRITICAL: All database operations now use Supabase PostgreSQL
+- ai_infrastructure schema: device_registry, thread_lock_history  
+- sessions schema: threads
 """
 
 from flask import Blueprint, request, jsonify
-from AI_infrastructure.utils.database_helpers import (
-    get_pooled_sqlite_connection,
-    execute_sqlite_query,
-    execute_sqlite_update
-)
-from pathlib import Path
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 import uuid
 from datetime import datetime
 
 device_lock_bp = Blueprint('device_lock', __name__)
-AI_DB_PATH = Path(__file__).parent.parent.parent / 'data' / 'ai_infrastructure.db'
-SESSIONS_DB_PATH = Path(__file__).parent.parent.parent / 'data' / 'sessions.db'
+
+# Compatibility wrappers for old SQLite helper functions
+def execute_sqlite_query(db_path, query, params=()):
+    """Wrapper: Redirects to Supabase instead of SQLite"""
+    schema = 'sessions' if 'sessions.db' in db_path else 'ai_infrastructure'
+    conn = get_database_connection(schema)
+    cursor = conn.cursor()
+    query = convert_sql_placeholders(query)
+    cursor.execute(query, params)
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
+def execute_sqlite_update(db_path, query, params=()):
+    """Wrapper: Redirects to Supabase instead of SQLite"""
+    schema = 'sessions' if 'sessions.db' in db_path else 'ai_infrastructure'
+    conn = get_database_connection(schema)
+    cursor = conn.cursor()
+    query = convert_sql_placeholders(query)
+    cursor.execute(query, params)
+    conn.commit()
+    conn.close()
+
+# Legacy path constants (now ignored, using Supabase)
+AI_DB_PATH = 'ai_infrastructure'  # Schema name
+SESSIONS_DB_PATH = 'sessions'  # Schema name
 
 
 @device_lock_bp.route('/api/device/register', methods=['POST'])
@@ -45,33 +68,35 @@ def register_device():
     device_fingerprint = data.get('device_fingerprint', '')
     
     try:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
         # Check if device exists
-        existing = execute_sqlite_query(
-            str(AI_DB_PATH),
-            "SELECT device_id FROM ai_infrastructure.device_registry WHERE device_id = ?",
-            (device_id,)
-        )
+        query = convert_sql_placeholders("SELECT device_id FROM ai_infrastructure.device_registry WHERE device_id = ?")
+        cursor.execute(query, (device_id,))
+        existing = cursor.fetchone()
         
         if existing:
             # Update last_seen_at
-            execute_sqlite_update(
-                str(AI_DB_PATH),
-                """UPDATE ai_infrastructure.device_registry 
-                   SET last_seen_at = CURRENT_TIMESTAMP,
-                       device_name = ?,
-                       device_fingerprint = ?
-                   WHERE device_id = ?""",
-                (device_name, device_fingerprint, device_id)
-            )
+            query = convert_sql_placeholders("""
+                UPDATE ai_infrastructure.device_registry 
+                SET last_seen_at = CURRENT_TIMESTAMP,
+                    device_name = ?,
+                    device_fingerprint = ?
+                WHERE device_id = ?
+            """)
+            cursor.execute(query, (device_name, device_fingerprint, device_id))
         else:
             # Insert new device
-            execute_sqlite_update(
-                str(AI_DB_PATH),
-                """INSERT INTO ai_infrastructure.device_registry 
-                   (device_id, user_id, device_name, device_fingerprint)
-                   VALUES (?, ?, ?, ?)""",
-                (device_id, user_id, device_name, device_fingerprint)
-            )
+            query = convert_sql_placeholders("""
+                INSERT INTO ai_infrastructure.device_registry 
+                (device_id, user_id, device_name, device_fingerprint, created_at, last_seen_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """)
+            cursor.execute(query, (device_id, user_id, device_name, device_fingerprint))
+        
+        conn.commit()
+        conn.close()
         
         return jsonify({
             'success': True,

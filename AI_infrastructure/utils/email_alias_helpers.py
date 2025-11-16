@@ -8,7 +8,10 @@ These functions enable the Account Aliases strategy where users can:
 - Login with ANY linked email → access same account
 """
 
-import sqlite3
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.database_utils import get_database_connection
 from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 import json

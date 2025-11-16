@@ -4,6 +4,10 @@ Invitation Manager - Workspace Invitation System
 Handles sending, accepting, declining, and managing workspace invitations.
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.database_utils import get_database_connection
 import sqlite3
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
@@ -65,7 +69,7 @@ class InvitationManager:
     
     def _get_connection(self) -> sqlite3.Connection:
         """Get database connection"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection('ai_infrastructure')
         conn.row_factory = sqlite3.Row
         return conn
     
