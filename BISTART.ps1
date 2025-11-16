@@ -102,6 +102,8 @@ Write-Host ""
 $flaskCommand = @"
 Set-Location '$FLASK_DIR'
 `$env:PYTHONIOENCODING='utf-8'
+`$env:DEBUG='true'
+`$env:FLASK_ENV='development'
 `$env:USE_SUPABASE='true'
 `$env:RENDER='true'
 `$env:SUPABASE_URL='https://ryoicrdifiqhqpsnjmdo.supabase.co'
@@ -109,6 +111,7 @@ Set-Location '$FLASK_DIR'
 `$env:SUPABASE_DB_URL='postgresql://postgres:inhouseprint@db.ryoicrdifiqhqpsnjmdo.supabase.co:5432/postgres'
 Write-Host ''
 Write-Host '[SUPABASE MODE] Connected to PostgreSQL Database' -ForegroundColor Cyan
+Write-Host '[DEV MODE] Debug enabled - dev-mode-token accepted' -ForegroundColor Yellow
 Write-Host 'Flask Backend Running on http://localhost:5001' -ForegroundColor Green
 Write-Host ''
 python flask_app.py
