@@ -222,7 +222,8 @@ def create_user(email: str, username: str, role: str = 'user'):
 def generate_jwt_token(payload: dict):
     """Generate JWT token for user session"""
     try:
-        jwt_secret = _config.get('JWT_SECRET', 'your-secret-key-change-this')
+        # FIXED: Use os.getenv() to match user_auth.py verification (Render compatibility)
+        jwt_secret = os.getenv('JWT_SECRET', _config.get('JWT_SECRET', 'your-secret-key-change-this'))
         
         # Calculate expiration as Unix timestamp (integer)
         exp_time = datetime.utcnow() + timedelta(hours=24)
