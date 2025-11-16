@@ -10363,11 +10363,12 @@
 
         <!-- ==================== RIGHT SIDEBAR ==================== -->
         <div class="right-sidebar">
-            <!-- User Profile at Top -->
-            <button class="right-sidebar-btn" id="userProfileBtn-sidebar" title="Account Profile"
-                onclick="toggleUserMenu(event)">
-                <i class="fas fa-user-circle"></i>
+            <!-- AI Prime Chat at Top -->
+            <button class="right-sidebar-btn active" id="ai-prime-toggle-btn" title="AI Prime Chat">
+                <i class="fa-solid fa-atom"></i>
             </button>
+
+            <div class="sidebar-divider"></div>
 
             <!-- Notifications -->
             <button class="right-sidebar-btn" id="notificationBellBtn-sidebar" title="Notifications"
@@ -10375,31 +10376,29 @@
                 <i class="fas fa-bell"></i>
             </button>
 
-            <div class="sidebar-divider"></div>
-
-            <!-- Spacer to push AI Prime down a bit -->
-            <div class="right-sidebar-spacer"></div>
-
-            <!-- AI Prime Chat -->
-            <button class="right-sidebar-btn" id="ai-prime-toggle-btn" title="AI Prime Chat">
-                <i class="fa-solid fa-atom"></i>
+            <!-- User Profile -->
+            <button class="right-sidebar-btn" id="userProfileBtn-sidebar" title="Account Profile"
+                onclick="toggleUserMenu(event)">
+                <i class="fas fa-user-circle"></i>
             </button>
 
             <div class="sidebar-divider"></div>
 
-            <!-- Chat Actions -->
+            <!-- Quick Actions -->
+            <button class="right-sidebar-btn" id="quick-actions-btn" title="Quick Actions">
+                <i class="fas fa-bolt"></i>
+            </button>
+
+            <!-- New Chat -->
             <button class="right-sidebar-btn" id="new-chat-btn" title="New Chat">
                 <i class="fas fa-plus"></i>
             </button>
 
+            <!-- Thread History -->
             <button class="right-sidebar-btn" id="threads-btn" title="Thread History"
                 onclick="ThreadManager.toggleThreadMenu(); event.stopPropagation();">
                 <i class="fas fa-comments"></i>
                 <span class="badge" style="display: none;">0</span>
-            </button>
-
-            <button class="right-sidebar-btn" id="quick-actions-btn" title="Quick Actions">
-                <i class="fas fa-bolt"></i>
             </button>
 
             <!-- Spacer to push theme toggle to bottom -->
@@ -10428,6 +10427,7 @@
             </div>
 
             <div class="header-right">
+                <!-- Date and Time moved to far right -->
                 <div class="header-datetime" id="headerDateTime">
                     <div class="header-datetime-date-group">
                         <div class="header-datetime-day" id="datetimeDay">FRIDAY</div>
@@ -10437,8 +10437,8 @@
                 </div>
             </div>
 
-            <!-- User Profile Dropdown (Moved Outside Hidden Div) -->
-            <div class="user-profile-container" id="userProfileContainer">
+            <!-- User Profile Dropdown (Positioned Fixed via CSS) -->
+            <div class="user-profile-container" id="userProfileContainer" style="display: none;">
                 <button class="user-profile-btn" id="userProfileBtn" onclick="toggleUserMenu(event)">
                     <div class="user-avatar">
                         <i class="fas fa-user-circle"></i>
@@ -14724,6 +14724,14 @@
 
             // START REAL-TIME TIME UPDATES (Added Nov 8, 2025)
             startRealtimeUpdates();
+
+            // ✅ INITIALIZE INTERNAL DOCS MANAGER (After Authentication)
+            // This was previously loading on DOMContentLoaded, causing premature DB connections
+            if (window.internalDocsManager) {
+                await window.internalDocsManager.init();
+                await window.internalDocsManager.loadUserProfile();
+                console.log('✅ Internal Docs Manager initialized after authentication');
+            }
 
             // INITIALIZE WELCOME MESSAGE with quick tip
             if (typeof ThreadManager !== 'undefined' && ThreadManager.initWelcomeMessage) {
