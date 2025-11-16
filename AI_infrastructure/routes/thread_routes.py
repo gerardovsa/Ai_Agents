@@ -79,7 +79,7 @@ def create_thread():
         db_path = get_sessions_database_path()
         
         insert_query = """
-            INSERT INTO sessions.sessions.threads (
+            INSERT INTO sessions.threads (
                 thread_slug, workspace_id, name, user_id, created_at, updated_at,
                 metadata, location, tags, synergy_card_id,
                 parent_thread_id, branch_point_message_id, branch_name
@@ -173,9 +173,9 @@ def list_threads():
                 t.internal_doc_title,
                 COUNT(m.id) as message_count,
                 MAX(m.timestamp) as last_message_time,
-                (SELECT role FROM sessions.sessions.messages WHERE thread_id = t.id ORDER BY timestamp DESC LIMIT 1) as last_message_role
-            FROM sessions.sessions.threads t
-            LEFT JOIN sessions.sessions.messages m ON t.id = m.thread_id
+                (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY timestamp DESC LIMIT 1) as last_message_role
+            FROM sessions.threads t
+            LEFT JOIN sessions.messages m ON t.id = m.thread_id
             WHERE t.user_id = ?
             GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
                      t.metadata, t.location, t.tags, t.synergy_card_id, 
@@ -257,7 +257,7 @@ def update_thread_metadata_fields():
         db_path = get_sessions_database_path()
         
         update_query = """
-            UPDATE sessions.sessions.threads SET
+            UPDATE sessions.threads SET
                 workflow_slug = ?,
                 workflow_title = ?,
                 internal_doc_slug = ?,
@@ -572,7 +572,7 @@ def save_thread():
         context_json = json.dumps({})  # Empty context for frontend threads
         
         insert_query = """
-            INSERT OR REPLACE INTO sessions.sessions.saved_threads 
+            INSERT OR REPLACE INTO sessions.saved_threads 
             (thread_id, agent_id, session_id, user_id, location, thread_name, conversation, 
              message_count, context, saved_at, last_updated,
              tags, synergy_card_id, parent_thread_id, branch_point_message_id, 
@@ -649,7 +649,7 @@ def load_thread(thread_id):
                 created_at,
                 saved_at,
                 last_updated
-            FROM sessions.sessions.saved_threads
+            FROM sessions.saved_threads
             WHERE thread_id = ?
         """
         
@@ -705,7 +705,7 @@ def delete_thread(thread_id):
         db_path = get_sessions_database_path()
         
         delete_query = """
-            DELETE FROM sessions.sessions.sessions.saved_threads
+            DELETE FROM sessions.saved_threads
             WHERE thread_id = ?
         """
         
@@ -774,7 +774,7 @@ def update_thread_metadata(thread_id):
         # Execute UPDATE
         db_path = get_sessions_database_path()
         update_query = f"""
-            UPDATE sessions.sessions.threads
+            UPDATE sessions.threads
             SET {', '.join(update_fields)}
             WHERE thread_slug = ?
         """
@@ -847,7 +847,7 @@ def get_thread_stats():
             
             count_query = """
                 SELECT COUNT(*) as count
-                FROM sessions.sessions.saved_threads
+                FROM sessions.saved_threads
             """
             
             results = execute_sqlite_query(db_path, count_query, None)
@@ -927,7 +927,7 @@ def autosave_thread():
             context_json = json.dumps(state.get('context', {}))
             
             insert_query = """
-                INSERT OR REPLACE INTO sessions.sessions.saved_threads 
+                INSERT OR REPLACE INTO sessions.saved_threads 
                 (thread_id, agent_id, session_id, thread_name, conversation, 
                  message_count, context, created_at, saved_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
@@ -985,7 +985,7 @@ def mark_thread_read(thread_id):
         
         # Update last_read
         update_query = """
-            UPDATE sessions.sessions.saved_threads
+            UPDATE sessions.saved_threads
             SET last_read = datetime('now')
             WHERE thread_id = ?
         """
@@ -1012,7 +1012,7 @@ def get_threads_details():
     Get detailed information for multiple threads including agent assignments
     
     SYNERGY INTEGRATION: Used to display linked threads in Synergy cards
-    Fetches thread details FROM sessions.sessions.threads table and agent assignments FROM sessions.sessions.threads.location column
+    Fetches thread details FROM sessions.threads table and agent assignments FROM sessions.threads.location column
     
     Body params:
         thread_ids (list): Array of thread IDs to fetch details for
@@ -1059,7 +1059,7 @@ def get_threads_details():
                 t.updated_at,
                 t.synergy_card_id,
                 t.location
-            FROM sessions.sessions.threads t
+            FROM sessions.threads t
             WHERE t.thread_slug IN ({placeholders})
             ORDER BY t.updated_at DESC
         """
@@ -1093,8 +1093,8 @@ def get_threads_details():
         
         print(f"[THREADS DETAILS] Step 9: Got {len(threads)} threads")
         
-        # Populate agent assignments FROM sessions.sessions.threads.location (primary source)
-        print("[THREADS DETAILS] Step 10: Populating assignments FROM sessions.sessions.threads.location...")
+        # Populate agent assignments FROM sessions.threads.location (primary source)
+        print("[THREADS DETAILS] Step 10: Populating assignments FROM sessions.threads.location...")
         assignments = {}
         try:
             for t in threads:
@@ -1111,10 +1111,10 @@ def get_threads_details():
                             'location': loc,
                             'agent_name': loc.upper()
                         }
-            print(f"[THREADS DETAILS] Step 14: Got {len(assignments)} assignments FROM sessions.sessions.threads.location")
+            print(f"[THREADS DETAILS] Step 14: Got {len(assignments)} assignments FROM sessions.threads.location")
         except Exception as e:
             # Extremely unlikely, but keep logging safe fallback
-            print(f"[THREADS] Warning: Failed to populate assignments FROM sessions.sessions.threads.location: {e}")
+            print(f"[THREADS] Warning: Failed to populate assignments FROM sessions.threads.location: {e}")
             assignments = {}
         
         # Convert to list of dicts
@@ -1126,7 +1126,7 @@ def get_threads_details():
             thread_slug = thread['thread_slug']
             location_from_threads = thread.get('location')  # threads.location column
             
-            # Use location FROM sessions.sessions.threads table first, then fall back to assignments table
+            # Use location FROM sessions.threads table first, then fall back to assignments table
             # The threads.location column is the primary source of truth
             if location_from_threads:
                 agent_location = location_from_threads
@@ -1208,7 +1208,7 @@ def save_messages():
         db_path = get_sessions_database_path()
         
         # Get the internal thread database ID
-        query = "SELECT id FROM sessions.sessions.threads WHERE thread_slug = ?"
+        query = "SELECT id FROM sessions.threads WHERE thread_slug = ?"
         rows = execute_sqlite_query(db_path, query, (thread_id,))
         
         existing_message_count = 0
@@ -1216,7 +1216,7 @@ def save_messages():
             internal_thread_id = rows[0]['id']
             
             # Count existing messages for this thread
-            count_query = "SELECT COUNT(*) as count FROM sessions.sessions.messages WHERE thread_id = ?"
+            count_query = "SELECT COUNT(*) as count FROM sessions.messages WHERE thread_id = ?"
             count_result = execute_sqlite_query(db_path, count_query, (internal_thread_id,))
             if count_result and len(count_result) > 0:
                 existing_message_count = count_result[0]['count']
@@ -1296,8 +1296,8 @@ def get_messages():
                 m.tokens_used,
                 m.created_at,
                 m.metadata
-            FROM sessions.sessions.messages m
-            JOIN sessions.sessions.threads t ON m.thread_id = t.id
+            FROM sessions.messages m
+            JOIN sessions.threads t ON m.thread_id = t.id
             WHERE t.thread_slug = ?
             ORDER BY m.created_at ASC
         """
@@ -1468,7 +1468,7 @@ def lock_thread(thread_id):
         locked_at = datetime.now().isoformat()
         
         query = """
-            UPDATE sessions.sessions.threads 
+            UPDATE sessions.threads 
             SET locked_by_device = ?,
                 locked_by_device_name = ?,
                 locked_at = ?
@@ -1514,7 +1514,7 @@ def unlock_thread(thread_id):
     try:
         # Clear lock fields
         query = """
-            UPDATE sessions.sessions.threads 
+            UPDATE sessions.threads 
             SET locked_by_device = NULL,
                 locked_by_device_name = NULL,
                 locked_at = NULL
@@ -1560,7 +1560,7 @@ def get_lock_status(thread_id):
     try:
         query = """
             SELECT locked_by_device, locked_by_device_name, locked_at
-            FROM sessions.sessions.threads
+            FROM sessions.threads
             WHERE id = ?
         """
         

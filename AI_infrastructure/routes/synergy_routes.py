@@ -641,12 +641,12 @@ def create_session():
         
         conn.commit()
         
-        # BIDIRECTIONAL LINKING: UPDATE sessions.sessions.threads table with synergy_card_id for auto-linked threads
+        # BIDIRECTIONAL LINKING: UPDATE sessions.threads table with synergy_card_id for auto-linked threads
         if thread_ids_list:
             for thread_id in thread_ids_list:
                 try:
                     cursor.execute('''
-                        UPDATE sessions.sessions.threads 
+                        UPDATE sessions.threads 
                         SET synergy_card_id = ?, synergy_card_name = ?, updated = ?
                         WHERE id = ?
                     ''', (session_id, data.get('title', 'Untitled Session'), datetime.now().isoformat(), thread_id))
@@ -925,7 +925,7 @@ def delete_session(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('DELETE FROM synergy_sessions.synergy_sessions.synergy_sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('DELETE FROM synergy_sessions.synergy_sessions WHERE session_id = ?', (session_id,))
         conn.commit()
         conn.close()
         

@@ -119,7 +119,7 @@ def lock_thread(thread_id):
         # Verify thread belongs to user
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
-            "SELECT user_id FROM sessions.sessions.threads WHERE id = ?",
+            "SELECT user_id FROM sessions.threads WHERE id = ?",
             (thread_id,)
         )
         
@@ -129,7 +129,7 @@ def lock_thread(thread_id):
         # Lock the thread
         execute_sqlite_update(
             str(SESSIONS_DB_PATH),
-            """UPDATE sessions.sessions.threads 
+            """UPDATE sessions.threads 
                SET locked_to_device_id = ?,
                    locked_at = CURRENT_TIMESTAMP,
                    lock_mode = 'locked'
@@ -176,7 +176,7 @@ def unlock_thread(thread_id):
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
             """SELECT locked_to_device_id, user_id 
-               FROM sessions.sessions.threads WHERE id = ?""",
+               FROM sessions.threads WHERE id = ?""",
             (thread_id,)
         )
         
@@ -196,7 +196,7 @@ def unlock_thread(thread_id):
         # Unlock the thread
         execute_sqlite_update(
             str(SESSIONS_DB_PATH),
-            """UPDATE sessions.sessions.threads 
+            """UPDATE sessions.threads 
                SET locked_to_device_id = NULL,
                    locked_at = NULL,
                    lock_mode = 'unlocked'
@@ -232,7 +232,7 @@ def get_lock_status(thread_id):
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
             """SELECT locked_to_device_id, locked_at, lock_mode, user_id
-               FROM sessions.sessions.threads
+               FROM sessions.threads
                WHERE id = ?""",
             (thread_id,)
         )
@@ -287,7 +287,7 @@ def get_multiple_lock_status():
         placeholders = ','.join('?' * len(thread_ids))
         query = f"""
             SELECT id as thread_id, locked_to_device_id, lock_mode
-            FROM sessions.sessions.threads
+            FROM sessions.threads
             WHERE id IN ({placeholders})
         """
         

@@ -968,14 +968,14 @@ CRITICAL: NO BULK TOOL SCHEMAS!
     # Check if this thread is linked to a Synergy project
     # If yes, inject project context into system prompt
     try:
-        # Get thread info FROM sessions.sessions.db
+        # Get thread info FROM sessions.db
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
         # Find thread by session_id (thread.id = session_id in most cases)
         cursor.execute("""
             SELECT synergy_card_id
-            FROM sessions.sessions.threads 
+            FROM sessions.threads 
             WHERE id = ? OR thread_slug = ?
             LIMIT 1
         """, (session_id, session_id))
@@ -1117,14 +1117,14 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
     # If yes, prepend project context to the user's current message
     synergy_context_prefix = ""
     try:
-        # Get thread info FROM sessions.sessions.db
+        # Get thread info FROM sessions.db
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
         # Find thread by session_id
         cursor.execute("""
             SELECT synergy_card_id
-            FROM sessions.sessions.threads 
+            FROM sessions.threads 
             WHERE id = ? OR thread_slug = ?
             LIMIT 1
         """, (session_id, session_id))
@@ -1272,7 +1272,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                             # Update thread's updated_at timestamp (thread already exists from creation)
                             # Don't try to save to non-existent saved_threads table
                             update_query = """
-                                UPDATE sessions.sessions.threads 
+                                UPDATE sessions.threads 
                                 SET updated_at = datetime('now')
                                 WHERE thread_slug = ?
                             """

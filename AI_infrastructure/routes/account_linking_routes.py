@@ -496,7 +496,7 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
         # Migrate chat threads (if table exists)
         try:
             cursor.execute('''
-                UPDATE sessions.sessions.threads SET user_id = ? WHERE user_id = ?
+                UPDATE sessions.threads SET user_id = ? WHERE user_id = ?
             ''', (to_user_id, from_user_id))
             logger.info(f"📦 Migrated {cursor.rowcount} threads")
         except sqlite3.OperationalError:

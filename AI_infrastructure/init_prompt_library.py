@@ -13,7 +13,7 @@ import logging
 # Import Supabase connection utility
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, adapt_sql_for_database
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ def init_prompt_library_table(db_path=None):
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
         
-        # Create prompt_library table
-        cursor.execute("""
+        # Create prompt_library table (adapt SQL for PostgreSQL/SQLite)
+        create_table_sql = adapt_sql_for_database("""
             CREATE TABLE IF NOT EXISTS prompt_library (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -51,6 +51,8 @@ def init_prompt_library_table(db_path=None):
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         """)
+        
+        cursor.execute(create_table_sql)
         
         # Create indexes
         indexes = [

@@ -290,7 +290,7 @@ def delete_session(session_id):
         # Delete from Kanban DB
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('DELETE FROM sessions.sessions.sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('DELETE FROM sessions.sessions WHERE session_id = ?', (session_id,))
         conn.commit()
         
         if cursor.rowcount == 0:
