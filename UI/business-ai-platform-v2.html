@@ -28327,30 +28327,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
         window.ThreadManager = ThreadManager;
         console.log('âœ… ThreadManager exposed to window.ThreadManager');
 
-        // Initialize thread manager after page loads
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(async () => {
-                    await ThreadManager.init();
-                    // Initialize drag and drop zones
-                    // ThreadManager.initializeDropZones(); // Not needed - drag-and-drop works without it
-                    // After threads are loaded, restore thread assignments in Multi-Agent
-                    if (typeof MultiAgent !== 'undefined' && MultiAgent.restoreThreadAssignments) {
-                        MultiAgent.restoreThreadAssignments();
-                    }
-                }, 500);
-            });
-        } else {
-            setTimeout(async () => {
-                await ThreadManager.init();
-                // Initialize drag and drop zones
-                // ThreadManager.initializeDropZones(); // Not needed - drag-and-drop works without it
-                // After threads are loaded, restore thread assignments in Multi-Agent
-                if (typeof MultiAgent !== 'undefined' && MultiAgent.restoreThreadAssignments) {
-                    MultiAgent.restoreThreadAssignments();
-                }
-            }, 500);
-        }
+        // âœ… FIX: ThreadManager.init() moved to initializeMainApp() (after authentication)
+        // This ensures UserAuth.token is set before calling /api/auth/profile
+        // Previously initialized on page load, causing 401 errors for real users
 
         // ==================== DEVICE LOCK MANAGER ====================
 
