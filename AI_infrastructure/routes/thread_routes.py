@@ -1039,12 +1039,14 @@ def get_threads_details():
         placeholders = ','.join(['?' for _ in thread_ids])
         print(f"[THREADS DETAILS] Step 5: Placeholders: {placeholders}")
         
-        # Query threads from sessions.db (includes location column for agent assignments)
-        print("[THREADS DETAILS] Step 6: Getting database path...")
+        # Query threads from sessions database (includes location column for agent assignments)
+        print("[THREADS DETAILS] Step 6: Getting database connection...")
         # Note: threads.location is the primary source of truth for agent assignments
         # See: THREAD_LOCATION_ARCHITECTURE.md
-        db_path = get_sessions_database_path()
-        print(f"[THREADS DETAILS] Step 7: DB path: {db_path}")
+        conn = get_database_connection('sessions')
+        print(f"[THREADS DETAILS] Step 7: Connected to database")
+        
+        # Build query with placeholder conversion for PostgreSQL
         query = f"""
             SELECT 
                 t.id,
@@ -1059,10 +1061,33 @@ def get_threads_details():
             ORDER BY t.updated_at DESC
         """
         
+        # Convert SQL placeholders for PostgreSQL compatibility
+        query = convert_sql_placeholders(query)
+        
         # Duplicate thread_ids for both id and thread_slug matching
         params = thread_ids + thread_ids
         print(f"[THREADS DETAILS] Step 8: Executing query with {len(params)} params...")
-        threads = execute_sqlite_query(db_path, query, params)
+        
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        threads_raw = cursor.fetchall()
+        
+        # Convert to list of dicts
+        threads = []
+        for row in threads_raw:
+            threads.append({
+                'id': row['id'],
+                'thread_slug': row['thread_slug'],
+                'name': row['name'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at'],
+                'synergy_card_id': row['synergy_card_id'],
+                'location': row['location']
+            })
+        
+        cursor.close()
+        conn.close()
+        
         print(f"[THREADS DETAILS] Step 9: Got {len(threads)} threads")
         
         # Populate agent assignments from threads.location (primary source)
@@ -1124,11 +1149,6 @@ def get_threads_details():
         print(f"[THREADS DETAILS] Step 16: Returning {len(result)} threads")
         return success_response(result)
     
-    except DatabaseConnectionError as e:
-        print(f"[THREADS ERROR] DatabaseConnectionError: {e}")
-        import traceback
-        traceback.print_exc()
-        return error_response(f"Database error: {str(e)}", 500)
     except Exception as e:
         print(f"[THREADS ERROR] Exception type: {type(e).__name__}")
         print(f"[THREADS ERROR] Exception value: {e}")
