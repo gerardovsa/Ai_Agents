@@ -6,19 +6,19 @@ Date: November 14, 2025
 Reason: Microsoft OAuth routes expect this column but it's missing from table schema
 """
 
-import sqlite3
+import sys
 from pathlib import Path
 import logging
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 logger = logging.getLogger(__name__)
 
 def get_db_connection():
-    """Get database connection to ai_infrastructure.db in data/ folder"""
-    root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Get database connection (respects USE_SUPABASE environment)"""
+    from shared.database_utils import get_database_connection
+    return get_database_connection('ai_infrastructure')
 
 
 def add_refresh_attempts_column():
@@ -28,6 +28,12 @@ def add_refresh_attempts_column():
     This column tracks the number of token refresh attempts for monitoring
     and error handling purposes.
     """
+    # DISABLED: Migration not needed on Render with Supabase (tables already exist)
+    import os
+    if os.getenv('USE_SUPABASE') == 'true' or os.getenv('RENDER') == 'true':
+        logger.info("⏭️  Skipping migration - using Supabase (tables already exist)")
+        return True
+    
     try:
         conn = get_db_connection()
         cursor = conn.cursor()

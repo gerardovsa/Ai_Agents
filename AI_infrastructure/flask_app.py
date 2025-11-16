@@ -193,40 +193,44 @@ except Exception as e:
     log_error(logger, traceback.format_exc())
 
 # Run OAuth tokens schema migrations (add missing columns)
-try:
-    from migrations.add_missing_oauth_columns import add_missing_oauth_columns
-    added = add_missing_oauth_columns()
-    log_success(logger, f"OAuth tokens schema migration complete ({added} columns added)")
-except Exception as e:
-    log_error(logger, f"Failed to run OAuth migration: {e}")
-    import traceback
-    log_error(logger, traceback.format_exc())
+# DISABLED ON RENDER: Supabase already has all tables/columns
+if not os.getenv('USE_SUPABASE') == 'true' and not os.getenv('RENDER') == 'true':
+    try:
+        from migrations.add_missing_oauth_columns import add_missing_oauth_columns
+        added = add_missing_oauth_columns()
+        log_success(logger, f"OAuth tokens schema migration complete ({added} columns added)")
+    except Exception as e:
+        log_error(logger, f"Failed to run OAuth migration: {e}")
+        import traceback
+        log_error(logger, traceback.format_exc())
 
-# CRITICAL: Fix users table OAuth columns (has_microsoft_oauth, has_google_oauth)
-try:
-    from migrations.fix_users_oauth_columns import run_migration
-    added = run_migration()
-    log_success(logger, f"Users OAuth columns migration complete ({added} columns added)")
-except Exception as e:
-    log_error(logger, f"Failed to fix users OAuth columns: {e}")
-    import traceback
-    log_error(logger, traceback.format_exc())
+    # CRITICAL: Fix users table OAuth columns (has_microsoft_oauth, has_google_oauth)
+    try:
+        from migrations.fix_users_oauth_columns import run_migration
+        added = run_migration()
+        log_success(logger, f"Users OAuth columns migration complete ({added} columns added)")
+    except Exception as e:
+        log_error(logger, f"Failed to fix users OAuth columns: {e}")
+        import traceback
+        log_error(logger, traceback.format_exc())
 
-# Initialize user_sessions table for JWT tokens
-try:
-    from migrations.init_user_sessions_table import init_user_sessions_table
-    init_user_sessions_table()
-    log_success(logger, "User sessions table initialized")
-except Exception as e:
-    log_error(logger, f"Failed to initialize user_sessions table: {e}")
+    # Initialize user_sessions table for JWT tokens
+    try:
+        from migrations.init_user_sessions_table import init_user_sessions_table
+        init_user_sessions_table()
+        log_success(logger, "User sessions table initialized")
+    except Exception as e:
+        log_error(logger, f"Failed to initialize user_sessions table: {e}")
 
-# Add refresh_attempts column to oauth_tokens table
-try:
-    from migrations.add_refresh_attempts_column import add_refresh_attempts_column
-    add_refresh_attempts_column()
-    log_success(logger, "OAuth tokens refresh_attempts column added")
-except Exception as e:
-    log_error(logger, f"Failed to add refresh_attempts column: {e}")
+    # Add refresh_attempts column to oauth_tokens table
+    try:
+        from migrations.add_refresh_attempts_column import add_refresh_attempts_column
+        add_refresh_attempts_column()
+        log_success(logger, "OAuth tokens refresh_attempts column added")
+    except Exception as e:
+        log_error(logger, f"Failed to add refresh_attempts column: {e}")
+else:
+    log_success(logger, "Skipping SQLite migrations (using Supabase - tables already exist)")
 
 # Initialize automation tables
 try:
