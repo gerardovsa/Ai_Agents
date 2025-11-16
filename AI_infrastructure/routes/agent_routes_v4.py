@@ -972,13 +972,14 @@ CRITICAL: NO BULK TOOL SCHEMAS!
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
-        # Find thread by session_id (thread.id = session_id in most cases)
+        # Find thread by session_id (thread_slug = session_id in most cases)
+        # Note: id is INTEGER, thread_slug is TEXT (timestamp)
         cursor.execute("""
             SELECT synergy_card_id
             FROM sessions.threads 
-            WHERE id = ? OR thread_slug = ?
+            WHERE thread_slug = $1
             LIMIT 1
-        """, (session_id, session_id))
+        """, (str(session_id),))
         
         thread_row = cursor.fetchone()
         conn.close()
@@ -1121,13 +1122,14 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
-        # Find thread by session_id
+        # Find thread by session_id (thread_slug = session_id)
+        # Note: id is INTEGER, thread_slug is TEXT (timestamp)
         cursor.execute("""
             SELECT synergy_card_id
             FROM sessions.threads 
-            WHERE id = ? OR thread_slug = ?
+            WHERE thread_slug = $1
             LIMIT 1
-        """, (session_id, session_id))
+        """, (str(session_id),))
         
         thread_row = cursor.fetchone()
         conn.close()
