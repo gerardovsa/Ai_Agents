@@ -248,7 +248,7 @@
 /* ==================== FLOATING SHAPE PALETTE (Top-Left) ==================== */
 
 .floating-shape-palette {
-    position: absolute;
+    position: fixed;
     top: 16px;
     left: 16px;
     background: var(--bg-tertiary);
@@ -795,7 +795,7 @@
 }
 
 .zoom-controls {
-    position: absolute;
+    position: fixed;
     top: 16px;
     right: 16px;
     display: flex;

@@ -1671,6 +1671,12 @@ class AutomationCanvas {
         // Update current workflow title
         this.workflowTitle = title;
 
+        // Ensure currentWorkflow and slug are set so saveWorkflow can proceed
+        this.currentWorkflow = workflowData;
+        this.workflowSlug = workflowData.slug;
+        this.workflowDescription = workflowData.description || this.workflowDescription;
+        this.workflowStatus = workflowData.status || this.workflowStatus;
+
         this.saveWorkflow();
         this.loadWorkflows();
         this.updateWorkflowNameDisplay();

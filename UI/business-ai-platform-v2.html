@@ -15271,7 +15271,7 @@
                     }
                 });
 
-                primeChatArea.addEventListener('drop', (e) => {
+                primeChatArea.addEventListener('drop', async (e) => {
                     e.preventDefault();
                     primeChatArea.classList.remove('drag-over');
 
@@ -15284,9 +15284,13 @@
                             console.log('[WELCOME] Hidden - thread dropped on Prime');
                         }
 
-                        ThreadManager.assignThread(threadId, 'main');
-                        ThreadManager.switchThread(threadId);
-                        console.log(`[DROP] Thread ${threadId} dropped on Prime`);
+                        // ✨ Use master sync function for robust location update
+                        await ThreadManager.syncThreadLocationEverywhere(threadId, 'main');
+
+                        // Load thread into Prime
+                        await ThreadManager.switchThread(threadId);
+
+                        console.log(`✅ [DROP] Thread ${threadId} moved to Prime AI`);
                     }
                 });
 
@@ -15322,12 +15326,12 @@
                         return;
                     }
 
-                    console.log(` [AGENT DROP] Thread ${threadId} dropped on Agent ${agentId} from ${sourceLocation}`);
+                    console.log(`📌 [AGENT DROP] Thread ${threadId} dropped on Agent ${agentId} from ${sourceLocation}`);
 
                     // Find thread object
                     const thread = ThreadManager.threads.find(t => t.id === threadId || t.thread_slug === threadId);
                     if (!thread) {
-                        console.error(`[AGENT DROP] Thread ${threadId} not found`);
+                        console.error(`❌ [AGENT DROP] Thread ${threadId} not found`);
                         return;
                     }
 
@@ -15336,12 +15340,15 @@
                         ThreadManager.clearThreadInfoAtLocation(sourceLocation);
                     }
 
+                    // ✨ Use master sync function for robust location update
+                    await ThreadManager.syncThreadLocationEverywhere(threadId, `agent-${agentId}`);
+
                     // Load thread into agent using MultiAgent (which handles rendering)
                     if (typeof MultiAgent !== 'undefined') {
-                        MultiAgent.loadThreadIntoAgent(agentId, thread);
-                        console.log(`âœ… [AGENT DROP] Thread loaded into Agent ${agentId} with universal card`);
+                        await MultiAgent.loadThreadIntoAgent(agentId, thread);
+                        console.log(`✅ [AGENT DROP] Thread loaded into Agent ${agentId} with universal card`);
                     } else {
-                        console.error('[AGENT DROP] MultiAgent not available');
+                        console.error('❌ [AGENT DROP] MultiAgent not available');
                     }
                 });
 
@@ -20376,6 +20383,29 @@
 
             const agentName = MultiAgent.getAgentName(agentId);
 
+            // Check if this thread was in AI Prime - if so, clear Prime
+            if (ThreadManager.currentThreadId === sessionId) {
+                console.log(`[THREAD MOVE] Thread moved from Prime to ${agentName} - clearing Prime`);
+
+                // Clear Prime's current thread
+                ThreadManager.currentThreadId = null;
+
+                // Clear Prime thread info container
+                const primeThreadInfo = document.getElementById('prime-thread-info');
+                if (primeThreadInfo) {
+                    primeThreadInfo.innerHTML = '';
+                }
+
+                // Show welcome container in Prime
+                const welcomeContainer = document.getElementById('prime-welcome-container');
+                if (welcomeContainer) {
+                    welcomeContainer.style.display = 'flex';
+                    ThreadManager.initWelcomeMessage('prime');
+                }
+
+                console.log(`[THREAD MOVE] Prime cleared and welcome message shown`);
+            }
+
             // Load messages into agent
             const messagesContainer = document.getElementById(`messages-${agentId}`);
             if (messagesContainer) {
@@ -22636,10 +22666,85 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             },
 
             /**
+             * ✨ MASTER SYNC FUNCTION ✨
+             * Synchronize thread location + UI links (Synergy, Workflows, etc.) across ALL UI components
+             * Call this after ANY operation that changes thread location or linkages
+             * 
+             * @param {string} threadId - Thread ID
+             * @param {string} newLocation - New location ('main', 'agent-1', 'agent-2', 'agent-3')
+             * @param {Object} options - Optional linkage updates
+             *   - synergySessionId: Link/unlink Synergy session
+             *   - workflowId: Link/unlink Workflow automation
+             *   - removeLinks: Array of link types to remove ['synergy', 'workflow']
+             */
+            async syncThreadLocationEverywhere(threadId, newLocation, options = {}) {
+                console.log(`🔄 [syncThreadLocationEverywhere] Syncing ${threadId} → ${newLocation}`, options);
+
+                // STEP 1: Normalize location name (frontend uses 'main', backend uses 'prime')
+                const backendLocation = newLocation === 'main' ? 'prime' : newLocation;
+                const frontendLocation = newLocation;  // Keep as-is for UI
+
+                // STEP 2: Update local thread object
+                const thread = this.threads.find(t => t.id === threadId);
+                if (thread) {
+                    thread.agent = frontendLocation;
+                    thread.updated = new Date().toISOString();
+
+                    // Update linkages if provided
+                    if (options.synergySessionId !== undefined) {
+                        thread.synergy_card_id = options.synergySessionId;
+                        thread.synergy_card_name = options.synergySessionName || null;
+                    }
+                    if (options.workflowId !== undefined) {
+                        thread.workflow_id = options.workflowId;
+                        thread.workflow_name = options.workflowName || null;
+                    }
+
+                    // Remove linkages if requested
+                    if (options.removeLinks) {
+                        if (options.removeLinks.includes('synergy')) {
+                            thread.synergy_card_id = null;
+                            thread.synergy_card_name = null;
+                        }
+                        if (options.removeLinks.includes('workflow')) {
+                            thread.workflow_id = null;
+                            thread.workflow_name = null;
+                        }
+                    }
+                }
+
+                // STEP 3: Update backend (ensure database sync)
+                await this.assignThread(threadId, backendLocation);
+
+                // STEP 4: Refresh ALL thread-info cards (agent columns, Prime, Synergy cards)
+                this.refreshAllThreadInfoCards(threadId);
+
+                // STEP 5: Refresh sidebar (updates agent badge + UI pills)
+                this.renderThreadList();
+
+                // STEP 6: Update Prime header if this is current thread
+                if (this.currentThreadId === threadId && frontendLocation === 'main') {
+                    this.updatePrimeHeader(threadId);
+                }
+
+                // STEP 7: Sync AppState
+                this.syncAppState(threadId);
+
+                // STEP 8: Notify user
+                const locationName = frontendLocation === 'main' ? 'Prime AI' :
+                    frontendLocation.startsWith('agent-') ? `Agent ${frontendLocation.replace('agent-', '')}` :
+                        frontendLocation;
+                console.log(`✅ [syncThreadLocationEverywhere] Thread ${threadId} synced to ${locationName}`);
+
+                return { success: true, location: frontendLocation };
+            },
+
+            /**
              * Refresh all thread-info cards for a specific thread across the entire UI
+             * Also updates UI pills (Synergy, Workflow, etc.)
              */
             refreshAllThreadInfoCards(threadId) {
-                console.log(`🔧„ [refreshAllThreadInfoCards] Refreshing all cards for thread ${threadId}`);
+                console.log(`🔧 [refreshAllThreadInfoCards] Refreshing all cards for thread ${threadId}`);
 
                 // Find all thread-info cards with this thread ID
                 const threadCards = document.querySelectorAll(`[data-thread-id="${threadId}"]`);
@@ -22648,19 +22753,78 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     // Get the location from the card's context
                     const location = card.getAttribute('data-location') || 'prime';
 
-                    // Re-render the card with updated agent info
+                    // Re-render the card with updated agent info AND UI pills
                     const newCardHTML = this.renderThreadInfoContainer(location, threadId, card.classList.contains('compact'));
 
                     // Replace the card's innerHTML
                     card.outerHTML = newCardHTML;
 
-                    console.log(`âœ… [refreshAllThreadInfoCards] Updated thread-info card at ${location}`);
+                    console.log(`✅ [refreshAllThreadInfoCards] Updated thread-info card at ${location}`);
                 });
+
+                // Also update sidebar thread items (shows UI pills)
+                const thread = this.threads.find(t => t.id === threadId);
+                if (thread) {
+                    const sidebarItem = document.querySelector(`[data-thread-id="${threadId}"].thread-item`);
+                    if (sidebarItem) {
+                        // Re-render just the pills section
+                        this.updateThreadPills(sidebarItem, thread);
+                    }
+                }
 
                 // Also refresh Synergy board if it's active
                 if (typeof synergyBoard !== 'undefined' && synergyBoard.loadSessions) {
                     synergyBoard.loadSessions();
-                    console.log(`âœ… [refreshAllThreadInfoCards] Refreshed Synergy board`);
+                    console.log(`✅ [refreshAllThreadInfoCards] Refreshed Synergy board`);
+                }
+            },
+
+            /**
+             * Update UI pills on a thread item (Synergy=green, Workflow=orange, etc.)
+             */
+            updateThreadPills(threadElement, thread) {
+                // Find or create pills container
+                let pillsContainer = threadElement.querySelector('.thread-ui-pills');
+                if (!pillsContainer) {
+                    pillsContainer = document.createElement('div');
+                    pillsContainer.className = 'thread-ui-pills';
+                    pillsContainer.style.cssText = 'display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;';
+                    threadElement.appendChild(pillsContainer);
+                }
+
+                // Clear existing pills
+                pillsContainer.innerHTML = '';
+
+                // Add Synergy pill (green)
+                if (thread.synergy_card_id) {
+                    const synergyPill = document.createElement('span');
+                    synergyPill.className = 'thread-pill thread-pill-synergy';
+                    synergyPill.style.cssText = 'background: #10b981; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;';
+                    synergyPill.innerHTML = `<i class="fas fa-link" style="font-size: 10px;"></i> Synergy`;
+                    synergyPill.title = thread.synergy_card_name || thread.synergy_card_id;
+                    pillsContainer.appendChild(synergyPill);
+                }
+
+                // Add Workflow pill (orange)
+                if (thread.workflow_id) {
+                    const workflowPill = document.createElement('span');
+                    workflowPill.className = 'thread-pill thread-pill-workflow';
+                    workflowPill.style.cssText = 'background: #f97316; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;';
+                    workflowPill.innerHTML = `<i class="fas fa-robot" style="font-size: 10px;"></i> Workflow`;
+                    workflowPill.title = thread.workflow_name || thread.workflow_id;
+                    pillsContainer.appendChild(workflowPill);
+                }
+
+                // Add Custom pills (extensible for future link types)
+                if (thread.custom_links && Array.isArray(thread.custom_links)) {
+                    thread.custom_links.forEach(link => {
+                        const customPill = document.createElement('span');
+                        customPill.className = `thread-pill thread-pill-${link.type}`;
+                        customPill.style.cssText = `background: ${link.color || '#6366f1'}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;`;
+                        customPill.innerHTML = `<i class="fas ${link.icon || 'fa-link'}" style="font-size: 10px;"></i> ${link.label}`;
+                        customPill.title = link.description || link.id;
+                        pillsContainer.appendChild(customPill);
+                    });
                 }
             },
 
@@ -23145,9 +23309,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         const thread = this.threads.find(t => t.id === threadId);
                         if (thread) {
                             thread.synergy_card_id = null;
+                            thread.synergy_card_name = null;
                             thread.updated = new Date().toISOString();
                         }
-                        this.renderThreadList();
+
+                        // ✨ Use master sync to update all UI components
+                        await this.syncThreadLocationEverywhere(threadId, thread.agent || 'main', {
+                            removeLinks: ['synergy']
+                        });
+
                         showNotification('Synergy session unlinked', 'success');
                         return true;
                     } else {
@@ -23160,6 +23330,123 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     showNotification('Error unlinking Synergy session', 'error');
                     return false;
                 }
+            },
+
+            /**
+             * ✨ WORKFLOW AUTOMATION LINKING
+             * Link thread to workflow automation (orange pill)
+             */
+            async linkWorkflow(threadId, workflowId, workflowName) {
+                try {
+                    const thread = this.threads.find(t => t.id === threadId);
+                    if (!thread) {
+                        showNotification('Thread not found', 'error');
+                        return false;
+                    }
+
+                    // Update thread metadata in backend
+                    const resp = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/${threadId}/update`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: thread.title || '',
+                            workflow_id: workflowId,
+                            workflow_name: workflowName
+                        })
+                    });
+
+                    const data = await resp.json();
+                    if (data && data.success) {
+                        thread.workflow_id = workflowId;
+                        thread.workflow_name = workflowName;
+                        thread.updated = new Date().toISOString();
+
+                        // ✨ Use master sync to update all UI components
+                        await this.syncThreadLocationEverywhere(threadId, thread.agent || 'main', {
+                            workflowId: workflowId,
+                            workflowName: workflowName
+                        });
+
+                        showNotification(`Linked to workflow: ${workflowName}`, 'success');
+                        return true;
+                    } else {
+                        console.error('[linkWorkflow] Failed:', data);
+                        showNotification('Failed to link workflow', 'error');
+                        return false;
+                    }
+                } catch (err) {
+                    console.error('[linkWorkflow] Exception:', err);
+                    showNotification('Error linking workflow', 'error');
+                    return false;
+                }
+            },
+
+            /**
+             * Unlink workflow automation from thread
+             */
+            async unlinkWorkflow(threadId, workflowId) {
+                try {
+                    const thread = this.threads.find(t => t.id === threadId);
+                    if (!thread) {
+                        showNotification('Thread not found', 'error');
+                        return false;
+                    }
+
+                    const resp = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/${threadId}/update`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: thread.title || '',
+                            workflow_id: null,
+                            workflow_name: null
+                        })
+                    });
+
+                    const data = await resp.json();
+                    if (data && data.success) {
+                        thread.workflow_id = null;
+                        thread.workflow_name = null;
+                        thread.updated = new Date().toISOString();
+
+                        // ✨ Use master sync to update all UI components
+                        await this.syncThreadLocationEverywhere(threadId, thread.agent || 'main', {
+                            removeLinks: ['workflow']
+                        });
+
+                        showNotification('Workflow unlinked', 'success');
+                        return true;
+                    } else {
+                        console.error('[unlinkWorkflow] Failed:', data);
+                        showNotification('Failed to unlink workflow', 'error');
+                        return false;
+                    }
+                } catch (err) {
+                    console.error('[unlinkWorkflow] Exception:', err);
+                    showNotification('Error unlinking workflow', 'error');
+                    return false;
+                }
+            },
+
+            /**
+             * Open workflow linking modal (shows available workflows)
+             */
+            async openWorkflowLinkModal(threadId) {
+                // TODO: Implement modal to select from available workflows
+                // For now, show a simple prompt
+                const workflowName = prompt('Enter workflow name to link:');
+                if (workflowName) {
+                    const workflowId = `workflow_${Date.now()}`; // Generate ID
+                    await this.linkWorkflow(threadId, workflowId, workflowName);
+                }
+            },
+
+            /**
+             * Open workflow details (shows workflow configuration)
+             */
+            openWorkflowDetails(workflowId) {
+                // TODO: Implement workflow details modal
+                showNotification(`Opening workflow: ${workflowId}`, 'info');
+                console.log(`[WorkflowDetails] Opening workflow ${workflowId}`);
             },
 
             // Open Synergy Sync Modal with three options
@@ -25001,30 +25288,60 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             </div>
                         </div>
                         
-                        <!-- ROW 4: Synergy Session (if present) - SHOWS FULL TITLE FROM METADATA -->
-                        ${thread.synergy_card_id ? `
-                            <div class="thread-item-synergy" data-synergy-id="${thread.synergy_card_id}">
-                                <button class="synergy-badge"
-                                    onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${safeEscape(thread.synergy_card_id)}', '${safeEscape(synergyDisplay)}')"
-                                    data-tooltip-title="${safeEscape(synergyDisplay)}"
-                                    data-tooltip-desc="${synergyMeta ? safeEscape(synergyMeta.description || '') : ''}"
-                                    data-tooltip-users="${synergyMeta && Array.isArray(synergyMeta.assignees) ? safeEscape(synergyMeta.assignees.join(', ')) : ''}"
-                                    data-tooltip-updated="${synergyMeta && synergyMeta.last_active ? new Date(synergyMeta.last_active).toLocaleString() : ''}">
-                                    <i class="fas fa-link"></i>
-                                    <span class="synergy-badge-title">${synergyDisplay}</span>
-                                    ${synergyPriority ? `<span class="synergy-badge-priority">${synergyPriority}</span>` : ''}
-                                </button>
-                                <button class="thread-synergy-unlink" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
-                                    <i class="fas fa-unlink"></i>
-                                </button>
-                            </div>
-                        ` : `
-                            <div class="thread-item-synergy thread-item-synergy-unlinked">
-                                <button class="synergy-create-link" onclick="event.stopPropagation(); ThreadManager.openSynergySyncModal('${thread.id}')" title="Link thread to Synergy session">
-                                    <i class="fas fa-link"></i> Synergy Sync
-                                </button>
-                            </div>
-                        `}
+                        <!-- ROW 4: UI Link Pills (Synergy=green, Workflow=orange, etc.) -->
+                        <div class="thread-ui-links-row" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                            
+                            <!-- Synergy Session (GREEN pill) -->
+                            ${thread.synergy_card_id ? `
+                                <div class="thread-item-synergy" data-synergy-id="${thread.synergy_card_id}" style="background: #10b98115; border: 1px solid #10b981; border-radius: 8px; padding: 8px;">
+                                    <button class="synergy-badge" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;"
+                                        onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${safeEscape(thread.synergy_card_id)}', '${safeEscape(synergyDisplay)}')"
+                                        data-tooltip-title="${safeEscape(synergyDisplay)}"
+                                        data-tooltip-desc="${synergyMeta ? safeEscape(synergyMeta.description || '') : ''}"
+                                        data-tooltip-users="${synergyMeta && Array.isArray(synergyMeta.assignees) ? safeEscape(synergyMeta.assignees.join(', ')) : ''}"
+                                        data-tooltip-updated="${synergyMeta && synergyMeta.last_active ? new Date(synergyMeta.last_active).toLocaleString() : ''}">
+                                        <i class="fas fa-link"></i>
+                                        <span class="synergy-badge-title">${synergyDisplay}</span>
+                                        ${synergyPriority ? `<span class="synergy-badge-priority" style="background: white; color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px;">${synergyPriority}</span>` : ''}
+                                    </button>
+                                    ${location !== 'synergy' ? `
+                                        <button class="thread-synergy-unlink" style="background: transparent; border: none; color: #10b981; cursor: pointer; padding: 4px 8px;" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
+                                            <i class="fas fa-unlink"></i> Unlink
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            ` : (location !== 'synergy' ? `
+                                <div class="thread-item-synergy thread-item-synergy-unlinked" style="border: 1px dashed #10b981; border-radius: 8px; padding: 8px;">
+                                    <button class="synergy-create-link" style="background: transparent; border: none; color: #10b981; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;" onclick="event.stopPropagation(); ThreadManager.openSynergySyncModal('${thread.id}')" title="Link thread to Synergy session">
+                                        <i class="fas fa-link"></i> Link Synergy Session
+                                    </button>
+                                </div>
+                            ` : '')}
+                            
+                            <!-- Workflow Automation (ORANGE pill) -->
+                            ${thread.workflow_id ? `
+                                <div class="thread-item-workflow" data-workflow-id="${thread.workflow_id}" style="background: #f9731615; border: 1px solid #f97316; border-radius: 8px; padding: 8px;">
+                                    <button class="workflow-badge" style="background: #f97316; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;"
+                                        onclick="event.stopPropagation(); ThreadManager.openWorkflowDetails('${thread.workflow_id}')"
+                                        title="${thread.workflow_name || thread.workflow_id}">
+                                        <i class="fas fa-robot"></i>
+                                        <span class="workflow-badge-title">${thread.workflow_name || thread.workflow_id}</span>
+                                    </button>
+                                    ${location !== 'synergy' ? `
+                                        <button class="thread-workflow-unlink" style="background: transparent; border: none; color: #f97316; cursor: pointer; padding: 4px 8px;" title="Unlink workflow" onclick="event.stopPropagation(); ThreadManager.unlinkWorkflow('${thread.id}', '${thread.workflow_id}')">
+                                            <i class="fas fa-unlink"></i> Unlink
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            ` : (location !== 'synergy' ? `
+                                <div class="thread-item-workflow thread-item-workflow-unlinked" style="border: 1px dashed #f97316; border-radius: 8px; padding: 8px;">
+                                    <button class="workflow-create-link" style="background: transparent; border: none; color: #f97316; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;" onclick="event.stopPropagation(); ThreadManager.openWorkflowLinkModal('${thread.id}')" title="Link thread to Workflow automation">
+                                        <i class="fas fa-robot"></i> Link Workflow
+                                    </button>
+                                </div>
+                            ` : '')}
+                            
+                        </div>
                         
                         <!-- ROW 5: Tags + Add Tag Button -->
                         <div class="thread-tags-row" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
@@ -28291,8 +28608,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     }
                     thread.messages.push(message);
                     thread.updated = new Date().toISOString();
+
+                    // Update message count
+                    thread.message_count = thread.messages.length;
+
+                    // Refresh all thread info cards to show updated message count
+                    this.refreshAllThreadInfoCards(targetThreadId);
+
                     // Note: Message already saved via backend in calling context
-                    console.log(`[OK] [addMessageToThread] Added message to thread ${targetThreadId}`);
+                    console.log(`[OK] [addMessageToThread] Added message to thread ${targetThreadId}, count: ${thread.message_count}`);
                     return true;
                 }
 

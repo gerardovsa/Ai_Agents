@@ -17,7 +17,7 @@ from utils.response_helpers import (
     deleted_response, updated_response
 )
 from utils.database_helpers import (
-    get_sessions_database_path, execute_sqlite_update
+    get_sessions_database_path, DatabaseConnectionError
 )
 
 # Create blueprint
@@ -571,21 +571,38 @@ def save_thread():
                 summary_generated_at TEXT DEFAULT NULL
             )
         """
-        execute_sqlite_update(db_path, create_table_query, None)
+        
+        # Use Supabase connection
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        try:
+            cursor.execute(create_table_query)
+            conn.commit()
+        except Exception as e:
+            print(f"⚠️ [Thread Save] Table already exists or creation failed: {e}")
+            conn.rollback()
         
         # Insert thread
         thread_id = f"{agent_id}_{session_id}"
         conversation_json = json.dumps(conversation)
         context_json = json.dumps({})  # Empty context for frontend threads
         
+        # PostgreSQL: INSERT ... ON CONFLICT (upsert)
         insert_query = """
-            INSERT OR REPLACE INTO sessions.saved_threads 
+            INSERT INTO sessions.saved_threads 
             (thread_id, agent_id, session_id, user_id, location, thread_name, conversation, 
              message_count, context, saved_at, last_updated,
              tags, synergy_card_id, parent_thread_id, branch_point_message_id, 
              branch_name, summary, summary_generated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'),
-                    ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW(),
+                    %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (thread_id) DO UPDATE SET
+                thread_name = EXCLUDED.thread_name,
+                conversation = EXCLUDED.conversation,
+                message_count = EXCLUDED.message_count,
+                last_updated = NOW(),
+                tags = EXCLUDED.tags,
+                synergy_card_id = EXCLUDED.synergy_card_id
         """
         
         params = [
@@ -608,7 +625,9 @@ def save_thread():
             summary_generated_at
         ]
         
-        execute_sqlite_update(db_path, insert_query, params)
+        cursor.execute(insert_query, params)
+        conn.commit()
+        conn.close()
         
         # INTEGRATION: Update thread assignments in sessions.db if location is an agent
         if location and location != 'prime' and location.startswith('agent-'):
@@ -712,15 +731,19 @@ def delete_thread(thread_id):
             # Just clear from state manager with the full ID
             agent_state_manager.clear_conversation('prime', thread_id)
         
-        # Delete from SQLite (saved_threads table)
-        db_path = get_sessions_database_path()
+        # Delete from Supabase (saved_threads table)
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
         
         delete_query = """
             DELETE FROM sessions.saved_threads
-            WHERE thread_id = ?
+            WHERE thread_id = %s
         """
         
-        rowcount = execute_sqlite_update(db_path, delete_query, [thread_id])
+        cursor.execute(delete_query, [thread_id])
+        rowcount = cursor.rowcount
+        conn.commit()
+        conn.close()
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -740,13 +763,16 @@ def delete_thread(thread_id):
 @thread_bp.route('/<thread_id>/update', methods=['PATCH'])
 def update_thread_metadata(thread_id):
     """
-    Update thread metadata (title, tags, synergy_card_id, etc.)
+    Update thread metadata (title, tags, synergy_card_id, workflow_id, etc.)
     
     Request JSON:
     {
         "name": "New Thread Title" (optional),
         "tags": ["tag1", "tag2"] (optional),
         "synergy_card_id": "sess_xxx" (optional),
+        "synergy_card_name": "Session Name" (optional),
+        "workflow_id": "workflow_123" (optional),
+        "workflow_name": "Workflow Name" (optional),
         "location": "prime" (optional)
     }
     """
@@ -755,42 +781,69 @@ def update_thread_metadata(thread_id):
         if not data:
             return error_response("No data provided", 400)
         
-        # Build dynamic UPDATE query
+        # Build dynamic UPDATE query for PostgreSQL
         update_fields = []
         params = []
+        param_counter = 1
         
         if 'name' in data:
-            update_fields.append("name = ?")
+            update_fields.append(f"name = %s")
             params.append(data['name'])
+            param_counter += 1
         
         if 'tags' in data:
-            update_fields.append("tags = ?")
+            update_fields.append(f"tags = %s")
             params.append(json.dumps(data['tags']))
+            param_counter += 1
         
         if 'synergy_card_id' in data:
-            update_fields.append("synergy_card_id = ?")
+            update_fields.append(f"synergy_card_id = %s")
             params.append(data['synergy_card_id'])
+            param_counter += 1
+        
+        if 'synergy_card_name' in data:
+            update_fields.append(f"synergy_card_name = %s")
+            params.append(data['synergy_card_name'])
+            param_counter += 1
+        
+        if 'workflow_id' in data:
+            update_fields.append(f"workflow_id = %s")
+            params.append(data['workflow_id'])
+            param_counter += 1
+        
+        if 'workflow_name' in data:
+            update_fields.append(f"workflow_name = %s")
+            params.append(data['workflow_name'])
+            param_counter += 1
         
         if 'location' in data:
-            update_fields.append("location = ?")
+            update_fields.append(f"location = %s")
             params.append(data['location'])
+            param_counter += 1
         
         if not update_fields:
             return error_response("No valid fields to update", 400)
         
-        # Add updated_at timestamp
-        update_fields.append("updated_at = datetime('now')")
+        # Add updated_at timestamp (PostgreSQL syntax)
+        update_fields.append("updated_at = NOW()")
+        
+        # Add thread_id to params for WHERE clause
         params.append(thread_id)
         
-        # Execute UPDATE
-        db_path = get_sessions_database_path()
+        # Execute UPDATE using Supabase connection
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
         update_query = f"""
             UPDATE sessions.threads
             SET {', '.join(update_fields)}
-            WHERE thread_slug = ?
+            WHERE thread_slug = %s
         """
         
-        rowcount = execute_sqlite_update(db_path, update_query, params)
+        cursor.execute(update_query, params)
+        rowcount = cursor.rowcount
+        conn.commit()
+        conn.close()
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -800,9 +853,10 @@ def update_thread_metadata(thread_id):
             'updated_fields': list(data.keys())
         }, message="Thread updated successfully")
     
-    except DatabaseConnectionError as e:
-        return error_response(f"Database error: {str(e)}", 500)
     except Exception as e:
+        import traceback
+        print(f"❌ [UPDATE THREAD] Error: {e}")
+        print(traceback.format_exc())
         return error_response(str(e), 500)
 
 
@@ -920,9 +974,12 @@ def autosave_thread():
             # Save to SQLite
             db_path = get_sessions_database_path()
             
-            # Ensure table exists
+            # Ensure table exists (PostgreSQL)
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            
             create_table_query = """
-                CREATE TABLE IF NOT EXISTS saved_threads (
+                CREATE TABLE IF NOT EXISTS sessions.saved_threads (
                     thread_id TEXT PRIMARY KEY,
                     agent_id TEXT NOT NULL,
                     session_id TEXT NOT NULL,
@@ -930,11 +987,16 @@ def autosave_thread():
                     conversation TEXT NOT NULL,
                     message_count INTEGER,
                     context TEXT,
-                    created_at TEXT,
-                    saved_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP,
+                    saved_at TIMESTAMP DEFAULT NOW()
                 )
             """
-            execute_sqlite_update(db_path, create_table_query, None)
+            try:
+                cursor.execute(create_table_query)
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                print(f"⚠️ [Autosave] Table exists: {e}")
             
             # Save thread
             thread_id = f"{agent_id}_{session_id}"
@@ -942,10 +1004,14 @@ def autosave_thread():
             context_json = json.dumps(state.get('context', {}))
             
             insert_query = """
-                INSERT OR REPLACE INTO sessions.saved_threads 
+                INSERT INTO sessions.saved_threads 
                 (thread_id, agent_id, session_id, thread_name, conversation, 
                  message_count, context, created_at, saved_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (thread_id) DO UPDATE SET
+                    conversation = EXCLUDED.conversation,
+                    message_count = EXCLUDED.message_count,
+                    saved_at = NOW()
             """
             
             params = [
@@ -959,7 +1025,9 @@ def autosave_thread():
                 state.get('created_at')
             ]
             
-            execute_sqlite_update(db_path, insert_query, params)
+            cursor.execute(insert_query, params)
+            conn.commit()
+            conn.close()
             
             return success_response({
                 'autosaved': True,
@@ -986,26 +1054,35 @@ def mark_thread_read(thread_id):
     try:
         db_path = get_sessions_database_path()
         
+        # PostgreSQL connection
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
         # Ensure table has last_read column
         alter_query = """
-            ALTER TABLE saved_threads
-            ADD COLUMN last_read TEXT
+            ALTER TABLE sessions.saved_threads
+            ADD COLUMN IF NOT EXISTS last_read TIMESTAMP
         """
         
         try:
-            execute_sqlite_update(db_path, alter_query, None)
-        except:
+            cursor.execute(alter_query)
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
             # Column might already exist
             pass
         
         # Update last_read
         update_query = """
             UPDATE sessions.saved_threads
-            SET last_read = datetime('now')
-            WHERE thread_id = ?
+            SET last_read = NOW()
+            WHERE thread_id = %s
         """
         
-        rowcount = execute_sqlite_update(db_path, update_query, [thread_id])
+        cursor.execute(update_query, [thread_id])
+        rowcount = cursor.rowcount
+        conn.commit()
+        conn.close()
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -1490,21 +1567,23 @@ def lock_thread(thread_id):
         # Update thread with lock info
         locked_at = datetime.now().isoformat()
         
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
         query = """
             UPDATE sessions.threads 
-            SET locked_by_device = ?,
-                locked_by_device_name = ?,
-                locked_at = ?
-            WHERE id = ?
+            SET locked_by_device = %s,
+                locked_by_device_name = %s,
+                locked_at = %s
+            WHERE id = %s
         """
         
-        result = execute_sqlite_update(
-            get_sessions_database_path(),
-            query,
-            (device_id, device_name, locked_at, thread_id)
-        )
+        cursor.execute(query, (device_id, device_name, locked_at, thread_id))
+        rowcount = cursor.rowcount
+        conn.commit()
+        conn.close()
         
-        if result['rows_affected'] == 0:
+        if rowcount == 0:
             return error_response('Thread not found', 404)
         
         print(f"[DEVICE LOCK] Thread {thread_id} locked to device {device_name} ({device_id})")
@@ -1535,22 +1614,24 @@ def unlock_thread(thread_id):
         }
     """
     try:
-        # Clear lock fields
+        # Clear lock fields (PostgreSQL)
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
         query = """
             UPDATE sessions.threads 
             SET locked_by_device = NULL,
                 locked_by_device_name = NULL,
                 locked_at = NULL
-            WHERE id = ?
+            WHERE id = %s
         """
         
-        result = execute_sqlite_update(
-            get_sessions_database_path(),
-            query,
-            (thread_id,)
-        )
+        cursor.execute(query, (thread_id,))
+        rowcount = cursor.rowcount
+        conn.commit()
+        conn.close()
         
-        if result['rows_affected'] == 0:
+        if rowcount == 0:
             return error_response('Thread not found', 404)
         
         print(f"[DEVICE LOCK] Thread {thread_id} unlocked")
