@@ -653,10 +653,14 @@ def load_thread(thread_id):
                 saved_at,
                 last_updated
             FROM sessions.saved_threads
-            WHERE thread_id = ?
+            WHERE thread_id = %s
         """
         
-        results = execute_sqlite_query(db_path, query, [thread_id])
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        cursor.execute(query, (thread_id,))
+        results = cursor.fetchall()
+        conn.close()
         
         if not results:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -853,7 +857,11 @@ def get_thread_stats():
                 FROM sessions.saved_threads
             """
             
-            results = execute_sqlite_query(db_path, count_query, None)
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            cursor.execute(count_query)
+            results = cursor.fetchall()
+            conn.close()
             if results:
                 stats['saved_threads'] = results[0]['count']
         except:
@@ -1211,16 +1219,22 @@ def save_messages():
         db_path = get_sessions_database_path()
         
         # Get the internal thread database ID
-        query = "SELECT id FROM sessions.threads WHERE thread_slug = ?"
-        rows = execute_sqlite_query(db_path, query, (thread_id,))
+        query = "SELECT id FROM sessions.threads WHERE thread_slug = %s"
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        cursor.execute(query, (thread_id,))
+        rows = cursor.fetchall()
         
         existing_message_count = 0
         if rows and len(rows) > 0:
             internal_thread_id = rows[0]['id']
             
             # Count existing messages for this thread
-            count_query = "SELECT COUNT(*) as count FROM sessions.messages WHERE thread_id = ?"
-            count_result = execute_sqlite_query(db_path, count_query, (internal_thread_id,))
+            count_query = "SELECT COUNT(*) as count FROM sessions.messages WHERE thread_id = %s"
+            cursor.execute(count_query, (internal_thread_id,))
+            count_result = cursor.fetchall()
+            conn.close()
             if count_result and len(count_result) > 0:
                 existing_message_count = count_result[0]['count']
                 print(f"[MESSAGE SAVE] Thread {thread_id} has {existing_message_count} existing messages")
@@ -1287,8 +1301,6 @@ def get_messages():
         if not thread_id:
             return error_response('thread_id required', 400)
         
-        db_path = get_sessions_database_path()
-        
         # Query messages by thread_slug (which matches thread_id)
         query = """
             SELECT 
@@ -1301,11 +1313,15 @@ def get_messages():
                 m.metadata
             FROM sessions.messages m
             JOIN sessions.threads t ON m.thread_id = t.id
-            WHERE t.thread_slug = ?
+            WHERE t.thread_slug = %s
             ORDER BY m.created_at ASC
         """
         
-        rows = execute_sqlite_query(db_path, query, (thread_id,))
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        cursor.execute(query, (thread_id,))
+        rows = cursor.fetchall()
+        conn.close()
         
         messages = []
         for row in rows:
@@ -1564,19 +1580,19 @@ def get_lock_status(thread_id):
         query = """
             SELECT locked_by_device, locked_by_device_name, locked_at
             FROM sessions.threads
-            WHERE id = ?
+            WHERE id = %s
         """
         
-        result = execute_sqlite_query(
-            get_sessions_database_path(),
-            query,
-            (thread_id,)
-        )
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        cursor.execute(query, (thread_id,))
+        results = cursor.fetchall()
+        conn.close()
         
-        if not result['rows']:
+        if not results:
             return error_response('Thread not found', 404)
         
-        row = result['rows'][0]
+        row = results[0]
         locked = bool(row.get('locked_by_device'))
         
         return success_response({
