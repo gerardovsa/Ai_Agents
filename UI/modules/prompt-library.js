@@ -212,9 +212,14 @@ console.log('[PROMPT LIBRARY] ========================================');
                     <i class="fas fa-bolt"></i>
                     <span>Instructions Catalogue</span>
                 </div>
-                <div id="prompt-breadcrumb" class="prompt-breadcrumb" style="display: none;">
-                    <!-- Breadcrumb will be populated dynamically -->
-                </div>
+                <button class="prompt-sidebar-close" onclick="window.closeSidebar()" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- BREADCRUMB (below header) -->
+            <div id="prompt-breadcrumb" class="prompt-breadcrumb" style="display: none;">
+                <!-- Breadcrumb will be populated dynamically -->
             </div>
             
             <!-- TABS -->

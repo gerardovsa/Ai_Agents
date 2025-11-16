@@ -3748,7 +3748,7 @@
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
             max-width: 420px;
             min-width: 300px;
-            pointer-events: none;
+            pointer-events: auto;
             opacity: 0;
             transition: opacity 0.2s ease, transform 0.2s ease;
             transform: translateY(-5px);
@@ -3756,7 +3756,6 @@
 
         .synergy-tooltip.show {
             opacity: 1;
-            pointer-events: auto;
             transform: translateY(0);
         }
 
@@ -10903,7 +10902,7 @@
                 </button>
 
                 <!-- User Profile Dropdown (Far Right) -->
-                <div class="user-profile-container" id="userProfileContainer" style="display: none;">
+                <div class="user-profile-container" id="userProfileContainer">
                     <button class="user-profile-btn" id="userProfileBtn" onclick="toggleUserMenu(event)">
                         <div class="user-avatar">
                             <i class="fas fa-user-circle"></i>
@@ -15721,7 +15720,6 @@
         }
 
         function initChatPanel() {
-            const toggleBtn = document.getElementById('ai-prime-toggle-btn');
             const closeBtn = document.getElementById('chat-close-btn');
             const sendBtn = document.getElementById('ai-chat-send-btn');
             const input = document.getElementById('ai-chat-input');
@@ -15775,7 +15773,7 @@
                 });
             }
 
-            toggleBtn.addEventListener('click', toggleChat);
+            // Note: AI Prime toggle button is handled in initRightSidebar()
             closeBtn.addEventListener('click', toggleChat);
             sendBtn.addEventListener('click', sendChatMessage);
 
@@ -22717,7 +22715,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         if (synergyTooltip) {
                             synergyTooltip.classList.remove('show');
                         }
-                    }, 100);
+                    }, 300);
                 };
 
                 // Tooltip event listeners (delegated)
@@ -26168,7 +26166,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
     <div class="new-chat-modal" onclick="event.stopPropagation()">
         <div class="modal-header">
             <h3> Start New Chat</h3>
-            <button class="modal-close" onclick="document.getElementById('newChatModalOverlay').remove()">Ã—</button>
+            <button class="modal-close" onclick="document.getElementById('newChatModalOverlay').remove()">x</button>
         </div>
                                                         <div class="modal-body">
                                                             <form id="newChatForm">
@@ -28828,14 +28826,31 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             window._rightSidebarInitialized = true;
             console.log('✅ Initializing right sidebar...');
 
-            // AI Prime Toggle
+            // AI Prime Toggle - Always works regardless of chat state
             const aiPrimeBtn = document.getElementById('ai-prime-toggle-btn');
             if (aiPrimeBtn) {
                 aiPrimeBtn.addEventListener('click', function () {
-                    // Use the existing toggleChat function
-                    toggleChat();
-                    this.classList.toggle('active');
-                    console.log('🤖 AI Prime toggled from right sidebar');
+                    const panel = document.getElementById('ai-chat-panel');
+                    const wrapper = document.getElementById('main-content-wrapper');
+                    
+                    if (panel && wrapper) {
+                        // Toggle chat state
+                        AppState.chatOpen = !AppState.chatOpen;
+                        
+                        if (AppState.chatOpen) {
+                            wrapper.classList.remove('chat-collapsed');
+                            panel.style.display = 'flex';
+                            this.classList.add('active');
+                            console.log('🤖 AI Prime chat OPENED');
+                        } else {
+                            wrapper.classList.add('chat-collapsed');
+                            panel.style.display = 'none';
+                            this.classList.remove('active');
+                            console.log('🤖 AI Prime chat CLOSED');
+                        }
+                    } else {
+                        console.warn('⚠️ Chat panel or wrapper not found');
+                    }
                 });
             }
 
@@ -39553,6 +39568,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             // Update date/time immediately and then every second
             updateHeaderDateTime();
             setInterval(updateHeaderDateTime, 1000);
+
+            // Initialize AI Prime button active state to match default chatOpen: true
+            const aiPrimeBtn = document.getElementById('ai-prime-toggle-btn');
+            if (aiPrimeBtn && AppState.chatOpen) {
+                aiPrimeBtn.classList.add('active');
+            }
 
             const synergyTab = document.querySelector('.sidebar-icon-btn[data-tab="synergy"]');
             if (synergyTab) {

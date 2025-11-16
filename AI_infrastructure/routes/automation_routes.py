@@ -33,29 +33,14 @@ automation_bp = Blueprint('automation', __name__, url_prefix='/api/automation')
 
 def get_db_connection():
     """
-    Get database connection - supports both SQLite (local) and PostgreSQL (Supabase)
+    Get database connection using centralized utility (supports Supabase + SQLite)
+    Uses centralized database_utils for automatic environment detection
     
     Returns:
-        Database connection object with row_factory or DictCursor
+        Database connection with row_factory for dict-like access
     """
-    supabase_url = os.getenv('SUPABASE_URL')
-    
-    if supabase_url:
-        # Use Supabase PostgreSQL
-        try:
-            import psycopg2
-            from psycopg2.extras import RealDictCursor
-            
-            conn = psycopg2.connect(os.getenv('SUPABASE_DB_URL'))
-            return conn
-        except ImportError:
-            print("⚠️  psycopg2 not available - falling back to SQLite")
-    
-    # Fallback to SQLite (local development)
     import sqlite3
-    root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    conn = sqlite3.connect(str(db_path))
+    conn = get_database_connection('ai_infrastructure')
     conn.row_factory = sqlite3.Row
     return conn
 
