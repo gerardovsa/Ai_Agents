@@ -141,13 +141,13 @@
 
 .workflow-slug-pill {
     display: inline-block;
-    background: rgba(210, 153, 34, 0.15);
-    border: 1px solid #d29922;
+    background: rgba(255, 140, 0, 0.15);
+    border: 1px solid #ff8c00;
     border-radius: 12px;
     padding: 2px 8px;
     font-size: 10px;
     font-family: 'Courier New', monospace;
-    color: #d29922;
+    color: #ff8c00;
     margin-top: var(--space-2);
     cursor: grab;
     user-select: none;
@@ -155,10 +155,10 @@
 }
 
 .workflow-slug-pill:hover {
-    background: #d29922;
+    background: #ff8c00;
     color: white;
     transform: scale(1.05);
-    border-color: #d29922;
+    border-color: #ff8c00;
 }
 
 .workflow-slug-pill:active {
@@ -248,7 +248,7 @@
 /* ==================== FLOATING SHAPE PALETTE (Top-Left) ==================== */
 
 .floating-shape-palette {
-    position: fixed;
+    position: absolute;
     top: 16px;
     left: 16px;
     background: var(--bg-tertiary);
@@ -311,6 +311,36 @@
     font-size: 24px;
     color: var(--text-secondary);
     user-select: none;
+}
+
+/* Toolbar workflow slug/link button */
+.workflow-link-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.workflow-link-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+}
+
+/* Toast styles (fallback, main styles applied inline in JS) */
+.workflow-toast {
+    display: block;
+}
+
+.workflow-toast-success {
+    display: block;
+}
+
+.workflow-toast-error {
+    display: block;
 }
 
 .floating-color-row {
@@ -795,7 +825,7 @@
 }
 
 .zoom-controls {
-    position: fixed;
+    position: absolute;
     top: 16px;
     right: 16px;
     display: flex;

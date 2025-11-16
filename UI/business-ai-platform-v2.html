@@ -2719,6 +2719,16 @@
             align-items: center;
             gap: 6px;
             flex-wrap: wrap;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 2px solid transparent;
+        }
+
+        .thread-tags-row.workflow-drop-active {
+            background-color: rgba(255, 140, 0, 0.1);
+            border-color: #ff8c00;
+            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.2);
         }
 
         .thread-token-count {
@@ -15132,6 +15142,9 @@
             // SETUP DRAG-AND-DROP ZONES (Added Nov 8, 2025)
             setupDragAndDropZones();
 
+            // SETUP WORKFLOW SLUG DROP ZONES (Added Jan 2025)
+            setupWorkflowSlugDropZones();
+
             // START REAL-TIME TIME UPDATES (Added Nov 8, 2025)
             startRealtimeUpdates();
 
@@ -15356,6 +15369,51 @@
             });
 
             console.log('[DRAG-DROP] All drop zones configured successfully');
+        }
+
+        // ==================== WORKFLOW SLUG DROP ZONES (Added Jan 2025) ====================
+        function setupWorkflowSlugDropZones() {
+            console.log('[WORKFLOW-DROP] Setting up workflow slug drop zones...');
+
+            // Event delegation for thread-tags-row elements
+            document.addEventListener('dragover', (e) => {
+                const tagsRow = e.target.closest('.thread-tags-row');
+                if (tagsRow) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'link';
+                    tagsRow.classList.add('workflow-drop-active');
+                }
+            });
+
+            document.addEventListener('dragleave', (e) => {
+                const tagsRow = e.target.closest('.thread-tags-row');
+                if (tagsRow && !tagsRow.contains(e.relatedTarget)) {
+                    tagsRow.classList.remove('workflow-drop-active');
+                }
+            });
+
+            document.addEventListener('drop', async (e) => {
+                const tagsRow = e.target.closest('.thread-tags-row');
+                if (tagsRow) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    tagsRow.classList.remove('workflow-drop-active');
+
+                    // Check if this is a workflow slug being dropped
+                    const workflowSlug = e.dataTransfer.getData('workflow-slug');
+                    if (workflowSlug) {
+                        // Extract thread ID from the tags row ID (format: thread-tags-row-THREADID)
+                        const threadId = tagsRow.id.replace('thread-tags-row-', '');
+                        
+                        if (threadId) {
+                            console.log(`[WORKFLOW-DROP] Workflow slug "${workflowSlug}" dropped on thread ${threadId}`);
+                            await ThreadManager.linkWorkflowSlug(threadId, workflowSlug);
+                        }
+                    }
+                }
+            });
+
+            console.log('[WORKFLOW-DROP] Workflow slug drop zones configured successfully');
         }
 
         // ==================== REAL-TIME TIME UPDATES (Added Nov 8, 2025) ====================
@@ -22690,7 +22748,19 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     thread.agent = frontendLocation;
                     thread.updated = new Date().toISOString();
 
-                    // Update linkages if provided
+                    // Add linkages if provided (for linking operations)
+                    if (options.addLinks) {
+                        if (options.addLinks.includes('synergy') && options.synergySessionId) {
+                            thread.synergy_card_id = options.synergySessionId;
+                            thread.synergy_card_name = options.synergySessionName || null;
+                        }
+                        if (options.addLinks.includes('workflow') && options.workflowId) {
+                            thread.workflow_id = options.workflowId;
+                            thread.workflow_name = options.workflowName || null;
+                        }
+                    }
+
+                    // Update linkages if provided (direct assignment)
                     if (options.synergySessionId !== undefined) {
                         thread.synergy_card_id = options.synergySessionId;
                         thread.synergy_card_name = options.synergySessionName || null;
@@ -23313,9 +23383,10 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             thread.updated = new Date().toISOString();
                         }
 
-                        // ✨ Use master sync to update all UI components
+                        // ✨ Use master sync to update all UI components (preserves workflow pill)
                         await this.syncThreadLocationEverywhere(threadId, thread.agent || 'main', {
-                            removeLinks: ['synergy']
+                            removeLinks: ['synergy'],
+                            preserveLinks: true
                         });
 
                         showNotification('Synergy session unlinked', 'success');
@@ -23363,6 +23434,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                         // ✨ Use master sync to update all UI components
                         await this.syncThreadLocationEverywhere(threadId, thread.agent || 'main', {
+                            addLinks: ['workflow'],
                             workflowId: workflowId,
                             workflowName: workflowName
                         });
@@ -25459,8 +25531,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             </div>
                         `}
                         
-                        <!-- ROW 5: Tags + Add Tag Button -->
-                        <div class="thread-tags-row" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+                        <!-- ROW 5: Tags + Workflow Slug + Add Tag Button -->
+                        <div class="thread-tags-row" id="thread-tags-row-${thread.id}" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
                             ${thread.tags ? thread.tags.map(tag => `
                                 <span class="thread-tag-pill">
                                     <i class="fas fa-tag"></i> ${tag}
@@ -25469,6 +25541,17 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                             title="Remove tag">&times;</button>
                                 </span>
                             `).join('') : ''}
+                            ${thread.workflow_slug ? `
+                                <span class="thread-workflow-slug" id="workflow-slug-${thread.id}" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 140, 0, 0.15); border: 1px solid #ff8c00; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-family: 'Courier New', monospace; color: #ff8c00; cursor: pointer;" title="Click to load workflow" onclick="event.stopPropagation(); ThreadManager.loadWorkflowFromSlug('${thread.id}')">
+                                    <i class="fas fa-project-diagram"></i> <span id="workflow-slug-text-${thread.id}">${thread.workflow_slug}</span>
+                                    <button onclick="event.stopPropagation(); ThreadManager.unlinkWorkflowSlug('${thread.id}')" style="border: none; background: none; color: #ff8c00; padding: 0 2px; cursor: pointer; font-size: 12px; line-height: 1;" title="Remove workflow link">&times;</button>
+                                </span>
+                            ` : `
+                                <span class="thread-workflow-slug" id="workflow-slug-${thread.id}" style="display: none; align-items: center; gap: 4px; background: rgba(255, 140, 0, 0.15); border: 1px solid #ff8c00; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-family: 'Courier New', monospace; color: #ff8c00; cursor: pointer;" title="Click to load workflow" onclick="event.stopPropagation(); ThreadManager.loadWorkflowFromSlug('${thread.id}')">
+                                    <i class="fas fa-project-diagram"></i> <span id="workflow-slug-text-${thread.id}"></span>
+                                    <button onclick="event.stopPropagation(); ThreadManager.unlinkWorkflowSlug('${thread.id}')" style="border: none; background: none; color: #ff8c00; padding: 0 2px; cursor: pointer; font-size: 12px; line-height: 1; display: none;" title="Remove workflow link">&times;</button>
+                                </span>
+                            `}
                             ${typeof thread.token_count !== 'undefined' ? `
                                 <span class="thread-token-count" id="token-count-${thread.id}" title="Estimated tokens: ${thread.token_count}">
                                     Tokens: <strong>${(thread.token_count).toLocaleString()}</strong>
@@ -25804,6 +25887,70 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 // TODO: Implement Synergy session opening
                 console.log('[SYNERGY] Opening session:', synergyCardId);
                 alert(`Opening Synergy session: ${synergyCardId}\n(Integration pending)`);
+            },
+
+            /**
+             * Workflow slug integration functions
+             */
+            async linkWorkflowSlug(threadId, workflowSlug) {
+                const thread = this.threads.find(t => t.id === threadId);
+                if (!thread) return;
+
+                thread.workflow_slug = workflowSlug;
+                thread.updated = new Date().toISOString();
+
+                // Save to backend
+                await this.saveThreadToBackend(thread);
+
+                // Update UI - show the workflow slug pill
+                const slugElement = document.getElementById(`workflow-slug-${threadId}`);
+                const slugTextElement = document.getElementById(`workflow-slug-text-${threadId}`);
+                if (slugElement && slugTextElement) {
+                    slugTextElement.textContent = workflowSlug;
+                    slugElement.style.display = 'inline-flex';
+                    
+                    // Show the remove button
+                    const removeBtn = slugElement.querySelector('button');
+                    if (removeBtn) {
+                        removeBtn.style.display = 'inline-block';
+                    }
+                }
+
+                console.log('[WORKFLOW] Linked workflow slug to thread:', workflowSlug);
+            },
+
+            async unlinkWorkflowSlug(threadId) {
+                const thread = this.threads.find(t => t.id === threadId);
+                if (!thread) return;
+
+                thread.workflow_slug = null;
+                thread.updated = new Date().toISOString();
+
+                // Save to backend
+                await this.saveThreadToBackend(thread);
+
+                // Update UI - hide the workflow slug pill
+                const slugElement = document.getElementById(`workflow-slug-${threadId}`);
+                if (slugElement) {
+                    slugElement.style.display = 'none';
+                }
+
+                console.log('[WORKFLOW] Unlinked workflow slug from thread');
+            },
+
+            loadWorkflowFromSlug(threadId) {
+                const thread = this.threads.find(t => t.id === threadId);
+                if (!thread || !thread.workflow_slug) return;
+
+                // Open Automation Canvas and load the workflow
+                console.log('[WORKFLOW] Loading workflow:', thread.workflow_slug);
+                
+                // Check if automationCanvas instance exists
+                if (window.automationCanvas && typeof window.automationCanvas.loadWorkflowBySlug === 'function') {
+                    window.automationCanvas.loadWorkflowBySlug(thread.workflow_slug);
+                } else {
+                    alert(`Workflow slug: ${thread.workflow_slug}\n(Automation Canvas not loaded yet)`);
+                }
             },
 
             /**
@@ -29144,6 +29291,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
         const UserAuth = {
             token: null,
             user: null,
+            isInitialized: false, // 🔒 Prevent double initialization
+            mainAppInitialized: false, // 🔒 Prevent double main app initialization
 
             async checkExistingSession() {
                 // Check if user is already logged in
@@ -29162,6 +29311,14 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             },
 
             init() {
+                // 🔒 PREVENT DOUBLE INITIALIZATION
+                if (this.isInitialized) {
+                    console.log('⚠️ [AUTH] Init already called, skipping duplicate initialization');
+                    return;
+                }
+                this.isInitialized = true;
+                console.log('🔷 [AUTH] Initializing UserAuth...');
+
                 // Check if there's an OAuth callback token in the URL FIRST
                 const urlParams = new URLSearchParams(window.location.search);
                 const hasOAuthToken = urlParams.has('token');
@@ -29266,6 +29423,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             logout() {
                 this.token = null;
                 this.user = null;
+                this.isInitialized = false; // Reset init flag for re-login
+                this.mainAppInitialized = false; // Reset main app flag for re-login
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('userProfile');
                 this.showLogin();
@@ -29277,6 +29436,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             },
 
             async showMainApp() {
+                // 🔒 PREVENT DOUBLE INITIALIZATION OF MAIN APP
+                if (this.mainAppInitialized) {
+                    console.log('⚠️ [AUTH] Main app already initialized, skipping duplicate call');
+                    return;
+                }
+                this.mainAppInitialized = true;
+
                 console.log('✅ Login successful - Initializing main application...');
 
                 // Smooth transition: fade out login, fade in main app
@@ -37601,14 +37767,22 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                 try {
                     // Fetch thread details and agent assignments
-                    const response = await fetch(`${this.apiBaseUrl}/api/threads/details`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ thread_ids: threadIds })
-                    });
+                    // Silently handle errors - don't show connection lost notifications
+                    let response;
+                    try {
+                        response = await fetch(`${this.apiBaseUrl}/api/threads/details`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ thread_ids: threadIds })
+                        });
+                    } catch (fetchError) {
+                        // Network error - silently return fallback UI
+                        console.warn('[SYNERGY] Network error fetching thread details (suppressed notification)');
+                        return `<div class="threads-error"><i class="fas fa-exclamation-triangle"></i> ${threadIds.length} thread(s) linked</div>`;
+                    }
 
                     if (!response.ok) {
-                        console.warn('[SYNERGY] Failed to fetch thread details');
+                        console.warn('[SYNERGY] Failed to fetch thread details (HTTP ' + response.status + ')');
                         return `<div class="threads-error"><i class="fas fa-exclamation-triangle"></i> ${threadIds.length} thread(s) linked</div>`;
                     }
 

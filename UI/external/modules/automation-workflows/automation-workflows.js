@@ -98,7 +98,7 @@ class AutomationCanvas {
         document.getElementById('workflow-title-input')?.addEventListener('input', (e) => {
             const title = e.target.value;
             const slug = this.generateSlug(title);
-            document.getElementById('workflow-slug-input').value = slug ? `workflow_${slug}` : '';
+            document.getElementById('workflow-slug-input').value = slug || '';
         });
 
         // Workflow card click to edit
@@ -730,7 +730,7 @@ class AutomationCanvas {
             console.log('Automation imported:', automation);
         } catch (error) {
             console.error('Failed to import automation:', error);
-            alert('Failed to import automation. Please check the JSON format.');
+            this.showToast('Failed to import automation. Please check the JSON format.', 'error');
         }
     }
 
@@ -767,11 +767,11 @@ class AutomationCanvas {
             localStorage.setItem('automations', JSON.stringify(saved));
             this.automationId = automation.automation_id;
 
-            alert(`Automation "${title}" saved successfully!`);
+            this.showToast(`Automation "${title}" saved successfully!`, 'success');
             this.loadSavedAutomations();
         } catch (error) {
             console.error('Failed to save automation:', error);
-            alert('Failed to save automation. Please try again.');
+            this.showToast('Failed to save automation. Please try again.', 'error');
         }
     }
 
@@ -810,7 +810,7 @@ class AutomationCanvas {
         const automation = saved.find(a => a.automation_id === automationId);
 
         if (!automation) {
-            alert('Automation not found');
+            this.showToast('Automation not found', 'error');
             return;
         }
 
@@ -847,7 +847,7 @@ class AutomationCanvas {
             // Store slug data for AI
             window.currentAutomationSlug = slug;
 
-            alert(`Automation "${automation.title}" added to AI chat!\n\nClick Send to have the AI analyze and refine your workflow.`);
+            this.showToast(`Automation "${automation.title}" added to AI chat! Click Send to have the AI analyze and refine your workflow.`, 'success', 5000);
         }
     }
 
@@ -963,6 +963,17 @@ class AutomationCanvas {
         // Add event listeners
         const slugPill = item.querySelector('.workflow-slug-pill');
         slugPill.addEventListener('dragstart', (e) => this.handleSlugDragStart(e));
+        // click copies slug to clipboard
+        slugPill.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const slug = slugPill.dataset.slug || '';
+            if (!slug) return;
+            navigator.clipboard?.writeText(slug).then(() => {
+                this.showToast('Workflow slug copied to clipboard', 'success');
+            }).catch(() => {
+                this.showToast('Could not copy slug', 'error');
+            });
+        });
 
         const loadBtn = item.querySelector('[data-action=\"load\"]');
         loadBtn?.addEventListener('click', () => this.loadWorkflow(workflow.id || workflow.slug));
@@ -1057,7 +1068,7 @@ class AutomationCanvas {
             this.updateWorkflowNameDisplay();
         } catch (error) {
             console.error('Error loading workflow:', error);
-            alert('Failed to load workflow. Please try again.');
+            this.showToast('Failed to load workflow. Please try again.', 'error');
         }
     }
 
@@ -1129,13 +1140,13 @@ class AutomationCanvas {
             console.log('[AUTOMATION CANVAS] Workflow loaded successfully from slug');
         } catch (error) {
             console.error('[AUTOMATION CANVAS] Error loading workflow by slug:', error);
-            alert(`Failed to load workflow: ${error.message}`);
+            this.showToast(`Failed to load workflow: ${error.message}`, 'error');
         }
     }
 
     async saveWorkflow() {
         if (!this.currentWorkflow) {
-            alert('Please create a new workflow first');
+            this.showToast('Please create a new workflow first', 'error');
             return;
         }
 
@@ -1169,13 +1180,13 @@ class AutomationCanvas {
 
             const data = await response.json();
             console.log('Workflow saved:', data);
-            alert('Workflow saved successfully!');
+            this.showToast('Workflow saved successfully!', 'success');
 
             // Reload workflows list
             await this.loadWorkflows();
         } catch (error) {
             console.error('Error saving workflow:', error);
-            alert('Failed to save workflow. Please try again.');
+            this.showToast('Failed to save workflow. Please try again.', 'error');
         }
     }
 
@@ -1220,13 +1231,13 @@ class AutomationCanvas {
             if (!saveResponse.ok) throw new Error('Failed to save duplicate');
 
             console.log('Workflow duplicated:', newSlug);
-            alert('Workflow duplicated successfully!');
+            this.showToast('Workflow duplicated successfully!', 'success');
 
             // Reload workflows list
             await this.loadWorkflows();
         } catch (error) {
             console.error('Error duplicating workflow:', error);
-            alert('Failed to duplicate workflow. Please try again.');
+            this.showToast('Failed to duplicate workflow. Please try again.', 'error');
         }
     }
 
@@ -1267,7 +1278,7 @@ class AutomationCanvas {
             if (!response.ok) throw new Error('Failed to delete workflow');
 
             console.log('Workflow deleted:', workflowId);
-            alert('Workflow deleted successfully!');
+            this.showToast('Workflow deleted successfully!', 'success');
 
             // Clear canvas if this was the current workflow
             if (this.currentWorkflow && (this.currentWorkflow.id === workflowId || this.currentWorkflow.slug === workflowId)) {
@@ -1279,7 +1290,7 @@ class AutomationCanvas {
             await this.loadWorkflows();
         } catch (error) {
             console.error('Error deleting workflow:', error);
-            alert('Failed to delete workflow. Please try again.');
+            this.showToast('Failed to delete workflow. Please try again.', 'error');
         }
     }
 
@@ -1320,7 +1331,7 @@ class AutomationCanvas {
 
     sendToAI() {
         if (!this.currentWorkflow) {
-            alert('Please create or load a workflow first');
+            this.showToast('Please create or load a workflow first', 'error');
             return;
         }
 
@@ -1359,7 +1370,7 @@ class AutomationCanvas {
         }
 
         console.log(`Workflow [${this.workflowSlug}] sent to Agent ${targetAgentId}`);
-        alert(`Workflow sent to AI Agent ${targetAgentId}!\n\nThe AI Workflow Designer mode is now active.`);
+        this.showToast(`Workflow sent to AI Agent ${targetAgentId}! The AI Workflow Designer mode is active.`, 'success', 5000);
     }
 
     addWorkflowSlugToThreadInfo(agentId) {
@@ -1635,14 +1646,14 @@ class AutomationCanvas {
 
         const title = titleInput.value.trim();
         if (!title) {
-            alert('Please enter a workflow title');
+            this.showToast('Please enter a workflow title', 'error');
             titleInput.focus();
             return;
         }
 
         const workflowData = {
             title: title,
-            slug: slugInput.value || `workflow_${this.generateSlug(title)}`,
+            slug: slugInput.value || this.generateSlug(title),
             created_at: timestampInput.value || new Date().toISOString(),
             category: categorySelect.value || 'other',
             description: descriptionInput.value.trim(),
@@ -1694,10 +1705,99 @@ class AutomationCanvas {
 
     updateWorkflowNameDisplay() {
         const displayElement = document.getElementById('workflow-name-display');
-        if (displayElement && this.workflowTitle) {
-            displayElement.textContent = `- ${this.workflowTitle}`;
-        } else if (displayElement) {
+        if (!displayElement) return;
+
+        // Show title and slug with a small link/copy button
+        if (this.workflowTitle) {
+            const slug = this.workflowSlug || '';
+            const safeTitle = this.workflowTitle;
+            displayElement.innerHTML = `- <span class="workflow-toolbar-title">${safeTitle}</span>` + (slug ? ` <button id="workflow-link-btn" class="workflow-link-btn" title="Copy workflow slug or drag to chat">${slug}</button>` : '');
+
+            // Attach copy click and dragstart handlers to the slug button if present
+            const linkBtn = document.getElementById('workflow-link-btn');
+            if (linkBtn) {
+                // copy to clipboard on click
+                linkBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const text = this.workflowSlug || '';
+                    if (!text) {
+                        this.showToast('No workflow slug available', 'error');
+                        return;
+                    }
+                    navigator.clipboard?.writeText(text).then(() => {
+                        this.showToast('Workflow slug copied to clipboard', 'success');
+                    }).catch(() => {
+                        this.showToast('Could not copy slug', 'error');
+                    });
+                });
+
+                // enable dragging the slug from the toolbar to other drop targets
+                linkBtn.setAttribute('draggable', 'true');
+                linkBtn.addEventListener('dragstart', (ev) => {
+                    const slug = this.workflowSlug || '';
+                    ev.dataTransfer.setData('text/plain', `[${slug}]`);
+                    ev.dataTransfer.setData('workflow-slug', slug);
+                    ev.dataTransfer.effectAllowed = 'copy';
+                });
+            }
+        } else {
             displayElement.textContent = '';
+        }
+    }
+
+    // Minimal toast/notification helper to replace alert() calls
+    showToast(message, type = 'info', duration = 3500) {
+        try {
+            let container = document.getElementById('workflow-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'workflow-toast-container';
+                container.style.position = 'fixed';
+                container.style.top = '24px';
+                container.style.right = '24px';
+                container.style.zIndex = 99999;
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+                container.style.gap = '8px';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `workflow-toast workflow-toast-${type}`;
+            toast.style.minWidth = '220px';
+            toast.style.padding = '10px 14px';
+            toast.style.borderRadius = '8px';
+            toast.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)';
+            toast.style.color = '#fff';
+            toast.style.fontSize = '13px';
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 200ms ease, transform 200ms ease';
+            toast.style.transform = 'translateY(-6px)';
+
+            if (type === 'success') {
+                toast.style.background = '#2d9f6a';
+            } else if (type === 'error') {
+                toast.style.background = '#e74c3c';
+            } else {
+                toast.style.background = '#2f3b52';
+            }
+
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            // force reflow then show
+            window.requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            });
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-6px)';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        } catch (e) {
+            console.log('Toast:', message);
         }
     }
 
@@ -1716,7 +1816,7 @@ class AutomationCanvas {
                 select.insertBefore(option, select.lastElementChild); // Insert before "Other"
                 select.value = slug;
             } else {
-                alert('Category already exists');
+                this.showToast('Category already exists', 'error');
             }
         }
     }
@@ -1724,7 +1824,7 @@ class AutomationCanvas {
     showLoadWorkflowDialog() {
         // With floating palette, workflows are managed through API
         // For now, show simple message - can be enhanced to show modal with workflow list
-        alert('Load Workflow:\n\nSaved workflows can be accessed through the API.\nUse the "New" button to create a new workflow or check the backend /api/automation/list endpoint for saved workflows.');
+        this.showToast('Load Workflow: Saved workflows can be accessed through the API. Use the "New" button to create a new workflow or check the backend /api/automation/list endpoint for saved workflows.', 'info', 7000);
 
         // TODO: Future enhancement - show modal with workflow list from /api/automation/list
         // this.openWorkflowModal('load');
