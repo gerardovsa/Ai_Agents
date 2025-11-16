@@ -1,0 +1,200 @@
+/**
+ * Workflow Slug Integration Styles
+ * 
+ * CSS for workflow slug linking, display, and drag-drop interactions
+ */
+
+/* ============================================================
+   WORKFLOW DISPLAY IN THREAD INFO CARDS
+   ============================================================ */
+
+.thread-info-workflow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-top: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 6px;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.thread-info-workflow:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.thread-info-workflow i.fa-project-diagram {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.thread-info-workflow .workflow-title {
+    flex: 1;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workflow-open-btn,
+.workflow-unlink-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.workflow-open-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.workflow-unlink-btn:hover {
+    background: rgba(239, 68, 68, 0.8);
+    transform: scale(1.05);
+}
+
+.workflow-open-btn i,
+.workflow-unlink-btn i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   INTERNAL DOCUMENT DISPLAY
+   ============================================================ */
+
+.thread-info-document {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-top: 8px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border-radius: 6px;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.thread-info-document:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+}
+
+.thread-info-document i.fa-file-alt {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.thread-info-document .document-title {
+    flex: 1;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-open-btn,
+.document-unlink-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.document-open-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.document-unlink-btn:hover {
+    background: rgba(239, 68, 68, 0.8);
+    transform: scale(1.05);
+}
+
+/* ============================================================
+   DRAG-DROP VISUAL FEEDBACK
+   ============================================================ */
+
+.thread-info-container.workflow-drag-over {
+    outline: 2px dashed #667eea;
+    outline-offset: 4px;
+    background: rgba(102, 126, 234, 0.05);
+    transition: all 0.2s ease;
+}
+
+.thread-info-container.document-drag-over {
+    outline: 2px dashed #f093fb;
+    outline-offset: 4px;
+    background: rgba(240, 147, 251, 0.05);
+    transition: all 0.2s ease;
+}
+
+/* Workflow list item drag cursor */
+.workflow-list-item[draggable="true"] {
+    cursor: move;
+}
+
+.workflow-list-item[draggable="true"]:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+/* Internal doc list item drag cursor */
+.internal-doc-item[draggable="true"] {
+    cursor: move;
+}
+
+.internal-doc-item[draggable="true"]:hover {
+    background: rgba(240, 147, 251, 0.1);
+}
+
+/* ============================================================
+   WORKFLOW SLUG BADGE (in workflow list)
+   ============================================================ */
+
+.workflow-slug-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    font-size: 10px;
+    font-family: monospace;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+
+    .thread-info-workflow,
+    .thread-info-document {
+        font-size: 11px;
+        padding: 5px 8px;
+    }
+
+    .workflow-open-btn,
+    .workflow-unlink-btn,
+    .document-open-btn,
+    .document-unlink-btn {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+}

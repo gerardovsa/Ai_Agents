@@ -78,6 +78,7 @@ class AutomationCanvas {
         document.getElementById('load-workflow-btn')?.addEventListener('click', () => this.showLoadWorkflowDialog());
         document.getElementById('save-workflow-btn')?.addEventListener('click', () => this.saveWorkflow());
         document.getElementById('export-workflow-btn')?.addEventListener('click', () => this.exportToJSON());
+        document.getElementById('print-workflow-btn')?.addEventListener('click', () => this.printWorkflow());
         document.getElementById('automation-send-ai-btn')?.addEventListener('click', () => this.sendToAI());
 
         // Modal buttons
@@ -624,6 +625,71 @@ class AutomationCanvas {
         console.log('Automation exported:', automation);
     }
 
+    printWorkflow() {
+        // Create a print-friendly version of the canvas
+        const canvas = document.getElementById('automation-canvas');
+        if (!canvas) {
+            this.showToast('Canvas not found', 'error');
+            return;
+        }
+
+        // Store current state
+        const originalTitle = document.title;
+        const workflowName = this.workflowTitle || this.automationTitle || 'Untitled Workflow';
+
+        // Set document title for print header
+        document.title = `Workflow: ${workflowName}`;
+
+        // Create print styles
+        const printStyles = document.createElement('style');
+        printStyles.id = 'workflow-print-styles';
+        printStyles.textContent = `
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+                
+                #automation-canvas,
+                #automation-canvas * {
+                    visibility: visible;
+                }
+                
+                #automation-canvas {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    background: white !important;
+                }
+                
+                .automation-shape {
+                    page-break-inside: avoid;
+                }
+                
+                .floating-shape-palette {
+                    display: none !important;
+                }
+                
+                @page {
+                    size: landscape;
+                    margin: 1cm;
+                }
+            }
+        `;
+        document.head.appendChild(printStyles);
+
+        // Show print dialog
+        window.print();
+
+        // Cleanup after print dialog closes
+        setTimeout(() => {
+            document.title = originalTitle;
+            printStyles.remove();
+        }, 100);
+
+        this.showToast('Print dialog opened', 'success');
+    }
+
     importFromJSON(json) {
         try {
             const automation = typeof json === 'string' ? JSON.parse(json) : json;
@@ -992,6 +1058,78 @@ class AutomationCanvas {
         } catch (error) {
             console.error('Error loading workflow:', error);
             alert('Failed to load workflow. Please try again.');
+        }
+    }
+
+    async loadWorkflowBySlug(slug) {
+        /**
+         * Load workflow by slug (used when opening from thread context)
+         * @param {string} slug - Workflow slug (e.g., 'workflow-email-automation')
+         */
+        try {
+            console.log(`[AUTOMATION CANVAS] Loading workflow by slug: ${slug}`);
+
+            // Find workflow in current list
+            const workflow = this.workflows.find(w => w.slug === slug);
+
+            if (workflow) {
+                // Use existing loadWorkflow method
+                await this.loadWorkflow(workflow.id || slug);
+                return;
+            }
+
+            // Workflow not in list, fetch from backend by slug
+            const response = await fetch(`/api/automation/list?slug=${encodeURIComponent(slug)}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Workflow not found: ${slug}`);
+            }
+
+            const data = await response.json();
+            const workflowData = data.workflows && data.workflows[0];
+
+            if (!workflowData) {
+                throw new Error(`Workflow not found: ${slug}`);
+            }
+
+            // Clear canvas and load workflow
+            this.shapes = [];
+            this.connections = [];
+            this.selectedShape = null;
+
+            const canvas = document.getElementById('automation-canvas-wrapper');
+            if (canvas) {
+                canvas.innerHTML = '';
+            }
+
+            // Parse ui_json if it's a string
+            const uiJson = typeof workflowData.ui_json === 'string'
+                ? JSON.parse(workflowData.ui_json)
+                : workflowData.ui_json;
+
+            this.shapes = uiJson.shapes || [];
+            this.connections = uiJson.connections || [];
+            this.currentZoom = uiJson.zoom || 1;
+
+            // Set current workflow
+            this.currentWorkflow = workflowData;
+            this.workflowSlug = workflowData.slug;
+            this.workflowTitle = workflowData.title;
+            this.workflowDescription = workflowData.description;
+            this.workflowStatus = workflowData.status;
+
+            // Render canvas
+            this.renderCanvas();
+            this.updateWorkflowNameDisplay();
+
+            console.log('[AUTOMATION CANVAS] Workflow loaded successfully from slug');
+        } catch (error) {
+            console.error('[AUTOMATION CANVAS] Error loading workflow by slug:', error);
+            alert(`Failed to load workflow: ${error.message}`);
         }
     }
 
@@ -1532,7 +1670,7 @@ class AutomationCanvas {
 
         // Update current workflow title
         this.workflowTitle = title;
-        
+
         this.saveWorkflow();
         this.loadWorkflows();
         this.updateWorkflowNameDisplay();

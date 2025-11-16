@@ -1,0 +1,384 @@
+{
+    "platform": "automation",
+    "description": "Visual automation workflow creation, management, and execution. Create AI-interpretable workflows with drag-and-drop nodes.",
+    "tools": [
+        {
+            "name": "automation_create_workflow",
+            "description": "Create a new visual automation workflow. Converts user intent into executable workflow with nodes and connections. Returns workflow ID and slug for reference.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Workflow title (e.g., 'Daily Email Summary', 'Invoice Processing')"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "What this workflow does (optional)"
+                    },
+                    "trigger": {
+                        "type": "object",
+                        "description": "Workflow trigger configuration",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "manual",
+                                    "schedule",
+                                    "webhook",
+                                    "event"
+                                ],
+                                "description": "Trigger type"
+                            },
+                            "schedule_cron": {
+                                "type": "string",
+                                "description": "Cron expression for scheduled triggers (e.g., '0 9 * * *' for daily at 9am)"
+                            },
+                            "event_type": {
+                                "type": "string",
+                                "description": "Event type for event triggers (e.g., 'gmail_new_message', 'shopify_new_order')"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "type": "array",
+                        "description": "Sequence of actions to execute",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tool": {
+                                    "type": "string",
+                                    "description": "Tool name from 594 available tools"
+                                },
+                                "parameters": {
+                                    "type": "object",
+                                    "description": "Tool parameters (can include {{placeholders}} from previous steps)"
+                                },
+                                "condition": {
+                                    "type": "string",
+                                    "description": "Optional condition to execute this action (e.g., '{{email.from}} == boss@company.com')"
+                                }
+                            }
+                        }
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "email",
+                            "data_processing",
+                            "notifications",
+                            "scheduling",
+                            "crm",
+                            "accounting",
+                            "other"
+                        ],
+                        "description": "Workflow category for organization"
+                    }
+                },
+                "required": [
+                    "title",
+                    "actions"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Created workflow with automation_id, slug, and visual representation"
+            },
+            "examples": [
+                {
+                    "description": "Create email to sheets workflow",
+                    "parameters": {
+                        "title": "Gmail to Sheets",
+                        "description": "Save new Gmail messages to Google Sheets",
+                        "trigger": {
+                            "type": "event",
+                            "event_type": "gmail_new_message"
+                        },
+                        "actions": [
+                            {
+                                "tool": "gmail_list_messages",
+                                "parameters": {
+                                    "max_results": 10
+                                }
+                            },
+                            {
+                                "tool": "google_sheets_append_row",
+                                "parameters": {
+                                    "spreadsheet_id": "{{user_input}}",
+                                    "values": [
+                                        "{{email.from}}",
+                                        "{{email.subject}}",
+                                        "{{email.body}}"
+                                    ]
+                                }
+                            }
+                        ],
+                        "category": "email"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "automation_list_workflows",
+            "description": "List all saved automation workflows for the user. Returns workflows with metadata, status, and execution counts.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Filter by category (optional)"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "active",
+                            "inactive",
+                            "all"
+                        ],
+                        "description": "Filter by status (default: all)"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max workflows to return (default: 50)"
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "array",
+                "description": "List of workflows with metadata"
+            }
+        },
+        {
+            "name": "automation_get_workflow",
+            "description": "Get detailed workflow information including visual flow, execution history, and configuration.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Workflow ID or slug"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Workflow details with nodes, connections, and execution data"
+            }
+        },
+        {
+            "name": "automation_execute_workflow",
+            "description": "Execute a workflow immediately (manual trigger). Returns execution ID for tracking progress.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Workflow ID or slug to execute"
+                    },
+                    "input_data": {
+                        "type": "object",
+                        "description": "Optional input data to pass to workflow (replaces {{user_input}} placeholders)"
+                    },
+                    "thread_id": {
+                        "type": "integer",
+                        "description": "Optional thread ID to associate execution with conversation"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Execution result with execution_id, status, and output"
+            }
+        },
+        {
+            "name": "automation_schedule_workflow",
+            "description": "Schedule a workflow to run automatically at specified times or events. Activates the automation.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Workflow ID to schedule"
+                    },
+                    "schedule_cron": {
+                        "type": "string",
+                        "description": "Cron expression (e.g., '0 9 * * *' = daily at 9am, '0 */2 * * *' = every 2 hours)"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "description": "Timezone for schedule (default: UTC)"
+                    }
+                },
+                "required": [
+                    "automation_id",
+                    "schedule_cron"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Schedule confirmation with scheduler_task_id"
+            }
+        },
+        {
+            "name": "automation_deactivate_workflow",
+            "description": "Deactivate a scheduled workflow. Stops automatic execution but preserves the workflow.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Workflow ID to deactivate"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Deactivation confirmation"
+            }
+        },
+        {
+            "name": "automation_delete_workflow",
+            "description": "Delete a workflow permanently. This cannot be undone.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Workflow ID to delete"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Deletion confirmation"
+            }
+        },
+        {
+            "name": "automation_get_execution_history",
+            "description": "Get execution history for a workflow. Shows past runs, success/failure, duration, and errors.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Workflow ID"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max executions to return (default: 20)"
+                    },
+                    "status_filter": {
+                        "type": "string",
+                        "enum": [
+                            "success",
+                            "failure",
+                            "running",
+                            "all"
+                        ],
+                        "description": "Filter by execution status (default: all)"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "array",
+                "description": "List of executions with timestamps, status, and results"
+            }
+        },
+        {
+            "name": "automation_export_workflow",
+            "description": "Export workflow as JSON for backup, sharing, or import into another system.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Workflow ID to export"
+                    },
+                    "include_history": {
+                        "type": "boolean",
+                        "description": "Include execution history in export (default: false)"
+                    }
+                },
+                "required": [
+                    "automation_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Workflow JSON export"
+            }
+        },
+        {
+            "name": "automation_get_workflow_by_slug",
+            "description": "Get workflow details by slug. Use this when user references a workflow by its slug (e.g., 'workflow-email-to-sheets', 'workflow-1234567890') or when a thread has a linked workflow. Returns complete workflow structure including shapes, connections, and execution steps.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "Workflow slug (e.g., 'workflow-email-to-sheets', 'workflow-1234567890')"
+                    }
+                },
+                "required": [
+                    "slug"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Workflow object with title, description, ui_json (shapes/connections), execution_json (steps), status, created_at, updated_at"
+            }
+        },
+        {
+            "name": "automation_open_workflow_in_canvas",
+            "description": "Open a workflow in the visual automation canvas for the user to see and edit. Use this when user wants to view or edit a workflow visually (e.g., 'show me that workflow', 'open the email automation', 'let me see the workflow'). This switches the UI to the Automation tab and loads the workflow on the canvas.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "Workflow slug to open (e.g., 'workflow-email-to-sheets')"
+                    },
+                    "message_to_user": {
+                        "type": "string",
+                        "description": "Optional message to display to user when opening workflow (e.g., 'Here is your email automation workflow. You can edit it visually.')"
+                    }
+                },
+                "required": [
+                    "slug"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Confirmation that workflow was opened in canvas with UI command"
+            }
+        }
+    ]
+}

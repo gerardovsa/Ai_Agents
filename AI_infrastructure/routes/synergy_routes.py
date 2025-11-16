@@ -430,25 +430,40 @@ def get_sessions_with_internal_docs():
             sessions.append(session)
         
         # Step 2: Batch load ALL internal docs for ALL sessions in ONE query
+        # Use correct table name based on environment
+        docs_rows = []
         if session_ids:
             placeholders = ','.join('?' for _ in session_ids)
-            cursor.execute(f"""
-                SELECT 
-                    session_id,
-                    doc_id,
-                    title,
-                    doc_type,
-                    version,
-                    created_at,
-                    updated_at,
-                    slug,
-                    share_url
-                FROM internal_docs
-                WHERE session_id IN ({placeholders})
-                ORDER BY session_id, created_at DESC
-            """, session_ids)
             
-            docs_rows = cursor.fetchall()
+            # Determine correct table name: synergy_internal_docs (both local and Supabase use this)
+            table_name = 'synergy_internal_docs'
+            
+            try:
+                cursor.execute(f"""
+                    SELECT 
+                        session_id,
+                        doc_id,
+                        title,
+                        doc_type,
+                        version,
+                        created_at,
+                        updated_at,
+                        slug,
+                        share_url
+                    FROM {table_name}
+                    WHERE session_id IN ({placeholders})
+                    ORDER BY session_id, created_at DESC
+                """, session_ids)
+                docs_rows = cursor.fetchall()
+            except Exception as e:
+                # Table doesn't exist or query failed - continue without internal docs
+                error_msg = str(e).lower()
+                if 'does not exist' in error_msg or 'no such table' in error_msg:
+                    print(f'[SYNERGY BATCH] Table {table_name} not found - continuing without internal docs')
+                    docs_rows = []
+                else:
+                    # Re-raise unexpected errors
+                    raise
             
             # Group internal docs by session_id
             docs_by_session = {}
@@ -643,6 +658,26 @@ def create_session():
         
         conn.close()
         
+        # Broadcast new session creation to all connected WebSocket clients
+        try:
+            from flask import current_app
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                socketio.emit('session_created', {
+                    'session_id': session_id,
+                    'session': {
+                        'session_id': session_id,
+                        'title': data.get('title'),
+                        'kanban_column': data.get('kanban_column', 'backlog'),
+                        'priority': data.get('priority', 'medium'),
+                        'status': data.get('status', 'active')
+                    },
+                    'timestamp': datetime.now().isoformat()
+                }, namespace='/ws/synergy', room='synergy_board')
+                print(f"[WS] Broadcasted session creation for {session_id}")
+        except Exception as ws_error:
+            print(f"[WS] Failed to broadcast creation: {ws_error}")
+        
         return jsonify({
             'success': True,
             'session_id': session_id,
@@ -783,6 +818,20 @@ def update_session(session_id):
         
         conn.close()
         
+        # Broadcast update to all connected WebSocket clients
+        try:
+            from flask import current_app
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                socketio.emit('session_updated', {
+                    'session_id': session_id,
+                    'updates': update_data,
+                    'timestamp': datetime.now().isoformat()
+                }, namespace='/ws/synergy', room='synergy_board')
+                print(f"[WS] Broadcasted session update for {session_id}")
+        except Exception as ws_error:
+            print(f"[WS] Failed to broadcast update: {ws_error}")
+        
         return jsonify({
             'success': True,
             'message': 'Session updated successfully'
@@ -840,6 +889,23 @@ def update_column(session_id):
         
         conn.close()
         
+        # Broadcast column change to all connected WebSocket clients
+        try:
+            from flask import current_app
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                # Get old column from data
+                old_column = data.get('from_column', 'unknown')
+                socketio.emit('column_changed', {
+                    'session_id': session_id,
+                    'from_column': old_column,
+                    'to_column': new_column,
+                    'timestamp': datetime.now().isoformat()
+                }, namespace='/ws/synergy', room='synergy_board')
+                print(f"[WS] Broadcasted column change: {session_id} {old_column} → {new_column}")
+        except Exception as ws_error:
+            print(f"[WS] Failed to broadcast column change: {ws_error}")
+        
         return jsonify({
             'success': True,
             'message': 'Column updated successfully'
@@ -862,6 +928,19 @@ def delete_session(session_id):
         cursor.execute('DELETE FROM synergy_sessions WHERE session_id = ?', (session_id,))
         conn.commit()
         conn.close()
+        
+        # Broadcast deletion to all connected WebSocket clients
+        try:
+            from flask import current_app
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                socketio.emit('session_deleted', {
+                    'session_id': session_id,
+                    'timestamp': datetime.now().isoformat()
+                }, namespace='/ws/synergy', room='synergy_board')
+                print(f"[WS] Broadcasted session deletion for {session_id}")
+        except Exception as ws_error:
+            print(f"[WS] Failed to broadcast deletion: {ws_error}")
         
         return jsonify({
             'success': True,

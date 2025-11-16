@@ -166,6 +166,10 @@ def list_threads():
                 t.synergy_card_id, 
                 t.parent_thread_id, 
                 t.branch_name,
+                t.workflow_slug,
+                t.workflow_title,
+                t.internal_doc_slug,
+                t.internal_doc_title,
                 COUNT(m.id) as message_count,
                 MAX(m.timestamp) as last_message_time,
                 (SELECT role FROM messages WHERE thread_id = t.id ORDER BY timestamp DESC LIMIT 1) as last_message_role
@@ -174,7 +178,8 @@ def list_threads():
             WHERE t.user_id = ?
             GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
                      t.metadata, t.location, t.tags, t.synergy_card_id, 
-                     t.parent_thread_id, t.branch_name
+                     t.parent_thread_id, t.branch_name, t.workflow_slug, t.workflow_title,
+                     t.internal_doc_slug, t.internal_doc_title
             ORDER BY t.updated_at DESC
             LIMIT ?
         """
@@ -199,6 +204,10 @@ def list_threads():
                 'synergy_card_id': row['synergy_card_id'],
                 'parent_thread_id': row['parent_thread_id'],
                 'branch_name': row['branch_name'],
+                'workflow_slug': row['workflow_slug'],
+                'workflow_title': row['workflow_title'],
+                'internal_doc_slug': row['internal_doc_slug'],
+                'internal_doc_title': row['internal_doc_title'],
                 'message_count': row['message_count'] or 0,
                 'last_message_time': row['last_message_time'],
                 'last_message_role': row['last_message_role'],
@@ -213,6 +222,66 @@ def list_threads():
     
     except Exception as e:
         return error_response(f"Failed to list threads: {str(e)}", 500)
+
+
+@thread_bp.route('/metadata/update', methods=['POST'])
+def update_thread_metadata_fields():
+    """
+    Update thread metadata fields (workflow_slug, workflow_title, internal_doc_slug, internal_doc_title)
+    
+    Body params:
+        thread_slug (str, required): Thread slug to update
+        workflow_slug (str, optional): Workflow slug to link
+        workflow_title (str, optional): Workflow title
+        internal_doc_slug (str, optional): Internal document slug
+        internal_doc_title (str, optional): Internal document title
+    
+    Returns success response
+    """
+    try:
+        data = request.json
+        thread_slug = data.get('thread_slug')
+        
+        if not thread_slug:
+            return error_response('thread_slug required', 400)
+        
+        # Build UPDATE query for metadata fields only
+        db_path = get_sessions_database_path()
+        
+        update_query = """
+            UPDATE threads SET
+                workflow_slug = ?,
+                workflow_title = ?,
+                internal_doc_slug = ?,
+                internal_doc_title = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE thread_slug = ?
+        """
+        
+        execute_sqlite_update(
+            db_path,
+            update_query,
+            (
+                data.get('workflow_slug'),
+                data.get('workflow_title'),
+                data.get('internal_doc_slug'),
+                data.get('internal_doc_title'),
+                thread_slug
+            )
+        )
+        
+        return success_response({
+            'thread_slug': thread_slug,
+            'updated_fields': {
+                'workflow_slug': data.get('workflow_slug'),
+                'workflow_title': data.get('workflow_title'),
+                'internal_doc_slug': data.get('internal_doc_slug'),
+                'internal_doc_title': data.get('internal_doc_title')
+            }
+        }, message='Thread metadata updated successfully')
+    
+    except Exception as e:
+        return error_response(f'Failed to update thread metadata: {str(e)}', 500)
 
 
 @thread_bp.route('/list-legacy', methods=['GET'])

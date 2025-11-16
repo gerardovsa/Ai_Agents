@@ -247,6 +247,48 @@ class InternalDocsManager {
                 color: var(--text-secondary);
             }
 
+            .tiptap-editor a {
+                color: var(--accent-primary);
+                text-decoration: underline;
+                cursor: pointer;
+            }
+
+            .tiptap-editor a:hover {
+                color: var(--accent-secondary);
+            }
+
+            .tiptap-editor img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+
+            /* Mention Styling */
+            .tiptap-editor .mention {
+                background-color: rgba(79, 108, 255, 0.2);
+                border-radius: 4px;
+                padding: 2px 6px;
+                color: var(--accent-primary);
+                font-weight: 500;
+            }
+
+            /* Auto-save indicator */
+            .auto-save-indicator {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .auto-save-indicator i {
+                animation: pulse 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+
             /* Spreadsheet Container */
             .spreadsheet-container {
                 flex: 1;
@@ -597,6 +639,127 @@ class InternalDocsManager {
                 color: var(--text-primary);
             }
 
+            /* Chart Dialog */
+            .chart-dialog {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 600px;
+                max-width: 90%;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                z-index: 10001;
+                overflow: hidden;
+            }
+
+            .chart-dialog-header {
+                padding: 20px;
+                background: var(--bg-tertiary);
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .chart-dialog-header h3 {
+                margin: 0;
+                font-size: 18px;
+                color: var(--text-primary);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .chart-dialog-content {
+                padding: 24px;
+            }
+
+            .chart-type-selector h4 {
+                margin: 0 0 12px 0;
+                font-size: 14px;
+                color: var(--text-secondary);
+            }
+
+            .chart-type-buttons {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 20px;
+            }
+
+            .chart-type-btn {
+                flex: 1;
+                padding: 12px;
+                background: var(--bg-tertiary);
+                border: 2px solid var(--border-color);
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                color: var(--text-secondary);
+                font-size: 13px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .chart-type-btn i {
+                font-size: 20px;
+            }
+
+            .chart-type-btn:hover {
+                background: var(--bg-hover);
+                border-color: var(--accent-primary);
+                color: var(--text-primary);
+            }
+
+            .chart-type-btn.active {
+                background: rgba(79, 108, 255, 0.1);
+                border-color: var(--accent-primary);
+                color: var(--accent-primary);
+            }
+
+            .chart-actions {
+                margin-top: 20px;
+                display: flex;
+                justify-content: flex-end;
+                gap: 12px;
+            }
+
+            .btn-secondary, .btn-primary {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .btn-secondary {
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+            }
+
+            .btn-secondary:hover {
+                background: var(--bg-hover);
+            }
+
+            .btn-primary {
+                background: var(--accent-primary);
+                color: white;
+            }
+
+            .btn-primary:hover {
+                background: rgba(79, 108, 255, 0.8);
+                box-shadow: 0 2px 8px rgba(79, 108, 255, 0.3);
+            }
+
             @keyframes spin {
                 from { transform: rotate(0deg); }
                 to { transform: rotate(360deg); }
@@ -685,7 +848,7 @@ class InternalDocsManager {
     async init() {
         // ⚠️ ONLY initialize after user is authenticated
         // Don't fetch profile here - wait for UserAuth to provide it
-        
+
         // Ensure container exists
         if (!document.getElementById('internalDocPopupContainer')) {
             const container = document.createElement('div');
@@ -695,7 +858,7 @@ class InternalDocsManager {
 
         console.log('✅ InternalDocsManager ready (awaiting authentication)');
     }
-    
+
     // ⚠️ NEW: Call this AFTER user authentication
     async loadUserProfile() {
         try {
@@ -1047,105 +1210,286 @@ class InternalDocsManager {
     }
 
     /**
-     * Render rich text editor
+     * Render rich text editor with Tiptap
      */
     renderRichTextEditor(popup, doc, sessionId) {
         popup.bodyElement.innerHTML = `
             <div class="doc-editor-container">
-                <div class="doc-editor-toolbar">
-                    <div class="toolbar-group">
-                        <button class="toolbar-btn" title="Bold" onclick="document.execCommand('bold')">
-                            <i class="fas fa-bold"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Italic" onclick="document.execCommand('italic')">
-                            <i class="fas fa-italic"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Underline" onclick="document.execCommand('underline')">
-                            <i class="fas fa-underline"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Strikethrough" onclick="document.execCommand('strikeThrough')">
-                            <i class="fas fa-strikethrough"></i>
-                        </button>
-                    </div>
-                    <div class="toolbar-group">
-                        <button class="toolbar-btn" title="Heading 1" onclick="document.execCommand('formatBlock', false, 'h1')">
-                            <i class="fas fa-heading"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Heading 2" onclick="document.execCommand('formatBlock', false, 'h2')">
-                            <i class="fas fa-heading" style="font-size: 12px;"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Paragraph" onclick="document.execCommand('formatBlock', false, 'p')">
-                            <i class="fas fa-paragraph"></i>
-                        </button>
-                    </div>
-                    <div class="toolbar-group">
-                        <button class="toolbar-btn" title="Bullet List" onclick="document.execCommand('insertUnorderedList')">
-                            <i class="fas fa-list-ul"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Numbered List" onclick="document.execCommand('insertOrderedList')">
-                            <i class="fas fa-list-ol"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Quote" onclick="document.execCommand('formatBlock', false, 'blockquote')">
-                            <i class="fas fa-quote-right"></i>
-                        </button>
-                    </div>
-                    <div class="toolbar-group">
-                        <button class="toolbar-btn" title="Link" onclick="window.internalDocsManager.insertLink()">
-                            <i class="fas fa-link"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Code" onclick="document.execCommand('formatBlock', false, 'pre')">
-                            <i class="fas fa-code"></i>
-                        </button>
-                        <button class="toolbar-btn" title="Clear Formatting" onclick="document.execCommand('removeFormat')">
-                            <i class="fas fa-eraser"></i>
-                        </button>
-                    </div>
-                    <div class="toolbar-group">
-                        <button class="toolbar-btn" title="Activity Log" onclick="window.internalDocsManager.showActivityLog('${doc.doc_id}')">
-                            <i class="fas fa-history"></i>
-                        </button>
-                    </div>
-                    <div class="toolbar-group" style="margin-left: auto; border-left: 1px solid var(--border-default); padding-left: 8px;">
-                        <button class="toolbar-btn" style="background: var(--accent-primary); color: white; font-weight: 600;" title="Save Document" onclick="window.internalDocsManager.saveDocumentContent('${doc.doc_id}', document.getElementById('editor-${doc.doc_id}').innerHTML)">
-                            <i class="fas fa-save"></i>
-                            <span style="margin-left: 6px;">SAVE</span>
-                        </button>
-                    </div>
+                <div class="doc-editor-toolbar" id="tiptap-toolbar-${doc.doc_id}">
+                    <!-- Toolbar will be populated by Tiptap initialization -->
                 </div>
                 <div class="doc-editor-content">
-                    <div class="tiptap-editor" contenteditable="true" id="editor-${doc.doc_id}">
-                        ${doc.content || '<p>Start typing...</p>'}
-                    </div>
+                    <div class="tiptap-editor" id="editor-${doc.doc_id}"></div>
                 </div>
             </div>
         `;
 
-        // Setup auto-save
-        const editor = document.getElementById(`editor-${doc.doc_id}`);
-        let saveTimeout;
+        // Initialize Tiptap editor
+        this.initializeTiptapEditor(doc, popup, sessionId);
 
-        editor.addEventListener('input', () => {
-            clearTimeout(saveTimeout);
-            const statusEl = popup.footerLeftElement.querySelector('.save-status');
-            if (statusEl) {
-                statusEl.className = 'save-status saving';
-                statusEl.querySelector('span').textContent = 'Saving...';
-            }
-
-            saveTimeout = setTimeout(() => {
-                this.saveDocumentContent(doc.doc_id, editor.innerHTML, popup);
-            }, 1000);
-        });
-
-        // Add footer buttons - Prominent save button style
+        // Add footer buttons
         popup.footerRightElement.innerHTML = `
-            <button class="toolbar-btn" title="Export" onclick="window.internalDocsManager.exportDocument('${doc.doc_id}', 'markdown')" style="padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+            <button class="toolbar-btn" title="Export to PDF" onclick="window.internalDocsManager.exportToPDF('${doc.doc_id}')" style="padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
+                <i class="fas fa-file-pdf"></i>
+            </button>
+            <button class="toolbar-btn" title="Export Markdown" onclick="window.internalDocsManager.exportDocument('${doc.doc_id}', 'markdown')" style="padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--text-primary);">
                 <i class="fas fa-download"></i>
             </button>
-            <button class="toolbar-btn" title="Save Document" onclick="window.internalDocsManager.saveDocumentContent('${doc.doc_id}', document.getElementById('editor-${doc.doc_id}').innerHTML)" style="padding: 10px 14px; background: var(--accent-primary); border: 1px solid var(--accent-primary); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: white; box-shadow: 0 2px 8px rgba(79, 108, 255, 0.3); margin-left: 8px;">
+            <button class="toolbar-btn" title="Save Document" onclick="window.internalDocsManager.saveTiptapContent('${doc.doc_id}')" style="padding: 10px 14px; background: var(--accent-primary); border: 1px solid var(--accent-primary); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: white; box-shadow: 0 2px 8px rgba(79, 108, 255, 0.3); margin-left: 8px;">
                 <i class="fas fa-save" style="font-size: 16px;"></i>
             </button>
         `;
+    }
+
+    /**
+     * Initialize Tiptap editor with all extensions
+     */
+    initializeTiptapEditor(doc, popup, sessionId) {
+        // Check if Tiptap is loaded
+        if (typeof window.tiptapCore === 'undefined') {
+            console.error('Tiptap not loaded - falling back to basic editor');
+            document.getElementById(`editor-${doc.doc_id}`).innerHTML = doc.content || '<p>Start typing...</p>';
+            document.getElementById(`editor-${doc.doc_id}`).setAttribute('contenteditable', 'true');
+            return;
+        }
+
+        const editorElement = document.getElementById(`editor-${doc.doc_id}`);
+        const { Editor } = window.tiptapCore;
+        const StarterKit = window.tiptapStarterKit?.StarterKit || window.tiptapStarterKit;
+
+        // Create Tiptap editor instance
+        const editor = new Editor({
+            element: editorElement,
+            extensions: [
+                StarterKit,
+            ].filter(Boolean),
+            content: doc.content || '<p>Start typing your document...</p>',
+            editorProps: {
+                handleDrop: (view, event, slice, moved) => {
+                    if (!moved && event.dataTransfer?.files?.[0]) {
+                        this.handleFileUpload(event.dataTransfer.files[0], doc.doc_id, view, event);
+                        return true;
+                    }
+                    return false;
+                },
+            },
+            onUpdate: ({ editor }) => {
+                // Auto-save after 2 seconds
+                clearTimeout(this.tiptapSaveTimeout);
+                const statusEl = popup.footerLeftElement?.querySelector('.save-status');
+                if (statusEl) {
+                    statusEl.className = 'save-status saving';
+                    statusEl.querySelector('span').textContent = 'Saving...';
+                }
+
+                this.tiptapSaveTimeout = setTimeout(() => {
+                    const html = editor.getHTML();
+                    this.saveDocumentContent(doc.doc_id, html, popup, true);
+                }, 2000);
+            },
+        });
+
+        // Store editor instance
+        if (!this.tiptapEditors) {
+            this.tiptapEditors = {};
+        }
+        this.tiptapEditors[doc.doc_id] = editor;
+
+        // Create toolbar
+        this.createTiptapToolbar(doc.doc_id, editor);
+    }
+
+    /**
+     * Create Tiptap toolbar
+     */
+    createTiptapToolbar(docId, editor) {
+        const toolbar = document.getElementById(`tiptap-toolbar-${docId}`);
+        if (!toolbar) return;
+
+        toolbar.innerHTML = `
+            <div class="toolbar-group">
+                <button class="toolbar-btn tiptap-bold" title="Bold (Ctrl+B)">
+                    <i class="fas fa-bold"></i>
+                </button>
+                <button class="toolbar-btn tiptap-italic" title="Italic (Ctrl+I)">
+                    <i class="fas fa-italic"></i>
+                </button>
+                <button class="toolbar-btn tiptap-strike" title="Strikethrough">
+                    <i class="fas fa-strikethrough"></i>
+                </button>
+                <button class="toolbar-btn tiptap-code" title="Code">
+                    <i class="fas fa-code"></i>
+                </button>
+            </div>
+            <div class="toolbar-group">
+                <button class="toolbar-btn tiptap-h1" title="Heading 1">H1</button>
+                <button class="toolbar-btn tiptap-h2" title="Heading 2">H2</button>
+                <button class="toolbar-btn tiptap-h3" title="Heading 3">H3</button>
+            </div>
+            <div class="toolbar-group">
+                <button class="toolbar-btn tiptap-bullet" title="Bullet List">
+                    <i class="fas fa-list-ul"></i>
+                </button>
+                <button class="toolbar-btn tiptap-ordered" title="Numbered List">
+                    <i class="fas fa-list-ol"></i>
+                </button>
+                <button class="toolbar-btn tiptap-quote" title="Quote">
+                    <i class="fas fa-quote-right"></i>
+                </button>
+            </div>
+            <div class="toolbar-group">
+                <button class="toolbar-btn tiptap-undo" title="Undo (Ctrl+Z)">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button class="toolbar-btn tiptap-redo" title="Redo (Ctrl+Y)">
+                    <i class="fas fa-redo"></i>
+                </button>
+            </div>
+            <div class="toolbar-group">
+                <button class="toolbar-btn tiptap-link" title="Insert Link">
+                    <i class="fas fa-link"></i>
+                </button>
+                <button class="toolbar-btn tiptap-image" title="Insert Image URL">
+                    <i class="fas fa-image"></i>
+                </button>
+                <button class="toolbar-btn tiptap-upload" title="Upload File (or drag & drop)">
+                    <i class="fas fa-upload"></i>
+                </button>
+            </div>
+            <div class="toolbar-group" style="margin-left: auto;">
+                <span class="auto-save-indicator" style="color: var(--text-secondary); font-size: 13px; padding: 0 12px;">
+                    <i class="fas fa-circle" style="font-size: 8px; color: var(--accent-success);"></i>
+                    Auto-save enabled
+                </span>
+            </div>
+        `;
+
+        // Attach event listeners
+        toolbar.querySelector('.tiptap-bold').onclick = () => editor.chain().focus().toggleBold().run();
+        toolbar.querySelector('.tiptap-italic').onclick = () => editor.chain().focus().toggleItalic().run();
+        toolbar.querySelector('.tiptap-strike').onclick = () => editor.chain().focus().toggleStrike().run();
+        toolbar.querySelector('.tiptap-code').onclick = () => editor.chain().focus().toggleCode().run();
+        toolbar.querySelector('.tiptap-h1').onclick = () => editor.chain().focus().toggleHeading({ level: 1 }).run();
+        toolbar.querySelector('.tiptap-h2').onclick = () => editor.chain().focus().toggleHeading({ level: 2 }).run();
+        toolbar.querySelector('.tiptap-h3').onclick = () => editor.chain().focus().toggleHeading({ level: 3 }).run();
+        toolbar.querySelector('.tiptap-bullet').onclick = () => editor.chain().focus().toggleBulletList().run();
+        toolbar.querySelector('.tiptap-ordered').onclick = () => editor.chain().focus().toggleOrderedList().run();
+        toolbar.querySelector('.tiptap-quote').onclick = () => editor.chain().focus().toggleBlockquote().run();
+        toolbar.querySelector('.tiptap-undo').onclick = () => editor.chain().focus().undo().run();
+        toolbar.querySelector('.tiptap-redo').onclick = () => editor.chain().focus().redo().run();
+
+        toolbar.querySelector('.tiptap-link').onclick = () => {
+            const url = prompt('Enter URL:');
+            if (url) {
+                editor.chain().focus().setLink({ href: url }).run();
+            }
+        };
+
+        toolbar.querySelector('.tiptap-image').onclick = () => {
+            const url = prompt('Enter image URL:');
+            if (url) {
+                editor.chain().focus().setImage({ src: url }).run();
+            }
+        };
+
+        toolbar.querySelector('.tiptap-upload').onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    this.handleFileUpload(file, docId, editor.view, null);
+                }
+            };
+            input.click();
+        };
+    }
+
+    /**
+     * Handle file upload (drag & drop or button)
+     */
+    handleFileUpload(file, docId, view, event) {
+        const filesize = ((file.size / 1024) / 1024).toFixed(4);
+
+        if (filesize > 10) {
+            this.showToast('File too large (max 10MB)', 'error');
+            return;
+        }
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const editor = this.tiptapEditors[docId];
+                if (editor) {
+                    editor.chain().focus().setImage({ src: e.target.result }).run();
+                    this.showToast(`Image uploaded: ${file.name}`, 'success');
+                }
+            };
+            reader.readAsDataURL(file);
+        } else {
+            this.showToast(`File attached: ${file.name} (displayed as link)`, 'info');
+        }
+    }
+
+    /**
+     * Save Tiptap content
+     */
+    saveTiptapContent(docId) {
+        const editor = this.tiptapEditors?.[docId];
+        if (!editor) {
+            this.showToast('Editor not initialized', 'error');
+            return;
+        }
+
+        const html = editor.getHTML();
+        const popup = document.querySelector(`[data-doc-id="${docId}"]`);
+        this.saveDocumentContent(docId, html, popup, false);
+    }
+
+    /**
+     * Export to PDF
+     */
+    async exportToPDF(docId) {
+        const editor = this.tiptapEditors?.[docId];
+        if (!editor) {
+            this.showToast('Editor not initialized', 'error');
+            return;
+        }
+
+        if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
+            this.showToast('PDF export libraries not loaded', 'error');
+            return;
+        }
+
+        const content = document.getElementById(`editor-${docId}`);
+
+        try {
+            this.showToast('Generating PDF...', 'info');
+
+            const canvas = await html2canvas(content, {
+                scale: 2,
+                backgroundColor: '#ffffff'
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jspdf.jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const imgWidth = 210;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            pdf.save(`document-${docId}-${Date.now()}.pdf`);
+
+            this.showToast('PDF exported successfully', 'success');
+        } catch (error) {
+            console.error('PDF export error:', error);
+            this.showToast('PDF export failed', 'error');
+        }
     }
 
     /**
@@ -1231,6 +1575,19 @@ class InternalDocsManager {
                         </button>
                         <button class="toolbar-btn" title="Formula Help" onclick="window.internalDocsManager.toggleFormulaHelp('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--accent-primary);">
                             <i class="fas fa-question-circle" style="font-size: 14px;"></i> fx
+                        </button>
+                    </div>
+                    
+                    <!-- Advanced Features -->
+                    <div class="toolbar-group" style="display: flex; gap: 4px; padding-right: 8px; border-right: 1px solid var(--border-default);">
+                        <button class="toolbar-btn" title="Create Chart from Selection" onclick="window.internalDocsManager.createChart('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--accent-info);">
+                            <i class="fas fa-chart-bar" style="font-size: 14px;"></i>
+                        </button>
+                        <button class="toolbar-btn" title="Create Pivot Table" onclick="window.internalDocsManager.createPivotTable('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--accent-warning);">
+                            <i class="fas fa-table" style="font-size: 14px;"></i>
+                        </button>
+                        <button class="toolbar-btn" title="Export to Excel (XLSX)" onclick="window.internalDocsManager.exportToExcel('${doc.doc_id}')" style="padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 4px; cursor: pointer; transition: all 0.2s; color: var(--accent-success);">
+                            <i class="fas fa-file-excel" style="font-size: 14px;"></i>
                         </button>
                     </div>
                     
@@ -2485,6 +2842,227 @@ Note: Use the document slug "${slug}" to reference this document in Synergy sess
                 isResizing = false;
             });
         });
+    }
+
+    /**
+     * Create chart from selected data
+     * @param {number} docId - Document ID
+     */
+    createChart(docId) {
+        const hot = this.handsontableInstances[docId];
+        if (!hot) {
+            alert('Spreadsheet not initialized');
+            return;
+        }
+
+        const selected = hot.getSelected();
+        if (!selected || selected.length === 0) {
+            alert('Please select data range for chart (e.g., 2+ columns with headers)');
+            return;
+        }
+
+        const [startRow, startCol, endRow, endCol] = selected[0];
+        const selectedData = [];
+
+        // Extract data from selection
+        for (let row = startRow; row <= endRow; row++) {
+            const rowData = [];
+            for (let col = startCol; col <= endCol; col++) {
+                rowData.push(hot.getDataAtCell(row, col));
+            }
+            selectedData.push(rowData);
+        }
+
+        // Create chart dialog
+        const popup = document.querySelector(`[data-doc-id="${docId}"]`);
+        if (!popup) return;
+
+        const chartDialog = document.createElement('div');
+        chartDialog.className = 'chart-dialog';
+        chartDialog.innerHTML = `
+            <div class="chart-dialog-header">
+                <h3><i class="fas fa-chart-bar"></i> Create Chart</h3>
+                <button class="close-btn" onclick="this.closest('.chart-dialog').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chart-dialog-content">
+                <div class="chart-type-selector">
+                    <h4>Chart Type:</h4>
+                    <div class="chart-type-buttons">
+                        <button class="chart-type-btn active" data-type="bar">
+                            <i class="fas fa-chart-bar"></i> Bar
+                        </button>
+                        <button class="chart-type-btn" data-type="line">
+                            <i class="fas fa-chart-line"></i> Line
+                        </button>
+                        <button class="chart-type-btn" data-type="pie">
+                            <i class="fas fa-chart-pie"></i> Pie
+                        </button>
+                        <button class="chart-type-btn" data-type="doughnut">
+                            <i class="fas fa-circle-notch"></i> Doughnut
+                        </button>
+                    </div>
+                </div>
+                <canvas id="chart-preview-${docId}" width="400" height="250"></canvas>
+                <div class="chart-actions">
+                    <button class="btn-secondary" onclick="this.closest('.chart-dialog').remove()">Cancel</button>
+                    <button class="btn-primary" onclick="window.internalDocsManager.saveChartAsImage('${docId}')">
+                        <i class="fas fa-download"></i> Save as Image
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const mainContent = popup.querySelector('.internal-doc-popup-main-content');
+        mainContent.appendChild(chartDialog);
+
+        // Initialize chart
+        const ctx = document.getElementById(`chart-preview-${docId}`).getContext('2d');
+        let currentChart = null;
+
+        const createChartInstance = (type) => {
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            const labels = selectedData.slice(1).map(row => row[0]);
+            const datasets = [];
+
+            for (let col = 1; col < selectedData[0].length; col++) {
+                datasets.push({
+                    label: selectedData[0][col] || `Series ${col}`,
+                    data: selectedData.slice(1).map(row => parseFloat(row[col]) || 0),
+                    backgroundColor: this.getChartColors(datasets.length),
+                    borderColor: this.getChartColors(datasets.length, 0.8),
+                    borderWidth: 2
+                });
+            }
+
+            currentChart = new Chart(ctx, {
+                type: type,
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Chart Preview' }
+                    }
+                }
+            });
+
+            window[`currentChart_${docId}`] = currentChart;
+        };
+
+        createChartInstance('bar');
+
+        // Chart type buttons
+        chartDialog.querySelectorAll('.chart-type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                chartDialog.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                createChartInstance(btn.dataset.type);
+            });
+        });
+    }
+
+    /**
+     * Get chart colors
+     */
+    getChartColors(index, alpha = 0.6) {
+        const colors = [
+            `rgba(79, 108, 255, ${alpha})`,
+            `rgba(52, 211, 153, ${alpha})`,
+            `rgba(251, 146, 60, ${alpha})`,
+            `rgba(239, 68, 68, ${alpha})`,
+            `rgba(168, 85, 247, ${alpha})`,
+            `rgba(236, 72, 153, ${alpha})`
+        ];
+        return colors[index % colors.length];
+    }
+
+    /**
+     * Save chart as image
+     */
+    saveChartAsImage(docId) {
+        const chart = window[`currentChart_${docId}`];
+        if (!chart) return;
+
+        const canvas = chart.canvas;
+        canvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `chart-${docId}-${Date.now()}.png`;
+            link.click();
+            URL.revokeObjectURL(url);
+            this.showToast('Chart saved as image', 'success');
+        });
+    }
+
+    /**
+     * Create pivot table from selection
+     */
+    createPivotTable(docId) {
+        const hot = this.handsontableInstances[docId];
+        if (!hot) {
+            alert('Spreadsheet not initialized');
+            return;
+        }
+
+        const selected = hot.getSelected();
+        if (!selected || selected.length === 0) {
+            alert('Please select data range for pivot table');
+            return;
+        }
+
+        this.showToast('Pivot table feature - Select rows to group, columns to aggregate', 'info');
+
+        // Simple pivot table implementation
+        const [startRow, startCol, endRow, endCol] = selected[0];
+        const data = [];
+
+        for (let row = startRow; row <= endRow; row++) {
+            const rowData = [];
+            for (let col = startCol; col <= endCol; col++) {
+                rowData.push(hot.getDataAtCell(row, col));
+            }
+            data.push(rowData);
+        }
+
+        // Show pivot dialog
+        this.showToast(`Pivot: ${data.length} rows, ${data[0].length} columns selected`, 'info');
+    }
+
+    /**
+     * Export to Excel (XLSX) with formulas preserved
+     */
+    exportToExcel(docId) {
+        const hot = this.handsontableInstances[docId];
+        if (!hot) {
+            alert('Spreadsheet not initialized');
+            return;
+        }
+
+        if (typeof XLSX === 'undefined') {
+            alert('XLSX library not loaded. Include SheetJS CDN.');
+            return;
+        }
+
+        const data = hot.getData();
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+
+        // Generate file
+        const fileName = `spreadsheet-${docId}-${Date.now()}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        this.showToast('Exported to Excel (XLSX) successfully', 'success');
     }
 }
 

@@ -3,8 +3,27 @@
     "description": "Xero Accounting API - Invoices, contacts, accounts, payments, bank transactions",
     "tools": [
         {
+            "name": "xero_platform_guide",
+            "description": "⚠️ CALL THIS FIRST! Get comprehensive guidance on using Xero tools effectively. Returns tool recommendations, best practices, warnings about large datasets, and workflow examples. Essential reading before using any other Xero tools.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_description": {
+                        "type": "string",
+                        "description": "What you want to do (e.g., 'get recent invoices', 'find customer', 'accounts payable report'). Optional - if omitted, returns general guide."
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Comprehensive guide including: tool recommendations for your task, best practices, warnings about data volume, workflow steps, and common pitfalls to avoid"
+            }
+        },
+        {
             "name": "xero_get_invoices",
-            "description": "Get invoices from Xero. Returns list of invoices with details.",
+            "description": "⚠️ WARNING: Can return 50,000+ invoices (100MB+ data). RECOMMENDED: Use xero_get_data_metadata FIRST to check volume, then use xero_get_invoices_by_date_range with specific dates. This tool returns ALL invoices matching filters - use status filter to reduce volume (e.g., status='AUTHORISED' for unpaid only).",
             "platform": "xero",
             "parameters": {
                 "type": "object",
@@ -64,7 +83,7 @@
         },
         {
             "name": "xero_get_contacts",
-            "description": "Get contacts (customers/suppliers) from Xero",
+            "description": "⚠️ WARNING: Can return 7,000+ contacts (3.5MB+ data). RECOMMENDED: Use xero_get_data_metadata FIRST to check volume, then use xero_get_contacts_by_date_range for recent contacts, OR use search parameter to filter by name (e.g., search='Smith' finds 'John Smith', 'Smith Corp').",
             "platform": "xero",
             "parameters": {
                 "type": "object",
@@ -167,7 +186,7 @@
         },
         {
             "name": "xero_get_bank_transactions",
-            "description": "Get bank transactions from Xero",
+            "description": "⚠️ WARNING: Can return 33,000+ transactions (16MB+ data). STRONGLY RECOMMENDED: Use xero_get_data_metadata FIRST, then use xero_get_bank_transactions_by_date_range with specific date range (e.g., last month). This tool returns ALL transactions if no date filters provided.",
             "platform": "xero",
             "parameters": {
                 "type": "object",
@@ -196,7 +215,7 @@
         },
         {
             "name": "xero_get_payments",
-            "description": "Get payment records from Xero",
+            "description": "⚠️ WARNING: Can return 54,000+ payments (16MB+ data). RECOMMENDED: Use xero_get_data_metadata FIRST to check volume, then use xero_get_payments_by_date_range with specific dates, OR use invoice_id parameter to get payments for a specific invoice.",
             "platform": "xero",
             "parameters": {
                 "type": "object",
@@ -217,6 +236,242 @@
             "returns": {
                 "type": "array",
                 "description": "List of payments"
+            }
+        },
+        {
+            "name": "xero_get_data_metadata",
+            "description": "Get metadata about Xero data volumes and date ranges. Returns total counts and creation date ranges for contacts, invoices, payments, and bank transactions. Use this FIRST to understand data scale before retrieving large datasets.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+                        "default": 1
+                    }
+                },
+                "required": [
+                    "business_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Metadata including total counts, date ranges, average data sizes, and time-based breakdowns (1wk, 2wk, 1mo, 3mo, 6mo, 12mo, 24mo)"
+            }
+        },
+        {
+            "name": "xero_get_contacts_by_date_range",
+            "description": "Get contacts created within a specific date range. Use xero_get_data_metadata first to understand volume.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+                        "default": 1
+                    },
+                    "from_date": {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD format)"
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD format)"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of contacts to return (default: 1000)",
+                        "default": 1000
+                    }
+                },
+                "required": [
+                    "business_id",
+                    "from_date",
+                    "to_date"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Contacts within date range with count and data size estimate"
+            }
+        },
+        {
+            "name": "xero_get_invoices_by_date_range",
+            "description": "Get invoices within a specific date range. Use xero_get_data_metadata first to understand volume.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+                        "default": 1
+                    },
+                    "from_date": {
+                        "type": "string",
+                        "description": "Invoice start date (YYYY-MM-DD format)"
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "Invoice end date (YYYY-MM-DD format)"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Invoice status filter (DRAFT, SUBMITTED, AUTHORISED, PAID)"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of invoices to return (default: 1000)",
+                        "default": 1000
+                    }
+                },
+                "required": [
+                    "business_id",
+                    "from_date",
+                    "to_date"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Invoices within date range with count and data size estimate"
+            }
+        },
+        {
+            "name": "xero_get_payments_by_date_range",
+            "description": "Get payments within a specific date range. Use xero_get_data_metadata first to understand volume.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+                        "default": 1
+                    },
+                    "from_date": {
+                        "type": "string",
+                        "description": "Payment start date (YYYY-MM-DD format)"
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "Payment end date (YYYY-MM-DD format)"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of payments to return (default: 1000)",
+                        "default": 1000
+                    }
+                },
+                "required": [
+                    "business_id",
+                    "from_date",
+                    "to_date"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Payments within date range with count and data size estimate"
+            }
+        },
+        {
+            "name": "xero_get_accounts_metadata",
+            "description": "Get metadata about chart of accounts including total count, account types breakdown, and active vs archived accounts. Use this FIRST before retrieving all accounts.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+                        "default": 1
+                    }
+                },
+                "required": [
+                    "business_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Account metadata including total count, breakdown by type (BANK, REVENUE, EXPENSE, etc.), active/archived status, and data size estimate"
+            }
+        },
+        {
+            "name": "xero_get_accounts_by_type",
+            "description": "Get accounts filtered by account type. More efficient than retrieving all accounts.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+                        "default": 1
+                    },
+                    "account_type": {
+                        "type": "string",
+                        "description": "Account type filter (BANK, CURRENT, CURRLIAB, DEPRECIATN, DIRECTCOSTS, EQUITY, EXPENSE, FIXED, INVENTORY, LIABILITY, NONCURRENT, OTHERINCOME, OVERHEADS, PREPAYMENT, REVENUE, SALES, TERMLIAB, PAYGLIABILITY, SUPERANNUATIONEXPENSE, SUPERANNUATIONLIABILITY, WAGESEXPENSE, WAGESPAYABLELIABILITY)"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status filter: ACTIVE or ARCHIVED (default: ACTIVE)",
+                        "default": "ACTIVE"
+                    }
+                },
+                "required": [
+                    "business_id",
+                    "account_type"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Filtered accounts with count and details"
+            }
+        },
+        {
+            "name": "xero_get_bank_transactions_by_date_range",
+            "description": "Get bank transactions within a specific date range with additional filters. Use xero_get_data_metadata first to understand volume.",
+            "platform": "xero",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "business_id": {
+                        "type": "integer",
+                        "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+                        "default": 1
+                    },
+                    "from_date": {
+                        "type": "string",
+                        "description": "Transaction start date (YYYY-MM-DD format)"
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "Transaction end date (YYYY-MM-DD format)"
+                    },
+                    "transaction_type": {
+                        "type": "string",
+                        "description": "Transaction type filter: SPEND, RECEIVE, or SPEND-TRANSFER (optional)"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status filter: AUTHORISED, DELETED (optional)"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of transactions to return (default: 1000)",
+                        "default": 1000
+                    }
+                },
+                "required": [
+                    "business_id",
+                    "from_date",
+                    "to_date"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Bank transactions within date range with count, total amounts, and data size estimate"
             }
         }
     ]

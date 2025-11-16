@@ -41,6 +41,15 @@ class RegistryV3:
             sys.path.insert(0, str(self.root_dir))
         if str(self.tools_dir) not in sys.path:
             sys.path.insert(0, str(self.tools_dir))
+        
+        # Add UI module paths for Xero, Shopify, etc.
+        ui_modules_dir = self.root_dir / "UI" / "external" / "modules"
+        if ui_modules_dir.exists():
+            for module_dir in ui_modules_dir.iterdir():
+                if module_dir.is_dir():
+                    module_path = str(module_dir)
+                    if module_path not in sys.path:
+                        sys.path.insert(0, module_path)
             
         # Load all components
         self._load_schemas()

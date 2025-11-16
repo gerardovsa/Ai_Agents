@@ -612,9 +612,29 @@ def microsoft_callback():
         flag_value = True if is_using_supabase() else 1
         update_sql = 'UPDATE users SET has_microsoft_oauth = ? WHERE id = ?'
         update_sql, update_params = convert_sql_placeholders(update_sql, (flag_value, user_id))
-        cursor.execute(update_sql, update_params)
         
-        conn.commit()
+        # Retry logic for statement timeout
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                cursor.execute(update_sql, update_params)
+                conn.commit()
+                break  # Success, exit retry loop
+            except Exception as update_error:
+                error_msg = str(update_error)
+                if 'statement timeout' in error_msg.lower() and attempt < max_retries - 1:
+                    print(f"⚠️  [MICROSOFT OAUTH] Statement timeout on attempt {attempt + 1}, retrying...")
+                    conn.rollback()  # Rollback failed transaction
+                    import time
+                    time.sleep(1)  # Wait 1 second before retry
+                    continue
+                elif attempt == max_retries - 1:
+                    print(f"❌ [MICROSOFT OAUTH] Failed to update has_microsoft_oauth after {max_retries} attempts: {error_msg}")
+                    # Don't fail the entire OAuth flow - tokens are already stored
+                    break
+                else:
+                    raise  # Re-raise non-timeout errors
+        
         conn.close()
         
         print('[MICROSOFT OAUTH] Tokens stored successfully in oauth_tokens table!')
@@ -673,20 +693,39 @@ def microsoft_status():
         # Get user_id from request.user (set by @require_auth decorator)
         user_id = request.user.get('user_id')
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Get database connection with error handling
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+        except Exception as db_error:
+            logger.error(f"❌ Database connection failed: {db_error}")
+            return jsonify({
+                'success': False,
+                'error': 'Database connection failed',
+                'details': str(db_error)
+            }), 500
         
         # Query oauth_tokens table
-        cursor.execute('''
-            SELECT 
-                access_token, refresh_token, expires_at, is_valid, is_active,
-                email, profile_name, last_refreshed_at, error_count, last_error,
-                created_at, updated_at
-            FROM oauth_tokens
-            WHERE user_id = ? AND platform = ?
-        ''', (user_id, 'microsoft'))
+        try:
+            cursor.execute('''
+                SELECT 
+                    access_token, refresh_token, expires_at, is_valid, is_active,
+                    email, profile_name, last_refreshed_at, error_count, last_error,
+                    created_at, updated_at
+                FROM oauth_tokens
+                WHERE user_id = ? AND platform = ?
+            ''', (user_id, 'microsoft'))
+            
+            row = cursor.fetchone()
+        except Exception as query_error:
+            logger.error(f"❌ Database query failed: {query_error}")
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'Database query failed',
+                'details': str(query_error)
+            }), 500
         
-        row = cursor.fetchone()
         conn.close()
         
         if not row:
@@ -696,31 +735,73 @@ def microsoft_status():
                 'message': 'No Microsoft account connected'
             })
         
+        # Handle both SQLite Row objects and PostgreSQL RealDictCursor
+        try:
+            if hasattr(row, 'keys') and callable(row.keys):  # Dict-like (SQLite Row or PostgreSQL RealDictRow)
+                email = row['email']
+                profile_name = row['profile_name']
+                is_valid = row['is_valid']
+                is_active = row['is_active']
+                expires_at_str = row['expires_at']
+                last_refreshed_at = row['last_refreshed_at']
+                error_count = row['error_count']
+                last_error = row['last_error']
+                created_at = row['created_at']
+                updated_at = row['updated_at']
+            elif isinstance(row, dict):  # Plain dict (RealDictCursor)
+                email = row.get('email')
+                profile_name = row.get('profile_name')
+                is_valid = row.get('is_valid')
+                is_active = row.get('is_active')
+                expires_at_str = row.get('expires_at')
+                last_refreshed_at = row.get('last_refreshed_at')
+                error_count = row.get('error_count')
+                last_error = row.get('last_error')
+                created_at = row.get('created_at')
+                updated_at = row.get('updated_at')
+            else:  # PostgreSQL tuple (fallback)
+                _, _, expires_at_str, is_valid, is_active, email, profile_name, last_refreshed_at, error_count, last_error, created_at, updated_at = row
+        except Exception as parse_error:
+            logger.error(f"❌ Failed to parse database row: {parse_error}")
+            logger.error(f"Row type: {type(row)}, Row: {row}")
+            return jsonify({
+                'success': False,
+                'error': 'Failed to parse database response',
+                'details': str(parse_error)
+            }), 500
+        
         # Check if token is expired
-        expires_at = datetime.strptime(row['expires_at'], '%Y-%m-%d %H:%M:%S') if row['expires_at'] else None
-        is_expired = expires_at and datetime.utcnow() > expires_at
+        try:
+            expires_at = datetime.strptime(expires_at_str, '%Y-%m-%d %H:%M:%S') if expires_at_str else None
+            is_expired = expires_at and datetime.utcnow() > expires_at
+        except Exception as date_error:
+            logger.warning(f"⚠️  Failed to parse expiry date: {date_error}")
+            is_expired = None
         
         return jsonify({
             'success': True,
             'connected': True,
-            'email': row['email'],
-            'profile_name': row['profile_name'],
-            'is_valid': bool(row['is_valid']),
-            'is_active': bool(row['is_active']),
-            'expires_at': row['expires_at'],
+            'email': email,
+            'profile_name': profile_name,
+            'is_valid': bool(is_valid) if is_valid is not None else False,
+            'is_active': bool(is_active) if is_active is not None else False,
+            'expires_at': expires_at_str,
             'is_expired': is_expired,
-            'last_refreshed_at': row['last_refreshed_at'],
-            'error_count': row['error_count'],
-            'last_error': row['last_error'],
-            'connected_since': row['created_at'],
-            'last_updated': row['updated_at']
+            'last_refreshed_at': last_refreshed_at,
+            'error_count': error_count or 0,
+            'last_error': last_error,
+            'connected_since': created_at,
+            'last_updated': updated_at
         })
         
     except Exception as e:
-        logger.error(f" Status check failed: {e}")
+        logger.error(f"❌ Status check failed (outer exception): {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Unexpected error during status check',
+            'details': str(e)
         }), 500
 
 

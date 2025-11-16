@@ -15,7 +15,7 @@ const RenderConfig = {
 
     // Local development URLs
     local: {
-        flask: 'http://localhost:4000',
+        flask: 'http://localhost:5001',  // Updated to match BISTART port
         vsaAgent: 'http://localhost:5300'
     },
 

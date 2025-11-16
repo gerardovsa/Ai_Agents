@@ -142,6 +142,9 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         try:
             # Connect to Supabase Session Pooler (IPv4 compatible)
             # Use connection pooler for Render compatibility
+            print(f"🔷 [DB] Attempting Supabase connection for '{db_name}'...")
+            print(f"🔷 [DB] Connection timeout: 30s, Statement timeout: 60s")
+            
             conn = psycopg2.connect(
                 db_url,
                 cursor_factory=RealDictCursor,
@@ -149,7 +152,8 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                 keepalives=1,
                 keepalives_idle=30,
                 keepalives_interval=10,
-                keepalives_count=5
+                keepalives_count=5,
+                options='-c statement_timeout=60000'  # 60 seconds statement timeout (in milliseconds)
             )
             
             # Set search_path to use the correct schema
@@ -158,30 +162,99 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                 # Create schema if it doesn't exist
                 cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
                 cursor.execute(f"SET search_path TO {schema_name}, public")
+                # Set statement timeout for all queries on this connection
+                cursor.execute("SET statement_timeout = '60s'")
             
             conn.commit()
-            print(f"🔷 [DB] Connected to Supabase PostgreSQL (schema: {schema_name})")
+            print(f"✅ [DB] Connected to Supabase PostgreSQL (schema: {schema_name})")
             
             # Wrap connection to provide automatic placeholder conversion
             return DatabaseConnection(conn)
             
+        except psycopg2.OperationalError as e:
+            # Connection failed - detailed error logging
+            error_msg = str(e)
+            print(f"\n{'='*70}")
+            print(f"❌ [DB] SUPABASE CONNECTION FAILED - OPERATIONAL ERROR")
+            print(f"{'='*70}")
+            print(f"Database: {db_name}")
+            print(f"Error Type: {type(e).__name__}")
+            print(f"Error Message: {error_msg}")
+            
+            # Detailed diagnostics
+            if "timeout" in error_msg.lower():
+                print(f"\n🔍 DIAGNOSIS: Connection timeout")
+                print(f"   - Supabase server may be slow or unreachable")
+                print(f"   - Network latency too high (>30 seconds)")
+                print(f"   - Check internet connection")
+                print(f"   - Try increasing connect_timeout value")
+            elif "could not connect" in error_msg.lower():
+                print(f"\n🔍 DIAGNOSIS: Cannot reach Supabase server")
+                print(f"   - Check SUPABASE_DB_URL is correct")
+                print(f"   - Verify Supabase project is active")
+                print(f"   - Check firewall/network settings")
+            elif "password" in error_msg.lower() or "authentication" in error_msg.lower():
+                print(f"\n🔍 DIAGNOSIS: Authentication failed")
+                print(f"   - Check database password in SUPABASE_DB_URL")
+                print(f"   - Verify credentials haven't expired")
+            else:
+                print(f"\n🔍 DIAGNOSIS: Unknown operational error")
+                print(f"   - Review full error message above")
+            
+            print(f"\n🔄 RECOVERY ATTEMPT: Retrying connection once...")
+            print(f"{'='*70}\n")
+            
+            # Single retry attempt
+            try:
+                import time
+                time.sleep(2)  # Wait 2 seconds before retry
+                
+                print(f"🔷 [DB] Retry attempt for '{db_name}'...")
+                conn = psycopg2.connect(
+                    db_url,
+                    cursor_factory=RealDictCursor,
+                    connect_timeout=30,
+                    keepalives=1,
+                    keepalives_idle=30,
+                    keepalives_interval=10,
+                    keepalives_count=5
+                )
+                
+                schema_name = get_supabase_schema_name(db_name)
+                with conn.cursor() as cursor:
+                    cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+                    cursor.execute(f"SET search_path TO {schema_name}, public")
+                
+                conn.commit()
+                print(f"✅ [DB] RETRY SUCCESSFUL! Connected to Supabase")
+                return DatabaseConnection(conn)
+                
+            except Exception as retry_error:
+                print(f"❌ [DB] RETRY FAILED: {retry_error}")
+                print(f"❌ [DB] CANNOT PROCEED - Supabase connection required")
+                raise ConnectionError(
+                    f"Supabase connection failed after retry. "
+                    f"Original error: {error_msg}. "
+                    f"Retry error: {str(retry_error)}"
+                )
+        
         except Exception as e:
-            print(f"⚠️  [DB] Supabase connection failed: {e}")
-            print(f"⚠️  [DB] Falling back to SQLite on persistent disk")
-            # Fall through to SQLite fallback
-            pass
+            # Catch-all for other exceptions
+            print(f"\n{'='*70}")
+            print(f"❌ [DB] SUPABASE CONNECTION FAILED - UNEXPECTED ERROR")
+            print(f"{'='*70}")
+            print(f"Database: {db_name}")
+            print(f"Error Type: {type(e).__name__}")
+            print(f"Error Message: {str(e)}")
+            print(f"{'='*70}\n")
+            raise ConnectionError(f"Supabase connection failed: {e}")
     
-    # SQLITE (Local development OR Supabase fallback)
+    # SQLITE (Local development ONLY - Supabase must succeed first)
     # Find project root (go up from AI_infrastructure/shared/)
     root_dir = Path(__file__).parent.parent.parent
     
-    # Check if running on Render
-    if os.getenv('RENDER') == 'true':
-        # Use /data persistent disk on Render
-        db_path = Path('/data') / f'{db_name}.db'
-    else:
-        # Use local data/ folder for development
-        db_path = root_dir / 'data' / f'{db_name}.db'
+    # This code only runs if USE_SUPABASE is not set
+    db_path = root_dir / 'data' / f'{db_name}.db'
     
     # Ensure directory exists
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -190,7 +263,7 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
         
-        print(f"🔷 [DB] Connected to SQLite: {db_path}")
+        print(f"🔷 [DB] Connected to SQLite (LOCAL DEV): {db_path}")
         
         # Wrap connection to provide automatic placeholder conversion
         return DatabaseConnection(conn)

@@ -1,0 +1,354 @@
+/**
+ * Workflow Slug Integration Module
+ * 
+ * Handles drag-and-drop linking of automation workflows to threads,
+ * system prompt injection, and UI interactions.
+ * 
+ * Usage: Include this script after ThreadManager is defined
+ */
+
+(function () {
+    'use strict';
+
+    // ============================================================
+    // WORKFLOW SLUG LINKING
+    // ============================================================
+
+    /**
+     * Link workflow to thread
+     */
+    async function linkWorkflowToThread(threadId, workflowSlug, workflowId) {
+        try {
+            console.log(`[WORKFLOW] Linking workflow ${workflowSlug} to thread ${threadId}`);
+
+            // Fetch workflow title from backend
+            const workflowResponse = await fetch(`http://localhost:5001/api/automation/list?slug=${encodeURIComponent(workflowSlug)}`);
+            if (!workflowResponse.ok) {
+                throw new Error('Failed to fetch workflow details');
+            }
+            const workflowData = await workflowResponse.json();
+            const workflow = workflowData.workflows && workflowData.workflows[0];
+            const workflowTitle = workflow?.title || workflowSlug;
+
+            // Find thread
+            const thread = window.ThreadManager.threads.find(t => t.id === threadId);
+            if (!thread) {
+                console.error(`[WORKFLOW] Thread ${threadId} not found`);
+                return;
+            }
+
+            // Update thread object
+            thread.workflow_slug = workflowSlug;
+            thread.workflow_title = workflowTitle;
+            thread.updated = new Date().toISOString();
+
+            // Save to backend database
+            await saveThreadMetadata(threadId, {
+                workflow_slug: workflowSlug,
+                workflow_title: workflowTitle
+            });
+
+            // Re-render thread info card
+            const location = thread.location || 'prime';
+            const threadInfoContainer = document.querySelector(`#thread-info-${location.replace('agent-', '')}`);
+            if (threadInfoContainer) {
+                threadInfoContainer.innerHTML = window.ThreadManager.renderThreadInfoContainer(
+                    location,
+                    threadId,
+                    false
+                );
+            }
+
+            console.log('[WORKFLOW] Successfully linked workflow to thread');
+
+            // Show success notification
+            showNotification(`Workflow "${workflowTitle}" linked to thread`, 'success');
+        } catch (error) {
+            console.error('[WORKFLOW] Error linking workflow:', error);
+            showNotification('Failed to link workflow', 'error');
+        }
+    }
+
+    /**
+     * Save thread metadata (workflow_slug, workflow_title, etc.) to backend
+     */
+    async function saveThreadMetadata(threadId, metadata) {
+        try {
+            const thread = window.ThreadManager.threads.find(t => t.id === threadId);
+            if (!thread) return;
+
+            // Merge new metadata
+            Object.assign(thread, metadata);
+
+            // Save to backend - use UPDATE endpoint
+            const response = await fetch(`http://localhost:5001/api/threads/metadata/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    thread_slug: threadId,
+                    workflow_slug: metadata.workflow_slug || null,
+                    workflow_title: metadata.workflow_title || null,
+                    internal_doc_slug: metadata.internal_doc_slug || null,
+                    internal_doc_title: metadata.internal_doc_title || null
+                })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                console.error('[WORKFLOW] Failed to save metadata:', data.error);
+            }
+        } catch (error) {
+            console.error('[WORKFLOW] Error saving metadata:', error);
+        }
+    }
+
+    /**
+     * Setup drag-drop for workflow slugs on thread info cards
+     */
+    function setupWorkflowSlugDropTargets() {
+        // Dragover event - show drop indicator
+        document.addEventListener('dragover', (e) => {
+            const threadInfoCard = e.target.closest('.thread-info-container');
+            const workflowSlug = e.dataTransfer.types.includes('workflow-slug');
+
+            if (threadInfoCard && workflowSlug) {
+                e.preventDefault();
+                threadInfoCard.classList.add('workflow-drag-over');
+            }
+        });
+
+        // Dragleave event - hide drop indicator
+        document.addEventListener('dragleave', (e) => {
+            const threadInfoCard = e.target.closest('.thread-info-container');
+            if (threadInfoCard && !threadInfoCard.contains(e.relatedTarget)) {
+                threadInfoCard.classList.remove('workflow-drag-over');
+            }
+        });
+
+        // Drop event - link workflow to thread
+        document.addEventListener('drop', async (e) => {
+            const threadInfoCard = e.target.closest('.thread-info-container');
+            const workflowSlug = e.dataTransfer.getData('workflow-slug');
+            const workflowId = e.dataTransfer.getData('workflow-id');
+
+            if (threadInfoCard && workflowSlug) {
+                e.preventDefault();
+                threadInfoCard.classList.remove('workflow-drag-over');
+
+                // Extract thread ID from card
+                const threadId = threadInfoCard.dataset.threadId;
+                if (!threadId) {
+                    console.error('[WORKFLOW] No thread ID found on thread info card');
+                    return;
+                }
+
+                // Link workflow to thread
+                await linkWorkflowToThread(threadId, workflowSlug, workflowId);
+            }
+        });
+
+        console.log('✅ [WORKFLOW] Drag-drop handlers initialized');
+    }
+
+    // ============================================================
+    // WORKFLOW ACTIONS (Open/Unlink)
+    // ============================================================
+
+    /**
+     * Open workflow in automation canvas
+     */
+    window.openWorkflowInCanvas = async function (workflowSlug) {
+        try {
+            console.log(`[WORKFLOW] Opening workflow ${workflowSlug} in canvas`);
+
+            // Switch to Automation tab
+            const automationTab = document.querySelector('[data-tab="automation"]');
+            if (automationTab) {
+                automationTab.click();
+            }
+
+            // Wait for automation canvas to load
+            setTimeout(() => {
+                if (window.automationCanvas) {
+                    // Load workflow by slug
+                    window.automationCanvas.loadWorkflowBySlug(workflowSlug);
+                } else {
+                    console.error('[WORKFLOW] Automation canvas not initialized');
+                    showNotification('Automation canvas not ready', 'error');
+                }
+            }, 500);
+        } catch (error) {
+            console.error('[WORKFLOW] Error opening workflow:', error);
+            showNotification('Failed to open workflow', 'error');
+        }
+    };
+
+    /**
+     * Unlink workflow from thread
+     */
+    window.unlinkWorkflowFromThread = async function (threadId) {
+        try {
+            const thread = window.ThreadManager.threads.find(t => t.id === threadId);
+            if (!thread) return;
+
+            // Clear workflow fields
+            thread.workflow_slug = null;
+            thread.workflow_title = null;
+            thread.updated = new Date().toISOString();
+
+            // Save to backend
+            await saveThreadMetadata(threadId, {
+                workflow_slug: null,
+                workflow_title: null
+            });
+
+            // Update UI
+            const location = thread.location || 'prime';
+            const threadInfoContainer = document.querySelector(`#thread-info-${location.replace('agent-', '')}`);
+            if (threadInfoContainer) {
+                threadInfoContainer.innerHTML = window.ThreadManager.renderThreadInfoContainer(
+                    location,
+                    threadId,
+                    false
+                );
+            }
+
+            showNotification('Workflow unlinked from thread', 'success');
+        } catch (error) {
+            console.error('[WORKFLOW] Error unlinking workflow:', error);
+            showNotification('Failed to unlink workflow', 'error');
+        }
+    };
+
+    // ============================================================
+    // SYSTEM PROMPT SLUG INJECTION
+    // ============================================================
+
+    /**
+     * Build slug context for thread to inject into system prompt
+     */
+    window.buildSlugContextForThread = function (thread) {
+        if (!thread) return '';
+
+        let slugContext = '';
+
+        // 1. Synergy Session Context
+        if (thread.synergy_card_id) {
+            const synergyTitle = thread.synergy_card_name || thread.synergy_card_id;
+            const synergyDesc = thread.synergy_card_desc || '';
+            const synergyPriority = thread.synergy_card_priority || '';
+
+            slugContext += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 SYNERGY PROJECT CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This thread is part of a Synergy project:
+
+**Project:** ${synergyTitle}
+**Project ID:** ${thread.synergy_card_id}
+${synergyDesc ? `**Description:** ${synergyDesc}` : ''}
+${synergyPriority ? `**Priority:** ${synergyPriority}` : ''}
+
+This means:
+- User is working on this specific project
+- Context from other threads in this project may be relevant
+- Your responses should consider project goals and constraints
+- Use tools: synergy_get_session(), synergy_list_threads() to access project context
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+        }
+
+        // 2. Workflow Automation Context
+        if (thread.workflow_slug) {
+            const workflowTitle = thread.workflow_title || thread.workflow_slug;
+
+            slugContext += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚙️ AUTOMATION WORKFLOW CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This thread has a linked automation workflow:
+
+**Workflow:** ${workflowTitle}
+**Workflow Slug:** ${thread.workflow_slug}
+
+This means:
+- User is discussing or working on this specific workflow
+- You can access workflow details using: automation_get_workflow_by_slug('${thread.workflow_slug}')
+- You can open workflow in canvas using: automation_open_workflow_in_canvas('${thread.workflow_slug}', 'Opening your workflow...')
+- You can suggest improvements, debug issues, or help configure the workflow
+- Use tools: automation_get_workflow_by_slug(), automation_execute_workflow(), automation_schedule_workflow()
+
+If user asks to "show the workflow" or "open the automation", use automation_open_workflow_in_canvas().
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+        }
+
+        // 3. Internal Documents Context
+        if (thread.internal_doc_slug) {
+            const docTitle = thread.internal_doc_title || thread.internal_doc_slug;
+
+            slugContext += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 INTERNAL DOCUMENT CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This thread has a linked internal document:
+
+**Document:** ${docTitle}
+**Document Slug:** ${thread.internal_doc_slug}
+
+This means:
+- User is discussing or working on this specific document
+- You can access document content using: synergy_get_internal_doc('${thread.internal_doc_slug}')
+- You can update document using: synergy_update_internal_doc()
+- Provide answers based on document content when relevant
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+        }
+
+        return slugContext;
+    };
+
+    // ============================================================
+    // UPDATE THREADMANAGER TO INCLUDE NEW FIELDS
+    // ============================================================
+
+    /**
+     * Enhance ThreadManager.loadThreadsFromBackend to include workflow fields
+     */
+    if (window.ThreadManager) {
+        const originalLoadThreadsFromBackend = window.ThreadManager.loadThreadsFromBackend;
+
+        window.ThreadManager.loadThreadsFromBackend = async function () {
+            const result = await originalLoadThreadsFromBackend.call(this);
+
+            // Add workflow and document fields to loaded threads
+            this.threads = this.threads.map(thread => ({
+                ...thread,
+                workflow_slug: thread.workflow_slug || null,
+                workflow_title: thread.workflow_title || null,
+                internal_doc_slug: thread.internal_doc_slug || null,
+                internal_doc_title: thread.internal_doc_title || null
+            }));
+
+            return result;
+        };
+
+        console.log('✅ [WORKFLOW] ThreadManager.loadThreadsFromBackend enhanced');
+    }
+
+    // ============================================================
+    // INITIALIZATION
+    // ============================================================
+
+    // Setup on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setupWorkflowSlugDropTargets();
+        });
+    } else {
+        setupWorkflowSlugDropTargets();
+    }
+
+    console.log('✅ [WORKFLOW] Workflow slug integration module loaded');
+
+})();

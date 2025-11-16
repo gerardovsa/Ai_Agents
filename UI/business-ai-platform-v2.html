@@ -13,6 +13,7 @@
 
     <!-- Font Awesome Icons - CDN Version 6.7.2 (has hexagon-nodes-bolt) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+        integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Tabulator for Data Grids -->
@@ -53,12 +54,45 @@
     <!-- HyperFormula - Excel-like formula engine for Handsontable -->
     <script src="https://cdn.jsdelivr.net/npm/hyperformula/dist/hyperformula.full.min.js"></script>
 
+    <!-- Chart.js for Spreadsheet Visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- SheetJS for Enhanced Excel Export (with formulas) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <!-- Dragula for Kanban Drag & Drop -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css">
 
     <!-- Token Polling System -->
     <!-- token_polling.js removed - functionality integrated into auth module -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
+
+    <!-- Tiptap Rich Text Editor -->
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.13/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.1.13/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-placeholder@2.1.13/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-link@2.1.13/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-mention@2.1.13/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration@2.1.13/dist/index.umd.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration-cursor@2.1.13/dist/index.umd.min.js"></script>
+
+    <!-- Yjs for Collaborative Editing -->
+    <script src="https://cdn.jsdelivr.net/npm/yjs@13.6.10/dist/yjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/y-websocket@1.5.0/dist/y-websocket.min.js"></script>
+
+    <!-- jsPDF for PDF Export -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- Socket.IO Client for Real-Time WebSocket Communication -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" crossorigin="anonymous"></script>
+
+    <!-- Data Loader - Centralized data loading with caching and batching -->
+    <script src="js/data-loader.js"></script>
+
+    <!-- Synergy Real-Time WebSocket Manager -->
+    <script src="js/synergy-realtime.js"></script>
 
     <!-- ==================== RENDER CONFIGURATION (LOAD FIRST) ==================== -->
     <!-- Auto-detect environment and use appropriate API endpoints -->
@@ -892,7 +926,6 @@
             display: flex;
             align-items: center;
             gap: var(--space-4);
-            margin-left: auto;
         }
 
         .header-datetime-date-group {
@@ -952,6 +985,7 @@
             display: flex;
             align-items: center;
             gap: var(--space-3);
+            margin-left: auto;
         }
 
         .header-btn {
@@ -1584,25 +1618,25 @@
             opacity: 0.6;
         }
 
-        /* Left side: sits flush at edge, slides out on hover */
+        /* Left side: sits at 60px from edge, slides out on hover */
         .synergy-sidebar-toggle[data-side="left"] {
-            left: 0;
+            left: 60px;
             border-radius: 0 12px 12px 0;
             padding: 8px 8px 8px 4px;
             box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
         }
 
         .synergy-sidebar-toggle[data-side="left"]:hover {
-            left: 0;
+            left: 60px;
             padding: 8px 12px 8px 8px;
             opacity: 1;
             box-shadow: 4px 0 16px rgba(0, 0, 0, 0.25);
             background: var(--accent-primary-hover, #79c0ff);
         }
 
-        /* Right side: sits flush at edge, slides out on hover */
+        /* Right side: sits at 60px from edge, slides out on hover */
         .synergy-sidebar-toggle[data-side="right"] {
-            right: 0;
+            right: 60px;
             left: auto;
             border-radius: 12px 0 0 12px;
             padding: 8px 4px 8px 8px;
@@ -1610,7 +1644,7 @@
         }
 
         .synergy-sidebar-toggle[data-side="right"]:hover {
-            right: 0;
+            right: 60px;
             padding: 8px 8px 8px 12px;
             opacity: 1;
             box-shadow: -4px 0 16px rgba(0, 0, 0, 0.25);
@@ -11496,6 +11530,10 @@
                                             title="Export Workflow">
                                             <i class="fas fa-download"></i>
                                         </button>
+                                        <button class="workflow-action-icon-btn" id="print-workflow-btn"
+                                            title="Print Workflow">
+                                            <i class="fas fa-print"></i>
+                                        </button>
                                         <button class="workflow-action-icon-btn" id="automation-clear-btn"
                                             title="Clear Canvas">
                                             <i class="fas fa-trash"></i>
@@ -13282,6 +13320,340 @@
             eventSource: null
         };
 
+        // ==================== BROWSER CONTEXT GATHERING ====================
+        /**
+         * Get comprehensive user context from browser without external APIs
+         * Provides location, timezone, system info, and weather data
+         */
+        const BrowserContext = {
+            cached: null,
+            cacheExpiry: 0,
+            geolocationPermissionGranted: false,
+
+            /**
+             * Get all available browser context
+             * @param {boolean} forceRefresh - Force refresh cached data
+             * @returns {Promise<Object>} Complete context object
+             */
+            async getContext(forceRefresh = false) {
+                // Return cached data if still valid (5 min cache)
+                if (!forceRefresh && this.cached && Date.now() < this.cacheExpiry) {
+                    console.log('[BrowserContext] Using cached context');
+                    return this.cached;
+                }
+
+                console.log('[BrowserContext] Gathering fresh context...');
+
+                const context = {
+                    timestamp: new Date().toISOString(),
+
+                    // Date & Time
+                    datetime: this.getDateTimeInfo(),
+
+                    // System Information
+                    system: this.getSystemInfo(),
+
+                    // Timezone & Locale
+                    locale: this.getLocaleInfo(),
+
+                    // Browser Capabilities
+                    browser: this.getBrowserInfo(),
+
+                    // Network Status
+                    network: this.getNetworkInfo(),
+
+                    // Screen & Display
+                    display: this.getDisplayInfo()
+                };
+
+                // Try to get geolocation (requires permission)
+                try {
+                    const geoData = await this.getGeolocation();
+                    context.geolocation = geoData;
+
+                    // Get weather if we have coordinates
+                    if (geoData.latitude && geoData.longitude) {
+                        context.weather = await this.getWeather(geoData.latitude, geoData.longitude);
+                    }
+                } catch (error) {
+                    console.log('[BrowserContext] Geolocation not available:', error.message);
+                    context.geolocation = { available: false, reason: error.message };
+                }
+
+                // Cache for 5 minutes
+                this.cached = context;
+                this.cacheExpiry = Date.now() + (5 * 60 * 1000);
+
+                console.log('[BrowserContext] Context gathered:', context);
+                return context;
+            },
+
+            /**
+             * Get date/time information
+             */
+            getDateTimeInfo() {
+                const now = new Date();
+                return {
+                    iso: now.toISOString(),
+                    localDate: now.toLocaleDateString(),
+                    localTime: now.toLocaleTimeString(),
+                    timestamp: now.getTime(),
+                    dayOfWeek: now.toLocaleDateString('en-US', { weekday: 'long' }),
+                    dayOfMonth: now.getDate(),
+                    month: now.toLocaleDateString('en-US', { month: 'long' }),
+                    monthNumber: now.getMonth() + 1,
+                    year: now.getFullYear(),
+                    quarter: Math.floor((now.getMonth() + 3) / 3),
+                    timezoneOffset: now.getTimezoneOffset(),
+                    timezoneOffsetHours: -now.getTimezoneOffset() / 60
+                };
+            },
+
+            /**
+             * Get timezone and locale information
+             */
+            getLocaleInfo() {
+                try {
+                    const options = Intl.DateTimeFormat().resolvedOptions();
+                    return {
+                        timezone: options.timeZone, // e.g., "America/New_York"
+                        locale: options.locale,
+                        language: navigator.language,
+                        languages: navigator.languages,
+                        calendar: options.calendar,
+                        numberingSystem: options.numberingSystem,
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        // Get city from timezone (e.g., "America/New_York" -> "New York")
+                        city: options.timeZone.split('/').pop().replace(/_/g, ' ')
+                    };
+                } catch (error) {
+                    return { error: error.message };
+                }
+            },
+
+            /**
+             * Get system information
+             */
+            getSystemInfo() {
+                return {
+                    platform: navigator.platform,
+                    userAgent: navigator.userAgent,
+                    vendor: navigator.vendor,
+                    cpuCores: navigator.hardwareConcurrency || 'unknown',
+                    deviceMemory: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : 'unknown',
+                    maxTouchPoints: navigator.maxTouchPoints || 0,
+                    cookiesEnabled: navigator.cookieEnabled,
+                    doNotTrack: navigator.doNotTrack || 'not-set'
+                };
+            },
+
+            /**
+             * Get browser information
+             */
+            getBrowserInfo() {
+                const ua = navigator.userAgent;
+                let browserName = 'Unknown';
+                let browserVersion = 'Unknown';
+
+                // Detect browser
+                if (ua.includes('Firefox')) {
+                    browserName = 'Firefox';
+                    browserVersion = ua.match(/Firefox\/(\d+)/)?.[1];
+                } else if (ua.includes('Edg')) {
+                    browserName = 'Edge';
+                    browserVersion = ua.match(/Edg\/(\d+)/)?.[1];
+                } else if (ua.includes('Chrome')) {
+                    browserName = 'Chrome';
+                    browserVersion = ua.match(/Chrome\/(\d+)/)?.[1];
+                } else if (ua.includes('Safari')) {
+                    browserName = 'Safari';
+                    browserVersion = ua.match(/Version\/(\d+)/)?.[1];
+                }
+
+                return {
+                    name: browserName,
+                    version: browserVersion,
+                    onLine: navigator.onLine,
+                    pdfViewerEnabled: navigator.pdfViewerEnabled || false
+                };
+            },
+
+            /**
+             * Get network information
+             */
+            getNetworkInfo() {
+                const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                if (!conn) return { available: false };
+
+                return {
+                    available: true,
+                    effectiveType: conn.effectiveType, // '4g', '3g', etc.
+                    downlink: conn.downlink, // Mbps
+                    rtt: conn.rtt, // ms round-trip time
+                    saveData: conn.saveData || false
+                };
+            },
+
+            /**
+             * Get display information
+             */
+            getDisplayInfo() {
+                return {
+                    screenWidth: window.screen.width,
+                    screenHeight: window.screen.height,
+                    availWidth: window.screen.availWidth,
+                    availHeight: window.screen.availHeight,
+                    colorDepth: window.screen.colorDepth,
+                    pixelDepth: window.screen.pixelDepth,
+                    devicePixelRatio: window.devicePixelRatio,
+                    orientation: window.screen.orientation?.type || 'unknown',
+                    windowWidth: window.innerWidth,
+                    windowHeight: window.innerHeight
+                };
+            },
+
+            /**
+             * Get geolocation (requires user permission)
+             */
+            async getGeolocation() {
+                return new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject(new Error('Geolocation not supported'));
+                        return;
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            this.geolocationPermissionGranted = true;
+                            resolve({
+                                available: true,
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude,
+                                accuracy: position.coords.accuracy,
+                                altitude: position.coords.altitude,
+                                altitudeAccuracy: position.coords.altitudeAccuracy,
+                                heading: position.coords.heading,
+                                speed: position.coords.speed,
+                                timestamp: position.timestamp
+                            });
+                        },
+                        (error) => {
+                            let reason = 'Unknown error';
+                            switch (error.code) {
+                                case error.PERMISSION_DENIED:
+                                    reason = 'User denied permission';
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    reason = 'Position unavailable';
+                                    break;
+                                case error.TIMEOUT:
+                                    reason = 'Request timeout';
+                                    break;
+                            }
+                            reject(new Error(reason));
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 300000 // Cache for 5 minutes
+                        }
+                    );
+                });
+            },
+
+            /**
+             * Get weather from Open-Meteo (free, no API key needed)
+             * @param {number} lat - Latitude
+             * @param {number} lon - Longitude
+             */
+            async getWeather(lat, lon) {
+                try {
+                    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=celsius&windspeed_unit=kmh&timezone=auto`;
+
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
+
+                    const data = await response.json();
+                    const current = data.current_weather;
+
+                    // Weather code to description mapping
+                    const weatherCodes = {
+                        0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+                        45: 'Foggy', 48: 'Depositing rime fog',
+                        51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
+                        61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+                        71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow',
+                        80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
+                        95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail'
+                    };
+
+                    return {
+                        available: true,
+                        temperature: current.temperature,
+                        temperatureUnit: 'celsius',
+                        windspeed: current.windspeed,
+                        windspeedUnit: 'km/h',
+                        winddirection: current.winddirection,
+                        weathercode: current.weathercode,
+                        weatherDescription: weatherCodes[current.weathercode] || 'Unknown',
+                        time: current.time,
+                        timezone: data.timezone,
+                        elevation: data.elevation
+                    };
+                } catch (error) {
+                    console.error('[BrowserContext] Weather fetch failed:', error);
+                    return { available: false, error: error.message };
+                }
+            },
+
+            /**
+             * Request geolocation permission from user
+             */
+            async requestGeolocationPermission() {
+                try {
+                    const position = await this.getGeolocation();
+                    console.log('[BrowserContext] Geolocation permission granted');
+                    return true;
+                } catch (error) {
+                    console.log('[BrowserContext] Geolocation permission denied');
+                    return false;
+                }
+            },
+
+            /**
+             * Get formatted context string for AI system prompt
+             */
+            async getFormattedContextForAI() {
+                const context = await this.getContext();
+
+                let formatted = `BROWSER CONTEXT (Auto-gathered):
+- Current Time: ${context.datetime.localTime} (${context.locale.timezone})
+- Date: ${context.datetime.dayOfWeek}, ${context.datetime.month} ${context.datetime.dayOfMonth}, ${context.datetime.year}
+- Timezone: ${context.locale.timezone} (UTC${context.datetime.timezoneOffsetHours >= 0 ? '+' : ''}${context.datetime.timezoneOffsetHours})
+- Locale: ${context.locale.locale}
+- Language: ${context.locale.language}
+- Platform: ${context.system.platform}
+- Browser: ${context.browser.name} ${context.browser.version}
+- Online Status: ${context.browser.onLine ? 'Online' : 'Offline'}`;
+
+                if (context.geolocation?.available) {
+                    formatted += `\n- Location: ${context.geolocation.latitude.toFixed(4)}, ${context.geolocation.longitude.toFixed(4)} (±${Math.round(context.geolocation.accuracy)}m)`;
+
+                    if (context.weather?.available) {
+                        formatted += `\n- Weather: ${context.weather.weatherDescription}, ${context.weather.temperature}°C, Wind ${context.weather.windspeed} km/h`;
+                    }
+                } else {
+                    formatted += `\n- Location: ${context.locale.city} (from timezone)`;
+                }
+
+                if (context.network?.available) {
+                    formatted += `\n- Connection: ${context.network.effectiveType} (${context.network.downlink}Mbps, ${context.network.rtt}ms RTT)`;
+                }
+
+                return formatted;
+            }
+        };
+
         // ==================== SYNERGY SIDEBAR (Left Side Panel) ====================
         const SynergySidebar = {
             sessions: [],
@@ -13294,13 +13666,13 @@
 
             async toggleSidebar() {
                 console.log('🔷 [SYNERGY SIDEBAR] Toggle clicked');
-                
+
                 // Lazy load sessions on first sidebar open
                 if (!this.sessionsLoaded) {
                     console.log('⏳ [SYNERGY SIDEBAR] First use - lazy loading sessions...');
                     await this.loadSessions();
                 }
-                
+
                 // Toggle sidebar visibility
                 const sidebar = document.getElementById('synergy-sidebar-panel');
                 if (sidebar) {
@@ -13314,7 +13686,7 @@
                 try {
                     console.log('🔷 [SYNERGY SIDEBAR] Lazy loading sessions with batch endpoint...');
                     const startTime = performance.now();
-                    
+
                     // Use batch endpoint for optimized loading
                     const response = await fetch(`${API_BASE_URL}/api/synergy/sessions/batch`);
                     if (!response.ok) {
@@ -15257,6 +15629,14 @@
         function switchTab(tabId) {
             console.log(`🔧§ Switching to tab: ${tabId}`);
 
+            // Disconnect WebSocket if leaving Synergy tab
+            if (AppState.currentTab === 'synergy' && tabId !== 'synergy') {
+                if (typeof SynergyRealtime !== 'undefined' && SynergyRealtime.isConnected()) {
+                    console.log('🔷 [SYNERGY] Disconnecting WebSocket (leaving dashboard)');
+                    SynergyRealtime.disconnect();
+                }
+            }
+
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -15938,6 +16318,15 @@
                     });
                 console.log(` Sending ${conversationHistory.length} messages in conversation history (filtered empty messages)`);
 
+                // Gather browser context (timezone, location, weather, etc.)
+                let browserContext = {};
+                try {
+                    browserContext = await BrowserContext.getContext();
+                    console.log('[OK] Browser context gathered:', browserContext);
+                } catch (error) {
+                    console.warn('[WARN] Could not gather browser context:', error);
+                }
+
                 // Load user preferences and memories from backend
                 let userContext = {
                     nickname: '',
@@ -15951,7 +16340,9 @@
                     microsoft_authenticated: false,
                     preferred_tools: [],
                     custom_preferences: [],
-                    memories: []
+                    memories: [],
+                    // Add browser context
+                    browser: browserContext
                 };
 
                 try {
@@ -15984,9 +16375,20 @@
                             microsoft_authenticated: authPlatform === 'microsoft' || microsoftConnected,
                             preferred_tools: data.preferred_tools ? (typeof data.preferred_tools === 'string' ? JSON.parse(data.preferred_tools) : data.preferred_tools) : [],
                             custom_preferences: data.custom_preferences ? (typeof data.custom_preferences === 'string' ? JSON.parse(data.custom_preferences) : data.custom_preferences) : [],
-                            memories: data.ai_memories ? (typeof data.ai_memories === 'string' ? JSON.parse(data.ai_memories) : data.ai_memories) : []
+                            memories: data.ai_memories ? (typeof data.ai_memories === 'string' ? JSON.parse(data.ai_memories) : data.ai_memories) : [],
+                            // Preserve browser context gathered earlier
+                            browser: browserContext
                         };
                         console.log('[OK] User context loaded:', userContext);
+
+                        // Log browser context details
+                        if (browserContext.geolocation?.available) {
+                            console.log(`[OK] Browser location: ${browserContext.geolocation.latitude.toFixed(4)}, ${browserContext.geolocation.longitude.toFixed(4)}`);
+                            if (browserContext.weather?.available) {
+                                console.log(`[OK] Weather: ${browserContext.weather.weatherDescription}, ${browserContext.weather.temperature}C`);
+                            }
+                        }
+                        console.log(`[OK] Timezone: ${browserContext.locale?.timezone || 'unknown'}, Time: ${browserContext.datetime?.localTime || 'unknown'}`);
                         console.log(`🔧‘ CRITICAL: User authenticated with: ${authPlatform || 'local'} (Google: ${userContext.google_authenticated}, Microsoft: ${userContext.microsoft_authenticated})`);
                     } else {
                         console.warn(`[WARN] Could not load user context: ${prefsResponse.status} ${prefsResponse.statusText}`);
@@ -19115,10 +19517,11 @@
             }
 
             // [NEW] STEP 1: Fetch thread assignments FIRST (before creating columns)
+            // ✅ LAZY LOADING: Only get assignments metadata, not full thread list
             let assignments = {};
             if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.getThreadAssignments === 'function') {
                 assignments = await ThreadManager.getThreadAssignments();
-                console.log(`[Multi - Agent] Fetched thread assignments: `, assignments);
+                console.log('🔷 [Multi-Agent] Fetched thread assignments (lazy loading enabled)');
             }
 
             // [NEW] STEP 2: Calculate highest agent ID needed
@@ -21742,6 +22145,7 @@
         const ThreadManager = {
             currentThreadId: null,
             threads: [],
+            threadsLoaded: false,  // ✅ LAZY LOADING: Track if threads have been loaded
             autoSaveInterval: null,
             currentFilter: 'active',  // NEW: Filter state (active/archived)
 
@@ -22610,7 +23014,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         <div class="synergy-sync-modal" onclick="event.stopPropagation()">
                             <div class="modal-header">
                                 <h3><i class="fas fa-link"></i> Link to Synergy Session</h3>
-                                <button class="modal-close" onclick="document.getElementById('synergySyncModalOverlay').remove()">Ã—</button>
+                                <button class="modal-close" onclick="document.getElementById('synergySyncModalOverlay').remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                             
                             <div class="modal-body">
@@ -25431,7 +25837,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         <div class="new-chat-modal">
                             <div class="modal-header">
                                 <h3>âœï¸ Edit Thread</h3>
-                                <button class="modal-close" onclick="document.getElementById('editThreadModalOverlay').remove()">Ã—</button>
+                                <button class="modal-close" onclick="document.getElementById('editThreadModalOverlay').remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                             <div class="modal-body">
                                 <form id="editThreadForm">
@@ -25858,8 +26266,10 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 <div class="modal-overlay" id="newChatModalOverlay" onclick="if(event.target.id === 'newChatModalOverlay') document.getElementById('newChatModalOverlay').remove()">
     <div class="new-chat-modal" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h3> Start New Chat</h3>
-            <button class="modal-close" onclick="document.getElementById('newChatModalOverlay').remove()">x</button>
+            <h3><i class="fas fa-plus-circle"></i> Start New Chat</h3>
+            <button class="modal-close" onclick="document.getElementById('newChatModalOverlay').remove()">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
                                                         <div class="modal-body">
                                                             <form id="newChatForm">
@@ -27148,7 +27558,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                     <div class="branch-location-modal">
                                                         <div class="modal-header">
                                                             <h3>🌍¿ Create Branch</h3>
-                                                            <button class="modal-close" onclick="document.getElementById('branchModalOverlay').remove()">Ã—</button>
+                                                            <button class="modal-close" onclick="document.getElementById('branchModalOverlay').remove()">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
                                                         </div>
                                                         <div class="modal-body">
                                                             <div class="form-group">
@@ -27247,7 +27659,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                     <div class="tag-modal">
                                                         <div class="modal-header">
                                                             <h3> Manage Tags</h3>
-                                                            <button class="modal-close" onclick="document.getElementById('tagModalOverlay').remove()">Ã—</button>
+                                                            <button class="modal-close" onclick="document.getElementById('tagModalOverlay').remove()">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
                                                         </div>
                                                         <div class="modal-body">
                                                             ${Object.entries(tagCategories).map(([category, tags]) => `
@@ -27457,7 +27871,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                     <div class="synergy-picker-modal">
                                                         <div class="modal-header">
                                                             <h3> Link to Synergy Card</h3>
-                                                            <button class="modal-close" onclick="document.getElementById('synergyPickerOverlay').remove()">Ã—</button>
+                                                            <button class="modal-close" onclick="document.getElementById('synergyPickerOverlay').remove()">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
                                                         </div>
                                                         <div class="modal-body">
                                                             <div class="synergy-card-list">
@@ -28261,8 +28677,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             },
 
             init() {
+                // Check if there's an OAuth callback token in the URL FIRST
+                const urlParams = new URLSearchParams(window.location.search);
+                const hasOAuthToken = urlParams.has('token');
+
                 // DEVELOPMENT MODE: Auto-login for localhost testing
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                // BUT SKIP if there's an OAuth callback token
+                if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !hasOAuthToken) {
                     const hasDevUser = localStorage.getItem('dev_mode_user');
                     if (!hasDevUser) {
                         console.log('🔧§ [DEV MODE] Setting up default test user for device lock testing...');
@@ -28279,7 +28700,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         localStorage.setItem('authToken', this.token);
                         localStorage.setItem('userProfile', JSON.stringify(mockUser));
                         localStorage.setItem('dev_mode_user', 'true');
-                        console.log('âœ… [DEV MODE] Auto-logged in as test user');
+                        console.log('✅ [DEV MODE] Auto-logged in as test user');
                         this.showMainApp();
                         return;
                     }
@@ -30355,6 +30776,10 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 window.history.replaceState({}, document.title, window.location.pathname);
             } else if (token) {
                 console.log('OAuth successful, token received');
+
+                // Clear dev mode flag - real OAuth login succeeded
+                localStorage.removeItem('dev_mode_user');
+
                 // Store token
                 localStorage.setItem('authToken', token);
                 UserAuth.token = token;
@@ -33372,8 +33797,14 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 this.startAutoRefresh();
 
                 // Initialize WebSocket for real-time updates
-                // DISABLED: WebSocket endpoint not yet implemented in Flask backend
-                // this.initWebSocket();
+                if (typeof SynergyRealtime !== 'undefined') {
+                    try {
+                        await SynergyRealtime.connect();
+                        console.log('✅ [SYNERGY] Real-time WebSocket connected');
+                    } catch (error) {
+                        console.error('⚠️ [SYNERGY] Failed to connect WebSocket:', error);
+                    }
+                }
 
                 // Initialize Google Services
                 // DISABLED: Requires OAuth configuration in Google Cloud Console
@@ -33397,36 +33828,42 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             async loadSessions() {
                 try {
-                    console.log('[SYNERGY] Loading sessions with internal docs (BATCH)...');
+                    console.log('[SYNERGY] Loading sessions with DataLoader (cached + batched)...');
                     const startTime = performance.now();
-                    
-                    // NEW: Use batch endpoint that loads sessions + internal docs in 1-2 queries
-                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/sessions/batch`, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
 
-                    if (!response.ok) {
-                        throw new Error(`API error: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    if (data.success) {
-                        this.sessions = data.sessions || [];
+                    // Use DataLoader for caching and batching
+                    if (typeof DataLoader !== 'undefined' && DataLoader.synergy) {
+                        this.sessions = await DataLoader.synergy.loadAll();
                         const endTime = performance.now();
                         const loadTime = (endTime - startTime).toFixed(0);
-                        console.log(`[SYNERGY] ✅ Batch loaded ${this.sessions.length} sessions with internal docs in ${loadTime}ms`);
-                        
-                        // Calculate total internal docs
-                        const totalDocs = this.sessions.reduce((sum, s) => sum + (s.internal_docs_count || 0), 0);
-                        console.log(`[SYNERGY] 📄 Total internal docs: ${totalDocs}`);
+                        console.log(`[SYNERGY] ✅ Loaded ${this.sessions.length} sessions via DataLoader in ${loadTime}ms`);
                     } else {
-                        throw new Error(data.error || 'Batch load failed');
+                        // Fallback: Direct API call if DataLoader not available
+                        console.warn('[SYNERGY] DataLoader not available, using direct API call');
+                        const response = await fetch(`${this.apiBaseUrl}/api/synergy/sessions/batch`, {
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`API error: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        if (data.success) {
+                            this.sessions = data.sessions || [];
+                            const endTime = performance.now();
+                            const loadTime = (endTime - startTime).toFixed(0);
+                            console.log(`[SYNERGY] ✅ Batch loaded ${this.sessions.length} sessions in ${loadTime}ms`);
+                        } else {
+                            throw new Error(data.error || 'Batch load failed');
+                        }
                     }
 
-                    // NO LONGER NEEDED: loadInternalDocsForSessions() - already loaded in batch!
+                    // Calculate total internal docs
+                    const totalDocs = this.sessions.reduce((sum, s) => sum + (s.internal_docs_count || 0), 0);
+                    console.log(`[SYNERGY] 📄 Total internal docs: ${totalDocs}`);
+
                 } catch (error) {
                     console.warn('[SYNERGY] API unavailable, using mock data:', error.message);
                     // Fallback to mock data if API is unavailable
@@ -33992,7 +34429,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 let tags = this.parseJsonField(session.tags, []);
                 let nextSteps = this.parseJsonField(session.next_steps, []);
                 let documents = this.parseJsonField(session.documents, []);
-                
+
                 // ✅ NEW: Merge batch-loaded internal_docs with existing documents
                 const internalDocs = session.internal_docs || [];
                 if (internalDocs.length > 0) {
@@ -34644,6 +35081,150 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     completedEl.textContent = completedCount;
                 }
             },
+
+            // ==================== REAL-TIME WEBSOCKET UPDATE METHODS ====================
+
+            /**
+             * Add new session card in real-time (WebSocket event handler)
+             * @param {Object} session - Session data from WebSocket
+             */
+            addCardRealtime(session) {
+                console.log('[REALTIME] Adding new session card:', session.session_id);
+
+                // Check if card already exists
+                const existingCard = document.querySelector(`.kanban-card[data-session-id="${session.session_id}"]`);
+                if (existingCard) {
+                    console.log('[REALTIME] Card already exists, updating instead');
+                    this.updateCardRealtime(session.session_id, session);
+                    return;
+                }
+
+                // Add to sessions array
+                this.sessions.push(session);
+
+                // Render the new card
+                this.renderCard(session);
+
+                // Update column counts and stats
+                this.updateColumnCounts();
+                this.updateStats();
+
+                // Add entrance animation
+                const card = document.querySelector(`.kanban-card[data-session-id="${session.session_id}"]`);
+                if (card) {
+                    card.style.animation = 'slideInFromTop 0.3s ease-out';
+                    setTimeout(() => {
+                        card.style.animation = '';
+                    }, 300);
+                }
+            },
+
+            /**
+             * Update existing session card in real-time (WebSocket event handler)
+             * @param {string} sessionId - Session ID to update
+             * @param {Object} updates - Updated fields
+             */
+            updateCardRealtime(sessionId, updates) {
+                console.log('[REALTIME] Updating session card:', sessionId, updates);
+
+                // Find and update session in array
+                const sessionIndex = this.sessions.findIndex(s => s.session_id === sessionId);
+                if (sessionIndex === -1) {
+                    console.warn('[REALTIME] Session not found in local cache:', sessionId);
+                    return;
+                }
+
+                // Merge updates into existing session
+                const session = this.sessions[sessionIndex];
+                Object.assign(session, updates);
+
+                // Find the card element
+                const card = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
+                if (!card) {
+                    console.warn('[REALTIME] Card element not found:', sessionId);
+                    return;
+                }
+
+                // Check if column changed (move to different column)
+                const currentColumn = card.closest('.kanban-cards-container');
+                const newColumnId = `${updates.kanban_column || session.kanban_column}-cards`;
+                const newColumn = document.getElementById(newColumnId);
+
+                if (currentColumn && newColumn && currentColumn !== newColumn) {
+                    // Column changed - move card with animation
+                    card.style.opacity = '0.3';
+                    setTimeout(() => {
+                        newColumn.appendChild(card);
+                        card.style.animation = 'slideInFromRight 0.3s ease-out';
+                        card.style.opacity = '1';
+                        setTimeout(() => {
+                            card.style.animation = '';
+                        }, 300);
+                        this.updateColumnCounts();
+                    }, 200);
+                } else {
+                    // Same column - update in place with subtle flash
+                    card.style.transition = 'background-color 0.3s ease';
+                    card.style.backgroundColor = 'rgba(88, 166, 255, 0.1)';
+
+                    // Save expanded state
+                    const wasExpanded = card.dataset.expanded === 'true';
+
+                    // Re-render the card
+                    const container = card.parentElement;
+                    const oldCard = card;
+                    this.renderCard(session);
+                    const newCard = container.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
+
+                    // Restore expanded state
+                    if (newCard && wasExpanded) {
+                        newCard.dataset.expanded = 'true';
+                    }
+
+                    // Fade background back
+                    setTimeout(() => {
+                        if (newCard) {
+                            newCard.style.backgroundColor = '';
+                        }
+                    }, 300);
+                }
+
+                this.updateStats();
+            },
+
+            /**
+             * Remove session card in real-time (WebSocket event handler)
+             * @param {string} sessionId - Session ID to remove
+             */
+            removeCardRealtime(sessionId) {
+                console.log('[REALTIME] Removing session card:', sessionId);
+
+                // Remove from sessions array
+                const sessionIndex = this.sessions.findIndex(s => s.session_id === sessionId);
+                if (sessionIndex !== -1) {
+                    this.sessions.splice(sessionIndex, 1);
+                }
+
+                // Find and remove card with fade-out animation
+                const card = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+
+                    setTimeout(() => {
+                        card.remove();
+                        this.updateColumnCounts();
+                        this.updateStats();
+                    }, 300);
+                } else {
+                    // Card not found, still update counts/stats
+                    this.updateColumnCounts();
+                    this.updateStats();
+                }
+            },
+
+            // ==================== END REAL-TIME METHODS ====================
 
             async refreshBoard() {
                 await this.ensureInitialized();
@@ -35710,7 +36291,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         <div class="thread-picker-modal" onclick="event.stopPropagation()">
                             <div class="modal-header">
                                 <h3><i class="fas fa-play"></i> Resume Session: ${this.escapeHtml(session.title)}</h3>
-                                <button class="modal-close" onclick="document.getElementById('threadPickerModalOverlay').remove()">Ã—</button>
+                                <button class="modal-close" onclick="document.getElementById('threadPickerModalOverlay').remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                             
                             <div class="modal-body">
@@ -39579,6 +40162,10 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             console.log('%c\n💡 TIP: Run testRightSidebarButtons() in console for full diagnostic', 'background: #f59e0b; color: white; padding: 4px 8px; font-style: italic;');
         }, 2000);
     </script>
+
+    <!-- ==================== WORKFLOW SLUG INTEGRATION ==================== -->
+    <link rel="stylesheet" href="external/modules/workflow-slug-integration.css">
+    <script src="external/modules/workflow-slug-integration.js"></script>
 
 </body>
 

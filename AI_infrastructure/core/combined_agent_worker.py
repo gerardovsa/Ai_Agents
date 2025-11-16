@@ -652,14 +652,16 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
     """
     Context-aware truncation for tool results
     
-    CRITICAL DISTINCTION:
-    1. INTENTIONAL reads (read_file, get_document, download) → Allow large results (up to 50K tokens)
-    2. BULK queries (list, search, get_all) → Truncate aggressively (2K tokens)
-    3. Single records (get_by_id, find_one) → Medium size (10K tokens)
+    TOKEN LIMITS BY INTENT:
+    1. INTENTIONAL reads (read_file, get_document, download) → 60K tokens (240KB)
+    2. BULK queries (list, search, get_all) → 2K tokens (8KB)
+    3. Single records (get_by_id, find_one) → 10K tokens (40KB)
+    4. Meta-tools/Unknown (execute_tool, etc.) → 1K tokens (4KB) - VERY STRICT
     
     This prevents:
     - Blocking legitimate document reads (user asks "read this 100-page report")
     - Allowing accidental bulk dumps (Xero returns 1000 clients unexpectedly)
+    - Meta-tool results ballooning conversation history (execute_tool wrapping bulk queries)
     
     Args:
         result: Tool execution result (any type)
@@ -672,8 +674,8 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
     # STEP 1: Determine tool intent and set appropriate limits
     tool_lower = tool_name.lower()
     
-    # INTENTIONAL LARGE READS - Allow up to 50K tokens (~200KB)
-    # These are explicit user requests for full content
+    # INTENTIONAL LARGE READS - Allow up to 60K tokens (~240KB)
+    # These are explicit user requests for full content (1-3 files typically)
     intentional_read_keywords = [
         'read_file', 'get_file', 'download', 'fetch_document',
         'get_document', 'read_document', 'get_content', 'fetch_content',
@@ -697,7 +699,7 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
     
     # Determine limit based on tool type
     if any(keyword in tool_lower for keyword in intentional_read_keywords):
-        max_tokens = 50000  # 200KB - Allow full documents
+        max_tokens = 60000  # 240KB - Allow full documents (1-3 large files)
         truncate_aggressive = False
         intent = "INTENTIONAL_READ"
     elif any(keyword in tool_lower for keyword in bulk_query_keywords):
@@ -709,8 +711,8 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
         truncate_aggressive = False
         intent = "SINGLE_RECORD"
     else:
-        max_tokens = 5000  # 20KB - Default moderate limit
-        truncate_aggressive = False
+        max_tokens = 1000  # 4KB - Very strict for meta-tools and unknown tools
+        truncate_aggressive = True
         intent = "UNKNOWN"
     
     # Convert to string first
@@ -724,18 +726,43 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
     
     # Calculate size (rough: 4 chars = 1 token)
     max_chars = max_tokens * 4
+    estimated_tokens = len(result_str) // 4
     
-    # If small enough, return as-is
+    # If small enough, return as-is WITH TOKEN COUNT
     if len(result_str) <= max_chars:
-        return result_str
+        # Log successful result (no truncation needed)
+        print(f"[Combined Worker] ✅ Tool result within limits:")
+        print(f"  Tool: {tool_name}")
+        print(f"  Intent: {intent}")
+        print(f"  Size: {len(result_str):,} chars (~{estimated_tokens:,} tokens)")
+        print(f"  Limit: {max_chars:,} chars (~{max_tokens:,} tokens)")
+        print(f"  Status: No truncation needed")
+        
+        # Add metadata wrapper with token count for AI's awareness
+        if isinstance(result, (dict, list)):
+            return json.dumps({
+                "_metadata": {
+                    "estimated_tokens": estimated_tokens,
+                    "size_bytes": len(result_str),
+                    "tool_name": tool_name,
+                    "intent": intent,
+                    "truncated": False
+                },
+                "data": result
+            }, indent=2)
+        else:
+            # For plain text/strings, prepend metadata comment
+            metadata_header = f"[METADATA: {estimated_tokens} tokens, {len(result_str)} bytes, tool={tool_name}, truncated=False]\n\n"
+            return metadata_header + result_str
     
     # LARGE RESULT - Need to truncate intelligently
     print(f"[Combined Worker] ⚠️  Large tool result detected:")
     print(f"  Tool: {tool_name}")
     print(f"  Intent: {intent}")
-    print(f"  Size: {len(result_str):,} chars (~{len(result_str)//4:,} tokens)")
+    print(f"  Size: {len(result_str):,} chars (~{estimated_tokens:,} tokens)")
     print(f"  Limit: {max_chars:,} chars (~{max_tokens:,} tokens)")
     print(f"  Action: {'Aggressive' if truncate_aggressive else 'Smart'} truncation")
+    print(f"  Token reduction: {estimated_tokens:,} → ~{max_tokens:,} tokens ({100 - (max_tokens/estimated_tokens*100):.1f}% reduction)")
     
     # Handle different data types
     if isinstance(result, list):
@@ -748,14 +775,24 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
         else:
             page_size = 50
         
+        # Build pagination guidance based on tool
+        pagination_help = _get_pagination_guidance(tool_name, len(result))
+        
         truncated = {
+            "_metadata": {
+                "estimated_tokens": len(json.dumps(result[:page_size])) // 4,
+                "original_tokens": estimated_tokens,
+                "size_bytes": len(result_str),
+                "tool_name": tool_name,
+                "intent": intent,
+                "truncated": True
+            },
             "result_type": "list",
             "total_items": len(result),
             "showing_items": min(page_size, len(result)),
             "sample_data": result[:page_size],
-            "truncation_note": f"⚠️ Result truncated: Showing {min(page_size, len(result))} of {len(result)} items. To get more, use pagination parameters or refine your query.",
-            "tool_name": tool_name,
-            "suggestion": "Use pagination (limit/offset) or add filters to reduce result size" if len(result) > page_size else None
+            "truncation_note": f"⚠️ Result truncated: Showing {min(page_size, len(result))} of {len(result)} items. Original result was ~{estimated_tokens:,} tokens.",
+            "pagination_guidance": pagination_help
         }
         return json.dumps(truncated, indent=2)
     
@@ -777,13 +814,20 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
         sample_keys = keys[:sample_size]
         
         truncated = {
+            "_metadata": {
+                "estimated_tokens": len(json.dumps({k: result[k] for k in sample_keys})) // 4,
+                "original_tokens": estimated_tokens,
+                "size_bytes": len(result_str),
+                "tool_name": tool_name,
+                "intent": intent,
+                "truncated": True
+            },
             "result_type": "dict",
             "total_keys": len(keys),
             "showing_keys": len(sample_keys),
             "keys_list": sample_keys,
             "sample_data": {k: _truncate_value(result[k], value_preview) for k in sample_keys},
-            "truncation_note": f"⚠️ Result truncated: Showing {len(sample_keys)} of {len(keys)} keys.",
-            "tool_name": tool_name,
+            "truncation_note": f"⚠️ Result truncated: Showing {len(sample_keys)} of {len(keys)} keys. Original result was ~{estimated_tokens:,} tokens.",
             "suggestion": "Access specific keys by name to see full values" if len(keys) > sample_size else None
         }
         return json.dumps(truncated, indent=2)
@@ -818,6 +862,56 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
                 "tool_name": tool_name
             }
             return json.dumps(truncated, indent=2)
+
+
+def _get_pagination_guidance(tool_name: str, total_items: int) -> dict:
+    """
+    Generate tool-specific pagination guidance
+    
+    Returns dict with:
+    - parameters: List of pagination params the tool supports
+    - example: Example usage with pagination
+    - recommendation: Specific advice for this result size
+    """
+    tool_lower = tool_name.lower()
+    
+    # Common pagination patterns by platform
+    if 'gmail' in tool_lower or 'google' in tool_lower:
+        return {
+            "parameters": ["max_results (default: 10, max: 100)", "page_token (for next page)"],
+            "example": f"{tool_name}(max_results=50, page_token='...')",
+            "recommendation": f"With {total_items} items, use max_results=100 and iterate with page_token"
+        }
+    elif 'xero' in tool_lower:
+        return {
+            "parameters": ["page (1-based)", "if_modified_since (date filter)", "where (filter expression)"],
+            "example": f"{tool_name}(page=1, if_modified_since='2024-11-01')",
+            "recommendation": f"With {total_items} items, add date filter: if_modified_since='2024-11-01' to reduce results"
+        }
+    elif 'microsoft' in tool_lower or 'outlook' in tool_lower:
+        return {
+            "parameters": ["top (page size, default: 10)", "skip (offset)", "filter (OData filter)"],
+            "example": f"{tool_name}(top=50, skip=0, filter='receivedDateTime ge 2024-11-01')",
+            "recommendation": f"With {total_items} items, use top=100 and filter by date"
+        }
+    elif 'stripe' in tool_lower:
+        return {
+            "parameters": ["limit (default: 10, max: 100)", "starting_after (cursor for next page)"],
+            "example": f"{tool_name}(limit=100, starting_after='cus_...')",
+            "recommendation": f"With {total_items} items, use limit=100 and iterate with starting_after cursor"
+        }
+    elif 'slack' in tool_lower:
+        return {
+            "parameters": ["limit (default: 100)", "cursor (for next page)"],
+            "example": f"{tool_name}(limit=100, cursor='...')",
+            "recommendation": f"With {total_items} items, results should already be paginated"
+        }
+    else:
+        return {
+            "parameters": ["Check tool schema with get_tool_schema('" + tool_name + "')"],
+            "example": f"Call get_tool_schema('{tool_name}') to see available pagination parameters",
+            "recommendation": f"With {total_items} items, look for limit/offset/page parameters in the tool schema"
+        }
 
 
 def _truncate_value(value: Any, max_length: int) -> Any:
@@ -1327,7 +1421,7 @@ def run_simple_agent_worker(
                     result_str = _inject_session_status(
                         tool_result_str=result_str,
                         iteration=tool_iteration,
-                        max_iterations=max_iterations,
+                        max_iterations=max_tool_iterations,
                         cumulative_tokens=cumulative_tool_result_tokens + iteration_token_count,
                         conversation_tokens=conversation_size_estimate,
                         tool_name=tool_name

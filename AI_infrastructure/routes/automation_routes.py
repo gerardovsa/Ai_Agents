@@ -73,7 +73,7 @@ def init_automation_tables():
             # Check if tables exist
             cursor.execute("""
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
+                    SELECT 1 FROM information_schema.tables 
                     WHERE table_name = 'visual_automations'
                 )
             """)
@@ -278,17 +278,11 @@ def save_automation():
         automation_id = data['slug']
         
         # Convert ui_json and execution_json to strings for database
-        visual_flow_json = json.dumps(data.get('ui_json', {}))
-        execution_json = json.dumps(data.get('execution_json', {}))
+        ui_json_str = json.dumps(data.get('ui_json', {}))
+        execution_json_str = json.dumps(data.get('execution_json', {}))
         
-        # Generate execution prompt from shapes if not provided
-        execution_prompt = data.get('execution_prompt', f"Execute workflow: {data['title']}")
-        
-        # Extract tools from execution_json
-        tools_sequence = []
-        if 'execution_json' in data and isinstance(data['execution_json'], dict):
-            tools_sequence = [step.get('tool') for step in data['execution_json'].get('steps', []) if 'tool' in step]
-        tools_sequence_json = json.dumps(tools_sequence)
+        # Get slug from data (required for workflow identification)
+        slug = data.get('slug', '')
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -305,42 +299,41 @@ def save_automation():
             cursor.execute("""
                 UPDATE visual_automations 
                 SET title = ?,
+                    slug = ?,
                     description = ?,
-                    visual_flow_json = ?,
-                    execution_prompt = ?,
-                    tools_sequence = ?,
+                    category = ?,
+                    ui_json = ?,
+                    execution_json = ?,
                     status = ?,
-                    parent_automation_id = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE automation_id = ?
             """, (
                 data['title'],
+                slug,
                 data.get('description', ''),
-                visual_flow_json,
-                execution_prompt,
-                tools_sequence_json,
+                data.get('category', 'workflow'),
+                ui_json_str,
+                execution_json_str,
                 data.get('status', 'draft'),
-                data.get('parent_automation_id'),
                 automation_id
             ))
         else:
             # Insert
             cursor.execute("""
                 INSERT INTO visual_automations (
-                    automation_id, user_id, title, description,
-                    visual_flow_json, execution_prompt, tools_sequence,
-                    status, parent_automation_id
+                    automation_id, user_id, title, slug, description, category,
+                    ui_json, execution_json, status
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 automation_id,
                 user_id,
                 data['title'],
+                slug,
                 data.get('description', ''),
-                visual_flow_json,
-                execution_prompt,
-                tools_sequence_json,
-                data.get('status', 'draft'),
-                data.get('parent_automation_id')
+                data.get('category', 'workflow'),
+                ui_json_str,
+                execution_json_str,
+                data.get('status', 'draft')
             ))
         
         conn.commit()
@@ -365,6 +358,7 @@ def list_automations():
         # Query parameters
         category = request.args.get('category')
         status = request.args.get('status')
+        slug = request.args.get('slug')  # NEW: Filter by slug
         limit = int(request.args.get('limit', 50))
         
         conn = get_db_connection()
@@ -381,6 +375,11 @@ def list_automations():
             WHERE user_id = {placeholder}
         """
         params = [user_id]
+        
+        # NEW: Filter by slug (for workflow slug integration)
+        if slug:
+            query += f" AND slug = {placeholder}"
+            params.append(slug)
         
         if category:
             query += f" AND category = {placeholder}"

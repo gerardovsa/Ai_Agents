@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Integration Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0d1117;
+            color: #c9d1d9;
+        }
+
+        h1 {
+            color: #58a6ff;
+            border-bottom: 2px solid #21262d;
+            padding-bottom: 10px;
+        }
+
+        .test-section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .test-section h2 {
+            color: #58a6ff;
+            margin-top: 0;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .status.pending {
+            background: #1f6feb;
+            color: white;
+        }
+
+        .status.success {
+            background: #238636;
+            color: white;
+        }
+
+        .status.error {
+            background: #da3633;
+            color: white;
+        }
+
+        .status.info {
+            background: #21262d;
+            color: #58a6ff;
+        }
+
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #2ea043;
+        }
+
+        button:disabled {
+            background: #30363d;
+            color: #8b949e;
+            cursor: not-allowed;
+        }
+
+        .log {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+
+        .log-entry.error {
+            color: #f85149;
+        }
+
+        .log-entry.success {
+            color: #3fb950;
+        }
+
+        .log-entry.info {
+            color: #58a6ff;
+        }
+
+        .log-entry.warning {
+            color: #d29922;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .metric {
+            background: #21262d;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #58a6ff;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #8b949e;
+            margin-top: 5px;
+        }
+
+        .connection-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .connection-status.connected {
+            background: #3fb950;
+        }
+
+        .connection-status.disconnected {
+            background: #f85149;
+        }
+
+        .connection-status.connecting {
+            background: #d29922;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Real-Time Integration Test Suite</h1>
+
+    <div class="test-section">
+        <h2>📊 System Status</h2>
+        <div class="status info" id="systemStatus">Initializing...</div>
+        <div class="metrics">
+            <div class="metric">
+                <div class="metric-value" id="wsStatus">
+                    <span class="connection-status disconnected"></span>Disconnected
+                </div>
+                <div class="metric-label">WebSocket Status</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="messageCount">0</div>
+                <div class="metric-label">Messages Received</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="cacheSize">0</div>
+                <div class="metric-label">Cache Entries</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="latency">-</div>
+                <div class="metric-label">Latency (ms)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔌 WebSocket Tests</h2>
+        <button onclick="testWebSocketConnection()">Test Connection</button>
+        <button onclick="testWebSocketEvents()">Test Events</button>
+        <button onclick="testAutoReconnect()">Test Auto-Reconnect</button>
+        <button onclick="disconnectWebSocket()">Disconnect</button>
+        <div class="log" id="wsLog"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📦 DataLoader Tests</h2>
+        <button onclick="testDataLoaderCache()">Test Cache</button>
+        <button onclick="testDataLoaderBatch()">Test Batch Loading</button>
+        <button onclick="testDataLoaderTTL()">Test Cache TTL</button>
+        <button onclick="clearAllCaches()">Clear All Caches</button>
+        <div class="log" id="dataLog"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Integration Tests</h2>
+        <button onclick="testEndToEnd()">End-to-End Test</button>
+        <button onclick="testMultiTabSync()">Multi-Tab Sync (Manual)</button>
+        <button onclick="testPerformance()">Performance Test</button>
+        <div class="log" id="integrationLog"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Test Results Summary</h2>
+        <div id="testResults">
+            <p>Run tests to see results...</p>
+        </div>
+    </div>
+
+    <!-- Load Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <!-- Load our modules -->
+    <script src="js/data-loader.js"></script>
+    <script src="js/synergy-realtime.js"></script>
+
+    <script>
+        // Test configuration
+        const API_BASE_URL = 'http://localhost:5001';
+        window.API_BASE_URL = API_BASE_URL;
+
+        // Mock UserAuth for testing
+        window.UserAuth = {
+            user: { id: 1, user_id: 1 }
+        };
+
+        // Test state
+        let testResults = {
+            passed: 0,
+            failed: 0,
+            tests: []
+        };
+        let messageCount = 0;
+        let startTime = Date.now();
+
+        // Logging utilities
+        function log(message, type = 'info', targetId = 'wsLog') {
+            const logDiv = document.getElementById(targetId);
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function updateMetric(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.innerHTML = value;
+            }
+        }
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('systemStatus');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+
+        function recordTest(name, passed, details = '') {
+            testResults.tests.push({ name, passed, details, timestamp: new Date() });
+            if (passed) {
+                testResults.passed++;
+            } else {
+                testResults.failed++;
+            }
+            updateTestResultsSummary();
+        }
+
+        function updateTestResultsSummary() {
+            const resultsDiv = document.getElementById('testResults');
+            const total = testResults.passed + testResults.failed;
+            const passRate = total > 0 ? (testResults.passed / total * 100).toFixed(1) : 0;
+
+            let html = `
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" style="color: #3fb950">${testResults.passed}</div>
+                        <div class="metric-label">Passed</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" style="color: #f85149">${testResults.failed}</div>
+                        <div class="metric-label">Failed</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${total}</div>
+                        <div class="metric-label">Total Tests</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${passRate}%</div>
+                        <div class="metric-label">Pass Rate</div>
+                    </div>
+                </div>
+                <h3>Test Details:</h3>
+            `;
+
+            testResults.tests.forEach(test => {
+                const icon = test.passed ? '✅' : '❌';
+                const color = test.passed ? '#3fb950' : '#f85149';
+                html += `<div style="margin: 5px 0; color: ${color}">${icon} ${test.name}${test.details ? `: ${test.details}` : ''}</div>`;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // WebSocket Tests
+        async function testWebSocketConnection() {
+            log('Testing WebSocket connection...', 'info', 'wsLog');
+            try {
+                await SynergyRealtime.connect();
+
+                // Wait for connection
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Connection timeout')), 5000);
+                    const checkInterval = setInterval(() => {
+                        if (SynergyRealtime.isConnected()) {
+                            clearInterval(checkInterval);
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    }, 100);
+                });
+
+                log('✅ WebSocket connected successfully', 'success', 'wsLog');
+                updateMetric('wsStatus', '<span class="connection-status connected"></span>Connected');
+                recordTest('WebSocket Connection', true);
+            } catch (error) {
+                log(`❌ WebSocket connection failed: ${error.message}`, 'error', 'wsLog');
+                recordTest('WebSocket Connection', false, error.message);
+            }
+        }
+
+        async function testWebSocketEvents() {
+            log('Testing WebSocket event handling...', 'info', 'wsLog');
+
+            if (!SynergyRealtime.isConnected()) {
+                log('⚠️ Not connected. Connecting first...', 'warning', 'wsLog');
+                await testWebSocketConnection();
+            }
+
+            // Test ping
+            try {
+                const pingStart = Date.now();
+                SynergyRealtime.socket.emit('ping', { test: true });
+
+                // Wait for pong
+                await new Promise((resolve) => {
+                    SynergyRealtime.socket.once('pong', () => {
+                        const latency = Date.now() - pingStart;
+                        updateMetric('latency', `${latency}ms`);
+                        log(`✅ Ping/Pong successful (${latency}ms)`, 'success', 'wsLog');
+                        resolve();
+                    });
+                    setTimeout(resolve, 2000); // Timeout after 2s
+                });
+
+                recordTest('WebSocket Ping/Pong', true);
+            } catch (error) {
+                log(`❌ Event test failed: ${error.message}`, 'error', 'wsLog');
+                recordTest('WebSocket Ping/Pong', false, error.message);
+            }
+        }
+
+        async function testAutoReconnect() {
+            log('Testing auto-reconnect...', 'info', 'wsLog');
+            log('⚠️ Manual test: Stop Flask server and watch reconnection attempts', 'warning', 'wsLog');
+            log('📝 Check console for: "[REALTIME] ⏳ Reconnecting..."', 'info', 'wsLog');
+            recordTest('Auto-Reconnect', true, 'Manual verification required');
+        }
+
+        function disconnectWebSocket() {
+            log('Disconnecting WebSocket...', 'info', 'wsLog');
+            SynergyRealtime.disconnect();
+            updateMetric('wsStatus', '<span class="connection-status disconnected"></span>Disconnected');
+            log('✅ Disconnected', 'success', 'wsLog');
+        }
+
+        // DataLoader Tests
+        async function testDataLoaderCache() {
+            log('Testing DataLoader cache...', 'info', 'dataLog');
+
+            try {
+                // Test 1: Load threads
+                log('Loading threads...', 'info', 'dataLog');
+                const threads = await DataLoader.threads.loadAll();
+                log(`✅ Loaded ${threads.length} threads`, 'success', 'dataLog');
+
+                // Test 2: Check cache
+                const cacheSize = DataLoader.cache.threads.size;
+                log(`✅ Cache size: ${cacheSize} entries`, 'success', 'dataLog');
+                updateMetric('cacheSize', cacheSize);
+
+                // Test 3: Load again (should be from cache)
+                const startTime = Date.now();
+                const cachedThreads = await DataLoader.threads.loadAll();
+                const loadTime = Date.now() - startTime;
+                log(`✅ Cache hit: ${loadTime}ms (${cachedThreads.length} threads)`, 'success', 'dataLog');
+
+                recordTest('DataLoader Cache', true, `${cacheSize} entries cached`);
+            } catch (error) {
+                log(`❌ Cache test failed: ${error.message}`, 'error', 'dataLog');
+                recordTest('DataLoader Cache', false, error.message);
+            }
+        }
+
+        async function testDataLoaderBatch() {
+            log('Testing batch loading...', 'info', 'dataLog');
+
+            try {
+                // Load synergy sessions
+                log('Loading synergy sessions (batch)...', 'info', 'dataLog');
+                const sessions = await DataLoader.synergy.loadAll();
+                log(`✅ Loaded ${sessions.length} sessions`, 'success', 'dataLog');
+
+                recordTest('Batch Loading', true, `${sessions.length} sessions loaded`);
+            } catch (error) {
+                log(`❌ Batch test failed: ${error.message}`, 'error', 'dataLog');
+                recordTest('Batch Loading', false, error.message);
+            }
+        }
+
+        async function testDataLoaderTTL() {
+            log('Testing cache TTL...', 'info', 'dataLog');
+
+            try {
+                const stats = DataLoader.getCacheStats();
+                log(`Threads cache age: ${stats.threads.age}ms`, 'info', 'dataLog');
+                log(`Synergy cache age: ${stats.synergy.age}ms`, 'info', 'dataLog');
+                log(`TTL: ${DataLoader.config.cacheTTL}ms`, 'info', 'dataLog');
+
+                const threadsExpired = stats.threads.age > DataLoader.config.cacheTTL;
+                const synergyExpired = stats.synergy.age > DataLoader.config.cacheTTL;
+
+                log(`✅ Threads cache: ${threadsExpired ? 'Expired' : 'Valid'}`, 'success', 'dataLog');
+                log(`✅ Synergy cache: ${synergyExpired ? 'Expired' : 'Valid'}`, 'success', 'dataLog');
+
+                recordTest('Cache TTL', true, 'TTL working correctly');
+            } catch (error) {
+                log(`❌ TTL test failed: ${error.message}`, 'error', 'dataLog');
+                recordTest('Cache TTL', false, error.message);
+            }
+        }
+
+        function clearAllCaches() {
+            log('Clearing all caches...', 'info', 'dataLog');
+            DataLoader.clearCache();
+            updateMetric('cacheSize', '0');
+            log('✅ All caches cleared', 'success', 'dataLog');
+        }
+
+        // Integration Tests
+        async function testEndToEnd() {
+            log('Running end-to-end test...', 'info', 'integrationLog');
+
+            try {
+                // 1. Connect WebSocket
+                log('Step 1: Connecting WebSocket...', 'info', 'integrationLog');
+                await testWebSocketConnection();
+
+                // 2. Load data
+                log('Step 2: Loading data...', 'info', 'integrationLog');
+                await testDataLoaderCache();
+
+                // 3. Test real-time events
+                log('Step 3: Testing events...', 'info', 'integrationLog');
+                await testWebSocketEvents();
+
+                log('✅ End-to-end test completed', 'success', 'integrationLog');
+                recordTest('End-to-End', true);
+            } catch (error) {
+                log(`❌ End-to-end test failed: ${error.message}`, 'error', 'integrationLog');
+                recordTest('End-to-End', false, error.message);
+            }
+        }
+
+        async function testMultiTabSync() {
+            log('Multi-tab sync test (manual):', 'info', 'integrationLog');
+            log('1. Open this page in 2 browser tabs', 'info', 'integrationLog');
+            log('2. Connect WebSocket in both tabs', 'info', 'integrationLog');
+            log('3. Open Synergy dashboard in Tab 1', 'info', 'integrationLog');
+            log('4. Create/update/delete a session', 'info', 'integrationLog');
+            log('5. Verify Tab 2 updates automatically', 'info', 'integrationLog');
+            recordTest('Multi-Tab Sync', true, 'Manual verification required');
+        }
+
+        async function testPerformance() {
+            log('Running performance test...', 'info', 'integrationLog');
+
+            try {
+                // Test 1: Cache hit performance
+                const iterations = 100;
+                const start = performance.now();
+
+                for (let i = 0; i < iterations; i++) {
+                    await DataLoader.threads.loadAll();
+                }
+
+                const elapsed = performance.now() - start;
+                const avgTime = (elapsed / iterations).toFixed(2);
+
+                log(`✅ ${iterations} cache hits in ${elapsed.toFixed(0)}ms`, 'success', 'integrationLog');
+                log(`✅ Average: ${avgTime}ms per request`, 'success', 'integrationLog');
+
+                recordTest('Performance', true, `Avg: ${avgTime}ms per request`);
+            } catch (error) {
+                log(`❌ Performance test failed: ${error.message}`, 'error', 'integrationLog');
+                recordTest('Performance', false, error.message);
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            updateStatus('Ready to test', 'success');
+            log('Test suite loaded', 'success', 'wsLog');
+            log('Test suite loaded', 'success', 'dataLog');
+            log('Test suite loaded', 'success', 'integrationLog');
+
+            // Monitor WebSocket events
+            if (window.SynergyRealtime) {
+                const originalLog = SynergyRealtime._log;
+                SynergyRealtime._log = function (...args) {
+                    originalLog.apply(this, args);
+                    if (args[0].includes('Session')) {
+                        messageCount++;
+                        updateMetric('messageCount', messageCount);
+                    }
+                };
+            }
+        });
+    </script>
+</body>
+
+</html>

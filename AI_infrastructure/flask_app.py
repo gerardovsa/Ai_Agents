@@ -28,6 +28,7 @@ log_init(logger, "AI_agents standalone - No external dependencies")
 # Now import Flask and other dependencies
 from flask import Flask, jsonify, request, Response, send_from_directory
 from flask_cors import CORS, cross_origin
+from datetime import datetime
 from flask_socketio import SocketIO
 import json
 from queue import Queue, Empty
@@ -167,7 +168,12 @@ try:
     # Verify tables actually exist
     conn = get_database_connection('ai_infrastructure')
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'" if str(type(conn).__name__) == 'Connection' else "SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
+    # Use is_using_supabase() to correctly detect database type
+    from shared.database_utils import is_using_supabase
+    if is_using_supabase():
+        cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
+    else:
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
     rows = cursor.fetchall()
     # Handle both SQLite (tuples) and PostgreSQL (tuples or DictRow)
     if rows and len(rows) > 0:
@@ -372,7 +378,7 @@ connected_clients = {}
 # ============================================================================
 
 @socketio.on('connect', namespace='/ws/synergy')
-def ws_synergy_connect():
+def ws_synergy_connect(auth=None):
     """Handle client connection to Synergy namespace"""
     from flask_socketio import emit
     from flask import request as flask_request
@@ -1294,8 +1300,9 @@ if __name__ == '__main__':
     is_production = os.environ.get('RENDER', 'false').lower() == 'true'
     debug_mode = not is_production
     
-    # Check if Waitress is available (production WSGI server)
-    USE_PRODUCTION_SERVER = os.environ.get('USE_PRODUCTION_SERVER', 'true').lower() == 'true'
+    # CRITICAL: Must use socketio.run() when WebSockets are enabled
+    # Waitress does NOT support WebSockets - causes "Cannot obtain socket from WSGI environment" error
+    USE_SOCKETIO = True  # Always use SocketIO server (supports WebSockets)
     
     print("=" * 80)
     print(f"STARTING FLASK SERVER")
@@ -1304,44 +1311,12 @@ if __name__ == '__main__':
     print(f"Port: {port}")
     print(f"Host: 0.0.0.0")
     print(f"Debug: {debug_mode}")
+    print(f"WebSocket Support: ENABLED (using socketio.run)")
     print(f"Auto-reload: {not is_production}")
     print("=" * 80 + "\n")
     
-    if USE_PRODUCTION_SERVER and not is_production:
-        try:
-            from waitress import serve
-            print("=" * 80)
-            print("PRODUCTION MODE: Using Waitress WSGI Server (local testing)")
-            print("=" * 80)
-            print("- No auto-reload (stable connections)")
-            print("- Production-grade performance")
-            print("- Thread pool: 4 workers")
-            print("=" * 80 + "\n")
-            
-            # Serve with Waitress (production WSGI server)
-            serve(
-                app,
-                host='0.0.0.0',
-                port=port,
-                threads=4,  # Thread pool for concurrent requests
-                url_scheme='http'
-            )
-        except ImportError:
-            print("=" * 80)
-            print("WARNING: Waitress not installed - using Flask dev server")
-            print("Install with: pip install waitress")
-            print("=" * 80 + "\n")
-            
-            # Fallback to Flask dev server
-            socketio.run(
-                app,
-                host='0.0.0.0',
-                port=port,
-                debug=debug_mode,
-                use_reloader=False  # DISABLED: Prevents constant restarts
-            )
-    else:
-        # Use SocketIO server for development or Render deployment
+    if USE_SOCKETIO:
+        # Use SocketIO server (supports WebSockets + HTTP)
         print("=" * 80)
         print(f"{'PRODUCTION' if is_production else 'DEVELOPMENT'} MODE: Flask SocketIO server")
         print("=" * 80 + "\n")
@@ -1350,6 +1325,7 @@ if __name__ == '__main__':
             host='0.0.0.0',
             port=port,
             debug=debug_mode,
-            use_reloader=(not is_production),  # No reload in production
-            allow_unsafe_werkzeug=True  # Allow Werkzeug in production (Render uses container isolation)
+            use_reloader=False,  # DISABLED - Manual restart only (prevents constant reloading)
+            allow_unsafe_werkzeug=True,  # Allow Werkzeug in production (Render uses container isolation)
+            extra_files=[]  # Only watch files in AI_agents project, not In_House_SQL
         )
