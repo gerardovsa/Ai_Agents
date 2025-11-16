@@ -1047,6 +1047,9 @@ def get_threads_details():
         print(f"[THREADS DETAILS] Step 7: Connected to database")
         
         # Build query with placeholder conversion for PostgreSQL
+        # IMPORTANT: Only match against thread_slug (TEXT column)
+        # The id column is an INTEGER auto-increment in Supabase
+        # Thread identifiers like '1762851232975' are stored in thread_slug
         query = f"""
             SELECT 
                 t.id,
@@ -1057,15 +1060,15 @@ def get_threads_details():
                 t.synergy_card_id,
                 t.location
             FROM threads t
-            WHERE t.id IN ({placeholders}) OR t.thread_slug IN ({placeholders})
+            WHERE t.thread_slug IN ({placeholders})
             ORDER BY t.updated_at DESC
         """
         
         # Convert SQL placeholders for PostgreSQL compatibility
         query = convert_sql_placeholders(query)
         
-        # Duplicate thread_ids for both id and thread_slug matching
-        params = thread_ids + thread_ids
+        # Only match against thread_slug (not id)
+        params = thread_ids
         print(f"[THREADS DETAILS] Step 8: Executing query with {len(params)} params...")
         
         cursor = conn.cursor()

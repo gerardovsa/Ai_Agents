@@ -454,33 +454,40 @@ def adapt_sql_for_database(sql: str) -> str:
     return sql
 
 
-def convert_sql_placeholders(sql: str, params: tuple = None) -> Tuple[str, tuple]:
+def convert_sql_placeholders(sql: str, params: tuple = None):
     """
     Convert SQL placeholders from SQLite (?) to PostgreSQL (%s) style
     
     Args:
         sql: SQL query with ? placeholders (SQLite style)
-        params: Query parameters tuple
+        params: Query parameters tuple (optional)
     
     Returns:
-        Tuple of (converted_sql, params)
-        - SQLite: returns unchanged (?, params)
-        - PostgreSQL: converts ? to %s, returns (%s, params)
+        - If params is None: returns converted SQL string only
+        - If params provided: returns tuple of (converted_sql, params)
     
     Example:
-        sql = "SELECT * FROM users WHERE id = ?"
-        params = (123,)
+        # Simple usage (string only):
+        sql = convert_sql_placeholders("SELECT * FROM users WHERE id = ?")
+        # Returns: "SELECT * FROM users WHERE id = %s"
         
-        # SQLite: returns ("SELECT * FROM users WHERE id = ?", (123,))
-        # PostgreSQL: returns ("SELECT * FROM users WHERE id = %s", (123,))
+        # With params (tuple):
+        sql, params = convert_sql_placeholders("SELECT * FROM users WHERE id = ?", (123,))
+        # Returns: ("SELECT * FROM users WHERE id = %s", (123,))
     """
     if is_using_supabase():
         # Convert ? to %s for PostgreSQL
         converted_sql = sql.replace('?', '%s')
-        return (converted_sql, params)
+        if params is None:
+            return converted_sql
+        else:
+            return (converted_sql, params)
     else:
         # Keep as-is for SQLite
-        return (sql, params)
+        if params is None:
+            return sql
+        else:
+            return (sql, params)
 
 
 class DatabaseCursor:
