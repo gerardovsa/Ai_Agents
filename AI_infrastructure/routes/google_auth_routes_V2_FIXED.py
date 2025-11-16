@@ -99,13 +99,10 @@ GOOGLE_SCOPES = [
 # ============================================================================
 
 def get_db_connection():
-    """Get database connection to ai_infrastructure.db in data/ folder (CORRECT LOCATION)"""
-    # CORRECT: Use centralized helper (supports Render /data mount)
-    # Import moved to top of file for Render compatibility
-    db_path = get_ai_infrastructure_db_path()
-    conn = sqlite3.connect(str(db_path))
+    """Get database connection using centralized utility (supports Supabase + SQLite)"""
+    from shared.database_utils import get_database_connection
+    conn = get_database_connection('ai_infrastructure')
     conn.row_factory = sqlite3.Row
-    print(f'🔷 [DB CONNECTION] Using: {db_path}')  # Debug log
     return conn
 
 def init_db():

@@ -75,15 +75,16 @@ def init_automation_tables():
     - visual_automations: Stores automation metadata and visual flow JSON
     - automation_executions: Tracks execution history and results
     """
-    supabase_url = os.getenv('SUPABASE_URL')
-    
-    if supabase_url:
-        # PostgreSQL - tables created via migration, just validate
-        try:
-            import psycopg2
-            conn = psycopg2.connect(os.getenv('SUPABASE_DB_URL'))
-            cursor = conn.cursor()
-            
+    try:
+        import sqlite3
+        conn = get_database_connection('ai_infrastructure')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Check if we're using PostgreSQL or SQLite
+        from shared.database_utils import is_using_supabase
+        if is_using_supabase():
+            # PostgreSQL - tables created via migration, just validate
             # Check if tables exist
             cursor.execute("""
                 SELECT EXISTS (
@@ -102,19 +103,10 @@ def init_automation_tables():
                 print("✅ Automation tables exist in PostgreSQL")
             
             return
-        except Exception as e:
-            print(f"⚠️  Could not validate PostgreSQL tables: {e}")
-            return
-    
-    # SQLite - create tables if they don't exist
-    import sqlite3
-    root_dir = Path(__file__).parent.parent.parent
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    conn = sqlite3.connect(str(db_path))
-    cursor = conn.cursor()
-    
-    # Visual automations table (SQLite version)
-    cursor.execute("""
+        
+        # SQLite - create tables if they don't exist
+        # Visual automations table (SQLite version)
+        cursor.execute("""
         CREATE TABLE IF NOT EXISTS visual_automations (
             automation_id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
@@ -159,9 +151,14 @@ def init_automation_tables():
         )
     """)
     
-    conn.commit()
-    conn.close()
-    print("✅ Automation tables initialized (SQLite)")
+        conn.commit()
+        conn.close()
+        print("✅ Automation tables initialized (SQLite)")
+    
+    except Exception as e:
+        print(f"❌ Error initializing automation tables: {e}")
+        if 'conn' in locals():
+            conn.close()
 
 
 # Initialize tables on module load
