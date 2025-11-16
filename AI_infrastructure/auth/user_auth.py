@@ -156,6 +156,13 @@ class UserAuthManager:
     def _init_tables(self):
         """Initialize user authentication tables with retry logic for multi-worker startup"""
         import time
+        from shared.database_utils import is_using_supabase
+        
+        # Skip table creation on Supabase - tables already exist with correct PostgreSQL schema
+        if is_using_supabase():
+            print("✅ [USER AUTH] Using Supabase - skipping table creation (tables already exist)")
+            return
+        
         max_retries = 5
         
         for attempt in range(max_retries):

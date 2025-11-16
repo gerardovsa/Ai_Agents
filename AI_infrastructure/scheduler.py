@@ -58,6 +58,13 @@ class AutomationScheduler:
         
     def _init_database(self):
         """Initialize scheduler tables in database"""
+        from shared.database_utils import is_using_supabase
+        
+        # Skip table creation on Supabase - tables already exist (or not needed)
+        if is_using_supabase():
+            print("✅ [SCHEDULER] Using Supabase - skipping table creation")
+            return
+        
         conn = get_connection('ai_infrastructure')
         cursor = conn.cursor()
         
@@ -174,24 +181,28 @@ class AutomationScheduler:
         logger.info("Automation scheduler stopped")
     
     def _load_active_tasks(self):
-        """Load all enabled tasks from database and schedule them"""
-        conn = get_connection('ai_infrastructure')
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT * FROM scheduled_tasks 
-            WHERE enabled = 1 
-            AND (approval_status = 'approved' OR requires_approval = 0)
-        ''')
-        
-        tasks = cursor.fetchall()
-        conn.close()
-        
-        for task in tasks:
-            self._schedule_task(dict(task))
-        
-        logger.info(f"Loaded {len(tasks)} active tasks")
+        """Load existing tasks from database on startup"""
+        try:
+            conn = get_connection('ai_infrastructure')
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT * FROM ai_infrastructure.scheduled_tasks 
+                WHERE enabled = 1 
+                AND (approval_status = 'approved' OR requires_approval = 0)
+            ''')
+            
+            tasks = cursor.fetchall()
+            conn.close()
+            
+            for task in tasks:
+                self._schedule_task(dict(task))
+            
+            logger.info(f"Loaded {len(tasks)} active tasks")
+        except Exception as e:
+            logger.warning(f"Could not load scheduled tasks (table may not exist): {e}")
+            # Non-critical - scheduler can work without persisted tasks
     
     def _schedule_task(self, task: Dict):
         """Schedule a single task based on its trigger type"""
