@@ -178,7 +178,7 @@ def get_preferences():
                 ai_memories,
                 memory_updated_at,
                 updated_at
-            FROM user_preferences
+            FROM ai_infrastructure.user_preferences
             WHERE user_id = ?
         """, (user_id,))
         
@@ -451,13 +451,13 @@ def save_preferences():
         cursor = conn.cursor()
         
         # Check if preferences exist
-        cursor.execute("SELECT user_id FROM user_preferences WHERE user_id = ?", (user_id,))
+        cursor.execute("SELECT user_id FROM ai_infrastructure.user_preferences WHERE user_id = ?", (user_id,))
         exists = cursor.fetchone()
         
         if exists:
             # Update existing preferences
             cursor.execute("""
-                UPDATE user_preferences
+                UPDATE ai_infrastructure.user_preferences
                 SET communication_style = ?,
                     detail_level = ?,
                     auth_platform = ?,
@@ -484,7 +484,7 @@ def save_preferences():
         else:
             # Insert new preferences
             cursor.execute("""
-                INSERT INTO user_preferences
+                INSERT INTO ai_infrastructure.user_preferences
                 (user_id, communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                  nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                  manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
@@ -519,7 +519,7 @@ def save_preferences():
                 ai_memories,
                 memory_updated_at,
                 updated_at
-            FROM user_preferences
+            FROM ai_infrastructure.user_preferences
             WHERE user_id = ?
         """, (user_id,))
         
@@ -609,7 +609,7 @@ def get_user_preferences(user_id):
                 use_manual_timezone,
                 last_location_check,
                 updated_at
-            FROM user_preferences
+            FROM ai_infrastructure.user_preferences
             WHERE user_id = ?
         """, (user_id,))
         
@@ -673,7 +673,7 @@ def save_user_preferences(user_id, preferences_dict):
         cursor = conn.cursor()
         
         # Check if preferences exist
-        cursor.execute("SELECT user_id FROM user_preferences WHERE user_id = ?", (user_id,))
+        cursor.execute("SELECT user_id FROM ai_infrastructure.user_preferences WHERE user_id = ?", (user_id,))
         exists = cursor.fetchone()
         
         communication_style = preferences_dict.get('communication_style', 'professional')
@@ -697,7 +697,7 @@ def save_user_preferences(user_id, preferences_dict):
         
         if exists:
             cursor.execute("""
-                UPDATE user_preferences
+                UPDATE ai_infrastructure.user_preferences
                 SET communication_style = ?,
                     detail_level = ?,
                     auth_platform = ?,
@@ -720,7 +720,7 @@ def save_user_preferences(user_id, preferences_dict):
                   manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone, user_id))
         else:
             cursor.execute("""
-                INSERT INTO user_preferences
+                INSERT INTO ai_infrastructure.user_preferences
                 (user_id, communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                  nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                  manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone, last_location_check)

@@ -150,7 +150,7 @@ def create_sub_user():
         
         try:
             # Check if username/email already exists
-            cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", 
+            cursor.execute("SELECT id FROM ai_infrastructure.users WHERE username = ? OR email = ?", 
                          [username, email])
             if cursor.fetchone():
                 conn.close()
@@ -164,7 +164,7 @@ def create_sub_user():
             
             # Insert sub-user
             cursor.execute("""
-                INSERT INTO users (
+                INSERT INTO ai_infrastructure.users (
                     username, email, password_hash, role,
                     parent_user_id, is_sub_user,
                     permissions, allowed_tools, allowed_agents,
@@ -238,7 +238,7 @@ def list_sub_users():
                     data_access_scope, usage_limit_daily,
                     access_start_time, access_end_time, account_expires_at,
                     created_at
-                FROM users
+                FROM ai_infrastructure.users
                 WHERE is_sub_user = 1
                 ORDER BY created_at DESC
             """)
@@ -250,7 +250,7 @@ def list_sub_users():
                     data_access_scope, usage_limit_daily,
                     access_start_time, access_end_time, account_expires_at,
                     created_at
-                FROM users
+                FROM ai_infrastructure.users
                 WHERE is_sub_user = 1 AND parent_user_id = ?
                 ORDER BY created_at DESC
             """, [requesting_user_id])
@@ -326,7 +326,7 @@ def update_sub_user(sub_user_id: int):
         
         cursor.execute("""
             SELECT parent_user_id, is_sub_user
-            FROM users
+            FROM ai_infrastructure.users
             WHERE id = ?
         """, [sub_user_id])
         
@@ -394,7 +394,7 @@ def update_sub_user(sub_user_id: int):
         # Execute update
         params.append(sub_user_id)
         cursor.execute(f"""
-            UPDATE users
+            UPDATE ai_infrastructure.users
             SET {', '.join(updates)}
             WHERE id = ?
         """, params)
@@ -438,7 +438,7 @@ def delete_sub_user(sub_user_id: int):
         
         cursor.execute("""
             SELECT parent_user_id, is_sub_user
-            FROM users
+            FROM ai_infrastructure.users
             WHERE id = ?
         """, [sub_user_id])
         
@@ -468,7 +468,7 @@ def delete_sub_user(sub_user_id: int):
         now = datetime.now().isoformat()
         
         cursor.execute("""
-            UPDATE users
+            UPDATE ai_infrastructure.users
             SET account_expires_at = ?
             WHERE id = ?
         """, [now, sub_user_id])
@@ -512,7 +512,7 @@ def reset_sub_user_password(sub_user_id: int):
         
         cursor.execute("""
             SELECT parent_user_id, is_sub_user, username
-            FROM users
+            FROM ai_infrastructure.users
             WHERE id = ?
         """, [sub_user_id])
         
@@ -549,7 +549,7 @@ def reset_sub_user_password(sub_user_id: int):
         
         # Update password
         cursor.execute("""
-            UPDATE users
+            UPDATE ai_infrastructure.users
             SET password_hash = ?
             WHERE id = ?
         """, [password_hash, sub_user_id])

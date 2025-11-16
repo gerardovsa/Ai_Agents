@@ -45,26 +45,15 @@ def is_using_supabase() -> bool:
     """
     Check if application should use Supabase PostgreSQL
     
-    PRODUCTION MODE: Always returns True unless USE_SQLITE=true (localhost dev only)
+    ALWAYS RETURNS TRUE: Supabase-only mode (local AND Render)
     
     Returns:
-        bool: True (always use Supabase in production)
-              False only if USE_SQLITE=true (localhost development override)
+        bool: True (ALWAYS - Supabase PostgreSQL everywhere)
     
     Environment Variables:
-        USE_SQLITE: Set to 'true' to force SQLite (localhost development only)
-        SUPABASE_DB_URL: Required for production (auto-detected)
-    
-    Priority:
-        1. USE_SQLITE=true → Force SQLite (localhost development only)
-        2. Otherwise → Always Supabase (production default)
+        SUPABASE_DB_URL: Required for connection
     """
-    # Check for explicit SQLite override (localhost development only)
-    if os.getenv('USE_SQLITE', 'false').lower() == 'true':
-        print("⚠️ [DB] Using SQLite (development mode - USE_SQLITE=true)")
-        return False
-    
-    # Production: Always use Supabase (no SQLite fallback)
+    # ALWAYS use Supabase PostgreSQL - NO SQLite fallback
     return True
 
 

@@ -968,14 +968,14 @@ CRITICAL: NO BULK TOOL SCHEMAS!
     # Check if this thread is linked to a Synergy project
     # If yes, inject project context into system prompt
     try:
-        # Get thread info from sessions.db
+        # Get thread info FROM sessions.sessions.db
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
         # Find thread by session_id (thread.id = session_id in most cases)
         cursor.execute("""
             SELECT synergy_card_id
-            FROM threads 
+            FROM sessions.sessions.threads 
             WHERE id = ? OR thread_slug = ?
             LIMIT 1
         """, (session_id, session_id))
@@ -994,7 +994,7 @@ CRITICAL: NO BULK TOOL SCHEMAS!
                 SELECT 
                     title, description, project_name, priority, status,
                     tags, documents, next_steps, notes, due_date
-                FROM synergy_sessions 
+                FROM synergy_sessions.synergy_sessions 
                 WHERE session_id = ?
             """, (synergy_card_id,))
             
@@ -1117,14 +1117,14 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
     # If yes, prepend project context to the user's current message
     synergy_context_prefix = ""
     try:
-        # Get thread info from sessions.db
+        # Get thread info FROM sessions.sessions.db
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
         # Find thread by session_id
         cursor.execute("""
             SELECT synergy_card_id
-            FROM threads 
+            FROM sessions.sessions.threads 
             WHERE id = ? OR thread_slug = ?
             LIMIT 1
         """, (session_id, session_id))
@@ -1143,7 +1143,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                 SELECT 
                     title, description, project_name, priority, status,
                     tags, documents, next_steps, notes, due_date
-                FROM synergy_sessions 
+                FROM synergy_sessions.synergy_sessions 
                 WHERE session_id = ?
             """, (synergy_card_id,))
             
@@ -1256,7 +1256,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                                 from routes.thread_assignment_routes import get_db_connection as get_sessions_db
                                 conn = get_sessions_db()
                                 cursor = conn.cursor()
-                                cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
+                                cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
                                 row = cursor.fetchone()
                                 if row and row['metadata']:
                                     metadata = json.loads(row['metadata'])
@@ -1272,7 +1272,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                             # Update thread's updated_at timestamp (thread already exists from creation)
                             # Don't try to save to non-existent saved_threads table
                             update_query = """
-                                UPDATE threads 
+                                UPDATE sessions.sessions.threads 
                                 SET updated_at = datetime('now')
                                 WHERE thread_slug = ?
                             """

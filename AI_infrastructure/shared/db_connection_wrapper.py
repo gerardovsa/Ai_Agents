@@ -16,33 +16,22 @@ from typing import Union
 
 def get_connection(db_name: str = 'ai_infrastructure'):
     """
-    Get database connection - automatically uses Supabase on Render, SQLite locally
+    Get database connection - ALWAYS uses Supabase PostgreSQL (local AND Render)
     
     Args:
-        db_name: Database name ('ai_infrastructure', 'sessions', 'synergy_sessions')
+        db_name: Database name (for future multi-schema support)
     
     Returns:
-        Connection object (psycopg2.Connection on Render, sqlite3.Connection locally)
+        Connection object (psycopg2.Connection to Supabase PostgreSQL)
     
     Examples:
         >>> conn = get_connection('ai_infrastructure')
         >>> cursor = conn.cursor()
-        >>> cursor.execute("SELECT * FROM users WHERE id = %s", (1,))
+        >>> cursor.execute("SELECT * FROM ai_infrastructure.users WHERE id = %s", (1,))
     """
-    # On Render with Supabase: Use PostgreSQL
-    if os.getenv('USE_SUPABASE') == 'true' or os.getenv('RENDER') == 'true':
-        from shared.database_utils import get_database_connection
-        return get_database_connection(db_name)
-    
-    # Local development: Use SQLite
-    else:
-        import sqlite3
-        root_dir = Path(__file__).parent.parent.parent
-        db_path = root_dir / 'data' / f'{db_name}.db'
-        
-        conn = sqlite3.connect(str(db_path))
-        conn.row_factory = sqlite3.Row  # Enable dict-like access
-        return conn
+    # ALWAYS use Supabase PostgreSQL - NO SQLite fallback
+    from shared.database_utils import get_database_connection
+    return get_database_connection(db_name)
 
 
 def get_connection_with_path(db_path: Union[str, Path]):

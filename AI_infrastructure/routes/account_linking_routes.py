@@ -162,7 +162,7 @@ def get_link_status():
         cursor = conn.cursor()
         
         # Get user info
-        cursor.execute('SELECT id, email, is_primary FROM users WHERE id = ?', (user_id,))
+        cursor.execute('SELECT id, email, is_primary FROM ai_infrastructure.users WHERE id = ?', (user_id,))
         user = cursor.fetchone()
         
         if not user:
@@ -175,9 +175,9 @@ def get_link_status():
                 upc.platform,
                 ual.created_at,
                 ual.link_status
-            FROM user_account_links ual
-            JOIN users u ON u.id = ual.linked_user_id
-            LEFT JOIN user_platform_credentials upc ON upc.user_id = ual.linked_user_id
+            FROM ai_infrastructure.user_account_links ual
+            JOIN ai_infrastructure.users u ON u.id = ual.linked_user_id
+            LEFT JOIN ai_infrastructure.user_platform_credentials upc ON upc.user_id = ual.linked_user_id
             WHERE ual.primary_user_id = ?
             AND ual.link_status = 'confirmed'
             GROUP BY u.email
@@ -187,7 +187,7 @@ def get_link_status():
         # Get pending link requests
         cursor.execute('''
             SELECT target_email, created_at, status
-            FROM account_link_requests
+            FROM ai_infrastructure.account_link_requests
             WHERE user_id = ?
             AND status = 'pending'
             AND expires_at > datetime('now')
@@ -297,7 +297,7 @@ def confirm_link():
         
         # Check if already linked
         cursor.execute('''
-            SELECT id FROM user_account_links
+            SELECT id FROM ai_infrastructure.user_account_links
             WHERE primary_user_id = ? AND linked_user_id = ?
         ''', (primary_user_id, secondary_user_id))
         
@@ -306,13 +306,13 @@ def confirm_link():
         
         # Create link
         cursor.execute('''
-            INSERT INTO user_account_links 
+            INSERT INTO ai_infrastructure.user_account_links 
             (primary_user_id, linked_user_id, linked_email, link_type, link_status, link_token, confirmed_at)
             VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
         ''', (primary_user_id, secondary_user_id, secondary_email, 'oauth', 'confirmed', link_token))
         
         # Mark secondary account as non-primary
-        cursor.execute('UPDATE users SET is_primary = 0 WHERE id = ?', (secondary_user_id,))
+        cursor.execute('UPDATE ai_infrastructure.users SET is_primary = 0 WHERE id = ?', (secondary_user_id,))
         
         # Migrate data from secondary to primary (optional - can be done later)
         # This merges chat threads, settings, etc.
@@ -365,7 +365,7 @@ def unlink_account():
         cursor = conn.cursor()
         
         # Find linked user by email
-        cursor.execute('SELECT id FROM users WHERE email = ?', (linked_email,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = ?', (linked_email,))
         linked_user = cursor.fetchone()
         
         if not linked_user:
@@ -375,7 +375,7 @@ def unlink_account():
         
         # Delete link
         cursor.execute('''
-            DELETE FROM user_account_links
+            DELETE FROM ai_infrastructure.user_account_links
             WHERE primary_user_id = ? AND linked_user_id = ?
         ''', (user_id, linked_user_id))
         
@@ -383,7 +383,7 @@ def unlink_account():
             return jsonify({'success': False, 'error': 'Link not found'}), 404
         
         # Mark as primary again (optional)
-        cursor.execute('UPDATE users SET is_primary = 1 WHERE id = ?', (linked_user_id,))
+        cursor.execute('UPDATE ai_infrastructure.users SET is_primary = 1 WHERE id = ?', (linked_user_id,))
         
         conn.commit()
         conn.close()
@@ -428,12 +428,12 @@ def set_primary_email():
         cursor = conn.cursor()
         
         # Get current user email
-        cursor.execute('SELECT email FROM users WHERE id = ?', (user_id,))
+        cursor.execute('SELECT email FROM ai_infrastructure.users WHERE id = ?', (user_id,))
         current_user = cursor.fetchone()
         old_primary_email = current_user['email']
         
         # Find new primary user
-        cursor.execute('SELECT id FROM users WHERE email = ?', (new_primary_email,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = ?', (new_primary_email,))
         new_primary_user = cursor.fetchone()
         
         if not new_primary_user:
@@ -443,7 +443,7 @@ def set_primary_email():
         
         # Verify they're linked
         cursor.execute('''
-            SELECT id FROM user_account_links
+            SELECT id FROM ai_infrastructure.user_account_links
             WHERE (primary_user_id = ? AND linked_user_id = ?)
             OR (primary_user_id = ? AND linked_user_id = ?)
         ''', (user_id, new_primary_id, new_primary_id, user_id))
@@ -452,12 +452,12 @@ def set_primary_email():
             return jsonify({'success': False, 'error': 'Accounts not linked'}), 400
         
         # Swap primary status
-        cursor.execute('UPDATE users SET is_primary = 0 WHERE id = ?', (user_id,))
-        cursor.execute('UPDATE users SET is_primary = 1 WHERE id = ?', (new_primary_id,))
+        cursor.execute('UPDATE ai_infrastructure.users SET is_primary = 0 WHERE id = ?', (user_id,))
+        cursor.execute('UPDATE ai_infrastructure.users SET is_primary = 1 WHERE id = ?', (new_primary_id,))
         
         # Update all links to point to new primary
         cursor.execute('''
-            UPDATE user_account_links
+            UPDATE ai_infrastructure.user_account_links
             SET primary_user_id = ?, linked_user_id = ?
             WHERE primary_user_id = ? AND linked_user_id = ?
         ''', (new_primary_id, user_id, user_id, new_primary_id))
@@ -496,7 +496,7 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
         # Migrate chat threads (if table exists)
         try:
             cursor.execute('''
-                UPDATE threads SET user_id = ? WHERE user_id = ?
+                UPDATE sessions.sessions.threads SET user_id = ? WHERE user_id = ?
             ''', (to_user_id, from_user_id))
             logger.info(f"📦 Migrated {cursor.rowcount} threads")
         except sqlite3.OperationalError:
@@ -507,7 +507,7 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
         
         # Migrate user sessions
         cursor.execute('''
-            UPDATE user_sessions SET user_id = ? WHERE user_id = ?
+            UPDATE ai_infrastructure.user_sessions SET user_id = ? WHERE user_id = ?
         ''', (to_user_id, from_user_id))
         logger.info(f"🔑 Migrated {cursor.rowcount} sessions")
         
@@ -552,7 +552,7 @@ def get_primary_user_id(user_id):
         cursor = conn.cursor()
         
         # Check if user is primary
-        cursor.execute('SELECT is_primary FROM users WHERE id = ?', (user_id,))
+        cursor.execute('SELECT is_primary FROM ai_infrastructure.users WHERE id = ?', (user_id,))
         user = cursor.fetchone()
         
         if not user:
@@ -563,7 +563,7 @@ def get_primary_user_id(user_id):
         
         # User is secondary, find primary
         cursor.execute('''
-            SELECT primary_user_id FROM user_account_links
+            SELECT primary_user_id FROM ai_infrastructure.user_account_links
             WHERE linked_user_id = ?
             AND link_status = 'confirmed'
             LIMIT 1

@@ -59,7 +59,7 @@ def fork_thread():
         db_path = get_sessions_database_path()
         
         # Get original thread
-        thread_query = "SELECT * FROM threads WHERE id = ?"
+        thread_query = "SELECT * FROM sessions.sessions.threads WHERE id = ?"
         thread = execute_sqlite_query(db_path, thread_query, (thread_id,))
         if not thread:
             return error_response("Thread not found", 404)
@@ -67,9 +67,9 @@ def fork_thread():
         
         # Get messages up to fork point
         messages_query = """
-            SELECT * FROM messages 
+            SELECT * FROM sessions.sessions.messages 
             WHERE thread_id = ? 
-            AND created_at <= (SELECT created_at FROM messages WHERE id = ?)
+            AND created_at <= (SELECT created_at FROM sessions.sessions.messages WHERE id = ?)
             ORDER BY created_at ASC
         """
         messages = execute_sqlite_query(db_path, messages_query, (thread_id, message_id))
@@ -77,7 +77,7 @@ def fork_thread():
         # Create new thread
         new_thread_slug = str(int(datetime.now().timestamp() * 1000))
         insert_thread = """
-            INSERT INTO threads (
+            INSERT INTO sessions.sessions.threads (
                 thread_slug, name, user_id, location, tags, 
                 parent_thread_id, branch_name, branch_point_message_id,
                 metadata, synergy_card_id, created_at, updated_at
@@ -106,7 +106,7 @@ def fork_thread():
         # Get new thread ID
         new_thread = execute_sqlite_query(
             db_path, 
-            "SELECT id FROM threads WHERE thread_slug = ?", 
+            "SELECT id FROM sessions.sessions.threads WHERE thread_slug = ?", 
             (new_thread_slug,)
         )[0]
         new_thread_id = new_thread['id']
@@ -114,7 +114,7 @@ def fork_thread():
         # Copy messages to new thread
         for msg in messages:
             insert_msg = """
-                INSERT INTO messages (
+                INSERT INTO sessions.sessions.messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
                     tokens_used, metadata, created_at, updated_at
@@ -171,14 +171,14 @@ def clone_thread():
         db_path = get_sessions_database_path()
         
         # Get original thread
-        thread_query = "SELECT * FROM threads WHERE id = ?"
+        thread_query = "SELECT * FROM sessions.sessions.threads WHERE id = ?"
         thread = execute_sqlite_query(db_path, thread_query, (thread_id,))
         if not thread:
             return error_response("Thread not found", 404)
         thread = thread[0]
         
         # Get all messages
-        messages_query = "SELECT * FROM messages WHERE thread_id = ? ORDER BY created_at ASC"
+        messages_query = "SELECT * FROM sessions.sessions.messages WHERE thread_id = ? ORDER BY created_at ASC"
         messages = execute_sqlite_query(db_path, messages_query, (thread_id,))
         
         # Create new thread
@@ -186,7 +186,7 @@ def clone_thread():
         final_name = new_name or f"Copy of {thread['name']}"
         
         insert_thread = """
-            INSERT INTO threads (
+            INSERT INTO sessions.sessions.threads (
                 thread_slug, name, user_id, location, tags, 
                 metadata, synergy_card_id, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -211,7 +211,7 @@ def clone_thread():
         # Get new thread ID
         new_thread = execute_sqlite_query(
             db_path, 
-            "SELECT id FROM threads WHERE thread_slug = ?", 
+            "SELECT id FROM sessions.sessions.threads WHERE thread_slug = ?", 
             (new_thread_slug,)
         )[0]
         new_thread_id = new_thread['id']
@@ -219,7 +219,7 @@ def clone_thread():
         # Copy all messages
         for msg in messages:
             insert_msg = """
-                INSERT INTO messages (
+                INSERT INTO sessions.sessions.messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
                     tokens_used, metadata, created_at, updated_at
@@ -275,12 +275,12 @@ def delete_messages():
         
         # Delete messages
         placeholders = ','.join('?' * len(message_ids))
-        delete_query = f"DELETE FROM messages WHERE id IN ({placeholders})"
+        delete_query = f"DELETE FROM sessions.sessions.sessions.messages WHERE id IN ({placeholders})"
         execute_sqlite_update(db_path, delete_query, message_ids)
         
         # Update thread updated_at
         if thread_id:
-            update_thread = "UPDATE threads SET updated_at = ? WHERE id = ?"
+            update_thread = "UPDATE sessions.sessions.threads SET updated_at = ? WHERE id = ?"
             execute_sqlite_update(db_path, update_thread, (datetime.now().isoformat(), thread_id))
         
         return success_response({
@@ -317,13 +317,13 @@ def copy_messages():
         
         # Get messages to copy
         placeholders = ','.join('?' * len(message_ids))
-        messages_query = f"SELECT * FROM messages WHERE id IN ({placeholders}) ORDER BY created_at ASC"
+        messages_query = f"SELECT * FROM sessions.sessions.messages WHERE id IN ({placeholders}) ORDER BY created_at ASC"
         messages = execute_sqlite_query(db_path, messages_query, message_ids)
         
         # Copy messages to target thread
         for msg in messages:
             insert_msg = """
-                INSERT INTO messages (
+                INSERT INTO sessions.sessions.messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
                     tokens_used, metadata, created_at, updated_at
@@ -350,7 +350,7 @@ def copy_messages():
             ))
         
         # Update target thread timestamp
-        update_thread = "UPDATE threads SET updated_at = ? WHERE id = ?"
+        update_thread = "UPDATE sessions.sessions.threads SET updated_at = ? WHERE id = ?"
         execute_sqlite_update(db_path, update_thread, (datetime.now().isoformat(), target_thread_id))
         
         return success_response({
@@ -377,7 +377,7 @@ def export_thread():
         db_path = get_sessions_database_path()
         
         # Get thread
-        thread_query = "SELECT * FROM threads WHERE id = ?"
+        thread_query = "SELECT * FROM sessions.sessions.threads WHERE id = ?"
         thread = execute_sqlite_query(db_path, thread_query, (thread_id,))
         if not thread:
             return error_response("Thread not found", 404)
@@ -385,7 +385,7 @@ def export_thread():
         
         # Get messages
         messages_query = """
-            SELECT * FROM messages 
+            SELECT * FROM sessions.sessions.messages 
             WHERE thread_id = ? 
             ORDER BY created_at ASC
         """

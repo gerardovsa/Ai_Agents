@@ -182,7 +182,7 @@ def get_user_by_email(email):
     """Get user by email (primary or alias)"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT id, username, email, role FROM users WHERE email = ?', (email,))
+    cursor.execute('SELECT id, username, email, role FROM ai_infrastructure.users WHERE email = ?', (email,))
     user = cursor.fetchone()
     conn.close()
     return dict(user) if user else None
@@ -191,7 +191,7 @@ def get_user_by_email_from_user_id(user_id):
     """Get user by user_id"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT id, username, email, role FROM users WHERE id = ?', (user_id,))
+    cursor.execute('SELECT id, username, email, role FROM ai_infrastructure.users WHERE id = ?', (user_id,))
     user = cursor.fetchone()
     conn.close()
     return dict(user) if user else None
@@ -206,7 +206,7 @@ def create_user(email, username=None):
         cursor = conn.cursor()
         
         # Check if user already exists
-        cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = ?', (email,))
         existing = cursor.fetchone()
         if existing:
             print(f'⚠️ User already exists with email {email}, returning existing ID: {existing[0]}')
@@ -214,7 +214,7 @@ def create_user(email, username=None):
             return existing[0]
         
         # Make username unique if collision
-        cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE username = ?', (username,))
         if cursor.fetchone():
             # Add random suffix to username
             import random
@@ -222,7 +222,7 @@ def create_user(email, username=None):
             print(f'ℹ️ Username collision, using: {username}')
         
         cursor.execute('''
-            INSERT INTO users (username, email, password_hash, role) 
+            INSERT INTO ai_infrastructure.users (username, email, password_hash, role) 
             VALUES (?, ?, ?, ?)
         ''', (username, email, 'oauth_google', 'user'))
         
@@ -238,7 +238,7 @@ def create_user(email, username=None):
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+            cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = ?', (email,))
             existing = cursor.fetchone()
             conn.close()
             if existing:
@@ -270,7 +270,7 @@ def generate_jwt_token(user_data):
         expires_at = (datetime.utcnow() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
         
         cursor.execute('''
-            INSERT INTO user_sessions (user_id, token, expires_at)
+            INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
             VALUES (?, ?, ?)
         ''', (user_data.get('id'), token, expires_at))
         
@@ -319,7 +319,7 @@ def google_login():
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT access_token, refresh_token, expires_at, is_valid
-                FROM oauth_tokens
+                FROM ai_infrastructure.oauth_tokens
                 WHERE user_id = ? AND platform = ? AND is_active = 1
             ''', (user_id, 'google'))
             
@@ -503,7 +503,7 @@ def google_callback():
         cursor = conn.cursor()
         
         # Check if token exists for this user+platform
-        cursor.execute('SELECT id FROM oauth_tokens WHERE user_id = ? AND platform = ?', (user_id, 'google'))
+        cursor.execute('SELECT id FROM ai_infrastructure.oauth_tokens WHERE user_id = ? AND platform = ?', (user_id, 'google'))
         existing = cursor.fetchone()
         
         if existing:
@@ -515,7 +515,7 @@ def google_callback():
             bool_true = True if is_using_supabase() else 1
             
             cursor.execute('''
-                UPDATE oauth_tokens SET
+                UPDATE ai_infrastructure.oauth_tokens SET
                     access_token = ?,
                     refresh_token = COALESCE(?, refresh_token),
                     token_type = ?,
@@ -558,7 +558,7 @@ def google_callback():
             # INSERT new token
             print(f'   Creating new token for user {user_id}')
             cursor.execute('''
-                INSERT INTO oauth_tokens (
+                INSERT INTO ai_infrastructure.oauth_tokens (
                 user_id,
                 platform,
                 access_token,
@@ -608,7 +608,7 @@ def google_callback():
         # Update has_google_oauth flag (use TRUE for PostgreSQL, 1 for SQLite)
         from shared.database_utils import convert_sql_placeholders
         flag_value = True if is_using_supabase() else 1
-        update_sql = 'UPDATE users SET has_google_oauth = ? WHERE id = ?'
+        update_sql = 'UPDATE ai_infrastructure.users SET has_google_oauth = ? WHERE id = ?'
         update_sql, update_params = convert_sql_placeholders(update_sql, (flag_value, user_id))
         cursor.execute(update_sql, update_params)
         
@@ -715,7 +715,7 @@ def google_status():
                 last_refreshed_at,
                 error_count,
                 last_error
-            FROM oauth_tokens
+            FROM ai_infrastructure.oauth_tokens
             WHERE user_id = ? AND platform = ?
         ''', (user_id, 'google'))
         
@@ -766,13 +766,13 @@ def refresh_google_token():
         if not user_id:
             return jsonify({'error': 'User ID required'}), 400
         
-        # Get refresh token from oauth_tokens table
+        # Get refresh token FROM ai_infrastructure.oauth_tokens table
         conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
             SELECT refresh_token, email 
-            FROM oauth_tokens 
+            FROM ai_infrastructure.oauth_tokens 
             WHERE user_id = ? AND platform = ?
         ''', (user_id, 'google'))
         
@@ -803,12 +803,12 @@ def refresh_google_token():
         expires_in = tokens.get('expires_in', 3600)
         expires_at = (datetime.utcnow() + timedelta(seconds=expires_in)).strftime('%Y-%m-%d %H:%M:%S')
         
-        # Update oauth_tokens table
+        # UPDATE ai_infrastructure.oauth_tokens table
         from shared.database_utils import is_using_supabase, convert_sql_placeholders
         bool_true = True if is_using_supabase() else 1
         
         update_sql = '''
-            UPDATE oauth_tokens 
+            UPDATE ai_infrastructure.oauth_tokens 
             SET 
                 access_token = ?,
                 expires_at = ?,
@@ -843,7 +843,7 @@ def refresh_google_token():
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                UPDATE oauth_tokens 
+                UPDATE ai_infrastructure.oauth_tokens 
                 SET 
                     is_valid = 0,
                     error_count = error_count + 1,
@@ -885,7 +885,7 @@ def disconnect_google():
         
         cursor.execute('''
             SELECT access_token 
-            FROM oauth_tokens 
+            FROM ai_infrastructure.oauth_tokens 
             WHERE user_id = ? AND platform = ?
         ''', (user_id, 'google'))
         
@@ -901,7 +901,7 @@ def disconnect_google():
                 print(f'⚠️  [GOOGLE OAUTH] Could not revoke token with Google (may be expired)')
         
         # Delete from database
-        cursor.execute('DELETE FROM oauth_tokens WHERE user_id = ? AND platform = ?', (user_id, 'google'))
+        cursor.execute('DELETE FROM ai_infrastructure.oauth_tokens WHERE user_id = ? AND platform = ?', (user_id, 'google'))
         conn.commit()
         conn.close()
         

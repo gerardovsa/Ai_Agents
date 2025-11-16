@@ -48,7 +48,7 @@ def register_device():
         # Check if device exists
         existing = execute_sqlite_query(
             str(AI_DB_PATH),
-            "SELECT device_id FROM device_registry WHERE device_id = ?",
+            "SELECT device_id FROM ai_infrastructure.device_registry WHERE device_id = ?",
             (device_id,)
         )
         
@@ -56,7 +56,7 @@ def register_device():
             # Update last_seen_at
             execute_sqlite_update(
                 str(AI_DB_PATH),
-                """UPDATE device_registry 
+                """UPDATE ai_infrastructure.device_registry 
                    SET last_seen_at = CURRENT_TIMESTAMP,
                        device_name = ?,
                        device_fingerprint = ?
@@ -67,7 +67,7 @@ def register_device():
             # Insert new device
             execute_sqlite_update(
                 str(AI_DB_PATH),
-                """INSERT INTO device_registry 
+                """INSERT INTO ai_infrastructure.device_registry 
                    (device_id, user_id, device_name, device_fingerprint)
                    VALUES (?, ?, ?, ?)""",
                 (device_id, user_id, device_name, device_fingerprint)
@@ -94,7 +94,7 @@ def lock_thread(thread_id):
         # Verify thread belongs to user
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
-            "SELECT user_id FROM threads WHERE id = ?",
+            "SELECT user_id FROM sessions.sessions.threads WHERE id = ?",
             (thread_id,)
         )
         
@@ -104,7 +104,7 @@ def lock_thread(thread_id):
         # Lock the thread
         execute_sqlite_update(
             str(SESSIONS_DB_PATH),
-            """UPDATE threads 
+            """UPDATE sessions.sessions.threads 
                SET locked_to_device_id = ?,
                    locked_at = CURRENT_TIMESTAMP,
                    lock_mode = 'locked'
@@ -115,7 +115,7 @@ def lock_thread(thread_id):
         # Get device name
         device = execute_sqlite_query(
             str(AI_DB_PATH),
-            "SELECT device_name FROM device_registry WHERE device_id = ?",
+            "SELECT device_name FROM ai_infrastructure.device_registry WHERE device_id = ?",
             (device_id,)
         )
         
@@ -124,7 +124,7 @@ def lock_thread(thread_id):
         # Log lock event
         execute_sqlite_update(
             str(AI_DB_PATH),
-            """INSERT INTO thread_lock_history (thread_id, device_id, action)
+            """INSERT INTO ai_infrastructure.thread_lock_history (thread_id, device_id, action)
                VALUES (?, ?, 'locked')""",
             (thread_id, device_id)
         )
@@ -151,7 +151,7 @@ def unlock_thread(thread_id):
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
             """SELECT locked_to_device_id, user_id 
-               FROM threads WHERE id = ?""",
+               FROM sessions.sessions.threads WHERE id = ?""",
             (thread_id,)
         )
         
@@ -171,7 +171,7 @@ def unlock_thread(thread_id):
         # Unlock the thread
         execute_sqlite_update(
             str(SESSIONS_DB_PATH),
-            """UPDATE threads 
+            """UPDATE sessions.sessions.threads 
                SET locked_to_device_id = NULL,
                    locked_at = NULL,
                    lock_mode = 'unlocked'
@@ -182,7 +182,7 @@ def unlock_thread(thread_id):
         # Log unlock event
         execute_sqlite_update(
             str(AI_DB_PATH),
-            """INSERT INTO thread_lock_history (thread_id, device_id, action)
+            """INSERT INTO ai_infrastructure.thread_lock_history (thread_id, device_id, action)
                VALUES (?, ?, 'unlocked')""",
             (thread_id, device_id)
         )
@@ -207,7 +207,7 @@ def get_lock_status(thread_id):
         thread = execute_sqlite_query(
             str(SESSIONS_DB_PATH),
             """SELECT locked_to_device_id, locked_at, lock_mode, user_id
-               FROM threads
+               FROM sessions.sessions.threads
                WHERE id = ?""",
             (thread_id,)
         )
@@ -226,7 +226,7 @@ def get_lock_status(thread_id):
         if is_locked:
             device = execute_sqlite_query(
                 str(AI_DB_PATH),
-                "SELECT device_name FROM device_registry WHERE device_id = ?",
+                "SELECT device_name FROM ai_infrastructure.device_registry WHERE device_id = ?",
                 (locked_device_id,)
             )
             device_name = device[0]['device_name'] if device else 'Unknown Device'
@@ -262,7 +262,7 @@ def get_multiple_lock_status():
         placeholders = ','.join('?' * len(thread_ids))
         query = f"""
             SELECT id as thread_id, locked_to_device_id, lock_mode
-            FROM threads
+            FROM sessions.sessions.threads
             WHERE id IN ({placeholders})
         """
         
@@ -273,7 +273,7 @@ def get_multiple_lock_status():
         device_names = {}
         if locked_device_ids:
             dev_placeholders = ','.join('?' * len(locked_device_ids))
-            device_query = f"SELECT device_id, device_name FROM device_registry WHERE device_id IN ({dev_placeholders})"
+            device_query = f"SELECT device_id, device_name FROM ai_infrastructure.device_registry WHERE device_id IN ({dev_placeholders})"
             devices = execute_sqlite_query(str(AI_DB_PATH), device_query, tuple(locked_device_ids))
             device_names = {d['device_id']: d['device_name'] for d in devices}
         

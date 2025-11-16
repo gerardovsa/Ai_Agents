@@ -98,7 +98,7 @@ def get_accounts():
     
     accounts = []
     
-    # ✅ FIX: Check Google OAuth credentials from oauth_tokens table
+    # ✅ FIX: Check Google OAuth credentials FROM ai_infrastructure.oauth_tokens table
     try:
         google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
         if google_creds:
@@ -118,7 +118,7 @@ def get_accounts():
     except Exception as e:
         print(f"[Communication Hub] ❌ Error checking Gmail credentials: {e}")
     
-    # ✅ FIX: Check Microsoft OAuth credentials from oauth_tokens table
+    # ✅ FIX: Check Microsoft OAuth credentials FROM ai_infrastructure.oauth_tokens table
     if OUTLOOK_AVAILABLE:
         try:
             microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)

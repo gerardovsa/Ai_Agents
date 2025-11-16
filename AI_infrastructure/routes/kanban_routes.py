@@ -96,7 +96,7 @@ def list_sessions():
         conn = get_synergy_db()
         cursor = conn.cursor()
         
-        query = 'SELECT * FROM sessions WHERE 1=1'
+        query = 'SELECT * FROM sessions.sessions WHERE 1=1'
         params = []
         
         if status:
@@ -164,7 +164,7 @@ def create_session():
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO sessions 
+            INSERT INTO sessions.sessions 
             (session_id, title, description, priority, status, kanban_column, 
              tags, project_name, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -196,7 +196,7 @@ def get_session(session_id):
         # Get Kanban session
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('SELECT * FROM sessions.sessions WHERE session_id = ?', (session_id,))
         session = cursor.fetchone()
         conn.close()
         
@@ -260,7 +260,7 @@ def update_session(session_id):
         conn = get_synergy_db()
         cursor = conn.cursor()
         
-        query = f"UPDATE sessions SET {', '.join(fields)} WHERE session_id = ?"
+        query = f"UPDATE sessions.sessions SET {', '.join(fields)} WHERE session_id = ?"
         cursor.execute(query, values)
         conn.commit()
         
@@ -290,7 +290,7 @@ def delete_session(session_id):
         # Delete from Kanban DB
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('DELETE FROM sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('DELETE FROM sessions.sessions.sessions WHERE session_id = ?', (session_id,))
         conn.commit()
         
         if cursor.rowcount == 0:
@@ -348,7 +348,7 @@ def assign_agent(session_id):
         # Check if session exists
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('SELECT title, status, kanban_column FROM sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('SELECT title, status, kanban_column FROM sessions.sessions WHERE session_id = ?', (session_id,))
         session = cursor.fetchone()
         conn.close()
         
@@ -485,7 +485,7 @@ def sync_from_agent(session_id):
         conn = get_synergy_db()
         cursor = conn.cursor()
         cursor.execute('''
-            UPDATE sessions
+            UPDATE sessions.sessions
             SET kanban_column = ?,
                 updated_at = ?,
                 notes = COALESCE(notes || '\n' || ?, notes)
@@ -522,7 +522,7 @@ def health():
         # Test Synergy DB
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('SELECT COUNT(*) FROM sessions')
+        cursor.execute('SELECT COUNT(*) FROM sessions.sessions')
         session_count = cursor.fetchone()[0]
         conn.close()
         

@@ -5,8 +5,8 @@ Microsoft 365 Authentication Routes (V2 FIXED)
 FIXED VERSION - Writes to oauth_tokens table with correct schema
 
 CRITICAL CHANGES FROM OLD VERSION:
--  OLD: INSERT INTO user_platform_credentials (credential_type, credential_key, credential_value)
-- NEW: INSERT INTO oauth_tokens (access_token, refresh_token, expires_at, email, etc.)
+-  OLD: INSERT INTO ai_infrastructure.user_platform_credentials (credential_type, credential_key, credential_value)
+- NEW: INSERT INTO ai_infrastructure.oauth_tokens (access_token, refresh_token, expires_at, email, etc.)
 
 This fixes the OAuth storage problem where credentials were stored in the wrong table
 with the wrong schema, preventing tools from finding them.
@@ -150,7 +150,7 @@ def get_user_by_email(email: str):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
+        cursor.execute('SELECT * FROM ai_infrastructure.users WHERE email = ?', (email,))
         user = cursor.fetchone()
         conn.close()
         return dict(user) if user else None
@@ -163,7 +163,7 @@ def get_user_by_id(user_id: int):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        cursor.execute('SELECT * FROM ai_infrastructure.users WHERE id = ?', (user_id,))
         user = cursor.fetchone()
         conn.close()
         return dict(user) if user else None
@@ -178,7 +178,7 @@ def create_user(email: str, username: str, role: str = 'user'):
         cursor = conn.cursor()
         
         # Check if user already exists
-        cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = ?', (email,))
         existing = cursor.fetchone()
         if existing:
             logger.warning(f"User already exists with email {email}, returning existing user")
@@ -186,7 +186,7 @@ def create_user(email: str, username: str, role: str = 'user'):
             return get_user_by_email(email)
         
         # Make username unique if collision
-        cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE username = ?', (username,))
         if cursor.fetchone():
             # Add random suffix to username
             import random
@@ -194,7 +194,7 @@ def create_user(email: str, username: str, role: str = 'user'):
             logger.info(f"Username collision, using: {username}")
         
         cursor.execute('''
-            INSERT INTO users (username, email, password_hash, role, created_at)
+            INSERT INTO ai_infrastructure.users (username, email, password_hash, role, created_at)
             VALUES (?, ?, ?, ?, ?)
         ''', (username, email, 'oauth_microsoft', role, datetime.now().isoformat()))
         user_id = cursor.lastrowid
@@ -249,27 +249,27 @@ def generate_jwt_token(payload: dict):
                 # For PostgreSQL, try to use DEFAULT or generate id manually
                 # Check if sequence exists, otherwise use MAX(id) + 1
                 try:
-                    cursor.execute('SELECT MAX(id) FROM user_sessions')
+                    cursor.execute('SELECT MAX(id) FROM ai_infrastructure.user_sessions')
                     result = cursor.fetchone()
                     max_id = result['max'] if isinstance(result, dict) else result[0]
                     next_id = (max_id or 0) + 1
                     
                     insert_sql = '''
-                        INSERT INTO user_sessions (id, user_id, token, expires_at)
+                        INSERT INTO ai_infrastructure.user_sessions (id, user_id, token, expires_at)
                         VALUES (?, ?, ?, ?)
                     '''
                     insert_sql, insert_params = convert_sql_placeholders(insert_sql, (next_id, payload['user_id'], token, expires_at))
                 except:
                     # Fallback: try without id (in case DEFAULT works)
                     insert_sql = '''
-                        INSERT INTO user_sessions (user_id, token, expires_at)
+                        INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
                         VALUES (?, ?, ?)
                     '''
                     insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
             else:
                 # SQLite: Don't insert id (AUTOINCREMENT handles it)
                 insert_sql = '''
-                    INSERT INTO user_sessions (user_id, token, expires_at)
+                    INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
                     VALUES (?, ?, ?)
                 '''
                 insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
@@ -474,7 +474,7 @@ def microsoft_callback():
         from shared.database_utils import is_using_supabase, convert_sql_placeholders
         
         # Check if token already exists
-        check_sql = 'SELECT id FROM oauth_tokens WHERE user_id = ? AND platform = ?'
+        check_sql = 'SELECT id FROM ai_infrastructure.oauth_tokens WHERE user_id = ? AND platform = ?'
         check_sql, check_params = convert_sql_placeholders(check_sql, (user_id, 'microsoft'))
         cursor.execute(check_sql, check_params)
         existing_token = cursor.fetchone()
@@ -482,7 +482,7 @@ def microsoft_callback():
         if existing_token:
             # UPDATE existing token
             sql = '''
-                UPDATE oauth_tokens SET
+                UPDATE ai_infrastructure.oauth_tokens SET
                     access_token = ?,
                     refresh_token = ?,
                     token_type = ?,
@@ -508,7 +508,7 @@ def microsoft_callback():
             if is_using_supabase():
                 # PostgreSQL: Skip created_at/updated_at (use DEFAULT)
                 sql = '''
-                    INSERT INTO oauth_tokens (
+                    INSERT INTO ai_infrastructure.oauth_tokens (
                         user_id, platform, access_token, refresh_token, token_type,
                         expires_at, scope, is_valid, is_active, auto_refresh_enabled,
                         last_refreshed_at, refresh_attempts, last_refresh_error,
@@ -519,7 +519,7 @@ def microsoft_callback():
             else:
                 # SQLite: Use CURRENT_TIMESTAMP
                 sql = '''
-                    INSERT INTO oauth_tokens (
+                    INSERT INTO ai_infrastructure.oauth_tokens (
                         user_id, platform, access_token, refresh_token, token_type,
                         expires_at, scope, is_valid, is_active, auto_refresh_enabled,
                         last_refreshed_at, refresh_attempts, last_refresh_error,
@@ -610,7 +610,7 @@ def microsoft_callback():
         
         # Update has_microsoft_oauth flag (use TRUE for PostgreSQL, 1 for SQLite)
         flag_value = True if is_using_supabase() else 1
-        update_sql = 'UPDATE users SET has_microsoft_oauth = ? WHERE id = ?'
+        update_sql = 'UPDATE ai_infrastructure.users SET has_microsoft_oauth = ? WHERE id = ?'
         update_sql, update_params = convert_sql_placeholders(update_sql, (flag_value, user_id))
         
         # Retry logic for statement timeout
@@ -687,7 +687,7 @@ def microsoft_status():
     GET /api/auth/microsoft/status
     Authorization: Bearer <jwt_token>
     
-    Returns connection status and token info from oauth_tokens table
+    Returns connection status and token info FROM ai_infrastructure.oauth_tokens table
     """
     try:
         # Get user_id from request.user (set by @require_auth decorator)
@@ -712,7 +712,7 @@ def microsoft_status():
                     access_token, refresh_token, expires_at, is_valid, is_active,
                     email, profile_name, last_refreshed_at, error_count, last_error,
                     created_at, updated_at
-                FROM oauth_tokens
+                FROM ai_infrastructure.oauth_tokens
                 WHERE user_id = ? AND platform = ?
             ''', (user_id, 'microsoft'))
             
@@ -814,7 +814,7 @@ def microsoft_disconnect():
     POST /api/auth/microsoft/disconnect
     Authorization: Bearer <jwt_token>
     
-    Revokes tokens and deletes from oauth_tokens table
+    Revokes tokens and deletes FROM ai_infrastructure.oauth_tokens table
     """
     try:
         # Get user_id from request.user (set by @require_auth decorator)
@@ -823,9 +823,9 @@ def microsoft_disconnect():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Delete tokens from oauth_tokens table
+        # Delete tokens FROM ai_infrastructure.oauth_tokens table
         cursor.execute('''
-            DELETE FROM oauth_tokens
+            DELETE FROM ai_infrastructure.oauth_tokens
             WHERE user_id = ? AND platform = ?
         ''', (user_id, 'microsoft'))
         

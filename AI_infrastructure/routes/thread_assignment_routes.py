@@ -106,16 +106,16 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         cursor = conn.cursor()
         
         # CRITICAL FIX: Ensure user row exists before UPDATE
-        cursor.execute("SELECT id FROM users WHERE id = ?", [user_id])
+        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = ?", [user_id])
         if not cursor.fetchone():
             logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
             cursor.execute("""
-                INSERT INTO users (id, username, email, password_hash, created_at, last_active, metadata)
+                INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
                 VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
             """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'])
         
         # Get existing metadata
-        cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
         row = cursor.fetchone()
         
         # Parse metadata
@@ -144,7 +144,7 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         if location == 'prime':
             metadata['thread_assignments'] = assignments
             cursor.execute("""
-                UPDATE users 
+                UPDATE ai_infrastructure.users 
                 SET metadata = ?, last_active = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, [json.dumps(metadata), user_id])
@@ -168,7 +168,7 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         # Save back to database
         metadata['thread_assignments'] = assignments
         cursor.execute("""
-            UPDATE users 
+            UPDATE ai_infrastructure.users 
             SET metadata = ?, last_active = CURRENT_TIMESTAMP
             WHERE id = ?
         """, [json.dumps(metadata), user_id])
@@ -210,7 +210,7 @@ def get_thread_assignments():
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT metadata FROM users WHERE id = ?
+            SELECT metadata FROM ai_infrastructure.users WHERE id = ?
         """, [user_id])
         
         row = cursor.fetchone()
@@ -299,17 +299,17 @@ def save_thread_assignments():
         cursor = conn.cursor()
         
         # CRITICAL FIX: Ensure user row exists before UPDATE
-        cursor.execute("SELECT id FROM users WHERE id = ?", [user_id])
+        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = ?", [user_id])
         if not cursor.fetchone():
             logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
             cursor.execute("""
-                INSERT INTO users (id, username, email, password_hash, created_at, last_active, metadata)
+                INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
                 VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
             """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'])
         
         # Get existing metadata
         cursor.execute("""
-            SELECT metadata FROM users WHERE id = ?
+            SELECT metadata FROM ai_infrastructure.users WHERE id = ?
         """, [user_id])
         
         row = cursor.fetchone()
@@ -330,7 +330,7 @@ def save_thread_assignments():
         
         # Save back to database
         cursor.execute("""
-            UPDATE users 
+            UPDATE ai_infrastructure.users 
             SET metadata = ?, last_active = CURRENT_TIMESTAMP
             WHERE id = ?
         """, [json.dumps(metadata), user_id])
@@ -440,7 +440,7 @@ def clear_location(location):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
         row = cursor.fetchone()
         
         metadata_value = get_row_value(row, 'metadata')
@@ -458,7 +458,7 @@ def clear_location(location):
                     metadata['thread_assignments'] = assignments
                     
                     cursor.execute("""
-                        UPDATE users 
+                        UPDATE ai_infrastructure.users 
                         SET metadata = ?
                         WHERE id = ?
                     """, [json.dumps(metadata), user_id])
@@ -507,7 +507,7 @@ def get_thread_location(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
         row = cursor.fetchone()
         conn.close()
         
@@ -566,7 +566,7 @@ def validate_assignments():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT metadata FROM users WHERE id = ?", [user_id])
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
         row = cursor.fetchone()
         
         errors = []
@@ -601,7 +601,7 @@ def validate_assignments():
                     # Save fixed metadata
                     metadata['thread_assignments'] = assignments
                     cursor.execute("""
-                        UPDATE users SET metadata = ? WHERE id = ?
+                        UPDATE ai_infrastructure.users SET metadata = ? WHERE id = ?
                     """, [json.dumps(metadata), user_id])
                     conn.commit()
                 

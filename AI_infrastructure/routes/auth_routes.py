@@ -238,7 +238,7 @@ def get_profile():
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
         
-        query = convert_sql_placeholders('SELECT password_hash FROM users WHERE id = ?')
+        query = convert_sql_placeholders('SELECT password_hash FROM ai_infrastructure.users WHERE id = ?')
         cursor.execute(query, (user_id,))
         user_row = cursor.fetchone()
         
@@ -254,7 +254,7 @@ def get_profile():
                 bool_true = True if is_using_supabase() else 1
                 
                 query2 = convert_sql_placeholders('''
-                    SELECT platform FROM oauth_tokens 
+                    SELECT platform FROM ai_infrastructure.oauth_tokens 
                     WHERE user_id = ? AND is_active = ?
                     ORDER BY created_at DESC LIMIT 1
                 ''')
@@ -281,7 +281,7 @@ def get_profile():
         # ✅ FIX: Check oauth_tokens table (where Google/Microsoft OAuth actually stores tokens)
         query3 = convert_sql_placeholders(f'''
             SELECT COUNT(*) as count 
-            FROM oauth_tokens 
+            FROM ai_infrastructure.oauth_tokens 
             WHERE user_id = ? 
             AND platform = 'google' 
             AND access_token IS NOT NULL
@@ -296,7 +296,7 @@ def get_profile():
         # ✅ FIX: Check oauth_tokens table (where Google/Microsoft OAuth actually stores tokens)
         query4 = convert_sql_placeholders(f'''
             SELECT COUNT(*) as count 
-            FROM oauth_tokens 
+            FROM ai_infrastructure.oauth_tokens 
             WHERE user_id = ? 
             AND (platform = 'microsoft' OR platform = 'microsoft365')
             AND access_token IS NOT NULL
@@ -345,7 +345,7 @@ def check_credentials():
         
         cursor.execute('''
             SELECT COUNT(*) as count
-            FROM user_platform_credentials
+            FROM ai_infrastructure.user_platform_credentials
             WHERE user_id = ? 
             AND platform = 'google'
             AND credential_type = 'oauth'
@@ -383,7 +383,7 @@ def revoke_tokens():
     COMPLETE RESET MODE (complete_reset=true):
     1. Revoke tokens with OAuth provider (Google/Microsoft API)
     2. Delete ALL OAuth tokens for user
-    3. Delete user from users table
+    3. Delete user FROM ai_infrastructure.users table
     4. Clear all user data
     5. Force fresh registration on next OAuth
     
@@ -415,7 +415,7 @@ def revoke_tokens():
         # Get existing tokens BEFORE deleting (needed for provider revocation)
         cursor.execute('''
             SELECT access_token, refresh_token
-            FROM oauth_tokens
+            FROM ai_infrastructure.oauth_tokens
             WHERE user_id = ? AND platform = ?
             ORDER BY created_at DESC
             LIMIT 1
@@ -473,20 +473,20 @@ def revoke_tokens():
             print(f'🗑️ [COMPLETE RESET] Deleting user {user_id} completely from system...')
             
             # Delete ALL OAuth tokens (all platforms)
-            cursor.execute('DELETE FROM oauth_tokens WHERE user_id = ?', (user_id,))
+            cursor.execute('DELETE FROM ai_infrastructure.oauth_tokens WHERE user_id = ?', (user_id,))
             tokens_deleted = cursor.rowcount
             print(f'   ✅ Deleted {tokens_deleted} OAuth tokens')
             
-            # Delete from user_platform_credentials (if exists)
+            # Delete FROM ai_infrastructure.user_platform_credentials (if exists)
             try:
-                cursor.execute('DELETE FROM user_platform_credentials WHERE user_id = ?', (user_id,))
+                cursor.execute('DELETE FROM ai_infrastructure.user_platform_credentials WHERE user_id = ?', (user_id,))
                 creds_deleted = cursor.rowcount
                 print(f'   ✅ Deleted {creds_deleted} platform credentials')
             except Exception as e:
                 print(f'   ⚠️ No user_platform_credentials table or error: {e}')
             
-            # Delete user from users table
-            cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+            # Delete user FROM ai_infrastructure.users table
+            cursor.execute('DELETE FROM ai_infrastructure.users WHERE id = ?', (user_id,))
             user_deleted = cursor.rowcount
             print(f'   ✅ Deleted user record ({user_deleted} row)')
             
@@ -511,7 +511,7 @@ def revoke_tokens():
             
             # Delete tokens for specific platform only
             cursor.execute('''
-                DELETE FROM oauth_tokens
+                DELETE FROM ai_infrastructure.oauth_tokens
                 WHERE user_id = ? AND platform = ?
             ''', (user_id, platform))
             
@@ -519,9 +519,9 @@ def revoke_tokens():
             
             # Update user flags
             if platform == 'google':
-                cursor.execute('UPDATE users SET has_google_oauth = 0 WHERE id = ?', (user_id,))
+                cursor.execute('UPDATE ai_infrastructure.users SET has_google_oauth = 0 WHERE id = ?', (user_id,))
             elif platform == 'microsoft':
-                cursor.execute('UPDATE users SET has_microsoft_oauth = 0 WHERE id = ?', (user_id,))
+                cursor.execute('UPDATE ai_infrastructure.users SET has_microsoft_oauth = 0 WHERE id = ?', (user_id,))
             
             conn.commit()
             conn.close()
