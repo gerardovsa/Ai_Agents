@@ -15141,6 +15141,75 @@
             console.log('[MAIN APP] Platform ready with full tool integration!\n');
         };
 
+        // ==================== SERVICE WORKER REGISTRATION ====================
+        // Register service worker for caching heavy libraries (instant repeat visits)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ [Service Worker] Registered successfully:', registration.scope);
+
+                        // Check for updates every 24 hours
+                        setInterval(() => {
+                            registration.update();
+                        }, 24 * 60 * 60 * 1000);
+                    })
+                    .catch((error) => {
+                        console.warn('⚠️ [Service Worker] Registration failed:', error);
+                    });
+
+                // Listen for service worker updates
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    console.log('🔄 [Service Worker] Updated - reloading page');
+                    window.location.reload();
+                });
+            });
+        }
+
+        // Helper: Clear service worker cache (for debugging)
+        window.clearServiceWorkerCache = async () => {
+            if (!navigator.serviceWorker.controller) {
+                console.log('❌ No service worker active');
+                return;
+            }
+
+            const messageChannel = new MessageChannel();
+
+            return new Promise((resolve) => {
+                messageChannel.port1.onmessage = (event) => {
+                    console.log('✅ Service worker cache cleared');
+                    resolve(event.data);
+                };
+
+                navigator.serviceWorker.controller.postMessage(
+                    { command: 'clearCache' },
+                    [messageChannel.port2]
+                );
+            });
+        };
+
+        // Helper: Get cache info (for debugging)
+        window.getServiceWorkerCacheInfo = async () => {
+            if (!navigator.serviceWorker.controller) {
+                console.log('❌ No service worker active');
+                return;
+            }
+
+            const messageChannel = new MessageChannel();
+
+            return new Promise((resolve) => {
+                messageChannel.port1.onmessage = (event) => {
+                    console.log('📦 Service Worker Cache Info:', event.data);
+                    resolve(event.data);
+                };
+
+                navigator.serviceWorker.controller.postMessage(
+                    { command: 'getCacheInfo' },
+                    [messageChannel.port2]
+                );
+            });
+        };
+
         // ==================== ON PAGE LOAD - AUTH CHECK ONLY ====================
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('[AUTH] Checking authentication status...');

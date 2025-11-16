@@ -666,21 +666,32 @@ Just use it directly.""",
     # Check for exact alias match first
     if query_lower in alias_map:
         search_keywords = alias_map[query_lower]
+        print(f"[SEARCH] Exact alias match: {query_lower} -> {search_keywords}")
     else:
         # No alias - check if any alias appears as substring in query
         alias_found = False
         for alias, expansions in alias_map.items():
             if alias in query_lower:
+                print(f"[SEARCH] Found alias '{alias}' in query, adding: {expansions}")
                 search_keywords.extend(expansions)
                 alias_found = True
         
         # If no alias found, use query directly for substring matching
         if not alias_found:
             search_keywords = [query_lower]
+            print(f"[SEARCH] No alias found, using query directly: {search_keywords}")
+    
+    print(f"[SEARCH] Final search_keywords ({len(search_keywords)}): {search_keywords}")
     
     # Search tool names and descriptions (exact substring matching only)
     matching_tools = []
     matched_tool_names = set()
+    
+    # Debug logging for agent coordination tools
+    debug_mode = any(kw in ['agent', 'assign_and_activate', 'distribute'] for kw in search_keywords)
+    if debug_mode:
+        print(f"[DEBUG] Search keywords: {search_keywords}")
+        print(f"[DEBUG] Total tools in registry: {len(registry.tools)}")
     
     for tool_name, tool in registry.tools.items():
         # Skip meta-tools in search results
@@ -697,6 +708,8 @@ Just use it directly.""",
         for keyword in search_keywords:
             if keyword in tool_name.lower() or keyword in description:
                 matched = True
+                if debug_mode and 'assign_and_activate' in tool_name:
+                    print(f"[DEBUG] MATCH! Tool: {tool_name}, Keyword: {keyword}")
                 break
         
         if matched:
@@ -706,6 +719,9 @@ Just use it directly.""",
                 "platform": tool.get("platform", "unknown")
             })
             matched_tool_names.add(tool_name)
+    
+    if debug_mode:
+        print(f"[DEBUG] Total matches found: {len(matching_tools)}")
     
     # Sort alphabetically by name
     matching_tools.sort(key=lambda x: x["name"])

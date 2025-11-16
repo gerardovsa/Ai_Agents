@@ -640,16 +640,17 @@ class RegistryV3:
             # Detect which format we have
             if parameters and "type" in parameters and parameters.get("type") == "object":
                 # Format 2: Already in Anthropic format (has type: "object", properties, required)
-                # Just copy it as input_schema, preserving additionalProperties if present
+                # Copy only the fields Anthropic API supports (type, properties, required)
+                # DO NOT copy additionalProperties - Anthropic's validator rejects it as custom field
                 input_schema = {
                     "type": parameters.get("type", "object"),
                     "properties": parameters.get("properties", {}),
                     "required": parameters.get("required", [])
                 }
                 
-                # Preserve additionalProperties if present (needed for execute_tool proxy)
-                if "additionalProperties" in parameters:
-                    input_schema["additionalProperties"] = parameters["additionalProperties"]
+                # NOTE: additionalProperties is NOT supported by Anthropic's JSON Schema validator
+                # It gets rejected as "tools.X.custom.input_schema: JSON schema is invalid"
+                # The execute_tool function handles dynamic params without needing this field
                 
                 anthropic_tool["input_schema"] = input_schema
             else:

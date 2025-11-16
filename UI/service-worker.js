@@ -27,20 +27,20 @@ const HEAVY_LIBRARIES = [
     'https://cdn.jsdelivr.net/npm/@tiptap/extension-mention@2.1.13/dist/index.umd.min.js',
     'https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration@2.1.13/dist/index.umd.min.js',
     'https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration-cursor@2.1.13/dist/index.umd.min.js',
-    
+
     // Yjs Collaboration
     'https://cdn.jsdelivr.net/npm/yjs@13.6.10/dist/yjs.min.js',
     'https://cdn.jsdelivr.net/npm/y-websocket@1.5.0/dist/y-websocket.min.js',
-    
+
     // Handsontable Spreadsheet
     'https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js',
     'https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css',
     'https://cdn.jsdelivr.net/npm/hyperformula/dist/hyperformula.full.min.js',
-    
+
     // PDF Export
     'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
     'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
-    
+
     // Core Libraries (already loaded but good to cache)
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css',
     'https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css',
@@ -88,17 +88,17 @@ const APP_FILES = [
  */
 self.addEventListener('install', (event) => {
     console.log('[Service Worker] Installing... Caching heavy libraries');
-    
+
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             console.log('[Service Worker] Opened cache:', CACHE_NAME);
-            
+
             // Cache libraries in batches to avoid overwhelming browser
             return cacheBatches(cache, HEAVY_LIBRARIES, 10)
                 .then(() => {
                     console.log('[Service Worker] Heavy libraries cached successfully');
                     // Also cache app files (smaller, faster)
-                    return cache.addAll(APP_FILES.map(file => new Request(file, {cache: 'reload'})));
+                    return cache.addAll(APP_FILES.map(file => new Request(file, { cache: 'reload' })));
                 })
                 .then(() => {
                     console.log('[Service Worker] App files cached successfully');
@@ -119,13 +119,13 @@ async function cacheBatches(cache, urls, batchSize) {
     for (let i = 0; i < urls.length; i += batchSize) {
         const batch = urls.slice(i, i + batchSize);
         await Promise.allSettled(
-            batch.map(url => 
+            batch.map(url =>
                 cache.add(url).catch(err => {
                     console.warn(`[Service Worker] Failed to cache: ${url}`, err);
                 })
             )
         );
-        console.log(`[Service Worker] Cached batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(urls.length/batchSize)}`);
+        console.log(`[Service Worker] Cached batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(urls.length / batchSize)}`);
     }
 }
 
@@ -135,7 +135,7 @@ async function cacheBatches(cache, urls, batchSize) {
  */
 self.addEventListener('activate', (event) => {
     console.log('[Service Worker] Activating...');
-    
+
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -161,7 +161,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
-    
+
     // Skip caching for:
     // 1. API calls (always fetch fresh)
     // 2. WebSocket connections
@@ -174,7 +174,7 @@ self.addEventListener('fetch', (event) => {
     ) {
         return; // Let browser handle normally
     }
-    
+
     // STRATEGY 1: Cache First (for CDN libraries)
     if (isCDNResource(url)) {
         event.respondWith(
@@ -183,7 +183,7 @@ self.addEventListener('fetch', (event) => {
                     console.log('[Service Worker] Cache HIT:', url.pathname);
                     return cachedResponse;
                 }
-                
+
                 // Not in cache, fetch and cache it
                 console.log('[Service Worker] Cache MISS, fetching:', url.pathname);
                 return fetch(request).then((response) => {
@@ -199,7 +199,7 @@ self.addEventListener('fetch', (event) => {
             })
         );
     }
-    
+
     // STRATEGY 2: Network First (for app files - always get latest)
     else {
         event.respondWith(
@@ -243,7 +243,7 @@ function isCDNResource(url) {
         'cdn.plot.ly',
         'cdn.socket.io'
     ];
-    
+
     return cdnDomains.some(domain => url.hostname.includes(domain));
 }
 
@@ -253,7 +253,7 @@ function isCDNResource(url) {
  */
 self.addEventListener('message', (event) => {
     const { command } = event.data;
-    
+
     if (command === 'clearCache') {
         console.log('[Service Worker] Clearing all caches...');
         caches.keys().then((cacheNames) => {
@@ -265,7 +265,7 @@ self.addEventListener('message', (event) => {
             event.ports[0].postMessage({ success: true });
         });
     }
-    
+
     if (command === 'getCacheInfo') {
         console.log('[Service Worker] Getting cache info...');
         caches.open(CACHE_NAME).then((cache) => {
