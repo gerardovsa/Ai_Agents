@@ -301,38 +301,47 @@ class InternalDocsManager {
                     minute: '2-digit'
                 });
 
-                // Update popup title with editable input (20px font, auto-width)
+                // Update popup title - Single row header with controls on right
                 popup.titleElement.innerHTML = `
-                    <div style="display: flex; flex-direction: column; flex: 1; gap: 6px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <i class="fas fa-${doc.doc_type === 'spreadsheet' ? 'table' : 'file-alt'}" style="font-size: 18px; color: var(--accent-primary);"></i>
-                            <input type="text" value="${doc.title || 'Untitled'}" 
-                                id="doc-title-edit-${docId}"
-                                style="background: transparent; border: none; color: var(--text-primary); 
-                                font-size: 20px; font-weight: 600; padding: 4px 8px; border-radius: 4px; width: auto; min-width: 150px; max-width: 600px;"
-                                onblur="window.internalDocsManager.updateDocumentTitle('${docId}', this.value)"
-                                oninput="this.style.width = Math.max(150, Math.min(600, (this.value.length * 12) + 20)) + 'px'"
-                                onkeypress="if(event.key==='Enter'){this.blur();}">
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px; padding-left: 30px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        <i class="fas fa-${doc.doc_type === 'spreadsheet' ? 'table' : 'file-alt'}" style="font-size: 18px; color: var(--accent-primary);"></i>
+                        <input type="text" value="${doc.title || 'Untitled'}" 
+                            id="doc-title-edit-${docId}"
+                            style="background: transparent; border: none; color: var(--text-primary); 
+                            font-size: 20px; font-weight: 600; padding: 4px 8px; border-radius: 4px; width: auto; min-width: 150px; max-width: 600px;"
+                            onblur="window.internalDocsManager.updateDocumentTitle('${docId}', this.value)"
+                            oninput="this.style.width = Math.max(150, Math.min(600, (this.value.length * 12) + 20)) + 'px'"
+                            onkeypress="if(event.key==='Enter'){this.blur();}">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
                             <i class="fas fa-clock" style="font-size: 10px; color: var(--text-muted);"></i>
-                            <span style="color: var(--text-muted); font-size: 11px;">Created ${formattedDate}</span>
+                            <span style="color: var(--text-muted); font-size: 11px; white-space: nowrap;">Created ${formattedDate}</span>
                         </div>
-                        <details style="padding-left: 30px; margin-top: 4px;" ${doc.description ? 'open' : ''}>
-                            <summary style="cursor: pointer; color: var(--text-muted); font-size: 11px; user-select: none;">
-                                <i class="fas fa-align-left" style="font-size: 10px; margin-right: 4px;"></i>
-                                Description
-                            </summary>
-                            <div style="margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; border-left: 3px solid var(--accent-primary);">
-                                <textarea id="doc-description-${docId}" 
-                                    placeholder="Add a description for this ${doc.doc_type}..."
-                                    style="width: 100%; min-height: 60px; background: transparent; border: none; color: var(--text-primary); font-size: 12px; resize: vertical; padding: 4px;"
-                                    onblur="window.internalDocsManager.updateDocumentDescription('${docId}', this.value)"
-                                    onclick="event.stopPropagation()">${doc.description || ''}</textarea>
-                            </div>
-                        </details>
                     </div>
                 `;
+
+                // Add description section as separate container below header (before body content)
+                const descriptionContainer = document.createElement('div');
+                descriptionContainer.style.cssText = 'padding: 12px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-primary);';
+                descriptionContainer.innerHTML = `
+                    <details ${doc.description ? 'open' : ''}>
+                        <summary style="cursor: pointer; color: var(--text-muted); font-size: 12px; user-select: none; font-weight: 500;">
+                            <i class="fas fa-align-left" style="font-size: 10px; margin-right: 6px;"></i>
+                            Description
+                        </summary>
+                        <div style="margin-top: 8px; padding: 10px; background: var(--bg-secondary); border-radius: 6px; border-left: 3px solid var(--accent-primary);">
+                            <textarea id="doc-description-${docId}" 
+                                placeholder="Add a description for this ${doc.doc_type}..."
+                                style="width: 100%; min-height: 60px; background: transparent; border: none; color: var(--text-primary); font-size: 12px; resize: vertical; padding: 4px; font-family: inherit;"
+                                onblur="window.internalDocsManager.updateDocumentDescription('${docId}', this.value)"
+                                onclick="event.stopPropagation()">${doc.description || ''}</textarea>
+                        </div>
+                    </details>
+                `;
+
+                // Insert description container before body content
+                popup.bodyElement.parentElement.insertBefore(descriptionContainer, popup.bodyElement);
 
                 // Create editor based on doc type
                 if (doc.doc_type === 'spreadsheet') {

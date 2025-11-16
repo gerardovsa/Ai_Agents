@@ -23,7 +23,9 @@ They return structured dictionaries suitable for AI consumption.
 """
 
 from typing import Any, Dict, Optional
+import re
 import traceback
+from datetime import datetime
 
 # Try to import the Xero client from the UI module. If it isn't available
 # at import time, functions will raise a clear error.
@@ -49,6 +51,38 @@ def _extract_token(kwargs: Dict[str, Any]) -> Optional[str]:
         # common key names
         return injected.get('access_token') or injected.get('token')
     return None
+
+
+def _parse_xero_date(date_str: str) -> Optional[str]:
+    """
+    Parse Xero's date format and return ISO date string (YYYY-MM-DD)
+    Xero returns dates in format: /Date(1748476800000+0000)/
+    """
+    if not date_str:
+        return None
+    
+    try:
+        # Extract timestamp from /Date(timestamp+0000)/ or /Date(timestamp)/
+        match = re.search(r'/Date\((\d+)', date_str)
+        if match:
+            timestamp_ms = int(match.group(1))
+            # Convert milliseconds to seconds
+            timestamp_sec = timestamp_ms / 1000
+            dt = datetime.fromtimestamp(timestamp_sec)
+            return dt.strftime('%Y-%m-%d')
+        
+        # Try ISO format as fallback
+        if 'T' in date_str:
+            dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            return dt.strftime('%Y-%m-%d')
+        
+        # Already in YYYY-MM-DD format
+        if re.match(r'\d{4}-\d{2}-\d{2}', date_str):
+            return date_str
+            
+        return None
+    except Exception:
+        return None
 
 
 def xero_get_invoices(business_id: int = 1, status: Optional[str] = None,
@@ -82,8 +116,8 @@ def xero_get_invoices(business_id: int = 1, status: Optional[str] = None,
                 'invoice_id': inv.get('InvoiceID'),
                 'invoice_number': inv.get('InvoiceNumber'),
                 'contact_name': inv.get('Contact', {}).get('Name'),
-                'date': inv.get('Date'),
-                'due_date': inv.get('DueDate'),
+                'date': _parse_xero_date(inv.get('Date')) if inv.get('Date') else None,
+                'due_date': _parse_xero_date(inv.get('DueDate')) if inv.get('DueDate') else None,
                 'status': inv.get('Status'),
                 'total': inv.get('Total'),
                 'amount_due': inv.get('AmountDue'),
@@ -132,8 +166,8 @@ def xero_get_invoice_by_id(business_id: int = 1, invoice_id: str = None, **kwarg
                 'invoice_id': invoice.get('InvoiceID'),
                 'invoice_number': invoice.get('InvoiceNumber'),
                 'contact_name': invoice.get('Contact', {}).get('Name'),
-                'date': invoice.get('Date'),
-                'due_date': invoice.get('DueDate'),
+                'date': _parse_xero_date(invoice.get('Date')) if invoice.get('Date') else None,
+                'due_date': _parse_xero_date(invoice.get('DueDate')) if invoice.get('DueDate') else None,
                 'status': invoice.get('Status'),
                 'total': invoice.get('Total'),
                 'amount_due': invoice.get('AmountDue'),
@@ -239,7 +273,7 @@ def xero_get_bank_transactions(business_id: int = 1, from_date: Optional[str] = 
         for txn in transactions:
             formatted_transactions.append({
                 'transaction_id': txn.get('BankTransactionID'),
-                'date': txn.get('Date'),
+                'date': _parse_xero_date(txn.get('Date')) if txn.get('Date') else None,
                 'type': txn.get('Type'),
                 'contact_name': txn.get('Contact', {}).get('Name'),
                 'total': txn.get('Total'),
@@ -275,7 +309,7 @@ def xero_get_payments(business_id: int = 1, invoice_id: Optional[str] = None, **
         for payment in payments:
             formatted_payments.append({
                 'payment_id': payment.get('PaymentID'),
-                'date': payment.get('Date'),
+                'date': _parse_xero_date(payment.get('Date')) if payment.get('Date') else None,
                 'amount': payment.get('Amount'),
                 'invoice_number': payment.get('Invoice', {}).get('InvoiceNumber'),
                 'status': payment.get('Status')

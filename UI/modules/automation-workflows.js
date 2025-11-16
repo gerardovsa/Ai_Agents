@@ -1552,7 +1552,7 @@ class AutomationCanvas {
         // With floating palette, workflows are managed through API
         // For now, show simple message - can be enhanced to show modal with workflow list
         alert('Load Workflow:\n\nSaved workflows can be accessed through the API.\nUse the "New" button to create a new workflow or check the backend /api/automation/list endpoint for saved workflows.');
-        
+
         // TODO: Future enhancement - show modal with workflow list from /api/automation/list
         // this.openWorkflowModal('load');
     }

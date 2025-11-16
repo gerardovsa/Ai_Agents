@@ -597,10 +597,10 @@
 
 .prompt-sidebar {
     position: fixed;
-    top: 125px;
+    top: 60px;
     right: -450px;
     width: 450px;
-    height: calc(100vh - 125px);
+    height: calc(100vh - 60px);
     padding: 0;
     background: var(--bg-secondary);
     border: 1px solid var(--border-default);
@@ -612,7 +612,7 @@
 }
 
 .prompt-sidebar.show {
-    right: 0;
+    right: 60px;
     display: flex !important;
     visibility: visible;
 }

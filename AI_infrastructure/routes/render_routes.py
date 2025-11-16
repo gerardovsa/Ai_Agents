@@ -29,9 +29,6 @@ except ImportError:
         print("⚠️  [Render Routes] Warning: Could not import tool registry")
         Registry = None
 
-# Import authentication
-from auth.user_auth import require_auth
-
 render_bp = Blueprint('render', __name__, url_prefix='/api/render')
 
 # Initialize registry (will be initialized on first use if needed)
@@ -46,7 +43,6 @@ def get_registry():
     return registry
 
 @render_bp.route('/services', methods=['GET'])
-@require_auth
 def list_services():
     """List all Render services with optional filtering"""
     reg = get_registry()
@@ -54,9 +50,6 @@ def list_services():
         return jsonify({'success': False, 'error': 'Tool registry not available'}), 500
     
     try:
-        # Get authenticated user ID from JWT
-        user_id = request.user.get('user_id')
-        
         service_type = request.args.get('type')
         status = request.args.get('status')
         
@@ -64,7 +57,7 @@ def list_services():
             tool_name='render_list_services',
             service_type=service_type,
             status=status,
-            _user_id=user_id
+            _user_id=1
         )
         return jsonify({'success': True, 'data': result})
     except Exception as e:
@@ -72,15 +65,11 @@ def list_services():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @render_bp.route('/logs', methods=['GET'])
-@require_auth
 def get_logs():
     """Get service logs with filtering"""
     reg = get_registry()
     if not reg:
         return jsonify({'success': False, 'error': 'Tool registry not available'}), 500
-    
-    # Get authenticated user ID from JWT
-    user_id = request.user.get('user_id')
     
     service_id = request.args.get('service_id')
     tail = int(request.args.get('tail', 100))
@@ -95,7 +84,7 @@ def get_logs():
             service_id=service_id,
             tail=tail,
             text_filter=text_filter,
-            _user_id=user_id
+            _user_id=1
         )
         return jsonify({'success': True, 'data': result})
     except Exception as e:
@@ -103,15 +92,11 @@ def get_logs():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @render_bp.route('/deploys', methods=['GET'])
-@require_auth
 def list_deploys():
     """Get deployment history for a service"""
     reg = get_registry()
     if not reg:
         return jsonify({'success': False, 'error': 'Tool registry not available'}), 500
-    
-    # Get authenticated user ID from JWT
-    user_id = request.user.get('user_id')
     
     service_id = request.args.get('service_id')
     limit = int(request.args.get('limit', 10))
@@ -124,7 +109,7 @@ def list_deploys():
             tool_name='render_get_deploys',
             service_id=service_id,
             limit=limit,
-            _user_id=user_id
+            _user_id=1
         )
         return jsonify({'success': True, 'data': result})
     except Exception as e:
@@ -132,15 +117,11 @@ def list_deploys():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @render_bp.route('/deploy', methods=['POST'])
-@require_auth
 def deploy_service():
     """Trigger a service deployment"""
     reg = get_registry()
     if not reg:
         return jsonify({'success': False, 'error': 'Tool registry not available'}), 500
-    
-    # Get authenticated user ID from JWT
-    user_id = request.user.get('user_id')
     
     data = request.json
     
@@ -154,7 +135,7 @@ def deploy_service():
             commit_sha=data.get('commit_sha'),
             image_url=data.get('image_url'),
             wait=data.get('wait', True),
-            _user_id=user_id
+            _user_id=1
         )
         return jsonify(result)
     except Exception as e:
@@ -162,15 +143,11 @@ def deploy_service():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @render_bp.route('/restart', methods=['POST'])
-@require_auth
 def restart_service():
     """Restart a service (triggers redeploy)"""
     reg = get_registry()
     if not reg:
         return jsonify({'success': False, 'error': 'Tool registry not available'}), 500
-    
-    # Get authenticated user ID from JWT
-    user_id = request.user.get('user_id')
     
     data = request.json
     
@@ -181,7 +158,7 @@ def restart_service():
         result = reg.execute_tool(
             tool_name='render_restart_service',
             service_id=data['service_id'],
-            _user_id=user_id
+            _user_id=1
         )
         return jsonify(result)
     except Exception as e:
@@ -189,15 +166,11 @@ def restart_service():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @render_bp.route('/metrics', methods=['GET'])
-@require_auth
 def get_metrics():
     """Get service metrics (CPU, memory, requests)"""
     reg = get_registry()
     if not reg:
         return jsonify({'success': False, 'error': 'Tool registry not available'}), 500
-    
-    # Get authenticated user ID from JWT
-    user_id = request.user.get('user_id')
     
     service_id = request.args.get('service_id')
     
@@ -208,7 +181,7 @@ def get_metrics():
         result = reg.execute_tool(
             tool_name='render_get_service_metrics',
             service_id=service_id,
-            _user_id=user_id
+            _user_id=1
         )
         return jsonify({'success': True, 'data': result})
     except Exception as e:

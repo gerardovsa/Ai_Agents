@@ -361,7 +361,8 @@
 /* ==================== LEFT SIDEBAR (REMOVED - Using Floating Palette) ==================== */
 
 .automation-sidebar {
-    display: none; /* Hidden - replaced by floating palette */
+    display: none;
+    /* Hidden - replaced by floating palette */
 }
 
 .automation-sidebar-header {

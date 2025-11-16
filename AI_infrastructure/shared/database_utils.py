@@ -135,16 +135,16 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         if not db_url:
             raise ValueError(
                 "SUPABASE_DB_URL not set in environment. "
-                "Required format: postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
+                "Use Session Pooler URL: postgresql://postgres.PROJECT:[PASSWORD]@aws-X-region.pooler.supabase.com:5432/postgres"
             )
         
         try:
-            # Connect to Supabase (supports both IPv4 and IPv6)
-            # Render paid plans have IPv6 outbound support
+            # Connect to Supabase Session Pooler (IPv4 compatible)
+            # Use connection pooler for Render compatibility
             conn = psycopg2.connect(
                 db_url,
                 cursor_factory=RealDictCursor,
-                connect_timeout=30,  # Longer timeout for international connections
+                connect_timeout=30,
                 keepalives=1,
                 keepalives_idle=30,
                 keepalives_interval=10,

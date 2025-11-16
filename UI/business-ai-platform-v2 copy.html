@@ -764,7 +764,6 @@
             background: var(--bg-hover);
             color: var(--accent-primary);
             transform: scale(1.05);
-            border: 1px solid var(--accent-primary);
         }
 
         .sidebar-icon-btn.active {
@@ -815,7 +814,6 @@
             background: var(--bg-hover);
             color: var(--accent-primary);
             transform: scale(1.05);
-            border: 1px solid var(--accent-primary);
         }
 
         .right-sidebar-btn.active {
@@ -886,22 +884,20 @@
 
         .header-datetime {
             display: flex;
-            align-items: center;
-            gap: var(--space-4);
-            margin-left: auto;
-        }
-
-        .header-datetime-date-group {
-            display: flex;
             flex-direction: column;
-            align-items: flex-end;
+            align-items: flex-start;
             gap: 2px;
+            padding: var(--space-2) var(--space-3);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            min-width: 200px;
         }
 
         .header-datetime-day {
             font-size: 12px;
             font-weight: 600;
-            color: var(--text-primary);
+            color: var(--accent-primary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -913,11 +909,9 @@
         }
 
         .header-datetime-time {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-primary);
-            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-            letter-spacing: 0.5px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
         }
 
         .header-search {
@@ -1544,21 +1538,13 @@
             display: flex;
             flex-direction: column;
             z-index: 9999;
-            transform: translateX(-100%);
-            transition: left 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+            transform: translateX(0);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
         }
 
         .synergy-sidebar.collapsed {
-            left: 0;
-            top: 60px;
             transform: translateX(-100%);
-        }
-
-        .synergy-sidebar:not(.collapsed) {
-            left: 60px;
-            top: 60px;
-            transform: translateX(0);
         }
 
         .synergy-sidebar-toggle {
@@ -1805,21 +1791,11 @@
             justify-content: center;
             color: var(--text-muted);
             font-size: 12px;
-            transition: all 0.2s ease;
-        }
-
-        .synergy-item-header:hover .synergy-item-chevron {
-            color: var(--accent-primary);
-            transform: scale(1.2);
+            transition: transform 0.2s ease;
         }
 
         .synergy-session-item.expanded .synergy-item-chevron {
             transform: rotate(90deg);
-            color: var(--accent-primary);
-        }
-
-        .synergy-session-item.expanded .synergy-item-header:hover .synergy-item-chevron {
-            transform: rotate(90deg) scale(1.2);
         }
 
         .synergy-item-info {
@@ -1902,9 +1878,8 @@
 
         .synergy-session-item.expanded .synergy-card-collapsed {
             display: block;
-            max-height: calc(100vh - 250px);
+            max-height: 600px;
             overflow-y: auto;
-            overflow-x: hidden;
         }
 
         .synergy-card-collapsed::-webkit-scrollbar {
@@ -2994,7 +2969,7 @@
         /* Thread History Menu - RIGHT SIDEBAR DROPDOWN STYLE */
         .thread-menu-overlay {
             position: fixed;
-            top: 60px;
+            top: 115px;
             /* Start below the header/hamburger button */
             right: -350px;
             /* Hidden off-screen initially */
@@ -3006,8 +2981,7 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-default);
             border-radius: 10px;
-            z-index: 9999;
-            /* Below right sidebar (10000) */
+            z-index: 10000;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -3020,104 +2994,11 @@
         }
 
         .thread-menu-overlay.active {
-            right: 60px !important;
-            /* Start after the 60px right sidebar + 20px gap */
-            top: 60px;
+            right: 0;
+            top: 115px;
             /* Slide in from right */
             display: flex !important;
             visibility: visible;
-        }
-
-        /* Quick Actions Panel */
-        .quick-actions-panel {
-            position: fixed;
-            top: 60px;
-            right: -300px;
-            width: 280px;
-            height: calc(100vh - 60px);
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-default);
-            border-radius: 10px;
-            z-index: 9998;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
-        }
-
-        .quick-actions-panel.active {
-            right: 80px;
-        }
-
-        .quick-actions-header {
-            padding: var(--space-4);
-            border-bottom: 1px solid var(--border-default);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(88, 166, 255, 0.05);
-        }
-
-        .quick-actions-header h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin: 0;
-        }
-
-        .quick-actions-header button {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s ease;
-        }
-
-        .quick-actions-header button:hover {
-            color: var(--text-primary);
-        }
-
-        .quick-actions-content {
-            padding: var(--space-3);
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-2);
-        }
-
-        .quick-action-item {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-            padding: var(--space-3);
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-default);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: left;
-        }
-
-        .quick-action-item:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-            transform: translateX(-2px);
-        }
-
-        .quick-action-item i {
-            color: var(--accent-primary);
-            font-size: 16px;
-            width: 20px;
-            text-align: center;
         }
 
         .thread-menu-header {
@@ -10282,10 +10163,10 @@
             min-height: calc(100% - 64px);
             max-width: 820px;
             margin: 0 auto;
-            padding: 20px 20px;
+            padding: 48px 56px;
             color: var(--text-primary);
             font-size: 15px;
-            line-height: 1.5;
+            line-height: 1.75;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             letter-spacing: 0.01em;
         }
@@ -10880,24 +10761,20 @@
                     <span>Business AI Platform</span>
                 </div>
 
+                <div class="header-datetime" id="headerDateTime">
+                    <div class="header-datetime-day" id="datetimeDay">FRIDAY</div>
+                    <div class="header-datetime-date" id="datetimeDate">15 November 2025</div>
+                    <div class="header-datetime-time" id="datetimeTime">12:00:00 PM</div>
+                </div>
+
                 <div class="header-search">
                     <i class="fas fa-search"></i>
                     <input type="text" placeholder="Search across platforms...">
                 </div>
             </div>
 
-            <div class="header-right">
-                <div class="header-datetime" id="headerDateTime">
-                    <div class="header-datetime-date-group">
-                        <div class="header-datetime-day" id="datetimeDay">FRIDAY</div>
-                        <div class="header-datetime-date" id="datetimeDate">15 November 2025</div>
-                    </div>
-                    <div class="header-datetime-time" id="datetimeTime">12:00:00 PM</div>
-                </div>
-            </div>
-
-            <!-- Notification and User Profile buttons moved elsewhere -->
-            <div style="display: none;">
+            <div class="header-right" style="display: none;">
+                <!-- Moved to right sidebar -->
                 <button class="header-btn" id="notificationBellBtn" onclick="toggleNotificationPanel(event)">
                     <i class="fas fa-bell" id="notificationBellIcon"></i>
                 </button>
@@ -13869,399 +13746,101 @@
                     'low': '#22c55e'
                 };
 
-                // Parse JSON fields
-                const documents = this.parseJsonField(session.documents, []);
-                const links = this.parseJsonField(session.links, []);
-                const nextSteps = this.parseJsonField(session.next_steps, []);
-                const checklist = this.parseJsonField(session.checklist, []);
-                const tags = this.parseJsonField(session.tags, []);
-                const assignees = this.parseJsonField(session.assignees, []);
-
-                // Calculate stats
-                const completedSteps = nextSteps.filter(s => s && s.completed).length;
-                const totalSteps = nextSteps.length;
-                const completedChecklist = checklist.filter(c => c && c.completed).length;
-                const totalChecklist = checklist.length;
-
                 let html = '';
 
-                // Card Meta (assignees and due date only - tags moved to bottom)
-                if (assignees.length > 0 || session.due_date) {
-                    html += `<div class="card-meta" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; font-size: 12px;">`;
-
-                    if (assignees.length > 0) {
-                        html += `
-                            <span style="background: var(--bg-quaternary); color: var(--text-primary); padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
-                                <i class="fas fa-users" style="font-size: 8px;"></i> ${assignees.join(', ')}
-                            </span>
-                        `;
-                    }
-
-                    if (session.due_date) {
-                        const dueDate = new Date(session.due_date);
-                        const isOverdue = dueDate < new Date();
-                        html += `
-                            <span style="background: ${isOverdue ? '#dc2626' : 'var(--bg-quaternary)'}; color: ${isOverdue ? 'white' : 'var(--text-primary)'}; padding: 3px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="fas fa-calendar" style="font-size: 11px;"></i> Due: ${dueDate.toLocaleDateString()}
-                            </span>
-                        `;
-                    }
-
-                    html += `</div>`;
-                }
-
-                // Card Stats
-                html += `
-                    <div class="card-stats" style="display: flex; gap: 16px; margin-bottom: 16px; padding: 12px; background: var(--bg-quaternary); border-radius: 6px; font-size: 12px;">
-                        <span style="display: flex; align-items: center; gap: 6px;">
-                            <i class="fas fa-comments" style="color: var(--accent-primary);"></i> 
-                            <span>${session.message_count || 0}</span>
-                        </span>
-                        <span style="display: flex; align-items: center; gap: 6px;">
-                            <i class="fas fa-file" style="color: var(--accent-primary);"></i> 
-                            <span>${documents.length}</span>
-                        </span>
-                        <span style="display: flex; align-items: center; gap: 6px;">
-                            <i class="fas fa-tasks" style="color: var(--accent-primary);"></i> 
-                            <span>${completedSteps}/${totalSteps}</span>
-                        </span>
-                        <span style="display: flex; align-items: center; gap: 6px;">
-                            <i class="fas fa-check-square" style="color: var(--accent-primary);"></i> 
-                            <span>${completedChecklist}/${totalChecklist}</span>
-                        </span>
-                    </div>
-                `;
-
-                // Description - FULL, no truncation
+                // Description
                 if (session.description) {
+                    // Render markdown using marked.js
                     const descriptionHtml = typeof marked !== 'undefined'
                         ? marked.parse(session.description)
                         : this.escapeHtml(session.description).replace(/\n/g, '<br>');
 
                     html += `
-                        <div class="synergy-card-section" style="margin-bottom: 16px;">
-                            <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                        <div class="synergy-card-section">
+                            <div class="synergy-card-section-title">
                                 <i class="fas fa-align-left"></i>
                                 Description
                             </div>
-                            <div class="synergy-card-description" style="font-size: 13px; line-height: 1.6; color: var(--text-primary);">${descriptionHtml}</div>
+                            <div class="synergy-card-description">${descriptionHtml}</div>
                         </div>
                     `;
                 }
 
-                // Documents - ALWAYS SHOW (even if empty)
-                html += `
-                    <div class="synergy-card-section" style="margin-bottom: 16px;">
-                        <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                            <i class="fas fa-file-alt"></i>
-                            Documents ${documents.length > 0 ? `(${documents.length})` : ''}
-                        </div>
-                        <div style="font-size: 13px;">
-                            ${documents.length > 0 ? documents.map((doc, idx) => {
-                    if (doc.type === 'internal_doc') {
-                        return `
-                                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px; cursor: pointer;"
-                                            onclick="event.stopPropagation(); window.internalDocsManager.openInternalDocPopup('${doc.doc_id}', '${session.session_id}');">
-                                            <i class="fas fa-${doc.doc_type === 'spreadsheet' ? 'table' : 'file-alt'}" style="color: var(--accent-primary);"></i>
-                                            <span style="flex: 1;">${this.escapeHtml(doc.title)}</span>
-                                            <span style="font-size: 11px; color: var(--text-muted);">${doc.doc_type === 'spreadsheet' ? 'Spreadsheet' : 'Document'} v${doc.version || 1}</span>
-                                        </div>
-                                    `;
-                    } else {
-                        return `
-                                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
-                                            <i class="fas fa-file" style="color: var(--accent-primary);"></i>
-                                            <span style="flex: 1;">${this.escapeHtml(doc.title || doc.name)}</span>
-                                            ${doc.url ? `<a href="${this.escapeHtml(doc.url)}" target="_blank" style="color: var(--accent-primary); text-decoration: none;"
-                                                onclick="event.stopPropagation();">
-                                                <i class="fas fa-external-link-alt"></i>
-                                            </a>` : ''}
-                                        </div>
-                                    `;
-                    }
-                }).join('') : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No documents added</div>'}
-                        </div>
-                    </div>
-                `;
-
-                // Links - ALWAYS SHOW (even if empty)
-                html += `
-                    <div class="synergy-card-section" style="margin-bottom: 16px;">
-                        <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                            <i class="fas fa-link"></i>
-                            Links ${links.length > 0 ? `(${links.length})` : ''}
-                        </div>
-                        <div style="font-size: 13px;">
-                            ${links.length > 0 ? links.map(link => `
-                                <div style="display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
-                                    <i class="fas fa-external-link-alt" style="color: var(--accent-primary);"></i>
-                                    <a href="${this.escapeHtml(link.url)}" target="_blank" 
-                                        style="flex: 1; color: var(--accent-primary); text-decoration: none;"
-                                        onclick="event.stopPropagation();">
-                                        ${this.escapeHtml(link.title)}
-                                    </a>
-                                    <span style="font-size: 11px; color: var(--text-muted);">${link.type || 'external'}</span>
-                                </div>
-                            `).join('') : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No links added</div>'}
-                        </div>
-                    </div>
-                `;
-
-                // Next Steps - ALWAYS SHOW (even if empty)
-                html += `
-                    <div class="synergy-card-section" style="margin-bottom: 16px;">
-                        <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                            <i class="fas fa-tasks"></i>
-                            Next Steps ${nextSteps.length > 0 ? `(${completedSteps}/${totalSteps})` : ''}
-                        </div>
-                        <div style="font-size: 13px;">
-                            ${nextSteps.length > 0 ? nextSteps.map((step, idx) => `
-                                <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
-                                    <input type="checkbox" 
-                                        ${step.completed ? 'checked' : ''}
-                                        onchange="event.stopPropagation(); window.synergyBoard.toggleStep('${session.session_id}', ${idx});"
-                                        style="margin-top: 3px; cursor: pointer;">
-                                    <span style="flex: 1; ${step.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
-                                        ${this.escapeHtml(step.description)}
-                                    </span>
-                                    ${step.due_date ? `<span style="font-size: 11px; color: var(--text-muted);"><i class="fas fa-calendar"></i> ${new Date(step.due_date).toLocaleDateString()}</span>` : ''}
-                                </div>
-                            `).join('') : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No next steps added</div>'}
-                        </div>
-                    </div>
-                `;
-
-                // Checklist - ALWAYS SHOW (even if empty)
-                html += `
-                    <div class="synergy-card-section" style="margin-bottom: 16px;">
-                        <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                            <i class="fas fa-check-square"></i>
-                            Checklist ${checklist.length > 0 ? `(${completedChecklist}/${totalChecklist})` : ''}
-                        </div>
-                        <div style="font-size: 13px;">
-                            ${checklist.length > 0 ? checklist.map((item, idx) => {
-                    const taskText = item.task || item.item || item.text;
-                    const subtasks = item.subtasks || [];
-                    let itemHtml = `
-                                    <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
-                                        <input type="checkbox" 
-                                            ${item.completed ? 'checked' : ''}
-                                            onchange="event.stopPropagation(); window.synergyBoard.toggleChecklistItem('${session.session_id}', ${idx});"
-                                            style="margin-top: 3px; cursor: pointer;">
-                                        <span style="flex: 1; ${item.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
-                                            ${this.escapeHtml(taskText)}
+                // Next Steps
+                const nextSteps = session.next_steps ?
+                    (typeof session.next_steps === 'string' ? JSON.parse(session.next_steps) : session.next_steps) : [];
+                if (nextSteps.length > 0) {
+                    html += `
+                        <div class="synergy-card-section">
+                            <div class="synergy-card-section-title">
+                                <i class="fas fa-tasks"></i>
+                                Next Steps (${nextSteps.filter(s => s.completed).length}/${nextSteps.length})
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                ${nextSteps.slice(0, 3).map(step => `
+                                    <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0;">
+                                        <i class="fas ${step.completed ? 'fa-check-circle' : 'fa-circle'}" 
+                                            style="color: ${step.completed ? '#22c55e' : 'var(--text-muted)'};"></i>
+                                        <span style="${step.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
+                                            ${this.escapeHtml(step.description)}
                                         </span>
                                     </div>
-                                `;
-
-                    if (subtasks.length > 0) {
-                        itemHtml += `<div style="margin-left: 32px; margin-top: 4px;">${subtasks.map((subtask, subIdx) => {
-                            const subtaskText = subtask.task || subtask.item || subtask.text;
-                            return `
-                                            <div style="display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; margin-bottom: 2px; background: var(--bg-secondary); border-radius: 4px; font-size: 12px;">
-                                                <input type="checkbox" 
-                                                    ${subtask.completed ? 'checked' : ''}
-                                                    onchange="event.stopPropagation(); window.synergyBoard.toggleChecklistSubtask('${session.session_id}', ${idx}, ${subIdx});"
-                                                    style="margin-top: 2px; cursor: pointer;">
-                                                <span style="flex: 1; ${subtask.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
-                                                    ${this.escapeHtml(subtaskText)}
-                                                </span>
-                                            </div>
-                                        `;
-                        }).join('')}</div>`;
-                    }
-
-                    return itemHtml;
-                }).join('') : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No checklist items added</div>'}
-                        </div>
-                    </div>
-                `;
-
-                // Links section removed from here (now appears earlier)
-                if (false) {
-                    html += `
-                        <div class="synergy-card-section" style="margin-bottom: 16px;">
-                            <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                                <i class="fas fa-link"></i>
-                                Links (${links.length})
+                                `).join('')}
+                                ${nextSteps.length > 3 ? `<div style="color: var(--text-muted); padding: 4px 0;">...and ${nextSteps.length - 3} more</div>` : ''}
                             </div>
-                            <div style="font-size: 13px;">
-                                ${links.map(link => `
-                                    <div style="display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
-                                        <i class="fas fa-external-link-alt" style="color: var(--accent-primary);"></i>
-                                        <a href="${this.escapeHtml(link.url)}" target="_blank" 
-                                            style="flex: 1; color: var(--accent-primary); text-decoration: none;"
-                                            onclick="event.stopPropagation();">
-                                            ${this.escapeHtml(link.title)}
-                                        </a>
-                                        <span style="font-size: 11px; color: var(--text-muted);">${link.type || 'external'}</span>
+                        </div>
+                    `;
+                }
+
+                // Documents
+                const documents = session.documents ?
+                    (typeof session.documents === 'string' ? JSON.parse(session.documents) : session.documents) : [];
+                if (documents.length > 0) {
+                    html += `
+                        <div class="synergy-card-section">
+                            <div class="synergy-card-section-title">
+                                <i class="fas fa-file-alt"></i>
+                                Documents (${documents.length})
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                ${documents.slice(0, 3).map(doc => `
+                                    <div style="padding: 4px 0;">
+                                        <i class="fas fa-file"></i> ${this.escapeHtml(doc.title || doc.name)}
                                     </div>
                                 `).join('')}
+                                ${documents.length > 3 ? `<div style="color: var(--text-muted); padding: 4px 0;">...and ${documents.length - 3} more</div>` : ''}
                             </div>
                         </div>
                     `;
                 }
 
-                // Linked Threads - ALWAYS SHOW (even if empty) - Use same rendering as dashboard
-                const threadIds = this.parseJsonField(session.thread_ids, []);
+                // Expand button
                 html += `
-                    <div class="synergy-card-section" style="margin-bottom: 16px;" id="sidebar-threads-section-${session.session_id}">
-                        <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                            <i class="fas fa-comments"></i>
-                            Linked Threads ${threadIds.length > 0 ? `(${threadIds.length})` : ''}
-                        </div>
-                        <div class="sidebar-thread-list-loading" style="font-size: 13px;">
-                            ${threadIds.length > 0 ? '<i class="fas fa-spinner fa-spin"></i> Loading linked threads...' : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No linked threads</div>'}
-                        </div>
-                    </div>
-                `;
-
-                // Load thread info cards asynchronously (same as dashboard)
-                if (threadIds.length > 0 && window.synergyBoard) {
-                    setTimeout(() => {
-                        const threadsSection = document.getElementById(`sidebar-threads-section-${session.session_id}`);
-                        const loadingDiv = threadsSection ? threadsSection.querySelector('.sidebar-thread-list-loading') : null;
-
-                        if (threadsSection && loadingDiv) {
-                            window.synergyBoard.renderLinkedThreads(threadIds).then(threadsHTML => {
-                                if (loadingDiv) {
-                                    loadingDiv.outerHTML = threadsHTML;
-                                }
-                            }).catch(err => {
-                                console.warn('[SIDEBAR] Failed to load linked threads', err);
-                                if (loadingDiv) {
-                                    loadingDiv.innerHTML = '<div style="opacity: 0.6; font-style: italic; padding: 8px;"><i class="fas fa-exclamation-circle"></i> Failed to load threads</div>';
-                                }
-                            });
-                        }
-                    }, 100);
-                }
-
-                // Assigned Agents - ALWAYS SHOW (even if empty)
-                const assignedAgents = this.parseJsonField(session.assigned_agents, []);
-                html += `
-                    <div class="synergy-card-section" style="margin-bottom: 16px;">
-                        <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                            <i class="fas fa-robot"></i>
-                            Assigned AI Agents ${assignedAgents.length > 0 ? `(${assignedAgents.length})` : ''}
-                        </div>
-                        <div style="font-size: 13px;">
-                            ${assignedAgents.length > 0 ? `<div style="display: flex; flex-wrap: wrap; gap: 8px;">${assignedAgents.map(agentId => {
-                    const agentNames = { 1: 'Prime', 2: 'Research', 3: 'Code', 4: 'Data', 5: 'Creative' };
-                    const agentName = agentNames[agentId] || `Agent ${agentId}`;
-                    return `
-                                    <span style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg-quaternary); border-radius: 4px;">
-                                        <i class="fas fa-robot" style="color: var(--accent-primary);"></i>
-                                        ${agentName}
-                                    </span>
-                                `;
-                }).join('')}</div>` : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No assigned agents</div>'}
-                        </div>
-                    </div>
-                `;
-
-                // Notes - ALWAYS SHOW (even if empty)
-                html += `
-                    <div class="synergy-card-section" style="margin-bottom: 16px;">
-                        <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                            <i class="fas fa-sticky-note"></i>
-                            Notes
-                        </div>
-                        <div style="font-size: 13px;">
-                            ${session.notes ? `<div style="padding: 8px;">${this.escapeHtml(session.notes)}</div>` : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No notes added</div>'}
-                        </div>
-                    </div>
-                `;
-
-                // Activity Log - ALWAYS SHOW (even if empty)
-                const recentActivity = this.parseJsonField(session.recent_activity, []);
-                html += `
-                    <div class="synergy-card-section" style="margin-bottom: 16px;">
-                        <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
-                            <i class="fas fa-history"></i>
-                            Activity Log
-                        </div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">
-                            ${recentActivity.length > 0 ? recentActivity.slice(0, 5).map(activity => `
-                                <div style="padding: 6px 0; border-bottom: 1px solid var(--border-muted);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>${this.escapeHtml(activity.action || activity.description || 'Activity')}</span>
-                                        <span style="font-size: 10px; color: var(--text-muted);">${activity.timestamp ? new Date(activity.timestamp).toLocaleString() : ''}</span>
-                                    </div>
-                                </div>
-                            `).join('') : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No activity yet</div>'}
-                            ${recentActivity.length > 5 ? `<div style="text-align: center; padding: 8px; color: var(--text-muted); font-size: 11px;">...and ${recentActivity.length - 5} more activities</div>` : ''}
-                        </div>
-                    </div>
-                `;
-
-                // Tags at the BOTTOM
-                if (tags.length > 0) {
-                    html += `
-                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; padding-top: 8px; border-top: 1px solid var(--border-muted);">
-                            ${tags.map(tag => `
-                                <span style="background: var(--accent-primary); color: white; padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
-                                    <i class="fas fa-tag" style="font-size: 8px;"></i> ${this.escapeHtml(tag)}
-                                </span>
-                            `).join('')}
-                        </div>
-                    `;
-                }
-
-                // Optional: View Full Card button (now redundant but can keep for popup)
-                html += `
-                    <button class="synergy-expand-btn" onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}'); return false;"
-                        style="width: 100%; margin-top: 16px; padding: 10px; background: var(--bg-quaternary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
-                        <i class="fas fa-external-link-alt"></i>
-                        Open in Popup Window
+                    <button class="synergy-expand-btn" onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}'); return false;">
+                        <i class="fas fa-expand"></i>
+                        View Full Card
                     </button>
                 `;
 
                 return html;
             },
 
-            parseJsonField(field, fallback = []) {
-                if (field === null || field === undefined) return fallback;
-                if (Array.isArray(field)) return field;
-                if (typeof field === 'object' && field !== null) return field;
-                if (typeof field === 'string' && field.trim()) {
-                    try {
-                        return JSON.parse(field);
-                    } catch (e) {
-                        return fallback;
-                    }
-                }
-                return fallback;
-            },
-
             toggleExpand(event, sessionId) {
-                // Don't toggle if clicking on interactive elements
+                // Don't toggle if clicking on a button
                 if (event.target.closest('.synergy-item-btn') ||
-                    event.target.closest('.synergy-expand-btn') ||
-                    event.target.tagName === 'INPUT' ||
-                    event.target.tagName === 'A' ||
-                    event.target.tagName === 'BUTTON' ||
-                    event.target.closest('a') ||
-                    event.target.closest('button') ||
-                    event.target.closest('input')) {
+                    event.target.closest('.synergy-expand-btn')) {
                     return;
                 }
 
-                const item = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
-                if (!item) {
-                    console.warn(`[SYNERGY SIDEBAR] Item not found: ${sessionId}`);
-                    return;
-                }
+                const item = document.querySelector(`[data-session-id="${sessionId}"]`);
+                if (!item) return;
 
-                // Toggle expanded state
                 if (this.expandedSessions.has(sessionId)) {
                     this.expandedSessions.delete(sessionId);
                     item.classList.remove('expanded');
-                    console.log(`[SYNERGY SIDEBAR] Collapsed: ${sessionId}`);
                 } else {
                     this.expandedSessions.add(sessionId);
                     item.classList.add('expanded');
-                    console.log(`[SYNERGY SIDEBAR] Expanded: ${sessionId}`);
 
                     // Scroll into view
                     setTimeout(() => {
@@ -14339,13 +13918,13 @@
                     filtered = filtered.filter(s =>
                         s.title?.toLowerCase().includes(query) ||
                         s.description?.toLowerCase().includes(query) ||
-                        s.category?.toLowerCase().includes(query)
+                        s.kanban_column?.toLowerCase().includes(query)
                     );
                 }
 
-                // Apply category filter
+                // Apply category filter (using kanban_column field)
                 if (this.currentFilter !== 'all') {
-                    filtered = filtered.filter(s => s.category === this.currentFilter);
+                    filtered = filtered.filter(s => s.kanban_column === this.currentFilter);
                 }
 
                 return filtered;
@@ -14386,37 +13965,34 @@
                         return;
                     }
 
-                    console.log('[SYNERGY SIDEBAR] synergyBoard found, checking methods...');
-                    console.log('[SYNERGY SIDEBAR] Available methods:', Object.keys(window.synergyBoard));
+                    // Check if popOutCard method exists
+                    if (typeof window.synergyBoard.popOutCard !== 'function') {
+                        console.error('[SYNERGY SIDEBAR] popOutCard method not found');
+                        console.log('[SYNERGY SIDEBAR] Available methods:', Object.keys(window.synergyBoard));
+                        showNotification('Unable to open card popup - method not found', 'error');
+                        return;
+                    }
 
-                    // Check for ensureInitialized
+                    console.log('[SYNERGY SIDEBAR] Calling popOutCard for:', sessionId);
+                    
+                    // Ensure board is initialized first, then call popOutCard
                     if (typeof window.synergyBoard.ensureInitialized === 'function') {
-                        console.log('[SYNERGY SIDEBAR] Calling ensureInitialized...');
-                        window.synergyBoard.ensureInitialized().then(() => {
-                            console.log('[SYNERGY SIDEBAR] Initialization complete, calling popOutCard...');
-                            this._doPopOut(sessionId);
-                        }).catch(err => {
-                            console.error('[SYNERGY SIDEBAR] Initialization failed:', err);
-                            this._doPopOut(sessionId); // Try anyway
-                        });
+                        window.synergyBoard.ensureInitialized()
+                            .then(() => {
+                                console.log('[SYNERGY SIDEBAR] Board initialized, opening card...');
+                                window.synergyBoard.popOutCard(sessionId);
+                            })
+                            .catch(err => {
+                                console.error('[SYNERGY SIDEBAR] Init error, trying anyway:', err);
+                                window.synergyBoard.popOutCard(sessionId);
+                            });
                     } else {
-                        console.log('[SYNERGY SIDEBAR] No ensureInitialized, calling popOutCard directly...');
-                        this._doPopOut(sessionId);
+                        // No initialization needed, call directly
+                        window.synergyBoard.popOutCard(sessionId);
                     }
                 } catch (error) {
                     console.error('[SYNERGY SIDEBAR] Error in openInPopup:', error);
                     showNotification('Error opening card: ' + error.message, 'error');
-                }
-            },
-
-            _doPopOut(sessionId) {
-                if (typeof window.synergyBoard.popOutCard === 'function') {
-                    console.log('[SYNERGY SIDEBAR] Calling popOutCard for:', sessionId);
-                    window.synergyBoard.popOutCard(sessionId);
-                } else {
-                    console.error('[SYNERGY SIDEBAR] popOutCard method not found');
-                    console.log('[SYNERGY SIDEBAR] Available methods:', Object.keys(window.synergyBoard));
-                    showNotification('Unable to open card popup - method not found', 'error');
                 }
             },
 
@@ -15592,32 +15168,24 @@
                 if (tabId === 'synergy') {
                     console.log('[SYNERGY] Tab activated, loading kanban board...');
                     // DO NOT open sidebar - only load dashboard
-
                     // Load sessions into KANBAN BOARD ONLY
-                    // Wait for synergyBoard to be defined (it's loaded later in the page)
-                    const initSynergyBoard = () => {
-                        if (typeof window.synergyBoard !== 'undefined' && window.synergyBoard) {
-                            console.log('[SYNERGY] synergyBoard found, initializing...');
-                            window.synergyBoard.ensureInitialized()
-                                .then(() => {
-                                    console.log('[SYNERGY] Board initialized, calling refreshBoard()...');
+                    if (typeof window.synergyBoard !== 'undefined') {
+                        console.log('[SYNERGY] Initializing and refreshing kanban board...');
+                        window.synergyBoard.ensureInitialized()
+                            .then(() => {
+                                console.log('[SYNERGY] Board initialized, calling refreshBoard()...');
+                                window.synergyBoard.refreshBoard();
+                            })
+                            .catch(err => {
+                                console.error('[SYNERGY] Error initializing board:', err);
+                                // Try refreshBoard anyway
+                                if (typeof window.synergyBoard.refreshBoard === 'function') {
                                     window.synergyBoard.refreshBoard();
-                                })
-                                .catch(err => {
-                                    console.error('[SYNERGY] Error initializing board:', err);
-                                    // Try refreshBoard anyway
-                                    if (typeof window.synergyBoard.refreshBoard === 'function') {
-                                        window.synergyBoard.refreshBoard();
-                                    }
-                                });
-                        } else {
-                            console.warn('[SYNERGY] window.synergyBoard not yet loaded, retrying in 100ms...');
-                            // Retry after a short delay to allow script to load
-                            setTimeout(initSynergyBoard, 100);
-                        }
-                    };
-
-                    initSynergyBoard();
+                                }
+                            });
+                    } else {
+                        console.warn('[SYNERGY] window.synergyBoard not found - kanban board will not load');
+                    }
                 }
 
                 // LAZY LOADING: Initialize module if not yet loaded
@@ -18046,14 +17614,8 @@
             const toggleBtn = document.getElementById('theme-toggle-btn-sidebar');
             if (!toggleBtn) return;
 
-            // Set default theme if not set
-            const html = document.documentElement;
-            if (!html.getAttribute('data-theme')) {
-                html.setAttribute('data-theme', 'dark');
-                console.log('🎨 Default theme set to: dark');
-            }
-
             toggleBtn.addEventListener('click', () => {
+                const html = document.documentElement;
                 const currentTheme = html.getAttribute('data-theme') || 'dark';
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
@@ -28820,14 +28382,6 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
         // Initialize right sidebar buttons
         function initRightSidebar() {
-            // Prevent duplicate initialization
-            if (window._rightSidebarInitialized) {
-                console.warn('⚠️ Right sidebar already initialized, skipping...');
-                return;
-            }
-            window._rightSidebarInitialized = true;
-            console.log('✅ Initializing right sidebar...');
-
             // AI Prime Toggle
             const aiPrimeBtn = document.getElementById('ai-prime-toggle-btn');
             if (aiPrimeBtn) {
@@ -28839,47 +28393,52 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 });
             }
 
-            // New Chat - Opens new chat modal
+            // New Chat
             const newChatBtn = document.getElementById('new-chat-btn');
             if (newChatBtn) {
-                newChatBtn.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    // Check if modal already exists
-                    const existingModal = document.getElementById('newChatModalOverlay');
-                    if (existingModal) {
-                        console.warn('💬 Modal already open, skipping...');
-                        return;
+                newChatBtn.addEventListener('click', function () {
+                    // Open chat if closed
+                    const wrapper = document.getElementById('main-content-wrapper');
+                    if (wrapper && wrapper.classList.contains('chat-collapsed')) {
+                        toggleChat();
                     }
 
-                    console.log('💬 New chat button clicked from right sidebar');
-                    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.showNewChatModal === 'function') {
-                        ThreadManager.showNewChatModal('prime');
+                    // Start new conversation
+                    if (typeof startNewConversation === 'function') {
+                        startNewConversation();
                     } else {
-                        console.error('ThreadManager.showNewChatModal function not found');
+                        console.warn('startNewConversation function not found');
                     }
+                    console.log('💬 New chat started from right sidebar');
                 });
             }
 
             // Threads button now has onclick in HTML to call ThreadManager.toggleThreadMenu()
             // No event listener needed here
 
-            // Quick Actions - Toggles prompt sidebar
+            // Quick Actions - Opens chat and focuses input
             const quickActionsBtn = document.getElementById('quick-actions-btn');
             if (quickActionsBtn) {
-                quickActionsBtn.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    console.log('⚡ Quick actions button clicked');
+                quickActionsBtn.addEventListener('click', function () {
+                    const wrapper = document.getElementById('main-content-wrapper');
+                    const chatInput = document.getElementById('ai-chat-input');
 
-                    // Toggle prompt sidebar
-                    const promptSidebar = document.getElementById('prompt-sidebar');
-                    if (promptSidebar) {
-                        promptSidebar.classList.toggle('show');
-                        console.log('⚡ Prompt sidebar toggled:', promptSidebar.classList.contains('show') ? 'VISIBLE' : 'HIDDEN');
+                    // Open chat if closed
+                    if (wrapper && wrapper.classList.contains('chat-collapsed')) {
+                        toggleChat();
+                        // Wait for animation to complete before focusing
+                        setTimeout(() => {
+                            if (chatInput) {
+                                chatInput.focus();
+                                console.log('⚡ Quick actions: Chat opened and input focused');
+                            }
+                        }, 850); // Match the 0.8s transition time
                     } else {
-                        console.warn('⚠️ Prompt sidebar not found');
+                        // Chat already open, just focus input
+                        if (chatInput) {
+                            chatInput.focus();
+                            console.log('⚡ Quick actions: Chat input focused');
+                        }
                     }
                 });
             }
@@ -31562,7 +31121,6 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
         .card-description {
             margin: var(--space-2) 0;
-
         }
 
         .card-description p {
@@ -31617,8 +31175,6 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             word-wrap: break-word;
             overflow-wrap: anywhere;
             hyphens: auto;
-            background: var(--bg-secondary);
-            padding: var(--space-2);
         }
 
         /* Markdown Rendering Styles */
@@ -32212,7 +31768,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
         .popout-card-content .card-description {
             margin: var(--space-4) 0;
             padding: var(--space-3);
-            background: var(--bg-secondary);
+            background: var(--bg-tertiary);
             border-radius: 6px;
         }
 
@@ -34609,6 +34165,22 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                                                                                             ${linksHTML}
                                                                                                                                             ${stepsHTML}
                                                                                                                                             ${checklistHTML}
+
+                                                                                                                                            <div class="internal-docs-section">
+                                                                                                                                                <div class="docs-section-header">
+                                                                                                                                                    <div class="section-title">
+                                                                                                                                                        <i class="fas fa-file-alt"></i> Internal Documents
+                                                                                                                                                    </div>
+                                                                                                                                                    <button class="add-doc-btn" onclick="event.stopPropagation(); window.internalDocsManager.createInternalDoc('${session.session_id}')" title="Create new document">
+                                                                                                                                                        <i class="fas fa-plus"></i> New Document
+                                                                                                                                                    </button>
+                                                                                                                                                </div>
+                                                                                                                                                <div class="docs-list" id="docs-list-${session.session_id}">
+                                                                                                                                                    <div class="no-docs-message">
+                                                                                                                                                        <i class="fas fa-folder-open"></i> No internal documents yet. Click "New Document" to create one.
+                                                                                                                                                    </div>
+                                                                                                                                                </div>
+                                                                                                                                            </div>
 
                                                                                                                                             ${session.assigned_agents && this.parseJsonField(session.assigned_agents, []).length > 0 ? `
                             <div class="card-section">
@@ -38320,133 +37892,887 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             // END OF DELEGATED METHODS - Original implementations removed to avoid conflicts
 
+            // ==================== END OF DELEGATED METHODS ====================
 
+        },
 
-            // ==================== SPREADSHEET HELPERS ====================
+        // ==================== SPREADSHEET HELPERS ====================
 
-            /**
-             * Update spreadsheet cell
-             */
-            updateSpreadsheetCell(docId, row, col, value) {
-                const data = window[`spreadsheet_data_${docId}`];
-                if (data && data[row]) {
-                    data[row][col] = value;
-                    console.log(`Updated cell [${row}][${col}] = ${value}`);
-                }
-            },
+        /**
+         * Update spreadsheet cell
+         */
+        updateSpreadsheetCell(docId, row, col, value) {
+            const data = window[`spreadsheet_data_${docId}`];
+            if (data && data[row]) {
+                data[row][col] = value;
+                console.log(`Updated cell [${row}][${col}] = ${value}`);
+            }
+        },
 
             /**
              * Save spreadsheet data
              */
             async saveSpreadsheetData(docId) {
-                const data = window[`spreadsheet_data_${docId}`];
-                if (!data) {
-                    alert('No spreadsheet data to save');
+            const data = window[`spreadsheet_data_${docId}`];
+            if (!data) {
+                alert('No spreadsheet data to save');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': '1'
+                    }
+                });
+
+                const data = await response.json();
+
+                if(data.success) {
+            // API returns document fields directly in response (not wrapped in 'document' key)
+            const doc = {
+                doc_id: data.doc_id,
+                session_id: data.session_id,
+                title: data.title,
+                content: data.content,
+                content_json: data.content_json,
+                format: data.format,
+                doc_type: data.doc_type || 'richtext',
+                created_at: data.created_at,
+                updated_at: data.updated_at,
+                created_by: data.created_by,
+                version: data.version,
+                linked_to_ai: data.linked_to_ai
+            };
+
+            // Format creation date
+            const createdDate = doc.created_at ? new Date(doc.created_at) : new Date();
+            const formattedDate = createdDate.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Update popup title with editable title, timestamp, and description
+            popup.titleElement.innerHTML = `
+                            <div style="display: flex; flex-direction: column; flex: 1; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="fas fa-${doc.doc_type === 'spreadsheet' ? 'table' : 'file-alt'}" style="font-size: 18px; color: var(--accent-primary);"></i>
+                                    <input type="text" id="doc-title-${doc.doc_id}" value="${doc.title || 'Untitled'}" 
+                                        style="background: transparent; border: none; color: var(--text-primary); font-size: 20px; font-weight: 600; padding: 4px 8px; border-radius: 4px; width: auto; min-width: 150px; max-width: 600px;"
+                                        onblur="synergyBoard.updateDocumentTitle('${doc.doc_id}', this.value, this)"
+                                        onkeypress="if(event.key==='Enter') this.blur()"
+                                        onfocus="this.style.background='var(--bg-hover)'; this.style.border='1px solid var(--accent-primary)'"
+                                        oninput="this.style.width = Math.max(150, Math.min(600, (this.value.length * 12) + 20)) + 'px'"
+                                        onclick="event.stopPropagation()"
+                                        title="Click to edit title">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; padding-left: 30px;">
+                                    <i class="fas fa-clock" style="font-size: 10px; color: var(--text-muted);"></i>
+                                    <span style="color: var(--text-muted); font-size: 11px;">Created ${formattedDate}</span>
+                                </div>
+                                <details style="padding-left: 30px; margin-top: 4px;" ${doc.description ? 'open' : ''}>
+                                    <summary style="cursor: pointer; color: var(--text-muted); font-size: 11px; user-select: none;">
+                                        <i class="fas fa-align-left" style="font-size: 10px; margin-right: 4px;"></i>
+                                        Description
+                                    </summary>
+                                    <div style="margin-top: 8px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; border-left: 3px solid var(--accent-primary);">
+                                        <textarea id="doc-description-${doc.doc_id}" 
+                                            placeholder="Add a description for this ${doc.doc_type}..."
+                                            style="width: 100%; min-height: 60px; background: transparent; border: none; color: var(--text-primary); font-size: 12px; resize: vertical; padding: 4px;"
+                                            onblur="synergyBoard.updateDocumentDescription('${doc.doc_id}', this.value)"
+                                            onclick="event.stopPropagation()">${doc.description || ''}</textarea>
+                                    </div>
+                                </details>
+                            </div>
+                        `;
+
+            // Create editor based on doc type
+            if (doc.doc_type === 'spreadsheet') {
+                this.renderSpreadsheetEditor(popup, doc, sessionId);
+            } else {
+                this.renderRichTextEditor(popup, doc, sessionId);
+            }
+
+            // Update footer with save status and metadata row
+            popup.footerLeftElement.innerHTML = `
+                            <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="save-status saved">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Saved</span>
+                                    </div>
+                                    <span style="color: var(--text-muted); font-size: 11px;">Version ${doc.version || 1}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted);">
+                                    <i class="fas fa-folder" style="font-size: 10px;"></i>
+                                    <span>Session: ${doc.session_id}</span>
+                                    <span style="margin: 0 4px;">•</span>
+                                    <span>Doc ID: ${doc.doc_id}</span>
+                                    <span style="margin: 0 4px;">•</span>
+                                    <i class="fas fa-link" style="font-size: 10px;"></i>
+                                    <span id="doc-share-url-${doc.doc_id}" style="color: var(--accent-primary); cursor: pointer;" onclick="window.internalDocsManager.copyDocumentUrl('${doc.doc_id}')" title="Click to copy share URL">/internal-docs/${doc.doc_id}</span>
+                                </div>
+                            </div>
+                        `;
+        } else {
+            popup.bodyElement.innerHTML = `
+                            <div class="popup-loading">
+                                <i class="fas fa-exclamation-triangle" style="color: #f44336;"></i>
+                                <div class="popup-loading-text">Failed to load document: ${data.error}</div>
+                            </div>
+                        `;
+        }
+                } catch (error) {
+            console.error('Error loading document:', error);
+            popup.bodyElement.innerHTML = `
+                        <div class="popup-loading">
+                            <i class="fas fa-exclamation-triangle" style="color: #f44336;"></i>
+                            <div class="popup-loading-text">Error loading document</div>
+                        </div>
+                    `;
+        }
+            },
+
+        /**
+         * Render rich text editor (TipTap)
+         */
+        renderRichTextEditor(popup, doc, sessionId) {
+            popup.bodyElement.innerHTML = `
+                    <div class="doc-editor-container">
+                        <div class="doc-editor-toolbar">
+                            <!-- Formatting Tools -->
+                            <div class="toolbar-group">
+                                <button class="toolbar-btn" title="Bold (Ctrl+B)" onclick="document.execCommand('bold')">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Italic (Ctrl+I)" onclick="document.execCommand('italic')">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Underline (Ctrl+U)" onclick="document.execCommand('underline')">
+                                    <i class="fas fa-underline"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Strikethrough" onclick="document.execCommand('strikethrough')">
+                                    <i class="fas fa-strikethrough"></i>
+                                </button>
+                            </div>
+                            <!-- Headings -->
+                            <div class="toolbar-group">
+                                <button class="toolbar-btn" title="Heading 1" onclick="document.execCommand('formatBlock', false, 'h1')">
+                                    <i class="fas fa-heading"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Heading 2" onclick="document.execCommand('formatBlock', false, 'h2')">
+                                    <i class="fas fa-heading" style="font-size: 12px;"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Paragraph" onclick="document.execCommand('formatBlock', false, 'p')">
+                                    <i class="fas fa-paragraph"></i>
+                                </button>
+                            </div>
+                            <!-- Lists -->
+                            <div class="toolbar-group">
+                                <button class="toolbar-btn" title="Bullet List" onclick="document.execCommand('insertUnorderedList')">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Numbered List" onclick="document.execCommand('insertOrderedList')">
+                                    <i class="fas fa-list-ol"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Decrease Indent" onclick="document.execCommand('outdent')">
+                                    <i class="fas fa-outdent"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Increase Indent" onclick="document.execCommand('indent')">
+                                    <i class="fas fa-indent"></i>
+                                </button>
+                            </div>
+                            <!-- Alignment -->
+                            <div class="toolbar-group">
+                                <button class="toolbar-btn" title="Align Left" onclick="document.execCommand('justifyLeft')">
+                                    <i class="fas fa-align-left"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Align Center" onclick="document.execCommand('justifyCenter')">
+                                    <i class="fas fa-align-center"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Align Right" onclick="document.execCommand('justifyRight')">
+                                    <i class="fas fa-align-right"></i>
+                                </button>
+                            </div>
+                            <!-- Insert Elements -->
+                            <div class="toolbar-group">
+                                <button class="toolbar-btn" title="Insert Link" onclick="synergyBoard.insertLink()">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Insert Image URL" onclick="synergyBoard.insertImage()">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Insert Table" onclick="synergyBoard.insertTable()">
+                                    <i class="fas fa-table"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Code Block" onclick="document.execCommand('formatBlock', false, 'pre')">
+                                    <i class="fas fa-code"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Horizontal Rule" onclick="document.execCommand('insertHorizontalRule')">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                            <!-- Document Actions -->
+                            <div class="toolbar-group" style="margin-left: auto;">
+                                <button class="toolbar-btn" title="Activity Log & Version History" onclick="synergyBoard.showActivityLog('${doc.doc_id}')">
+                                    <i class="fas fa-history"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Find & Replace" onclick="synergyBoard.showFindReplace()">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Print" onclick="window.print()">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="doc-editor-content">
+                            <div class="tiptap-editor" contenteditable="true" id="editor-${doc.doc_id}">
+                                ${doc.content || '<p>Start typing...</p>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            // Setup auto-save
+            const editor = document.getElementById(`editor-${doc.doc_id}`);
+            let saveTimeout;
+
+            editor.addEventListener('input', () => {
+                clearTimeout(saveTimeout);
+                popup.footerLeftElement.querySelector('.save-status').className = 'save-status saving';
+                popup.footerLeftElement.querySelector('.save-status span').textContent = 'Saving...';
+
+                saveTimeout = setTimeout(() => {
+                    this.saveDocumentContent(doc.doc_id, editor.innerHTML, popup);
+                }, 1000);
+            });
+
+            // Add footer buttons with export dropdown
+            popup.footerRightElement.innerHTML = `
+                    <div style="position: relative; display: inline-block;">
+                        <button class="popup-action-btn" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">
+                            <i class="fas fa-download"></i>
+                            Export
+                        </button>
+                        <div style="display: none; position: absolute; bottom: 100%; left: 0; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); margin-bottom: 8px; min-width: 150px; z-index: 1000;">
+                            <button class="popup-action-btn" style="width: 100%; justify-content: flex-start; border-radius: 0; border: none; border-bottom: 1px solid var(--border-default);" onclick="synergyBoard.exportDocument('${doc.doc_id}', 'markdown'); this.parentElement.style.display='none'">
+                                <i class="fas fa-file-alt"></i> Markdown
+                            </button>
+                            <button class="popup-action-btn" style="width: 100%; justify-content: flex-start; border-radius: 0; border: none; border-bottom: 1px solid var(--border-default);" onclick="synergyBoard.exportDocument('${doc.doc_id}', 'html'); this.parentElement.style.display='none'">
+                                <i class="fas fa-file-code"></i> HTML
+                            </button>
+                            <button class="popup-action-btn" style="width: 100%; justify-content: flex-start; border-radius: 0; border: none; border-bottom: 1px solid var(--border-default);" onclick="synergyBoard.exportDocument('${doc.doc_id}', 'word'); this.parentElement.style.display='none'">
+                                <i class="fas fa-file-word"></i> Word
+                            </button>
+                            <button class="popup-action-btn" style="width: 100%; justify-content: flex-start; border-radius: 0; border: none;" onclick="synergyBoard.exportDocument('${doc.doc_id}', 'pdf'); this.parentElement.style.display='none'">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                        </div>
+                    </div>
+                    <button class="popup-action-btn primary" onclick="synergyBoard.saveDocumentContent('${doc.doc_id}', document.getElementById('editor-${doc.doc_id}').innerHTML)">
+                        <i class="fas fa-save"></i>
+                        Save
+                    </button>
+                `;
+        },
+
+        /**
+         * Render spreadsheet editor (Handsontable)
+         */
+        renderSpreadsheetEditor(popup, doc, sessionId) {
+            // Parse spreadsheet data
+            let data;
+            try {
+                data = JSON.parse(doc.content_json || doc.content || '[["A1","B1","C1"],["A2","B2","C2"],["A3","B3","C3"]]');
+            } catch (e) {
+                data = [["A1", "B1", "C1"], ["A2", "B2", "C2"], ["A3", "B3", "C3"]];
+            }
+
+            popup.bodyElement.innerHTML = `
+                    <div class="doc-editor-container">
+                        <div class="doc-editor-toolbar">
+                            <!-- Spreadsheet Tools -->
+                            <div class="toolbar-group">
+                                <button class="toolbar-btn" title="Add Row" onclick="synergyBoard.addSpreadsheetRow('${doc.doc_id}')">
+                                    <i class="fas fa-plus"></i> Row
+                                </button>
+                                <button class="toolbar-btn" title="Add Column" onclick="synergyBoard.addSpreadsheetColumn('${doc.doc_id}')">
+                                    <i class="fas fa-plus"></i> Column
+                                </button>
+                                <button class="toolbar-btn" title="Delete Row" onclick="synergyBoard.deleteSpreadsheetRow('${doc.doc_id}')">
+                                    <i class="fas fa-minus"></i> Row
+                                </button>
+                                <button class="toolbar-btn" title="Delete Column" onclick="synergyBoard.deleteSpreadsheetColumn('${doc.doc_id}')">
+                                    <i class="fas fa-minus"></i> Column
+                                </button>
+                            </div>
+                            <div class="toolbar-group">
+                                <button class="toolbar-btn" title="Sort Ascending" onclick="synergyBoard.sortSpreadsheet('${doc.doc_id}', 'asc')">
+                                    <i class="fas fa-sort-amount-up"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Sort Descending" onclick="synergyBoard.sortSpreadsheet('${doc.doc_id}', 'desc')">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Filter" onclick="synergyBoard.toggleSpreadsheetFilter('${doc.doc_id}')">
+                                    <i class="fas fa-filter"></i>
+                                </button>
+                            </div>
+                            <div class="toolbar-group">
+                                <button class="toolbar-btn" title="Format as Currency" onclick="synergyBoard.formatSpreadsheetCells('${doc.doc_id}', 'currency')">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Format as Percentage" onclick="synergyBoard.formatSpreadsheetCells('${doc.doc_id}', 'percent')">
+                                    <i class="fas fa-percentage"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Format as Number" onclick="synergyBoard.formatSpreadsheetCells('${doc.doc_id}', 'number')">
+                                    <i class="fas fa-hashtag"></i>
+                                </button>
+                            </div>
+                            <div class="toolbar-group" style="margin-left: auto;">
+                                <button class="toolbar-btn" title="Activity Log & Version History" onclick="synergyBoard.showActivityLog('${doc.doc_id}')">
+                                    <i class="fas fa-history"></i>
+                                </button>
+                                <button class="toolbar-btn" title="Print" onclick="window.print()">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="spreadsheet-container" id="spreadsheet-${doc.doc_id}" style="width: 100%; height: 100%; overflow: auto; background: var(--bg-primary);">
+                            <!-- Handsontable will be initialized here -->
+                        </div>
+                    </div>
+                `;
+
+            // Initialize simple data table (Handsontable-style)
+            const container = document.getElementById(`spreadsheet-${doc.doc_id}`);
+
+            // Create table HTML
+            let tableHTML = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
+            tableHTML += '<thead><tr>';
+            for (let i = 0; i < (data[0]?.length || 5); i++) {
+                tableHTML += `<th style="background: var(--bg-tertiary); border: 1px solid var(--border-default); padding: 8px; min-width: 100px;">${String.fromCharCode(65 + i)}</th>`;
+            }
+            tableHTML += '</tr></thead><tbody>';
+
+            data.forEach((row, rowIdx) => {
+                tableHTML += '<tr>';
+                row.forEach((cell, colIdx) => {
+                    tableHTML += `<td contenteditable="true" style="border: 1px solid var(--border-default); padding: 8px; min-width: 100px;" 
+                            onblur="synergyBoard.updateSpreadsheetCell('${doc.doc_id}', ${rowIdx}, ${colIdx}, this.textContent)">
+                            ${cell || ''}
+                        </td>`;
+                });
+                tableHTML += '</tr>';
+            });
+
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+
+            // Store data reference
+            window[`spreadsheet_data_${doc.doc_id}`] = data;
+
+            // Add footer buttons with export dropdown
+            popup.footerRightElement.innerHTML = `
+                    <div style="position: relative; display: inline-block;">
+                        <button class="popup-action-btn" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">
+                            <i class="fas fa-download"></i>
+                            Export
+                        </button>
+                        <div style="display: none; position: absolute; bottom: 100%; left: 0; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); margin-bottom: 8px; min-width: 150px; z-index: 1000;">
+                            <button class="popup-action-btn" style="width: 100%; justify-content: flex-start; border-radius: 0; border: none; border-bottom: 1px solid var(--border-default);" onclick="synergyBoard.exportDocument('${doc.doc_id}', 'csv'); this.parentElement.style.display='none'">
+                                <i class="fas fa-file-csv"></i> Export CSV
+                            </button>
+                            <button class="popup-action-btn" style="width: 100%; justify-content: flex-start; border-radius: 0; border: none; border-bottom: 1px solid var(--border-default);" onclick="synergyBoard.exportDocument('${doc.doc_id}', 'excel'); this.parentElement.style.display='none'">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </button>
+                            <button class="popup-action-btn" style="width: 100%; justify-content: flex-start; border-radius: 0; border: none;" onclick="synergyBoard.exportDocument('${doc.doc_id}', 'html'); this.parentElement.style.display='none'">
+                                <i class="fas fa-file-code"></i> Export HTML
+                            </button>
+                        </div>
+                    </div>
+                    <button class="popup-action-btn primary" onclick="synergyBoard.saveSpreadsheetData('${doc.doc_id}')">
+                        <i class="fas fa-save"></i>
+                        Save
+                    </button>
+                `;
+        },
+
+        /**
+         * Save document content
+         */
+        /**
+         * Convert markdown to HTML (for AI-generated content)
+         */
+        convertMarkdownToHTML(markdown) {
+            // Use marked.js if available (same library used in chat)
+            if (typeof marked !== 'undefined') {
+                return marked.parse(markdown);
+            }
+
+            // Fallback: basic markdown conversion
+            let html = markdown;
+
+            // Headers
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Italic
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // Code blocks
+            html = html.replace(/```([\\s\\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Links
+            html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2">$1</a>');
+
+            // Line breaks
+            html = html.replace(/\n/g, '<br>');
+
+            // Paragraphs
+            html = '<p>' + html.split('\\n\\n').join('</p><p>') + '</p>';
+
+            return html;
+        },
+
+            async saveDocumentContent(docId, content, popup = null) {
+            try {
+                // Detect if content contains markdown patterns
+                const hasMarkdown = /[#*`\[\]]/g.test(content) && !/<[^>]+>/g.test(content);
+
+                // If content looks like markdown (and not HTML), convert it
+                const finalContent = hasMarkdown ? this.convertMarkdownToHTML(content) : content;
+
+                const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': '1'
+                    },
+                    body: JSON.stringify({
+                        content: finalContent
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('âœ… Document saved:', docId);
+                    if (popup) {
+                        popup.footerLeftElement.querySelector('.save-status').className = 'save-status saved';
+                        popup.footerLeftElement.querySelector('.save-status span').textContent = 'Saved';
+                    }
+
+                    // Refresh kanban board
+                    await this.loadSessions();
+                    this.renderAllCards();
+                } else {
+                    console.error('Failed to save document:', data.error);
+                    if (popup) {
+                        popup.footerLeftElement.querySelector('.save-status').className = 'save-status error';
+                        popup.footerLeftElement.querySelector('.save-status span').textContent = 'Error';
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving document:', error);
+                if (popup) {
+                    popup.footerLeftElement.querySelector('.save-status').className = 'save-status error';
+                    popup.footerLeftElement.querySelector('.save-status span').textContent = 'Error';
+                }
+            }
+        },
+
+            /**
+             * Export document
+             */
+            async exportDocument(docId, format) {
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}/export/${format}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': '1'
+                    }
+                });
+
+                // Check if response is a file (success) or JSON (error)
+                const contentType = response.headers.get('content-type');
+
+                if (contentType && contentType.includes('application/json')) {
+                    // Error response - parse as JSON
+                    const data = await response.json();
+                    alert('Export failed: ' + (data.error || 'Unknown error'));
                     return;
                 }
 
-                try {
-                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-User-ID': '1'
-                        },
-                        body: JSON.stringify({
-                            content_json: JSON.stringify(data),
-                            content: JSON.stringify(data)
-                        })
-                    });
+                // Success - download the file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
 
-                    const result = await response.json();
-
-                    if (result.success) {
-                        console.log('âœ… Spreadsheet saved');
-                        alert('Spreadsheet saved successfully!');
-                        await this.loadSessions();
-                        this.renderAllCards();
-                    } else {
-                        alert('Failed to save: ' + result.error);
+                // Get filename from Content-Disposition header or use default
+                const disposition = response.headers.get('content-disposition');
+                let filename = `document.${format}`;
+                if (disposition && disposition.includes('filename=')) {
+                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                    if (matches != null && matches[1]) {
+                        filename = matches[1].replace(/['"]/g, '');
                     }
-                } catch (error) {
-                    console.error('Error saving spreadsheet:', error);
-                    alert('Failed to save spreadsheet');
                 }
-            },
 
-            /**
-             * Add spreadsheet row
-             */
-            addSpreadsheetRow(docId) {
-                const data = window[`spreadsheet_data_${docId}`];
-                if (data) {
-                    const newRow = Array(data[0]?.length || 3).fill('');
-                    data.push(newRow);
-                    // Refresh spreadsheet view
-                    alert('Row added! Save to persist changes.');
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                console.log('âœ… Document exported:', filename);
+            } catch (error) {
+                console.error('Error exporting document:', error);
+                alert('Failed to export document');
+            }
+        },
+
+        /**
+         * Insert link helper
+         */
+        insertLink() {
+            const url = prompt('Enter URL:');
+            if (url) {
+                document.execCommand('createLink', false, url);
+            }
+        },
+
+        /**
+         * Insert image helper
+         */
+        insertImage() {
+            const url = prompt('Enter image URL:');
+            if (url) {
+                document.execCommand('insertImage', false, url);
+            }
+        },
+
+        /**
+         * Insert table helper
+         */
+        insertTable() {
+            const rows = prompt('Number of rows:', '3');
+            const cols = prompt('Number of columns:', '3');
+            if (rows && cols) {
+                let table = '<table border="1" style="border-collapse: collapse; width: 100%;">';
+                for (let i = 0; i < parseInt(rows); i++) {
+                    table += '<tr>';
+                    for (let j = 0; j < parseInt(cols); j++) {
+                        table += '<td style="padding: 8px; border: 1px solid var(--border-default);">&nbsp;</td>';
+                    }
+                    table += '</tr>';
                 }
-            },
+                table += '</table>';
+                document.execCommand('insertHTML', false, table);
+            }
+        },
 
-            /**
-             * Add spreadsheet column
-             */
-            addSpreadsheetColumn(docId) {
-                const data = window[`spreadsheet_data_${docId}`];
-                if (data) {
-                    data.forEach(row => row.push(''));
-                    alert('Column added! Save to persist changes.');
+        /**
+         * Show find and replace dialog
+         */
+        showFindReplace() {
+            const find = prompt('Find text:');
+            if (find) {
+                const replace = prompt('Replace with:');
+                if (replace !== null) {
+                    // Simple find and replace in active editor
+                    const editor = document.querySelector('.tiptap-editor[contenteditable="true"]');
+                    if (editor) {
+                        const content = editor.innerHTML;
+                        editor.innerHTML = content.replace(new RegExp(find, 'g'), replace);
+                    }
                 }
-            },
+            }
+        },
 
             /**
-             * Delete spreadsheet row
+             * Update document title
              */
-            deleteSpreadsheetRow(docId) {
-                const data = window[`spreadsheet_data_${docId}`];
-                const rowIndex = prompt('Enter row number to delete (0-based):');
-                if (rowIndex !== null && data && data[parseInt(rowIndex)]) {
-                    data.splice(parseInt(rowIndex), 1);
-                    alert('Row deleted! Save to persist changes.');
+            async updateDocumentTitle(docId, newTitle, inputElement) {
+            if (!newTitle.trim()) {
+                alert('Title cannot be empty');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': '1'
+                    },
+                    body: JSON.stringify({
+                        title: newTitle.trim()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('âœ… Title updated:', newTitle);
+                    inputElement.style.background = 'transparent';
+                    inputElement.style.border = 'none';
+
+                    // Refresh kanban board
+                    await this.loadSessions();
+                    this.renderAllCards();
+                } else {
+                    alert('Failed to update title: ' + data.error);
                 }
-            },
+            } catch (error) {
+                console.error('Error updating title:', error);
+                alert('Failed to update title');
+            }
+        },
 
-            /**
-             * Delete spreadsheet column
-             */
-            deleteSpreadsheetColumn(docId) {
-                const data = window[`spreadsheet_data_${docId}`];
-                const colIndex = prompt('Enter column number to delete (0-based):');
-                if (colIndex !== null && data) {
-                    data.forEach(row => row.splice(parseInt(colIndex), 1));
-                    alert('Column deleted! Save to persist changes.');
+            async updateDocumentDescription(docId, newDescription) {
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': '1'
+                    },
+                    body: JSON.stringify({
+                        description: newDescription.trim()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('✅ Description updated');
+                } else {
+                    console.error('Failed to update description:', data.error);
                 }
-            },
+            } catch (error) {
+                console.error('Error updating description:', error);
+            }
+        },
+
+        /**
+         * Show activity log and version history
+         */
+        showActivityLog(docId) {
+            const popup = this.createPopupWindow(`activity-log-${docId}`, 'Activity Log & Version History', 700, 500);
+
+            // Mock activity log data (in production, fetch from API)
+            const activities = [
+                {
+                    timestamp: new Date(Date.now() - 2 * 3600000).toLocaleString(),
+                    user: window.currentUserEmail || 'user@example.com',
+                    action: 'Modified document',
+                    version: 3,
+                    changes: 'Updated section 2, added new paragraph'
+                },
+                {
+                    timestamp: new Date(Date.now() - 5 * 3600000).toLocaleString(),
+                    user: window.currentUserEmail || 'user@example.com',
+                    action: 'Modified document',
+                    version: 2,
+                    changes: 'Fixed typos, reformatted lists'
+                },
+                {
+                    timestamp: new Date(Date.now() - 24 * 3600000).toLocaleString(),
+                    user: window.currentUserEmail || 'user@example.com',
+                    action: 'Created document',
+                    version: 1,
+                    changes: 'Initial document creation'
+                }
+            ];
+
+            popup.bodyElement.innerHTML = `
+                    <div style="padding: 20px; overflow-y: auto; height: 100%;">
+                        <h3 style="margin: 0 0 20px 0; color: var(--text-primary);">
+                            <i class="fas fa-history"></i> Document Activity
+                        </h3>
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            ${activities.map(activity => `
+                                <div style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                        <div>
+                                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                                                ${activity.action}
+                                            </div>
+                                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                                <i class="fas fa-user"></i> ${activity.user}
+                                            </div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="font-size: 11px; color: var(--text-muted);">
+                                                ${activity.timestamp}
+                                            </div>
+                                            <div style="font-size: 11px; padding: 2px 8px; background: rgba(79, 108, 255, 0.15); color: var(--accent-primary); border-radius: 4px; margin-top: 4px;">
+                                                v${activity.version}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 13px; color: var(--text-secondary); padding-top: 8px; border-top: 1px solid var(--border-default);">
+                                        ${activity.changes}
+                                    </div>
+                                    <button class="popup-action-btn" style="margin-top: 12px; font-size: 12px; padding: 6px 12px;" 
+                                        onclick="alert('Version restore coming soon!')">
+                                        <i class="fas fa-undo"></i> Restore this version
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+            popup.footerRightElement.innerHTML = `
+                    <button class="popup-action-btn" onclick="synergyBoard.closePopup('activity-log-${docId}')">
+                        <i class="fas fa-times"></i>
+                        Close
+                    </button>
+                `;
+
+            this.showPopup(`activity-log-${docId}`);
+        },
+
+        // ==================== SPREADSHEET HELPERS ====================
+
+        /**
+         * Update spreadsheet cell
+         */
+        updateSpreadsheetCell(docId, row, col, value) {
+            const data = window[`spreadsheet_data_${docId}`];
+            if (data && data[row]) {
+                data[row][col] = value;
+                console.log(`Updated cell [${row}][${col}] = ${value}`);
+            }
+        },
 
             /**
-             * Sort spreadsheet
+             * Save spreadsheet data
              */
-            sortSpreadsheet(docId, direction) {
-                alert(`Sort ${direction} feature coming soon!`);
-            },
+            async saveSpreadsheetData(docId) {
+            const data = window[`spreadsheet_data_${docId}`];
+            if (!data) {
+                alert('No spreadsheet data to save');
+                return;
+            }
 
-            /**
-             * Toggle spreadsheet filter
-             */
-            toggleSpreadsheetFilter(docId) {
-                alert('Filter feature coming soon!');
-            },
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': '1'
+                    },
+                    body: JSON.stringify({
+                        content_json: JSON.stringify(data),
+                        content: JSON.stringify(data)
+                    })
+                });
 
-            /**
-             * Format spreadsheet cells
-             */
-            formatSpreadsheetCells(docId, format) {
-                alert(`Format as ${format} feature coming soon!`);
-            },
+                const result = await response.json();
 
-            // ==================== POPUP WINDOW MANAGEMENT ====================
+                if (result.success) {
+                    console.log('âœ… Spreadsheet saved');
+                    alert('Spreadsheet saved successfully!');
+                    await this.loadSessions();
+                    this.renderAllCards();
+                } else {
+                    alert('Failed to save: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving spreadsheet:', error);
+                alert('Failed to save spreadsheet');
+            }
+        },
 
-            popupWindows: {},
-            popupZIndex: 9000,
+        /**
+         * Add spreadsheet row
+         */
+        addSpreadsheetRow(docId) {
+            const data = window[`spreadsheet_data_${docId}`];
+            if (data) {
+                const newRow = Array(data[0]?.length || 3).fill('');
+                data.push(newRow);
+                // Refresh spreadsheet view
+                alert('Row added! Save to persist changes.');
+            }
+        },
+
+        /**
+         * Add spreadsheet column
+         */
+        addSpreadsheetColumn(docId) {
+            const data = window[`spreadsheet_data_${docId}`];
+            if (data) {
+                data.forEach(row => row.push(''));
+                alert('Column added! Save to persist changes.');
+            }
+        },
+
+        /**
+         * Delete spreadsheet row
+         */
+        deleteSpreadsheetRow(docId) {
+            const data = window[`spreadsheet_data_${docId}`];
+            const rowIndex = prompt('Enter row number to delete (0-based):');
+            if (rowIndex !== null && data && data[parseInt(rowIndex)]) {
+                data.splice(parseInt(rowIndex), 1);
+                alert('Row deleted! Save to persist changes.');
+            }
+        },
+
+        /**
+         * Delete spreadsheet column
+         */
+        deleteSpreadsheetColumn(docId) {
+            const data = window[`spreadsheet_data_${docId}`];
+            const colIndex = prompt('Enter column number to delete (0-based):');
+            if (colIndex !== null && data) {
+                data.forEach(row => row.splice(parseInt(colIndex), 1));
+                alert('Column deleted! Save to persist changes.');
+            }
+        },
+
+        /**
+         * Sort spreadsheet
+         */
+        sortSpreadsheet(docId, direction) {
+            alert(`Sort ${direction} feature coming soon!`);
+        },
+
+        /**
+         * Toggle spreadsheet filter
+         */
+        toggleSpreadsheetFilter(docId) {
+            alert('Filter feature coming soon!');
+        },
+
+        /**
+         * Format spreadsheet cells
+         */
+        formatSpreadsheetCells(docId, format) {
+            alert(`Format as ${format} feature coming soon!`);
+        },
+
+        // ==================== POPUP WINDOW MANAGEMENT ====================
+
+        popupWindows: { },
+        popupZIndex: 9000,
 
             /**
              * Create a floating popup window
@@ -38457,20 +38783,20 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
              * @returns {Object} Popup object with element references
              */
             createPopupWindow(id, title, width = 800, height = 600) {
-                const container = document.getElementById('internalDocPopupContainer');
+            const container = document.getElementById('internalDocPopupContainer');
 
-                // Check if popup already exists
-                if (this.popupWindows[id]) {
-                    this.showPopup(id);
-                    return this.popupWindows[id];
-                }
+            // Check if popup already exists
+            if (this.popupWindows[id]) {
+                this.showPopup(id);
+                return this.popupWindows[id];
+            }
 
-                // Calculate centered position
-                const left = (window.innerWidth - width) / 2;
-                const top = (window.innerHeight - height) / 2;
+            // Calculate centered position
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
 
-                // Create popup HTML
-                const popupHTML = `
+            // Create popup HTML
+            const popupHTML = `
                     <div class="internal-doc-popup" id="${id}" style="width: ${width}px; height: ${height}px; left: ${left}px; top: ${top}px;">
                         <!-- Resize handles -->
                         <div class="popup-resize-handle n"></div>
@@ -38517,355 +38843,355 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     </div>
                 `;
 
-                // Add to container
-                container.insertAdjacentHTML('beforeend', popupHTML);
+            // Add to container
+            container.insertAdjacentHTML('beforeend', popupHTML);
 
-                // Get element references
-                const popupElement = document.getElementById(id);
-                const headerElement = popupElement.querySelector('.internal-doc-popup-header');
-                const titleElement = popupElement.querySelector('.internal-doc-popup-title');
-                const bodyElement = popupElement.querySelector('.internal-doc-popup-body');
-                const footerElement = popupElement.querySelector('.internal-doc-popup-footer');
-                const footerLeftElement = popupElement.querySelector('.popup-footer-left');
-                const footerRightElement = popupElement.querySelector('.popup-footer-right');
+            // Get element references
+            const popupElement = document.getElementById(id);
+            const headerElement = popupElement.querySelector('.internal-doc-popup-header');
+            const titleElement = popupElement.querySelector('.internal-doc-popup-title');
+            const bodyElement = popupElement.querySelector('.internal-doc-popup-body');
+            const footerElement = popupElement.querySelector('.internal-doc-popup-footer');
+            const footerLeftElement = popupElement.querySelector('.popup-footer-left');
+            const footerRightElement = popupElement.querySelector('.popup-footer-right');
 
-                // Store popup object
-                const popup = {
-                    id,
-                    popupElement,
-                    headerElement,
-                    titleElement,
-                    bodyElement,
-                    footerElement,
-                    footerLeftElement,
-                    footerRightElement,
-                    width,
-                    height,
-                    left,
-                    top,
-                    isCollapsed: false,
-                    isMaximized: false
-                };
+            // Store popup object
+            const popup = {
+                id,
+                popupElement,
+                headerElement,
+                titleElement,
+                bodyElement,
+                footerElement,
+                footerLeftElement,
+                footerRightElement,
+                width,
+                height,
+                left,
+                top,
+                isCollapsed: false,
+                isMaximized: false
+            };
 
-                this.popupWindows[id] = popup;
+            this.popupWindows[id] = popup;
 
-                // Initialize dragging
-                this.initPopupDrag(popup);
+            // Initialize dragging
+            this.initPopupDrag(popup);
 
-                // Initialize resizing
-                this.initPopupResize(popup);
+            // Initialize resizing
+            this.initPopupResize(popup);
 
-                return popup;
-            },
+            return popup;
+        },
 
-            /**
-             * Show popup window
-             */
-            showPopup(id) {
-                const popup = this.popupWindows[id];
-                if (!popup) return;
+        /**
+         * Show popup window
+         */
+        showPopup(id) {
+            const popup = this.popupWindows[id];
+            if (!popup) return;
 
-                popup.popupElement.classList.add('active', 'animating');
-                popup.popupElement.style.zIndex = ++this.popupZIndex;
+            popup.popupElement.classList.add('active', 'animating');
+            popup.popupElement.style.zIndex = ++this.popupZIndex;
 
-                // Remove animation class after animation completes
-                setTimeout(() => {
-                    popup.popupElement.classList.remove('animating');
-                }, 300);
-            },
+            // Remove animation class after animation completes
+            setTimeout(() => {
+                popup.popupElement.classList.remove('animating');
+            }, 300);
+        },
 
             /**
              * Close popup window
              */
             async closePopup(id) {
-                const popup = this.popupWindows[id];
-                if (!popup) return;
+            const popup = this.popupWindows[id];
+            if (!popup) return;
 
-                // Auto-save document content before closing
-                await this.autoSavePopupContent(id, popup);
+            // Auto-save document content before closing
+            await this.autoSavePopupContent(id, popup);
 
-                popup.popupElement.classList.remove('active');
+            popup.popupElement.classList.remove('active');
 
-                // Remove from DOM after fade out
-                setTimeout(() => {
-                    popup.popupElement.remove();
-                    delete this.popupWindows[id];
-                }, 200);
-            },
+            // Remove from DOM after fade out
+            setTimeout(() => {
+                popup.popupElement.remove();
+                delete this.popupWindows[id];
+            }, 200);
+        },
 
             /**
              * Toggle collapse state
              */
             async toggleCollapse(id) {
-                const popup = this.popupWindows[id];
-                if (!popup) return;
+            const popup = this.popupWindows[id];
+            if (!popup) return;
 
-                // Auto-save before collapsing
-                if (!popup.isCollapsed) {
-                    await this.autoSavePopupContent(id, popup);
-                }
+            // Auto-save before collapsing
+            if (!popup.isCollapsed) {
+                await this.autoSavePopupContent(id, popup);
+            }
 
-                popup.isCollapsed = !popup.isCollapsed;
-                popup.popupElement.classList.toggle('collapsed', popup.isCollapsed);
+            popup.isCollapsed = !popup.isCollapsed;
+            popup.popupElement.classList.toggle('collapsed', popup.isCollapsed);
 
-                // Update icon
-                const icon = popup.headerElement.querySelector('.minimize i');
-                icon.className = popup.isCollapsed ? 'fas fa-plus' : 'fas fa-minus';
-            },
+            // Update icon
+            const icon = popup.headerElement.querySelector('.minimize i');
+            icon.className = popup.isCollapsed ? 'fas fa-plus' : 'fas fa-minus';
+        },
 
             /**
              * Toggle maximize state
              */
             async toggleMaximize(id) {
-                const popup = this.popupWindows[id];
-                if (!popup) return;
+            const popup = this.popupWindows[id];
+            if (!popup) return;
 
-                // Auto-save before maximizing/restoring
+            // Auto-save before maximizing/restoring
+            await this.autoSavePopupContent(id, popup);
+
+            popup.isMaximized = !popup.isMaximized;
+            popup.popupElement.classList.toggle('maximized', popup.isMaximized);
+
+            // Update icon
+            const icon = popup.headerElement.querySelector('.maximize i');
+            icon.className = popup.isMaximized ? 'fas fa-compress' : 'fas fa-expand';
+        },
+
+        /**
+         * Initialize dragging for popup
+         */
+        initPopupDrag(popup) {
+            let isDragging = false;
+            let dragOffsetX = 0;
+            let dragOffsetY = 0;
+
+            // Only allow dragging from header area, not title
+            popup.headerElement.addEventListener('mousedown', (e) => {
+                // Don't drag if clicking buttons or title
+                if (e.target.closest('.popup-control-btn')) return;
+                if (e.target.closest('.internal-doc-popup-title')) return;
+                if (popup.isMaximized) return;
+
+                isDragging = true;
+                dragOffsetX = e.clientX - popup.popupElement.offsetLeft;
+                dragOffsetY = e.clientY - popup.popupElement.offsetTop;
+
+                popup.popupElement.style.zIndex = ++this.popupZIndex;
+                popup.popupElement.classList.add('dragging');
+                popup.headerElement.classList.add('draggable-area');
+
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const newLeft = e.clientX - dragOffsetX;
+                const newTop = e.clientY - dragOffsetY;
+
+                popup.popupElement.style.left = `${newLeft}px`;
+                popup.popupElement.style.top = `${newTop}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    popup.popupElement.classList.remove('dragging');
+                    popup.headerElement.classList.remove('draggable-area');
+                }
+                isDragging = false;
+            });
+
+            // Make title editable on double-click
+            popup.titleElement.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                popup.titleElement.setAttribute('contenteditable', 'true');
+                popup.titleElement.focus();
+
+                // Select all text
+                const range = document.createRange();
+                range.selectNodeContents(popup.titleElement);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            });
+
+            // Handle title editing blur/enter
+            popup.titleElement.addEventListener('blur', async () => {
+                popup.titleElement.removeAttribute('contenteditable');
+                // Auto-save when title is edited
                 await this.autoSavePopupContent(id, popup);
+            });
 
-                popup.isMaximized = !popup.isMaximized;
-                popup.popupElement.classList.toggle('maximized', popup.isMaximized);
-
-                // Update icon
-                const icon = popup.headerElement.querySelector('.maximize i');
-                icon.className = popup.isMaximized ? 'fas fa-compress' : 'fas fa-expand';
-            },
-
-            /**
-             * Initialize dragging for popup
-             */
-            initPopupDrag(popup) {
-                let isDragging = false;
-                let dragOffsetX = 0;
-                let dragOffsetY = 0;
-
-                // Only allow dragging from header area, not title
-                popup.headerElement.addEventListener('mousedown', (e) => {
-                    // Don't drag if clicking buttons or title
-                    if (e.target.closest('.popup-control-btn')) return;
-                    if (e.target.closest('.internal-doc-popup-title')) return;
-                    if (popup.isMaximized) return;
-
-                    isDragging = true;
-                    dragOffsetX = e.clientX - popup.popupElement.offsetLeft;
-                    dragOffsetY = e.clientY - popup.popupElement.offsetTop;
-
-                    popup.popupElement.style.zIndex = ++this.popupZIndex;
-                    popup.popupElement.classList.add('dragging');
-                    popup.headerElement.classList.add('draggable-area');
-
+            popup.titleElement.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
                     e.preventDefault();
-                });
-
-                document.addEventListener('mousemove', (e) => {
-                    if (!isDragging) return;
-
-                    const newLeft = e.clientX - dragOffsetX;
-                    const newTop = e.clientY - dragOffsetY;
-
-                    popup.popupElement.style.left = `${newLeft}px`;
-                    popup.popupElement.style.top = `${newTop}px`;
-                });
-
-                document.addEventListener('mouseup', () => {
-                    if (isDragging) {
-                        popup.popupElement.classList.remove('dragging');
-                        popup.headerElement.classList.remove('draggable-area');
-                    }
-                    isDragging = false;
-                });
-
-                // Make title editable on double-click
-                popup.titleElement.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    popup.titleElement.setAttribute('contenteditable', 'true');
-                    popup.titleElement.focus();
-
-                    // Select all text
-                    const range = document.createRange();
-                    range.selectNodeContents(popup.titleElement);
-                    const sel = window.getSelection();
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                });
-
-                // Handle title editing blur/enter
-                popup.titleElement.addEventListener('blur', async () => {
-                    popup.titleElement.removeAttribute('contenteditable');
-                    // Auto-save when title is edited
-                    await this.autoSavePopupContent(id, popup);
-                });
-
-                popup.titleElement.addEventListener('keydown', async (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        popup.titleElement.blur();
-                    }
-                    if (e.key === 'Escape') {
-                        e.preventDefault();
-                        popup.titleElement.blur();
-                    }
-                });
-            },
+                    popup.titleElement.blur();
+                }
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    popup.titleElement.blur();
+                }
+            });
+        },
 
             /**
              * Auto-save popup content (document or spreadsheet)
              */
             async autoSavePopupContent(popupId, popup) {
-                // Extract docId from popup ID (format: "doc-{docId}")
-                if (!popupId.startsWith('doc-')) return;
+            // Extract docId from popup ID (format: "doc-{docId}")
+            if (!popupId.startsWith('doc-')) return;
 
-                const docId = popupId.replace('doc-', '');
+            const docId = popupId.replace('doc-', '');
 
-                // Check if there's an editor in the popup
-                const editor = popup.bodyElement.querySelector('.tiptap-editor');
-                const spreadsheet = popup.bodyElement.querySelector('.spreadsheet-wrapper table');
+            // Check if there's an editor in the popup
+            const editor = popup.bodyElement.querySelector('.tiptap-editor');
+            const spreadsheet = popup.bodyElement.querySelector('.spreadsheet-wrapper table');
 
-                if (editor) {
-                    // Rich text document - save HTML content
-                    const content = editor.innerHTML;
-                    console.log(`🔄 [AUTOSAVE] Saving document ${docId} before state change...`);
+            if (editor) {
+                // Rich text document - save HTML content
+                const content = editor.innerHTML;
+                console.log(`🔄 [AUTOSAVE] Saving document ${docId} before state change...`);
 
-                    try {
-                        await this.saveDocumentContent(docId, content, popup);
-                        console.log(`✅ [AUTOSAVE] Document ${docId} saved successfully`);
-                    } catch (error) {
-                        console.error(`❌ [AUTOSAVE] Failed to save document ${docId}:`, error);
-                    }
-                } else if (spreadsheet) {
-                    // Spreadsheet - save table data
-                    console.log(`🔄 [AUTOSAVE] Saving spreadsheet ${docId} before state change...`);
-
-                    try {
-                        // Extract spreadsheet data from table
-                        const data = this.extractSpreadsheetData(spreadsheet);
-                        await this.saveSpreadsheetContent(docId, data, popup);
-                        console.log(`✅ [AUTOSAVE] Spreadsheet ${docId} saved successfully`);
-                    } catch (error) {
-                        console.error(`❌ [AUTOSAVE] Failed to save spreadsheet ${docId}:`, error);
-                    }
+                try {
+                    await this.saveDocumentContent(docId, content, popup);
+                    console.log(`✅ [AUTOSAVE] Document ${docId} saved successfully`);
+                } catch (error) {
+                    console.error(`❌ [AUTOSAVE] Failed to save document ${docId}:`, error);
                 }
-            },
+            } else if (spreadsheet) {
+                // Spreadsheet - save table data
+                console.log(`🔄 [AUTOSAVE] Saving spreadsheet ${docId} before state change...`);
 
-            /**
-             * Extract data from spreadsheet table
-             */
-            extractSpreadsheetData(table) {
-                const data = [];
-                const rows = table.querySelectorAll('tr');
+                try {
+                    // Extract spreadsheet data from table
+                    const data = this.extractSpreadsheetData(spreadsheet);
+                    await this.saveSpreadsheetContent(docId, data, popup);
+                    console.log(`✅ [AUTOSAVE] Spreadsheet ${docId} saved successfully`);
+                } catch (error) {
+                    console.error(`❌ [AUTOSAVE] Failed to save spreadsheet ${docId}:`, error);
+                }
+            }
+        },
 
-                rows.forEach(row => {
-                    const rowData = [];
-                    const cells = row.querySelectorAll('th, td');
-                    cells.forEach(cell => {
-                        rowData.push(cell.textContent.trim());
-                    });
-                    data.push(rowData);
+        /**
+         * Extract data from spreadsheet table
+         */
+        extractSpreadsheetData(table) {
+            const data = [];
+            const rows = table.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('th, td');
+                cells.forEach(cell => {
+                    rowData.push(cell.textContent.trim());
                 });
+                data.push(rowData);
+            });
 
-                return data;
-            },
+            return data;
+        },
 
             /**
              * Save spreadsheet content
              */
             async saveSpreadsheetContent(docId, data, popup = null) {
-                try {
-                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-User-ID': '1'
-                        },
-                        body: JSON.stringify({
-                            content_json: data
-                        })
-                    });
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/api/synergy/internal-doc/${docId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': '1'
+                    },
+                    body: JSON.stringify({
+                        content_json: data
+                    })
+                });
 
-                    const result = await response.json();
+                const result = await response.json();
 
-                    if (result.success) {
-                        console.log('✅ Spreadsheet saved:', docId);
-                        if (popup && popup.footerLeftElement) {
-                            const saveStatus = popup.footerLeftElement.querySelector('.save-status');
-                            if (saveStatus) {
-                                saveStatus.className = 'save-status saved';
-                                const statusText = saveStatus.querySelector('span');
-                                if (statusText) statusText.textContent = 'Saved';
-                            }
-                        }
-                    } else {
-                        console.error('Failed to save spreadsheet:', result.error);
-                        if (popup && popup.footerLeftElement) {
-                            const saveStatus = popup.footerLeftElement.querySelector('.save-status');
-                            if (saveStatus) {
-                                saveStatus.className = 'save-status error';
-                                const statusText = saveStatus.querySelector('span');
-                                if (statusText) statusText.textContent = 'Error';
-                            }
+                if (result.success) {
+                    console.log('✅ Spreadsheet saved:', docId);
+                    if (popup && popup.footerLeftElement) {
+                        const saveStatus = popup.footerLeftElement.querySelector('.save-status');
+                        if (saveStatus) {
+                            saveStatus.className = 'save-status saved';
+                            const statusText = saveStatus.querySelector('span');
+                            if (statusText) statusText.textContent = 'Saved';
                         }
                     }
-                } catch (error) {
-                    console.error('Error saving spreadsheet:', error);
+                } else {
+                    console.error('Failed to save spreadsheet:', result.error);
+                    if (popup && popup.footerLeftElement) {
+                        const saveStatus = popup.footerLeftElement.querySelector('.save-status');
+                        if (saveStatus) {
+                            saveStatus.className = 'save-status error';
+                            const statusText = saveStatus.querySelector('span');
+                            if (statusText) statusText.textContent = 'Error';
+                        }
+                    }
                 }
-            },
-
-            /**
-             * Initialize resizing for popup
-             */
-            initPopupResize(popup) {
-                const handles = popup.popupElement.querySelectorAll('.popup-resize-handle');
-
-                handles.forEach(handle => {
-                    let isResizing = false;
-                    let startX, startY, startWidth, startHeight, startLeft, startTop;
-                    const direction = handle.className.split(' ')[1];
-
-                    handle.addEventListener('mousedown', (e) => {
-                        if (popup.isMaximized) return;
-
-                        isResizing = true;
-                        startX = e.clientX;
-                        startY = e.clientY;
-                        startWidth = popup.popupElement.offsetWidth;
-                        startHeight = popup.popupElement.offsetHeight;
-                        startLeft = popup.popupElement.offsetLeft;
-                        startTop = popup.popupElement.offsetTop;
-
-                        e.preventDefault();
-                        e.stopPropagation();
-                    });
-
-                    document.addEventListener('mousemove', (e) => {
-                        if (!isResizing) return;
-
-                        const deltaX = e.clientX - startX;
-                        const deltaY = e.clientY - startY;
-
-                        // Handle different resize directions
-                        if (direction.includes('e')) {
-                            popup.popupElement.style.width = `${Math.max(400, startWidth + deltaX)}px`;
-                        }
-                        if (direction.includes('w')) {
-                            const newWidth = Math.max(400, startWidth - deltaX);
-                            popup.popupElement.style.width = `${newWidth}px`;
-                            popup.popupElement.style.left = `${startLeft + (startWidth - newWidth)}px`;
-                        }
-                        if (direction.includes('s')) {
-                            popup.popupElement.style.height = `${Math.max(300, startHeight + deltaY)}px`;
-                        }
-                        if (direction.includes('n')) {
-                            const newHeight = Math.max(300, startHeight - deltaY);
-                            popup.popupElement.style.height = `${newHeight}px`;
-                            popup.popupElement.style.top = `${startTop + (startHeight - newHeight)}px`;
-                        }
-                    });
-
-                    document.addEventListener('mouseup', () => {
-                        isResizing = false;
-                    });
-                });
+            } catch (error) {
+                console.error('Error saving spreadsheet:', error);
             }
+        },
+
+        /**
+         * Initialize resizing for popup
+         */
+        initPopupResize(popup) {
+            const handles = popup.popupElement.querySelectorAll('.popup-resize-handle');
+
+            handles.forEach(handle => {
+                let isResizing = false;
+                let startX, startY, startWidth, startHeight, startLeft, startTop;
+                const direction = handle.className.split(' ')[1];
+
+                handle.addEventListener('mousedown', (e) => {
+                    if (popup.isMaximized) return;
+
+                    isResizing = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    startWidth = popup.popupElement.offsetWidth;
+                    startHeight = popup.popupElement.offsetHeight;
+                    startLeft = popup.popupElement.offsetLeft;
+                    startTop = popup.popupElement.offsetTop;
+
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizing) return;
+
+                    const deltaX = e.clientX - startX;
+                    const deltaY = e.clientY - startY;
+
+                    // Handle different resize directions
+                    if (direction.includes('e')) {
+                        popup.popupElement.style.width = `${Math.max(400, startWidth + deltaX)}px`;
+                    }
+                    if (direction.includes('w')) {
+                        const newWidth = Math.max(400, startWidth - deltaX);
+                        popup.popupElement.style.width = `${newWidth}px`;
+                        popup.popupElement.style.left = `${startLeft + (startWidth - newWidth)}px`;
+                    }
+                    if (direction.includes('s')) {
+                        popup.popupElement.style.height = `${Math.max(300, startHeight + deltaY)}px`;
+                    }
+                    if (direction.includes('n')) {
+                        const newHeight = Math.max(300, startHeight - deltaY);
+                        popup.popupElement.style.height = `${newHeight}px`;
+                        popup.popupElement.style.top = `${startTop + (startHeight - newHeight)}px`;
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isResizing = false;
+                });
+            });
+        }
         };
 
         // ========================================
@@ -39686,158 +40012,6 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
     <div id="internalDocPopupContainer">
         <!-- Popup windows will be dynamically created here -->
     </div>
-
-    <!-- ==================== DIAGNOSTIC SCRIPT ==================== -->
-    <script>
-        // Diagnostic function to test right sidebar buttons
-        window.testRightSidebarButtons = function () {
-            console.log('%c🔍 RIGHT SIDEBAR BUTTONS DIAGNOSTIC TEST', 'background: #257bdd; color: white; padding: 4px 8px; font-weight: bold; font-size: 14px;');
-            console.log('%c==================================================', 'color: #257bdd; font-weight: bold;');
-
-            const tests = {
-                newChatBtn: document.getElementById('new-chat-btn'),
-                threadsBtn: document.getElementById('threads-btn'),
-                quickActionsBtn: document.getElementById('quick-actions-btn'),
-                themeToggleBtn: document.getElementById('theme-toggle-btn-sidebar'),
-                threadMenuOverlay: document.getElementById('thread-menu'),
-                quickActionsPanel: document.getElementById('quick-actions-panel'),
-                newChatModal: document.getElementById('newChatModalOverlay')
-            };
-
-            // Test 1: Button Elements
-            console.log('%c\n📌 TEST 1: Button Elements', 'color: #22c55e; font-weight: bold;');
-            Object.entries(tests).forEach(([name, element]) => {
-                const exists = element !== null;
-                const visible = exists && element.offsetParent !== null;
-                console.log(`  ${exists ? '✅' : '❌'} ${name}:`, {
-                    exists,
-                    visible: visible ? 'YES' : 'NO',
-                    element
-                });
-            });
-
-            // Test 2: Event Listeners
-            console.log('%c\n📌 TEST 2: Event Listeners Check', 'color: #22c55e; font-weight: bold;');
-            const listeners = {
-                'new-chat-btn': tests.newChatBtn ? getEventListeners(tests.newChatBtn) : null,
-                'quick-actions-btn': tests.quickActionsBtn ? getEventListeners(tests.quickActionsBtn) : null,
-                'theme-toggle-btn-sidebar': tests.themeToggleBtn ? getEventListeners(tests.themeToggleBtn) : null
-            };
-
-            Object.entries(listeners).forEach(([id, listenerObj]) => {
-                if (listenerObj) {
-                    const clickListeners = listenerObj.click || [];
-                    console.log(`  ${clickListeners.length > 0 ? '✅' : '❌'} ${id}: ${clickListeners.length} click listener(s)`, listenerObj);
-                } else {
-                    console.log(`  ❌ ${id}: Element not found`);
-                }
-            });
-
-            // Test 3: ThreadManager
-            console.log('%c\n📌 TEST 3: ThreadManager Functions', 'color: #22c55e; font-weight: bold;');
-            if (typeof ThreadManager !== 'undefined') {
-                console.log('  ✅ ThreadManager exists');
-                console.log('    - showNewChatModal:', typeof ThreadManager.showNewChatModal === 'function' ? '✅ FUNCTION' : '❌ NOT A FUNCTION');
-                console.log('    - toggleThreadMenu:', typeof ThreadManager.toggleThreadMenu === 'function' ? '✅ FUNCTION' : '❌ NOT A FUNCTION');
-            } else {
-                console.log('  ❌ ThreadManager not defined');
-            }
-
-            // Test 4: Theme Toggle
-            console.log('%c\n📌 TEST 4: Theme Toggle Function', 'color: #22c55e; font-weight: bold;');
-            if (typeof initThemeToggle !== 'undefined') {
-                console.log('  ✅ initThemeToggle function exists');
-            } else {
-                console.log('  ❌ initThemeToggle function not defined');
-            }
-
-            // Test 5: Click Tests
-            console.log('%c\n📌 TEST 5: Simulated Click Tests', 'color: #f59e0b; font-weight: bold;');
-            console.log('  Run these commands manually to test:');
-            console.log('    testNewChatButton() - Test new chat modal');
-            console.log('    testQuickActionsButton() - Test quick actions panel');
-            console.log('    testThemeToggleButton() - Test theme toggle');
-            console.log('    testThreadsButton() - Test thread menu');
-
-            console.log('%c\n==================================================', 'color: #257bdd; font-weight: bold;');
-            console.log('%c✅ Diagnostic test complete! Check results above.', 'background: #22c55e; color: white; padding: 4px 8px; font-weight: bold;');
-
-            return tests;
-        };
-
-        // Individual button tests
-        window.testNewChatButton = function () {
-            console.log('%c🧪 Testing New Chat Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
-            const btn = document.getElementById('new-chat-btn');
-            if (btn) {
-                btn.click();
-                setTimeout(() => {
-                    const modal = document.getElementById('newChatModalOverlay');
-                    console.log(modal ? '✅ Modal created' : '❌ Modal NOT created', modal);
-                }, 100);
-            } else {
-                console.log('❌ Button not found');
-            }
-        };
-
-        window.testQuickActionsButton = function () {
-            console.log('%c🧪 Testing Quick Actions Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
-            const btn = document.getElementById('quick-actions-btn');
-            if (btn) {
-                btn.click();
-                setTimeout(() => {
-                    const panel = document.getElementById('quick-actions-panel');
-                    console.log(panel ? '✅ Panel created' : '❌ Panel NOT created', panel);
-                    if (panel) {
-                        console.log('Panel active:', panel.classList.contains('active'));
-                        console.log('Panel position:', window.getComputedStyle(panel).right);
-                    }
-                }, 100);
-            } else {
-                console.log('❌ Button not found');
-            }
-        };
-
-        window.testThemeToggleButton = function () {
-            console.log('%c🧪 Testing Theme Toggle Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
-            const btn = document.getElementById('theme-toggle-btn-sidebar');
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            console.log('Current theme:', currentTheme);
-            if (btn) {
-                btn.click();
-                setTimeout(() => {
-                    const newTheme = document.documentElement.getAttribute('data-theme');
-                    console.log(currentTheme !== newTheme ? '✅ Theme changed' : '❌ Theme NOT changed');
-                    console.log('New theme:', newTheme);
-                }, 100);
-            } else {
-                console.log('❌ Button not found');
-            }
-        };
-
-        window.testThreadsButton = function () {
-            console.log('%c🧪 Testing Threads Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
-            const btn = document.getElementById('threads-btn');
-            if (btn) {
-                btn.click();
-                setTimeout(() => {
-                    const menu = document.getElementById('thread-menu');
-                    console.log(menu ? '✅ Menu exists' : '❌ Menu NOT found', menu);
-                    if (menu) {
-                        console.log('Menu active:', menu.classList.contains('active'));
-                        console.log('Menu position:', window.getComputedStyle(menu).right);
-                    }
-                }, 100);
-            } else {
-                console.log('❌ Button not found');
-            }
-        };
-
-        // Auto-run diagnostic on page load (after a short delay)
-        setTimeout(() => {
-            console.log('%c\n💡 TIP: Run testRightSidebarButtons() in console for full diagnostic', 'background: #f59e0b; color: white; padding: 4px 8px; font-style: italic;');
-        }, 2000);
-    </script>
 
 </body>
 
