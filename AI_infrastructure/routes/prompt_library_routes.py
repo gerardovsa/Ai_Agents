@@ -377,14 +377,24 @@ def list_categories():
 
 import sqlite3
 from pathlib import Path
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, is_using_supabase, convert_sql_placeholders
 from datetime import datetime
+import psycopg2.extras
 
 def get_db_connection():
     """Get database connection to ai_infrastructure.db"""
     root_dir = Path(__file__).parent.parent.parent
     conn = get_database_connection('ai_infrastructure')
-    conn.row_factory = sqlite3.Row
+    
+    # Set row factory based on database type
+    if is_using_supabase():
+        # PostgreSQL: use RealDictCursor
+        # Note: We need to return a cursor, not set row_factory
+        pass  # Handled per-query
+    else:
+        # SQLite: use Row factory
+        conn.row_factory = sqlite3.Row
+    
     return conn
 
 
@@ -442,7 +452,13 @@ def list_prompts_from_db():
         
         # Execute query
         conn = get_db_connection()
+        
+        # Convert placeholders for PostgreSQL
+        query, params = convert_sql_placeholders(query, tuple(params))
+        
+        # DatabaseConnection wrapper handles cursor type automatically
         cursor = conn.cursor()
+        
         cursor.execute(query, params)
         rows = cursor.fetchall()
         

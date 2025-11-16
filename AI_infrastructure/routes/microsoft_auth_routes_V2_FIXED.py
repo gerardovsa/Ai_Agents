@@ -238,13 +238,43 @@ def generate_jwt_token(payload: dict):
         
         # Store token in user_sessions table
         try:
+            from shared.database_utils import convert_sql_placeholders, is_using_supabase
             conn = get_db_connection()
             cursor = conn.cursor()
             expires_at = (datetime.utcnow() + timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute('''
-                INSERT INTO user_sessions (user_id, token, expires_at)
-                VALUES (?, ?, ?)
-            ''', (payload['user_id'], token, expires_at))
+            
+            # PostgreSQL (Supabase): Use DEFAULT for id column or generate with sequence
+            # SQLite: id is AUTOINCREMENT (handled automatically)
+            if is_using_supabase():
+                # For PostgreSQL, try to use DEFAULT or generate id manually
+                # Check if sequence exists, otherwise use MAX(id) + 1
+                try:
+                    cursor.execute('SELECT MAX(id) FROM user_sessions')
+                    result = cursor.fetchone()
+                    max_id = result['max'] if isinstance(result, dict) else result[0]
+                    next_id = (max_id or 0) + 1
+                    
+                    insert_sql = '''
+                        INSERT INTO user_sessions (id, user_id, token, expires_at)
+                        VALUES (?, ?, ?, ?)
+                    '''
+                    insert_sql, insert_params = convert_sql_placeholders(insert_sql, (next_id, payload['user_id'], token, expires_at))
+                except:
+                    # Fallback: try without id (in case DEFAULT works)
+                    insert_sql = '''
+                        INSERT INTO user_sessions (user_id, token, expires_at)
+                        VALUES (?, ?, ?)
+                    '''
+                    insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
+            else:
+                # SQLite: Don't insert id (AUTOINCREMENT handles it)
+                insert_sql = '''
+                    INSERT INTO user_sessions (user_id, token, expires_at)
+                    VALUES (?, ?, ?)
+                '''
+                insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
+            
+            cursor.execute(insert_sql, insert_params)
             conn.commit()
             conn.close()
         except Exception as e:
@@ -440,69 +470,149 @@ def microsoft_callback():
         # Build granted scopes string
         granted_scopes = ' '.join(MICROSOFT_SCOPES)
         
-        # INSERT INTO oauth_tokens (match Google's schema - stores profile in metadata JSON)
-        cursor.execute('''
-            INSERT OR REPLACE INTO oauth_tokens (
-                user_id,
-                platform,
-                access_token,
-                refresh_token,
-                token_type,
-                expires_at,
-                scope,
-                is_valid,
-                is_active,
-                auto_refresh_enabled,
-                last_refreshed_at,
-                refresh_attempts,
-                last_refresh_error,
-                granted_scopes,
-                metadata,
-                email,
-                profile_name,
-                error_count,
-                last_error,
-                created_at,
-                updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        ''', (
-            user_id,                              # user_id
-            'microsoft',                          # platform (use 'microsoft' not 'microsoft365')
-            access_token,                         # access_token
-            refresh_token,                        # refresh_token
-            token_type,                           # token_type ('Bearer')
-            expires_at,                           # expires_at (timestamp)
-            ' '.join(MICROSOFT_SCOPES),          # scope (requested scopes)
-            1,                                    # is_valid (1 = valid)
-            1,                                    # is_active (1 = active)
-            1,                                    # auto_refresh_enabled (1 = enabled)
-            datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),  # last_refreshed_at
-            0,                                    # refresh_attempts (0 = no errors)
-            None,                                 # last_refresh_error (NULL)
-            granted_scopes,                       # granted_scopes (actual scopes)
-            json.dumps({                          # metadata (stores profile like Google does)
-                'microsoft_id': microsoft_id,
-                'email': email,
-                'name': display_name,
-                'profile': profile,
-                'authorized_at': datetime.utcnow().isoformat(),
-                'client_id': (os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID', ''))[:20] + '...',
-                'tenant_id': os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
-            }),
-            email,                                # email (NEW - direct column for status endpoint)
-            display_name,                         # profile_name (NEW - direct column for UI display)
-            0,                                    # error_count (NEW - initialize to 0)
-            None                                  # last_error (NEW - no errors on initial auth)
-        ))
+        # Check if using PostgreSQL or SQLite
+        from shared.database_utils import is_using_supabase, convert_sql_placeholders
+        
+        # Check if token already exists
+        check_sql = 'SELECT id FROM oauth_tokens WHERE user_id = ? AND platform = ?'
+        check_sql, check_params = convert_sql_placeholders(check_sql, (user_id, 'microsoft'))
+        cursor.execute(check_sql, check_params)
+        existing_token = cursor.fetchone()
+        
+        if existing_token:
+            # UPDATE existing token
+            sql = '''
+                UPDATE oauth_tokens SET
+                    access_token = ?,
+                    refresh_token = ?,
+                    token_type = ?,
+                    expires_at = ?,
+                    scope = ?,
+                    is_valid = ?,
+                    is_active = ?,
+                    auto_refresh_enabled = ?,
+                    last_refreshed_at = ?,
+                    refresh_attempts = ?,
+                    last_refresh_error = ?,
+                    granted_scopes = ?,
+                    metadata = ?,
+                    email = ?,
+                    profile_name = ?,
+                    error_count = ?,
+                    last_error = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ? AND platform = ?
+            '''
+        else:
+            # INSERT new token (works for both PostgreSQL and SQLite)
+            if is_using_supabase():
+                # PostgreSQL: Skip created_at/updated_at (use DEFAULT)
+                sql = '''
+                    INSERT INTO oauth_tokens (
+                        user_id, platform, access_token, refresh_token, token_type,
+                        expires_at, scope, is_valid, is_active, auto_refresh_enabled,
+                        last_refreshed_at, refresh_attempts, last_refresh_error,
+                        granted_scopes, metadata, email, profile_name,
+                        error_count, last_error
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                '''
+            else:
+                # SQLite: Use CURRENT_TIMESTAMP
+                sql = '''
+                    INSERT INTO oauth_tokens (
+                        user_id, platform, access_token, refresh_token, token_type,
+                        expires_at, scope, is_valid, is_active, auto_refresh_enabled,
+                        last_refreshed_at, refresh_attempts, last_refresh_error,
+                        granted_scopes, metadata, email, profile_name,
+                        error_count, last_error, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                '''
+        
+        # PostgreSQL needs TRUE/FALSE for boolean columns, SQLite accepts 1/0
+        if is_using_supabase():
+            is_valid_val = True
+            is_active_val = True
+            auto_refresh_val = True
+        else:
+            is_valid_val = 1
+            is_active_val = 1
+            auto_refresh_val = 1
+        
+        # Build params for INSERT or UPDATE
+        if existing_token:
+            # UPDATE params (no user_id/platform at start, add at end for WHERE clause)
+            params = (
+                access_token,                         # access_token
+                refresh_token,                        # refresh_token
+                token_type,                           # token_type ('Bearer')
+                expires_at,                           # expires_at (timestamp)
+                ' '.join(MICROSOFT_SCOPES),          # scope (requested scopes)
+                is_valid_val,                         # is_valid
+                is_active_val,                        # is_active
+                auto_refresh_val,                     # auto_refresh_enabled
+                datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),  # last_refreshed_at
+                0,                                    # refresh_attempts
+                None,                                 # last_refresh_error
+                granted_scopes,                       # granted_scopes
+                json.dumps({                          # metadata
+                    'microsoft_id': microsoft_id,
+                    'email': email,
+                    'name': display_name,
+                    'profile': profile,
+                    'authorized_at': datetime.utcnow().isoformat(),
+                    'client_id': (os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID', ''))[:20] + '...',
+                    'tenant_id': os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
+                }),
+                email,                                # email
+                display_name,                         # profile_name
+                0,                                    # error_count
+                None,                                 # last_error
+                user_id,                              # WHERE user_id
+                'microsoft'                           # WHERE platform
+            )
+        else:
+            # INSERT params (user_id and platform at start)
+            params = (
+                user_id,                              # user_id
+                'microsoft',                          # platform
+                access_token,                         # access_token
+                refresh_token,                        # refresh_token
+                token_type,                           # token_type
+                expires_at,                           # expires_at
+                ' '.join(MICROSOFT_SCOPES),          # scope
+                is_valid_val,                         # is_valid
+                is_active_val,                        # is_active
+                auto_refresh_val,                     # auto_refresh_enabled
+                datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),  # last_refreshed_at
+                0,                                    # refresh_attempts
+                None,                                 # last_refresh_error
+                granted_scopes,                       # granted_scopes
+                json.dumps({                          # metadata
+                    'microsoft_id': microsoft_id,
+                    'email': email,
+                    'name': display_name,
+                    'profile': profile,
+                    'authorized_at': datetime.utcnow().isoformat(),
+                    'client_id': (os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID', ''))[:20] + '...',
+                    'tenant_id': os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
+                }),
+                email,                                # email
+                display_name,                         # profile_name
+                0,                                    # error_count
+                None                                  # last_error
+            )
+        
+        # Convert placeholders and execute
+        sql, params = convert_sql_placeholders(sql, params)
+        cursor.execute(sql, params)
         
         conn.commit()
         
-        # Update has_microsoft_oauth flag
-        cursor.execute('''
-            UPDATE users
-            SET has_microsoft_oauth = 1
-            WHERE id = ?
-        ''', (user_id,))
+        # Update has_microsoft_oauth flag (use TRUE for PostgreSQL, 1 for SQLite)
+        flag_value = True if is_using_supabase() else 1
+        update_sql = 'UPDATE users SET has_microsoft_oauth = ? WHERE id = ?'
+        update_sql, update_params = convert_sql_placeholders(update_sql, (flag_value, user_id))
+        cursor.execute(update_sql, update_params)
         
         conn.commit()
         conn.close()

@@ -25,7 +25,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import database utility with auto-detection
-from shared.database_utils import get_synergy_sessions_connection, is_using_supabase
+from shared.database_utils import get_synergy_sessions_connection, is_using_supabase, convert_sql_placeholders
 
 synergy_bp = Blueprint('synergy', __name__, url_prefix='/api/synergy')
 

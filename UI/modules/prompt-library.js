@@ -188,18 +188,19 @@ console.log('[PROMPT LIBRARY] ========================================');
      * Inject HTML templates into the page
      */
     function injectHtmlTemplates() {
-        // Find the chat input container
+        // Find the chat input container for active prompts bar
         const chatInputWrapper = document.querySelector('.ai-chat-input-wrapper');
-        if (!chatInputWrapper) {
-            console.error('[PROMPT LIBRARY] Chat input wrapper not found');
-            return;
-        }
 
-        // Create active prompts bar
-        const activePromptsBar = document.createElement('div');
-        activePromptsBar.id = 'active-prompts-bar';
-        activePromptsBar.className = 'active-prompts-bar';
-        chatInputWrapper.insertBefore(activePromptsBar, chatInputWrapper.firstChild);
+        // Create active prompts bar (only if chat wrapper exists)
+        if (chatInputWrapper) {
+            const activePromptsBar = document.createElement('div');
+            activePromptsBar.id = 'active-prompts-bar';
+            activePromptsBar.className = 'active-prompts-bar';
+            chatInputWrapper.insertBefore(activePromptsBar, chatInputWrapper.firstChild);
+            console.log('[PROMPT LIBRARY] Active prompts bar created');
+        } else {
+            console.warn('[PROMPT LIBRARY] Chat input wrapper not found - active prompts bar not created');
+        }
 
         // Create UNIFIED SIDEBAR (replaces dropdown + modal)
         // Only shows when user clicks bolt icon - NOT on page load
@@ -373,9 +374,11 @@ console.log('[PROMPT LIBRARY] ========================================');
                 </div>
             </div>
         `;
-        chatInputWrapper.insertBefore(sidebar, chatInputWrapper.firstChild);
 
-        console.log('[PROMPT LIBRARY] Unified sidebar created (starts hidden)');
+        // Append sidebar to body (not chat wrapper) so it's always available
+        document.body.appendChild(sidebar);
+
+        console.log('[PROMPT LIBRARY] Unified sidebar created and appended to body (starts hidden)');
     }
 
     /**

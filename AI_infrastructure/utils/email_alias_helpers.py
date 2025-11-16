@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Use centralized database connection utility (SQLite + Supabase support)
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 
 
 def get_user_id_by_email(email: str) -> Optional[int]:
@@ -42,21 +42,25 @@ def get_user_id_by_email(email: str) -> Optional[int]:
     
     try:
         # First check: Is this the primary email?
-        cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE email = ?', (email,))
+        cursor.execute(sql, params)
         result = cursor.fetchone()
         
         if result:
-            return result[0]
+            # Handle both SQLite (tuple/Row) and PostgreSQL (dict)
+            return result['id'] if isinstance(result, dict) else result[0]
         
         # Second check: Is this an alias email?
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT user_id FROM user_email_aliases 
             WHERE alias_email = ?
         ''', (email,))
+        cursor.execute(sql, params)
         result = cursor.fetchone()
         
         if result:
-            return result[0]
+            # Handle both SQLite (tuple/Row) and PostgreSQL (dict)
+            return result['user_id'] if isinstance(result, dict) else result[0]
         
         # Not found
         return None
@@ -97,20 +101,23 @@ def add_email_alias(
     
     try:
         # Verify user exists
-        cursor.execute('SELECT id FROM users WHERE id = ?', (user_id,))
+        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE id = ?', (user_id,))
+        cursor.execute(sql, params)
         if not cursor.fetchone():
             return False, f"User {user_id} not found"
         
         # Check if email is already someone's primary
-        cursor.execute('SELECT id FROM users WHERE email = ?', (alias_email,))
+        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE email = ?', (alias_email,))
+        cursor.execute(sql, params)
         if cursor.fetchone():
             return False, f"Email {alias_email} is already a primary email for another account"
         
         # Check if email is already an alias
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT user_id FROM user_email_aliases 
             WHERE alias_email = ?
         ''', (alias_email,))
+        cursor.execute(sql, params)
         existing = cursor.fetchone()
         
         if existing:
@@ -121,7 +128,7 @@ def add_email_alias(
         
         # Add the alias
         metadata_json = json.dumps(metadata) if metadata else None
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO user_email_aliases 
             (user_id, alias_email, oauth_provider, created_at, updated_at, metadata)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -133,6 +140,7 @@ def add_email_alias(
             datetime.now(),
             metadata_json
         ))
+        cursor.execute(sql, params)
         
         conn.commit()
         return True, f"Successfully linked {alias_email} to user {user_id}"
@@ -165,7 +173,8 @@ def get_user_emails(user_id: int) -> Dict[str, List[str]]:
     
     try:
         # Get primary email
-        cursor.execute('SELECT email FROM users WHERE id = ?', (user_id,))
+        sql, params = convert_sql_placeholders('SELECT email FROM users WHERE id = ?', (user_id,))
+        cursor.execute(sql, params)
         result = cursor.fetchone()
         
         if not result:
@@ -174,12 +183,13 @@ def get_user_emails(user_id: int) -> Dict[str, List[str]]:
         primary_email = result[0]
         
         # Get alias emails
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT alias_email, oauth_provider, created_at 
             FROM user_email_aliases 
             WHERE user_id = ?
             ORDER BY created_at DESC
         ''', (user_id,))
+        cursor.execute(sql, params)
         
         aliases = [
             {

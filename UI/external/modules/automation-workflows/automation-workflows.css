@@ -454,24 +454,66 @@
     margin-top: auto;
 }
 
-/* Shape Type Label (on canvas above shape) */
+/* Shape Type Label (colored badge above shape) */
 .shape-type-label {
     position: absolute;
-    top: -26px;
+    top: -28px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
-    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
     pointer-events: none;
-    background: var(--bg-primary);
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 3px;
-    border: 1px solid var(--border-default);
+    color: white;
     z-index: 10;
+}
+
+.automation-shape.trigger .shape-type-label {
+    background: #10B981;
+}
+
+.automation-shape.action .shape-type-label {
+    background: #3B82F6;
+}
+
+.automation-shape.decision .shape-type-label {
+    background: #F59E0B;
+}
+
+.automation-shape.end .shape-type-label {
+    background: #EF4444;
+}
+
+.automation-shape.blank .shape-type-label {
+    background: #6B7280;
+}
+
+.automation-shape.wait .shape-type-label {
+    background: #F59E0B;
+}
+
+.automation-shape.schedule .shape-type-label {
+    background: #3B82F6;
+}
+
+.automation-shape.database .shape-type-label {
+    background: #EC4899;
+}
+
+.automation-shape.output .shape-type-label {
+    background: #EAB308;
+}
+
+.automation-shape.tool .shape-type-label {
+    background: #6B7280;
+}
+
+.automation-shape.instructions .shape-type-label {
+    background: #EC4899;
 }
 
 /* Shape Type Label (on canvas) */
@@ -1341,63 +1383,86 @@
     left: -5px;
 }
 
-/* Shape Variants */
+/* Shape Variants - All simple rounded rectangles with colored borders and badges */
+.automation-shape {
+    border-radius: 4px;
+    /* All shapes use simple rounded rectangles - easy to resize */
+}
+
+.automation-shape.trigger {
+    border: 3px solid #10B981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.automation-shape.action {
+    border: 3px solid #3B82F6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.automation-shape.decision {
+    border: 3px solid #F59E0B;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.automation-shape.end {
+    border: 3px solid #EF4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.automation-shape.blank {
+    border: 3px solid #6B7280;
+    background: rgba(107, 114, 128, 0.05);
+}
+
+.automation-shape.wait {
+    border: 3px solid #F59E0B;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.automation-shape.schedule {
+    border: 3px solid #3B82F6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.automation-shape.database {
+    border: 3px solid #EC4899;
+    background: rgba(236, 72, 153, 0.05);
+}
+
+.automation-shape.output {
+    border: 3px solid #EAB308;
+    background: rgba(234, 179, 8, 0.05);
+}
+
+.automation-shape.tool {
+    border: 3px solid #6B7280;
+    background: rgba(107, 114, 128, 0.05);
+}
+
+.automation-shape.instructions {
+    border: 3px solid #EC4899;
+    background: rgba(236, 72, 153, 0.05);
+}
+
+/* Legacy shape types - map to new simple shapes */
 .automation-shape.rectangle {
-    border-radius: 8px;
-    /* Rounded action shape for tool executions */
+    border-radius: 4px;
 }
 
 .automation-shape.rounded {
-    border-radius: 24px;
-    /* Soft rounded shape for prompts */
+    border-radius: 4px;
 }
 
 .automation-shape.hexagon {
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    border-radius: 0;
-    border: none;
-    /* True hexagon with 6 sides - perfect for TRIGGER nodes */
-    background-clip: padding-box;
-}
-
-.automation-shape.hexagon::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    border: 2px solid var(--border-default);
-    pointer-events: none;
+    border-radius: 4px;
 }
 
 .automation-shape.circle {
-    border-radius: 50%;
-    aspect-ratio: 1;
-    min-width: 140px;
-    min-height: 140px;
-    /* Perfect circle for END nodes */
+    border-radius: 4px;
 }
 
 .automation-shape.diamond {
-    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    border-radius: 0;
-    border: none;
-    /* True rhombus (diamond) with 4 points - perfect for DECISION/CONDITION nodes */
-    background-clip: padding-box;
-}
-
-.automation-shape.diamond::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    border: 2px solid var(--border-default);
-    pointer-events: none;
+    border-radius: 4px;
 }
 
 /* ==================== AUTOMATION SLUG (Draggable to AI Chat) ==================== */

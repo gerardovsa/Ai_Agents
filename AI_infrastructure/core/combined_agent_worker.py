@@ -648,6 +648,190 @@ Status: {status_emoji} {status_text}
     return tool_result_str + status_footer
 
 
+def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 2000) -> str:
+    """
+    Context-aware truncation for tool results
+    
+    CRITICAL DISTINCTION:
+    1. INTENTIONAL reads (read_file, get_document, download) → Allow large results (up to 50K tokens)
+    2. BULK queries (list, search, get_all) → Truncate aggressively (2K tokens)
+    3. Single records (get_by_id, find_one) → Medium size (10K tokens)
+    
+    This prevents:
+    - Blocking legitimate document reads (user asks "read this 100-page report")
+    - Allowing accidental bulk dumps (Xero returns 1000 clients unexpectedly)
+    
+    Args:
+        result: Tool execution result (any type)
+        tool_name: Name of tool (for context-aware limits)
+        max_tokens: Default maximum tokens (overridden by tool type)
+    
+    Returns:
+        Truncated result string suitable for Claude API
+    """
+    # STEP 1: Determine tool intent and set appropriate limits
+    tool_lower = tool_name.lower()
+    
+    # INTENTIONAL LARGE READS - Allow up to 50K tokens (~200KB)
+    # These are explicit user requests for full content
+    intentional_read_keywords = [
+        'read_file', 'get_file', 'download', 'fetch_document',
+        'get_document', 'read_document', 'get_content', 'fetch_content',
+        'export', 'get_attachment', 'download_attachment'
+    ]
+    
+    # BULK/LIST OPERATIONS - Strict 2K token limit
+    # These often return unexpected volumes
+    bulk_query_keywords = [
+        'list', 'get_all', 'search', 'query', 'find_all',
+        'list_accounts', 'get_contacts', 'get_invoices', 'list_items',
+        'get_transactions', 'list_messages', 'get_threads'
+    ]
+    
+    # SINGLE RECORD OPERATIONS - Medium 10K token limit
+    # Usually one record but could be complex
+    single_record_keywords = [
+        'get_by_id', 'find_one', 'get_account', 'get_invoice',
+        'get_message', 'get_thread', 'get_contact'
+    ]
+    
+    # Determine limit based on tool type
+    if any(keyword in tool_lower for keyword in intentional_read_keywords):
+        max_tokens = 50000  # 200KB - Allow full documents
+        truncate_aggressive = False
+        intent = "INTENTIONAL_READ"
+    elif any(keyword in tool_lower for keyword in bulk_query_keywords):
+        max_tokens = 2000  # 8KB - Strict limit for bulk queries
+        truncate_aggressive = True
+        intent = "BULK_QUERY"
+    elif any(keyword in tool_lower for keyword in single_record_keywords):
+        max_tokens = 10000  # 40KB - Medium limit for single records
+        truncate_aggressive = False
+        intent = "SINGLE_RECORD"
+    else:
+        max_tokens = 5000  # 20KB - Default moderate limit
+        truncate_aggressive = False
+        intent = "UNKNOWN"
+    
+    # Convert to string first
+    if isinstance(result, str):
+        result_str = result
+    else:
+        try:
+            result_str = json.dumps(result, indent=2)
+        except:
+            result_str = str(result)
+    
+    # Calculate size (rough: 4 chars = 1 token)
+    max_chars = max_tokens * 4
+    
+    # If small enough, return as-is
+    if len(result_str) <= max_chars:
+        return result_str
+    
+    # LARGE RESULT - Need to truncate intelligently
+    print(f"[Combined Worker] ⚠️  Large tool result detected:")
+    print(f"  Tool: {tool_name}")
+    print(f"  Intent: {intent}")
+    print(f"  Size: {len(result_str):,} chars (~{len(result_str)//4:,} tokens)")
+    print(f"  Limit: {max_chars:,} chars (~{max_tokens:,} tokens)")
+    print(f"  Action: {'Aggressive' if truncate_aggressive else 'Smart'} truncation")
+    
+    # Handle different data types
+    if isinstance(result, list):
+        # LIST: Show sample + count
+        # Aggressive: 10 items, Smart: 50 items, Intentional: 100 items
+        if truncate_aggressive:
+            page_size = 10
+        elif intent == "INTENTIONAL_READ":
+            page_size = 100
+        else:
+            page_size = 50
+        
+        truncated = {
+            "result_type": "list",
+            "total_items": len(result),
+            "showing_items": min(page_size, len(result)),
+            "sample_data": result[:page_size],
+            "truncation_note": f"⚠️ Result truncated: Showing {min(page_size, len(result))} of {len(result)} items. To get more, use pagination parameters or refine your query.",
+            "tool_name": tool_name,
+            "suggestion": "Use pagination (limit/offset) or add filters to reduce result size" if len(result) > page_size else None
+        }
+        return json.dumps(truncated, indent=2)
+    
+    elif isinstance(result, dict):
+        # DICT: Show structure + sample
+        keys = list(result.keys())
+        
+        # Adjust sample size based on intent
+        if truncate_aggressive:
+            sample_size = 5
+            value_preview = 100
+        elif intent == "INTENTIONAL_READ":
+            sample_size = 50
+            value_preview = 1000
+        else:
+            sample_size = 20
+            value_preview = 300
+        
+        sample_keys = keys[:sample_size]
+        
+        truncated = {
+            "result_type": "dict",
+            "total_keys": len(keys),
+            "showing_keys": len(sample_keys),
+            "keys_list": sample_keys,
+            "sample_data": {k: _truncate_value(result[k], value_preview) for k in sample_keys},
+            "truncation_note": f"⚠️ Result truncated: Showing {len(sample_keys)} of {len(keys)} keys.",
+            "tool_name": tool_name,
+            "suggestion": "Access specific keys by name to see full values" if len(keys) > sample_size else None
+        }
+        return json.dumps(truncated, indent=2)
+    
+    else:
+        # TEXT: For intentional reads, keep more content
+        if intent == "INTENTIONAL_READ":
+            # For document reads, show up to 150KB (better than 200KB to leave room for conversation)
+            if len(result_str) > 600000:  # 150K tokens
+                half = 300000  # Show 75K chars at start + 75K at end
+                truncated = {
+                    "result_type": "text",
+                    "original_length": len(result_str),
+                    "beginning": result_str[:half],
+                    "ending": result_str[-half:],
+                    "truncation_note": f"⚠️ Document extremely large ({len(result_str):,} chars). Showing beginning and ending sections. Consider processing in chunks.",
+                    "tool_name": tool_name
+                }
+                return json.dumps(truncated, indent=2)
+            else:
+                # Keep full document if under 150K tokens
+                return result_str
+        else:
+            # For other text, show beginning + ending
+            half = max_chars // 2
+            truncated = {
+                "result_type": "text",
+                "original_length": len(result_str),
+                "beginning": result_str[:half],
+                "ending": result_str[-half:],
+                "truncation_note": f"⚠️ Text truncated from {len(result_str):,} to {max_chars:,} chars.",
+                "tool_name": tool_name
+            }
+            return json.dumps(truncated, indent=2)
+
+
+def _truncate_value(value: Any, max_length: int) -> Any:
+    """Helper to truncate individual values"""
+    if isinstance(value, str) and len(value) > max_length:
+        return value[:max_length] + f"... ({len(value)} chars total)"
+    elif isinstance(value, list) and len(value) > 5:
+        return value[:5] + [f"... ({len(value)} items total)"]
+    elif isinstance(value, dict) and len(value) > 5:
+        keys = list(value.keys())[:5]
+        return {k: value[k] for k in keys} | {"_truncated": f"{len(value)} keys total"}
+    return value
+
+
 def prune_conversation_for_context_limit(
     messages: List[Dict],
     max_estimated_tokens: int = 180000,
@@ -1526,6 +1710,15 @@ def execute_streaming_request(
         if user_prompt and current_round == 1:
             messages.append({'role': 'user', 'content': user_prompt})
         
+        # CRITICAL: Prune conversation if needed to avoid 413 error
+        # This prevents "Request exceeds the maximum size" errors
+        print(f"{log_prefix} Checking conversation size before API call...")
+        messages = prune_conversation_for_context_limit(
+            messages,
+            max_estimated_tokens=170000,  # Safety margin below 200K limit
+            preserve_first_user=True
+        )
+        
         # Initialize Anthropic client
         import os
         from anthropic import Anthropic
@@ -1692,7 +1885,8 @@ def execute_streaming_request(
                         else:
                             result = registry.execute_tool(tool_name=tool_name, **tool_input)
                     
-                    result_str = json.dumps(result, indent=2) if not isinstance(result, str) else result
+                    # Smart truncation for large tool results to avoid 413 errors
+                    result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)
                     tool_results.append({'type': 'tool_result', 'tool_use_id': tool_id, 'content': result_str})
                     yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': result_str, 'success': True}
                 

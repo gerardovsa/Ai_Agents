@@ -509,6 +509,11 @@ def google_callback():
         if existing:
             # UPDATE existing token
             print(f'   Updating existing token for user {user_id}')
+            
+            # PostgreSQL needs TRUE/FALSE for boolean columns
+            from shared.database_utils import is_using_supabase
+            bool_true = True if is_using_supabase() else 1
+            
             cursor.execute('''
                 UPDATE oauth_tokens SET
                     access_token = ?,
@@ -516,9 +521,9 @@ def google_callback():
                     token_type = ?,
                     expires_at = ?,
                     scope = ?,
-                    is_valid = 1,
-                    is_active = 1,
-                    auto_refresh_enabled = 1,
+                    is_valid = ?,
+                    is_active = ?,
+                    auto_refresh_enabled = ?,
                     last_refreshed_at = ?,
                     refresh_attempts = 0,
                     last_refresh_error = NULL,
@@ -532,6 +537,9 @@ def google_callback():
                 token_type,
                 expires_at,
                 ' '.join(GOOGLE_SCOPES),
+                bool_true,  # is_valid
+                bool_true,  # is_active
+                bool_true,  # auto_refresh_enabled
                 datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
                 granted_scopes,
                 json.dumps({
@@ -577,9 +585,9 @@ def google_callback():
             token_type,                           # token_type ('Bearer')
             expires_at,                           # expires_at (calculated timestamp)
             ' '.join(GOOGLE_SCOPES),             # scope (requested scopes)
-            1,                                    # is_valid (1 = valid)
-            1,                                    # is_active (1 = active)
-            1,                                    # auto_refresh_enabled (1 = enabled)
+            bool_true,                            # is_valid (TRUE for PostgreSQL, 1 for SQLite)
+            bool_true,                            # is_active (TRUE for PostgreSQL, 1 for SQLite)
+            bool_true,                            # auto_refresh_enabled (TRUE for PostgreSQL, 1 for SQLite)
             datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),  # last_refreshed_at
             0,                                    # refresh_attempts (0 = no errors)
             None,                                 # last_refresh_error (NULL)
@@ -597,12 +605,12 @@ def google_callback():
         
         conn.commit()
         
-        # Update has_google_oauth flag
-        cursor.execute('''
-            UPDATE users
-            SET has_google_oauth = 1
-            WHERE id = ?
-        ''', (user_id,))
+        # Update has_google_oauth flag (use TRUE for PostgreSQL, 1 for SQLite)
+        from shared.database_utils import convert_sql_placeholders
+        flag_value = True if is_using_supabase() else 1
+        update_sql = 'UPDATE users SET has_google_oauth = ? WHERE id = ?'
+        update_sql, update_params = convert_sql_placeholders(update_sql, (flag_value, user_id))
+        cursor.execute(update_sql, update_params)
         
         conn.commit()
         conn.close()
@@ -796,18 +804,23 @@ def refresh_google_token():
         expires_at = (datetime.utcnow() + timedelta(seconds=expires_in)).strftime('%Y-%m-%d %H:%M:%S')
         
         # Update oauth_tokens table
-        cursor.execute('''
+        from shared.database_utils import is_using_supabase, convert_sql_placeholders
+        bool_true = True if is_using_supabase() else 1
+        
+        update_sql = '''
             UPDATE oauth_tokens 
             SET 
                 access_token = ?,
                 expires_at = ?,
                 last_refreshed_at = CURRENT_TIMESTAMP,
-                is_valid = 1,
+                is_valid = ?,
                 error_count = 0,
                 last_error = NULL,
                 updated_at = CURRENT_TIMESTAMP
             WHERE user_id = ? AND platform = ?
-        ''', (new_access_token, expires_at, user_id, 'google'))
+        '''
+        update_sql, update_params = convert_sql_placeholders(update_sql, (new_access_token, expires_at, bool_true, user_id, 'google'))
+        cursor.execute(update_sql, update_params)
         
         conn.commit()
         conn.close()

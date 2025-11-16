@@ -254,11 +254,14 @@ def get_profile():
             elif password_hash == 'oauth_microsoft' or password_hash == 'OAUTH_USER_NO_PASSWORD':
                 # Support both 'oauth_microsoft' (new) and 'OAUTH_USER_NO_PASSWORD' (legacy)
                 # Check OAuth tokens to determine which platform
+                from AI_infrastructure.shared.database_utils import is_using_supabase
+                bool_true = True if is_using_supabase() else 1
+                
                 cursor.execute('''
                     SELECT platform FROM oauth_tokens 
-                    WHERE user_id = ? AND is_active = 1
+                    WHERE user_id = ? AND is_active = ?
                     ORDER BY created_at DESC LIMIT 1
-                ''', (user_id,))
+                ''', (user_id, bool_true))
                 token_row = cursor.fetchone()
                 if token_row:
                     auth_platform = token_row['platform']  # 'google' or 'microsoft'
@@ -272,33 +275,38 @@ def get_profile():
         google_oauth_connected = False
         microsoft_oauth_connected = False
         
+        # Get database-agnostic boolean and datetime
+        from AI_infrastructure.shared.database_utils import is_using_supabase
+        bool_true = True if is_using_supabase() else 1
+        now_sql = "NOW()" if is_using_supabase() else "datetime('now')"
+        
         # Always check for Google OAuth tokens (regardless of auth_platform)
         # ✅ FIX: Check oauth_tokens table (where Google/Microsoft OAuth actually stores tokens)
-        cursor.execute('''
+        cursor.execute(f'''
             SELECT COUNT(*) as count 
             FROM oauth_tokens 
             WHERE user_id = ? 
             AND platform = 'google' 
             AND access_token IS NOT NULL
-            AND (is_active = 1 OR is_active IS NULL)
-            AND (expires_at IS NULL OR expires_at > datetime('now'))
-        ''', (user_id,))
+            AND (is_active = ? OR is_active IS NULL)
+            AND (expires_at IS NULL OR expires_at > {now_sql})
+        ''', (user_id, bool_true))
         result = cursor.fetchone()
-        google_oauth_connected = result['count'] > 0 if result else False
+        google_oauth_connected = (result['count'] if isinstance(result, dict) else result[0]) > 0 if result else False
         
         # Always check for Microsoft OAuth tokens (regardless of auth_platform)
         # ✅ FIX: Check oauth_tokens table (where Google/Microsoft OAuth actually stores tokens)
-        cursor.execute('''
+        cursor.execute(f'''
             SELECT COUNT(*) as count 
             FROM oauth_tokens 
             WHERE user_id = ? 
             AND (platform = 'microsoft' OR platform = 'microsoft365')
             AND access_token IS NOT NULL
-            AND (is_active = 1 OR is_active IS NULL)
-            AND (expires_at IS NULL OR expires_at > datetime('now'))
-        ''', (user_id,))
+            AND (is_active = ? OR is_active IS NULL)
+            AND (expires_at IS NULL OR expires_at > {now_sql})
+        ''', (user_id, bool_true))
         result = cursor.fetchone()
-        microsoft_oauth_connected = result['count'] > 0 if result else False
+        microsoft_oauth_connected = (result['count'] if isinstance(result, dict) else result[0]) > 0 if result else False
         
         conn.close()
         

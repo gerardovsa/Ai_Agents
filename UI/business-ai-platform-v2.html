@@ -50,6 +50,8 @@
     <!-- Handsontable for Spreadsheet Editor -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
     <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <!-- HyperFormula - Excel-like formula engine for Handsontable -->
+    <script src="https://cdn.jsdelivr.net/npm/hyperformula/dist/hyperformula.full.min.js"></script>
 
     <!-- Dragula for Kanban Drag & Drop -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css">
@@ -514,9 +516,9 @@
 
         /* Dropdown Menu */
         .user-dropdown-menu {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
+            position: fixed;
+            top: 70px;
+            right: 70px;
             width: 320px;
             background: var(--bg-secondary);
             border: 1px solid var(--accent-primary);
@@ -527,12 +529,14 @@
             visibility: hidden;
             transform: translateY(-10px);
             transition: all 0.2s ease;
+            pointer-events: none;
         }
 
         .user-dropdown-menu.active {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
+            pointer-events: auto;
         }
 
         /* Dropdown Header */
@@ -1563,32 +1567,78 @@
 
         .synergy-sidebar-toggle {
             position: fixed;
-            left: 60px;
-            transform: translateX(0);
+            top: 50%;
+            transform: translateY(-50%);
             background: var(--accent-primary);
             color: white;
             border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: move;
+            cursor: grab;
             z-index: 10000;
-            box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.3);
-            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 44px;
-            height: 44px;
+            width: 36px;
+            height: 64px;
+            user-select: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.6;
         }
 
-        .synergy-sidebar-toggle:hover {
+        /* Left side: sits flush at edge, slides out on hover */
+        .synergy-sidebar-toggle[data-side="left"] {
+            left: 0;
+            border-radius: 0 12px 12px 0;
+            padding: 8px 8px 8px 4px;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .synergy-sidebar-toggle[data-side="left"]:hover {
+            left: 0;
+            padding: 8px 12px 8px 8px;
+            opacity: 1;
+            box-shadow: 4px 0 16px rgba(0, 0, 0, 0.25);
             background: var(--accent-primary-hover, #79c0ff);
-            box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.4);
-            transform: translateX(2px);
+        }
+
+        /* Right side: sits flush at edge, slides out on hover */
+        .synergy-sidebar-toggle[data-side="right"] {
+            right: 0;
+            left: auto;
+            border-radius: 12px 0 0 12px;
+            padding: 8px 4px 8px 8px;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .synergy-sidebar-toggle[data-side="right"]:hover {
+            right: 0;
+            padding: 8px 8px 8px 12px;
+            opacity: 1;
+            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.25);
+            background: var(--accent-primary-hover, #79c0ff);
+        }
+
+        .synergy-sidebar-toggle:active {
+            cursor: grabbing;
+        }
+
+        .synergy-sidebar-toggle.dragging {
+            cursor: grabbing;
+            opacity: 0.9;
+            transition: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         .synergy-sidebar-toggle i {
-            font-size: 20px;
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .synergy-sidebar-toggle:hover i {
+            transform: scale(1.15);
+        }
+
+        .synergy-sidebar-toggle.dragging i {
+            transform: scale(1.1) rotate(5deg);
         }
 
         .synergy-sidebar-header {
@@ -7528,12 +7578,9 @@
         }
 
         .add-agent-bar {
-            position: sticky;
-            right: 0;
-            top: 0;
             width: 50px;
+            min-width: 50px;
             height: 100%;
-            min-height: 100%;
             background: var(--accent-primary);
             display: none;
             /* Hidden by default */
@@ -7541,8 +7588,16 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            z-index: 500;
+            z-index: 50;
             flex-shrink: 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .add-agent-bar:hover {
+            background: var(--accent-primary-hover);
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
         }
 
         /* Show add-agent-bar only when multi-agent tab is active */
@@ -10050,6 +10105,14 @@
             color: var(--accent-primary);
         }
 
+        /* Popup Header Timestamp */
+        .internal-doc-popup-timestamp {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            margin-right: 16px;
+        }
+
         /* Popup Header Controls */
         .internal-doc-popup-controls {
             display: flex;
@@ -10174,527 +10237,6 @@
             color: var(--text-secondary);
             line-height: 1.4;
         }
-
-        /* Document Editor Container */
-        .doc-editor-container {
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Editor Toolbar */
-        .doc-editor-toolbar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-default);
-            flex-wrap: wrap;
-        }
-
-        .toolbar-group {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 0 8px;
-            border-right: 1px solid var(--border-default);
-        }
-
-        .toolbar-group:last-child {
-            border-right: none;
-        }
-
-        .toolbar-btn {
-            min-width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 0 10px;
-            background: transparent;
-            border: none;
-            border-radius: 8px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 14px;
-            font-weight: 500;
-            position: relative;
-        }
-
-        .toolbar-btn:hover {
-            background: rgba(88, 166, 255, 0.12);
-            color: var(--accent-primary);
-            transform: translateY(-1px);
-        }
-
-        .toolbar-btn.active {
-            background: rgba(88, 166, 255, 0.2);
-            color: var(--accent-primary);
-            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
-        }
-
-        .toolbar-btn:active {
-            transform: translateY(0);
-        }
-
-        .toolbar-separator {
-            width: 1px;
-            height: 24px;
-            background: var(--border-default);
-            margin: 0 4px;
-        }
-
-        /* Editor Content Area */
-        .doc-editor-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0;
-            background: linear-gradient(180deg, var(--bg-primary) 0%, rgba(0, 0, 0, 0.02) 100%);
-            position: relative;
-        }
-
-        .doc-editor-content::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
-        }
-
-        .doc-editor-wrapper {
-            margin: 10px;
-            padding: 10px;
-            border: 1px solid rgba(88, 166, 255, 0.15);
-            border-radius: 8px;
-            background: rgba(88, 166, 255, 0.03);
-            min-height: calc(100% - 20px);
-        }
-
-        /* TipTap Editor Styles */
-        .tiptap-editor {
-            min-height: calc(100% - 64px);
-            max-width: 820px;
-            margin: 0 auto;
-            padding: 20px 20px;
-            color: var(--text-primary);
-            font-size: 15px;
-            line-height: 1.5;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            letter-spacing: 0.01em;
-        }
-
-        .tiptap-editor:focus {
-            outline: none;
-        }
-
-        .tiptap-editor::selection {
-            background: rgba(88, 166, 255, 0.3);
-        }
-
-        .tiptap-editor h1 {
-            font-size: 32px;
-            font-weight: 700;
-            margin: 32px 0 20px;
-            color: var(--text-primary);
-            letter-spacing: -0.02em;
-            line-height: 1.2;
-        }
-
-        .tiptap-editor h2 {
-            font-size: 24px;
-            font-weight: 650;
-            margin: 28px 0 16px;
-            color: var(--text-primary);
-            letter-spacing: -0.01em;
-            line-height: 1.3;
-        }
-
-        .tiptap-editor h3 {
-            font-size: 20px;
-            font-weight: 600;
-            margin: 24px 0 12px;
-            color: var(--text-primary);
-            letter-spacing: -0.005em;
-            line-height: 1.4;
-        }
-
-        .tiptap-editor p {
-            margin: 0 0 12px;
-        }
-
-        .tiptap-editor ul,
-        .tiptap-editor ol {
-            padding-left: 24px;
-            margin: 12px 0;
-        }
-
-        .tiptap-editor li {
-            margin: 4px 0;
-        }
-
-        .tiptap-editor code {
-            background: rgba(88, 166, 255, 0.12);
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace;
-            font-size: 13.5px;
-            color: #79c0ff;
-            border: 1px solid rgba(88, 166, 255, 0.2);
-        }
-
-        .tiptap-editor pre {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 20px 24px;
-            border-radius: 12px;
-            overflow-x: auto;
-            margin: 20px 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .tiptap-editor pre code {
-            background: transparent;
-            padding: 0;
-            border: none;
-            color: #e2e8f0;
-        }
-
-        .tiptap-editor blockquote {
-            border-left: 4px solid var(--accent-primary);
-            padding-left: 16px;
-            margin: 16px 0;
-            color: var(--text-secondary);
-        }
-
-        /* Spreadsheet Container */
-        .spreadsheet-container {
-            flex: 1;
-            overflow: auto;
-            background: var(--bg-primary);
-            padding: 0;
-        }
-
-        .spreadsheet-wrapper {
-            margin: 10px;
-            padding: 10px;
-            border: 1px solid rgba(88, 166, 255, 0.15);
-            border-radius: 8px;
-            background: rgba(88, 166, 255, 0.03);
-            min-height: calc(100% - 20px);
-            overflow: auto;
-        }
-
-        .spreadsheet-container table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 13px;
-        }
-
-        .spreadsheet-container th {
-            background: rgba(88, 166, 255, 0.12);
-            padding: 10px 12px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-primary);
-            border: 1px solid var(--border-default);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .spreadsheet-container td {
-            padding: 8px 12px;
-            border: 1px solid var(--border-default);
-            background: var(--bg-secondary);
-            transition: background 0.15s ease;
-        }
-
-        .spreadsheet-container tr:hover td {
-            background: rgba(88, 166, 255, 0.06);
-        }
-
-        .spreadsheet-container td:focus {
-            outline: 2px solid var(--accent-primary);
-            outline-offset: -2px;
-            background: rgba(88, 166, 255, 0.1);
-        }
-
-        /* Popup Footer - Action Buttons */
-        .internal-doc-popup-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: var(--bg-tertiary);
-            border-top: 1px solid var(--border-default);
-            border-radius: 0 0 12px 12px;
-        }
-
-        .internal-doc-popup.collapsed .internal-doc-popup-footer {
-            display: none;
-        }
-
-        .popup-footer-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .save-status {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .save-status i {
-            font-size: 10px;
-        }
-
-        .save-status.saving {
-            color: #ffc107;
-        }
-
-        .save-status.saved {
-            color: #4caf50;
-        }
-
-        .save-status.error {
-            color: #f44336;
-        }
-
-        .popup-footer-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .popup-action-btn {
-            padding: 8px 16px;
-            background: transparent;
-            border: 1px solid var(--border-default);
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .popup-action-btn:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-        }
-
-        .popup-action-btn.primary {
-            background: var(--accent-primary);
-            border-color: var(--accent-primary);
-            color: white;
-        }
-
-        .popup-action-btn.primary:hover {
-            background: #4a8fe7;
-            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
-        }
-
-        /* Resize Handles */
-        .popup-resize-handle {
-            position: absolute;
-            background: transparent;
-            z-index: 10;
-        }
-
-        .popup-resize-handle.n {
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            cursor: n-resize;
-        }
-
-        .popup-resize-handle.s {
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            cursor: s-resize;
-        }
-
-        .popup-resize-handle.e {
-            top: 0;
-            right: 0;
-            bottom: 0;
-            width: 8px;
-            cursor: e-resize;
-        }
-
-        .popup-resize-handle.w {
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 8px;
-            cursor: w-resize;
-        }
-
-        .popup-resize-handle.ne {
-            top: 0;
-            right: 0;
-            width: 16px;
-            height: 16px;
-            cursor: ne-resize;
-        }
-
-        .popup-resize-handle.nw {
-            top: 0;
-            left: 0;
-            width: 16px;
-            height: 16px;
-            cursor: nw-resize;
-        }
-
-        .popup-resize-handle.se {
-            bottom: 0;
-            right: 0;
-            width: 16px;
-            height: 16px;
-            cursor: se-resize;
-        }
-
-        .popup-resize-handle.sw {
-            bottom: 0;
-            left: 0;
-            width: 16px;
-            height: 16px;
-            cursor: sw-resize;
-        }
-
-        /* Popup Animations */
-        @keyframes popupSlideIn {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -45%);
-            }
-
-            to {
-                opacity: 1;
-                transform: translate(-50%, -50%);
-            }
-        }
-
-        .internal-doc-popup.animating {
-            animation: popupSlideIn 0.3s ease-out;
-        }
-
-        /* Loading State */
-        .popup-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            padding: 40px;
-            height: 100%;
-        }
-
-        .popup-loading i {
-            font-size: 32px;
-            color: var(--accent-primary);
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .popup-loading-text {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        /* Attach Existing Document Modal */
-        .attach-doc-list {
-            max-height: 400px;
-            overflow-y: auto;
-            margin: 16px 0;
-        }
-
-        .attach-doc-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-default);
-            border-radius: 8px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .attach-doc-item:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-        }
-
-        .attach-doc-item.selected {
-            background: rgba(79, 108, 255, 0.15);
-            border-color: var(--accent-primary);
-        }
-
-        .attach-doc-icon {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(79, 108, 255, 0.1);
-            border-radius: 8px;
-            color: var(--accent-primary);
-            font-size: 18px;
-        }
-
-        .attach-doc-info {
-            flex: 1;
-        }
-
-        .attach-doc-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-
-        .attach-doc-meta {
-            font-size: 12px;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .attach-doc-meta span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
     </style>
 </head>
 
@@ -10753,8 +10295,8 @@
     <!-- ==================== LAYOUT GRID ==================== -->
     <div class="platform-container">
         <!-- ==================== SYNERGY TOGGLE BUTTON ==================== -->
-        <button class="synergy-sidebar-toggle" id="synergy-sidebar-toggle" onclick="SynergySidebar.toggleSidebar()"
-            title="Toggle Synergy Sessions">
+        <button class="synergy-sidebar-toggle" id="synergy-sidebar-toggle" data-side="left"
+            onclick="SynergySidebar.toggleSidebar()" title="Toggle Synergy Sessions (Drag to reposition)">
             <i class="fa-solid fa-hexagon-nodes-bolt"></i>
         </button>
 
@@ -10895,133 +10437,126 @@
                 </div>
             </div>
 
-            <!-- Notification and User Profile buttons moved elsewhere -->
-            <div style="display: none;">
-                <button class="header-btn" id="notificationBellBtn" onclick="toggleNotificationPanel(event)">
-                    <i class="fas fa-bell" id="notificationBellIcon"></i>
+            <!-- User Profile Dropdown (Moved Outside Hidden Div) -->
+            <div class="user-profile-container" id="userProfileContainer">
+                <button class="user-profile-btn" id="userProfileBtn" onclick="toggleUserMenu(event)">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <!-- Hidden: Username and role text -->
+                    <div class="user-info-text" style="display: none;">
+                        <div class="user-name" id="userName">Loading...</div>
+                        <div class="user-role" id="userRoleText">User</div>
+                    </div>
+                    <i class="fas fa-chevron-down dropdown-icon" style="display: none;"></i>
                 </button>
 
-                <!-- User Profile Dropdown (Far Right) -->
-                <div class="user-profile-container" id="userProfileContainer">
-                    <button class="user-profile-btn" id="userProfileBtn" onclick="toggleUserMenu(event)">
-                        <div class="user-avatar">
+                <!-- Dropdown Menu -->
+                <div class="user-dropdown-menu" id="userDropdownMenu">
+                    <!-- User Info Section -->
+                    <div class="dropdown-header">
+                        <div class="dropdown-user-avatar">
                             <i class="fas fa-user-circle"></i>
                         </div>
-                        <!-- Hidden: Username and role text -->
-                        <div class="user-info-text" style="display: none;">
-                            <div class="user-name" id="userName">Loading...</div>
-                            <div class="user-role" id="userRoleText">User</div>
-                        </div>
-                        <i class="fas fa-chevron-down dropdown-icon" style="display: none;"></i>
-                    </button>
-
-                    <!-- Dropdown Menu -->
-                    <div class="user-dropdown-menu" id="userDropdownMenu">
-                        <!-- User Info Section -->
-                        <div class="dropdown-header">
-                            <div class="dropdown-user-avatar">
-                                <i class="fas fa-user-circle"></i>
-                            </div>
-                            <div class="dropdown-user-info">
-                                <div class="dropdown-user-name" id="dropdownUserName">Loading...</div>
-                                <div class="dropdown-user-email" id="dropdownUserEmail">Loading...</div>
-                                <div class="dropdown-user-role" id="dropdownUserRole">
-                                    <span class="role-badge" id="roleBadge">User</span>
-                                </div>
+                        <div class="dropdown-user-info">
+                            <div class="dropdown-user-name" id="dropdownUserName">Loading...</div>
+                            <div class="dropdown-user-email" id="dropdownUserEmail">Loading...</div>
+                            <div class="dropdown-user-role" id="dropdownUserRole">
+                                <span class="role-badge" id="roleBadge">User</span>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Google Workspace OAuth (only shown for Google OAuth users) -->
-                        <div class="dropdown-section" id="googleWorkspaceSection" style="display: none;">
-                            <div class="dropdown-item" onclick="toggleOAuthDetails()" style="cursor: pointer;">
-                                <i class="fab fa-google"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Google Workspace OAuth</div>
-                                    <div class="dropdown-item-subtitle" id="oauthStatus">Not connected</div>
-                                </div>
-                                <i class="fas fa-chevron-down dropdown-item-arrow" id="oauthArrow"></i>
+                    <!-- Google Workspace OAuth (only shown for Google OAuth users) -->
+                    <div class="dropdown-section" id="googleWorkspaceSection" style="display: none;">
+                        <div class="dropdown-item" onclick="toggleOAuthDetails()" style="cursor: pointer;">
+                            <i class="fab fa-google"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Google Workspace OAuth</div>
+                                <div class="dropdown-item-subtitle" id="oauthStatus">Not connected</div>
+                            </div>
+                            <i class="fas fa-chevron-down dropdown-item-arrow" id="oauthArrow"></i>
+                        </div>
+
+                        <!-- OAuth Services Details (Expandable) -->
+                        <div id="oauthDetails"
+                            style="display: none; padding-left: var(--space-6); margin-top: var(--space-2);">
+                            <div class="service-item" id="oauth-gmail">
+                                <i class="fas fa-envelope" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Gmail</span>
+                                <span class="service-status"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="oauth-calendar">
+                                <i class="fas fa-calendar" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Google Calendar</span>
+                                <span class="service-status"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="oauth-tasks">
+                                <i class="fas fa-tasks" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Google Tasks</span>
+                                <span class="service-status"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="oauth-forms">
+                                <i class="fas fa-wpforms" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Google Forms</span>
+                                <span class="service-status"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="oauth-docs">
+                                <i class="fas fa-file-alt" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Google Docs</span>
+                                <span class="service-status"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="oauth-sheets">
+                                <i class="fas fa-table" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Google Sheets</span>
+                                <span class="service-status"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="oauth-slides">
+                                <i class="fas fa-file-powerpoint"
+                                    style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Google Slides</span>
+                                <span class="service-status"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="oauth-drive">
+                                <i class="fas fa-folder" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Google Drive</span>
+                                <span class="service-status"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
                             </div>
 
-                            <!-- OAuth Services Details (Expandable) -->
-                            <div id="oauthDetails"
-                                style="display: none; padding-left: var(--space-6); margin-top: var(--space-2);">
-                                <div class="service-item" id="oauth-gmail">
-                                    <i class="fas fa-envelope" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Gmail</span>
-                                    <span class="service-status"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="oauth-calendar">
-                                    <i class="fas fa-calendar" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Google Calendar</span>
-                                    <span class="service-status"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="oauth-tasks">
-                                    <i class="fas fa-tasks" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Google Tasks</span>
-                                    <span class="service-status"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="oauth-forms">
-                                    <i class="fas fa-wpforms" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Google Forms</span>
-                                    <span class="service-status"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="oauth-docs">
-                                    <i class="fas fa-file-alt" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Google Docs</span>
-                                    <span class="service-status"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="oauth-sheets">
-                                    <i class="fas fa-table" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Google Sheets</span>
-                                    <span class="service-status"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="oauth-slides">
-                                    <i class="fas fa-file-powerpoint"
-                                        style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Google Slides</span>
-                                    <span class="service-status"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="oauth-drive">
-                                    <i class="fas fa-folder" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Google Drive</span>
-                                    <span class="service-status"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-
-                                <!-- Tools Status Indicator -->
-                                <div
-                                    style="margin-top: var(--space-3); padding: var(--space-2); background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid var(--accent-primary);">
-                                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                                        <div style="display: flex; align-items: center; gap: var(--space-2);">
-                                            <i class="fas fa-tools"
-                                                style="color: var(--accent-primary); font-size: 14px;"></i>
-                                            <span
-                                                style="font-size: 13px; font-weight: 500; color: var(--text-primary);">AI
-                                                Tools Access</span>
-                                        </div>
-                                        <span id="googleToolsStatus"
-                                            style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: var(--error-bg); color: var(--error-text);">Disabled</span>
+                            <!-- Tools Status Indicator -->
+                            <div
+                                style="margin-top: var(--space-3); padding: var(--space-2); background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid var(--accent-primary);">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                        <i class="fas fa-tools"
+                                            style="color: var(--accent-primary); font-size: 14px;"></i>
+                                        <span style="font-size: 13px; font-weight: 500; color: var(--text-primary);">AI
+                                            Tools Access</span>
                                     </div>
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: var(--space-1);">
-                                        When enabled, AI can use Gmail, Docs, Sheets, Drive, Calendar, Forms, and Tasks
-                                        tools
-                                    </div>
+                                    <span id="googleToolsStatus"
+                                        style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: var(--error-bg); color: var(--error-text);">Disabled</span>
                                 </div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: var(--space-1);">
+                                    When enabled, AI can use Gmail, Docs, Sheets, Drive, Calendar, Forms, and Tasks
+                                    tools
+                                </div>
+                            </div>
 
-                                <button onclick="connectOAuth()"
-                                    style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%;">
-                                    <i class="fas fa-plug"></i> Connect Google Workspace
-                                </button>
+                            <button onclick="connectOAuth()"
+                                style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%;">
+                                <i class="fas fa-plug"></i> Connect Google Workspace
+                            </button>
 
-                                <!-- Re-authentication Button (Red) -->
-                                <button class="reauth-btn" id="reauthBtn" onclick="triggerReauthentication()" style="
+                            <!-- Re-authentication Button (Red) -->
+                            <button class="reauth-btn" id="reauthBtn" onclick="triggerReauthentication()" style="
                                     margin-top: var(--space-3);
                                     padding: var(--space-2) var(--space-3);
                                     background: #dc3545;
@@ -11037,100 +10572,99 @@
                                     gap: var(--space-2);
                                     width: 100%;
                                     transition: all 0.2s ease;
-                                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(220, 53, 69, 0.3)'; this.style.backgroundColor='#c82333'"
-                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.backgroundColor='#dc3545'">
-                                    <i class="fas fa-sync-alt"></i>
-                                    <span>Re-authenticate Account</span>
-                                </button>
+                                "
+                                onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(220, 53, 69, 0.3)'; this.style.backgroundColor='#c82333'"
+                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.backgroundColor='#dc3545'">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Re-authenticate Account</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Microsoft 365 OAuth (only shown for Microsoft OAuth users) -->
+                    <div class="dropdown-section" id="microsoft365Section" style="display: none;">
+                        <div class="dropdown-item" onclick="toggleMicrosoft365Details()" style="cursor: pointer;">
+                            <i class="fab fa-microsoft"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Microsoft 365 OAuth</div>
+                                <div class="dropdown-item-subtitle" id="microsoft365Status">Not connected</div>
                             </div>
+                            <i class="fas fa-chevron-down dropdown-item-arrow" id="microsoft365Arrow"></i>
                         </div>
 
-                        <!-- Microsoft 365 OAuth (only shown for Microsoft OAuth users) -->
-                        <div class="dropdown-section" id="microsoft365Section" style="display: none;">
-                            <div class="dropdown-item" onclick="toggleMicrosoft365Details()" style="cursor: pointer;">
-                                <i class="fab fa-microsoft"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Microsoft 365 OAuth</div>
-                                    <div class="dropdown-item-subtitle" id="microsoft365Status">Not connected</div>
-                                </div>
-                                <i class="fas fa-chevron-down dropdown-item-arrow" id="microsoft365Arrow"></i>
+                        <!-- Microsoft 365 Services Details (Expandable) -->
+                        <div id="microsoft365Details"
+                            style="display: none; padding-left: var(--space-6); margin-top: var(--space-2);">
+                            <div class="service-item" id="microsoft365-outlook">
+                                <i class="fas fa-envelope" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Outlook Mail</span>
+                                <span class="service-status" id="microsoft365OutlookStatus"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="microsoft365-calendar">
+                                <i class="fas fa-calendar" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Calendar</span>
+                                <span class="service-status" id="microsoft365CalendarStatus"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="microsoft365-onedrive">
+                                <i class="fab fa-windows" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">OneDrive</span>
+                                <span class="service-status" id="microsoft365OneDriveStatus"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="microsoft365-sharepoint">
+                                <i class="fas fa-share-alt" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">SharePoint</span>
+                                <span class="service-status" id="microsoft365SharePointStatus"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="microsoft365-teams">
+                                <i class="fas fa-users" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">Teams</span>
+                                <span class="service-status" id="microsoft365TeamsStatus"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="microsoft365-onenote">
+                                <i class="fas fa-book" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">OneNote</span>
+                                <span class="service-status" id="microsoft365OneNoteStatus"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+                            </div>
+                            <div class="service-item" id="microsoft365-todo">
+                                <i class="fas fa-check-square" style="color: var(--text-muted); font-size: 14px;"></i>
+                                <span style="font-size: 13px; color: var(--text-secondary);">To Do</span>
+                                <span class="service-status" id="microsoft365ToDoStatus"
+                                    style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
                             </div>
 
-                            <!-- Microsoft 365 Services Details (Expandable) -->
-                            <div id="microsoft365Details"
-                                style="display: none; padding-left: var(--space-6); margin-top: var(--space-2);">
-                                <div class="service-item" id="microsoft365-outlook">
-                                    <i class="fas fa-envelope" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Outlook Mail</span>
-                                    <span class="service-status" id="microsoft365OutlookStatus"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="microsoft365-calendar">
-                                    <i class="fas fa-calendar" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Calendar</span>
-                                    <span class="service-status" id="microsoft365CalendarStatus"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="microsoft365-onedrive">
-                                    <i class="fab fa-windows" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">OneDrive</span>
-                                    <span class="service-status" id="microsoft365OneDriveStatus"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="microsoft365-sharepoint">
-                                    <i class="fas fa-share-alt" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">SharePoint</span>
-                                    <span class="service-status" id="microsoft365SharePointStatus"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="microsoft365-teams">
-                                    <i class="fas fa-users" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">Teams</span>
-                                    <span class="service-status" id="microsoft365TeamsStatus"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="microsoft365-onenote">
-                                    <i class="fas fa-book" style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">OneNote</span>
-                                    <span class="service-status" id="microsoft365OneNoteStatus"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-                                <div class="service-item" id="microsoft365-todo">
-                                    <i class="fas fa-check-square"
-                                        style="color: var(--text-muted); font-size: 14px;"></i>
-                                    <span style="font-size: 13px; color: var(--text-secondary);">To Do</span>
-                                    <span class="service-status" id="microsoft365ToDoStatus"
-                                        style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-                                </div>
-
-                                <!-- Tools Status Indicator -->
-                                <div
-                                    style="margin-top: var(--space-3); padding: var(--space-2); background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid var(--accent-primary);">
-                                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                                        <div style="display: flex; align-items: center; gap: var(--space-2);">
-                                            <i class="fas fa-tools"
-                                                style="color: var(--accent-primary); font-size: 14px;"></i>
-                                            <span
-                                                style="font-size: 13px; font-weight: 500; color: var(--text-primary);">AI
-                                                Tools Access</span>
-                                        </div>
-                                        <span id="microsoftToolsStatus"
-                                            style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: var(--error-bg); color: var(--error-text);">Disabled</span>
+                            <!-- Tools Status Indicator -->
+                            <div
+                                style="margin-top: var(--space-3); padding: var(--space-2); background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid var(--accent-primary);">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                        <i class="fas fa-tools"
+                                            style="color: var(--accent-primary); font-size: 14px;"></i>
+                                        <span style="font-size: 13px; font-weight: 500; color: var(--text-primary);">AI
+                                            Tools Access</span>
                                     </div>
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: var(--space-1);">
-                                        When enabled, AI can use Outlook, Word, Excel, OneDrive, Calendar, Teams, and
-                                        SharePoint tools
-                                    </div>
+                                    <span id="microsoftToolsStatus"
+                                        style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: var(--error-bg); color: var(--error-text);">Disabled</span>
                                 </div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: var(--space-1);">
+                                    When enabled, AI can use Outlook, Word, Excel, OneDrive, Calendar, Teams, and
+                                    SharePoint tools
+                                </div>
+                            </div>
 
-                                <button onclick="connectMicrosoft365()"
-                                    style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%;">
-                                    <i class="fas fa-plug"></i> Connect Microsoft 365
-                                </button>
+                            <button onclick="connectMicrosoft365()"
+                                style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%;">
+                                <i class="fas fa-plug"></i> Connect Microsoft 365
+                            </button>
 
-                                <!-- Re-authentication Button (Red) -->
-                                <button class="reauth-btn-microsoft" id="reauthBtnMicrosoft"
-                                    onclick="triggerReauthentication()" style="
+                            <!-- Re-authentication Button (Red) -->
+                            <button class="reauth-btn-microsoft" id="reauthBtnMicrosoft"
+                                onclick="triggerReauthentication()" style="
                                     margin-top: var(--space-3);
                                     padding: var(--space-2) var(--space-3);
                                     background: #dc3545;
@@ -11146,110 +10680,110 @@
                                     gap: var(--space-2);
                                     width: 100%;
                                     transition: all 0.2s ease;
-                                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(220, 53, 69, 0.3)'; this.style.backgroundColor='#c82333'"
-                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.backgroundColor='#dc3545'">
-                                    <i class="fas fa-sync-alt"></i>
-                                    <span>Re-authenticate Account</span>
-                                </button>
+                                "
+                                onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(220, 53, 69, 0.3)'; this.style.backgroundColor='#c82333'"
+                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.backgroundColor='#dc3545'">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Re-authenticate Account</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Gmail SMTP Accounts (only shown for local auth users for manual linking) -->
+                    <div class="dropdown-section" id="gmailSmtpSection" style="display: none;">
+                        <div class="dropdown-item" onclick="toggleGmailDetails()" style="cursor: pointer;">
+                            <i class="fas fa-envelope"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Gmail SMTP Accounts</div>
+                                <div class="dropdown-item-subtitle" id="gmailCount">0 connected</div>
+                            </div>
+                            <i class="fas fa-chevron-down dropdown-item-arrow" id="gmailArrow"></i>
+                        </div>
+
+                        <!-- Gmail Accounts Details (Expandable) -->
+                        <div id="gmailDetails"
+                            style="display: none; padding-left: var(--space-6); margin-top: var(--space-2);">
+                            <div id="gmailAccountsList"
+                                style="display: flex; flex-direction: column; gap: var(--space-2);">
+                                <div
+                                    style="font-size: 13px; color: var(--text-muted); text-align: center; padding: var(--space-3);">
+                                    No Gmail accounts connected
+                                </div>
+                            </div>
+                            <button onclick="addGmailAccount()"
+                                style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%;">
+                                <i class="fas fa-plus"></i> Link Gmail Account
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Account Management -->
+                    <div class="dropdown-section">
+                        <div class="dropdown-item" onclick="showAccountSettings()">
+                            <i class="fas fa-cog"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Account Settings</div>
                             </div>
                         </div>
 
-                        <!-- Gmail SMTP Accounts (only shown for local auth users for manual linking) -->
-                        <div class="dropdown-section" id="gmailSmtpSection" style="display: none;">
-                            <div class="dropdown-item" onclick="toggleGmailDetails()" style="cursor: pointer;">
-                                <i class="fas fa-envelope"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Gmail SMTP Accounts</div>
-                                    <div class="dropdown-item-subtitle" id="gmailCount">0 connected</div>
-                                </div>
-                                <i class="fas fa-chevron-down dropdown-item-arrow" id="gmailArrow"></i>
-                            </div>
-
-                            <!-- Gmail Accounts Details (Expandable) -->
-                            <div id="gmailDetails"
-                                style="display: none; padding-left: var(--space-6); margin-top: var(--space-2);">
-                                <div id="gmailAccountsList"
-                                    style="display: flex; flex-direction: column; gap: var(--space-2);">
-                                    <div
-                                        style="font-size: 13px; color: var(--text-muted); text-align: center; padding: var(--space-3);">
-                                        No Gmail accounts connected
-                                    </div>
-                                </div>
-                                <button onclick="addGmailAccount()"
-                                    style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%;">
-                                    <i class="fas fa-plus"></i> Link Gmail Account
-                                </button>
+                        <div class="dropdown-item" onclick="showNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Notifications</div>
                             </div>
                         </div>
 
-                        <div class="dropdown-divider"></div>
-
-                        <!-- Account Management -->
-                        <div class="dropdown-section">
-                            <div class="dropdown-item" onclick="showAccountSettings()">
-                                <i class="fas fa-cog"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Account Settings</div>
-                                </div>
-                            </div>
-
-                            <div class="dropdown-item" onclick="showNotifications()">
-                                <i class="fas fa-bell"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Notifications</div>
-                                </div>
-                            </div>
-
-                            <div class="dropdown-item" onclick="showAppearance()">
-                                <i class="fas fa-paint-brush"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Appearance</div>
-                                </div>
-                            </div>
-
-                            <div class="dropdown-item" onclick="showSecurity()">
-                                <i class="fas fa-shield-alt"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Security</div>
-                                </div>
+                        <div class="dropdown-item" onclick="showAppearance()">
+                            <i class="fas fa-paint-brush"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Appearance</div>
                             </div>
                         </div>
 
-                        <div class="dropdown-divider"></div>
-
-                        <!-- Help & Support -->
-                        <div class="dropdown-section">
-                            <div class="dropdown-item" onclick="showHelp()">
-                                <i class="fas fa-question-circle"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Help & Documentation</div>
-                                </div>
+                        <div class="dropdown-item" onclick="showSecurity()">
+                            <i class="fas fa-shield-alt"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Security</div>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="dropdown-item" onclick="showKeyboardShortcuts()">
-                                <i class="fas fa-keyboard"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Keyboard Shortcuts</div>
-                                </div>
-                            </div>
+                    <div class="dropdown-divider"></div>
 
-                            <div class="dropdown-item" onclick="reportBug()">
-                                <i class="fas fa-bug"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Report Bug</div>
-                                </div>
+                    <!-- Help & Support -->
+                    <div class="dropdown-section">
+                        <div class="dropdown-item" onclick="showHelp()">
+                            <i class="fas fa-question-circle"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Help & Documentation</div>
                             </div>
                         </div>
 
-                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="showKeyboardShortcuts()">
+                            <i class="fas fa-keyboard"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Keyboard Shortcuts</div>
+                            </div>
+                        </div>
 
-                        <!-- Logout -->
-                        <div class="dropdown-section">
-                            <div class="dropdown-item logout-item" onclick="handleLogout()">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <div class="dropdown-item-content">
-                                    <div class="dropdown-item-title">Logout</div>
-                                </div>
+                        <div class="dropdown-item" onclick="reportBug()">
+                            <i class="fas fa-bug"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Report Bug</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Logout -->
+                    <div class="dropdown-section">
+                        <div class="dropdown-item logout-item" onclick="handleLogout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Logout</div>
                             </div>
                         </div>
                     </div>
@@ -11940,6 +11474,8 @@
                                     <div class="canvas-toolbar-title">
                                         <i class="fas fa-bezier-curve"></i>
                                         <span>Visual Automation Canvas</span>
+                                        <span id="workflow-name-display"
+                                            style="margin-left: 12px; color: var(--text-secondary); font-weight: 400; font-size: 14px;"></span>
                                     </div>
                                 </div>
                                 <div class="canvas-toolbar-right">
@@ -11980,29 +11516,58 @@
                                     <div class="floating-palette-title">
                                         <i class="fas fa-shapes"></i> Shapes
                                     </div>
-                                    <div class="floating-shape-row">
-                                        <div class="floating-shape-item" draggable="true" data-shape="rectangle"
-                                            title="Action">
-                                            <div class="shape-preview">□</div>
+                                    <div class="floating-shape-row"
+                                        style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                                        <div class="floating-shape-item" draggable="true" data-shape="trigger"
+                                            title="Trigger - Start workflow"
+                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                            <i class="fas fa-bolt" style="color: #10B981; font-size: 16px;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">TRIGGER</span>
                                         </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="rounded"
-                                            title="Prompt">
-                                            <div class="shape-preview">▢</div>
+                                        <div class="floating-shape-item" draggable="true" data-shape="wait"
+                                            title="Wait - Delay/pause"
+                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                            <i class="fas fa-hand-paper" style="color: #F59E0B; font-size: 16px;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">WAIT</span>
                                         </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="hexagon"
-                                            title="Decision">
-                                            <div class="shape-preview">⬡</div>
+                                        <div class="floating-shape-item" draggable="true" data-shape="schedule"
+                                            title="Schedule - Scheduled tasks"
+                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                            <i class="fas fa-calendar" style="color: #3B82F6; font-size: 16px;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">SCHEDULE</span>
                                         </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="circle"
-                                            title="Trigger">
-                                            <div class="shape-preview">○</div>
+                                        <div class="floating-shape-item" draggable="true" data-shape="end"
+                                            title="End - Workflow finish"
+                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                            <i class="fas fa-flag" style="color: #EF4444; font-size: 16px;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">END</span>
                                         </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="diamond"
-                                            title="Condition">
-                                            <div class="shape-preview">◇</div>
+                                        <div class="floating-shape-item" draggable="true" data-shape="database"
+                                            title="Database - Data operations"
+                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                            <i class="fas fa-database" style="color: #EC4899; font-size: 16px;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">DATABASE</span>
+                                        </div>
+                                        <div class="floating-shape-item" draggable="true" data-shape="output"
+                                            title="Output - Export data"
+                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                            <i class="fas fa-file-export" style="color: #EAB308; font-size: 16px;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">OUTPUT</span>
+                                        </div>
+                                        <div class="floating-shape-item" draggable="true" data-shape="tool"
+                                            title="Tool - Execute tool"
+                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                            <i class="fas fa-cog" style="color: #6B7280; font-size: 16px;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">TOOL</span>
+                                        </div>
+                                        <div class="floating-shape-item" draggable="true" data-shape="instructions"
+                                            title="Instructions - Info/notes"
+                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                            <i class="fas fa-info-circle" style="color: #EC4899; font-size: 16px;"></i>
+                                            <span style="font-size: 11px; font-weight: 600;">INSTRUCTIONS</span>
                                         </div>
                                     </div>
-                                    <div class="floating-color-row">
+                                    <div class="floating-color-row" style="display: none;">
                                         <label style="font-size: 11px; color: var(--text-muted); margin-right: 8px;">
                                             <i class="fas fa-palette"></i>
                                         </label>
@@ -12742,7 +12307,7 @@
 
     <!-- ==================== SYNERGY SIDEBAR (Right Side) ==================== -->
     <!-- Note: Synergy button is inside platform-container so it's hidden on login screen -->
-    <div class="synergy-sidebar collapsed" id="synergy-sidebar">
+    <div class="synergy-sidebar collapsed" id="synergy-sidebar" data-side="left">
         <div class="synergy-sidebar-header">
             <div class="synergy-header-top">
                 <div class="synergy-sidebar-title">
@@ -14358,14 +13923,76 @@
             toggleSidebar() {
                 const sidebar = document.getElementById('synergy-sidebar');
                 const toggle = document.getElementById('synergy-sidebar-toggle');
+                const container = document.querySelector('.platform-container');
+                const side = sidebar.getAttribute('data-side') || 'left';
 
                 if (sidebar.classList.contains('collapsed')) {
                     sidebar.classList.remove('collapsed');
                     toggle.style.display = 'none';
+                    container.setAttribute('data-synergy-side', side);
                     this.loadSessions();
                 } else {
                     sidebar.classList.add('collapsed');
                     toggle.style.display = 'flex';
+                    container.removeAttribute('data-synergy-side');
+                }
+            },
+
+            initDraggableToggle() {
+                const toggle = document.getElementById('synergy-sidebar-toggle');
+                const sidebar = document.getElementById('synergy-sidebar');
+                let isDragging = false;
+                let startX = 0;
+
+                // Load saved side preference
+                const savedSide = localStorage.getItem('synergy-sidebar-side') || 'left';
+                this.setSidebarSide(savedSide);
+
+                toggle.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startX = e.clientX;
+                    toggle.classList.add('dragging');
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+
+                    const deltaX = e.clientX - startX;
+                    if (Math.abs(deltaX) > 10) {
+                        // Only toggle side if dragged significantly
+                        const currentSide = sidebar.getAttribute('data-side') || 'left';
+                        const newSide = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
+
+                        if (newSide !== currentSide) {
+                            this.setSidebarSide(newSide);
+                        }
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        toggle.classList.remove('dragging');
+
+                        // Save preference
+                        const side = sidebar.getAttribute('data-side') || 'left';
+                        localStorage.setItem('synergy-sidebar-side', side);
+                    }
+                });
+            },
+
+            setSidebarSide(side) {
+                const sidebar = document.getElementById('synergy-sidebar');
+                const toggle = document.getElementById('synergy-sidebar-toggle');
+                const container = document.querySelector('.platform-container');
+
+                sidebar.setAttribute('data-side', side);
+                toggle.setAttribute('data-side', side);
+
+                // Update container margin only if sidebar is open
+                if (!sidebar.classList.contains('collapsed')) {
+                    container.setAttribute('data-synergy-side', side);
                 }
             },
 
@@ -14629,9 +14256,17 @@
 
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeSynergyToggleButton);
+            document.addEventListener('DOMContentLoaded', () => {
+                initializeSynergyToggleButton();
+                if (window.SynergySidebar) {
+                    SynergySidebar.initDraggableToggle();
+                }
+            });
         } else {
             initializeSynergyToggleButton();
+            if (window.SynergySidebar) {
+                SynergySidebar.initDraggableToggle();
+            }
         }
 
         // ==================== NOTIFICATION SYSTEM ====================
@@ -18041,8 +17676,20 @@
 
         // ==================== THEME TOGGLE ====================
         function initThemeToggle() {
+            // Prevent duplicate initialization
+            if (window._themeToggleInitialized) {
+                console.warn('⚠️ Theme toggle already initialized, skipping...');
+                return;
+            }
+
             const toggleBtn = document.getElementById('theme-toggle-btn-sidebar');
-            if (!toggleBtn) return;
+            if (!toggleBtn) {
+                console.warn('⚠️ Theme toggle button not found');
+                return;
+            }
+
+            window._themeToggleInitialized = true;
+            console.log('🎨 Initializing theme toggle...');
 
             // Set default theme if not set
             const html = document.documentElement;
@@ -28824,7 +28471,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 return;
             }
             window._rightSidebarInitialized = true;
-            console.log('✅ Initializing right sidebar...');
+            console.log('✅ Initializing right sidebar buttons...');
 
             // AI Prime Toggle - Always works regardless of chat state
             const aiPrimeBtn = document.getElementById('ai-prime-toggle-btn');
@@ -28832,11 +28479,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 aiPrimeBtn.addEventListener('click', function () {
                     const panel = document.getElementById('ai-chat-panel');
                     const wrapper = document.getElementById('main-content-wrapper');
-                    
+
                     if (panel && wrapper) {
                         // Toggle chat state
                         AppState.chatOpen = !AppState.chatOpen;
-                        
+
                         if (AppState.chatOpen) {
                             wrapper.classList.remove('chat-collapsed');
                             panel.style.display = 'flex';
@@ -28894,7 +28541,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         promptSidebar.classList.toggle('show');
                         console.log('⚡ Prompt sidebar toggled:', promptSidebar.classList.contains('show') ? 'VISIBLE' : 'HIDDEN');
                     } else {
-                        console.warn('⚠️ Prompt sidebar not found');
+                        console.warn('⚠️ Prompt sidebar not found - may not be initialized yet');
                     }
                 });
             }
@@ -38297,7 +37944,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             /**
              * INTERNAL DOCUMENT METHODS - Delegated to internalDocsManager module
-             * These methods are now handled by modules/internal-docs-manager.js
+             * These methods are now handled by modules/internal_docs/manager.js
              * References remain here for backward compatibility
              */
 
@@ -39701,7 +39348,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
     <!-- ==================== INTERNAL DOCS MANAGER MODULE ==================== -->
     <!-- Complete document management system with TipTap and Handsontable -->
-    <script src="modules/internal-docs-manager.js"></script>
+    <script src="modules/internal_docs/manager.js"></script>
 
     <!-- ==================== INTERNAL DOCUMENT POPUP CONTAINER ==================== -->
     <div id="internalDocPopupContainer">

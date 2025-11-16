@@ -390,9 +390,9 @@
           "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left and right corners)', '2 x Eyelets (center left and right)', '2 x Eyelets (center top and bottom)', '6 x Eyelets (3 each top and bottom)', '6 x Eyelets (3 each left and right)'",
           "required": true
         },
-        "width_(mm)": {
+        "width_mm": {
           "type": "integer",
-          "description": "Custom width in millimeters (only for custom sizes) (min: 100, max: 5000)",
+          "description": "Width in millimeters. For custom sizes only. Min: 100mm, Max: 5000mm",
           "required": false
         },
         "thickness": {
@@ -405,7 +405,7 @@
           "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'",
           "required": true
         },
-        "length_(mm)": {
+        "length_mm": {
           "type": "integer",
           "description": "Custom height/length in millimeters (only for custom sizes) (min: 100, max: 5000)",
           "required": false
@@ -462,7 +462,7 @@
           "description": "eyelets. Valid options: 'No Eyelets', '4 x Eyelets (1 In Each Corner)', '2 x Eyelets (top left & right corners)', '2 x Eyelets (center left & right)', '2 x Eyelets (center top & bottom)', '6 x Eyelets (3 each top & bottom)', '6 x Eyelets (3 each left & right)'",
           "required": true
         },
-        "width_(mm)": {
+        "width_mm": {
           "type": "integer",
           "description": "Custom width in millimeters (only for custom sizes) (min: 100, max: 5000)",
           "required": false
@@ -477,7 +477,7 @@
           "description": "size. Valid options: '450mm x 600mm', '600mm x 900mm', '900mm x 1200mm', '1200mm x 2400mm', 'Custom'",
           "required": true
         },
-        "length_(mm)": {
+        "length_mm": {
           "type": "integer",
           "description": "Custom height/length in millimeters (only for custom sizes) (min: 100, max: 5000)",
           "required": false
@@ -844,7 +844,7 @@
           "description": "Number of posters required (min: 1, max: 10000)",
           "required": true
         },
-        "width_(mm)": {
+        "width_mm": {
           "type": "integer",
           "description": "Custom width in millimeters (only visible for custom size) (min: 100, max: 2000)",
           "required": true
@@ -859,7 +859,7 @@
           "description": "size. Valid options: 'A2 - 420mm x 594mm', 'A1 - 594mm x 841mm', 'A0 - 841mm x 1189mm', 'Custom'",
           "required": true
         },
-        "length_(mm)": {
+        "length_mm": {
           "type": "integer",
           "description": "Custom length/height in millimeters (only visible for custom size) (min: 100, max: 3000)",
           "required": true
@@ -885,12 +885,12 @@
           "description": "size. Valid options: '50mm Circle', '75mm Circle', '100mm Circle', '50mm Square', '75mm Square', '100mm Square', '75mm × 50mm Rectangle', '100mm × 75mm Rectangle', '150mm × 100mm Rectangle', 'Custom Size'",
           "required": true
         },
-        "width_(mm)": {
+        "width_mm": {
           "type": "integer",
           "description": "Custom width in millimetres (min: 25, max: 500)",
           "required": true
         },
-        "height_(mm)": {
+        "height_mm": {
           "type": "integer",
           "description": "Custom height in millimetres (min: 25, max: 500)",
           "required": true

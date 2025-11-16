@@ -51,15 +51,26 @@ log_config(logger, f"DEEPSEEK_API_KEY_1: {'SET' if os.getenv('DEEPSEEK_API_KEY_1
 log_config(logger, f"MICROSOFT_CLIENT_ID: {'SET' if os.getenv('MICROSOFT_CLIENT_ID') else 'NOT SET'}")
 log_config(logger, f"MICROSOFT_CLIENT_SECRET: {'SET' if os.getenv('MICROSOFT_CLIENT_SECRET') else 'NOT SET'}")
 
-# Stock Management - ENABLED (using local AI_agents copy)
+# Stock Management - ENABLED (Supabase + local fallback)
 from AI_infrastructure.utils.db_path_helper import get_stock_db_path
 STOCK_DB_PATH = get_stock_db_path()
-STOCK_DB_AVAILABLE = os.path.exists(STOCK_DB_PATH)
-STOCK_DB_CONFIG = {'db_path': STOCK_DB_PATH} if STOCK_DB_AVAILABLE else None
-if STOCK_DB_AVAILABLE:
-    log_config(logger, f"Stock management enabled - database found at {STOCK_DB_PATH}")
+
+# Check if using Supabase stock database
+if STOCK_DB_PATH == 'supabase://stock_data':
+    STOCK_DB_AVAILABLE = bool(os.getenv('SUPABASE_URL'))
+    STOCK_DB_CONFIG = {'db_type': 'supabase', 'schema': 'stock_data'} if STOCK_DB_AVAILABLE else None
+    if STOCK_DB_AVAILABLE:
+        log_config(logger, f"Stock management enabled - using Supabase (schema: stock_data)")
+    else:
+        log_warning(logger, f"Stock management disabled - SUPABASE_URL not set")
 else:
-    log_warning(logger, f"Stock management disabled - database not found at {STOCK_DB_PATH}")
+    # Local file fallback
+    STOCK_DB_AVAILABLE = os.path.exists(STOCK_DB_PATH)
+    STOCK_DB_CONFIG = {'db_type': 'sqlite', 'db_path': STOCK_DB_PATH} if STOCK_DB_AVAILABLE else None
+    if STOCK_DB_AVAILABLE:
+        log_config(logger, f"Stock management enabled - database found at {STOCK_DB_PATH}")
+    else:
+        log_warning(logger, f"Stock management disabled - database not found at {STOCK_DB_PATH}")
 
 # Flask Configuration (inline - no external config.py needed)
 class Config:

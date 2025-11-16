@@ -215,7 +215,7 @@ class AutomationCanvas {
         shapeEl.style.top = `${shape.y}px`;
         shapeEl.style.width = `${shape.width}px`;
         shapeEl.style.height = `${shape.height}px`;
-        shapeEl.style.borderColor = shape.color;
+        // Don't override border color - let CSS handle it based on type
         shapeEl.draggable = true;
 
         // Type label (above shape)
@@ -588,6 +588,8 @@ class AutomationCanvas {
 
         this.automationId = null;
         this.automationTitle = 'Untitled Automation';
+        this.workflowTitle = null;
+        this.updateWorkflowNameDisplay();
     }
 
     exportToJSON() {
@@ -956,6 +958,7 @@ class AutomationCanvas {
         // Add to workflows list temporarily (will be saved when user saves)
         this.workflows.unshift(newWorkflow);
         this.renderWorkflowList();
+        this.updateWorkflowNameDisplay();
     }
 
     async loadWorkflow(workflowId) {
@@ -985,6 +988,7 @@ class AutomationCanvas {
 
             console.log('Loaded workflow:', workflow.slug);
             this.renderWorkflowList();
+            this.updateWorkflowNameDisplay();
         } catch (error) {
             console.error('Error loading workflow:', error);
             alert('Failed to load workflow. Please try again.');
@@ -1090,13 +1094,25 @@ class AutomationCanvas {
 
     getShapeTypeLabel(type) {
         const labels = {
+            'trigger': 'TRIGGER',
+            'action': 'ACTION',
+            'decision': 'DECISION',
+            'end': 'END',
+            'blank': 'BLANK',
+            'wait': 'WAIT',
+            'schedule': 'SCHEDULE',
+            'database': 'DATABASE',
+            'output': 'OUTPUT',
+            'tool': 'TOOL',
+            'instructions': 'INSTRUCTIONS',
+            // Legacy mappings
             'rectangle': 'ACTION',
-            'rounded': 'PROMPT',
+            'rounded': 'ACTION',
             'hexagon': 'TRIGGER',
             'circle': 'END',
             'diamond': 'DECISION'
         };
-        return labels[type] || 'SHAPE';
+        return labels[type] || 'BLANK';
     }
 
     async deleteWorkflow(workflowId) {
@@ -1514,8 +1530,12 @@ class AutomationCanvas {
             this.workflows.push(workflowData);
         }
 
+        // Update current workflow title
+        this.workflowTitle = title;
+        
         this.saveWorkflow();
         this.loadWorkflows();
+        this.updateWorkflowNameDisplay();
         this.closeWorkflowModal();
     }
 
@@ -1526,6 +1546,15 @@ class AutomationCanvas {
             .replace(/\s+/g, '_')
             .replace(/_+/g, '_')
             .substring(0, 50);
+    }
+
+    updateWorkflowNameDisplay() {
+        const displayElement = document.getElementById('workflow-name-display');
+        if (displayElement && this.workflowTitle) {
+            displayElement.textContent = `- ${this.workflowTitle}`;
+        } else if (displayElement) {
+            displayElement.textContent = '';
+        }
     }
 
     addNewCategory() {

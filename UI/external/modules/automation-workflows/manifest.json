@@ -1,55 +1,55 @@
 {
-  "id": "automation-workflows",
-  "name": "Automation Workflows",
-  "version": "2.0.0",
-  "description": "Visual workflow builder with AI-interpretable automation canvas. Create workflows by dragging nodes and connecting them, then let AI execute them automatically.",
-  "icon": "fas fa-project-diagram",
-  "color": "#8B5CF6",
-  "author": "AI Agents Platform",
-  "scriptPath": "external/modules/automation-workflows/automation-workflows.js",
-  "stylePath": "external/modules/automation-workflows/automation-workflows.css",
-  "tabs": [
-    {
-      "id": "canvas",
-      "name": "Canvas",
-      "icon": "fas fa-project-diagram",
-      "default": true,
-      "description": "Visual workflow builder canvas"
-    },
-    {
-      "id": "workflows",
-      "name": "My Workflows",
-      "icon": "fas fa-list",
-      "description": "Manage saved workflows"
-    },
-    {
-      "id": "execution",
-      "name": "Execution Log",
-      "icon": "fas fa-history",
-      "description": "View workflow execution history"
-    }
-  ],
-  "features": [
-    "Drag-and-drop visual workflow builder",
-    "AI-powered workflow interpretation",
-    "Automatic workflow execution",
-    "594 available tool integrations",
-    "Schedule workflows with cron expressions",
-    "Real-time execution tracking",
-    "Export/import workflows as JSON"
-  ],
-  "permissions": [
-    "automation.create",
-    "automation.execute",
-    "automation.schedule",
-    "tools.execute"
-  ],
-  "apiEndpoints": [
-    "/api/automation/parse",
-    "/api/automation/save",
-    "/api/automation/list",
-    "/api/automation/<id>",
-    "/api/automation/<id>/activate",
-    "/api/automation/<id>/execute"
-  ]
+    "id": "automation-workflows",
+    "name": "Automation Workflows",
+    "version": "2.0.0",
+    "description": "Visual workflow builder with AI-interpretable automation canvas. Create workflows by dragging nodes and connecting them, then let AI execute them automatically.",
+    "icon": "fas fa-project-diagram",
+    "color": "#8B5CF6",
+    "author": "AI Agents Platform",
+    "scriptPath": "external/modules/automation-workflows/automation-workflows.js",
+    "stylePath": "external/modules/automation-workflows/automation-workflows.css",
+    "tabs": [
+        {
+            "id": "canvas",
+            "name": "Canvas",
+            "icon": "fas fa-project-diagram",
+            "default": true,
+            "description": "Visual workflow builder canvas"
+        },
+        {
+            "id": "workflows",
+            "name": "My Workflows",
+            "icon": "fas fa-list",
+            "description": "Manage saved workflows"
+        },
+        {
+            "id": "execution",
+            "name": "Execution Log",
+            "icon": "fas fa-history",
+            "description": "View workflow execution history"
+        }
+    ],
+    "features": [
+        "Drag-and-drop visual workflow builder",
+        "AI-powered workflow interpretation",
+        "Automatic workflow execution",
+        "594 available tool integrations",
+        "Schedule workflows with cron expressions",
+        "Real-time execution tracking",
+        "Export/import workflows as JSON"
+    ],
+    "permissions": [
+        "automation.create",
+        "automation.execute",
+        "automation.schedule",
+        "tools.execute"
+    ],
+    "apiEndpoints": [
+        "/api/automation/parse",
+        "/api/automation/save",
+        "/api/automation/list",
+        "/api/automation/<id>",
+        "/api/automation/<id>/activate",
+        "/api/automation/<id>/execute"
+    ]
 }

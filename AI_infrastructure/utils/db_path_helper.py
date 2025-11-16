@@ -45,18 +45,27 @@ def get_sessions_db_path() -> str:
 
 def get_stock_db_path() -> str:
     """
-    Get path to stock.db
+    Get path to stock_data.db
     
     Returns:
-        - /data/stock.db on Render (persistent disk)
-        - <project_root>/data/stock.db locally
+        - Supabase connection string if SUPABASE_URL is set (both local and Render)
+        - /data/stock_data.db on Render with persistent disk (fallback)
+        - <project_root>/data/stock_data.db locally (fallback)
+    
+    Note: Stock database should be in Supabase for both local and production
     """
+    # Check if using Supabase (preferred for both local and production)
+    if os.getenv('SUPABASE_URL'):
+        # Return connection info for Supabase stock_data schema
+        return 'supabase://stock_data'  # Special marker for Supabase connection
+    
+    # Fallback to local file (legacy)
     if os.getenv('RENDER') == 'true':
-        return '/data/stock.db'
+        return '/data/stock_data.db'
     else:
         # Calculate from this file: AI_infrastructure/utils/db_path_helper.py -> AI_agents/
         root_dir = Path(__file__).parent.parent.parent
-        return str(root_dir / 'data' / 'stock.db')
+        return str(root_dir / 'data' / 'stock_data.db')
 
 
 def get_synergy_sessions_db_path() -> str:

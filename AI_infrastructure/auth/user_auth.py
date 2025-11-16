@@ -599,7 +599,8 @@ class UserAuthManager:
                 
                 # First check total sessions in database
                 cursor.execute('SELECT COUNT(*) FROM user_sessions')
-                total_sessions = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                total_sessions = result['count'] if isinstance(result, dict) else result[0]
                 print(f"   Total sessions in DB: {total_sessions}")
                 
                 cursor.execute('''
@@ -612,21 +613,45 @@ class UserAuthManager:
                     print(f"    Token NOT found in database")
                     print(f"   Checking sessions for user_id={payload.get('user_id')}...")
                     cursor.execute('SELECT COUNT(*) FROM user_sessions WHERE user_id = ?', (payload.get('user_id'),))
-                    user_sessions = cursor.fetchone()[0]
+                    count_result = cursor.fetchone()
+                    user_sessions = count_result['count'] if isinstance(count_result, dict) else count_result[0]
                     print(f"   User has {user_sessions} session(s) in DB")
                     print("\n STAGE 2 FAILED: Token not in database")
                     print("="*60 + "\n")
                     return None
                 
                 print(f"   Token found in database")
-                user_id, expires_at = result
+                # Handle both dict (PostgreSQL) and tuple (SQLite) results
+                user_id = result['user_id'] if isinstance(result, dict) else result[0]
+                expires_at = result['expires_at'] if isinstance(result, dict) else result[1]
                 print(f"   User ID from DB: {user_id}")
                 print(f"   Expires at: {expires_at}")
                 
                 print(f"\n📊 STAGE 2.3: Expiry Check")
-                # Check expiry manually
-                cursor.execute("SELECT datetime('now')")
-                current_time = cursor.fetchone()[0]
+                # Check expiry manually - use database-agnostic SQL
+                from AI_infrastructure.shared.database_utils import is_using_supabase
+                from datetime import datetime
+                
+                if is_using_supabase():
+                    cursor.execute("SELECT NOW() as current_time")
+                else:
+                    cursor.execute("SELECT datetime('now') as current_time")
+                
+                time_result = cursor.fetchone()
+                current_time = time_result['current_time'] if isinstance(time_result, dict) else time_result[0]
+                
+                # Convert to comparable datetime objects
+                if isinstance(current_time, str):
+                    current_time = datetime.fromisoformat(current_time.replace('Z', '+00:00'))
+                if isinstance(expires_at, str):
+                    expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                
+                # Remove timezone info for comparison if needed
+                if current_time.tzinfo is not None and expires_at.tzinfo is None:
+                    current_time = current_time.replace(tzinfo=None)
+                elif current_time.tzinfo is None and expires_at.tzinfo is not None:
+                    expires_at = expires_at.replace(tzinfo=None)
+                
                 print(f"   Current time: {current_time}")
                 print(f"   Token expires: {expires_at}")
                 

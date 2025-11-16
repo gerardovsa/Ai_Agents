@@ -77,7 +77,8 @@ def init_automation_tables():
                     WHERE table_name = 'visual_automations'
                 )
             """)
-            exists = cursor.fetchone()[0]
+            result = cursor.fetchone()
+            exists = result['exists'] if isinstance(result, dict) else result[0]
             
             conn.close()
             
@@ -92,50 +93,50 @@ def init_automation_tables():
         # SQLite - create tables if they don't exist
         # Visual automations table (SQLite version)
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS visual_automations (
-            automation_id TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            slug TEXT NOT NULL UNIQUE,
-            description TEXT,
-            category TEXT DEFAULT 'other',
-            ui_json TEXT NOT NULL DEFAULT '{}',
-            execution_json TEXT NOT NULL DEFAULT '{}',
-            schedule_cron TEXT,
-            schedule_datetime TEXT,
-            timezone TEXT DEFAULT 'UTC',
-            status TEXT DEFAULT 'draft',
-            is_scheduled BOOLEAN DEFAULT 0,
-            scheduler_task_id TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_executed_at TIMESTAMP,
-            execution_count INTEGER DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users(user_id)
-        )
-    """)
-    
-    # Automation executions table (SQLite version)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS automation_executions (
-            execution_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            automation_id TEXT NOT NULL,
-            user_id INTEGER NOT NULL,
-            thread_id INTEGER,
-            triggered_by TEXT NOT NULL,
-            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            completed_at TIMESTAMP,
-            duration_ms INTEGER,
-            status TEXT NOT NULL,
-            tools_used TEXT DEFAULT '[]',
-            result_summary TEXT,
-            error_message TEXT,
-            FOREIGN KEY (automation_id) REFERENCES visual_automations(automation_id),
-            FOREIGN KEY (user_id) REFERENCES users(user_id),
-            FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
-        )
-    """)
-    
+            CREATE TABLE IF NOT EXISTS visual_automations (
+                automation_id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                slug TEXT NOT NULL UNIQUE,
+                description TEXT,
+                category TEXT DEFAULT 'other',
+                ui_json TEXT NOT NULL DEFAULT '{}',
+                execution_json TEXT NOT NULL DEFAULT '{}',
+                schedule_cron TEXT,
+                schedule_datetime TEXT,
+                timezone TEXT DEFAULT 'UTC',
+                status TEXT DEFAULT 'draft',
+                is_scheduled BOOLEAN DEFAULT 0,
+                scheduler_task_id TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_executed_at TIMESTAMP,
+                execution_count INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+            )
+        """)
+        
+        # Automation executions table (SQLite version)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS automation_executions (
+                execution_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                automation_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                thread_id INTEGER,
+                triggered_by TEXT NOT NULL,
+                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP,
+                duration_ms INTEGER,
+                status TEXT NOT NULL,
+                tools_used TEXT DEFAULT '[]',
+                result_summary TEXT,
+                error_message TEXT,
+                FOREIGN KEY (automation_id) REFERENCES visual_automations(automation_id),
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (thread_id) REFERENCES threads(thread_id)
+            )
+        """)
+        
         conn.commit()
         conn.close()
         print("✅ Automation tables initialized (SQLite)")
@@ -254,12 +255,12 @@ def save_automation():
     
     Request body:
     {
-        "automation_id": "auto_123",  // Optional, auto-generated if not provided
+        "slug": "workflow-123",  // Required, workflow identifier
         "title": "Daily Email Management",
         "description": "Check emails and create summary",
-        "visual_flow_json": "{\"shapes\": [...], \"connections\": [...]}",
-        "execution_prompt": "AI execution prompt",
-        "tools_sequence": ["tool1", "tool2"],
+        "status": "draft",  // draft, active, inactive
+        "ui_json": {"shapes": [...], "connections": [...]},
+        "execution_json": {"steps": [...]},
         "parent_automation_id": "auto_parent"  // Optional
     }
     """
@@ -268,16 +269,26 @@ def save_automation():
         user_id = request.headers.get('X-User-ID', 1)  # TODO: Get from auth
         
         # Validate required fields
-        required = ['title', 'visual_flow_json', 'execution_prompt']
+        required = ['slug', 'title']
         for field in required:
             if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
         
-        # Generate ID if not provided
-        automation_id = data.get('automation_id', f'auto_{int(datetime.now().timestamp())}')
+        # Use slug as automation_id
+        automation_id = data['slug']
         
-        # Prepare data
-        tools_sequence_json = json.dumps(data.get('tools_sequence', []))
+        # Convert ui_json and execution_json to strings for database
+        visual_flow_json = json.dumps(data.get('ui_json', {}))
+        execution_json = json.dumps(data.get('execution_json', {}))
+        
+        # Generate execution prompt from shapes if not provided
+        execution_prompt = data.get('execution_prompt', f"Execute workflow: {data['title']}")
+        
+        # Extract tools from execution_json
+        tools_sequence = []
+        if 'execution_json' in data and isinstance(data['execution_json'], dict):
+            tools_sequence = [step.get('tool') for step in data['execution_json'].get('steps', []) if 'tool' in step]
+        tools_sequence_json = json.dumps(tools_sequence)
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -298,15 +309,17 @@ def save_automation():
                     visual_flow_json = ?,
                     execution_prompt = ?,
                     tools_sequence = ?,
+                    status = ?,
                     parent_automation_id = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE automation_id = ?
             """, (
                 data['title'],
                 data.get('description', ''),
-                data['visual_flow_json'],
-                data['execution_prompt'],
+                visual_flow_json,
+                execution_prompt,
                 tools_sequence_json,
+                data.get('status', 'draft'),
                 data.get('parent_automation_id'),
                 automation_id
             ))
@@ -316,16 +329,17 @@ def save_automation():
                 INSERT INTO visual_automations (
                     automation_id, user_id, title, description,
                     visual_flow_json, execution_prompt, tools_sequence,
-                    parent_automation_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    status, parent_automation_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 automation_id,
                 user_id,
                 data['title'],
                 data.get('description', ''),
-                data['visual_flow_json'],
-                data['execution_prompt'],
+                visual_flow_json,
+                execution_prompt,
                 tools_sequence_json,
+                data.get('status', 'draft'),
                 data.get('parent_automation_id')
             ))
         
@@ -354,15 +368,10 @@ def list_automations():
         limit = int(request.args.get('limit', 50))
         
         conn = get_db_connection()
-        is_postgres = hasattr(conn, 'server_version')  # Check if PostgreSQL
+        cursor = conn.cursor()  # DatabaseConnection wrapper handles cursor type
         
-        if is_postgres:
-            from psycopg2.extras import RealDictCursor
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-            placeholder = '%s'
-        else:
-            cursor = conn.cursor()
-            placeholder = '?'
+        # Use placeholder conversion (handled by DatabaseCursor wrapper)
+        placeholder = '?'  # Will be auto-converted to %s for PostgreSQL
         
         query = f"""
             SELECT automation_id, slug, title, description, category, status,

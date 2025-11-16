@@ -46,32 +46,33 @@ def is_using_supabase() -> bool:
     Check if application should use Supabase PostgreSQL
     
     Returns:
-        bool: True if USE_SUPABASE=true AND RENDER=true, 
-              False for local SQLite development
+        bool: True if SUPABASE_URL is set OR USE_SUPABASE=true
+              False only if USE_SQLITE=true (explicit override)
     
     Environment Variables:
-        RENDER: Set to 'true' on Render deployment (auto-detected)
+        USE_SQLITE: Set to 'true' to force SQLite (overrides everything)
+        SUPABASE_URL: If set, automatically use Supabase
         USE_SUPABASE: Set to 'true' to enable Supabase
-        USE_SQLITE: Set to 'true' to force SQLite (overrides USE_SUPABASE)
     
     Priority:
-        1. USE_SQLITE=true → Force SQLite (for local dev)
-        2. RENDER=true AND USE_SUPABASE=true → Use Supabase (deployment)
-        3. Otherwise → SQLite (safe default)
+        1. USE_SQLITE=true → Force SQLite (explicit override)
+        2. SUPABASE_URL exists → Use Supabase (auto-detect)
+        3. USE_SUPABASE=true → Use Supabase (explicit enable)
+        4. Otherwise → SQLite (safe default)
     """
     # Check for explicit SQLite override (highest priority)
     if os.getenv('USE_SQLITE', 'false').lower() == 'true':
         return False
     
-    # Check if running on Render deployment
-    is_render = os.getenv('RENDER', 'false').lower() == 'true'
+    # Check if Supabase credentials exist (auto-detect)
+    supabase_url = os.getenv('SUPABASE_URL')
+    if supabase_url:
+        return True
     
-    # Check USE_SUPABASE setting
+    # Check USE_SUPABASE setting (explicit enable)
     use_supabase = os.getenv('USE_SUPABASE', 'false').lower() == 'true'
     
-    # Only use Supabase if both conditions met: USE_SUPABASE=true AND RENDER=true
-    # This prevents accidental Supabase usage during local dev
-    return use_supabase and is_render
+    return use_supabase
 
 
 def get_supabase_schema_name(db_name: str) -> str:
@@ -160,7 +161,9 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             
             conn.commit()
             print(f"🔷 [DB] Connected to Supabase PostgreSQL (schema: {schema_name})")
-            return conn
+            
+            # Wrap connection to provide automatic placeholder conversion
+            return DatabaseConnection(conn)
             
         except Exception as e:
             print(f"⚠️  [DB] Supabase connection failed: {e}")
@@ -188,7 +191,9 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         conn.row_factory = sqlite3.Row
         
         print(f"🔷 [DB] Connected to SQLite: {db_path}")
-        return conn
+        
+        # Wrap connection to provide automatic placeholder conversion
+        return DatabaseConnection(conn)
         
     except Exception as e:
         raise ConnectionError(f"Failed to connect to SQLite: {e}")
@@ -382,6 +387,133 @@ def adapt_sql_for_database(sql: str) -> str:
         # (optional - PostgreSQL accepts TEXT)
     
     return sql
+
+
+def convert_sql_placeholders(sql: str, params: tuple = None) -> Tuple[str, tuple]:
+    """
+    Convert SQL placeholders from SQLite (?) to PostgreSQL (%s) style
+    
+    Args:
+        sql: SQL query with ? placeholders (SQLite style)
+        params: Query parameters tuple
+    
+    Returns:
+        Tuple of (converted_sql, params)
+        - SQLite: returns unchanged (?, params)
+        - PostgreSQL: converts ? to %s, returns (%s, params)
+    
+    Example:
+        sql = "SELECT * FROM users WHERE id = ?"
+        params = (123,)
+        
+        # SQLite: returns ("SELECT * FROM users WHERE id = ?", (123,))
+        # PostgreSQL: returns ("SELECT * FROM users WHERE id = %s", (123,))
+    """
+    if is_using_supabase():
+        # Convert ? to %s for PostgreSQL
+        converted_sql = sql.replace('?', '%s')
+        return (converted_sql, params)
+    else:
+        # Keep as-is for SQLite
+        return (sql, params)
+
+
+class DatabaseCursor:
+    """
+    Cursor wrapper that automatically converts SQL placeholders
+    
+    Usage:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = DatabaseCursor(conn)
+        cursor.execute("SELECT * FROM users WHERE id = ?", (123,))
+        # Automatically converts ? to %s for PostgreSQL
+    """
+    def __init__(self, connection):
+        self.connection = connection
+        if is_using_supabase():
+            # PostgreSQL cursor
+            import psycopg2.extras
+            self._cursor = connection._wrapped_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        else:
+            # SQLite cursor
+            self._cursor = connection._wrapped_conn.cursor()
+    
+    def execute(self, sql, params=None):
+        """Execute with automatic placeholder conversion"""
+        if params:
+            sql, params = convert_sql_placeholders(sql, params)
+        return self._cursor.execute(sql, params)
+    
+    def fetchone(self):
+        """Fetch one row"""
+        return self._cursor.fetchone()
+    
+    def fetchall(self):
+        """Fetch all rows"""
+        return self._cursor.fetchall()
+    
+    def fetchmany(self, size=None):
+        """Fetch many rows"""
+        return self._cursor.fetchmany(size)
+    
+    def close(self):
+        """Close cursor"""
+        return self._cursor.close()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+    
+    # Delegate other attributes to wrapped cursor
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+
+class DatabaseConnection:
+    """
+    Connection wrapper that provides automatic SQL placeholder conversion
+    
+    Wraps sqlite3.Connection or psycopg2.Connection and returns DatabaseCursor
+    when cursor() is called, which automatically converts ? to %s for PostgreSQL.
+    """
+    def __init__(self, connection):
+        self._wrapped_conn = connection
+    
+    def cursor(self, *args, **kwargs):
+        """Return DatabaseCursor that auto-converts placeholders"""
+        if args or kwargs:
+            # If specific cursor factory requested, check if it's supported
+            # SQLite doesn't support cursor_factory parameter
+            import sqlite3
+            if isinstance(self._wrapped_conn, sqlite3.Connection):
+                # SQLite: Remove unsupported parameters, return DatabaseCursor
+                # (row_factory is set at connection level, not cursor level)
+                return DatabaseCursor(self)
+            else:
+                # PostgreSQL: Pass through cursor factory
+                return self._wrapped_conn.cursor(*args, **kwargs)
+        return DatabaseCursor(self)
+    
+    def commit(self):
+        return self._wrapped_conn.commit()
+    
+    def rollback(self):
+        return self._wrapped_conn.rollback()
+    
+    def close(self):
+        return self._wrapped_conn.close()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._wrapped_conn.__exit__(exc_type, exc_val, exc_tb)
+    
+    # Delegate other attributes to wrapped connection
+    def __getattr__(self, name):
+        return getattr(self._wrapped_conn, name)
 
 
 if __name__ == '__main__':

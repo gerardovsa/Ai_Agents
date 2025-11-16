@@ -89,8 +89,18 @@
       "manifestPath": "external/modules/xero/manifest.json",
       "scriptPath": "external/modules/xero/xero.js",
       "enabled": true
+    },
+    {
+      "id": "automation-workflows",
+      "name": "Automation Workflows",
+      "icon": "fas fa-project-diagram",
+      "color": "#8B5CF6",
+      "description": "Visual workflow builder with AI-interpretable automation canvas. Create workflows by dragging nodes, then let AI execute them automatically.",
+      "manifestPath": "external/modules/automation-workflows/manifest.json",
+      "scriptPath": "external/modules/automation-workflows/automation-workflows.js",
+      "enabled": true
     }
   ],
-  "version": "1.0.9",
-  "lastUpdated": "2025-01-28"
+  "version": "1.0.10",
+  "lastUpdated": "2025-11-16"
 }
