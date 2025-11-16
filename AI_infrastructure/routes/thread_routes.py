@@ -16,6 +16,9 @@ from utils.response_helpers import (
     success_response, error_response, list_response,
     deleted_response, updated_response
 )
+from utils.database_helpers import (
+    get_sessions_database_path, execute_sqlite_update
+)
 
 # Create blueprint
 thread_bp = Blueprint('threads', __name__, url_prefix='/api/threads')

@@ -189,8 +189,8 @@ class AutomationScheduler:
             
             cursor.execute('''
                 SELECT * FROM ai_infrastructure.scheduled_tasks 
-                WHERE enabled = 1 
-                AND (approval_status = 'approved' OR requires_approval = 0)
+                WHERE is_active = true 
+                AND (approval_status = 'approved' OR requires_approval = false)
             ''')
             
             tasks = cursor.fetchall()
@@ -454,9 +454,9 @@ class AutomationScheduler:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT * FROM scheduled_tasks 
-            WHERE enabled = 1 
-            AND requires_approval = 1 
+            SELECT * FROM ai_infrastructure.scheduled_tasks 
+            WHERE is_active = true 
+            AND requires_approval = true 
             AND approval_status = 'pending'
         ''')
         
@@ -474,39 +474,30 @@ class AutomationScheduler:
         
         task_id = f"task_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{task_data.get('task_name', 'unnamed').replace(' ', '_')}"
         
+        # Map to actual Supabase columns
+        # Supabase has: user_id, task_name, task_type, schedule_type, schedule_value, 
+        #                tool_name, tool_params, is_active, last_run, next_run, 
+        #                created_at, updated_at, requires_approval, approval_status, status, description
+        
         cursor.execute('''
-            INSERT INTO scheduled_tasks (
-                task_id, task_name, description, created_by, created_by_user_id,
-                trigger_type, cron_expression, datetime_trigger, webhook_url, condition_config,
-                action_type, synergy_session_id, thread_id, agent_name, location,
-                action_payload, context_instructions, requires_approval, enabled, 
-                tags, priority, timeout_seconds, max_retries, retry_delay_seconds
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO ai_infrastructure.scheduled_tasks (
+                user_id, task_name, task_type, schedule_type, schedule_value,
+                tool_name, tool_params, is_active, requires_approval, approval_status, 
+                status, description
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            task_id,
+            task_data.get('created_by_user_id') or task_data.get('user_id', 1),
             task_data.get('task_name'),
-            task_data.get('description'),
-            task_data.get('created_by', 'user'),
-            task_data.get('created_by_user_id'),
-            task_data.get('trigger_type'),
-            task_data.get('cron_expression'),
-            task_data.get('datetime_trigger'),
-            task_data.get('webhook_url'),
-            task_data.get('condition_config'),
-            task_data.get('action_type'),
-            task_data.get('synergy_session_id'),
-            task_data.get('thread_id'),
-            task_data.get('agent_name'),
-            task_data.get('location'),
-            task_data.get('action_payload'),
-            task_data.get('context_instructions'),
+            task_data.get('task_type', 'scheduled'),
+            task_data.get('schedule_type', 'cron'),
+            task_data.get('cron_expression') or task_data.get('schedule_value'),
+            task_data.get('action_type') or task_data.get('tool_name'),
+            str(task_data.get('action_payload', {})),
+            task_data.get('enabled', True),  # Maps to is_active
             task_data.get('requires_approval', False),
-            task_data.get('enabled', True),
-            task_data.get('tags'),
-            task_data.get('priority', 5),
-            task_data.get('timeout_seconds', 300),
-            task_data.get('max_retries', 3),
-            task_data.get('retry_delay_seconds', 300)
+            'pending' if task_data.get('requires_approval', False) else 'approved',
+            task_data.get('status', 'active'),
+            task_data.get('description')
         ))
         
         conn.commit()
