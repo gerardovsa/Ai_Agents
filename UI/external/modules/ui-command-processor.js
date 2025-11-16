@@ -20,19 +20,19 @@
  */
 
 const UICommandProcessor = {
-    
+
     /**
      * Process array of UI commands from tool response
      * @param {Array} commands - Array of command objects
      */
-    processCommands: function(commands) {
+    processCommands: function (commands) {
         if (!Array.isArray(commands)) {
             console.warn('[UICommandProcessor] Commands must be an array');
             return;
         }
-        
+
         console.log(`[UICommandProcessor] Processing ${commands.length} commands`);
-        
+
         commands.forEach((cmd, index) => {
             try {
                 this.executeCommand(cmd, index);
@@ -41,54 +41,54 @@ const UICommandProcessor = {
             }
         });
     },
-    
+
     /**
      * Execute a single command
      * @param {Object} cmd - Command object with 'command' field
      * @param {Number} index - Command index for logging
      */
-    executeCommand: function(cmd, index) {
+    executeCommand: function (cmd, index) {
         const commandType = cmd.command;
-        
+
         console.log(`[UICommandProcessor] Executing command ${index}: ${commandType}`);
-        
+
         switch (commandType) {
             case 'switch_tab':
                 this.switchTab(cmd);
                 break;
-                
+
             case 'open_agent_column':
                 this.openAgentColumn(cmd);
                 break;
-                
+
             case 'show_thread_info':
                 this.showThreadInfo(cmd);
                 break;
-                
+
             case 'trigger_agent_request':
                 this.triggerAgentRequest(cmd);
                 break;
-                
+
             case 'show_cross_thread_request':
                 this.showCrossThreadRequest(cmd);
                 break;
-                
+
             case 'notify_thread_response':
                 this.notifyThreadResponse(cmd);
                 break;
-                
+
             default:
                 console.warn(`[UICommandProcessor] Unknown command: ${commandType}`);
         }
     },
-    
+
     /**
      * Switch to specified tab
      * @param {Object} cmd - {tab_name: 'multi-agent' | 'synergy'}
      */
-    switchTab: function(cmd) {
+    switchTab: function (cmd) {
         const tabName = cmd.tab_name;
-        
+
         if (tabName === 'multi-agent') {
             // Find and click Multi-Agent tab
             const multiAgentTab = document.querySelector('[data-tab="multi-agent"], .tab-button[onclick*="multiAgent"]');
@@ -109,24 +109,24 @@ const UICommandProcessor = {
             }
         }
     },
-    
+
     /**
      * Open and highlight agent column
      * @param {Object} cmd - {agent_location, agent_number, agent_name, highlight}
      */
-    openAgentColumn: function(cmd) {
+    openAgentColumn: function (cmd) {
         const agentNum = cmd.agent_number;
         const agentName = cmd.agent_name;
         const shouldHighlight = cmd.highlight !== false;
-        
+
         // Find agent column by data attribute or ID
         const agentColumn = document.querySelector(`[data-agent="${agentNum}"], #agent-${agentNum}, .agent-column[data-agent-number="${agentNum}"]`);
-        
+
         if (!agentColumn) {
             console.warn(`[UICommandProcessor] Agent column ${agentNum} not found`);
             return;
         }
-        
+
         // Expand if collapsed
         const isCollapsed = agentColumn.classList.contains('collapsed');
         if (isCollapsed) {
@@ -135,10 +135,10 @@ const UICommandProcessor = {
                 expandButton.click();
             }
         }
-        
+
         // Scroll into view
         agentColumn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        
+
         // Highlight effect
         if (shouldHighlight) {
             agentColumn.classList.add('agent-highlight');
@@ -146,28 +146,28 @@ const UICommandProcessor = {
                 agentColumn.classList.remove('agent-highlight');
             }, 2000);
         }
-        
+
         console.log(`[UICommandProcessor] Opened agent column: ${agentName} (${agentNum})`);
     },
-    
+
     /**
      * Show thread info card with resource badges
      * @param {Object} cmd - {thread_id, thread_location, badges: {workflow, internal_doc, synergy}}
      */
-    showThreadInfo: function(cmd) {
+    showThreadInfo: function (cmd) {
         const threadId = cmd.thread_id;
         const location = cmd.thread_location;
         const badges = cmd.badges || {};
-        
+
         // Find agent column
         const agentNum = parseInt(location.split('-')[1]);
         const agentColumn = document.querySelector(`[data-agent="${agentNum}"], #agent-${agentNum}`);
-        
+
         if (!agentColumn) {
             console.warn(`[UICommandProcessor] Agent column not found for ${location}`);
             return;
         }
-        
+
         // Find or create thread info container
         let threadInfo = agentColumn.querySelector('.thread-info-container');
         if (!threadInfo) {
@@ -175,7 +175,7 @@ const UICommandProcessor = {
             threadInfo.className = 'thread-info-container';
             agentColumn.appendChild(threadInfo);
         }
-        
+
         // Build badges HTML
         let badgesHtml = '';
         if (badges.workflow) {
@@ -187,7 +187,7 @@ const UICommandProcessor = {
         if (badges.synergy) {
             badgesHtml += `<span class="resource-badge synergy-badge">Synergy</span>`;
         }
-        
+
         // Update thread info display
         threadInfo.innerHTML = `
             <div class="thread-info-card" data-thread-id="${threadId}">
@@ -195,34 +195,34 @@ const UICommandProcessor = {
                 <div class="resource-badges">${badgesHtml}</div>
             </div>
         `;
-        
+
         // Update synergy card if synergy_session_id present
         if (badges.synergy) {
             this.updateSynergyCardThreads(threadId, location);
         }
-        
+
         console.log(`[UICommandProcessor] Showed thread info for ${threadId} in ${location}`);
     },
-    
+
     /**
      * Trigger agent AI processing
      * @param {Object} cmd - {thread_id, agent_location, message_id}
      */
-    triggerAgentRequest: function(cmd) {
+    triggerAgentRequest: function (cmd) {
         const threadId = cmd.thread_id;
         const location = cmd.agent_location;
-        
+
         // Load thread into agent if not already loaded
         if (typeof MultiAgent !== 'undefined' && MultiAgent.loadThreadIntoAgent) {
             const agentNum = parseInt(location.split('-')[1]);
-            
+
             // Get thread data
             if (typeof ThreadManager !== 'undefined' && ThreadManager.getThreadById) {
                 const thread = ThreadManager.getThreadById(threadId);
                 if (thread) {
                     MultiAgent.loadThreadIntoAgent(agentNum, thread);
                     console.log(`[UICommandProcessor] Loaded thread ${threadId} into agent ${agentNum}`);
-                    
+
                     // Trigger AI request
                     setTimeout(() => {
                         const sendButton = document.querySelector(`#agent-${agentNum} .send-button, [data-agent="${agentNum}"] .send-button`);
@@ -235,62 +235,62 @@ const UICommandProcessor = {
             }
         }
     },
-    
+
     /**
      * Show visual indicator for cross-thread request
      * @param {Object} cmd - {request_id, target_thread_id, priority}
      */
-    showCrossThreadRequest: function(cmd) {
+    showCrossThreadRequest: function (cmd) {
         const requestId = cmd.request_id;
         const targetThreadId = cmd.target_thread_id;
         const priority = cmd.priority || 'medium';
-        
+
         // Add notification badge to target agent
         // This would be enhanced based on actual UI structure
         console.log(`[UICommandProcessor] Cross-thread request ${requestId} sent to ${targetThreadId} (priority: ${priority})`);
-        
+
         // Show toast notification
         this.showToast(`Request sent to ${targetThreadId}`, 'info');
     },
-    
+
     /**
      * Notify when cross-thread response arrives
      * @param {Object} cmd - {source_thread_id, request_id}
      */
-    notifyThreadResponse: function(cmd) {
+    notifyThreadResponse: function (cmd) {
         const sourceThreadId = cmd.source_thread_id;
         const requestId = cmd.request_id;
-        
+
         console.log(`[UICommandProcessor] Response received for request ${requestId}`);
-        
+
         // Show toast notification
         this.showToast('Response received from agent', 'success');
-        
+
         // Add notification badge to source thread
         // This would be enhanced based on actual UI structure
     },
-    
+
     /**
      * Update synergy card with linked thread info
      * @param {String} threadId - Thread ID
      * @param {String} location - Thread location (agent-N)
      */
-    updateSynergyCardThreads: function(threadId, location) {
+    updateSynergyCardThreads: function (threadId, location) {
         // This would integrate with actual synergy board implementation
         console.log(`[UICommandProcessor] Updating synergy card for thread ${threadId} at ${location}`);
-        
+
         // If synergyBoard exists, trigger update
         if (typeof synergyBoard !== 'undefined' && synergyBoard.renderLinkedThreads) {
             synergyBoard.renderLinkedThreads();
         }
     },
-    
+
     /**
      * Show toast notification
      * @param {String} message - Notification message
      * @param {String} type - Notification type (info, success, warning, error)
      */
-    showToast: function(message, type = 'info') {
+    showToast: function (message, type = 'info') {
         // Find or create toast container
         let toastContainer = document.getElementById('ui-command-toast-container');
         if (!toastContainer) {
@@ -299,7 +299,7 @@ const UICommandProcessor = {
             toastContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000;';
             document.body.appendChild(toastContainer);
         }
-        
+
         // Create toast element
         const toast = document.createElement('div');
         toast.className = `ui-command-toast ui-command-toast-${type}`;
@@ -313,9 +313,9 @@ const UICommandProcessor = {
             animation: slideInRight 0.3s ease-out;
         `;
         toast.textContent = message;
-        
+
         toastContainer.appendChild(toast);
-        
+
         // Remove after 3 seconds
         setTimeout(() => {
             toast.style.animation = 'slideOutRight 0.3s ease-in';
@@ -327,9 +327,9 @@ const UICommandProcessor = {
 };
 
 // Event listener for tool responses
-document.addEventListener('tool-response-received', function(event) {
+document.addEventListener('tool-response-received', function (event) {
     const response = event.detail;
-    
+
     if (response && response.ui_commands) {
         console.log('[UICommandProcessor] Received tool response with UI commands:', response.ui_commands);
         UICommandProcessor.processCommands(response.ui_commands);

@@ -2,7 +2,14 @@
 import sys
 sys.path.insert(0, 'AI_infrastructure')
 
+# Force reload of module
+import importlib
+from tools.implementations import meta_tools
+importlib.reload(meta_tools)
 from tools.implementations.meta_tools import recommend_tools_for_task
+
+print(f"Loaded meta_tools from: {meta_tools.__file__}")
+print()
 
 # Test the search
 result = recommend_tools_for_task('distribute work across multiple agents')

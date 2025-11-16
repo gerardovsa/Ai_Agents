@@ -98,7 +98,7 @@ class TwoRuleStreamProcessor {
         this.state = 'NORMAL'; // NORMAL | BUFFERING_VISUAL
         this.currentDelimiter = null;
         this.visualBufferStart = 0;
-        
+
         // Log thread initialization
         console.log('🚀 TWO-RULE: New streaming thread started');
         this.visualBufferEnd = 0;
@@ -804,10 +804,10 @@ class TwoRuleStreamProcessor {
         let attached = false;
         let retries = 0;
         const maxRetries = 5;
-        
+
         while (!attached && retries < maxRetries) {
             await new Promise(resolve => requestAnimationFrame(resolve));
-            
+
             if (document.contains(vizContainer)) {
                 attached = true;
             } else {
@@ -817,7 +817,7 @@ class TwoRuleStreamProcessor {
                 }
             }
         }
-        
+
         if (!attached) {
             console.error('❌ TWO-RULE: Container failed to attach to DOM after retries');
             vizContainer.innerHTML = '<div style="color: red; padding: 20px;">Failed to create visualization container</div>';

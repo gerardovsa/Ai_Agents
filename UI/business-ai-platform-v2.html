@@ -15100,6 +15100,18 @@
             await initMultiAgent(); // WAIT for agent columns to be created before restoring threads
             await loadPlatformStatus();
 
+            // ✅ INITIALIZE THREADMANAGER (Post-Authentication)
+            // Must happen AFTER login so UserAuth.token is available for /api/auth/profile
+            if (typeof ThreadManager !== 'undefined') {
+                await ThreadManager.init();
+                console.log('✅ ThreadManager initialized with user token');
+                
+                // Restore thread assignments in Multi-Agent after threads loaded
+                if (typeof MultiAgent !== 'undefined' && MultiAgent.restoreThreadAssignments) {
+                    MultiAgent.restoreThreadAssignments();
+                }
+            }
+
             // DISPLAY TOOL STATISTICS
             displayToolStats();
 
@@ -28891,18 +28903,27 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 try {
                     // STEP 1: TipTap Core (MUST load first - 800KB)
                     await this.loadScript('tiptap-core', 'https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.13/dist/index.umd.min.js');
+                    // Wait for global object to be available
+                    await this.waitForGlobal('window.tiptapCore || window.TiptapCore');
                     console.log('  ✅ TipTap Core loaded');
 
                     // STEP 2: TipTap StarterKit (depends on core - 600KB)
                     await this.loadScript('tiptap-starterkit', 'https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.1.13/dist/index.umd.min.js');
+                    // Small delay to ensure core is fully initialized
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     console.log('  ✅ TipTap StarterKit loaded');
 
-                    // STEP 3: TipTap Extensions (depend on core - load in parallel)
-                    await Promise.all([
-                        this.loadScript('tiptap-placeholder', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-placeholder@2.1.13/dist/index.umd.min.js'),
-                        this.loadScript('tiptap-link', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-link@2.1.13/dist/index.umd.min.js'),
-                        this.loadScript('tiptap-mention', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-mention@2.1.13/dist/index.umd.min.js')
-                    ]);
+                    // STEP 3: TipTap Extensions (depend on core - load SEQUENTIALLY)
+                    // Must load one-by-one to avoid race conditions
+                    await this.loadScript('tiptap-placeholder', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-placeholder@2.1.13/dist/index.umd.min.js');
+                    await new Promise(resolve => setTimeout(resolve, 50));
+
+                    await this.loadScript('tiptap-link', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-link@2.1.13/dist/index.umd.min.js');
+                    await new Promise(resolve => setTimeout(resolve, 50));
+
+                    await this.loadScript('tiptap-mention', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-mention@2.1.13/dist/index.umd.min.js');
+                    await new Promise(resolve => setTimeout(resolve, 50));
+
                     console.log('  ✅ TipTap Extensions loaded');
 
                     // STEP 4: Skip Yjs Collaboration (not implemented yet, causing 404 errors)
@@ -28950,6 +28971,42 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     script.onload = () => resolve();
                     script.onerror = () => reject(new Error(`Failed to load ${src}`));
                     document.head.appendChild(script);
+                });
+            },
+
+            /**
+             * Wait for a global variable to be available
+             * @param {string} globalPath - Path to global variable (e.g., 'window.tiptapCore')
+             * @param {number} timeout - Max wait time in ms (default: 2000)
+             * @returns {Promise} Resolves when global is available
+             */
+            waitForGlobal(globalPath, timeout = 2000) {
+                return new Promise((resolve, reject) => {
+                    const startTime = Date.now();
+
+                    const checkGlobal = () => {
+                        try {
+                            // Evaluate the global path
+                            if (eval(globalPath)) {
+                                resolve();
+                                return;
+                            }
+                        } catch (e) {
+                            // Path doesn't exist yet
+                        }
+
+                        // Check timeout
+                        if (Date.now() - startTime > timeout) {
+                            console.warn(`⚠️ Timeout waiting for ${globalPath}`);
+                            resolve(); // Don't reject, just continue
+                            return;
+                        }
+
+                        // Check again in 50ms
+                        setTimeout(checkGlobal, 50);
+                    };
+
+                    checkGlobal();
                 });
             }
         };
