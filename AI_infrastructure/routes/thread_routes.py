@@ -78,17 +78,21 @@ def create_thread():
         thread_id = str(int(datetime.now().timestamp() * 1000))
         created = datetime.now().isoformat()
         
-        # Insert into database
-        insert_query = """
-            INSERT INTO sessions.threads (
-                thread_slug, workspace_id, name, user_id, created_at, updated_at,
-                metadata, location, tags, synergy_card_id,
-                parent_thread_id, branch_point_message_id, branch_name
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        
+        # Insert into database - PostgreSQL/Supabase only
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
+        
+        # PostgreSQL: Use DEFAULT for id to auto-generate from sequence
+        insert_query = """
+            INSERT INTO sessions.threads (
+                id, thread_slug, workspace_id, name, user_id, created_at, updated_at,
+                metadata, location, tags, synergy_card_id,
+                parent_thread_id, branch_point_message_id, branch_name
+            ) VALUES (
+                DEFAULT, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+            )
+        """
+        
         cursor.execute(
             insert_query,
             (
@@ -100,8 +104,8 @@ def create_thread():
                 created,                        # updated_at
                 json.dumps({}),                 # metadata
                 location,                       # location
-                json.dumps(tags),               # tags (NEW: from request)
-                synergy_card_id,                # synergy_card_id (NEW: from request)
+                json.dumps(tags),               # tags
+                synergy_card_id,                # synergy_card_id
                 parent_thread_id,               # parent_thread_id
                 branch_point_message_id,        # branch_point_message_id
                 branch_name                     # branch_name
