@@ -48,13 +48,20 @@ kanban_analytics_bp = Blueprint('kanban_analytics', __name__, url_prefix='/api/k
 
 # Database path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+# DEPRECATED: SQLite path no longer used (keeping for reference)
 SQLITE_DB_PATH = PROJECT_ROOT / 'data' / 'kanban_analytics.db'
 
+# Import Supabase connection utility
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.database_utils import get_database_connection
 
 def get_db_connection():
-    """Get SQLite database connection"""
-    conn = sqlite3.connect(str(SQLITE_DB_PATH))
-    conn.row_factory = sqlite3.Row
+    """Get Supabase database connection to kanban_analytics schema"""
+    conn = get_database_connection('kanban_analytics')
+    if hasattr(conn, 'row_factory'):  # SQLite compatibility
+        import sqlite3
+        conn.row_factory = sqlite3.Row
     return conn
 
 

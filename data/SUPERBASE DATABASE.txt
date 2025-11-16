@@ -1,0 +1,1823 @@
+no there ate heaps of tables !!
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE ai_infrastructure.account_link_requests (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  target_email text NOT NULL,
+  link_token text NOT NULL,
+  request_type text NOT NULL,
+  status text DEFAULT 'pending'::text,
+  created_at timestamp without time zone,
+  expires_at timestamp without time zone NOT NULL,
+  CONSTRAINT account_link_requests_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.device_registry (
+  device_id text NOT NULL,
+  user_id integer NOT NULL,
+  device_name text NOT NULL,
+  device_fingerprint text,
+  last_seen_at timestamp without time zone,
+  created_at timestamp without time zone,
+  CONSTRAINT device_registry_pkey PRIMARY KEY (device_id)
+);
+CREATE TABLE ai_infrastructure.oauth_tokens (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  platform text NOT NULL,
+  access_token text NOT NULL,
+  refresh_token text,
+  token_type text DEFAULT 'Bearer'::text,
+  expires_at timestamp without time zone,
+  scope text,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  last_refreshed_at timestamp without time zone,
+  metadata text,
+  account_identifier text,
+  account_name text,
+  is_primary_account boolean DEFAULT false,
+  is_valid boolean DEFAULT true,
+  is_active boolean DEFAULT true,
+  refresh_attempts integer DEFAULT 0,
+  last_refresh_error text,
+  auto_refresh_enabled boolean DEFAULT true,
+  granted_scopes text,
+  issued_at timestamp without time zone,
+  revoked_at timestamp without time zone,
+  ip_address_granted text,
+  email text,
+  profile_name text,
+  error_count integer DEFAULT 0,
+  last_error text,
+  profile_picture_url text,
+  profile_data text,
+  CONSTRAINT oauth_tokens_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.prompt_library (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  workspace_id integer,
+  name text NOT NULL,
+  category text NOT NULL,
+  type text NOT NULL DEFAULT 'quick_action'::text,
+  description text,
+  prompt_text text NOT NULL,
+  tags text,
+  visibility text NOT NULL DEFAULT 'private'::text,
+  usage_count integer DEFAULT 0,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT prompt_library_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.thread_assignments (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  session_id text NOT NULL,
+  location text NOT NULL,
+  agent_name text,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT thread_assignments_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.thread_lock_history (
+  lock_id integer NOT NULL,
+  thread_id integer NOT NULL,
+  device_id text NOT NULL,
+  action text NOT NULL,
+  timestamp timestamp without time zone,
+  CONSTRAINT thread_lock_history_pkey PRIMARY KEY (lock_id)
+);
+CREATE TABLE ai_infrastructure.user_account_links (
+  id integer NOT NULL,
+  primary_user_id integer NOT NULL,
+  linked_user_id integer NOT NULL,
+  linked_email text NOT NULL,
+  link_type text NOT NULL,
+  link_status text DEFAULT 'pending'::text,
+  link_token text,
+  created_at timestamp without time zone,
+  confirmed_at timestamp without time zone,
+  CONSTRAINT user_account_links_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.user_gmail_accounts (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  gmail_address text NOT NULL,
+  display_name text,
+  access_token text,
+  refresh_token text,
+  token_expiry timestamp without time zone,
+  is_primary boolean DEFAULT false,
+  created_at timestamp without time zone,
+  CONSTRAINT user_gmail_accounts_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.user_platform_credentials (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  platform text NOT NULL,
+  credential_type text NOT NULL,
+  credential_key text NOT NULL,
+  credential_value text NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  metadata text,
+  CONSTRAINT user_platform_credentials_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.user_preferences (
+  user_id integer NOT NULL,
+  communication_style text DEFAULT 'professional'::text,
+  detail_level text DEFAULT 'standard'::text,
+  auth_platform text DEFAULT 'auto'::text,
+  preferred_tools text,
+  custom_preferences text,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  nickname text,
+  detected_country text,
+  detected_city text,
+  detected_timezone text,
+  detected_ip_address text,
+  manual_location_override text,
+  manual_timezone_override text,
+  use_manual_location integer DEFAULT 0,
+  use_manual_timezone integer DEFAULT 0,
+  last_location_check timestamp without time zone,
+  ai_memories text,
+  memory_updated_at timestamp without time zone,
+  ai_model text DEFAULT '"claude-sonnet-4-5-20250929"'::text,
+  ai_temperature real DEFAULT 1.0,
+  ai_top_p real DEFAULT 1.0,
+  ai_max_tokens integer DEFAULT 4096,
+  ai_thinking_enabled integer DEFAULT 0,
+  ai_thinking_budget integer DEFAULT 10000,
+  ai_streaming_enabled integer DEFAULT 1,
+  CONSTRAINT user_preferences_pkey PRIMARY KEY (user_id)
+);
+CREATE TABLE ai_infrastructure.user_prompt_preferences (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  preference_name text NOT NULL,
+  quick_actions text,
+  library_prompts text,
+  custom_prompt text,
+  created_at text,
+  CONSTRAINT user_prompt_preferences_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.user_sessions (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  token text NOT NULL,
+  ip_address text,
+  user_agent text,
+  created_at timestamp without time zone,
+  expires_at timestamp without time zone NOT NULL,
+  CONSTRAINT user_sessions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.users (
+  id integer NOT NULL,
+  username text NOT NULL,
+  email text NOT NULL,
+  password_hash text NOT NULL,
+  role text DEFAULT 'user'::text,
+  primary_gmail text,
+  created_at timestamp without time zone,
+  last_active timestamp without time zone,
+  metadata text,
+  is_primary boolean DEFAULT true,
+  allowed_dashboards text DEFAULT '[]'::text,
+  has_google_oauth boolean DEFAULT false,
+  has_microsoft_oauth boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  parent_user_id integer,
+  is_sub_user boolean DEFAULT false,
+  permissions text,
+  allowed_tools text,
+  allowed_agents text,
+  data_access_scope text DEFAULT 'own'::text,
+  usage_limit_daily integer DEFAULT 1000,
+  access_start_time text,
+  access_end_time text,
+  account_expires_at timestamp without time zone,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.workspace_invitations (
+  id integer NOT NULL,
+  workspace_id integer NOT NULL,
+  invited_user_id integer,
+  invited_email text NOT NULL,
+  role text NOT NULL,
+  token text NOT NULL,
+  status text NOT NULL,
+  invited_by_user_id integer NOT NULL,
+  created_at text NOT NULL,
+  expires_at text NOT NULL,
+  responded_at text,
+  CONSTRAINT workspace_invitations_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.workspace_users (
+  id integer NOT NULL,
+  workspace_id integer NOT NULL,
+  user_id integer NOT NULL,
+  role text NOT NULL,
+  added_by_user_id integer NOT NULL,
+  added_at text NOT NULL,
+  removed_at text,
+  CONSTRAINT workspace_users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE ai_infrastructure.workspaces (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  name text NOT NULL,
+  description text,
+  created_at timestamp without time zone,
+  metadata text,
+  slug text,
+  owner_id integer,
+  status text DEFAULT 'active'::text,
+  visibility text DEFAULT 'private'::text,
+  settings text,
+  updated_at text,
+  archived_at text,
+  CONSTRAINT workspaces_pkey PRIMARY KEY (id)
+);
+
+
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE synergy_sessions.synergy_internal_docs (
+  doc_id text NOT NULL,
+  session_id text NOT NULL,
+  title text NOT NULL,
+  content text NOT NULL DEFAULT ''::text,
+  format text NOT NULL DEFAULT 'markdown'::text,
+  created_at text,
+  updated_at text,
+  created_by text,
+  version integer DEFAULT 1,
+  content_json text,
+  doc_type text DEFAULT 'richtext'::text,
+  linked_to_ai boolean DEFAULT false,
+  share_url text,
+  description text,
+  tags text,
+  slug text,
+  CONSTRAINT synergy_internal_docs_pkey PRIMARY KEY (doc_id)
+);
+CREATE TABLE synergy_sessions.synergy_sessions (
+  session_id text NOT NULL,
+  title text NOT NULL,
+  description text,
+  platforms_involved text,
+  status text DEFAULT 'active'::text,
+  priority text DEFAULT 'medium'::text,
+  kanban_column text DEFAULT 'backlog'::text,
+  tags text,
+  documents text,
+  links text,
+  next_steps text,
+  assignees text,
+  recent_activity text,
+  checklist text,
+  due_date text,
+  created_at text,
+  last_active text,
+  completed_at text,
+  google_task_id text,
+  google_calendar_id text,
+  microsoft_todo_id text,
+  thread_ids text,
+  assigned_agents text,
+  project_name text,
+  notes text,
+  session_data text,
+  google_calendar_event_id text,
+  updated_at text,
+  shared_with_users text,
+  owner_user_id integer,
+  column_position integer DEFAULT 0,
+  CONSTRAINT synergy_sessions_pkey PRIMARY KEY (session_id)
+);
+
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE sessions.api_sessions (
+  id integer NOT NULL,
+  api_session_id text NOT NULL,
+  workspace_id integer,
+  created_at timestamp without time zone,
+  last_active timestamp without time zone,
+  metadata text,
+  CONSTRAINT api_sessions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE sessions.messages (
+  id integer NOT NULL,
+  workspace_id integer,
+  thread_id integer NOT NULL,
+  session_id text,
+  role text NOT NULL,
+  content text NOT NULL,
+  prompt text,
+  response_data text,
+  user_id integer,
+  api_session_id text,
+  include boolean DEFAULT true,
+  feedback_score integer,
+  tool_calls text,
+  tokens_used integer,
+  model text,
+  timestamp timestamp without time zone,
+  created_at timestamp without time zone,
+  metadata text,
+  updated_at timestamp without time zone,
+  CONSTRAINT messages_pkey PRIMARY KEY (id)
+);
+CREATE TABLE sessions.saved_threads (
+  thread_id text NOT NULL,
+  agent_id text NOT NULL,
+  session_id text NOT NULL,
+  user_id integer DEFAULT 1,
+  location text DEFAULT 'prime'::text,
+  thread_name text,
+  conversation text NOT NULL,
+  message_count integer,
+  context text,
+  created_at text,
+  saved_at text,
+  last_updated text,
+  tags text DEFAULT '[]'::text,
+  synergy_card_id text DEFAULT 'NULL'::text,
+  parent_thread_id text DEFAULT 'NULL'::text,
+  branch_point_message_id text DEFAULT 'NULL'::text,
+  branch_name text DEFAULT 'NULL'::text,
+  summary text DEFAULT 'NULL'::text,
+  summary_generated_at text DEFAULT 'NULL'::text,
+  CONSTRAINT saved_threads_pkey PRIMARY KEY (thread_id)
+);
+CREATE TABLE sessions.sessions (
+  session_id text NOT NULL,
+  ui_context text NOT NULL,
+  agent_id text,
+  created_at timestamp without time zone,
+  last_active timestamp without time zone,
+  conversation text,
+  metadata text,
+  CONSTRAINT sessions_pkey PRIMARY KEY (session_id)
+);
+CREATE TABLE sessions.thread_assignments (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  thread_slug text NOT NULL,
+  location text NOT NULL,
+  assigned_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  metadata text DEFAULT '"{}"'::text,
+  CONSTRAINT thread_assignments_pkey PRIMARY KEY (id)
+);
+CREATE TABLE sessions.thread_shares (
+  id integer NOT NULL,
+  thread_id integer NOT NULL,
+  shared_by integer NOT NULL,
+  shared_with integer NOT NULL,
+  permission text DEFAULT 'view'::text,
+  share_type text DEFAULT 'direct'::text,
+  shared_at timestamp without time zone,
+  expires_at timestamp without time zone,
+  access_count integer DEFAULT 0,
+  last_accessed timestamp without time zone,
+  revoked integer DEFAULT 0,
+  revoked_at timestamp without time zone,
+  revoked_by integer,
+  share_link text,
+  notes text,
+  CONSTRAINT thread_shares_pkey PRIMARY KEY (id)
+);
+CREATE TABLE sessions.thread_users (
+  id integer NOT NULL,
+  thread_id integer NOT NULL,
+  user_id integer NOT NULL,
+  permission text DEFAULT 'view'::text,
+  added_at timestamp without time zone,
+  added_by integer,
+  is_owner integer DEFAULT 0,
+  CONSTRAINT thread_users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE sessions.threads (
+  id integer NOT NULL,
+  thread_slug text NOT NULL,
+  workspace_id integer,
+  user_id integer,
+  name text NOT NULL,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  metadata text,
+  location text,
+  tags text,
+  synergy_card_id text,
+  parent_thread_id integer,
+  branch_name text,
+  archived integer DEFAULT 0,
+  branch_point_message_id text,
+  token_count integer DEFAULT 0,
+  locked_to_device_id text DEFAULT 'NULL'::text,
+  locked_at timestamp without time zone,
+  lock_mode text DEFAULT 'unlocked'::text,
+  CONSTRAINT threads_pkey PRIMARY KEY (id)
+);
+CREATE TABLE sessions.user_sessions (
+  id integer NOT NULL,
+  user_id integer NOT NULL,
+  token text NOT NULL,
+  session_token text,
+  ip_address text,
+  user_agent text,
+  created_at timestamp without time zone,
+  expires_at timestamp without time zone,
+  last_activity timestamp without time zone,
+  CONSTRAINT user_sessions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE sessions.users (
+  id integer NOT NULL,
+  username text NOT NULL,
+  email text NOT NULL,
+  password_hash text NOT NULL,
+  role text DEFAULT 'user'::text,
+  primary_gmail text,
+  created_at timestamp without time zone,
+  last_active timestamp without time zone,
+  metadata text,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE sessions.workspaces (
+  id integer NOT NULL,
+  name text NOT NULL,
+  description text,
+  owner_id integer,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  metadata text,
+  CONSTRAINT workspaces_pkey PRIMARY KEY (id)
+);
+
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE auth.audit_log_entries (
+  instance_id uuid,
+  id uuid NOT NULL,
+  payload json,
+  created_at timestamp with time zone,
+  ip_address character varying NOT NULL DEFAULT ''::character varying,
+  CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id)
+);
+CREATE TABLE auth.flow_state (
+  id uuid NOT NULL,
+  user_id uuid,
+  auth_code text NOT NULL,
+  code_challenge_method USER-DEFINED NOT NULL,
+  code_challenge text NOT NULL,
+  provider_type text NOT NULL,
+  provider_access_token text,
+  provider_refresh_token text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  authentication_method text NOT NULL,
+  auth_code_issued_at timestamp with time zone,
+  CONSTRAINT flow_state_pkey PRIMARY KEY (id)
+);
+CREATE TABLE auth.identities (
+  provider_id text NOT NULL,
+  user_id uuid NOT NULL,
+  identity_data jsonb NOT NULL,
+  provider text NOT NULL,
+  last_sign_in_at timestamp with time zone,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  email text DEFAULT lower((identity_data ->> 'email'::text)),
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  CONSTRAINT identities_pkey PRIMARY KEY (id),
+  CONSTRAINT identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE auth.instances (
+  id uuid NOT NULL,
+  uuid uuid,
+  raw_base_config text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  CONSTRAINT instances_pkey PRIMARY KEY (id)
+);
+CREATE TABLE auth.mfa_amr_claims (
+  session_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL,
+  authentication_method text NOT NULL,
+  id uuid NOT NULL,
+  CONSTRAINT mfa_amr_claims_pkey PRIMARY KEY (id),
+  CONSTRAINT mfa_amr_claims_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id)
+);
+CREATE TABLE auth.mfa_challenges (
+  id uuid NOT NULL,
+  factor_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  verified_at timestamp with time zone,
+  ip_address inet NOT NULL,
+  otp_code text,
+  web_authn_session_data jsonb,
+  CONSTRAINT mfa_challenges_pkey PRIMARY KEY (id),
+  CONSTRAINT mfa_challenges_auth_factor_id_fkey FOREIGN KEY (factor_id) REFERENCES auth.mfa_factors(id)
+);
+CREATE TABLE auth.mfa_factors (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  friendly_name text,
+  factor_type USER-DEFINED NOT NULL,
+  status USER-DEFINED NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL,
+  secret text,
+  phone text,
+  last_challenged_at timestamp with time zone UNIQUE,
+  web_authn_credential jsonb,
+  web_authn_aaguid uuid,
+  last_webauthn_challenge_data jsonb,
+  CONSTRAINT mfa_factors_pkey PRIMARY KEY (id),
+  CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE auth.oauth_authorizations (
+  id uuid NOT NULL,
+  authorization_id text NOT NULL UNIQUE,
+  client_id uuid NOT NULL,
+  user_id uuid,
+  redirect_uri text NOT NULL CHECK (char_length(redirect_uri) <= 2048),
+  scope text NOT NULL CHECK (char_length(scope) <= 4096),
+  state text CHECK (char_length(state) <= 4096),
+  resource text CHECK (char_length(resource) <= 2048),
+  code_challenge text CHECK (char_length(code_challenge) <= 128),
+  code_challenge_method USER-DEFINED,
+  response_type USER-DEFINED NOT NULL DEFAULT 'code'::auth.oauth_response_type,
+  status USER-DEFINED NOT NULL DEFAULT 'pending'::auth.oauth_authorization_status,
+  authorization_code text UNIQUE CHECK (char_length(authorization_code) <= 255),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL DEFAULT (now() + '00:03:00'::interval),
+  approved_at timestamp with time zone,
+  CONSTRAINT oauth_authorizations_pkey PRIMARY KEY (id),
+  CONSTRAINT oauth_authorizations_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id),
+  CONSTRAINT oauth_authorizations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE auth.oauth_clients (
+  id uuid NOT NULL,
+  client_secret_hash text,
+  registration_type USER-DEFINED NOT NULL,
+  redirect_uris text NOT NULL,
+  grant_types text NOT NULL,
+  client_name text CHECK (char_length(client_name) <= 1024),
+  client_uri text CHECK (char_length(client_uri) <= 2048),
+  logo_uri text CHECK (char_length(logo_uri) <= 2048),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  deleted_at timestamp with time zone,
+  client_type USER-DEFINED NOT NULL DEFAULT 'confidential'::auth.oauth_client_type,
+  CONSTRAINT oauth_clients_pkey PRIMARY KEY (id)
+);
+CREATE TABLE auth.oauth_consents (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  client_id uuid NOT NULL,
+  scopes text NOT NULL CHECK (char_length(scopes) <= 2048),
+  granted_at timestamp with time zone NOT NULL DEFAULT now(),
+  revoked_at timestamp with time zone,
+  CONSTRAINT oauth_consents_pkey PRIMARY KEY (id),
+  CONSTRAINT oauth_consents_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT oauth_consents_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id)
+);
+CREATE TABLE auth.one_time_tokens (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  token_type USER-DEFINED NOT NULL,
+  token_hash text NOT NULL CHECK (char_length(token_hash) > 0),
+  relates_to text NOT NULL,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT one_time_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT one_time_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE auth.refresh_tokens (
+  instance_id uuid,
+  id bigint NOT NULL DEFAULT nextval('auth.refresh_tokens_id_seq'::regclass),
+  token character varying UNIQUE,
+  user_id character varying,
+  revoked boolean,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  parent character varying,
+  session_id uuid,
+  CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id)
+);
+CREATE TABLE auth.saml_providers (
+  id uuid NOT NULL,
+  sso_provider_id uuid NOT NULL,
+  entity_id text NOT NULL UNIQUE CHECK (char_length(entity_id) > 0),
+  metadata_xml text NOT NULL CHECK (char_length(metadata_xml) > 0),
+  metadata_url text CHECK (metadata_url = NULL::text OR char_length(metadata_url) > 0),
+  attribute_mapping jsonb,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  name_id_format text,
+  CONSTRAINT saml_providers_pkey PRIMARY KEY (id),
+  CONSTRAINT saml_providers_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id)
+);
+CREATE TABLE auth.saml_relay_states (
+  id uuid NOT NULL,
+  sso_provider_id uuid NOT NULL,
+  request_id text NOT NULL CHECK (char_length(request_id) > 0),
+  for_email text,
+  redirect_to text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  flow_state_id uuid,
+  CONSTRAINT saml_relay_states_pkey PRIMARY KEY (id),
+  CONSTRAINT saml_relay_states_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id),
+  CONSTRAINT saml_relay_states_flow_state_id_fkey FOREIGN KEY (flow_state_id) REFERENCES auth.flow_state(id)
+);
+CREATE TABLE auth.schema_migrations (
+  version character varying NOT NULL,
+  CONSTRAINT schema_migrations_pkey PRIMARY KEY (version)
+);
+CREATE TABLE auth.sessions (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  factor_id uuid,
+  aal USER-DEFINED,
+  not_after timestamp with time zone,
+  refreshed_at timestamp without time zone,
+  user_agent text,
+  ip inet,
+  tag text,
+  oauth_client_id uuid,
+  refresh_token_hmac_key text,
+  refresh_token_counter bigint,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT sessions_oauth_client_id_fkey FOREIGN KEY (oauth_client_id) REFERENCES auth.oauth_clients(id)
+);
+CREATE TABLE auth.sso_domains (
+  id uuid NOT NULL,
+  sso_provider_id uuid NOT NULL,
+  domain text NOT NULL CHECK (char_length(domain) > 0),
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  CONSTRAINT sso_domains_pkey PRIMARY KEY (id),
+  CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id)
+);
+CREATE TABLE auth.sso_providers (
+  id uuid NOT NULL,
+  resource_id text CHECK (resource_id = NULL::text OR char_length(resource_id) > 0),
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  disabled boolean,
+  CONSTRAINT sso_providers_pkey PRIMARY KEY (id)
+);
+CREATE TABLE auth.users (
+  instance_id uuid,
+  id uuid NOT NULL,
+  aud character varying,
+  role character varying,
+  email character varying,
+  encrypted_password character varying,
+  email_confirmed_at timestamp with time zone,
+  invited_at timestamp with time zone,
+  confirmation_token character varying,
+  confirmation_sent_at timestamp with time zone,
+  recovery_token character varying,
+  recovery_sent_at timestamp with time zone,
+  email_change_token_new character varying,
+  email_change character varying,
+  email_change_sent_at timestamp with time zone,
+  last_sign_in_at timestamp with time zone,
+  raw_app_meta_data jsonb,
+  raw_user_meta_data jsonb,
+  is_super_admin boolean,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  phone text DEFAULT NULL::character varying UNIQUE,
+  phone_confirmed_at timestamp with time zone,
+  phone_change text DEFAULT ''::character varying,
+  phone_change_token character varying DEFAULT ''::character varying,
+  phone_change_sent_at timestamp with time zone,
+  confirmed_at timestamp with time zone DEFAULT LEAST(email_confirmed_at, phone_confirmed_at),
+  email_change_token_current character varying DEFAULT ''::character varying,
+  email_change_confirm_status smallint DEFAULT 0 CHECK (email_change_confirm_status >= 0 AND email_change_confirm_status <= 2),
+  banned_until timestamp with time zone,
+  reauthentication_token character varying DEFAULT ''::character varying,
+  reauthentication_sent_at timestamp with time zone,
+  is_sso_user boolean NOT NULL DEFAULT false,
+  deleted_at timestamp with time zone,
+  is_anonymous boolean NOT NULL DEFAULT false,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+
+
+
+
+
+
+
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE kanban_analytics.ai_predictions (
+  prediction_id integer NOT NULL,
+  ticket_id integer NOT NULL,
+  predicted_completion_date text,
+  predicted_total_hours real,
+  confidence_score real,
+  late_delivery_risk text,
+  quality_risk text,
+  cost_overrun_risk text,
+  recommended_actions text,
+  optimization_suggestions text,
+  model_version text,
+  predicted_at text NOT NULL,
+  actual_outcome text,
+  CONSTRAINT ai_predictions_pkey PRIMARY KEY (prediction_id)
+);
+CREATE TABLE kanban_analytics.clients (
+  client_id integer NOT NULL,
+  client_name text NOT NULL,
+  total_orders integer DEFAULT 0,
+  total_value real DEFAULT 0.0,
+  first_order_date text,
+  last_order_date text,
+  customer_tier text,
+  synced_at text NOT NULL,
+  last_updated text NOT NULL,
+  CONSTRAINT clients_pkey PRIMARY KEY (client_id)
+);
+CREATE TABLE kanban_analytics.custom_job_notes (
+  note_id integer NOT NULL,
+  ticket_id integer NOT NULL,
+  note_text text NOT NULL,
+  note_type text,
+  priority text,
+  created_by text,
+  created_at text NOT NULL,
+  resolved integer DEFAULT 0,
+  resolved_at text,
+  CONSTRAINT custom_job_notes_pkey PRIMARY KEY (note_id)
+);
+CREATE TABLE kanban_analytics.custom_tags (
+  tag_id integer NOT NULL,
+  tag_name text NOT NULL,
+  tag_category text,
+  tag_color text,
+  created_at text NOT NULL,
+  CONSTRAINT custom_tags_pkey PRIMARY KEY (tag_id)
+);
+CREATE TABLE kanban_analytics.customer_analytics (
+  analytics_id integer NOT NULL,
+  client_name text NOT NULL,
+  analysis_period text NOT NULL,
+  period_start text NOT NULL,
+  period_end text NOT NULL,
+  total_orders integer DEFAULT 0,
+  total_revenue real DEFAULT 0.0,
+  avg_order_value real DEFAULT 0.0,
+  on_time_delivery_rate real,
+  avg_turnaround_days real,
+  avg_quality_score real,
+  rework_rate real,
+  total_profit real,
+  avg_profit_margin real,
+  orders_per_month real,
+  days_since_last_order integer,
+  customer_health_score integer,
+  calculated_at text NOT NULL,
+  CONSTRAINT customer_analytics_pkey PRIMARY KEY (analytics_id)
+);
+CREATE TABLE kanban_analytics.job_performance (
+  performance_id integer NOT NULL,
+  ticket_id integer NOT NULL,
+  estimated_hours real,
+  actual_hours real,
+  setup_time_hours real,
+  production_time_hours real,
+  finishing_time_hours real,
+  quality_score integer,
+  rework_required integer DEFAULT 0,
+  rework_hours real,
+  defect_count integer DEFAULT 0,
+  material_waste_percentage real,
+  on_time_delivery integer DEFAULT 1,
+  customer_satisfaction integer,
+  material_cost real,
+  labor_cost real,
+  overhead_cost real,
+  total_actual_cost real,
+  profit_margin real,
+  recorded_by text,
+  recorded_at text NOT NULL,
+  updated_at text,
+  CONSTRAINT job_performance_pkey PRIMARY KEY (performance_id)
+);
+CREATE TABLE kanban_analytics.job_stages (
+  stage_id integer NOT NULL,
+  stage_description text NOT NULL,
+  stage_order integer,
+  synced_at text NOT NULL,
+  CONSTRAINT job_stages_pkey PRIMARY KEY (stage_id)
+);
+CREATE TABLE kanban_analytics.job_tags (
+  assignment_id integer NOT NULL,
+  ticket_id integer NOT NULL,
+  tag_id integer NOT NULL,
+  assigned_by text,
+  assigned_at text NOT NULL,
+  CONSTRAINT job_tags_pkey PRIMARY KEY (assignment_id)
+);
+CREATE TABLE kanban_analytics.job_tickets (
+  ticket_id integer NOT NULL,
+  order_id integer NOT NULL,
+  stage_id integer NOT NULL,
+  stage_description text,
+  client_name text NOT NULL,
+  order_date text NOT NULL,
+  short_job_desc text,
+  date_required text,
+  qty integer,
+  cost real,
+  paper_type text,
+  gsm text,
+  paper_size text,
+  pages integer,
+  job_type text,
+  bind_type text,
+  cello_yes integer DEFAULT 0,
+  fold_yes integer DEFAULT 0,
+  stitch_yes integer DEFAULT 0,
+  production_notes text,
+  client_order_num text,
+  shipping_desc text,
+  invoicing_business text,
+  priority text,
+  days_until_due integer,
+  days_in_system integer,
+  urgency_level text,
+  customer_order_count integer,
+  customer_lifetime_value real,
+  ai_priority_score integer,
+  priority_label text,
+  priority_color text,
+  synced_at text NOT NULL,
+  last_updated text NOT NULL,
+  CONSTRAINT job_tickets_pkey PRIMARY KEY (ticket_id)
+);
+CREATE TABLE kanban_analytics.orders (
+  order_id integer NOT NULL,
+  client_name text NOT NULL,
+  order_date text NOT NULL,
+  date_required text,
+  shipping_type text,
+  invoicing_business_id integer,
+  client_order_num text,
+  synced_at text NOT NULL,
+  last_updated text NOT NULL,
+  CONSTRAINT orders_pkey PRIMARY KEY (order_id)
+);
+CREATE TABLE kanban_analytics.production_log (
+  log_id integer NOT NULL,
+  ticket_id integer NOT NULL,
+  log_date text NOT NULL,
+  log_time text NOT NULL,
+  user_initials text,
+  entry_type text NOT NULL DEFAULT 'note'::text,
+  from_stage_id integer,
+  to_stage_id integer,
+  from_stage_name text,
+  to_stage_name text,
+  note_text text,
+  wastage_amount real,
+  wastage_unit text,
+  wastage_type text,
+  wastage_reason text,
+  stock_item text,
+  stock_quantity_change real,
+  stock_reason text,
+  delay_hours real,
+  delay_reason text,
+  delay_resolved integer DEFAULT 0,
+  notification_type text,
+  notification_recipient text,
+  notification_subject text,
+  notification_message text,
+  notification_status text DEFAULT 'pending'::text,
+  notification_sent_at text,
+  notification_method_details text,
+  created_at text NOT NULL,
+  updated_at text,
+  is_edited integer DEFAULT 0,
+  created_by_user text,
+  CONSTRAINT production_log_pkey PRIMARY KEY (log_id)
+);
+CREATE TABLE kanban_analytics.stage_analytics (
+  analytics_id integer NOT NULL,
+  stage_id integer NOT NULL,
+  date text NOT NULL,
+  jobs_entered integer DEFAULT 0,
+  jobs_completed integer DEFAULT 0,
+  jobs_in_progress integer DEFAULT 0,
+  avg_time_in_stage_hours real,
+  min_time_in_stage_hours real,
+  max_time_in_stage_hours real,
+  total_time_hours real,
+  is_bottleneck integer DEFAULT 0,
+  bottleneck_severity text,
+  queue_depth integer DEFAULT 0,
+  calculated_at text NOT NULL,
+  CONSTRAINT stage_analytics_pkey PRIMARY KEY (analytics_id)
+);
+CREATE TABLE kanban_analytics.stage_transitions (
+  transition_id integer NOT NULL,
+  ticket_id integer NOT NULL,
+  from_stage_id integer,
+  to_stage_id integer NOT NULL,
+  transition_date text NOT NULL,
+  transition_time_hours real,
+  notes text,
+  business_hours real DEFAULT 0.0,
+  total_hours real DEFAULT 0.0,
+  CONSTRAINT stage_transitions_pkey PRIMARY KEY (transition_id)
+);
+CREATE TABLE kanban_analytics.sync_history (
+  sync_id integer NOT NULL,
+  sync_type text NOT NULL,
+  sync_start text NOT NULL,
+  sync_end text,
+  records_synced integer DEFAULT 0,
+  records_added integer DEFAULT 0,
+  records_updated integer DEFAULT 0,
+  records_deleted integer DEFAULT 0,
+  sync_status text,
+  error_message text,
+  sync_duration_seconds real,
+  CONSTRAINT sync_history_pkey PRIMARY KEY (sync_id)
+);
+
+
+
+
+
+
+
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE stock_data.ClickCostHistory (
+  HistoryID integer NOT NULL,
+  ClickDesc text NOT NULL,
+  OldPrice real NOT NULL,
+  NewPrice real NOT NULL,
+  ChangePercent real,
+  ChangedBy text DEFAULT 'System'::text,
+  ChangedDate text,
+  CONSTRAINT ClickCostHistory_pkey PRIMARY KEY (HistoryID)
+);
+CREATE TABLE stock_data.ClickCosts (
+  ClickID integer NOT NULL,
+  ClickDesc text NOT NULL,
+  ClickPricePerA4 real NOT NULL,
+  LastUpdated text,
+  CONSTRAINT ClickCosts_pkey PRIMARY KEY (ClickID)
+);
+CREATE TABLE stock_data.ConsumableInventory (
+  ConsumableID integer NOT NULL,
+  ConsumableType text NOT NULL,
+  Description text NOT NULL,
+  Unit text NOT NULL,
+  CurrentStock real DEFAULT 0,
+  ReorderPoint real DEFAULT 10,
+  CriticalLevel real DEFAULT 5,
+  CostPerUnit real,
+  SupplierName text,
+  IsActive integer DEFAULT 1,
+  LastUpdated text,
+  CONSTRAINT ConsumableInventory_pkey PRIMARY KEY (ConsumableID)
+);
+CREATE TABLE stock_data.ConsumableTransactions (
+  TransactionID integer NOT NULL,
+  ConsumableID integer NOT NULL,
+  TransactionType text NOT NULL,
+  Quantity real NOT NULL,
+  OrderID integer,
+  TransactionDate text,
+  Notes text,
+  BalanceAfter real,
+  CONSTRAINT ConsumableTransactions_pkey PRIMARY KEY (TransactionID)
+);
+CREATE TABLE stock_data.CorfluteMaterialTransactions (
+  TransactionID integer NOT NULL,
+  MaterialID integer NOT NULL,
+  TransactionType text NOT NULL,
+  Sheets integer NOT NULL,
+  SqmUsed real NOT NULL,
+  OrderID integer,
+  TransactionDate text,
+  Notes text,
+  CONSTRAINT CorfluteMaterialTransactions_pkey PRIMARY KEY (TransactionID)
+);
+CREATE TABLE stock_data.CorfluteMaterials (
+  MaterialID integer NOT NULL,
+  Thickness integer NOT NULL,
+  SheetWidth integer NOT NULL,
+  SheetHeight integer NOT NULL,
+  Colour text DEFAULT 'White'::text,
+  SheetsInStock integer DEFAULT 0,
+  TotalSqmInStock real DEFAULT 0,
+  ReorderPoint integer DEFAULT 10,
+  CostPerSheet real,
+  CostPerSqm real,
+  SupplierName text,
+  SupplierPartNumber text,
+  IsActive integer DEFAULT 1,
+  LastUpdated text,
+  CONSTRAINT CorfluteMaterials_pkey PRIMARY KEY (MaterialID)
+);
+CREATE TABLE stock_data.EventProcessingLog (
+  log_id integer NOT NULL,
+  event_type text NOT NULL,
+  order_id text NOT NULL,
+  order_number text,
+  handler_name text NOT NULL,
+  success integer NOT NULL,
+  message text,
+  processing_time_ms integer,
+  created_at text NOT NULL,
+  CONSTRAINT EventProcessingLog_pkey PRIMARY KEY (log_id)
+);
+CREATE TABLE stock_data.JobTickets (
+  job_ticket_id integer NOT NULL,
+  order_source text DEFAULT 'Shopify'::text,
+  external_order_id text,
+  customer_email text,
+  product_title text,
+  quantity integer,
+  total_price real,
+  job_stage text DEFAULT 'Ready to Print'::text,
+  created_date text NOT NULL,
+  completed_date text,
+  notes text,
+  stock_ids_used text,
+  CONSTRAINT JobTickets_pkey PRIMARY KEY (job_ticket_id)
+);
+CREATE TABLE stock_data.ProfitMargins (
+  MarginID integer NOT NULL,
+  ProductType text NOT NULL,
+  MinJobValue real NOT NULL,
+  MaxJobValue real,
+  MarginPercentage real NOT NULL,
+  IsActive integer DEFAULT 1,
+  CONSTRAINT ProfitMargins_pkey PRIMARY KEY (MarginID)
+);
+CREATE TABLE stock_data.PurchaseOrderItems (
+  POItemID integer NOT NULL,
+  POID integer NOT NULL,
+  StockID integer,
+  ConsumableID integer,
+  Description text NOT NULL,
+  QuantityOrdered integer NOT NULL,
+  QuantityReceived integer DEFAULT 0,
+  UnitPrice real NOT NULL,
+  LineTotal real NOT NULL,
+  CONSTRAINT PurchaseOrderItems_pkey PRIMARY KEY (POItemID)
+);
+CREATE TABLE stock_data.PurchaseOrders (
+  POID integer NOT NULL,
+  PONumber text NOT NULL,
+  SupplierName text NOT NULL,
+  OrderDate text,
+  ExpectedDeliveryDate text,
+  ActualDeliveryDate text,
+  Status text DEFAULT 'DRAFT'::text,
+  TotalValue real DEFAULT 0,
+  Notes text,
+  CreatedBy text DEFAULT 'System'::text,
+  CreatedDate text,
+  CONSTRAINT PurchaseOrders_pkey PRIMARY KEY (POID)
+);
+CREATE TABLE stock_data.QuoteMaterialRequirements (
+  RequirementID integer NOT NULL,
+  QuoteID text NOT NULL,
+  StockID integer,
+  RequiredQuantity integer NOT NULL,
+  StockSpec text NOT NULL,
+  MaterialType text NOT NULL,
+  IsReserved integer DEFAULT 0,
+  ReservedDate text,
+  ConsumedOrderID integer,
+  ConsumedDate text,
+  CreatedDate text,
+  CONSTRAINT QuoteMaterialRequirements_pkey PRIMARY KEY (RequirementID)
+);
+CREATE TABLE stock_data.ReorderAlerts (
+  AlertID integer NOT NULL,
+  StockID integer,
+  ConsumableID integer,
+  AlertLevel text NOT NULL,
+  CurrentLevel real NOT NULL,
+  ReorderPoint real NOT NULL,
+  RecommendedOrderQty integer,
+  IsAcknowledged integer DEFAULT 0,
+  IsSuppressed integer DEFAULT 0,
+  GeneratedDate text,
+  AcknowledgedBy text,
+  AcknowledgedDate text,
+  CONSTRAINT ReorderAlerts_pkey PRIMARY KEY (AlertID)
+);
+CREATE TABLE stock_data.StockLevels (
+  StockID integer NOT NULL,
+  StockTypeID integer NOT NULL,
+  StockTypeDesc text NOT NULL,
+  Length integer,
+  Width integer,
+  GSM integer,
+  Colour text DEFAULT 'White'::text,
+  CostPerThousand real NOT NULL,
+  Markup real DEFAULT 35.0,
+  CurrentStockLevel integer DEFAULT 0,
+  ReorderPoint integer DEFAULT 1000,
+  CriticalLevel integer DEFAULT 500,
+  MaxStockLevel integer DEFAULT 5000,
+  SupplierName text,
+  SupplierPartNumber text,
+  LocationCode text,
+  BinNumber text,
+  IsActive integer DEFAULT 1,
+  LastUpdated text,
+  CreatedDate text,
+  CONSTRAINT StockLevels_pkey PRIMARY KEY (StockID)
+);
+CREATE TABLE stock_data.StockMarkupRules (
+  RuleID integer NOT NULL,
+  RuleName text NOT NULL,
+  StockTypePattern text,
+  GSMMin integer,
+  GSMMax integer,
+  MarkupPercent real NOT NULL,
+  Priority integer DEFAULT 0,
+  IsActive integer DEFAULT 1,
+  CreatedDate text,
+  CONSTRAINT StockMarkupRules_pkey PRIMARY KEY (RuleID)
+);
+CREATE TABLE stock_data.StockTransactions (
+  TransactionID integer NOT NULL,
+  StockID integer NOT NULL,
+  TransactionType text NOT NULL,
+  Quantity integer NOT NULL,
+  OrderID integer,
+  QuoteID text,
+  POID integer,
+  TransactionDate text,
+  Notes text,
+  PerformedBy text DEFAULT 'System'::text,
+  BalanceAfter integer,
+  CONSTRAINT StockTransactions_pkey PRIMARY KEY (TransactionID)
+);
+CREATE TABLE stock_data.clickcosthistory (
+  HistoryID integer NOT NULL,
+  ClickDesc text NOT NULL,
+  OldPrice real NOT NULL,
+  NewPrice real NOT NULL,
+  ChangePercent real,
+  ChangedBy text DEFAULT 'System'::text,
+  ChangedDate text,
+  CONSTRAINT clickcosthistory_pkey PRIMARY KEY (HistoryID)
+);
+CREATE TABLE stock_data.clickcosts (
+  ClickID integer NOT NULL,
+  ClickDesc text NOT NULL,
+  ClickPricePerA4 real NOT NULL,
+  LastUpdated text,
+  CONSTRAINT clickcosts_pkey PRIMARY KEY (ClickID)
+);
+CREATE TABLE stock_data.consumableinventory (
+  ConsumableID integer NOT NULL,
+  ConsumableType text NOT NULL,
+  Description text NOT NULL,
+  Unit text NOT NULL,
+  CurrentStock real DEFAULT 0,
+  ReorderPoint real DEFAULT 10,
+  CriticalLevel real DEFAULT 5,
+  CostPerUnit real,
+  SupplierName text,
+  IsActive integer DEFAULT 1,
+  LastUpdated text,
+  CONSTRAINT consumableinventory_pkey PRIMARY KEY (ConsumableID)
+);
+CREATE TABLE stock_data.consumabletransactions (
+  TransactionID integer NOT NULL,
+  ConsumableID integer NOT NULL,
+  TransactionType text NOT NULL,
+  Quantity real NOT NULL,
+  OrderID integer,
+  TransactionDate text,
+  Notes text,
+  BalanceAfter real,
+  CONSTRAINT consumabletransactions_pkey PRIMARY KEY (TransactionID)
+);
+CREATE TABLE stock_data.corflutematerials (
+  MaterialID integer NOT NULL,
+  Thickness integer NOT NULL,
+  SheetWidth integer NOT NULL,
+  SheetHeight integer NOT NULL,
+  Colour text DEFAULT 'White'::text,
+  SheetsInStock integer DEFAULT 0,
+  TotalSqmInStock real DEFAULT 0,
+  ReorderPoint integer DEFAULT 10,
+  CostPerSheet real,
+  CostPerSqm real,
+  SupplierName text,
+  SupplierPartNumber text,
+  IsActive integer DEFAULT 1,
+  LastUpdated text,
+  CONSTRAINT corflutematerials_pkey PRIMARY KEY (MaterialID)
+);
+CREATE TABLE stock_data.corflutematerialtransactions (
+  TransactionID integer NOT NULL,
+  MaterialID integer NOT NULL,
+  TransactionType text NOT NULL,
+  Sheets integer NOT NULL,
+  SqmUsed real NOT NULL,
+  OrderID integer,
+  TransactionDate text,
+  Notes text,
+  CONSTRAINT corflutematerialtransactions_pkey PRIMARY KEY (TransactionID)
+);
+CREATE TABLE stock_data.custom_events (
+  event_id integer NOT NULL,
+  event_type text NOT NULL,
+  event_data text NOT NULL,
+  customer_email text,
+  session_id text,
+  order_id text,
+  product_id text,
+  stock_id text,
+  source text DEFAULT 'website'::text,
+  created_at text NOT NULL,
+  processed integer DEFAULT 0,
+  CONSTRAINT custom_events_pkey PRIMARY KEY (event_id)
+);
+CREATE TABLE stock_data.eventprocessinglog (
+  log_id integer NOT NULL,
+  event_type text NOT NULL,
+  order_id text NOT NULL,
+  order_number text,
+  handler_name text NOT NULL,
+  success integer NOT NULL,
+  message text,
+  processing_time_ms integer,
+  created_at text NOT NULL,
+  CONSTRAINT eventprocessinglog_pkey PRIMARY KEY (log_id)
+);
+CREATE TABLE stock_data.extracted_jobs (
+  id integer NOT NULL,
+  ticket_id integer NOT NULL,
+  order_id integer,
+  order_date text,
+  client_name text,
+  stock_type text,
+  stock_description text,
+  gsm text,
+  paper_finish text,
+  sheet_size text,
+  length_mm integer,
+  width_mm integer,
+  quantity_ordered integer,
+  total_sheets_consumed integer,
+  sheets_per_item real,
+  job_description text,
+  product_type text,
+  finishing_notes text,
+  total_estimated_value real,
+  estimated_profit real,
+  profit_margin_percent real,
+  stock_cost_estimate real,
+  industry text,
+  client_type text,
+  suburb text,
+  extraction_confidence real,
+  ai_model text,
+  extraction_timestamp text,
+  json_data text,
+  created_at text,
+  updated_at text,
+  job_value real,
+  stock_id text,
+  mixed_stock_flag integer DEFAULT 0,
+  cover_stock_id text,
+  content_stock_id text,
+  thickness_mm real,
+  standard_format text,
+  orientation text,
+  product_category text,
+  product_sub_category text,
+  sides text,
+  color_type text,
+  page_count integer,
+  binding_type text,
+  stock_role_primary text DEFAULT 'single'::text,
+  fluting_direction text,
+  print_method text,
+  color_pages text,
+  bw_pages text,
+  special_effects text,
+  color_sides text,
+  binding_edge text,
+  cellophane text,
+  lamination text,
+  coating text,
+  folding_type text,
+  drilling boolean DEFAULT false,
+  perforation boolean DEFAULT false,
+  die_cutting boolean DEFAULT false,
+  creasing boolean DEFAULT false,
+  uv_coating boolean DEFAULT false,
+  address text,
+  state text,
+  postcode text,
+  business_description text,
+  industry_sub_category text,
+  delivery_method text,
+  urgent boolean DEFAULT false,
+  rush_job boolean DEFAULT false,
+  due_date text,
+  quality_tier text,
+  use_case text,
+  complexity_score integer,
+  typical_turnaround_days integer,
+  price_sensitivity text,
+  production_difficulty text,
+  total_products_count integer,
+  multi_product_order boolean DEFAULT false,
+  rush_order boolean DEFAULT false,
+  file_path text,
+  artwork_supplied boolean DEFAULT false,
+  job_type_from_db text,
+  CONSTRAINT extracted_jobs_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.job_stocks (
+  id integer NOT NULL,
+  ticket_id integer NOT NULL,
+  stock_id text NOT NULL,
+  stock_role text,
+  quantity_sheets integer,
+  notes text,
+  created_at timestamp without time zone,
+  CONSTRAINT job_stocks_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.jobtickets (
+  job_ticket_id integer NOT NULL,
+  order_source text DEFAULT 'Shopify'::text,
+  external_order_id text,
+  customer_email text,
+  product_title text,
+  quantity integer,
+  total_price real,
+  job_stage text DEFAULT 'Ready to Print'::text,
+  created_date text NOT NULL,
+  completed_date text,
+  notes text,
+  stock_ids_used text,
+  CONSTRAINT jobtickets_pkey PRIMARY KEY (job_ticket_id)
+);
+CREATE TABLE stock_data.profitmargins (
+  MarginID integer NOT NULL,
+  ProductType text NOT NULL,
+  MinJobValue real NOT NULL,
+  MaxJobValue real,
+  MarginPercentage real NOT NULL,
+  IsActive integer DEFAULT 1,
+  CONSTRAINT profitmargins_pkey PRIMARY KEY (MarginID)
+);
+CREATE TABLE stock_data.purchaseorderitems (
+  POItemID integer NOT NULL,
+  POID integer NOT NULL,
+  StockID integer,
+  ConsumableID integer,
+  Description text NOT NULL,
+  QuantityOrdered integer NOT NULL,
+  QuantityReceived integer DEFAULT 0,
+  UnitPrice real NOT NULL,
+  LineTotal real NOT NULL,
+  CONSTRAINT purchaseorderitems_pkey PRIMARY KEY (POItemID)
+);
+CREATE TABLE stock_data.purchaseorders (
+  POID integer NOT NULL,
+  PONumber text NOT NULL,
+  SupplierName text NOT NULL,
+  OrderDate text,
+  ExpectedDeliveryDate text,
+  ActualDeliveryDate text,
+  Status text DEFAULT 'DRAFT'::text,
+  TotalValue real DEFAULT 0,
+  Notes text,
+  CreatedBy text DEFAULT 'System'::text,
+  CreatedDate text,
+  CONSTRAINT purchaseorders_pkey PRIMARY KEY (POID)
+);
+CREATE TABLE stock_data.quotematerialrequirements (
+  RequirementID integer NOT NULL,
+  QuoteID text NOT NULL,
+  StockID integer,
+  RequiredQuantity integer NOT NULL,
+  StockSpec text NOT NULL,
+  MaterialType text NOT NULL,
+  IsReserved integer DEFAULT 0,
+  ReservedDate text,
+  ConsumedOrderID integer,
+  ConsumedDate text,
+  CreatedDate text,
+  CONSTRAINT quotematerialrequirements_pkey PRIMARY KEY (RequirementID)
+);
+CREATE TABLE stock_data.reorderalerts (
+  AlertID integer NOT NULL,
+  StockID integer,
+  ConsumableID integer,
+  AlertLevel text NOT NULL,
+  CurrentLevel real NOT NULL,
+  ReorderPoint real NOT NULL,
+  RecommendedOrderQty integer,
+  IsAcknowledged integer DEFAULT 0,
+  IsSuppressed integer DEFAULT 0,
+  GeneratedDate text,
+  AcknowledgedBy text,
+  AcknowledgedDate text,
+  CONSTRAINT reorderalerts_pkey PRIMARY KEY (AlertID)
+);
+CREATE TABLE stock_data.shopify_abandoned_checkouts (
+  id integer NOT NULL,
+  shopify_checkout_id text NOT NULL,
+  token text NOT NULL,
+  cart_token text,
+  email text,
+  gateway text,
+  buyer_accepts_marketing boolean DEFAULT false,
+  created_at text,
+  updated_at text,
+  completed_at text,
+  closed_at text,
+  customer_id text,
+  customer_email text,
+  customer_first_name text,
+  customer_last_name text,
+  customer_phone text,
+  subtotal_price real,
+  total_price real,
+  total_tax real,
+  total_discounts real,
+  currency text DEFAULT 'AUD'::text,
+  abandoned_checkout_url text,
+  discount_codes text,
+  recovery_email_sent boolean DEFAULT false,
+  recovery_email_sent_at text,
+  recovered boolean DEFAULT false,
+  recovered_order_id text,
+  note text,
+  referring_site text,
+  landing_site text,
+  source_name text,
+  synced_at text,
+  CONSTRAINT shopify_abandoned_checkouts_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_abandoned_line_items (
+  id integer NOT NULL,
+  checkout_id text NOT NULL,
+  shopify_product_id text,
+  shopify_variant_id text,
+  title text,
+  variant_title text,
+  quantity integer,
+  price real,
+  sku text,
+  vendor text,
+  product_type text,
+  properties text,
+  CONSTRAINT shopify_abandoned_line_items_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_analytics_cache (
+  id integer NOT NULL,
+  metric_name text NOT NULL,
+  metric_date date NOT NULL,
+  metric_value real,
+  metric_data text,
+  created_at text,
+  CONSTRAINT shopify_analytics_cache_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_customer_addresses (
+  id integer NOT NULL,
+  shopify_address_id text NOT NULL,
+  customer_id text NOT NULL,
+  first_name text,
+  last_name text,
+  company text,
+  address1 text,
+  address2 text,
+  city text,
+  province text,
+  province_code text,
+  country text,
+  country_code text,
+  zip text,
+  phone text,
+  is_default boolean DEFAULT false,
+  CONSTRAINT shopify_customer_addresses_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_customers (
+  id integer NOT NULL,
+  shopify_customer_id text NOT NULL,
+  email text,
+  first_name text,
+  last_name text,
+  phone text,
+  orders_count integer DEFAULT 0,
+  total_spent real DEFAULT 0.0,
+  average_order_value real DEFAULT 0.0,
+  state text,
+  verified_email boolean DEFAULT false,
+  accepts_marketing boolean DEFAULT false,
+  tags text,
+  note text,
+  currency text DEFAULT 'AUD'::text,
+  created_at text,
+  updated_at text,
+  last_order_id text,
+  last_order_name text,
+  last_order_date text,
+  default_address_id text,
+  marketing_opt_in_level text,
+  tax_exempt boolean DEFAULT false,
+  synced_at text,
+  CONSTRAINT shopify_customers_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_line_items (
+  id integer NOT NULL,
+  shopify_order_id text NOT NULL,
+  line_item_id text NOT NULL,
+  product_id text,
+  variant_id text,
+  title text,
+  variant_title text,
+  sku text,
+  quantity integer,
+  price real,
+  total_discount real,
+  tax_lines text,
+  raw_json text,
+  CONSTRAINT shopify_line_items_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_line_properties (
+  id integer NOT NULL,
+  line_item_id text NOT NULL,
+  name text NOT NULL,
+  value text,
+  CONSTRAINT shopify_line_properties_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_orders (
+  id integer NOT NULL,
+  shopify_order_id text NOT NULL,
+  order_number text,
+  email text,
+  created_at text,
+  updated_at text,
+  financial_status text,
+  fulfillment_status text,
+  total_price real,
+  subtotal_price real,
+  total_tax real,
+  currency text DEFAULT 'AUD'::text,
+  customer_id text,
+  customer_name text,
+  tags text,
+  note text,
+  raw_json text,
+  created_in_db_at text,
+  CONSTRAINT shopify_orders_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_price_parity (
+  id integer NOT NULL,
+  shopify_order_id text NOT NULL,
+  line_item_id text NOT NULL,
+  shopify_price real NOT NULL,
+  backend_price real,
+  difference real,
+  pct_difference real,
+  calculator_inputs text,
+  notes text,
+  checked_at text,
+  CONSTRAINT shopify_price_parity_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_product_images (
+  id integer NOT NULL,
+  shopify_image_id text NOT NULL,
+  product_id text NOT NULL,
+  position integer,
+  src text NOT NULL,
+  alt text,
+  width integer,
+  height integer,
+  variant_ids text,
+  created_at text,
+  updated_at text,
+  CONSTRAINT shopify_product_images_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_product_mapping (
+  id integer NOT NULL,
+  storefront_option text NOT NULL,
+  mapped_stock_id text,
+  notes text,
+  created_at text,
+  updated_at text,
+  CONSTRAINT shopify_product_mapping_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_product_variants (
+  id integer NOT NULL,
+  shopify_variant_id text NOT NULL,
+  product_id text NOT NULL,
+  title text,
+  price real,
+  compare_at_price real,
+  sku text,
+  barcode text,
+  position integer,
+  inventory_policy text,
+  fulfillment_service text,
+  inventory_management text,
+  option1 text,
+  option2 text,
+  option3 text,
+  taxable boolean DEFAULT true,
+  grams integer,
+  weight real,
+  weight_unit text,
+  inventory_item_id text,
+  inventory_quantity integer DEFAULT 0,
+  old_inventory_quantity integer,
+  requires_shipping boolean DEFAULT true,
+  created_at text,
+  updated_at text,
+  CONSTRAINT shopify_product_variants_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_products (
+  id integer NOT NULL,
+  shopify_product_id text NOT NULL,
+  title text NOT NULL,
+  body_html text,
+  vendor text,
+  product_type text,
+  handle text,
+  published_at text,
+  template_suffix text,
+  published_scope text,
+  tags text,
+  status text,
+  admin_graphql_api_id text,
+  metafields_global_title_tag text,
+  metafields_global_description_tag text,
+  image_src text,
+  image_alt text,
+  created_at text,
+  updated_at text,
+  synced_at text,
+  CONSTRAINT shopify_products_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_stock_usage (
+  id integer NOT NULL,
+  shopify_order_id text NOT NULL,
+  line_item_id text NOT NULL,
+  stock_id text,
+  sheets_consumed integer,
+  sqm_consumed real,
+  stock_cost real,
+  recorded_at text,
+  CONSTRAINT shopify_stock_usage_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.shopify_webhook_events (
+  id integer NOT NULL,
+  topic text NOT NULL,
+  shopify_id text,
+  received_at text,
+  payload_hash text NOT NULL,
+  raw_json text NOT NULL,
+  processed boolean DEFAULT false,
+  processed_at text,
+  error text,
+  CONSTRAINT shopify_webhook_events_pkey PRIMARY KEY (id)
+);
+CREATE TABLE stock_data.stocklevels (
+  StockID integer NOT NULL,
+  StockTypeID integer NOT NULL,
+  StockTypeDesc text NOT NULL,
+  Length integer,
+  Width integer,
+  GSM integer,
+  Colour text DEFAULT 'White'::text,
+  CostPerThousand real NOT NULL,
+  Markup real DEFAULT 35.0,
+  CurrentStockLevel integer DEFAULT 0,
+  ReorderPoint integer DEFAULT 1000,
+  CriticalLevel integer DEFAULT 500,
+  MaxStockLevel integer DEFAULT 5000,
+  SupplierName text,
+  SupplierPartNumber text,
+  LocationCode text,
+  BinNumber text,
+  IsActive integer DEFAULT 1,
+  LastUpdated text,
+  CreatedDate text,
+  CONSTRAINT stocklevels_pkey PRIMARY KEY (StockID)
+);
+CREATE TABLE stock_data.stockmarkuprules (
+  RuleID integer NOT NULL,
+  RuleName text NOT NULL,
+  StockTypePattern text,
+  GSMMin integer,
+  GSMMax integer,
+  MarkupPercent real NOT NULL,
+  Priority integer DEFAULT 0,
+  IsActive integer DEFAULT 1,
+  CreatedDate text,
+  CONSTRAINT stockmarkuprules_pkey PRIMARY KEY (RuleID)
+);
+CREATE TABLE stock_data.stocktransactions (
+  TransactionID integer NOT NULL,
+  StockID integer NOT NULL,
+  TransactionType text NOT NULL,
+  Quantity integer NOT NULL,
+  OrderID integer,
+  QuoteID text,
+  POID integer,
+  TransactionDate text,
+  Notes text,
+  PerformedBy text DEFAULT 'System'::text,
+  BalanceAfter integer,
+  CONSTRAINT stocktransactions_pkey PRIMARY KEY (TransactionID)
+);
+CREATE TABLE stock_data.unified_stocks (
+  stock_id text NOT NULL,
+  stock_category text NOT NULL,
+  stock_type_id integer,
+  stock_type_name text NOT NULL,
+  stock_description text,
+  gsm text,
+  length_mm integer,
+  width_mm integer,
+  cost_per_thousand real,
+  thickness_mm real,
+  cost_per_sqm real,
+  roll_width_mm integer,
+  roll_length_mm integer,
+  cost_per_roll real,
+  cost_per_lm real,
+  markup real,
+  sheet_sqm real,
+  is_temp_stock boolean DEFAULT false,
+  source text,
+  notes text,
+  created_at timestamp without time zone,
+  supplier_name text,
+  product_code text,
+  unit_type text DEFAULT 'Sheet'::text,
+  last_purchased_date date,
+  last_purchase_cost real,
+  average_cost real,
+  purchase_count integer DEFAULT 0,
+  colour text,
+  finish text,
+  material_type text,
+  is_active boolean DEFAULT true,
+  product_type text,
+  brand_name text,
+  supplier_notes text,
+  last_supplier_update text,
+  marketing_description text,
+  recommended_uses text,
+  not_recommended text,
+  material_class text,
+  usage_category text,
+  durability_rating text,
+  finish_type_enhanced text,
+  technical_specs_formatted text,
+  updated_at text,
+  CONSTRAINT unified_stocks_pkey PRIMARY KEY (stock_id)
+);

@@ -3,11 +3,17 @@ Initialize prompt_library table on Flask startup
 
 This ensures the table exists before any API calls are made.
 Should be called from flask_app.py during initialization.
+
+UPDATED: November 17, 2025 - Now uses Supabase via get_database_connection()
 """
 
-import sqlite3
 from pathlib import Path
 import logging
+
+# Import Supabase connection utility
+import sys
+sys.path.insert(0, str(Path(__file__).parent))
+from shared.database_utils import get_database_connection
 
 logger = logging.getLogger(__name__)
 
@@ -16,18 +22,14 @@ def init_prompt_library_table(db_path=None):
     Create prompt_library table and indexes if they don't exist
     
     Args:
-        db_path: Path to ai_infrastructure.db (auto-detected if not provided)
+        db_path: DEPRECATED - No longer used (kept for backward compatibility)
+                Connection is always to Supabase ai_infrastructure schema
     """
-    if db_path is None:
-        # Use standard path from AI_agents/data/
-        root_dir = Path(__file__).parent.parent
-        db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    
-    db_path = str(db_path)
-    logger.info(f"🔧 Initializing prompt_library table in: {db_path}")
+    # Ignore db_path parameter - always use Supabase
+    logger.info(f"🔧 Initializing prompt_library table in Supabase (ai_infrastructure schema)")
     
     try:
-        conn = sqlite3.connect(db_path)
+        conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
         
         # Create prompt_library table

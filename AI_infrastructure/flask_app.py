@@ -155,9 +155,9 @@ if os.getenv('RENDER') == 'true':
 # Initialize database schema BEFORE any routes are registered
 try:
     from init_prompt_library import init_prompt_library_table
-    db_path = Config.DATA_DIR / 'ai_infrastructure.db'
-    init_prompt_library_table(db_path)
-    log_success(logger, "Prompt library table initialized")
+    # No db_path needed - uses Supabase ai_infrastructure schema
+    init_prompt_library_table()
+    log_success(logger, "Prompt library table initialized in Supabase")
 except Exception as e:
     log_error(logger, f"Failed to initialize prompt library table: {e}")
 
