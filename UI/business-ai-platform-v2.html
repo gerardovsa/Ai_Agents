@@ -1589,8 +1589,7 @@
 
         .synergy-sidebar-toggle {
             position: fixed;
-            top: 50%;
-            transform: translateY(-50%);
+            /* top will be managed explicitly by JS to keep hit-area aligned with visual position */
             background: var(--accent-primary);
             color: white;
             border: none;
@@ -10410,7 +10409,19 @@
 
             <!-- 4. Create New Chat -->
             <button class="right-sidebar-btn" id="new-chat-btn" title="New Chat">
-                <i class="fas fa-message-plus"></i>
+                <!-- Inline FontAwesome 'message' SVG with plus badge -->
+                <svg class="icon icon-message-plus" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"
+                    aria-hidden="true" focusable="false"
+                    style="width:1.25em; height:1.25em; vertical-align:middle; fill:currentColor;">
+                    <!-- Message bubble -->
+                    <path
+                        d="M64 416L64 192C64 139 107 96 160 96L480 96C533 96 576 139 576 192L576 416C576 469 533 512 480 512L360 512C354.8 512 349.8 513.7 345.6 516.8L230.4 603.2C226.2 606.3 221.2 608 216 608C202.7 608 192 597.3 192 584L192 512L160 512C107 512 64 469 64 416z" />
+                    <!-- Plus badge (scaled + translated) -->
+                    <g transform="translate(430 110) scale(0.18)">
+                        <path
+                            d="M352 128C352 110.3 337.7 96 320 96C302.3 96 288 110.3 288 128L288 288L128 288C110.3 288 96 302.3 96 320C96 337.7 110.3 352 128 352L288 352L288 512C288 529.7 302.3 544 320 544C337.7 544 352 529.7 352 512L352 352L512 352C529.7 352 544 337.7 544 320C544 302.3 529.7 288 512 288L352 288L352 128z" />
+                    </g>
+                </svg>
             </button>
 
             <!-- 5. Thread History -->
@@ -14586,7 +14597,9 @@
                 } else {
                     // Always align with synergy button if not dragged
                     const rect = synergyButton.getBoundingClientRect();
-                    toggle.style.top = `${rect.top}px`;
+                    // Place the toggle so its center aligns with the button's top
+                    const computedTop = Math.max(0, rect.top - (toggle.offsetHeight / 2));
+                    toggle.style.top = `${computedTop}px`;
                 }
             }
 
@@ -19410,7 +19423,8 @@
                 // CRITICAL: Show input area wrapper now that thread is loaded
                 const agentInputArea = document.querySelector(`#agent-${agentId} .agent-input-area`);
                 if (agentInputArea) {
-                    agentInputArea.style.display = 'flex';
+                    // Ensure input area stacks vertically (attached files above input)
+                    agentInputArea.style.display = 'block';
                     console.log(`[UI] Showed agent-${agentId} input area (thread loaded)`);
                 }
 
@@ -23740,6 +23754,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     console.log('[UI] Showed Prime input wrapper (thread switched)');
                 }
 
+                // Enable Prime send button
+                const primeSendBtn = document.querySelector('.send-btn');
                 if (primeSendBtn) {
                     primeSendBtn.disabled = false;
                     primeSendBtn.style.opacity = '1';
@@ -26494,8 +26510,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                         </p>
                                                                     ` : `
                                                                         <!-- Search and Sort Controls -->
-                                                                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                                                                            <div style="flex: 1; position: relative;">
+                                                                        <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                                                            <div style="flex: 0 0 60%; position: relative;">
                                                                                 <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary, #6b7280); font-size: 12px;"></i>
                                                                                 <input 
                                                                                     type="text" 
@@ -26512,7 +26528,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                                                     "
                                                                                 >
                                                                             </div>
-                                                                            <select id="synergySessionSort" style="
+                                                                            <select id="synergySessionSort" style="flex: 0 0 30%; width: 30%;
                                                                                 padding: 8px 12px;
                                                                                 background: var(--bg-tertiary, #1c2128);
                                                                                 border: 1px solid var(--border-color, #374151);
@@ -27115,7 +27131,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     } else if (agentId) {
                         const agentInputArea = document.querySelector(`#agent-${agentId} .agent-input-area`);
                         if (agentInputArea) {
-                            agentInputArea.style.display = 'flex';
+                            // Use block display so attached items (if any) sit above the input
+                            agentInputArea.style.display = 'block';
                             console.log(`[UI] Showed agent-${agentId} input area (new chat started)`);
                         }
                     }

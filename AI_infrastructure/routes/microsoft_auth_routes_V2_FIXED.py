@@ -772,11 +772,24 @@ def microsoft_status():
         
         # Check if token is expired
         try:
-            expires_at = datetime.strptime(expires_at_str, '%Y-%m-%d %H:%M:%S') if expires_at_str else None
+            # Handle both datetime objects (PostgreSQL) and strings (SQLite)
+            if isinstance(expires_at_str, datetime):
+                expires_at = expires_at_str  # Already a datetime object
+            elif isinstance(expires_at_str, str):
+                expires_at = datetime.strptime(expires_at_str, '%Y-%m-%d %H:%M:%S')
+            else:
+                expires_at = None
+            
             is_expired = expires_at and datetime.utcnow() > expires_at
         except Exception as date_error:
             logger.warning(f"⚠️  Failed to parse expiry date: {date_error}")
             is_expired = None
+        
+        # Convert datetime objects to strings for JSON serialization
+        expires_at_json = expires_at.strftime('%Y-%m-%d %H:%M:%S') if isinstance(expires_at, datetime) else expires_at_str
+        last_refreshed_json = last_refreshed_at.strftime('%Y-%m-%d %H:%M:%S') if isinstance(last_refreshed_at, datetime) else last_refreshed_at
+        created_at_json = created_at.strftime('%Y-%m-%d %H:%M:%S') if isinstance(created_at, datetime) else created_at
+        updated_at_json = updated_at.strftime('%Y-%m-%d %H:%M:%S') if isinstance(updated_at, datetime) else updated_at
         
         return jsonify({
             'success': True,
@@ -785,13 +798,13 @@ def microsoft_status():
             'profile_name': profile_name,
             'is_valid': bool(is_valid) if is_valid is not None else False,
             'is_active': bool(is_active) if is_active is not None else False,
-            'expires_at': expires_at_str,
+            'expires_at': expires_at_json,
             'is_expired': is_expired,
-            'last_refreshed_at': last_refreshed_at,
+            'last_refreshed_at': last_refreshed_json,
             'error_count': error_count or 0,
             'last_error': last_error,
-            'connected_since': created_at,
-            'last_updated': updated_at
+            'connected_since': created_at_json,
+            'last_updated': updated_at_json
         })
         
     except Exception as e:

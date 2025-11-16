@@ -39,11 +39,11 @@ foreach ($module in $targetModules) {
     $hasManifest = Test-Path $manifestFile
     
     $status = @{
-        'Module' = $module
-        'JS File' = $hasJS
-        'Manifest' = $hasManifest
+        'Module'        = $module
+        'JS File'       = $hasJS
+        'Manifest'      = $hasManifest
         'Routes Folder' = $hasRoutes
-        'Status' = 'Unknown'
+        'Status'        = 'Unknown'
     }
     
     # Determine status
@@ -51,11 +51,13 @@ foreach ($module in $targetModules) {
         $status.Status = 'OK'
         Write-Host "  $module" -ForegroundColor Green -NoNewline
         Write-Host " - COMPLETE (has routes/)" -ForegroundColor Green
-    } elseif ($hasJS -and $hasManifest) {
+    }
+    elseif ($hasJS -and $hasManifest) {
         $status.Status = 'MISSING_ROUTES'
         Write-Host "  $module" -ForegroundColor Yellow -NoNewline
         Write-Host " - MISSING routes/ folder" -ForegroundColor Red
-    } else {
+    }
+    else {
         $status.Status = 'BROKEN'
         Write-Host "  $module" -ForegroundColor Red -NoNewline
         Write-Host " - BROKEN (missing core files)" -ForegroundColor Red
@@ -97,11 +99,13 @@ except Exception as e:
                 Write-Host "    $($Matches[1])" -ForegroundColor Gray
             }
         }
-    } else {
+    }
+    else {
         Write-Host "  ERROR testing blueprint loader:" -ForegroundColor Red
         Write-Host $testResult -ForegroundColor Red
     }
-} else {
+}
+else {
     Write-Host "  module_blueprint_loader.py MISSING" -ForegroundColor Red
 }
 
@@ -116,7 +120,8 @@ if (Test-Path $flaskAppPath) {
     $hasImport = Select-String -Path $flaskAppPath -Pattern "from core.module_blueprint_loader import" -Quiet
     if ($hasImport) {
         Write-Host "  Imports module_blueprint_loader" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "  MISSING import for module_blueprint_loader" -ForegroundColor Red
     }
     
@@ -124,7 +129,8 @@ if (Test-Path $flaskAppPath) {
     $hasCall = Select-String -Path $flaskAppPath -Pattern "load_module_blueprints\(app\)" -Quiet
     if ($hasCall) {
         Write-Host "  Calls load_module_blueprints(app)" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "  MISSING call to load_module_blueprints()" -ForegroundColor Red
     }
 }
@@ -149,13 +155,15 @@ if (Test-Path $envFile) {
     
     if ($hasSupabaseUrl) {
         Write-Host "  SUPABASE_URL configured" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "  SUPABASE_URL NOT configured" -ForegroundColor Yellow
     }
     
     if ($hasUseSupabase) {
         Write-Host "  USE_SUPABASE configured" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "  USE_SUPABASE NOT configured" -ForegroundColor Yellow
     }
 }
@@ -166,7 +174,8 @@ if (Test-Path $stockDbPath) {
     Write-Host "  stock_data.db EXISTS at In_House_SQL project" -ForegroundColor Green
     $stockDbSize = (Get-Item $stockDbPath).Length / 1MB
     Write-Host "  Size: $([math]::Round($stockDbSize, 2)) MB" -ForegroundColor Gray
-} else {
+}
+else {
     Write-Host "  stock_data.db NOT FOUND" -ForegroundColor Red
 }
 
@@ -183,7 +192,8 @@ if (Test-Path $shopifyRoutesFile) {
     if ($hasInitPattern -and -not $hasBlueprintPattern) {
         Write-Host "  ISSUE: Using OLD init_shopify_routes() pattern" -ForegroundColor Red
         Write-Host "  FIX: Convert to Flask Blueprint pattern" -ForegroundColor Yellow
-    } elseif ($hasBlueprintPattern) {
+    }
+    elseif ($hasBlueprintPattern) {
         Write-Host "  Using Blueprint pattern" -ForegroundColor Green
     }
 }
@@ -194,7 +204,8 @@ $kanbanRoutesPath = Join-Path $modulesDir "inhouse-kanban\routes"
 if (-not (Test-Path $kanbanRoutesPath)) {
     Write-Host "  ISSUE: NO routes/ folder" -ForegroundColor Red
     Write-Host "  FIX: Create routes/kanban_routes.py with Blueprint" -ForegroundColor Yellow
-} else {
+}
+else {
     Write-Host "  Has routes/ folder" -ForegroundColor Green
 }
 
@@ -204,7 +215,8 @@ $commHubRoutesPath = Join-Path $modulesDir "communication-hub\routes"
 if (-not (Test-Path $commHubRoutesPath)) {
     Write-Host "  ISSUE: NO routes/ folder" -ForegroundColor Red
     Write-Host "  FIX: Create routes/communication_routes.py with Blueprint" -ForegroundColor Yellow
-} else {
+}
+else {
     Write-Host "  Has routes/ folder" -ForegroundColor Green
 }
 
@@ -214,7 +226,8 @@ $dbVizRoutesPath = Join-Path $modulesDir "database-visualizer\routes"
 if (-not (Test-Path $dbVizRoutesPath)) {
     Write-Host "  ISSUE: NO routes/ folder" -ForegroundColor Red
     Write-Host "  FIX: Create routes/database_routes.py with Blueprint" -ForegroundColor Yellow
-} else {
+}
+else {
     Write-Host "  Has routes/ folder" -ForegroundColor Green
 }
 
