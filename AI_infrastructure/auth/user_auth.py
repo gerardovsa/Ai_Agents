@@ -49,6 +49,9 @@ from dotenv import dotenv_values
 
 # Setup logging
 from utils.logger_config import setup_logger, log_db
+
+# Import centralized database connection (supports both SQLite and Supabase)
+from shared.database_utils import get_database_connection
 logger = setup_logger('auth.user_auth')
 
 # Load credentials from .env.master (in root folder, 3 levels up)
@@ -73,6 +76,16 @@ class UserAuthManager:
         self.db_path = str(db_path)
         self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
         self._init_tables()
+    
+    def _get_db_connection(self):
+        """
+        Get database connection using centralized utility
+        Automatically uses SQLite (local) or Supabase PostgreSQL (Render)
+        
+        Returns:
+            Database connection (sqlite3.Connection or psycopg2.Connection)
+        """
+        return get_database_connection('ai_infrastructure')
     
     def _load_env_gmail_accounts(self) -> List[Dict]:
         """
@@ -435,93 +448,99 @@ class UserAuthManager:
             Dict with token and user info
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                
-                # Find user by username or email
-                cursor.execute('''
-                    SELECT id, username, email, password_hash, role, primary_gmail
-                    FROM users
-                    WHERE username = ? OR email = ?
-                ''', (username, username))
-                
-                row = cursor.fetchone()
-                
-                if not row:
-                    return {'success': False, 'error': 'Invalid credentials'}
-                
-                user_id, username, email, password_hash, role, primary_gmail = row
-                
-                # Verify password
-                if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
-                    return {'success': False, 'error': 'Invalid credentials'}
-                
-                # Get user's workspaces
-                cursor.execute('''
-                    SELECT id, name FROM workspaces WHERE user_id = ?
-                ''', (user_id,))
-                workspaces = [{'id': w[0], 'name': w[1]} for w in cursor.fetchall()]
-                
-                # Get linked Gmail accounts
-                cursor.execute('''
-                    SELECT gmail_address, display_name, is_primary
-                    FROM user_gmail_accounts
-                    WHERE user_id = ?
-                ''', (user_id,))
-                gmail_accounts = [
-                    {
-                        'email': g[0],
-                        'display_name': g[1] or g[0],
-                        'is_primary': bool(g[2])
-                    }
-                    for g in cursor.fetchall()
-                ]
-                
-                # Generate JWT token
-                exp_time = datetime.utcnow() + timedelta(days=30)  # 30-day expiry (1 month)
-                exp_timestamp = int(exp_time.timestamp())
-                
-                token_payload = {
-                    'user_id': user_id,
+            conn = self._get_db_connection()
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Find user by username or email
+            cursor.execute('''
+                SELECT id, username, email, password_hash, role, primary_gmail
+                FROM users
+                WHERE username = ? OR email = ?
+            ''', (username, username))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                conn.close()
+                return {'success': False, 'error': 'Invalid credentials'}
+            
+            user_id, username, email, password_hash, role, primary_gmail = row
+            
+            # Verify password
+            if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
+                conn.close()
+                return {'success': False, 'error': 'Invalid credentials'}
+            
+            # Get user's workspaces
+            cursor.execute('''
+                SELECT id, name FROM workspaces WHERE user_id = ?
+            ''', (user_id,))
+            workspaces = [{'id': w[0], 'name': w[1]} for w in cursor.fetchall()]
+            
+            # Get linked Gmail accounts
+            cursor.execute('''
+                SELECT gmail_address, display_name, is_primary
+                FROM user_gmail_accounts
+                WHERE user_id = ?
+            ''', (user_id,))
+            gmail_accounts = [
+                {
+                    'email': g[0],
+                    'display_name': g[1] or g[0],
+                    'is_primary': bool(g[2])
+                }
+                for g in cursor.fetchall()
+            ]
+            
+            # Generate JWT token
+            exp_time = datetime.utcnow() + timedelta(days=30)  # 30-day expiry (1 month)
+            exp_timestamp = int(exp_time.timestamp())
+            
+            token_payload = {
+                'user_id': user_id,
+                'username': username,
+                'email': email,
+                'role': role,
+                'exp': exp_timestamp
+            }
+            
+            token = jwt.encode(token_payload, self.jwt_secret, algorithm='HS256')
+            
+            # Store session
+            cursor.execute('''
+                INSERT INTO user_sessions (user_id, token, expires_at)
+                VALUES (?, ?, ?)
+            ''', (user_id, token, exp_time.strftime('%Y-%m-%d %H:%M:%S')))
+            
+            # Update last active
+            cursor.execute('''
+                UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = ?
+            ''', (user_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"User logged in: {username}")
+            
+            return {
+                'success': True,
+                'token': token,
+                'user': {
+                    'id': user_id,
                     'username': username,
                     'email': email,
                     'role': role,
-                    'exp': exp_timestamp
+                    'primary_gmail': primary_gmail,
+                    'workspaces': workspaces,
+                    'gmail_accounts': gmail_accounts
                 }
-                
-                token = jwt.encode(token_payload, self.jwt_secret, algorithm='HS256')
-                
-                # Store session
-                cursor.execute('''
-                    INSERT INTO user_sessions (user_id, token, expires_at)
-                    VALUES (?, ?, ?)
-                ''', (user_id, token, exp_time.strftime('%Y-%m-%d %H:%M:%S')))
-                
-                # Update last active
-                cursor.execute('''
-                    UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = ?
-                ''', (user_id,))
-                
-                conn.commit()
-                
-                print(f"User logged in: {username}")
-                
-                return {
-                    'success': True,
-                    'token': token,
-                    'user': {
-                        'id': user_id,
-                        'username': username,
-                        'email': email,
-                        'role': role,
-                        'primary_gmail': primary_gmail,
-                        'workspaces': workspaces,
-                        'gmail_accounts': gmail_accounts
-                    }
-                }
+            }
                 
         except Exception as e:
             print(f" Login error: {e}")
+            if 'conn' in locals():
+                conn.close()
             return {'success': False, 'error': str(e)}
     
     def verify_token(self, token: str) -> Optional[Dict]:
@@ -573,8 +592,10 @@ class UserAuthManager:
             
             print(f"\n📊 STAGE 2.2: Database Token Lookup")
             # Check if token exists in sessions and hasn't expired
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
+            conn = self._get_db_connection()
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            try:
                 
                 # First check total sessions in database
                 cursor.execute('SELECT COUNT(*) FROM user_sessions')
@@ -616,10 +637,12 @@ class UserAuthManager:
                     return None
                 
                 print(f"   Token is valid (not expired)")
-            
-            print(f"\nSTAGE 2 COMPLETE: Token verified successfully")
-            print("="*60 + "\n")
-            return payload
+                
+                print(f"\nSTAGE 2 COMPLETE: Token verified successfully")
+                print("="*60 + "\n")
+                return payload
+            finally:
+                conn.close()
             
         except jwt.ExpiredSignatureError:
             print(f"\n STAGE 2 FAILED: Token expired (JWT signature)")
