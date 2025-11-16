@@ -1280,6 +1280,7 @@ def save_messages():
     Returns:
         {"success": true, "thread_id": "...", "messages_saved": 2}
     """
+    conn = None
     try:
         from thread_manager import ThreadManager
         
@@ -1296,40 +1297,41 @@ def save_messages():
         
         print(f"[MESSAGE SAVE] Thread: {thread_id}, User: {user_id}, Messages: {len(messages)}")
         
-        # Initialize ThreadManager
-        thread_mgr = ThreadManager(get_sessions_database_path())
-        
-        # APPEND MODE: Only save messages that don't already exist
-        # Check existing message count to determine which messages to save
-        db_path = get_sessions_database_path()
-        
-        # Get the internal thread database ID
-        query = "SELECT id FROM sessions.threads WHERE thread_slug = %s"
-        
+        # Get database connection ONCE and reuse
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
-        cursor.execute(query, (thread_id,))
-        rows = cursor.fetchall()
         
-        existing_message_count = 0
-        if rows and len(rows) > 0:
-            internal_thread_id = rows[0]['id']
-            
-            # Count existing messages for this thread
-            count_query = "SELECT COUNT(*) as count FROM sessions.messages WHERE thread_id = %s"
-            cursor.execute(count_query, (internal_thread_id,))
-            count_result = cursor.fetchall()
+        # Get the internal thread database ID and count in ONE query
+        query = """
+            SELECT t.id, COUNT(m.id) as message_count
+            FROM sessions.threads t
+            LEFT JOIN sessions.messages m ON m.thread_id = t.id
+            WHERE t.thread_slug = %s
+            GROUP BY t.id
+        """
+        cursor.execute(query, (thread_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            cursor.close()
             conn.close()
-            if count_result and len(count_result) > 0:
-                existing_message_count = count_result[0]['count']
-                print(f"[MESSAGE SAVE] Thread {thread_id} has {existing_message_count} existing messages")
+            return error_response(f'Thread {thread_id} not found', 404)
+        
+        internal_thread_id = result['id']
+        existing_message_count = result['message_count'] or 0
+        print(f"[MESSAGE SAVE] Thread {thread_id} (DB ID: {internal_thread_id}) has {existing_message_count} existing messages")
         
         # Only save NEW messages (skip messages that already exist)
         messages_to_save = messages[existing_message_count:]
         print(f"[MESSAGE SAVE] Appending {len(messages_to_save)} new messages (skipping first {existing_message_count})")
         
-        # Save each NEW message
+        # Batch insert messages directly (MUCH faster than ThreadManager loop)
         saved_count = 0
+        insert_query = """
+            INSERT INTO sessions.messages (thread_id, role, content, created_at)
+            VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+        """
+        
         for msg in messages_to_save:
             role = msg.get('role')
             content = msg.get('content')
@@ -1339,25 +1341,18 @@ def save_messages():
                 continue
             
             try:
-                # Add message to database
-                thread_mgr.add_message(
-                    workspace_slug='default',
-                    thread_slug=thread_id,
-                    role=role,
-                    content=content,
-                    user_id=user_id,
-                    prompt=content if role == 'user' else None,
-                    include=True,
-                    tool_calls=msg.get('tool_calls'),
-                    tokens_used=msg.get('tokens_used'),
-                    response_time_ms=msg.get('response_time_ms'),
-                    metadata=msg.get('metadata', {})
-                )
+                cursor.execute(insert_query, (internal_thread_id, role, content))
                 saved_count += 1
-                print(f"[MESSAGE SAVE] Saved {role} message to thread {thread_id}")
             except Exception as msg_error:
                 print(f"[MESSAGE SAVE ERROR] Failed to save message: {msg_error}")
                 continue
+        
+        # Commit all inserts at once
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"[MESSAGE SAVE] Successfully saved {saved_count} messages to thread {thread_id}")
         
         return success_response({
             'thread_id': thread_id,
@@ -1368,6 +1363,15 @@ def save_messages():
         print(f"[MESSAGE SAVE ERROR] {str(e)}")
         import traceback
         traceback.print_exc()
+        
+        # Ensure connection is closed on error
+        if conn:
+            try:
+                conn.rollback()
+                conn.close()
+            except:
+                pass
+        
         return error_response(f'Failed to save messages: {str(e)}', 500)
 
 
