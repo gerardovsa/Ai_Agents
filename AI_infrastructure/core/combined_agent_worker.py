@@ -1312,9 +1312,13 @@ def run_simple_agent_worker(
         system_prompt = ai_client.get_system_prompt(prompt_name)
         
         # Build messages with VALIDATED history
+        # CRITICAL FIX: conversation_history ALREADY includes the current user message
+        # (added in agent_routes_v4.py line 538), so DON'T append it again!
         messages = []
         if conversation_history:
             print(f"{log_prefix} 🔍 Validating {len(conversation_history)} messages from history...")
+            print(f"{log_prefix} Last message role: {conversation_history[-1].get('role') if conversation_history else 'N/A'}")
+            print(f"{log_prefix} Last message content: {str(conversation_history[-1].get('content', ''))[:100] if conversation_history else 'N/A'}...")
             
             # CRITICAL: Use comprehensive validation (fixes all 7 issues)
             messages = validate_conversation_history(conversation_history)
@@ -1323,8 +1327,11 @@ def run_simple_agent_worker(
             messages = ensure_thinking_on_final_assistant(messages, thinking_enabled=True)
             
             print(f"{log_prefix} ✅ Validated: {len(messages)} valid messages")
-        
-        messages.append({'role': 'user', 'content': prompt})
+            print(f"{log_prefix} ✅ Current user message ALREADY in history - NOT appending duplicate!")
+        else:
+            # No history - add current prompt as first message
+            messages.append({'role': 'user', 'content': prompt})
+            print(f"{log_prefix} ✅ No history - added current prompt as first message")
         
         # Call AI with tools
         response = ai_client.create_message(

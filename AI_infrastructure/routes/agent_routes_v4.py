@@ -524,17 +524,19 @@ def start_agent(agent_id):
         })
         
         # CRITICAL FIX: Always UPDATE state with conversation_history from frontend
-        # get_or_create_state returns existing state if it exists, so we must explicitly update it
+        # THEN add the current user message (which isn't in conversation_history yet)
         if conversation_history:
             state['conversation'] = conversation_history
-            print(f"[START] Updated state with conversation_history from frontend - {len(conversation_history)} messages total")
+            print(f"[START] Updated state with conversation_history from frontend - {len(conversation_history)} messages")
         else:
-            # Only add user message if we didn't receive conversation history from frontend
-            user_message = {'role': 'user', 'content': prompt}
-            if 'conversation' not in state:
-                state['conversation'] = []
-            state['conversation'].append(user_message)
-            print(f"[START] No conversation_history from frontend - added user message to conversation")
+            # Start fresh conversation if no history
+            state['conversation'] = []
+            print(f"[START] No conversation_history from frontend - starting fresh")
+        
+        # ALWAYS add the current user message (it's not in conversation_history yet)
+        user_message = {'role': 'user', 'content': prompt}
+        state['conversation'].append(user_message)
+        print(f"[START] Added current user message to conversation - {len(state['conversation'])} messages total")
         
         lock = agent_state_manager.get_lock(agent_id, session_id)
         queue = agent_state_manager.get_queue(agent_id, session_id)
