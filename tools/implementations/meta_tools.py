@@ -97,14 +97,34 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
         'synergy': ['synergy_'],  # Synergy Dashboard tools
         'dashboard': ['synergy_'],  # Alias for synergy
         'kanban': ['synergy_'],  # Alias for synergy
+        'agent': ['assign_and_activate', 'request_update', 'respond_to'],  # Agent coordination
+        'agents': ['assign_and_activate', 'request_update', 'respond_to'],  # Agent coordination
+        'multi-agent': ['assign_and_activate', 'request_update', 'respond_to'],  # Agent coordination
+        'multi_agent': ['assign_and_activate', 'request_update', 'respond_to'],  # Agent coordination
+        'agent_coordination': ['assign_and_activate', 'request_update', 'respond_to'],  # Agent coordination
+        'coordination': ['assign_and_activate', 'request_update', 'respond_to'],  # Agent coordination
+        'cross-thread': ['request_update', 'respond_to'],  # Cross-thread communication
+        'cross_thread': ['request_update', 'respond_to'],  # Cross-thread communication
     }
     
     tool_list = []
     matched_platform = None
     
-    # Check if input is a direct prefix (like "microsoft_word")
-    # First, try direct prefix matching for compound names
-    if '_' in platform_lower:
+    # FIRST: Try matching by platform field in tool schema
+    # This handles platforms like "advanced_agent_coordination" where tools don't share a common prefix
+    for tool_name, tool in registry.tools.items():
+        tool_platform = tool.get("platform", "").lower()
+        if tool_platform == platform_lower:
+            tool_list.append({
+                "name": tool_name,
+                "description": tool.get("description", "")
+            })
+    if tool_list:
+        matched_platform = platform_lower
+    
+    # SECOND: Check if input is a direct prefix (like "microsoft_word")
+    # Try direct prefix matching for compound names
+    if not tool_list and '_' in platform_lower:
         # e.g., "microsoft_word" or "google_sheets"
         prefix = platform_lower + '_' if not platform_lower.endswith('_') else platform_lower
         for tool_name, tool in registry.tools.items():
@@ -230,6 +250,87 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
             "edit_tools": ["synergy_edit_description", "synergy_edit_notes", "synergy_checklist_add_item", "synergy_checklist_edit_item", "synergy_checklist_toggle_item", "synergy_checklist_delete_item", "synergy_checklist_add_sub_item"],
             "pattern": "synergy_[action]_[object]",
             "examples": ["synergy_create_session", "synergy_add_document", "synergy_checklist_toggle_item"]
+        }
+    elif matched_platform in ['advanced_agent_coordination', 'agent_coordination', 'multi_agent', 'agent', 'agents']:
+        guidance = "Multi-Agent Coordination - Distribute work across 26 AI agents with cross-thread communication:\n\n" + \
+                   "CORE TOOLS (3 total):\n\n" + \
+                   "1. assign_and_activate_agent_with_slugs - ALL-IN-ONE COMBO TOOL\n" + \
+                   "   The primary tool for distributing work to agents.\n" + \
+                   "   - Accepts NATO names ('Alpha', 'Bravo', 'Charlie'...'Zulu') or numbers (1-26)\n" + \
+                   "   - Creates or updates thread in agent column\n" + \
+                   "   - Assigns multiple resource slugs (workflow, internal_doc, synergy_session)\n" + \
+                   "   - Sends instruction message to agent\n" + \
+                   "   - Returns UI commands for automatic tab/column opening\n" + \
+                   "   - Optional auto_trigger to immediately start agent processing\n\n" + \
+                   "   Example: Distribute e-commerce project across 3 agents:\n" + \
+                   "     assign_and_activate_agent_with_slugs(\n" + \
+                   "       target_agent='Alpha',\n" + \
+                   "       thread_title='E-Commerce Frontend',\n" + \
+                   "       instructions='Build React frontend...',\n" + \
+                   "       slugs={'workflow_slug': 'react-workflow'},\n" + \
+                   "       auto_trigger=True, open_ui=True\n" + \
+                   "     )\n\n" + \
+                   "2. request_update_from_thread - Cross-thread communication initiator\n" + \
+                   "   Request information/status from another agent's thread.\n" + \
+                   "   - Creates cross_thread_requests database record\n" + \
+                   "   - Inserts formatted request into target thread with priority icon\n" + \
+                   "   - Priority levels: low (🔵), medium (🟡), high (🟠), urgent (🔴)\n" + \
+                   "   - Request types: status_update, deliverable, question, coordination, resource_request\n" + \
+                   "   - Optional wait_for_response with timeout polling\n\n" + \
+                   "   Example: Request status from Agent Bravo:\n" + \
+                   "     request_update_from_thread(\n" + \
+                   "       target_thread_id='Bravo',\n" + \
+                   "       request_message='Status of API endpoints?',\n" + \
+                   "       request_type='status_update',\n" + \
+                   "       priority='high'\n" + \
+                   "     )\n\n" + \
+                   "3. respond_to_cross_thread_request - Cross-thread response handler\n" + \
+                   "   Respond to incoming requests from other agents.\n" + \
+                   "   - Updates request status to 'completed'\n" + \
+                   "   - Sends response back to source thread\n" + \
+                   "   - Notifies source thread of response arrival\n\n" + \
+                   "   Example: Respond to request:\n" + \
+                   "     respond_to_cross_thread_request(\n" + \
+                   "       request_id='req_abc123',\n" + \
+                   "       response_message='API 90% complete, ready by EOD'\n" + \
+                   "     )\n\n" + \
+                   "KEY FEATURES:\n" + \
+                   "  - 26 NATO agents: Alpha, Bravo, Charlie, Delta, Echo, Foxtrot, Golf, Hotel, India, Juliet,\n" + \
+                   "    Kilo, Lima, Mike, November, Oscar, Papa, Quebec, Romeo, Sierra, Tango, Uniform,\n" + \
+                   "    Victor, Whiskey, X-ray, Yankee, Zulu\n" + \
+                   "  - Flexible identifiers: 'Alpha' or 'agent-1' or '1' (all work the same)\n" + \
+                   "  - UI automation: Automatic tab switching, column opening, thread info display\n" + \
+                   "  - Resource linking: Attach workflows, internal docs, synergy sessions to agent threads\n" + \
+                   "  - Cross-thread messaging: Agents can request updates and receive responses\n" + \
+                   "  - Database tracking: All requests/responses tracked in cross_thread_requests table\n\n" + \
+                   "TYPICAL WORKFLOWS:\n\n" + \
+                   "A) Distribute Multi-Agent Project:\n" + \
+                   "   1. Call assign_and_activate_agent_with_slugs for each agent (Alpha, Bravo, Charlie)\n" + \
+                   "   2. Each call assigns work, attaches resources, and opens UI\n" + \
+                   "   3. Set auto_trigger=True to immediately start agents\n" + \
+                   "   4. Result: 3 agents working in parallel with full coordination\n\n" + \
+                   "B) Request Status Update:\n" + \
+                   "   1. Prime AI calls request_update_from_thread(target='Bravo')\n" + \
+                   "   2. Request appears in Agent Bravo's thread with priority icon\n" + \
+                   "   3. Agent Bravo's AI calls respond_to_cross_thread_request()\n" + \
+                   "   4. Response appears in Prime AI's thread\n\n" + \
+                   "C) Synergy Session Coordination:\n" + \
+                   "   1. Assign same synergy_session_id to multiple agents\n" + \
+                   "   2. All agents' threads link to synergy card automatically\n" + \
+                   "   3. Synergy card shows all linked threads with info badges\n\n" + \
+                   "BEST PRACTICES:\n" + \
+                   "  - Use NATO names for clarity ('Alpha' is clearer than '1')\n" + \
+                   "  - Set auto_trigger=True when ready for agent to start immediately\n" + \
+                   "  - Use high priority for time-sensitive cross-thread requests\n" + \
+                   "  - Link synergy sessions when agents collaborate on same project\n" + \
+                   "  - Include clear, detailed instructions in thread messages"
+        subplatforms_info = {
+            "agent_count": 26,
+            "nato_names": ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu"],
+            "key_tool": "assign_and_activate_agent_with_slugs",
+            "communication_tools": ["request_update_from_thread", "respond_to_cross_thread_request"],
+            "pattern": "[agent_action]_[object]",
+            "examples": ["assign_and_activate_agent_with_slugs", "request_update_from_thread", "respond_to_cross_thread_request"]
         }
     
     # Sort alphabetically
@@ -535,6 +636,12 @@ Just use it directly.""",
         'calendar': ['calendar', 'scheduling'],
         'chat': ['teams', 'slack', 'message'],
         'storage': ['drive', 'onedrive', 'dropbox'],
+        'agent': ['assign_and_activate', 'request_update', 'respond_to'],
+        'agents': ['assign_and_activate', 'request_update', 'respond_to'],
+        'multi-agent': ['assign_and_activate', 'request_update', 'respond_to'],
+        'coordination': ['assign_and_activate', 'request_update', 'respond_to', 'coordination'],
+        'distribute': ['assign_and_activate', 'agent'],
+        'delegate': ['assign_and_activate', 'agent'],
     }
     
     # Platform subcomponents for guidance
@@ -546,18 +653,30 @@ Just use it directly.""",
         'google': {
             'platforms': ['gmail', 'sheets', 'docs', 'forms', 'calendar', 'drive', 'tasks'],
             'guidance': "Use google_[PLATFORM] format to narrow down:\n- gmail (email operations)\n- google_sheets (spreadsheet operations)\n- google_docs (document editing)\n- google_forms (form creation and responses)\n- google_calendar (scheduling)\n- google_drive (file storage)\n- google_tasks (task management)\nOr use list_platform_tools('PLATFORM_NAME') for specific tool lists."
+        },
+        'agent': {
+            'platforms': ['coordination', 'multi-agent', 'cross-thread'],
+            'guidance': "Multi-Agent Coordination - 3 tools to distribute work across 26 AI agents:\n\n1. assign_and_activate_agent_with_slugs - PRIMARY TOOL for work distribution\n   - Assign work to any of 26 NATO agents (Alpha-Zulu)\n   - Attach workflows, docs, synergy sessions\n   - Automatic UI updates and agent triggering\n\n2. request_update_from_thread - Request info from another agent\n   - Cross-thread communication with priority levels\n   - Track requests in database\n\n3. respond_to_cross_thread_request - Respond to incoming requests\n   - Complete request/response cycle\n\nUse list_platform_tools('agent') or list_platform_tools('advanced_agent_coordination') for detailed info."
         }
     }
     
     # Determine search keywords (expand aliases or use query directly)
     search_keywords = []
     
-    # Check for exact alias match
+    # Check for exact alias match first
     if query_lower in alias_map:
         search_keywords = alias_map[query_lower]
     else:
-        # No alias - use query directly for substring matching
-        search_keywords = [query_lower]
+        # No alias - check if any alias appears as substring in query
+        alias_found = False
+        for alias, expansions in alias_map.items():
+            if alias in query_lower:
+                search_keywords.extend(expansions)
+                alias_found = True
+        
+        # If no alias found, use query directly for substring matching
+        if not alias_found:
+            search_keywords = [query_lower]
     
     # Search tool names and descriptions (exact substring matching only)
     matching_tools = []

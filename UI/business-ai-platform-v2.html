@@ -50,9 +50,8 @@
 
     <!-- Handsontable for Spreadsheet Editor -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
-    <!-- HyperFormula - Excel-like formula engine for Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula/dist/hyperformula.full.min.js"></script>
+    <!-- Handsontable JS (1.8MB+): Loaded post-auth for faster initial load -->
+    <!-- Scripts moved to UserAuth.loadPostAuthLibraries() -->
 
     <!-- Chart.js for Spreadsheet Visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -67,23 +66,11 @@
     <!-- token_polling.js removed - functionality integrated into auth module -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
 
-    <!-- Tiptap Rich Text Editor -->
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.13/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.1.13/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-placeholder@2.1.13/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-link@2.1.13/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-mention@2.1.13/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration@2.1.13/dist/index.umd.min.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration-cursor@2.1.13/dist/index.umd.min.js"></script>
+    <!-- TipTap and Yjs: REMOVED FROM HEAD - Loaded post-auth for faster initial load -->
+    <!-- These libraries (2.5MB+) are now loaded after authentication in UserAuth.loadPostAuthLibraries() -->
 
-    <!-- Yjs for Collaborative Editing -->
-    <script src="https://cdn.jsdelivr.net/npm/yjs@13.6.10/dist/yjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/y-websocket@1.5.0/dist/y-websocket.min.js"></script>
-
-    <!-- jsPDF for PDF Export -->
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- jsPDF for PDF Export: Loaded post-auth -->
+    <!-- These scripts (600KB+) are now loaded after authentication -->
 
     <!-- Socket.IO Client for Real-Time WebSocket Communication -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" crossorigin="anonymous"></script>
@@ -10397,20 +10384,7 @@
 
         <!-- ==================== RIGHT SIDEBAR ==================== -->
         <div class="right-sidebar">
-            <!-- AI Prime Chat at Top -->
-            <button class="right-sidebar-btn active" id="ai-prime-toggle-btn" title="AI Prime Chat">
-                <i class="fa-solid fa-atom"></i>
-            </button>
-
-            <div class="sidebar-divider"></div>
-
-            <!-- Notifications -->
-            <button class="right-sidebar-btn" id="notificationBellBtn-sidebar" title="Notifications"
-                onclick="toggleNotificationPanel(event)">
-                <i class="fas fa-bell"></i>
-            </button>
-
-            <!-- User Profile -->
+            <!-- 1. User Profile -->
             <button class="right-sidebar-btn" id="userProfileBtn-sidebar" title="Account Profile"
                 onclick="toggleUserMenu(event)">
                 <i class="fas fa-user-circle"></i>
@@ -10418,21 +10392,36 @@
 
             <div class="sidebar-divider"></div>
 
-            <!-- Quick Actions -->
-            <button class="right-sidebar-btn" id="quick-actions-btn" title="Quick Actions">
-                <i class="fas fa-bolt"></i>
+            <!-- 2. Notifications -->
+            <button class="right-sidebar-btn" id="notificationBellBtn-sidebar" title="Notifications"
+                onclick="toggleNotificationPanel(event)">
+                <i class="fas fa-bell"></i>
             </button>
 
-            <!-- New Chat -->
+            <div class="sidebar-divider"></div>
+
+            <!-- 3. AI Prime Chat -->
+            <button class="right-sidebar-btn active" id="ai-prime-toggle-btn" title="AI Prime Chat">
+                <i class="fa-solid fa-atom"></i>
+            </button>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- 4. Create New Chat -->
             <button class="right-sidebar-btn" id="new-chat-btn" title="New Chat">
-                <i class="fas fa-plus"></i>
+                <i class="fas fa-message-plus"></i>
             </button>
 
-            <!-- Thread History -->
+            <!-- 5. Thread History -->
             <button class="right-sidebar-btn" id="threads-btn" title="Thread History"
                 onclick="ThreadManager.toggleThreadMenu(); event.stopPropagation();">
-                <i class="fas fa-comments"></i>
+                <i class="fas fa-list-ul"></i>
                 <span class="badge" style="display: none;">0</span>
+            </button>
+
+            <!-- 6. Quick Actions -->
+            <button class="right-sidebar-btn" id="quick-actions-btn" title="Quick Actions">
+                <i class="fas fa-bolt"></i>
             </button>
 
             <!-- Spacer to push theme toggle to bottom -->
@@ -10471,21 +10460,10 @@
                 </div>
             </div>
 
-            <!-- User Profile Dropdown (Positioned Fixed via CSS) -->
-            <div class="user-profile-container" id="userProfileContainer" style="display: none;">
-                <button class="user-profile-btn" id="userProfileBtn" onclick="toggleUserMenu(event)">
-                    <div class="user-avatar">
-                        <i class="fas fa-user-circle"></i>
-                    </div>
-                    <!-- Hidden: Username and role text -->
-                    <div class="user-info-text" style="display: none;">
-                        <div class="user-name" id="userName">Loading...</div>
-                        <div class="user-role" id="userRoleText">User</div>
-                    </div>
-                    <i class="fas fa-chevron-down dropdown-icon" style="display: none;"></i>
-                </button>
+            <!-- User Profile Dropdown Removed - Now in Right Sidebar Only -->
 
-                <!-- Dropdown Menu -->
+            <!-- User Dropdown Menu (Still used by sidebar button) -->
+            <div class="user-profile-container" id="userProfileContainer" style="display: none;">
                 <div class="user-dropdown-menu" id="userDropdownMenu">
                     <!-- User Info Section -->
                     <div class="dropdown-header">
@@ -28803,8 +28781,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     platformContainer.classList.add('active');
                     platformContainer.style.opacity = '0';
 
-                    // Trigger main app initialization
+                    // PHASE 1: Initialize main app with existing libraries
                     await window.initializeMainApp();
+
+                    // PHASE 2: Load heavy libraries AFTER app is visible
+                    console.log('📦 [POST-AUTH] Loading heavy libraries...');
+                    await this.loadPostAuthLibraries();
 
                     // Fade in main app
                     requestAnimationFrame(() => {
@@ -28827,6 +28809,88 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     'Authorization': `Bearer ${this.token}`,
                     'Content-Type': 'application/json'
                 };
+            },
+
+            /**
+             * Load heavy non-critical libraries AFTER authentication
+             * This improves initial page load time significantly (saves ~5MB)
+             */
+            async loadPostAuthLibraries() {
+                console.log('📦 [POST-AUTH] Loading heavy libraries sequentially...');
+                const startTime = performance.now();
+
+                try {
+                    // STEP 1: TipTap Core (MUST load first - 800KB)
+                    await this.loadScript('tiptap-core', 'https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.13/dist/index.umd.min.js');
+                    console.log('  ✅ TipTap Core loaded');
+
+                    // STEP 2: TipTap StarterKit (depends on core - 600KB)
+                    await this.loadScript('tiptap-starterkit', 'https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.1.13/dist/index.umd.min.js');
+                    console.log('  ✅ TipTap StarterKit loaded');
+
+                    // STEP 3: TipTap Extensions (depend on core - load in parallel)
+                    await Promise.all([
+                        this.loadScript('tiptap-placeholder', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-placeholder@2.1.13/dist/index.umd.min.js'),
+                        this.loadScript('tiptap-link', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-link@2.1.13/dist/index.umd.min.js'),
+                        this.loadScript('tiptap-mention', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-mention@2.1.13/dist/index.umd.min.js')
+                    ]);
+                    console.log('  ✅ TipTap Extensions loaded');
+
+                    // STEP 4: TipTap Collaboration (depends on core + Yjs - 400KB)
+                    await Promise.all([
+                        this.loadScript('yjs', 'https://cdn.jsdelivr.net/npm/yjs@13.6.10/dist/yjs.min.js'),
+                        this.loadScript('y-websocket', 'https://cdn.jsdelivr.net/npm/y-websocket@1.5.0/dist/y-websocket.min.js')
+                    ]);
+                    console.log('  ✅ Yjs loaded');
+
+                    await Promise.all([
+                        this.loadScript('tiptap-collaboration', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration@2.1.13/dist/index.umd.min.js'),
+                        this.loadScript('tiptap-collaboration-cursor', 'https://cdn.jsdelivr.net/npm/@tiptap/extension-collaboration-cursor@2.1.13/dist/index.umd.min.js')
+                    ]);
+                    console.log('  ✅ TipTap Collaboration loaded');
+
+                    // STEP 5: Handsontable (1.8MB - can load in parallel with others)
+                    await Promise.all([
+                        this.loadScript('handsontable', 'https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js'),
+                        this.loadScript('hyperformula', 'https://cdn.jsdelivr.net/npm/hyperformula/dist/hyperformula.full.min.js'),
+                        this.loadScript('jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'),
+                        this.loadScript('html2canvas', 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js')
+                    ]);
+                    console.log('  ✅ Handsontable & PDF libraries loaded');
+
+                    const endTime = performance.now();
+                    console.log(`✅ [POST-AUTH] All heavy libraries loaded in ${((endTime - startTime) / 1000).toFixed(2)}s`);
+
+                    // Notify modules that libraries are ready
+                    window.dispatchEvent(new CustomEvent('postAuthLibrariesLoaded'));
+
+                } catch (error) {
+                    console.error('❌ [POST-AUTH] Failed to load libraries:', error);
+                }
+            },
+
+            /**
+             * Load a script dynamically
+             * @param {string} id - Unique ID for the script element
+             * @param {string} src - URL of the script to load
+             * @returns {Promise} Resolves when script loads, rejects on error
+             */
+            loadScript(id, src) {
+                return new Promise((resolve, reject) => {
+                    // Check if already loaded
+                    if (document.getElementById(id)) {
+                        console.log(`  ⏭️  ${id} already loaded`);
+                        resolve();
+                        return;
+                    }
+
+                    const script = document.createElement('script');
+                    script.id = id;
+                    script.src = src;
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                    document.head.appendChild(script);
+                });
             }
         };
 

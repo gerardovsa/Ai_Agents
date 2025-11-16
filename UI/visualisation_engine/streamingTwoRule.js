@@ -98,6 +98,9 @@ class TwoRuleStreamProcessor {
         this.state = 'NORMAL'; // NORMAL | BUFFERING_VISUAL
         this.currentDelimiter = null;
         this.visualBufferStart = 0;
+        
+        // Log thread initialization
+        console.log('🚀 TWO-RULE: New streaming thread started');
         this.visualBufferEnd = 0;
 
         // ENDERING/QUEUE STATE
@@ -250,7 +253,6 @@ class TwoRuleStreamProcessor {
 
             // Switch state and present buffering indicator
             this.state = 'BUFFERING_VISUAL';
-            console.log(`🔄 TWO-RULE: STATE CHANGE → BUFFERING_VISUAL (${this.currentDelimiter.type}) at position ${this.visualBufferStart}`);
             this.showBufferingIndicator(this.currentDelimiter.type);
             return true;
         }
@@ -341,13 +343,10 @@ class TwoRuleStreamProcessor {
             this.bufferPosition = visualEndPosition;
             this.removeBufferingIndicator();
 
-            console.log(`🔄 TWO-RULE: STATE CHANGE → NORMAL`);
-
         } else {
             // End delimiter not found yet - continue buffering
             this.bufferPosition = this.rawBuffer.length;
             this.updateBufferingIndicator(contentFromStart.length);
-            console.log(`⏳ TWO-RULE: Still buffering visual content (${contentFromStart.length} chars)...`);
         }
     }
 
@@ -365,7 +364,6 @@ class TwoRuleStreamProcessor {
         );
 
         if (existingPackage) {
-            console.log(`⏭️ Skipping duplicate markdown package`);
             return;
         }
 
@@ -384,8 +382,6 @@ class TwoRuleStreamProcessor {
 
         this.markdownPackages.push(pkg);
         this.stats.markdownPackages++;
-
-        console.log(`📝 TWO-RULE: Markdown package created (ID: ${pkg.id}, position: ${actualPosition}, hash: ${contentHash.substring(0, 8)}, ${content.length} chars)`);
     }
 
     /**
@@ -400,7 +396,6 @@ class TwoRuleStreamProcessor {
         );
 
         if (existingPackage) {
-            console.log(`⏭️ Skipping duplicate visual package (${type})`);
             return;
         }
 
@@ -417,8 +412,6 @@ class TwoRuleStreamProcessor {
 
         this.visualPackages.push(pkg);
         this.stats.visualPackages++;
-
-        console.log(`🎨 TWO-RULE: Visual package created (ID: ${pkg.id}, type: ${type}, position: ${this.visualBufferStart}, hash: ${contentHash.substring(0, 8)}, ${content.length} chars)`);
     }
 
     /**
@@ -428,14 +421,12 @@ class TwoRuleStreamProcessor {
     async releaseReadyPackages() {
         if (this.isReleasing) {
             // Avoid re-entrancy that can cause duplicate renders
-            console.log('⏳ TWO-RULE: releaseReadyPackages is already running; skipping');
             return;
         }
         this.isReleasing = true;
         // RITICAL FIX: Don't release packages while buffering visual content
         // This prevents raw visual content from appearing in UI
         if (this.state === 'BUFFERING_VISUAL') {
-            console.log('⏸️ TWO-RULE: Holding packages during visual buffering');
             this.isReleasing = false;
             return; // Wait until visual content is complete
         }
@@ -450,7 +441,6 @@ class TwoRuleStreamProcessor {
                 if (pkg.type === 'visual') {
                     const existing = this.container.querySelector(`.viz-container[data-package-id="${pkg.id}"]`);
                     if (existing) {
-                        console.log(`⏭️ Skipping already-rendered visual package ${pkg.id}`);
                         // Remove from queue
                         const idx = this.visualPackages.indexOf(pkg);
                         if (idx > -1) this.visualPackages.splice(idx, 1);
@@ -483,18 +473,13 @@ class TwoRuleStreamProcessor {
      */
     async renderPackage(pkg) {
         try {
-            console.log(`🚀 TWO-RULE: Rendering package ${pkg.id} (${pkg.type})`);
-
             if (pkg.type === 'markdown') {
                 await this.renderMarkdownPackage(pkg);
             } else if (pkg.type === 'visual') {
                 await this.renderVisualPackage(pkg);
             }
-
-            console.log(`WO-RULE: Package ${pkg.id} rendered successfully`);
-
         } catch (error) {
-            console.error(` TWO-RULE: Error rendering package ${pkg.id}:`, error);
+            console.error('❌ TWO-RULE: Error rendering package:', error);
             this.renderErrorPackage(pkg, error);
         }
     }
@@ -815,21 +800,29 @@ class TwoRuleStreamProcessor {
             }
         }
 
-        // NSURE DOM is ready before proceeding
-        await new Promise(resolve => requestAnimationFrame(resolve));
-
-        // ALIDATE container is properly attached
-        if (!document.contains(vizContainer)) {
-            console.error(' TWO-RULE: Container failed to attach to DOM');
-            vizContainer.innerHTML = '<div style="color: red; padding: 20px;"> Failed to create visualization container</div>';
+        // IMPROVED DOM ATTACHMENT TIMING: Wait for DOM to be fully ready with multiple retries
+        let attached = false;
+        let retries = 0;
+        const maxRetries = 5;
+        
+        while (!attached && retries < maxRetries) {
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
+            if (document.contains(vizContainer)) {
+                attached = true;
+            } else {
+                retries++;
+                if (retries < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 50 * retries)); // Progressive backoff
+                }
+            }
+        }
+        
+        if (!attached) {
+            console.error('❌ TWO-RULE: Container failed to attach to DOM after retries');
+            vizContainer.innerHTML = '<div style="color: red; padding: 20px;">Failed to create visualization container</div>';
             return;
         }
-
-        console.log('WO-RULE: Container created and attached, calling renderVisualization', {
-            containerClass: vizContainer.className,
-            hasContentArea: !!vizContainer.querySelector('.viz-content-area'),
-            isInDOM: document.contains(vizContainer)
-        });
 
         // Render visualization using available engine
         await this.renderVisualization(pkg.subType, innerContent, vizContainer);
@@ -1253,8 +1246,7 @@ class TwoRuleStreamProcessor {
             }, 100);
         }
 
-        console.log('ND OF STREAM - All content processed');
-        this.logStats();
+        console.log('✅ TWO-RULE: Thread completed successfully');
     }
 
     /**
