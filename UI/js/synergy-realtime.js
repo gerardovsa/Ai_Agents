@@ -48,12 +48,17 @@ window.SynergyRealtime = {
             this._log('Connecting to WebSocket:', apiUrl + this.config.namespace);
 
             // Create Socket.IO connection
+            // Increased timeout for Render cold starts (can take 30-60 seconds)
             this.socket = io(apiUrl + this.config.namespace, {
                 transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
                 reconnectionDelay: this.reconnectDelay,
-                timeout: 10000
+                reconnectionDelayMax: 10000,
+                timeout: 60000,  // 60 seconds (handles Render cold starts)
+                forceNew: false,
+                upgrade: true,
+                rememberUpgrade: true
             });
 
             // Connection events
@@ -153,7 +158,14 @@ window.SynergyRealtime = {
 
     _handleError(error) {
         console.error('[REALTIME] Connection error:', error);
-        this._showConnectionStatus('error');
+        
+        // Provide helpful error messages
+        if (error.message === 'timeout') {
+            console.warn('[REALTIME] Connection timeout - Server may be starting (Render cold start). Retrying...');
+            this._showConnectionStatus('connecting', 'Server starting, please wait...');
+        } else {
+            this._showConnectionStatus('error');
+        }
     },
 
     _handleSessionCreated(data) {
@@ -298,13 +310,23 @@ window.SynergyRealtime = {
         }
     },
 
-    _showConnectionStatus(status) {
-        // DISABLED: Connection status indicators suppressed to avoid UI clutter
-        // Only log to console for debugging
-        this._log(`Connection status: ${status}`);
+    _showConnectionStatus(status, customMessage = null) {
+        // Log to console for debugging
+        const message = customMessage || status;
+        this._log(`Connection status: ${message}`);
 
-        // Don't show any visual indicators
-        return;
+        // Show visual indicator only for important states
+        if (status === 'connecting' && customMessage) {
+            // Show connection status for cold starts
+            if (typeof showNotification === 'function') {
+                showNotification(customMessage, 'info');
+            }
+        } else if (status === 'error') {
+            // Show error notification
+            if (typeof showNotification === 'function') {
+                showNotification('Connection error - Check if server is running', 'error');
+            }
+        }
     },
 
     _showNotification(title, message, type = 'info') {

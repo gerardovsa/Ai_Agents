@@ -619,8 +619,19 @@ def stream_agent(agent_id):
     # Debug logging
     print(f"[Stream {agent_id}] Session: {session_id}")
     print(f"[Stream {agent_id}] Conversation length: {len(conversation)}")
+    print(f"[Stream {agent_id}] 🔍 DEBUG State Manager:")
+    print(f"  - All agent_ids in manager: {list(agent_state_manager.states.keys())}")
+    if agent_id in agent_state_manager.states:
+        print(f"  - All sessions for agent {agent_id}: {list(agent_state_manager.states[agent_id].keys())}")
+    else:
+        print(f"  - ❌ Agent {agent_id} NOT in state manager!")
+    print(f"  - Requested session exists: {session_id in agent_state_manager.states.get(agent_id, {})}")
+    
     if conversation:
         print(f"[Stream {agent_id}] Last message: {conversation[-1].get('role')} - {str(conversation[-1].get('content', ''))[:100]}")
+        print(f"[Stream {agent_id}] 🔍 Full conversation roles: {[msg.get('role') for msg in conversation]}")
+    else:
+        print(f"[Stream {agent_id}] ❌ Conversation is EMPTY - message not added by /start endpoint?")
     
     # CRITICAL FIX: Extract last user message and REMOVE it from conversation history
     # The streaming worker expects:
@@ -653,7 +664,13 @@ def stream_agent(agent_id):
         error_msg = f"No user message found in conversation. Session: {session_id}, Conv length: {len(conversation)}"
         if conversation:
             error_msg += f", Last role: {conversation[-1].get('role')}"
+            error_msg += f", All roles: {[msg.get('role') for msg in conversation]}"
+        else:
+            error_msg += " (conversation is empty - /start endpoint may have failed or used different session_id)"
+        
         print(f"[Stream {agent_id}] ❌ ERROR: {error_msg}")
+        print(f"[Stream {agent_id}] 💡 SUGGESTION: Check if /start endpoint was called with same session_id")
+        print(f"[Stream {agent_id}] 💡 SUGGESTION: Check if message was added to agent_state_manager")
         return error_response(error_msg, 400)
     
     # Get user_id for credential injection
