@@ -19386,18 +19386,23 @@
                     // Unload from current location first
                     if (currentLocation === 'prime') {
                         console.log(`[ISOLATION] 🔧’ Clearing Prime - thread moving to agent-${agentId}`);
-                        if (typeof ThreadManager !== 'undefined' && ThreadManager.currentThreadId === thread.id) {
-                            // Clear Prime panel
+                        // CRITICAL FIX: ALWAYS clear Prime, not just when ThreadManager.currentThreadId matches
+                        if (typeof ThreadManager !== 'undefined') {
                             ThreadManager.currentThreadId = null;
-                            const primeMessages = document.getElementById('ai-chat-messages');
-                            if (primeMessages) primeMessages.innerHTML = '';
-                            if (typeof AppState !== 'undefined') {
-                                AppState.sessionId = null;
-                                AppState.chatMessages = [];
-                                console.log(`[ISOLATION] âœ… Prime AppState.sessionId cleared (was: ${thread.id})`);
-                            }
-                            console.log(`[ISOLATION] âœ… Prime panel cleared`);
                         }
+                        
+                        // Clear Prime chat container
+                        const primeMessages = document.getElementById('ai-chat-messages');
+                        if (primeMessages) primeMessages.innerHTML = '';
+                        
+                        // CRITICAL: Always clear AppState when thread leaves Prime
+                        if (typeof AppState !== 'undefined' && AppState.sessionId === thread.id) {
+                            AppState.sessionId = null;
+                            AppState.chatMessages = [];
+                            console.log(`[ISOLATION] Prime AppState cleared (was: ${thread.id})`);
+                        }
+                        
+                        console.log(`[ISOLATION] Prime fully cleared`);
                     } else if (currentLocation.startsWith('agent-')) {
                         // Unload from another agent
                         const oldAgentId = parseInt(currentLocation.replace('agent-', ''));
