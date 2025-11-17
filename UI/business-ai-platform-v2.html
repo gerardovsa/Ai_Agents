@@ -15348,10 +15348,8 @@
                         return;
                     }
 
-                    // Clear source location (if moving, not linking)
-                    if (sourceLocation && sourceLocation !== `agent-${agentId}`) {
-                        ThreadManager.clearThreadInfoAtLocation(sourceLocation);
-                    }
+                    // NOTE: Source location clearing is handled by loadThreadIntoAgent() below
+                    // No need to explicitly clear here as it's part of the thread loading process
 
                     // ✨ Use master sync function for robust location update
                     await ThreadManager.syncThreadLocationEverywhere(threadId, `agent-${agentId}`);
