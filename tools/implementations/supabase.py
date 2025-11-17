@@ -828,6 +828,477 @@ def supabase_get_schema(table: str = None):
         raise
 
 
+# ==================== AUTOMATION WORKFLOW MANAGEMENT ====================
+
+def automation_workflow_create(user_id: int, name: str, workflow_json: str,
+                                description: str = None, category: str = None,
+                                canvas_data: str = None, slug: str = None):
+    """
+    Create a new automation workflow in Supabase
+    
+    Args:
+        user_id: User ID creating the workflow
+        name: Workflow name
+        workflow_json: Complete workflow definition (JSON string)
+        description: Optional description
+        category: Workflow category (email, quotes, customer_service, etc.)
+        canvas_data: UI positioning data (JSON string)
+        slug: Optional custom slug (auto-generated if not provided)
+    
+    Returns:
+        Created workflow with workflow_id
+    """
+    print(f"🔧 Creating automation workflow: {name}")
+    
+    try:
+        client = _get_client()
+        
+        # Generate slug if not provided
+        if not slug:
+            import re
+            from datetime import datetime
+            slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+            slug = f"{slug}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        data = {
+            'user_id': user_id,
+            'name': name,
+            'slug': slug,
+            'workflow_json': workflow_json,
+            'description': description,
+            'category': category,
+            'canvas_data': canvas_data
+        }
+        
+        # Remove None values
+        data = {k: v for k, v in data.items() if v is not None}
+        
+        response = client.table('automation_workflows').insert(data).execute()
+        
+        workflow = response.data[0] if response.data else None
+        
+        return {
+            'success': True,
+            'workflow': workflow,
+            'workflow_id': workflow['workflow_id'] if workflow else None,
+            'slug': workflow['slug'] if workflow else None
+        }
+        
+    except Exception as e:
+        print(f"❌ Workflow creation failed: {e}")
+        raise
+
+
+def automation_workflow_list(user_id: int, category: str = None, enabled: bool = None):
+    """
+    List automation workflows for a user
+    
+    Args:
+        user_id: User ID
+        category: Filter by category (optional)
+        enabled: Filter by enabled status (optional)
+    
+    Returns:
+        List of workflows with metadata
+    """
+    print(f"🔧 Listing workflows for user {user_id}")
+    
+    try:
+        client = _get_client()
+        
+        # Build query
+        query = client.table('automation_workflows').select('*').eq('user_id', user_id)
+        
+        if category:
+            query = query.eq('category', category)
+        
+        if enabled is not None:
+            query = query.eq('enabled', enabled)
+        
+        query = query.order('updated_at', desc=True)
+        response = query.execute()
+        
+        return {
+            'success': True,
+            'workflows': response.data,
+            'count': len(response.data)
+        }
+        
+    except Exception as e:
+        print(f"❌ Workflow listing failed: {e}")
+        raise
+
+
+def automation_workflow_get(workflow_id: str = None, slug: str = None):
+    """
+    Get a specific workflow by ID or slug
+    
+    Args:
+        workflow_id: Workflow UUID (optional)
+        slug: Workflow slug (optional)
+    
+    Returns:
+        Workflow details
+    """
+    print(f"🔧 Getting workflow: {workflow_id or slug}")
+    
+    try:
+        client = _get_client()
+        
+        if workflow_id:
+            query = client.table('automation_workflows').select('*').eq('workflow_id', workflow_id)
+        elif slug:
+            query = client.table('automation_workflows').select('*').eq('slug', slug)
+        else:
+            raise ValueError("Either workflow_id or slug must be provided")
+        
+        response = query.execute()
+        
+        if not response.data:
+            raise ValueError(f"Workflow not found: {workflow_id or slug}")
+        
+        return {
+            'success': True,
+            'workflow': response.data[0]
+        }
+        
+    except Exception as e:
+        print(f"❌ Workflow retrieval failed: {e}")
+        raise
+
+
+def automation_workflow_update(workflow_id: str, updates: dict):
+    """
+    Update a workflow's configuration
+    
+    Args:
+        workflow_id: Workflow UUID
+        updates: Dictionary of fields to update (name, workflow_json, enabled, etc.)
+    
+    Returns:
+        Updated workflow
+    """
+    print(f"🔧 Updating workflow: {workflow_id}")
+    
+    try:
+        client = _get_client()
+        
+        # updated_at will be auto-updated by trigger
+        response = client.table('automation_workflows').update(updates).eq('workflow_id', workflow_id).execute()
+        
+        if not response.data:
+            raise ValueError(f"Workflow {workflow_id} not found or update failed")
+        
+        return {
+            'success': True,
+            'workflow': response.data[0]
+        }
+        
+    except Exception as e:
+        print(f"❌ Workflow update failed: {e}")
+        raise
+
+
+def automation_workflow_delete(workflow_id: str):
+    """
+    Delete a workflow (cascades to executions and schedules)
+    
+    Args:
+        workflow_id: Workflow UUID
+    
+    Returns:
+        Deletion confirmation
+    """
+    print(f"🔧 Deleting workflow: {workflow_id}")
+    
+    try:
+        client = _get_client()
+        
+        response = client.table('automation_workflows').delete().eq('workflow_id', workflow_id).execute()
+        
+        return {
+            'success': True,
+            'deleted': True,
+            'workflow_id': workflow_id
+        }
+        
+    except Exception as e:
+        print(f"❌ Workflow deletion failed: {e}")
+        raise
+
+
+def automation_workflow_execute(workflow_id: str, trigger_data: str, executed_by: int):
+    """
+    Start a workflow execution (creates execution record)
+    
+    Args:
+        workflow_id: Workflow UUID
+        trigger_data: JSON string of trigger data
+        executed_by: User ID who triggered
+    
+    Returns:
+        Execution ID and details
+    """
+    print(f"🔧 Starting workflow execution: {workflow_id}")
+    
+    try:
+        client = _get_client()
+        
+        data = {
+            'workflow_id': workflow_id,
+            'trigger_data': trigger_data,
+            'status': 'running',
+            'executed_by': executed_by
+        }
+        
+        response = client.table('workflow_executions').insert(data).execute()
+        
+        execution = response.data[0] if response.data else None
+        
+        return {
+            'success': True,
+            'execution_id': execution['execution_id'] if execution else None,
+            'execution': execution
+        }
+        
+    except Exception as e:
+        print(f"❌ Execution creation failed: {e}")
+        raise
+
+
+def automation_workflow_execution_update(execution_id: str, status: str,
+                                          execution_state: str = None,
+                                          error_message: str = None,
+                                          error_node_id: str = None,
+                                          duration_ms: int = None):
+    """
+    Update workflow execution status and results
+    
+    Args:
+        execution_id: Execution UUID
+        status: Status - running, completed, failed, cancelled
+        execution_state: JSON string of execution state (variables, node results)
+        error_message: Error details if failed
+        error_node_id: Which node failed
+        duration_ms: Execution duration in milliseconds
+    
+    Returns:
+        Updated execution record
+    """
+    print(f"🔧 Updating execution {execution_id} → {status}")
+    
+    try:
+        client = _get_client()
+        
+        updates = {
+            'status': status,
+            'execution_state': execution_state,
+            'error_message': error_message,
+            'error_node_id': error_node_id,
+            'duration_ms': duration_ms
+        }
+        
+        # Add completion timestamp if done
+        if status in ['completed', 'failed', 'cancelled']:
+            from datetime import datetime
+            updates['completed_at'] = datetime.utcnow().isoformat()
+        
+        # Remove None values
+        updates = {k: v for k, v in updates.items() if v is not None}
+        
+        response = client.table('workflow_executions').update(updates).eq('execution_id', execution_id).execute()
+        
+        return {
+            'success': True,
+            'execution': response.data[0] if response.data else None
+        }
+        
+    except Exception as e:
+        print(f"❌ Execution update failed: {e}")
+        raise
+
+
+def automation_workflow_execution_history(workflow_id: str, limit: int = 20):
+    """
+    Get execution history for a workflow
+    
+    Args:
+        workflow_id: Workflow UUID
+        limit: Max executions to return (default: 20)
+    
+    Returns:
+        List of execution records
+    """
+    print(f"🔧 Getting execution history for workflow: {workflow_id}")
+    
+    try:
+        client = _get_client()
+        
+        response = (client.table('workflow_executions')
+                    .select('*')
+                    .eq('workflow_id', workflow_id)
+                    .order('started_at', desc=True)
+                    .limit(limit)
+                    .execute())
+        
+        return {
+            'success': True,
+            'executions': response.data,
+            'count': len(response.data)
+        }
+        
+    except Exception as e:
+        print(f"❌ Execution history retrieval failed: {e}")
+        raise
+
+
+def automation_workflow_template_list(category: str = None, featured: bool = None):
+    """
+    List available workflow templates
+    
+    Args:
+        category: Filter by category (optional)
+        featured: Show only featured templates (optional)
+    
+    Returns:
+        List of templates
+    """
+    print("🔧 Listing workflow templates")
+    
+    try:
+        client = _get_client()
+        
+        query = client.table('workflow_templates').select('*')
+        
+        if category:
+            query = query.eq('category', category)
+        
+        if featured:
+            query = query.eq('featured', True)
+        
+        query = query.order('use_count', desc=True)
+        response = query.execute()
+        
+        return {
+            'success': True,
+            'templates': response.data,
+            'count': len(response.data)
+        }
+        
+    except Exception as e:
+        print(f"❌ Template listing failed: {e}")
+        raise
+
+
+def automation_workflow_template_clone(template_id: str, user_id: int, name: str = None):
+    """
+    Clone a template to create a new workflow
+    
+    Args:
+        template_id: Template UUID
+        user_id: User ID
+        name: Optional custom name for cloned workflow
+    
+    Returns:
+        Created workflow from template
+    """
+    print(f"🔧 Cloning template: {template_id}")
+    
+    try:
+        client = _get_client()
+        
+        # Get template
+        template_response = client.table('workflow_templates').select('*').eq('template_id', template_id).execute()
+        
+        if not template_response.data:
+            raise ValueError(f"Template {template_id} not found")
+        
+        template = template_response.data[0]
+        
+        # Generate new slug
+        import re
+        from datetime import datetime
+        base_name = name or template['name']
+        slug = re.sub(r'[^a-z0-9]+', '-', base_name.lower()).strip('-')
+        slug = f"{slug}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Create workflow from template
+        workflow_data = {
+            'user_id': user_id,
+            'name': base_name,
+            'slug': slug,
+            'description': template['description'],
+            'category': template['category'],
+            'workflow_json': template['template_json'],
+            'canvas_data': template['canvas_data']
+        }
+        
+        workflow_response = client.table('automation_workflows').insert(workflow_data).execute()
+        
+        # Increment use count
+        new_use_count = template.get('use_count', 0) + 1
+        client.table('workflow_templates').update({'use_count': new_use_count}).eq('template_id', template_id).execute()
+        
+        return {
+            'success': True,
+            'workflow': workflow_response.data[0] if workflow_response.data else None,
+            'cloned_from_template': template_id
+        }
+        
+    except Exception as e:
+        print(f"❌ Template cloning failed: {e}")
+        raise
+
+
+def automation_workflow_schedule_create(workflow_id: str, schedule_type: str,
+                                         cron_expression: str = None,
+                                         interval_minutes: int = None,
+                                         run_at: str = None,
+                                         timezone: str = 'UTC'):
+    """
+    Create a schedule for a workflow
+    
+    Args:
+        workflow_id: Workflow UUID
+        schedule_type: Type - cron, interval, once
+        cron_expression: Cron expression (for cron type): '0 8 * * *'
+        interval_minutes: Interval in minutes (for interval type)
+        run_at: Timestamp (for once type): '2025-01-15 22:00:00'
+        timezone: Timezone for schedule (default: UTC)
+    
+    Returns:
+        Created schedule
+    """
+    print(f"🔧 Creating schedule for workflow: {workflow_id}")
+    
+    try:
+        client = _get_client()
+        
+        data = {
+            'workflow_id': workflow_id,
+            'schedule_type': schedule_type,
+            'cron_expression': cron_expression,
+            'interval_minutes': interval_minutes,
+            'run_at': run_at,
+            'timezone': timezone
+        }
+        
+        # Remove None values
+        data = {k: v for k, v in data.items() if v is not None}
+        
+        response = client.table('workflow_schedules').insert(data).execute()
+        
+        return {
+            'success': True,
+            'schedule': response.data[0] if response.data else None
+        }
+        
+    except Exception as e:
+        print(f"❌ Schedule creation failed: {e}")
+        raise
+
+
 if __name__ == "__main__":
     # Test the tools
-    print(" Supabase tools loaded - ALL 25 functions implemented")
+    print(" Supabase tools loaded - 36 functions implemented (25 core + 11 automation workflow)")
+
