@@ -168,11 +168,11 @@ def get_jobs_with_analytics():
         params = []
         
         if stage_id:
-            query += " AND jt.stage_id = ?"
+            query += " AND jt.stage_id = %s"
             params.append(int(stage_id))
         
         if priority:
-            query += " AND jt.priority_label = ?"
+            query += " AND jt.priority_label = %s"
             params.append(priority)
         
         if has_notes:
@@ -181,7 +181,7 @@ def get_jobs_with_analytics():
         if has_tags:
             query += " AND EXISTS (SELECT 1 FROM job_tags WHERE ticket_id = jt.ticket_id)"
         
-        query += " ORDER BY jt.ai_priority_score DESC LIMIT ?"
+        query += " ORDER BY jt.ai_priority_score DESC LIMIT %s"
         params.append(limit)
         
         cursor.execute(query, params)
@@ -215,7 +215,7 @@ def get_job_details(ticket_id: int):
             SELECT jt.*, jp.*
             FROM job_tickets jt
             LEFT JOIN job_performance jp ON jt.ticket_id = jp.ticket_id
-            WHERE jt.ticket_id = ?
+            WHERE jt.ticket_id = %s
         """, (ticket_id,))
         
         job = cursor.fetchone()
@@ -230,7 +230,7 @@ def get_job_details(ticket_id: int):
         # Get notes
         cursor.execute("""
             SELECT * FROM custom_job_notes
-            WHERE ticket_id = ?
+            WHERE ticket_id = %s
             ORDER BY created_at DESC
         """, (ticket_id,))
         job_dict['notes'] = [dict(row) for row in cursor.fetchall()]
@@ -240,7 +240,7 @@ def get_job_details(ticket_id: int):
             SELECT ct.*, jts.assigned_at
             FROM job_tags jts
             JOIN custom_tags ct ON jts.tag_id = ct.tag_id
-            WHERE jts.ticket_id = ?
+            WHERE jts.ticket_id = %s
         """, (ticket_id,))
         job_dict['tags'] = [dict(row) for row in cursor.fetchall()]
         
@@ -249,7 +249,7 @@ def get_job_details(ticket_id: int):
             SELECT st.*, js.stage_description
             FROM stage_transitions st
             JOIN job_stages js ON st.to_stage_id = js.stage_id
-            WHERE st.ticket_id = ?
+            WHERE st.ticket_id = %s
             ORDER BY st.transition_date DESC
         """, (ticket_id,))
         job_dict['transition_history'] = [dict(row) for row in cursor.fetchall()]
@@ -257,7 +257,7 @@ def get_job_details(ticket_id: int):
         # Get AI predictions
         cursor.execute("""
             SELECT * FROM ai_predictions
-            WHERE ticket_id = ?
+            WHERE ticket_id = %s
             ORDER BY predicted_at DESC
             LIMIT 1
         """, (ticket_id,))
@@ -308,7 +308,7 @@ def add_job_note(ticket_id: int):
         
         cursor.execute("""
             INSERT INTO custom_job_notes (ticket_id, note_text, note_type, priority, created_by)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (
             ticket_id,
             data['note_text'],
@@ -344,7 +344,7 @@ def resolve_note(ticket_id: int, note_id: int):
         cursor.execute("""
             UPDATE custom_job_notes
             SET resolved = 1, resolved_at = CURRENT_TIMESTAMP
-            WHERE note_id = ? AND ticket_id = ?
+            WHERE note_id = %s AND ticket_id = %s
         """, (note_id, ticket_id))
         
         conn.commit()
@@ -414,7 +414,7 @@ def add_job_tag(ticket_id: int):
         
         cursor.execute("""
             INSERT OR IGNORE INTO job_tags (ticket_id, tag_id, assigned_by)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
         """, (ticket_id, data['tag_id'], data.get('assigned_by', 'system')))
         
         conn.commit()
@@ -441,7 +441,7 @@ def remove_job_tag(ticket_id: int, tag_id: int):
         
         cursor.execute("""
             DELETE FROM job_tags
-            WHERE ticket_id = ? AND tag_id = ?
+            WHERE ticket_id = %s AND tag_id = %s
         """, (ticket_id, tag_id))
         
         conn.commit()
@@ -472,7 +472,7 @@ def get_performance_metrics(ticket_id: int):
         
         cursor.execute("""
             SELECT * FROM job_performance
-            WHERE ticket_id = ?
+            WHERE ticket_id = %s
         """, (ticket_id,))
         
         performance = cursor.fetchone()
@@ -536,20 +536,20 @@ def update_performance_metrics(ticket_id: int):
             }), 400
         
         # Check if record exists
-        cursor.execute("SELECT performance_id FROM job_performance WHERE ticket_id = ?", (ticket_id,))
+        cursor.execute("SELECT performance_id FROM job_performance WHERE ticket_id = %s", (ticket_id,))
         existing = cursor.fetchone()
         
         if existing:
             # Update existing
-            query = f"UPDATE job_performance SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP WHERE ticket_id = ?"
+            query = f"UPDATE job_performance SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP WHERE ticket_id = %s"
             values.append(ticket_id)
             cursor.execute(query, values)
         else:
             # Insert new
             fields.append('ticket_id')
             values.append(ticket_id)
-            placeholders = ', '.join(['?' for _ in values])
-            query = f"INSERT INTO job_performance ({', '.join(fields).replace(' = ?', '')}) VALUES ({placeholders})"
+            placeholders = ', '.join(['%s' for _ in values])
+            query = f"INSERT INTO job_performance ({', '.join(fields).replace(' = %s', '')}) VALUES ({placeholders})"
             cursor.execute(query, values)
         
         conn.commit()
@@ -673,7 +673,7 @@ def get_stage_transitions(ticket_id: int):
             FROM stage_transitions st
             LEFT JOIN job_stages js_from ON st.from_stage_id = js_from.stage_id
             JOIN job_stages js_to ON st.to_stage_id = js_to.stage_id
-            WHERE st.ticket_id = ?
+            WHERE st.ticket_id = %s
             ORDER BY st.transition_date ASC
         """, (ticket_id,))
         

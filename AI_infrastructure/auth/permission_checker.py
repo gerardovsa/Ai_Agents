@@ -108,7 +108,7 @@ class PermissionChecker:
                     usage_limit_daily, access_start_time, access_end_time,
                     account_expires_at
                 FROM users 
-                WHERE id = ?
+                WHERE id = %s
             """, [user_id])
             
             row = cursor.fetchone()

@@ -96,16 +96,16 @@ def get_production_log(ticket_id: int):
                 updated_at,
                 created_by_user
             FROM production_log
-            WHERE ticket_id = ?
+            WHERE ticket_id = %s
         """
         
         params = [ticket_id]
         
         if entry_type:
-            query += " AND entry_type = ?"
+            query += " AND entry_type = %s"
             params.append(entry_type)
         
-        query += " ORDER BY log_date DESC, log_time DESC LIMIT ?"
+        query += " ORDER BY log_date DESC, log_time DESC LIMIT %s"
         params.append(limit)
         
         cursor.execute(query, params)
@@ -135,7 +135,7 @@ def get_log_entry(log_id: int):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT * FROM production_log WHERE log_id = ?
+            SELECT * FROM production_log WHERE log_id = %s
         """, (log_id,))
         
         entry = cursor.fetchone()
@@ -237,7 +237,7 @@ def add_log_entry(ticket_id: int):
         
         # Build SQL
         cols = ', '.join(fields.keys())
-        placeholders = ', '.join('?' * len(fields))
+        placeholders = ', '.join('%s' * len(fields))
         values = tuple(fields.values())
         
         cursor.execute(f"""
@@ -292,7 +292,7 @@ def log_stage_change(ticket_id: int):
                 from_stage_name,
                 to_stage_name,
                 note_text
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             ticket_id,
             data.get('user_initials', 'USER'),
@@ -355,7 +355,7 @@ def log_client_notification(ticket_id: int):
                 notification_sent_at,
                 note_text,
                 created_by_user
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             ticket_id,
             data.get('user_initials', 'USER'),
@@ -411,7 +411,7 @@ def update_log_entry(log_id: int):
         cursor = conn.cursor()
         
         # Check entry exists
-        cursor.execute("SELECT * FROM production_log WHERE log_id = ?", (log_id,))
+        cursor.execute("SELECT * FROM production_log WHERE log_id = %s", (log_id,))
         if not cursor.fetchone():
             conn.close()
             return jsonify({
@@ -449,7 +449,7 @@ def update_log_entry(log_id: int):
         cursor.execute(f"""
             UPDATE production_log 
             SET {', '.join(updates)}
-            WHERE log_id = ?
+            WHERE log_id = %s
         """, values)
         
         conn.commit()
@@ -480,7 +480,7 @@ def delete_log_entry(log_id: int):
         
         # Check if entry can be deleted (not auto stage change)
         cursor.execute("""
-            SELECT entry_type FROM production_log WHERE log_id = ?
+            SELECT entry_type FROM production_log WHERE log_id = %s
         """, (log_id,))
         
         result = cursor.fetchone()
@@ -499,7 +499,7 @@ def delete_log_entry(log_id: int):
             }), 403
         
         # Delete entry
-        cursor.execute("DELETE FROM production_log WHERE log_id = ?", (log_id,))
+        cursor.execute("DELETE FROM production_log WHERE log_id = %s", (log_id,))
         conn.commit()
         conn.close()
         
@@ -531,7 +531,7 @@ def get_production_summary(ticket_id: int):
                 entry_type,
                 COUNT(*) as count
             FROM production_log
-            WHERE ticket_id = ?
+            WHERE ticket_id = %s
             GROUP BY entry_type
         """, (ticket_id,))
         
@@ -546,7 +546,7 @@ def get_production_summary(ticket_id: int):
                 SUM(delay_hours) as total_delay_hours,
                 COUNT(CASE WHEN notification_status = 'sent' THEN 1 END) as notifications_sent
             FROM production_log
-            WHERE ticket_id = ?
+            WHERE ticket_id = %s
         """, (ticket_id,))
         
         totals = cursor.fetchone()

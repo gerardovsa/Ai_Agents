@@ -435,7 +435,7 @@ Consider usability, accessibility, and user satisfaction."""
         
         cursor.execute("""
             SELECT prompt_text FROM prompt_library
-            WHERE user_id = ? AND name = ?
+            WHERE user_id = %s AND name = %s
             ORDER BY updated_at DESC LIMIT 1
         """, (user_id, prompt_name))
         
@@ -526,7 +526,7 @@ Consider usability, accessibility, and user satisfaction."""
         
         cursor.execute("""
             INSERT INTO prompt_library (user_id, name, prompt_text, category, type, visibility)
-            VALUES (?, ?, ?, ?, ?, 'private')
+            VALUES (%s, %s, %s, %s, %s, 'private')
         """, (user_id, name, prompt_text, category or 'custom', prompt_type))
         
         prompt_id = cursor.lastrowid
@@ -550,7 +550,7 @@ Consider usability, accessibility, and user satisfaction."""
         cursor.execute("""
             INSERT INTO user_prompt_preferences 
             (user_id, preference_name, quick_actions, library_prompts, custom_prompt)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (
             user_id,
             preference_name,
@@ -573,7 +573,7 @@ Consider usability, accessibility, and user satisfaction."""
         cursor.execute("""
             SELECT quick_actions, library_prompts, custom_prompt
             FROM user_prompt_preferences
-            WHERE user_id = ? AND preference_name = ?
+            WHERE user_id = %s AND preference_name = %s
             ORDER BY created_at DESC LIMIT 1
         """, (user_id, preference_name))
         
@@ -621,7 +621,7 @@ Consider usability, accessibility, and user satisfaction."""
         cursor.execute("""
             SELECT id, name, category, type, created_at
             FROM prompt_library
-            WHERE user_id = ?
+            WHERE user_id = %s
             ORDER BY created_at DESC
         """, (user_id,))
         

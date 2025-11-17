@@ -187,7 +187,7 @@ def get_table_data():
         cursor = conn.cursor()
         
         # Get data (with limit)
-        cursor.execute(f"SELECT * FROM {table} LIMIT ?", (limit,))
+        cursor.execute(f"SELECT * FROM {table} LIMIT %s", (limit,))
         rows = cursor.fetchall()
         
         # Convert to list of dicts

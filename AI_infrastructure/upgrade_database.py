@@ -179,7 +179,7 @@ def upgrade_database():
                             cursor.execute('''
                                 INSERT OR IGNORE INTO messages 
                                 (workspace_id, session_id, role, content, created_at)
-                                VALUES (?, ?, ?, ?, ?)
+                                VALUES (%s, %s, %s, %s, %s)
                             ''', (workspace_id, session_id, msg['role'], content, created_at))
                             migrated_count += 1
         except (json.JSONDecodeError, KeyError, TypeError) as e:

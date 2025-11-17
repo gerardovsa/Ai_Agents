@@ -51,7 +51,7 @@ class SessionManager:
         
         cursor.execute("""
             INSERT INTO user_sessions (user_id, token, ip_address, user_agent, expires_at)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (user_id, token, ip_address, user_agent, expires_at))
         
         conn.commit()
@@ -74,7 +74,7 @@ class SessionManager:
         
         cursor.execute("""
             SELECT * FROM user_sessions 
-            WHERE token = ? AND expires_at > ?
+            WHERE token = %s AND expires_at > %s
         """, (token, datetime.now()))
         
         row = cursor.fetchone()
@@ -109,13 +109,13 @@ class SessionManager:
         if user_id:
             cursor.execute("""
                 SELECT * FROM user_sessions 
-                WHERE user_id = ? AND expires_at > ?
+                WHERE user_id = %s AND expires_at > %s
                 ORDER BY created_at DESC
             """, (user_id, datetime.now()))
         else:
             cursor.execute("""
                 SELECT * FROM user_sessions 
-                WHERE expires_at > ?
+                WHERE expires_at > %s
                 ORDER BY created_at DESC
             """, (datetime.now(),))
         
@@ -141,7 +141,7 @@ class SessionManager:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute("DELETE FROM user_sessions WHERE token = ?", (token,))
+        cursor.execute("DELETE FROM user_sessions WHERE token = %s", (token,))
         deleted = cursor.rowcount > 0
         
         conn.commit()
@@ -161,7 +161,7 @@ class SessionManager:
         
         cursor.execute("""
             DELETE FROM user_sessions 
-            WHERE expires_at <= ?
+            WHERE expires_at <= %s
         """, (datetime.now(),))
         
         deleted_count = cursor.rowcount
@@ -182,7 +182,7 @@ class SessionManager:
         # Active sessions
         cursor.execute("""
             SELECT COUNT(*) FROM user_sessions 
-            WHERE expires_at > ?
+            WHERE expires_at > %s
         """, (datetime.now(),))
         active = cursor.fetchone()[0]
         
@@ -192,7 +192,7 @@ class SessionManager:
         # Unique users with active sessions
         cursor.execute("""
             SELECT COUNT(DISTINCT user_id) FROM user_sessions 
-            WHERE expires_at > ?
+            WHERE expires_at > %s
         """, (datetime.now(),))
         active_users = cursor.fetchone()[0]
         

@@ -426,25 +426,25 @@ def list_prompts_from_db():
                 description, prompt_text, tags, visibility,
                 usage_count, created_at, updated_at
             FROM ai_infrastructure.prompt_library
-            WHERE user_id = ?
+            WHERE user_id = %s
         """
         params = [user_id]
         
         # Add filters
         if category:
-            query += " AND category = ?"
+            query += " AND category = %s"
             params.append(category)
         
         if prompt_type:
-            query += " AND type = ?"
+            query += " AND type = %s"
             params.append(prompt_type)
         
         if visibility:
-            query += " AND visibility = ?"
+            query += " AND visibility = %s"
             params.append(visibility)
         
         if search:
-            query += " AND (name LIKE ? OR description LIKE ? OR tags LIKE ?)"
+            query += " AND (name LIKE %s OR description LIKE %s OR tags LIKE %s)"
             search_term = f"%{search}%"
             params.extend([search_term, search_term, search_term])
         
@@ -534,7 +534,7 @@ def create_prompt_in_db():
             INSERT INTO ai_infrastructure.prompt_library 
             (user_id, workspace_id, name, category, type, description, 
              prompt_text, tags, visibility, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             user_id,
             data.get('workspace_id'),
@@ -559,7 +559,7 @@ def create_prompt_in_db():
                 description, prompt_text, tags, visibility,
                 usage_count, created_at, updated_at
             FROM ai_infrastructure.prompt_library
-            WHERE id = ?
+            WHERE id = %s
         """, (prompt_id,))
         
         row = cursor.fetchone()
@@ -609,7 +609,7 @@ def update_prompt_in_db(prompt_id):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT user_id FROM ai_infrastructure.prompt_library WHERE id = ?
+            SELECT user_id FROM ai_infrastructure.prompt_library WHERE id = %s
         """, (prompt_id,))
         
         row = cursor.fetchone()
@@ -631,15 +631,14 @@ def update_prompt_in_db(prompt_id):
         cursor.execute("""
             UPDATE ai_infrastructure.prompt_library
             SET 
-                name = COALESCE(?, name),
-                category = COALESCE(?, category),
-                type = COALESCE(?, type),
-                description = COALESCE(?, description),
-                prompt_text = COALESCE(?, prompt_text),
-                tags = COALESCE(?, tags),
-                visibility = COALESCE(?, visibility),
-                updated_at = ?
-            WHERE id = ?
+                name = COALESCE( %s, name),
+                category = COALESCE( %s, category),
+                type = COALESCE( %s, type),
+                description = COALESCE( %s, description),
+                prompt_text = COALESCE( %s, prompt_text),
+                tags = COALESCE( %s, tags),
+                visibility = COALESCE( %s, visibility), updated_at = %s
+            WHERE id = %s
         """, (
             data.get('name'),
             data.get('category'),
@@ -661,7 +660,7 @@ def update_prompt_in_db(prompt_id):
                 description, prompt_text, tags, visibility,
                 usage_count, created_at, updated_at
             FROM ai_infrastructure.prompt_library
-            WHERE id = ?
+            WHERE id = %s
         """, (prompt_id,))
         
         row = cursor.fetchone()
@@ -710,7 +709,7 @@ def delete_prompt_from_db(prompt_id):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT user_id FROM ai_infrastructure.prompt_library WHERE id = ?
+            SELECT user_id FROM ai_infrastructure.prompt_library WHERE id = %s
         """, (prompt_id,))
         
         row = cursor.fetchone()
@@ -730,7 +729,7 @@ def delete_prompt_from_db(prompt_id):
         
         # Delete prompt
         cursor.execute("""
-            DELETE FROM ai_infrastructure.prompt_library WHERE id = ?
+            DELETE FROM ai_infrastructure.prompt_library WHERE id = %s
         """, (prompt_id,))
         
         conn.commit()

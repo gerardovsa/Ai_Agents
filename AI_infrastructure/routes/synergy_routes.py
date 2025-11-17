@@ -292,15 +292,15 @@ def list_sessions():
         params = []
         
         if status:
-            query += ' AND status = ?'
+            query += ' AND status = %s'
             params.append(status)
         
         if priority:
-            query += ' AND priority = ?'
+            query += ' AND priority = %s'
             params.append(priority)
         
         if column:
-            query += ' AND kanban_column = ?'
+            query += ' AND kanban_column = %s'
             params.append(column)
         
         # Order by column_position (for card ordering), then by last_active
@@ -433,7 +433,7 @@ def get_sessions_with_internal_docs():
         # Use correct table name based on environment
         docs_rows = []
         if session_ids:
-            placeholders = ','.join('?' for _ in session_ids)
+            placeholders = ','.join('%s' for _ in session_ids)
             
             # Determine correct table name: synergy_internal_docs (both local and Supabase use this)
             table_name = 'synergy_internal_docs'
@@ -531,7 +531,7 @@ def get_sessions_bulk():
         cursor = conn.cursor()
 
         # Build a parameterized query with the right number of placeholders
-        placeholders = ','.join('?' for _ in ids)
+        placeholders = ','.join('%s' for _ in ids)
         query = f"SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id IN ({placeholders})"
         cursor.execute(query, ids)
         rows = cursor.fetchall()
@@ -616,7 +616,7 @@ def create_session():
                 priority, kanban_column, tags, documents, links, next_steps,
                 assignees, recent_activity, checklist, due_date, created_at, last_active,
                 thread_ids, assigned_agents
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             session_id,
             data.get('title', 'Untitled Session'),
@@ -647,8 +647,8 @@ def create_session():
                 try:
                     cursor.execute('''
                         UPDATE sessions.threads 
-                        SET synergy_card_id = ?, synergy_card_name = ?, updated = ?
-                        WHERE id = ?
+                        SET synergy_card_id = %s, synergy_card_name = %s, updated = %s
+                        WHERE id = %s
                     ''', (session_id, data.get('title', 'Untitled Session'), datetime.now().isoformat(), thread_id))
                     print(f"BIDIRECTIONAL LINK: Thread {thread_id} updated with synergy_card_id {session_id}")
                 except Exception as link_error:
@@ -699,7 +699,7 @@ def get_session(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
         row = cursor.fetchone()
         conn.close()
         
@@ -809,7 +809,7 @@ def update_session(session_id):
         params.append(session_id)
         
         if updates:
-            query = f"UPDATE synergy_sessions.synergy_sessions SET {', '.join(updates)} WHERE session_id = ?"
+            query = f"UPDATE synergy_sessions.synergy_sessions SET {', '.join(updates)} WHERE session_id = %s"
             print(f"[DEBUG] Executing query: {query}")  # DEBUG
             print(f"[DEBUG] With params: {params}")  # DEBUG
             cursor.execute(query, params)
@@ -865,7 +865,7 @@ def update_column(session_id):
         
         # Add activity log
         cursor.execute(
-            'SELECT recent_activity FROM synergy_sessions.synergy_sessions WHERE session_id = ?',
+            'SELECT recent_activity FROM synergy_sessions.synergy_sessions WHERE session_id = %s',
             (session_id,)
         )
         row = cursor.fetchone()
@@ -881,8 +881,8 @@ def update_column(session_id):
             
             cursor.execute('''
                 UPDATE synergy_sessions.synergy_sessions 
-                SET kanban_column = ?, recent_activity = ?, last_active = ?
-                WHERE session_id = ?
+                SET kanban_column = %s, recent_activity = %s, last_active = %s
+                WHERE session_id = %s
             ''', (new_column, json.dumps(activity), datetime.now().isoformat(), session_id))
             
             conn.commit()
@@ -925,7 +925,7 @@ def delete_session(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('DELETE FROM synergy_sessions.synergy_sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('DELETE FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
         conn.commit()
         conn.close()
         
@@ -977,7 +977,7 @@ def link_thread_to_synergy(session_id):
         cursor = conn.cursor()
         
         # Get current thread_ids array
-        cursor.execute('SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
         row = cursor.fetchone()
         
         if not row:
@@ -1001,9 +1001,8 @@ def link_thread_to_synergy(session_id):
             # UPDATE synergy_sessions.synergy_sessions
             cursor.execute('''
                 UPDATE synergy_sessions.synergy_sessions 
-                SET thread_ids = ?,
-                    last_active = ?
-                WHERE session_id = ?
+                SET thread_ids = %s, last_active = %s
+                WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
             
             conn.commit()
@@ -1044,8 +1043,8 @@ def update_card_position(session_id):
         
         cursor.execute('''
             UPDATE synergy_sessions.synergy_sessions 
-            SET column_position = ?
-            WHERE session_id = ?
+            SET column_position = %s
+            WHERE session_id = %s
         ''', (position, session_id))
         
         conn.commit()
@@ -1084,8 +1083,8 @@ def update_multiple_positions():
             if session_id and position is not None:
                 cursor.execute('''
                     UPDATE synergy_sessions.synergy_sessions 
-                    SET column_position = ?
-                    WHERE session_id = ?
+                    SET column_position = %s
+                    WHERE session_id = %s
                 ''', (position, session_id))
         
         conn.commit()
@@ -1121,7 +1120,7 @@ def unlink_thread_from_synergy(session_id):
         cursor = conn.cursor()
         
         # Get current thread_ids array
-        cursor.execute('SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('SELECT thread_ids FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
         row = cursor.fetchone()
         
         if not row:
@@ -1145,9 +1144,8 @@ def unlink_thread_from_synergy(session_id):
             # UPDATE synergy_sessions.synergy_sessions
             cursor.execute('''
                 UPDATE synergy_sessions.synergy_sessions 
-                SET thread_ids = ?,
-                    last_active = ?
-                WHERE session_id = ?
+                SET thread_ids = %s, last_active = %s
+                WHERE session_id = %s
             ''', (json.dumps(thread_ids), datetime.now().isoformat(), session_id))
             
             conn.commit()
@@ -1225,7 +1223,7 @@ def create_internal_doc():
         original_slug = slug
         counter = 1
         while True:
-            cursor.execute('SELECT doc_id FROM synergy_sessions.synergy_internal_docs WHERE slug = ?', (slug,))
+            cursor.execute('SELECT doc_id FROM synergy_sessions.synergy_internal_docs WHERE slug = %s', (slug,))
             if not cursor.fetchone():
                 break
             slug = f"{original_slug}-{counter}"
@@ -1235,7 +1233,7 @@ def create_internal_doc():
         share_url = f"/internal-docs/{slug}"
         
         # Verify session exists
-        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
         if not cursor.fetchone():
             conn.close()
             return jsonify({'success': False, 'error': 'Session not found'}), 404
@@ -1245,7 +1243,7 @@ def create_internal_doc():
             INSERT INTO synergy_sessions.synergy_internal_docs 
             (doc_id, session_id, title, content, content_json, format, doc_type, 
              created_by, created_at, updated_at, version, linked_to_ai, slug, share_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (doc_id, session_id, title, content, content_json, doc_format, doc_type,
               created_by, datetime.now().isoformat(), datetime.now().isoformat(), 1, 0, slug, share_url))
         
@@ -1298,7 +1296,7 @@ def get_internal_doc(doc_id):
                    created_at, updated_at, created_by, version, linked_to_ai,
                    slug, share_url, description, tags
             FROM synergy_sessions.synergy_internal_docs
-            WHERE doc_id = ?
+            WHERE doc_id = %s
         ''', (doc_id,))
         
         row = cursor.fetchone()
@@ -1364,7 +1362,7 @@ def update_internal_doc(doc_id):
         cursor = conn.cursor()
         
         # Get current version
-        cursor.execute('SELECT version FROM synergy_sessions.synergy_internal_docs WHERE doc_id = ?', (doc_id,))
+        cursor.execute('SELECT version FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s', (doc_id,))
         row = cursor.fetchone()
         
         if not row:
@@ -1394,7 +1392,7 @@ def update_internal_doc(doc_id):
         
         params.append(doc_id)
         
-        query = f"UPDATE synergy_sessions.synergy_internal_docs SET {', '.join(updates)} WHERE doc_id = ?"
+        query = f"UPDATE synergy_sessions.synergy_internal_docs SET {', '.join(updates)} WHERE doc_id = %s"
         cursor.execute(query, params)
         
         conn.commit()
@@ -1431,7 +1429,7 @@ def delete_internal_doc(doc_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('DELETE FROM synergy_sessions.synergy_internal_docs WHERE doc_id = ?', (doc_id,))
+        cursor.execute('DELETE FROM synergy_sessions.synergy_internal_docs WHERE doc_id = %s', (doc_id,))
         
         if cursor.rowcount == 0:
             conn.close()
@@ -1482,7 +1480,7 @@ def list_internal_docs(session_id):
             SELECT doc_id, title, format, doc_type, created_at, updated_at, created_by, version, linked_to_ai,
                    slug, share_url, description, tags
             FROM synergy_sessions.synergy_internal_docs
-            WHERE session_id = ?
+            WHERE session_id = %s
             ORDER BY created_at DESC
         ''', (session_id,))
         
@@ -1545,8 +1543,8 @@ def link_doc_to_ai(doc_id):
         # Update document to link to AI
         cursor.execute("""
             UPDATE synergy_sessions.synergy_internal_docs
-            SET linked_to_ai = 1, session_id = ?
-            WHERE doc_id = ?
+            SET linked_to_ai = 1, session_id = %s
+            WHERE doc_id = %s
         """, (session_id, doc_id))
         
         if cursor.rowcount == 0:
@@ -1594,7 +1592,7 @@ def export_internal_doc(doc_id, format):
         cursor.execute("""
             SELECT doc_id, title, content, content_json, doc_type
             FROM synergy_sessions.synergy_internal_docs
-            WHERE doc_id = ?
+            WHERE doc_id = %s
         """, (doc_id,))
         
         row = cursor.fetchone()

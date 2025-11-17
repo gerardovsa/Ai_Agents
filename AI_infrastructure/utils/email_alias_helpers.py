@@ -45,7 +45,7 @@ def get_user_id_by_email(email: str) -> Optional[int]:
     
     try:
         # First check: Is this the primary email?
-        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE email = ?', (email,))
+        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE email = %s', (email,))
         cursor.execute(sql, params)
         result = cursor.fetchone()
         
@@ -56,7 +56,7 @@ def get_user_id_by_email(email: str) -> Optional[int]:
         # Second check: Is this an alias email?
         sql, params = convert_sql_placeholders('''
             SELECT user_id FROM user_email_aliases 
-            WHERE alias_email = ?
+            WHERE alias_email = %s
         ''', (email,))
         cursor.execute(sql, params)
         result = cursor.fetchone()
@@ -104,13 +104,13 @@ def add_email_alias(
     
     try:
         # Verify user exists
-        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE id = ?', (user_id,))
+        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE id = %s', (user_id,))
         cursor.execute(sql, params)
         if not cursor.fetchone():
             return False, f"User {user_id} not found"
         
         # Check if email is already someone's primary
-        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE email = ?', (alias_email,))
+        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE email = %s', (alias_email,))
         cursor.execute(sql, params)
         if cursor.fetchone():
             return False, f"Email {alias_email} is already a primary email for another account"
@@ -118,7 +118,7 @@ def add_email_alias(
         # Check if email is already an alias
         sql, params = convert_sql_placeholders('''
             SELECT user_id FROM user_email_aliases 
-            WHERE alias_email = ?
+            WHERE alias_email = %s
         ''', (alias_email,))
         cursor.execute(sql, params)
         existing = cursor.fetchone()
@@ -134,7 +134,7 @@ def add_email_alias(
         sql, params = convert_sql_placeholders('''
             INSERT INTO user_email_aliases 
             (user_id, alias_email, oauth_provider, created_at, updated_at, metadata)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
         ''', (
             user_id, 
             alias_email, 
@@ -176,7 +176,7 @@ def get_user_emails(user_id: int) -> Dict[str, List[str]]:
     
     try:
         # Get primary email
-        sql, params = convert_sql_placeholders('SELECT email FROM users WHERE id = ?', (user_id,))
+        sql, params = convert_sql_placeholders('SELECT email FROM users WHERE id = %s', (user_id,))
         cursor.execute(sql, params)
         result = cursor.fetchone()
         
@@ -189,7 +189,7 @@ def get_user_emails(user_id: int) -> Dict[str, List[str]]:
         sql, params = convert_sql_placeholders('''
             SELECT alias_email, oauth_provider, created_at 
             FROM user_email_aliases 
-            WHERE user_id = ?
+            WHERE user_id = %s
             ORDER BY created_at DESC
         ''', (user_id,))
         cursor.execute(sql, params)
@@ -237,7 +237,7 @@ def remove_email_alias(alias_email: str, user_id: int) -> Tuple[bool, str]:
         # Verify this alias belongs to this user
         cursor.execute('''
             SELECT id FROM user_email_aliases 
-            WHERE alias_email = ? AND user_id = ?
+            WHERE alias_email = %s AND user_id = %s
         ''', (alias_email, user_id))
         
         if not cursor.fetchone():
@@ -246,7 +246,7 @@ def remove_email_alias(alias_email: str, user_id: int) -> Tuple[bool, str]:
         # Remove the alias
         cursor.execute('''
             DELETE FROM user_email_aliases 
-            WHERE alias_email = ? AND user_id = ?
+            WHERE alias_email = %s AND user_id = %s
         ''', (alias_email, user_id))
         
         conn.commit()
@@ -293,7 +293,7 @@ def get_alias_info(alias_email: str) -> Optional[Dict]:
                 id, user_id, alias_email, oauth_provider, 
                 is_primary, created_at, updated_at, metadata
             FROM user_email_aliases 
-            WHERE alias_email = ?
+            WHERE alias_email = %s
         ''', (alias_email,))
         
         result = cursor.fetchone()
@@ -336,7 +336,7 @@ def count_user_aliases(user_id: int) -> int:
     try:
         cursor.execute('''
             SELECT COUNT(*) FROM user_email_aliases 
-            WHERE user_id = ?
+            WHERE user_id = %s
         ''', (user_id,))
         
         result = cursor.fetchone()

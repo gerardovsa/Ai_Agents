@@ -239,7 +239,7 @@ class SessionDatabase:
                 INSERT INTO sessions (
                     session_id, user_id, title, project_name, 
                     tags, created_at, last_active
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (session_id, user_id, title, project_name, tags_json, now, now))
             
             # Log creation
@@ -274,14 +274,14 @@ class SessionDatabase:
             cursor.execute("""
                 INSERT INTO messages (
                     session_id, role, content, tools_used, timestamp
-                ) VALUES (?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s)
             """, (session_id, role, content, tools_json, now))
             
             message_id = cursor.lastrowid
             
             # Update last_active
             cursor.execute("""
-                UPDATE sessions SET last_active = ? WHERE session_id = ?
+                UPDATE sessions SET last_active = %s WHERE session_id = %s
             """, (now, session_id))
             
             # Log activity
@@ -304,7 +304,7 @@ class SessionDatabase:
             cursor.execute("""
                 INSERT INTO documents (
                     session_id, doc_type, title, url, created_at
-                ) VALUES (?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s)
             """, (session_id, doc_type, title, url, now))
             
             doc_id = cursor.lastrowid
@@ -328,12 +328,12 @@ class SessionDatabase:
             
             cursor.execute("""
                 UPDATE documents 
-                SET status = 'archived', archived_at = ?
-                WHERE doc_id = ?
+                SET status = 'archived', archived_at = %s
+                WHERE doc_id = %s
             """, (now, doc_id))
             
             # Get session_id for logging
-            cursor.execute("SELECT session_id, title FROM documents WHERE doc_id = ?", (doc_id,))
+            cursor.execute("SELECT session_id, title FROM documents WHERE doc_id = %s", (doc_id,))
             row = cursor.fetchone()
             
             if row:
@@ -353,7 +353,7 @@ class SessionDatabase:
             
             cursor.execute("""
                 INSERT INTO next_steps (session_id, description, created_at)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
             """, (session_id, description, now))
             
             step_id = cursor.lastrowid
@@ -375,12 +375,12 @@ class SessionDatabase:
             
             cursor.execute("""
                 UPDATE next_steps 
-                SET completed = 1, completed_at = ?
-                WHERE step_id = ?
+                SET completed = 1, completed_at = %s
+                WHERE step_id = %s
             """, (now, step_id))
             
             # Get session_id for logging
-            cursor.execute("SELECT session_id, description FROM next_steps WHERE step_id = ?", (step_id,))
+            cursor.execute("SELECT session_id, description FROM next_steps WHERE step_id = %s", (step_id,))
             row = cursor.fetchone()
             
             if row:
@@ -400,7 +400,7 @@ class SessionDatabase:
         cursor.execute("""
             INSERT INTO activity_log (
                 session_id, event_type, description, metadata, timestamp
-            ) VALUES (?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s)
         """, (session_id, event_type, description, metadata_json, now))
     
     def get_session(self, session_id: str) -> Optional[Dict]:
@@ -409,7 +409,7 @@ class SessionDatabase:
             cursor = conn.cursor()
             
             # Get session
-            cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
+            cursor.execute("SELECT * FROM sessions WHERE session_id = %s", (session_id,))
             session_row = cursor.fetchone()
             
             if not session_row:
@@ -421,7 +421,7 @@ class SessionDatabase:
             # Get messages
             cursor.execute("""
                 SELECT * FROM messages 
-                WHERE session_id = ? 
+                WHERE session_id = %s 
                 ORDER BY timestamp ASC
             """, (session_id,))
             session['messages'] = [dict(row) for row in cursor.fetchall()]
@@ -429,7 +429,7 @@ class SessionDatabase:
             # Get activity log
             cursor.execute("""
                 SELECT * FROM activity_log 
-                WHERE session_id = ? 
+                WHERE session_id = %s 
                 ORDER BY timestamp DESC
                 LIMIT 50
             """, (session_id,))
@@ -438,7 +438,7 @@ class SessionDatabase:
             # Get active documents
             cursor.execute("""
                 SELECT * FROM documents 
-                WHERE session_id = ? AND status = 'active'
+                WHERE session_id = %s AND status = 'active'
                 ORDER BY created_at DESC
             """, (session_id,))
             session['active_documents'] = [dict(row) for row in cursor.fetchall()]
@@ -446,7 +446,7 @@ class SessionDatabase:
             # Get archived documents
             cursor.execute("""
                 SELECT * FROM documents 
-                WHERE session_id = ? AND status = 'archived'
+                WHERE session_id = %s AND status = 'archived'
                 ORDER BY archived_at DESC
             """, (session_id,))
             session['archived_documents'] = [dict(row) for row in cursor.fetchall()]
@@ -454,7 +454,7 @@ class SessionDatabase:
             # Get next steps
             cursor.execute("""
                 SELECT * FROM next_steps 
-                WHERE session_id = ? AND completed = 0
+                WHERE session_id = %s AND completed = 0
                 ORDER BY created_at ASC
             """, (session_id,))
             session['next_steps'] = [dict(row) for row in cursor.fetchall()]
@@ -467,15 +467,15 @@ class SessionDatabase:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            query = "SELECT * FROM sessions WHERE user_id = ?"
+            query = "SELECT * FROM sessions WHERE user_id = %s"
             params = [user_id]
             
             if status:
-                query += " AND status = ?"
+                query += " AND status = %s"
                 params.append(status)
             
             if kanban_column:
-                query += " AND kanban_column = ?"
+                query += " AND kanban_column = %s"
                 params.append(kanban_column)
             
             query += " ORDER BY last_active DESC"
@@ -496,9 +496,9 @@ class SessionDatabase:
             
             cursor.execute("""
                 UPDATE sessions 
-                SET kanban_column = ?,
+                SET kanban_column = %s,
                     status = CASE WHEN ? = 'done' THEN 'completed' ELSE status END
-                WHERE session_id = ?
+                WHERE session_id = %s
             """, (column, column, session_id))
             
             self._log_activity(
@@ -515,8 +515,8 @@ class SessionDatabase:
             
             cursor.execute("""
                 UPDATE sessions 
-                SET google_task_id = ?
-                WHERE session_id = ?
+                SET google_task_id = %s
+                WHERE session_id = %s
             """, (task_id, session_id))
             
             self._log_activity(
@@ -532,26 +532,26 @@ class SessionDatabase:
             cursor = conn.cursor()
             
             # Get basic info
-            cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
+            cursor.execute("SELECT * FROM sessions WHERE session_id = %s", (session_id,))
             session = dict(cursor.fetchone())
             
             # Get message count
-            cursor.execute("SELECT COUNT(*) as count FROM messages WHERE session_id = ?", (session_id,))
+            cursor.execute("SELECT COUNT(*) as count FROM messages WHERE session_id = %s", (session_id,))
             session['message_count'] = cursor.fetchone()['count']
             
             # Get pending next steps count
-            cursor.execute("SELECT COUNT(*) as count FROM next_steps WHERE session_id = ? AND completed = 0", (session_id,))
+            cursor.execute("SELECT COUNT(*) as count FROM next_steps WHERE session_id = %s AND completed = 0", (session_id,))
             session['pending_steps'] = cursor.fetchone()['count']
             
             # Get active docs count
-            cursor.execute("SELECT COUNT(*) as count FROM documents WHERE session_id = ? AND status = 'active'", (session_id,))
+            cursor.execute("SELECT COUNT(*) as count FROM documents WHERE session_id = %s AND status = 'active'", (session_id,))
             session['active_docs'] = cursor.fetchone()['count']
             
             # Get latest activity (last 3)
             cursor.execute("""
                 SELECT event_type, description, timestamp 
                 FROM activity_log 
-                WHERE session_id = ? 
+                WHERE session_id = %s 
                 ORDER BY timestamp DESC 
                 LIMIT 3
             """, (session_id,))

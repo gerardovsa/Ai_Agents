@@ -116,7 +116,7 @@ class WorkspaceManager:
         
         max_attempts = 10
         for attempt in range(max_attempts):
-            cursor.execute("SELECT id FROM workspaces WHERE slug = ?", (slug,))
+            cursor.execute("SELECT id FROM workspaces WHERE slug = %s", (slug,))
             if cursor.fetchone() is None:
                 conn.close()
                 return slug
@@ -150,7 +150,7 @@ class WorkspaceManager:
             workspace_slug = slug_gen.generate_workspace_slug(workspace_data.name)
             
             # Verify owner exists
-            cursor.execute("SELECT id FROM users WHERE id = ?", (workspace_data.owner_id,))
+            cursor.execute("SELECT id FROM users WHERE id = %s", (workspace_data.owner_id,))
             if not cursor.fetchone():
                 conn.close()
                 raise UserNotFoundError(workspace_data.owner_id)
@@ -162,7 +162,7 @@ class WorkspaceManager:
                     slug, name, description, user_id, owner_id, status, visibility,
                     settings, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 workspace_slug,
                 workspace_data.name,
@@ -183,7 +183,7 @@ class WorkspaceManager:
                 INSERT INTO workspace_users (
                     workspace_id, user_id, role, added_by_user_id, added_at
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s)
             """, (workspace_id, workspace_data.owner_id, WorkspaceRole.OWNER.value, workspace_data.owner_id, now))
             
             conn.commit()
@@ -239,9 +239,9 @@ class WorkspaceManager:
         
         # Query workspace
         if workspace_id:
-            cursor.execute("SELECT * FROM workspaces WHERE id = ?", (workspace_id,))
+            cursor.execute("SELECT * FROM workspaces WHERE id = %s", (workspace_id,))
         else:
-            cursor.execute("SELECT * FROM workspaces WHERE slug = ?", (effective_slug,))
+            cursor.execute("SELECT * FROM workspaces WHERE slug = %s", (effective_slug,))
         
         row = cursor.fetchone()
         
@@ -258,7 +258,7 @@ class WorkspaceManager:
         # Get member count
         cursor.execute("""
             SELECT COUNT(*) FROM workspace_users 
-            WHERE workspace_id = ? AND removed_at IS NULL
+            WHERE workspace_id = %s AND removed_at IS NULL
         """, (row['id'],))
         member_count = cursor.fetchone()[0]
         
@@ -342,7 +342,7 @@ class WorkspaceManager:
             cursor.execute(f"""
                 UPDATE workspaces 
                 SET {', '.join(updates)}
-                WHERE id = ?
+                WHERE id = %s
             """, params)
             
             conn.commit()
@@ -382,15 +382,15 @@ class WorkspaceManager:
         try:
             if hard_delete:
                 # TODO: Delete all related data (threads, messages, etc.)
-                cursor.execute("DELETE FROM workspace_users WHERE workspace_id = ?", (workspace_id,))
-                cursor.execute("DELETE FROM workspaces WHERE id = ?", (workspace_id,))
+                cursor.execute("DELETE FROM workspace_users WHERE workspace_id = %s", (workspace_id,))
+                cursor.execute("DELETE FROM workspaces WHERE id = %s", (workspace_id,))
             else:
                 # Soft delete
                 now = datetime.utcnow().isoformat()
                 cursor.execute("""
                     UPDATE workspaces 
-                    SET status = ?, archived_at = ?, updated_at = ?
-                    WHERE id = ?
+                    SET status = %s, archived_at = %s, updated_at = %s
+                    WHERE id = %s
                 """, (WorkspaceStatus.ARCHIVED.value, now, now, workspace_id))
             
             conn.commit()
@@ -420,7 +420,7 @@ class WorkspaceManager:
         query_params = []
         
         if params.owner_id:
-            where_clauses.append("owner_id = ?")
+            where_clauses.append("owner_id  = %s")
             query_params.append(params.owner_id)
         
         if params.user_id:
@@ -428,21 +428,21 @@ class WorkspaceManager:
             where_clauses.append("""
                 id IN (
                     SELECT workspace_id FROM workspace_users 
-                    WHERE user_id = ? AND removed_at IS NULL
+                    WHERE user_id = %s AND removed_at IS NULL
                 )
             """)
             query_params.append(params.user_id)
         
         if params.status:
-            where_clauses.append("status = ?")
+            where_clauses.append("status  = %s")
             query_params.append(params.status.value)
         
         if params.visibility:
-            where_clauses.append("visibility = ?")
+            where_clauses.append("visibility  = %s")
             query_params.append(params.visibility.value)
         
         if params.search:
-            where_clauses.append("(name LIKE ? OR description LIKE ?)")
+            where_clauses.append("(name LIKE %s OR description LIKE %s)")
             search_term = f"%{params.search}%"
             query_params.extend([search_term, search_term])
         
@@ -514,7 +514,7 @@ class WorkspaceManager:
         
         try:
             # Verify user exists
-            cursor.execute("SELECT id FROM users WHERE id = ?", (member_data.user_id,))
+            cursor.execute("SELECT id FROM users WHERE id = %s", (member_data.user_id,))
             if not cursor.fetchone():
                 conn.close()
                 raise UserNotFoundError(member_data.user_id)
@@ -524,7 +524,7 @@ class WorkspaceManager:
                 INSERT INTO workspace_users (
                     workspace_id, user_id, role, added_by_user_id, added_at
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s)
             """, (
                 member_data.workspace_id,
                 member_data.user_id,
@@ -537,7 +537,7 @@ class WorkspaceManager:
             conn.commit()
             
             # Fetch created member
-            cursor.execute("SELECT * FROM workspace_users WHERE id = ?", (member_id,))
+            cursor.execute("SELECT * FROM workspace_users WHERE id = %s", (member_id,))
             row = cursor.fetchone()
             conn.close()
             
@@ -595,8 +595,8 @@ class WorkspaceManager:
             now = datetime.utcnow().isoformat()
             cursor.execute("""
                 UPDATE workspace_users 
-                SET removed_at = ?
-                WHERE workspace_id = ? AND user_id = ?
+                SET removed_at = %s
+                WHERE workspace_id = %s AND user_id = %s
             """, (now, workspace_id, user_id))
             
             conn.commit()
@@ -639,8 +639,8 @@ class WorkspaceManager:
         try:
             cursor.execute("""
                 UPDATE workspace_users 
-                SET role = ?
-                WHERE workspace_id = ? AND user_id = ? AND removed_at IS NULL
+                SET role = %s
+                WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
             """, (new_role.value, workspace_id, user_id))
             
             conn.commit()
@@ -660,7 +660,7 @@ class WorkspaceManager:
         
         cursor.execute("""
             SELECT * FROM workspace_users 
-            WHERE workspace_id = ? AND user_id = ? AND removed_at IS NULL
+            WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
         """, (workspace_id, user_id))
         
         row = cursor.fetchone()
@@ -686,7 +686,7 @@ class WorkspaceManager:
         
         cursor.execute("""
             SELECT * FROM workspace_users 
-            WHERE workspace_id = ? AND removed_at IS NULL
+            WHERE workspace_id = %s AND removed_at IS NULL
             ORDER BY added_at ASC
         """, (workspace_id,))
         
@@ -714,7 +714,7 @@ class WorkspaceManager:
         
         cursor.execute("""
             SELECT id FROM workspace_users 
-            WHERE workspace_id = ? AND user_id = ? AND removed_at IS NULL
+            WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
         """, (workspace_id, user_id))
         
         result = cursor.fetchone()
@@ -729,7 +729,7 @@ class WorkspaceManager:
         
         cursor.execute("""
             SELECT workspace_id FROM workspace_users 
-            WHERE user_id = ? AND removed_at IS NULL
+            WHERE user_id = %s AND removed_at IS NULL
         """, (user_id,))
         
         rows = cursor.fetchall()
@@ -759,7 +759,7 @@ class WorkspaceManager:
         # Get active members
         cursor.execute("""
             SELECT COUNT(*) FROM workspace_users 
-            WHERE workspace_id = ? AND removed_at IS NULL
+            WHERE workspace_id = %s AND removed_at IS NULL
         """, (workspace_id,))
         active_members = cursor.fetchone()[0]
         

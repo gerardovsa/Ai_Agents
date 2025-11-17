@@ -101,7 +101,7 @@ class InvitationManager:
         
         try:
             # Verify workspace exists
-            cursor.execute("SELECT id FROM workspaces WHERE id = ?", (invitation_data.workspace_id,))
+            cursor.execute("SELECT id FROM workspaces WHERE id = %s", (invitation_data.workspace_id,))
             if not cursor.fetchone():
                 raise WorkspaceNotFoundError(workspace_id=invitation_data.workspace_id)
             
@@ -110,7 +110,7 @@ class InvitationManager:
                 # Check existing membership
                 cursor.execute("""
                     SELECT id FROM workspace_users 
-                    WHERE workspace_id = ? AND user_id = ? AND removed_at IS NULL
+                    WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
                 """, (invitation_data.workspace_id, invitation_data.invited_user_id))
                 
                 if cursor.fetchone():
@@ -122,10 +122,10 @@ class InvitationManager:
                 # Check pending invitations
                 cursor.execute("""
                     SELECT id FROM workspace_invitations
-                    WHERE workspace_id = ? 
-                      AND invited_user_id = ?
-                      AND status = ?
-                      AND expires_at > ?
+                    WHERE workspace_id = %s 
+                      AND invited_user_id = %s
+                      AND status = %s
+                      AND expires_at > %s
                 """, (
                     invitation_data.workspace_id,
                     invitation_data.invited_user_id,
@@ -136,7 +136,7 @@ class InvitationManager:
                 existing = cursor.fetchone()
                 if existing:
                     # Return existing invitation instead of creating duplicate
-                    cursor.execute("SELECT * FROM workspace_invitations WHERE id = ?", (existing['id'],))
+                    cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (existing['id'],))
                     row = cursor.fetchone()
                     conn.close()
                     return WorkspaceInvitation(**dict(row))
@@ -153,7 +153,7 @@ class InvitationManager:
                     workspace_id, invited_user_id, invited_email,
                     role, invited_by_user_id, token, status,
                     created_at, expires_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 invitation_data.workspace_id,
                 invitation_data.invited_user_id,
@@ -170,7 +170,7 @@ class InvitationManager:
             conn.commit()
             
             # Fetch created invitation
-            cursor.execute("SELECT * FROM workspace_invitations WHERE id = ?", (invitation_id,))
+            cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
             row = cursor.fetchone()
             conn.close()
             
@@ -207,9 +207,9 @@ class InvitationManager:
         cursor = conn.cursor()
         
         if invitation_id:
-            cursor.execute("SELECT * FROM workspace_invitations WHERE id = ?", (invitation_id,))
+            cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
         else:
-            cursor.execute("SELECT * FROM workspace_invitations WHERE token = ?", (token,))
+            cursor.execute("SELECT * FROM workspace_invitations WHERE token = %s", (token,))
         
         row = cursor.fetchone()
         conn.close()
@@ -261,7 +261,7 @@ class InvitationManager:
             cursor.execute("""
                 INSERT INTO workspace_users (
                     workspace_id, user_id, role, added_by_user_id, added_at
-                ) VALUES (?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s)
             """, (
                 invitation.workspace_id,
                 user_id,
@@ -273,14 +273,14 @@ class InvitationManager:
             # Mark invitation as accepted
             cursor.execute("""
                 UPDATE workspace_invitations
-                SET status = ?, responded_at = ?
-                WHERE id = ?
+                SET status = %s, responded_at = %s
+                WHERE id = %s
             """, (InvitationStatus.ACCEPTED, datetime.now(), invitation.id))
             
             conn.commit()
             
             # Get workspace details
-            cursor.execute("SELECT * FROM workspaces WHERE id = ?", (invitation.workspace_id,))
+            cursor.execute("SELECT * FROM workspaces WHERE id = %s", (invitation.workspace_id,))
             workspace_row = cursor.fetchone()
             conn.close()
             
@@ -326,8 +326,8 @@ class InvitationManager:
         
         cursor.execute("""
             UPDATE workspace_invitations
-            SET status = ?, responded_at = ?
-            WHERE id = ?
+            SET status = %s, responded_at = %s
+            WHERE id = %s
         """, (InvitationStatus.DECLINED, datetime.now(), invitation.id))
         
         conn.commit()
@@ -365,8 +365,8 @@ class InvitationManager:
         
         cursor.execute("""
             UPDATE workspace_invitations
-            SET status = ?, responded_at = ?
-            WHERE id = ?
+            SET status = %s, responded_at = %s
+            WHERE id = %s
         """, (InvitationStatus.CANCELLED, datetime.now(), invitation_id))
         
         conn.commit()
@@ -396,14 +396,14 @@ class InvitationManager:
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        query = "SELECT * FROM workspace_invitations WHERE workspace_id = ?"
+        query = "SELECT * FROM workspace_invitations WHERE workspace_id = %s"
         params = [workspace_id]
         
         if status:
-            query += " AND status = ?"
+            query += " AND status = %s"
             params.append(status)
         
-        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
         params.extend([limit, offset])
         
         cursor.execute(query, params)
@@ -434,14 +434,14 @@ class InvitationManager:
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        query = "SELECT * FROM workspace_invitations WHERE invited_user_id = ?"
+        query = "SELECT * FROM workspace_invitations WHERE invited_user_id = %s"
         params = [user_id]
         
         if status:
-            query += " AND status = ?"
+            query += " AND status = %s"
             params.append(status)
         
-        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
         params.extend([limit, offset])
         
         cursor.execute(query, params)
@@ -462,9 +462,9 @@ class InvitationManager:
         
         cursor.execute("""
             UPDATE workspace_invitations
-            SET status = ?
-            WHERE status = ?
-              AND expires_at < ?
+            SET status = %s
+            WHERE status = %s
+              AND expires_at < %s
         """, (InvitationStatus.EXPIRED, InvitationStatus.PENDING, datetime.now()))
         
         count = cursor.rowcount
@@ -500,14 +500,14 @@ class InvitationManager:
         
         cursor.execute("""
             UPDATE workspace_invitations
-            SET expires_at = ?
-            WHERE id = ?
+            SET expires_at = %s
+            WHERE id = %s
         """, (new_expiry, invitation_id))
         
         conn.commit()
         
         # Fetch updated invitation
-        cursor.execute("SELECT * FROM workspace_invitations WHERE id = ?", (invitation_id,))
+        cursor.execute("SELECT * FROM workspace_invitations WHERE id = %s", (invitation_id,))
         row = cursor.fetchone()
         conn.close()
         

@@ -102,10 +102,8 @@ def migrate_gmail_addresses():
         # Update oauth_tokens for this user's Google platform
         cursor.execute("""
             UPDATE oauth_tokens
-            SET account_identifier = ?,
-                account_name = ?,
-                is_primary_account = ?
-            WHERE user_id = ? 
+            SET account_identifier = %s, account_name = %s, is_primary_account = %s
+            WHERE user_id = %s 
             AND platform = 'google'
             AND account_identifier IS NULL
         """, (gmail_address, display_name, is_primary, user_id))

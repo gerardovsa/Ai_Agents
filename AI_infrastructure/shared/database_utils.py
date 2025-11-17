@@ -45,16 +45,33 @@ def is_using_supabase() -> bool:
     """
     Check if application should use Supabase PostgreSQL
     
-    ALWAYS RETURNS TRUE: Supabase-only mode (local AND Render)
-    
     Returns:
-        bool: True (ALWAYS - Supabase PostgreSQL everywhere)
+        bool: True if USE_SUPABASE=true AND SUPABASE_DB_URL is set, False otherwise
     
     Environment Variables:
-        SUPABASE_DB_URL: Required for connection
+        USE_SUPABASE: Set to 'true' to enable Supabase (default: false)
+        SUPABASE_DB_URL: Required when USE_SUPABASE=true
+    
+    Local Development:
+        - Set USE_SUPABASE=false (or unset) to use SQLite
+        - SQLite databases in data/ folder
+    
+    Production (Render):
+        - Set USE_SUPABASE=true to use Supabase PostgreSQL
+        - Requires SUPABASE_DB_URL environment variable
     """
-    # ALWAYS use Supabase PostgreSQL - NO SQLite fallback
-    return True
+    # Check if Supabase is explicitly enabled
+    use_supabase = os.getenv('USE_SUPABASE', 'false').lower() == 'true'
+    
+    # If Supabase enabled, verify connection URL is set
+    if use_supabase:
+        has_url = bool(os.getenv('SUPABASE_DB_URL'))
+        if not has_url:
+            print("⚠️  [DB] USE_SUPABASE=true but SUPABASE_DB_URL not set, falling back to SQLite")
+            return False
+        return True
+    
+    return False
 
 
 def get_supabase_schema_name(db_name: str) -> str:
@@ -445,7 +462,7 @@ def adapt_sql_for_database(sql: str) -> str:
 
 def convert_sql_placeholders(sql: str, params: tuple = None):
     """
-    Convert SQL placeholders from SQLite (?) to PostgreSQL (%s) style
+    Convert SQL placeholders from SQLite ( %s) to PostgreSQL (%s) style
     
     Args:
         sql: SQL query with ? placeholders (SQLite style)
@@ -457,11 +474,11 @@ def convert_sql_placeholders(sql: str, params: tuple = None):
     
     Example:
         # Simple usage (string only):
-        sql = convert_sql_placeholders("SELECT * FROM users WHERE id = ?")
+        sql = convert_sql_placeholders("SELECT * FROM users WHERE id = %s")
         # Returns: "SELECT * FROM users WHERE id = %s"
         
         # With params (tuple):
-        sql, params = convert_sql_placeholders("SELECT * FROM users WHERE id = ?", (123,))
+        sql, params = convert_sql_placeholders("SELECT * FROM users WHERE id = %s", (123,))
         # Returns: ("SELECT * FROM users WHERE id = %s", (123,))
     """
     if is_using_supabase():
@@ -486,7 +503,7 @@ class DatabaseCursor:
     Usage:
         conn = get_database_connection('ai_infrastructure')
         cursor = DatabaseCursor(conn)
-        cursor.execute("SELECT * FROM users WHERE id = ?", (123,))
+        cursor.execute("SELECT * FROM users WHERE id = %s", (123,))
         # Automatically converts ? to %s for PostgreSQL
     """
     def __init__(self, connection):
@@ -507,6 +524,12 @@ class DatabaseCursor:
     
     def execute(self, sql, params=None):
         """Execute with automatic placeholder conversion"""
+        if is_using_supabase():
+            # Convert PostgreSQL numbered positional parameters ($1, $2, ...) to psycopg2 format (%s, %s, ...)
+            import re
+            # Replace $1, $2, $3, etc. with %s in sequential order
+            sql = re.sub(r'\$\d+', '%s', sql)
+        
         if params:
             sql, params = convert_sql_placeholders(sql, params)
         return self._cursor.execute(sql, params)

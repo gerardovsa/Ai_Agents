@@ -109,7 +109,7 @@ class ThreadManager:
         
         max_attempts = 10
         for attempt in range(max_attempts):
-            cursor.execute("SELECT id FROM threads WHERE thread_slug = ?", (slug,))
+            cursor.execute("SELECT id FROM threads WHERE thread_slug = %s", (slug,))
             if cursor.fetchone() is None:
                 conn.close()
                 return slug
@@ -151,7 +151,7 @@ class ThreadManager:
                     thread_slug, name, description, workspace_id, user_id,
                     agent_id, status, visibility, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 thread_slug,
                 thread_data.name,
@@ -214,9 +214,9 @@ class ThreadManager:
         
         # Query thread
         if thread_id:
-            cursor.execute("SELECT * FROM threads WHERE id = ?", (thread_id,))
+            cursor.execute("SELECT * FROM threads WHERE id = %s", (thread_id,))
         else:
-            cursor.execute("SELECT * FROM threads WHERE thread_slug = ?", (thread_slug,))
+            cursor.execute("SELECT * FROM threads WHERE thread_slug = %s", (thread_slug,))
         
         row = cursor.fetchone()
         
@@ -231,13 +231,13 @@ class ThreadManager:
                 raise ThreadPermissionError(user_id, row['id'], SharePermission.VIEW.value)
         
         # Get message count
-        cursor.execute("SELECT COUNT(*) FROM messages WHERE thread_id = ?", (row['id'],))
+        cursor.execute("SELECT COUNT(*) FROM messages WHERE thread_id = %s", (row['id'],))
         message_count = cursor.fetchone()[0]
         
         # Get last message time
         cursor.execute("""
             SELECT created_at FROM messages 
-            WHERE thread_id = ? 
+            WHERE thread_id = %s 
             ORDER BY id DESC LIMIT 1
         """, (row['id'],))
         last_msg = cursor.fetchone()
@@ -333,7 +333,7 @@ class ThreadManager:
             cursor.execute(f"""
                 UPDATE threads 
                 SET {', '.join(updates)}
-                WHERE id = ?
+                WHERE id = %s
             """, params)
             
             conn.commit()
@@ -375,16 +375,16 @@ class ThreadManager:
         try:
             if hard_delete:
                 # Permanently delete thread and messages
-                cursor.execute("DELETE FROM messages WHERE thread_id = ?", (thread_id,))
-                cursor.execute("DELETE FROM thread_shares WHERE thread_id = ?", (thread_id,))
-                cursor.execute("DELETE FROM threads WHERE id = ?", (thread_id,))
+                cursor.execute("DELETE FROM messages WHERE thread_id = %s", (thread_id,))
+                cursor.execute("DELETE FROM thread_shares WHERE thread_id = %s", (thread_id,))
+                cursor.execute("DELETE FROM threads WHERE id = %s", (thread_id,))
             else:
                 # Soft delete
                 now = datetime.utcnow().isoformat()
                 cursor.execute("""
                     UPDATE threads 
-                    SET status = ?, deleted_at = ?, updated_at = ?
-                    WHERE id = ?
+                    SET status = %s, deleted_at = %s, updated_at = %s
+                    WHERE id = %s
                 """, (ThreadStatus.DELETED.value, now, now, thread_id))
             
             conn.commit()
@@ -430,8 +430,8 @@ class ThreadManager:
             now = datetime.utcnow().isoformat()
             cursor.execute("""
                 UPDATE threads 
-                SET status = ?, archived_at = NULL, deleted_at = NULL, updated_at = ?
-                WHERE id = ?
+                SET status = %s, archived_at = NULL, deleted_at = NULL, updated_at = %s
+                WHERE id = %s
             """, (ThreadStatus.ACTIVE.value, now, thread_id))
             
             conn.commit()
@@ -462,23 +462,23 @@ class ThreadManager:
         query_params = []
         
         if params.workspace_id:
-            where_clauses.append("workspace_id = ?")
+            where_clauses.append("workspace_id = %s")
             query_params.append(params.workspace_id)
         
         if params.user_id:
-            where_clauses.append("user_id = ?")
+            where_clauses.append("user_id = %s")
             query_params.append(params.user_id)
         
         if params.status:
-            where_clauses.append("status = ?")
+            where_clauses.append("status = %s")
             query_params.append(params.status.value)
         
         if params.visibility:
-            where_clauses.append("visibility = ?")
+            where_clauses.append("visibility = %s")
             query_params.append(params.visibility.value)
         
         if params.search:
-            where_clauses.append("(name LIKE ? OR description LIKE ?)")
+            where_clauses.append("(name LIKE %s OR description LIKE %s)")
             search_term = f"%{params.search}%"
             query_params.extend([search_term, search_term])
         
@@ -553,7 +553,7 @@ class ThreadManager:
                 INSERT INTO thread_shares (
                     thread_id, user_id, permission, shared_by, message, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 share_data.thread_id,
                 share_data.user_id,
@@ -567,7 +567,7 @@ class ThreadManager:
             conn.commit()
             
             # Fetch created share
-            cursor.execute("SELECT * FROM thread_shares WHERE id = ?", (share_id,))
+            cursor.execute("SELECT * FROM thread_shares WHERE id = %s", (share_id,))
             row = cursor.fetchone()
             conn.close()
             
@@ -610,7 +610,7 @@ class ThreadManager:
         cursor = conn.cursor()
         
         # Check if owner
-        cursor.execute("SELECT user_id, visibility FROM threads WHERE id = ?", (thread_id,))
+        cursor.execute("SELECT user_id, visibility FROM threads WHERE id = %s", (thread_id,))
         row = cursor.fetchone()
         
         if not row:
@@ -628,7 +628,7 @@ class ThreadManager:
         # Check explicit share
         cursor.execute("""
             SELECT permission FROM thread_shares 
-            WHERE thread_id = ? AND user_id = ? AND revoked_at IS NULL
+            WHERE thread_id = %s AND user_id = %s AND revoked_at IS NULL
         """, (thread_id, user_id))
         
         share_row = cursor.fetchone()

@@ -285,7 +285,7 @@ def save_automation():
         
         # Check if exists (upsert)
         cursor.execute("""
-            SELECT automation_id FROM visual_automations WHERE automation_id = ?
+            SELECT automation_id FROM visual_automations WHERE automation_id = %s
         """, (automation_id,))
         
         existing = cursor.fetchone()
@@ -294,15 +294,9 @@ def save_automation():
             # Update
             cursor.execute("""
                 UPDATE visual_automations 
-                SET title = ?,
-                    slug = ?,
-                    description = ?,
-                    category = ?,
-                    ui_json = ?,
-                    execution_json = ?,
-                    status = ?,
+                SET title = %s, slug = %s, description = %s, category = %s, ui_json = %s, execution_json = %s, status = %s,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE automation_id = ?
+                WHERE automation_id = %s
             """, (
                 data['title'],
                 slug,
@@ -319,7 +313,7 @@ def save_automation():
                 INSERT INTO visual_automations (
                     automation_id, user_id, title, slug, description, category,
                     ui_json, execution_json, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 automation_id,
                 user_id,
@@ -360,8 +354,8 @@ def list_automations():
         conn = get_db_connection()
         cursor = conn.cursor()  # DatabaseConnection wrapper handles cursor type
         
-        # Use placeholder conversion (handled by DatabaseCursor wrapper)
-        placeholder = '?'  # Will be auto-converted to %s for PostgreSQL
+        # Use PostgreSQL placeholder
+        placeholder = '%s'
         
         query = f"""
             SELECT automation_id, slug, title, description, category, status,
@@ -438,7 +432,7 @@ def get_automation(automation_id):
         
         cursor.execute("""
             SELECT * FROM visual_automations 
-            WHERE automation_id = ? AND user_id = ?
+            WHERE automation_id = %s AND user_id = %s
         """, (automation_id, user_id))
         
         row = cursor.fetchone()
@@ -486,7 +480,7 @@ def delete_automation(automation_id):
         # Get automation to check scheduler_task_id
         cursor.execute("""
             SELECT scheduler_task_id FROM visual_automations
-            WHERE automation_id = ? AND user_id = ?
+            WHERE automation_id = %s AND user_id = %s
         """, (automation_id, user_id))
         
         row = cursor.fetchone()
@@ -506,7 +500,7 @@ def delete_automation(automation_id):
         # Delete automation
         cursor.execute("""
             DELETE FROM visual_automations 
-            WHERE automation_id = ? AND user_id = ?
+            WHERE automation_id = %s AND user_id = %s
         """, (automation_id, user_id))
         
         conn.commit()
@@ -545,7 +539,7 @@ def activate_automation(automation_id):
         
         cursor.execute("""
             SELECT * FROM visual_automations
-            WHERE automation_id = ? AND user_id = ?
+            WHERE automation_id = %s AND user_id = %s
         """, (automation_id, user_id))
         
         row = cursor.fetchone()
@@ -585,13 +579,9 @@ def activate_automation(automation_id):
         cursor.execute("""
             UPDATE visual_automations
             SET is_active = 1,
-                is_scheduled = 1,
-                scheduler_task_id = ?,
-                schedule_cron = ?,
-                schedule_datetime = ?,
-                timezone = ?,
+                is_scheduled = 1, scheduler_task_id = %s, schedule_cron = %s, schedule_datetime = %s, timezone = %s,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE automation_id = ?
+            WHERE automation_id = %s
         """, (
             task_id,
             data.get('cron_schedule'),
@@ -628,7 +618,7 @@ def deactivate_automation(automation_id):
         
         cursor.execute("""
             SELECT scheduler_task_id FROM visual_automations
-            WHERE automation_id = ? AND user_id = ?
+            WHERE automation_id = %s AND user_id = %s
         """, (automation_id, user_id))
         
         row = cursor.fetchone()
@@ -649,7 +639,7 @@ def deactivate_automation(automation_id):
                 is_scheduled = 0,
                 scheduler_task_id = NULL,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE automation_id = ?
+            WHERE automation_id = %s
         """, (automation_id,))
         
         conn.commit()
@@ -676,7 +666,7 @@ def get_execution_history(automation_id):
         
         cursor.execute("""
             SELECT * FROM automation_executions
-            WHERE automation_id = ? AND user_id = ?
+            WHERE automation_id = %s AND user_id = %s
             ORDER BY started_at DESC
             LIMIT ?
         """, (automation_id, user_id, limit))
@@ -720,7 +710,7 @@ def export_automation(automation_id):
         
         cursor.execute("""
             SELECT * FROM visual_automations
-            WHERE automation_id = ? AND user_id = ?
+            WHERE automation_id = %s AND user_id = %s
         """, (automation_id, user_id))
         
         row = cursor.fetchone()

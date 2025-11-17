@@ -162,10 +162,9 @@ def _save_refreshed_google_token(user_id: int, credentials: Credentials, origina
         # Update access token in oauth_tokens table
         cursor.execute('''
             UPDATE oauth_tokens
-            SET access_token = ?,
-                expires_at = ?,
+            SET access_token = %s, expires_at = %s,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ? 
+            WHERE user_id = %s 
             AND platform = 'google'
         ''', (
             credentials.token,
@@ -177,9 +176,9 @@ def _save_refreshed_google_token(user_id: int, credentials: Credentials, origina
         if credentials.refresh_token and credentials.refresh_token != original_cred_dict.get('refresh_token'):
             cursor.execute('''
                 UPDATE oauth_tokens
-                SET refresh_token = ?,
+                SET refresh_token = %s,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ? 
+                WHERE user_id = %s 
                 AND platform = 'google'
             ''', (credentials.refresh_token, user_id))
         
@@ -535,13 +534,12 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
             # FIXED: Use 'microsoft' not 'microsoft365' (matches callback route)
             cursor.execute('''
                 UPDATE oauth_tokens
-                SET access_token = ?,
-                    expires_at = ?,
+                SET access_token = %s, expires_at = %s,
                     updated_at = CURRENT_TIMESTAMP,
                     last_refreshed_at = CURRENT_TIMESTAMP,
                     error_count = 0,
                     last_error = NULL
-                WHERE user_id = ? 
+                WHERE user_id = %s 
                 AND platform = 'microsoft'
             ''', (
                 new_access_token,
@@ -555,9 +553,9 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
             if new_refresh_token != refresh_token:
                 cursor.execute('''
                     UPDATE oauth_tokens
-                    SET refresh_token = ?,
+                    SET refresh_token = %s,
                         updated_at = CURRENT_TIMESTAMP
-                    WHERE user_id = ? 
+                    WHERE user_id = %s 
                     AND platform = 'microsoft'
                 ''', (new_refresh_token, user_id))
             
@@ -591,9 +589,9 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
             cursor.execute('''
                 UPDATE oauth_tokens
                 SET error_count = error_count + 1,
-                    last_error = ?,
+                    last_error = %s,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ? AND platform = 'microsoft'
+                WHERE user_id = %s AND platform = 'microsoft'
             ''', (f"Token refresh failed: {str(e)}", user_id))
             
             conn.commit()
@@ -615,9 +613,9 @@ def _refresh_microsoft_token(user_id: int, refresh_token: str) -> Optional[str]:
             cursor.execute('''
                 UPDATE oauth_tokens
                 SET error_count = error_count + 1,
-                    last_error = ?,
+                    last_error = %s,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ? AND platform = 'microsoft'
+                WHERE user_id = %s AND platform = 'microsoft'
             ''', (f"Token refresh exception: {str(e)}", user_id))
             
             conn.commit()

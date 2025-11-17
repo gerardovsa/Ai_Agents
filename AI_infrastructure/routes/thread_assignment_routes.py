@@ -106,16 +106,16 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         cursor = conn.cursor()
         
         # CRITICAL FIX: Ensure user row exists before UPDATE
-        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = ?", [user_id])
+        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", [user_id])
         if not cursor.fetchone():
             logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
             cursor.execute("""
                 INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
             """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'])
         
         # Get existing metadata
-        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
         row = cursor.fetchone()
         
         # Parse metadata
@@ -145,8 +145,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             metadata['thread_assignments'] = assignments
             cursor.execute("""
                 UPDATE ai_infrastructure.users 
-                SET metadata = ?, last_active = CURRENT_TIMESTAMP
-                WHERE id = ?
+                SET metadata = %s, last_active = CURRENT_TIMESTAMP
+                WHERE id = %s
             """, [json.dumps(metadata), user_id])
             
             logger.info(f"✅ Thread {session_id} moved to Prime (removed from {previous_location})")
@@ -169,8 +169,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         metadata['thread_assignments'] = assignments
         cursor.execute("""
             UPDATE ai_infrastructure.users 
-            SET metadata = ?, last_active = CURRENT_TIMESTAMP
-            WHERE id = ?
+            SET metadata = %s, last_active = CURRENT_TIMESTAMP
+            WHERE id = %s
         """, [json.dumps(metadata), user_id])
         
         return {
@@ -210,7 +210,7 @@ def get_thread_assignments():
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT metadata FROM ai_infrastructure.users WHERE id = ?
+            SELECT metadata FROM ai_infrastructure.users WHERE id = %s
         """, [user_id])
         
         row = cursor.fetchone()
@@ -299,17 +299,17 @@ def save_thread_assignments():
         cursor = conn.cursor()
         
         # CRITICAL FIX: Ensure user row exists before UPDATE
-        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = ?", [user_id])
+        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", [user_id])
         if not cursor.fetchone():
             logger.info(f"🔧 [FIX] Creating user row for user_id {user_id}")
             cursor.execute("""
                 INSERT INTO ai_infrastructure.users (id, username, email, password_hash, created_at, last_active, metadata)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
+                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '{}')
             """, [user_id, f'user_{user_id}', f'user_{user_id}@ai-platform.local', 'SYSTEM_USER'])
         
         # Get existing metadata
         cursor.execute("""
-            SELECT metadata FROM ai_infrastructure.users WHERE id = ?
+            SELECT metadata FROM ai_infrastructure.users WHERE id = %s
         """, [user_id])
         
         row = cursor.fetchone()
@@ -331,8 +331,8 @@ def save_thread_assignments():
         # Save back to database
         cursor.execute("""
             UPDATE ai_infrastructure.users 
-            SET metadata = ?, last_active = CURRENT_TIMESTAMP
-            WHERE id = ?
+            SET metadata = %s, last_active = CURRENT_TIMESTAMP
+            WHERE id = %s
         """, [json.dumps(metadata), user_id])
         
         logger.info(f"Saved {len(agent_assignments)} thread assignments for user {user_id}")
@@ -440,7 +440,7 @@ def clear_location(location):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
         row = cursor.fetchone()
         
         metadata_value = get_row_value(row, 'metadata')
@@ -459,8 +459,8 @@ def clear_location(location):
                     
                     cursor.execute("""
                         UPDATE ai_infrastructure.users 
-                        SET metadata = ?
-                        WHERE id = ?
+                        SET metadata = %s
+                        WHERE id = %s
                     """, [json.dumps(metadata), user_id])
                     
                     conn.commit()
@@ -507,7 +507,7 @@ def get_thread_location(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
         row = cursor.fetchone()
         conn.close()
         
@@ -566,7 +566,7 @@ def validate_assignments():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
         row = cursor.fetchone()
         
         errors = []
@@ -601,7 +601,7 @@ def validate_assignments():
                     # Save fixed metadata
                     metadata['thread_assignments'] = assignments
                     cursor.execute("""
-                        UPDATE ai_infrastructure.users SET metadata = ? WHERE id = ?
+                        UPDATE ai_infrastructure.users SET metadata = %s WHERE id = %s
                     """, [json.dumps(metadata), user_id])
                     conn.commit()
                 

@@ -484,7 +484,7 @@ class KanbanSyncManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT session_id FROM sessions 
-                    WHERE google_task_id = ?
+                    WHERE google_task_id = %s
                 """, (google_task_id,))
                 result = cursor.fetchone()
                 return result[0] if result else None
@@ -504,8 +504,8 @@ class KanbanSyncManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE sessions 
-                    SET last_synced_at = ? 
-                    WHERE session_id = ?
+                    SET last_synced_at = %s 
+                    WHERE session_id = %s
                 """, (datetime.now().isoformat(), session_id))
                 conn.commit()
         except Exception as e:

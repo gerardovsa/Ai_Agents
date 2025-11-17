@@ -199,7 +199,7 @@ class KanbanDatabaseSync:
             cursor = self.sqlite_conn.cursor()
             cursor.execute("""
                 INSERT INTO sync_history (sync_type, sync_start, sync_status)
-                VALUES ('full', ?, 'running')
+                VALUES ('full', %s, 'running')
             """, (sync_start.isoformat(),))
             sync_id = cursor.lastrowid
             self.sqlite_conn.commit()
@@ -226,11 +226,9 @@ class KanbanDatabaseSync:
             
             cursor.execute("""
                 UPDATE sync_history
-                SET sync_end = ?,
-                    sync_status = 'success',
-                    records_synced = ?,
-                    sync_duration_seconds = ?
-                WHERE sync_id = ?
+                SET sync_end = %s,
+                    sync_status = 'success', records_synced = %s, sync_duration_seconds = %s
+                WHERE sync_id = %s
             """, (sync_end.isoformat(), jobs_synced + orders_synced + clients_synced, duration, sync_id))
             self.sqlite_conn.commit()
             
@@ -258,9 +256,8 @@ class KanbanDatabaseSync:
             # Record failure
             cursor.execute("""
                 UPDATE sync_history
-                SET sync_status = 'failed',
-                    error_message = ?
-                WHERE sync_id = ?
+                SET sync_status = 'failed', error_message = %s
+                WHERE sync_id = %s
             """, (str(e), sync_id))
             self.sqlite_conn.commit()
             
@@ -281,7 +278,7 @@ class KanbanDatabaseSync:
             cursor = self.sqlite_conn.cursor()
             cursor.execute("""
                 INSERT INTO sync_history (sync_type, sync_start, sync_status)
-                VALUES ('incremental', ?, 'running')
+                VALUES ('incremental', %s, 'running')
             """, (sync_start.isoformat(),))
             sync_id = cursor.lastrowid
             self.sqlite_conn.commit()
@@ -300,11 +297,9 @@ class KanbanDatabaseSync:
             
             cursor.execute("""
                 UPDATE sync_history
-                SET sync_end = ?,
-                    sync_status = 'success',
-                    records_updated = ?,
-                    sync_duration_seconds = ?
-                WHERE sync_id = ?
+                SET sync_end = %s,
+                    sync_status = 'success', records_updated = %s, sync_duration_seconds = %s
+                WHERE sync_id = %s
             """, (sync_end.isoformat(), jobs_updated, duration, sync_id))
             self.sqlite_conn.commit()
             
@@ -325,9 +320,8 @@ class KanbanDatabaseSync:
             
             cursor.execute("""
                 UPDATE sync_history
-                SET sync_status = 'failed',
-                    error_message = ?
-                WHERE sync_id = ?
+                SET sync_status = 'failed', error_message = %s
+                WHERE sync_id = %s
             """, (str(e), sync_id))
             self.sqlite_conn.commit()
             
@@ -350,7 +344,7 @@ class KanbanDatabaseSync:
         for row in sql_cursor.fetchall():
             sqlite_cursor.execute("""
                 INSERT OR REPLACE INTO job_stages (stage_id, stage_description, stage_order, synced_at)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
             """, (row[0], row[1], count))
             count += 1
         
@@ -392,7 +386,7 @@ class KanbanDatabaseSync:
             sqlite_cursor.execute("""
                 INSERT OR REPLACE INTO clients 
                 (client_name, total_orders, total_value, first_order_date, last_order_date, customer_tier, synced_at)
-                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """, (row[0], row[1], total_value, row[3], row[4], row[5]))
             count += 1
         
@@ -426,7 +420,7 @@ class KanbanDatabaseSync:
             sqlite_cursor.execute("""
                 INSERT OR REPLACE INTO orders 
                 (order_id, client_name, order_date, date_required, shipping_type, invoicing_business_id, client_order_num, synced_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """, row)
             count += 1
         
@@ -583,7 +577,7 @@ class KanbanDatabaseSync:
                     ai_priority_score, priority_label, priority_color,
                     synced_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """, (
                 row_dict['TicketID'], row_dict['OrderID'], row_dict['StageID'], row_dict['StageDescription'],
                 row_dict['ClientName'], row_dict['OrderDate'], row_dict['ShortJobDesc'], row_dict['DateRequired'],
@@ -654,7 +648,7 @@ class KanbanDatabaseSync:
                         ticket_id, from_stage_id, to_stage_id, 
                         business_hours, total_hours
                     )
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s)
                 """, (ticket_id, last_stage, current_stage, business_hrs, total_hrs))
                 transitions += 1
             elif not last_stage:
@@ -664,7 +658,7 @@ class KanbanDatabaseSync:
                         ticket_id, from_stage_id, to_stage_id,
                         business_hours, total_hours
                     )
-                    VALUES (?, NULL, ?, 0.0, 0.0)
+                    VALUES (%s, NULL, %s, 0.0, 0.0)
                 """, (ticket_id, current_stage))
                 transitions += 1
         
@@ -693,7 +687,7 @@ class KanbanDatabaseSync:
         for stage_id in stages:
             # Count jobs in this stage
             cursor.execute("""
-                SELECT COUNT(*) FROM job_tickets WHERE stage_id = ?
+                SELECT COUNT(*) FROM job_tickets WHERE stage_id = %s
             """, (stage_id,))
             jobs_in_progress = cursor.fetchone()[0]
             
@@ -705,7 +699,7 @@ class KanbanDatabaseSync:
                     MAX(transition_time_hours),
                     SUM(transition_time_hours)
                 FROM stage_transitions
-                WHERE to_stage_id = ?
+                WHERE to_stage_id = %s
                 AND transition_time_hours IS NOT NULL
             """, (stage_id,))
             
@@ -735,7 +729,7 @@ class KanbanDatabaseSync:
                     min_time_in_stage_hours, max_time_in_stage_hours, total_time_hours,
                     is_bottleneck, bottleneck_severity, queue_depth, calculated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """, (stage_id, date_filter.isoformat(), jobs_in_progress, avg_time,
                   min_time, max_time, total_time, 1 if is_bottleneck else 0, severity, jobs_in_progress))
         
@@ -764,8 +758,8 @@ class KanbanDatabaseSync:
                     AVG(cost) as avg_order_value,
                     AVG(days_in_system) as avg_turnaround
                 FROM job_tickets
-                WHERE client_name = ?
-                AND order_date >= ?
+                WHERE client_name = %s
+                AND order_date >= %s
             """, (client_name, period_start.isoformat()))
             
             stats = cursor.fetchone()
@@ -777,7 +771,7 @@ class KanbanDatabaseSync:
                         total_orders, total_revenue, avg_order_value, avg_turnaround_days,
                         calculated_at
                     )
-                    VALUES (?, 'monthly', ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    VALUES (%s, 'monthly', %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 """, (client_name, period_start.isoformat(), period_end.isoformat(),
                       stats[0], stats[1] or 0, stats[2] or 0, stats[3] or 0))
         

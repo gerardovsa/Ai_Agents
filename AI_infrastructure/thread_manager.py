@@ -111,7 +111,7 @@ class ThreadManager:
             cursor.execute("""
                 SELECT id, user_id, name, description, created_at, metadata
                 FROM workspaces
-                WHERE id = ?
+                WHERE id = %s
             """, (workspace_slug,))  # workspace_slug is actually workspace_id as TEXT currently
             
             row = cursor.fetchone()
@@ -144,7 +144,7 @@ class ThreadManager:
         try:
             cursor.execute('''
                 INSERT INTO workspaces (slug, name, description, created_at, updated_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s)
             ''', (slug, name, description, timestamp, timestamp, json.dumps(metadata or {})))
             
             workspace_id = cursor.lastrowid
@@ -168,7 +168,7 @@ class ThreadManager:
         cursor = conn.cursor()
         
         try:
-            cursor.execute('SELECT * FROM workspaces WHERE slug = ?', (slug,))
+            cursor.execute('SELECT * FROM workspaces WHERE slug = %s', (slug,))
             row = cursor.fetchone()
             
             if row:
@@ -226,7 +226,7 @@ class ThreadManager:
             
             cursor.execute('''
                 INSERT INTO threads (thread_slug, workspace_id, user_id, name, created_at, updated_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             ''', (thread_slug, workspace_id, user_id, name, timestamp, timestamp, json.dumps(metadata or {})))
             
             thread_id = cursor.lastrowid
@@ -258,7 +258,7 @@ class ThreadManager:
                        (SELECT COUNT(*) FROM messages WHERE thread_id = t.id) as message_count
                 FROM threads t
                 JOIN workspaces w ON t.workspace_id = w.id
-                WHERE w.slug = ? AND t.thread_slug = ?
+                WHERE w.slug = %s AND t.thread_slug = %s
             ''', (workspace_slug, thread_slug))
             
             row = cursor.fetchone()
@@ -276,7 +276,7 @@ class ThreadManager:
         try:
             cursor.execute('''
                 SELECT * FROM v_thread_summary 
-                WHERE workspace_name = (SELECT name FROM workspaces WHERE slug = ?)
+                WHERE workspace_name = (SELECT name FROM workspaces WHERE slug = %s)
                 ORDER BY updated_at DESC
                 LIMIT ? OFFSET ?
             ''', (workspace_slug, limit, offset))
@@ -312,7 +312,7 @@ class ThreadManager:
             cursor.execute(f'''
                 UPDATE threads 
                 SET {', '.join(updates)}
-                WHERE id = ?
+                WHERE id = %s
             ''', params)
             
             conn.commit()
@@ -331,10 +331,10 @@ class ThreadManager:
                 return False
             
             # Delete all messages first (foreign key constraint)
-            cursor.execute('DELETE FROM messages WHERE thread_id = ?', (thread['id'],))
+            cursor.execute('DELETE FROM messages WHERE thread_id = %s', (thread['id'],))
             
             # Delete thread
-            cursor.execute('DELETE FROM threads WHERE id = ?', (thread['id'],))
+            cursor.execute('DELETE FROM threads WHERE id = %s', (thread['id'],))
             
             conn.commit()
             return True
@@ -383,7 +383,7 @@ class ThreadManager:
             # Look up thread from sessions.db (thread already has workspace_id)
             cursor.execute("""
                 SELECT id, thread_slug, name, workspace_id FROM threads
-                WHERE thread_slug = ?
+                WHERE thread_slug = %s
             """, (thread_slug,))
             
             thread_row = cursor.fetchone()
@@ -407,7 +407,7 @@ class ThreadManager:
                     user_id, include, tool_calls, tokens_used,
                     created_at, updated_at, metadata
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 workspace_id, thread_id, role, content, prompt,
                 user_id, 1 if include else 0, json.dumps(tool_calls or []),
@@ -419,7 +419,7 @@ class ThreadManager:
             
             # Update thread's updated_at timestamp
             cursor.execute('''
-                UPDATE threads SET updated_at = ? WHERE id = ?
+                UPDATE threads SET updated_at = %s WHERE id = %s
             ''', (timestamp, thread_id))
             
             conn.commit()
@@ -479,7 +479,7 @@ class ThreadManager:
             
             query = '''
                 SELECT * FROM messages 
-                WHERE thread_id = ?
+                WHERE thread_id = %s
             '''
             
             params = [thread['id']]
@@ -487,7 +487,7 @@ class ThreadManager:
             if include_only:
                 query += ' AND include = 1'
             
-            query += ' ORDER BY created_at ASC LIMIT ? OFFSET ?'
+            query += ' ORDER BY created_at ASC LIMIT %s OFFSET %s'
             params.extend([limit, offset])
             
             cursor.execute(query, params)
@@ -521,8 +521,8 @@ class ThreadManager:
         try:
             cursor.execute('''
                 UPDATE messages 
-                SET feedback_score = ?, updated_at = ?
-                WHERE id = ?
+                SET feedback_score = %s, updated_at = %s
+                WHERE id = %s
             ''', (feedback_score if feedback_score in [0, 1] else None, datetime.now().isoformat(), message_id))
             
             conn.commit()
@@ -547,10 +547,10 @@ class ThreadManager:
         cursor = conn.cursor()
         
         try:
-            placeholders = ','.join(['?' for _ in message_ids])
+            placeholders = ','.join(['%s' for _ in message_ids])
             cursor.execute(f'''
                 UPDATE messages 
-                SET include = 0, updated_at = ?
+                SET include = 0, updated_at = %s
                 WHERE id IN ({placeholders})
             ''', [datetime.now().isoformat()] + message_ids)
             
@@ -581,8 +581,8 @@ class ThreadManager:
             
             cursor.execute('''
                 UPDATE messages 
-                SET include = 0, updated_at = ?
-                WHERE thread_id = ?
+                SET include = 0, updated_at = %s
+                WHERE thread_id = %s
             ''', (datetime.now().isoformat(), thread['id']))
             
             conn.commit()
@@ -611,7 +611,7 @@ class ThreadManager:
                     SUM(CASE WHEN feedback_score = 1 THEN 1 ELSE 0 END) as thumbs_up,
                     SUM(CASE WHEN feedback_score = 0 THEN 1 ELSE 0 END) as thumbs_down
                 FROM messages
-                WHERE thread_id = ?
+                WHERE thread_id = %s
             ''', (thread['id'],))
             
             stats = dict(cursor.fetchone())

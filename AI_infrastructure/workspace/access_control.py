@@ -153,7 +153,7 @@ class AccessControl:
         
         # Check if owner
         cursor.execute("""
-            SELECT owner_id FROM workspaces WHERE id = ?
+            SELECT owner_id FROM workspaces WHERE id = %s
         """, (workspace_id,))
         
         workspace_row = cursor.fetchone()
@@ -168,7 +168,7 @@ class AccessControl:
         # Check membership
         cursor.execute("""
             SELECT role FROM workspace_users 
-            WHERE workspace_id = ? AND user_id = ? AND removed_at IS NULL
+            WHERE workspace_id = %s AND user_id = %s AND removed_at IS NULL
         """, (workspace_id, user_id))
         
         member_row = cursor.fetchone()
@@ -295,7 +295,7 @@ class AccessControl:
         cursor.execute("""
             SELECT DISTINCT w.id FROM workspaces w
             LEFT JOIN workspace_users wu ON w.id = wu.workspace_id
-            WHERE w.owner_id = ? 
+            WHERE w.owner_id = %s 
                OR (wu.user_id = ? AND wu.removed_at IS NULL)
         """, (user_id, user_id))
         
@@ -351,7 +351,7 @@ class AccessControl:
         cursor = conn.cursor()
         
         # Check workspace exists
-        cursor.execute("SELECT id, status FROM workspaces WHERE id = ?", (workspace_id,))
+        cursor.execute("SELECT id, status FROM workspaces WHERE id = %s", (workspace_id,))
         workspace_row = cursor.fetchone()
         conn.close()
         

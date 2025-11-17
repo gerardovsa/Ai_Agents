@@ -299,65 +299,12 @@ window.SynergyRealtime = {
     },
 
     _showConnectionStatus(status) {
-        // Create or update connection indicator
-        let indicator = document.getElementById('ws-connection-indicator');
-
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.id = 'ws-connection-indicator';
-            indicator.style.cssText = `
-                position: fixed;
-                top: 16px;
-                right: 16px;
-                padding: 8px 16px;
-                border-radius: 8px;
-                font-size: 13px;
-                font-weight: 500;
-                z-index: 10000;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                transition: all 0.3s ease;
-            `;
-            document.body.appendChild(indicator);
-        }
-
-        // Update indicator based on status
-        const configs = {
-            connected: {
-                icon: '✓',
-                text: 'Real-time sync active',
-                bg: '#10b981',
-                color: '#fff'
-            },
-            disconnected: {
-                icon: '⚠',
-                text: 'Reconnecting...',
-                bg: '#f59e0b',
-                color: '#fff'
-            },
-            error: {
-                icon: '✕',
-                text: 'Connection lost',
-                bg: '#ef4444',
-                color: '#fff'
-            }
-        };
-
-        const config = configs[status] || configs.disconnected;
-
-        indicator.innerHTML = `<span>${config.icon}</span><span>${config.text}</span>`;
-        indicator.style.backgroundColor = config.bg;
-        indicator.style.color = config.color;
-
-        // Auto-hide success indicator after 3 seconds
-        if (status === 'connected') {
-            setTimeout(() => {
-                indicator.style.opacity = '0';
-                setTimeout(() => indicator.remove(), 300);
-            }, 3000);
-        }
+        // DISABLED: Connection status indicators suppressed to avoid UI clutter
+        // Only log to console for debugging
+        this._log(`Connection status: ${status}`);
+        
+        // Don't show any visual indicators
+        return;
     },
 
     _showNotification(title, message, type = 'info') {

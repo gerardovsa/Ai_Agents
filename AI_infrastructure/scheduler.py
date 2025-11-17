@@ -255,7 +255,7 @@ class AutomationScheduler:
         cursor = conn.cursor()
         
         # Get task details
-        cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = ?', (task_id,))
+        cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
         task = cursor.fetchone()
         
         if not task:
@@ -268,7 +268,7 @@ class AutomationScheduler:
         # Create execution record
         cursor.execute('''
             INSERT INTO task_executions (task_id, status)
-            VALUES (?, 'running')
+            VALUES (%s, 'running')
         ''', (task_id,))
         execution_id = cursor.lastrowid
         conn.commit()
@@ -297,20 +297,16 @@ class AutomationScheduler:
             
             cursor.execute('''
                 UPDATE task_executions 
-                SET status = 'completed', 
-                    completed_at = ?,
-                    result_data = ?,
-                    execution_duration_ms = ?
-                WHERE execution_id = ?
+                SET status = 'completed', completed_at = %s, result_data = %s, execution_duration_ms = %s
+                WHERE execution_id = %s
             ''', (end_time, json.dumps(result), duration_ms, execution_id))
             
             # Update task statistics
             cursor.execute('''
                 UPDATE scheduled_tasks 
-                SET execution_count = execution_count + 1,
-                    last_execution_time = ?,
+                SET execution_count = execution_count + 1, last_execution_time = %s,
                     failure_count = 0
-                WHERE task_id = ?
+                WHERE task_id = %s
             ''', (end_time, task_id))
             
             conn.commit()
@@ -323,19 +319,15 @@ class AutomationScheduler:
             
             cursor.execute('''
                 UPDATE task_executions 
-                SET status = 'failed', 
-                    completed_at = ?,
-                    error_message = ?,
-                    execution_duration_ms = ?
-                WHERE execution_id = ?
+                SET status = 'failed', completed_at = %s, error_message = %s, execution_duration_ms = %s
+                WHERE execution_id = %s
             ''', (end_time, str(e), duration_ms, execution_id))
             
             # Update task failure count
             cursor.execute('''
                 UPDATE scheduled_tasks 
-                SET failure_count = failure_count + 1,
-                    last_execution_time = ?
-                WHERE task_id = ?
+                SET failure_count = failure_count + 1, last_execution_time = %s
+                WHERE task_id = %s
             ''', (end_time, task_id))
             
             conn.commit()
@@ -481,7 +473,7 @@ class AutomationScheduler:
                 user_id, task_name, task_type, schedule_type, schedule_value,
                 tool_name, tool_params, is_active, requires_approval, approval_status, 
                 status, description
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             task_data.get('created_by_user_id') or task_data.get('user_id', 1),
             task_data.get('task_name'),
@@ -528,7 +520,7 @@ class AutomationScheduler:
         update_fields.append("updated_at = CURRENT_TIMESTAMP")
         values.append(task_id)
         
-        query = f"UPDATE scheduled_tasks SET {', '.join(update_fields)} WHERE task_id = ?"
+        query = f"UPDATE scheduled_tasks SET {', '.join(update_fields)} WHERE task_id = %s"
         cursor.execute(query, values)
         
         conn.commit()
@@ -545,7 +537,7 @@ class AutomationScheduler:
             # Get updated task and reschedule
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = ?', (task_id,))
+            cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
             task = cursor.fetchone()
             conn.close()
             
@@ -566,7 +558,7 @@ class AutomationScheduler:
         # Delete from database
         conn = get_connection('ai_infrastructure')
         cursor = conn.cursor()
-        cursor.execute('DELETE FROM scheduled_tasks WHERE task_id = ?', (task_id,))
+        cursor.execute('DELETE FROM scheduled_tasks WHERE task_id = %s', (task_id,))
         conn.commit()
         conn.close()
         
@@ -577,7 +569,7 @@ class AutomationScheduler:
         """Get task by ID"""
         conn = get_connection('ai_infrastructure')
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = ?', (task_id,))
+        cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
         task = cursor.fetchone()
         conn.close()
         
@@ -593,16 +585,16 @@ class AutomationScheduler:
         
         if filters:
             if 'synergy_session_id' in filters:
-                query += ' AND synergy_session_id = ?'
+                query += ' AND synergy_session_id = %s'
                 params.append(filters['synergy_session_id'])
             if 'thread_id' in filters:
-                query += ' AND thread_id = ?'
+                query += ' AND thread_id = %s'
                 params.append(filters['thread_id'])
             if 'agent_name' in filters:
-                query += ' AND agent_name = ?'
+                query += ' AND agent_name = %s'
                 params.append(filters['agent_name'])
             if 'enabled' in filters:
-                query += ' AND enabled = ?'
+                query += ' AND enabled = %s'
                 params.append(filters['enabled'])
         
         cursor.execute(query, params)
@@ -618,7 +610,7 @@ class AutomationScheduler:
         
         cursor.execute('''
             SELECT * FROM task_executions 
-            WHERE task_id = ? 
+            WHERE task_id = %s 
             ORDER BY started_at DESC 
             LIMIT ?
         ''', (task_id, limit))

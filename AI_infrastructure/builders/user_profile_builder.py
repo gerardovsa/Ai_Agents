@@ -105,7 +105,7 @@ class UserProfileBuilder:
                        is_primary, metadata, has_google_oauth, has_microsoft_oauth,
                        allowed_dashboards, role
                 FROM users
-                WHERE id = ?
+                WHERE id = %s
             """, (user_id,))
             
             row = cursor.fetchone()
@@ -155,7 +155,7 @@ class UserProfileBuilder:
             cursor.execute("""
                 SELECT has_google_oauth, has_microsoft_oauth
                 FROM users
-                WHERE id = ?
+                WHERE id = %s
             """, (user_id,))
             
             row = cursor.fetchone()

@@ -110,7 +110,7 @@ class CredentialFetcher:
                        token_type, expires_at, scope, metadata,
                        created_at, updated_at, last_refreshed_at
                 FROM oauth_tokens
-                WHERE user_id = ? AND platform LIKE ?
+                WHERE user_id = %s AND platform LIKE %s
                 ORDER BY updated_at DESC
                 LIMIT 1
             """, (user_id, platform_pattern))

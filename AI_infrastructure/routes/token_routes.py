@@ -57,7 +57,7 @@ def get_token_count(thread_id):
         cursor.execute("""
             SELECT token_count
             FROM sessions.threads
-            WHERE id = ?
+            WHERE id = %s
         """, (thread_id,))
         
         row = cursor.fetchone()
@@ -129,8 +129,8 @@ def update_token_count(thread_id):
         
         cursor.execute("""
             UPDATE sessions.threads
-            SET token_count = ?
-            WHERE id = ?
+            SET token_count = %s
+            WHERE id = %s
         """, (token_count, thread_id))
         
         conn.commit()

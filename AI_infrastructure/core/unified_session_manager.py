@@ -159,7 +159,7 @@ class UnifiedSessionManager:
                 with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                     conn.execute("""
                         INSERT INTO sessions (session_id, ui_context, agent_id, conversation, metadata)
-                        VALUES (?, ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s)
                     """, (
                         session_id,
                         ui_context,
@@ -192,7 +192,7 @@ class UnifiedSessionManager:
                 cursor = conn.execute("""
                     SELECT session_id, ui_context, agent_id, conversation, metadata, created_at, last_active
                     FROM sessions
-                    WHERE session_id = ?
+                    WHERE session_id = %s
                 """, (session_id,))
                 
                 row = cursor.fetchone()
@@ -241,8 +241,8 @@ class UnifiedSessionManager:
             with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 conn.execute("""
                     UPDATE sessions
-                    SET conversation = ?, last_active = CURRENT_TIMESTAMP
-                    WHERE session_id = ?
+                    SET conversation = %s, last_active = CURRENT_TIMESTAMP
+                    WHERE session_id = %s
                 """, (json.dumps(conversation), session_id))
                 conn.commit()
     
@@ -264,8 +264,8 @@ class UnifiedSessionManager:
             with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 conn.execute("""
                     UPDATE sessions
-                    SET metadata = ?, last_active = CURRENT_TIMESTAMP
-                    WHERE session_id = ?
+                    SET metadata = %s, last_active = CURRENT_TIMESTAMP
+                    WHERE session_id = %s
                 """, (json.dumps(metadata), session_id))
                 conn.commit()
     
@@ -310,7 +310,7 @@ class UnifiedSessionManager:
                 cursor = conn.execute("""
                     SELECT session_id
                     FROM sessions
-                    WHERE last_active < datetime('now', '-' || ? || ' hours')
+                    WHERE last_active < datetime('now', '-' || %s || ' hours')
                 """, (max_age_hours,))
                 
                 inactive_ids = [row[0] for row in cursor.fetchall()]
@@ -342,7 +342,7 @@ class UnifiedSessionManager:
             
             # Remove from DB
             with sqlite3.connect(self.db_path, timeout=30.0) as conn:
-                conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+                conn.execute("DELETE FROM sessions WHERE session_id = %s", (session_id,))
                 conn.commit()
             
             print(f"[SessionManager] Deleted session: {session_id}")
@@ -382,7 +382,7 @@ class UnifiedSessionManager:
             conn.execute("""
                 UPDATE sessions
                 SET last_active = CURRENT_TIMESTAMP
-                WHERE session_id = ?
+                WHERE session_id = %s
             """, (session_id,))
             conn.commit()
 

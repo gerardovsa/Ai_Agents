@@ -64,7 +64,7 @@ class ThreadSharingManager:
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT * FROM threads WHERE thread_slug = ?
+            SELECT * FROM threads WHERE thread_slug = %s
         """, (thread_slug,))
         
         row = cursor.fetchone()
@@ -81,7 +81,7 @@ class ThreadSharingManager:
         
         # Check if user is thread owner
         cursor.execute("""
-            SELECT user_id FROM threads WHERE id = ?
+            SELECT user_id FROM threads WHERE id = %s
         """, (thread_id,))
         
         row = cursor.fetchone()
@@ -92,7 +92,7 @@ class ThreadSharingManager:
         # Check if user has admin access via thread_users
         cursor.execute("""
             SELECT role FROM thread_users
-            WHERE thread_id = ? AND user_id = ? AND removed_at IS NULL
+            WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
         """, (thread_id, user_id))
         
         row = cursor.fetchone()
@@ -144,7 +144,7 @@ class ThreadSharingManager:
             # Check if user already has access
             cursor.execute("""
                 SELECT id FROM thread_users
-                WHERE thread_id = ? AND user_id = ? AND removed_at IS NULL
+                WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
             """, (thread_id, shared_with_user_id))
             
             existing = cursor.fetchone()
@@ -153,9 +153,9 @@ class ThreadSharingManager:
                 # Update existing access
                 cursor.execute("""
                     UPDATE thread_users
-                    SET role = ?, access_level = 'read_write', added_by_user_id = ?,
+                    SET role = %s, access_level = 'read_write', added_by_user_id = %s,
                         added_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
+                    WHERE id = %s
                 """, (role, shared_by_user_id, existing['id']))
                 
                 share_action = 'updated'
@@ -168,7 +168,7 @@ class ThreadSharingManager:
                     INSERT INTO thread_users (
                         thread_id, user_id, role, access_level, 
                         added_by_user_id, added_at
-                    ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 """, (thread_id, shared_with_user_id, role, access_level, shared_by_user_id))
                 
                 user_id = cursor.lastrowid
@@ -179,7 +179,7 @@ class ThreadSharingManager:
                 INSERT INTO thread_shares (
                     thread_id, shared_by_user_id, shared_with_user_id,
                     share_type, action, role_granted, created_at
-                ) VALUES (?, ?, ?, 'direct', ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (%s, %s, %s, 'direct', %s, %s, CURRENT_TIMESTAMP)
             """, (thread_id, shared_by_user_id, shared_with_user_id, share_action, role))
             
             share_id = cursor.lastrowid
@@ -248,7 +248,7 @@ class ThreadSharingManager:
                     thread_id, shared_by_user_id, shared_with_email,
                     share_type, action, role_granted, share_token,
                     created_at, expires_at
-                ) VALUES (?, ?, ?, 'email', 'invited', ?, ?, CURRENT_TIMESTAMP, ?)
+                ) VALUES (%s, %s, %s, 'email', 'invited', %s, %s, CURRENT_TIMESTAMP, %s)
             """, (thread_id, shared_by_user_id, email, role, share_token, expires_at))
             
             share_id = cursor.lastrowid
@@ -295,7 +295,7 @@ class ThreadSharingManager:
             # Get share invitation
             cursor.execute("""
                 SELECT * FROM thread_shares
-                WHERE share_token = ? AND revoked_at IS NULL
+                WHERE share_token = %s AND revoked_at IS NULL
             """, (share_token,))
             
             share = cursor.fetchone()
@@ -318,7 +318,7 @@ class ThreadSharingManager:
                 INSERT INTO thread_users (
                     thread_id, user_id, role, access_level,
                     added_by_user_id, added_at
-                ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """, (thread_id, user_id, role, access_level, share['shared_by_user_id']))
             
             thread_user_id = cursor.lastrowid
@@ -326,13 +326,13 @@ class ThreadSharingManager:
             # Update share record
             cursor.execute("""
                 UPDATE thread_shares
-                SET accessed_at = CURRENT_TIMESTAMP, shared_with_user_id = ?
-                WHERE id = ?
+                SET accessed_at = CURRENT_TIMESTAMP, shared_with_user_id = %s
+                WHERE id = %s
             """, (user_id, share['id']))
             
             # Get thread details
             cursor.execute("""
-                SELECT thread_slug, title FROM threads WHERE id = ?
+                SELECT thread_slug, title FROM threads WHERE id = %s
             """, (thread_id,))
             
             thread = cursor.fetchone()
@@ -395,7 +395,7 @@ class ThreadSharingManager:
             cursor.execute("""
                 UPDATE thread_users
                 SET removed_at = CURRENT_TIMESTAMP
-                WHERE thread_id = ? AND user_id = ? AND removed_at IS NULL
+                WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
             """, (thread_id, user_id_to_revoke))
             
             if cursor.rowcount == 0:
@@ -407,7 +407,7 @@ class ThreadSharingManager:
                     thread_id, shared_by_user_id, shared_with_user_id,
                     share_type, action, revoked_by_user_id, revoke_reason,
                     created_at, revoked_at
-                ) VALUES (?, ?, ?, 'direct', 'revoked', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ) VALUES (%s, %s, %s, 'direct', 'revoked', %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """, (thread_id, revoked_by_user_id, user_id_to_revoke, revoked_by_user_id, reason))
             
             conn.commit()
@@ -453,7 +453,7 @@ class ThreadSharingManager:
             SELECT tu.*, u.username, u.email
             FROM thread_users tu
             LEFT JOIN users u ON tu.user_id = u.id
-            WHERE tu.thread_id = ? AND tu.removed_at IS NULL
+            WHERE tu.thread_id = %s AND tu.removed_at IS NULL
             ORDER BY tu.added_at
         """, (thread_id,))
         
@@ -493,7 +493,7 @@ class ThreadSharingManager:
             FROM thread_users tu
             JOIN threads t ON tu.thread_id = t.id
             LEFT JOIN users owner ON t.user_id = owner.id
-            WHERE tu.user_id = ? AND tu.removed_at IS NULL AND t.user_id != ?
+            WHERE tu.user_id = %s AND tu.removed_at IS NULL AND t.user_id != %s
             ORDER BY tu.added_at DESC
         """, (user_id, user_id))
         
@@ -552,7 +552,7 @@ class ThreadSharingManager:
         
         cursor.execute("""
             SELECT role, access_level FROM thread_users
-            WHERE thread_id = ? AND user_id = ? AND removed_at IS NULL
+            WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
         """, (thread_id, user_id))
         
         row = cursor.fetchone()

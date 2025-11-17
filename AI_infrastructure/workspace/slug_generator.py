@@ -133,11 +133,11 @@ class SlugGenerator:
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        query = "SELECT id FROM workspaces WHERE slug = ?"
+        query = "SELECT id FROM workspaces WHERE slug = %s"
         params = [slug]
         
         if exclude_workspace_id:
-            query += " AND id != ?"
+            query += " AND id != %s"
             params.append(exclude_workspace_id)
         
         cursor.execute(query, params)
@@ -168,11 +168,11 @@ class SlugGenerator:
         
         # Note: Assumes threads table has slug column
         # This will be added in database migration
-        query = "SELECT id FROM threads WHERE workspace_id = ? AND slug = ?"
+        query = "SELECT id FROM threads WHERE workspace_id = %s AND slug = %s"
         params = [workspace_id, slug]
         
         if exclude_thread_id:
-            query += " AND id != ?"
+            query += " AND id != %s"
             params.append(exclude_thread_id)
         
         try:
@@ -358,7 +358,7 @@ class SlugGenerator:
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT id FROM workspaces WHERE slug = ?", (slug,))
+        cursor.execute("SELECT id FROM workspaces WHERE slug = %s", (slug,))
         row = cursor.fetchone()
         conn.close()
         
@@ -380,7 +380,7 @@ class SlugGenerator:
         
         try:
             cursor.execute(
-                "SELECT id FROM threads WHERE workspace_id = ? AND slug = ?",
+                "SELECT id FROM threads WHERE workspace_id = %s AND slug = %s",
                 (workspace_id, slug)
             )
             row = cursor.fetchone()

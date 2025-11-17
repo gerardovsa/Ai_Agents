@@ -7,7 +7,7 @@ USAGE:
     
     conn = get_connection('ai_infrastructure')  # Uses Supabase on Render, SQLite locally
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
 """
 
 import os

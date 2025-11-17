@@ -998,7 +998,7 @@ CRITICAL: NO BULK TOOL SCHEMAS!
                     title, description, project_name, priority, status,
                     tags, documents, next_steps, notes, due_date
                 FROM synergy_sessions.synergy_sessions 
-                WHERE session_id = ?
+                WHERE session_id = %s
             """, (synergy_card_id,))
             
             synergy_row = cursor.fetchone()
@@ -1148,7 +1148,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                     title, description, project_name, priority, status,
                     tags, documents, next_steps, notes, due_date
                 FROM synergy_sessions.synergy_sessions 
-                WHERE session_id = ?
+                WHERE session_id = %s
             """, (synergy_card_id,))
             
             synergy_row = cursor.fetchone()
@@ -1260,7 +1260,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                                 from routes.thread_assignment_routes import get_db_connection as get_sessions_db
                                 conn = get_sessions_db()
                                 cursor = conn.cursor()
-                                cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", [user_id])
+                                cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
                                 row = cursor.fetchone()
                                 if row and row['metadata']:
                                     metadata = json.loads(row['metadata'])
@@ -1278,7 +1278,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                             update_query = """
                                 UPDATE sessions.threads 
                                 SET updated_at = datetime('now')
-                                WHERE thread_slug = ?
+                                WHERE thread_slug = %s
                             """
                             
                             params = [session_id]

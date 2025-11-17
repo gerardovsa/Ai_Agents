@@ -48,7 +48,7 @@ class UserManager:
         try:
             cursor.execute("""
                 INSERT INTO users (username, email, password_hash, role, created_at, last_active)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (username, email, password_hash, role, datetime.now(), datetime.now()))
             
             user_id = cursor.lastrowid
@@ -79,11 +79,11 @@ class UserManager:
         cursor = conn.cursor()
         
         if user_id:
-            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
         elif email:
-            cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         elif username:
-            cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         else:
             conn.close()
             return None
@@ -121,7 +121,7 @@ class UserManager:
         cursor = conn.cursor()
         
         if role:
-            cursor.execute("SELECT * FROM users WHERE role = ? ORDER BY created_at DESC", (role,))
+            cursor.execute("SELECT * FROM users WHERE role = %s ORDER BY created_at DESC", (role,))
         else:
             cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
         
@@ -149,8 +149,8 @@ class UserManager:
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE users 
-            SET last_active = ? 
-            WHERE id = ?
+            SET last_active = %s 
+            WHERE id = %s
         """, (datetime.now(), user_id))
         conn.commit()
         conn.close()
@@ -179,7 +179,7 @@ class UserManager:
                 INSERT OR REPLACE INTO user_platform_credentials 
                 (user_id, platform, credential_type, credential_key, credential_value, 
                  is_active, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
             """, (user_id, platform, credential_type, credential_key, credential_value,
                   datetime.now(), datetime.now()))
             
@@ -209,12 +209,12 @@ class UserManager:
         if platform:
             cursor.execute("""
                 SELECT * FROM user_platform_credentials 
-                WHERE user_id = ? AND platform = ? AND is_active = 1
+                WHERE user_id = %s AND platform = %s AND is_active = 1
             """, (user_id, platform))
         else:
             cursor.execute("""
                 SELECT * FROM user_platform_credentials 
-                WHERE user_id = ? AND is_active = 1
+                WHERE user_id = %s AND is_active = 1
             """, (user_id,))
         
         rows = cursor.fetchall()
@@ -242,7 +242,7 @@ class UserManager:
         cursor = conn.cursor()
         
         try:
-            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
             conn.commit()
             return True
         except Exception as e:

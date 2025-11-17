@@ -264,7 +264,7 @@ class SchemaManager:
         try:
             cursor.execute("""
                 INSERT INTO schema_versions (version, description)
-                VALUES (?, ?)
+                VALUES (%s, %s)
             """, (self.SCHEMA_VERSION, "Initial schema creation"))
         except:
             pass  # Table might not exist yet

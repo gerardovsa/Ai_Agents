@@ -15404,7 +15404,7 @@
                     if (workflowSlug) {
                         // Extract thread ID from the tags row ID (format: thread-tags-row-THREADID)
                         const threadId = tagsRow.id.replace('thread-tags-row-', '');
-                        
+
                         if (threadId) {
                             console.log(`[WORKFLOW-DROP] Workflow slug "${workflowSlug}" dropped on thread ${threadId}`);
                             await ThreadManager.linkWorkflowSlug(threadId, workflowSlug);
@@ -25908,7 +25908,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 if (slugElement && slugTextElement) {
                     slugTextElement.textContent = workflowSlug;
                     slugElement.style.display = 'inline-flex';
-                    
+
                     // Show the remove button
                     const removeBtn = slugElement.querySelector('button');
                     if (removeBtn) {
@@ -25944,7 +25944,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                 // Open Automation Canvas and load the workflow
                 console.log('[WORKFLOW] Loading workflow:', thread.workflow_slug);
-                
+
                 // Check if automationCanvas instance exists
                 if (window.automationCanvas && typeof window.automationCanvas.loadWorkflowBySlug === 'function') {
                     window.automationCanvas.loadWorkflowBySlug(thread.workflow_slug);

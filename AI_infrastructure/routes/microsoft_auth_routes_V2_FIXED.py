@@ -150,7 +150,7 @@ def get_user_by_email(email: str):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM ai_infrastructure.users WHERE email = ?', (email,))
+        cursor.execute('SELECT * FROM ai_infrastructure.users WHERE email = %s', (email,))
         user = cursor.fetchone()
         conn.close()
         return dict(user) if user else None
@@ -163,7 +163,7 @@ def get_user_by_id(user_id: int):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM ai_infrastructure.users WHERE id = ?', (user_id,))
+        cursor.execute('SELECT * FROM ai_infrastructure.users WHERE id = %s', (user_id,))
         user = cursor.fetchone()
         conn.close()
         return dict(user) if user else None
@@ -178,7 +178,7 @@ def create_user(email: str, username: str, role: str = 'user'):
         cursor = conn.cursor()
         
         # Check if user already exists
-        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = ?', (email,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = %s', (email,))
         existing = cursor.fetchone()
         if existing:
             logger.warning(f"User already exists with email {email}, returning existing user")
@@ -186,7 +186,7 @@ def create_user(email: str, username: str, role: str = 'user'):
             return get_user_by_email(email)
         
         # Make username unique if collision
-        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE username = ?', (username,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE username = %s', (username,))
         if cursor.fetchone():
             # Add random suffix to username
             import random
@@ -195,7 +195,7 @@ def create_user(email: str, username: str, role: str = 'user'):
         
         cursor.execute('''
             INSERT INTO ai_infrastructure.users (username, email, password_hash, role, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         ''', (username, email, 'oauth_microsoft', role, datetime.now().isoformat()))
         user_id = cursor.lastrowid
         conn.commit()
@@ -257,21 +257,21 @@ def generate_jwt_token(payload: dict):
                     
                     insert_sql = '''
                         INSERT INTO ai_infrastructure.user_sessions (id, user_id, token, expires_at)
-                        VALUES (?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s)
                     '''
                     insert_sql, insert_params = convert_sql_placeholders(insert_sql, (next_id, payload['user_id'], token, expires_at))
                 except:
                     # Fallback: try without id (in case DEFAULT works)
                     insert_sql = '''
                         INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
-                        VALUES (?, ?, ?)
+                        VALUES (%s, %s, %s)
                     '''
                     insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
             else:
                 # SQLite: Don't insert id (AUTOINCREMENT handles it)
                 insert_sql = '''
                     INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
-                    VALUES (?, ?, ?)
+                    VALUES (%s, %s, %s)
                 '''
                 insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
             
@@ -475,7 +475,7 @@ def microsoft_callback():
         from shared.database_utils import is_using_supabase, convert_sql_placeholders
         
         # Check if token already exists
-        check_sql = 'SELECT id FROM ai_infrastructure.oauth_tokens WHERE user_id = ? AND platform = ?'
+        check_sql = 'SELECT id FROM ai_infrastructure.oauth_tokens WHERE user_id = %s AND platform = %s'
         check_sql, check_params = convert_sql_placeholders(check_sql, (user_id, 'microsoft'))
         cursor.execute(check_sql, check_params)
         existing_token = cursor.fetchone()
@@ -484,25 +484,11 @@ def microsoft_callback():
             # UPDATE existing token
             sql = '''
                 UPDATE ai_infrastructure.oauth_tokens SET
-                    access_token = ?,
-                    refresh_token = ?,
-                    token_type = ?,
-                    expires_at = ?,
-                    scope = ?,
-                    is_valid = ?,
-                    is_active = ?,
-                    auto_refresh_enabled = ?,
-                    last_refreshed_at = ?,
-                    refresh_attempts = ?,
-                    last_refresh_error = ?,
-                    granted_scopes = ?,
-                    metadata = ?,
-                    email = ?,
-                    profile_name = ?,
-                    error_count = ?,
-                    last_error = ?,
+                    access_token = %s, refresh_token = %s, token_type = %s, expires_at = %s, scope = %s, is_valid = %s, is_active = %s, auto_refresh_enabled = %s, last_refreshed_at = %s, refresh_attempts = %s,
+                    last_refresh_error = %s, granted_scopes = %s, metadata = %s, email = %s, profile_name = %s, error_count = %s,
+                    last_error = %s,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ? AND platform = ?
+                WHERE user_id = %s AND platform = %s
             '''
         else:
             # INSERT new token (works for both PostgreSQL and SQLite)
@@ -515,7 +501,7 @@ def microsoft_callback():
                         last_refreshed_at, refresh_attempts, last_refresh_error,
                         granted_scopes, metadata, email, profile_name,
                         error_count, last_error
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 '''
             else:
                 # SQLite: Use CURRENT_TIMESTAMP
@@ -526,7 +512,7 @@ def microsoft_callback():
                         last_refreshed_at, refresh_attempts, last_refresh_error,
                         granted_scopes, metadata, email, profile_name,
                         error_count, last_error, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 '''
         
         # PostgreSQL needs TRUE/FALSE for boolean columns, SQLite accepts 1/0
@@ -611,7 +597,7 @@ def microsoft_callback():
         
         # Update has_microsoft_oauth flag (use TRUE for PostgreSQL, 1 for SQLite)
         flag_value = True if is_using_supabase() else 1
-        update_sql = 'UPDATE ai_infrastructure.users SET has_microsoft_oauth = ? WHERE id = ?'
+        update_sql = 'UPDATE ai_infrastructure.users SET has_microsoft_oauth = %s WHERE id = %s'
         update_sql, update_params = convert_sql_placeholders(update_sql, (flag_value, user_id))
         
         # Retry logic for statement timeout
@@ -714,7 +700,7 @@ def microsoft_status():
                     email, profile_name, last_refreshed_at, error_count, last_error,
                     created_at, updated_at
                 FROM ai_infrastructure.oauth_tokens
-                WHERE user_id = ? AND platform = ?
+                WHERE user_id = %s AND platform = %s
             ''', (user_id, 'microsoft'))
             
             row = cursor.fetchone()
@@ -840,7 +826,7 @@ def microsoft_disconnect():
         # Delete tokens FROM ai_infrastructure.oauth_tokens table
         cursor.execute('''
             DELETE FROM ai_infrastructure.oauth_tokens
-            WHERE user_id = ? AND platform = ?
+            WHERE user_id = %s AND platform = %s
         ''', (user_id, 'microsoft'))
         
         conn.commit()

@@ -100,14 +100,14 @@ def list_sessions():
         params = []
         
         if status:
-            query += ' AND status = ?'
+            query += ' AND status = %s'
             params.append(status)
         
         if column:
-            query += ' AND kanban_column = ?'
+            query += ' AND kanban_column = %s'
             params.append(column)
         
-        query += ' ORDER BY created_at DESC LIMIT ?'
+        query += ' ORDER BY created_at DESC LIMIT %s'
         params.append(limit)
         
         cursor.execute(query, params)
@@ -167,7 +167,7 @@ def create_session():
             INSERT INTO sessions.sessions 
             (session_id, title, description, priority, status, kanban_column, 
              tags, project_name, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (session_id, title, description, priority, status, kanban_column,
               tags, project_name, datetime.now().isoformat(), datetime.now().isoformat()))
         
@@ -196,7 +196,7 @@ def get_session(session_id):
         # Get Kanban session
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM sessions.sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('SELECT * FROM sessions.sessions WHERE session_id = %s', (session_id,))
         session = cursor.fetchone()
         conn.close()
         
@@ -210,7 +210,7 @@ def get_session(session_id):
         cursor = ai_conn.cursor()
         cursor.execute('''
             SELECT * FROM kanban_task_links 
-            WHERE kanban_session_id = ?
+            WHERE kanban_session_id = %s
         ''', (session_id,))
         agent_link = cursor.fetchone()
         ai_conn.close()
@@ -260,7 +260,7 @@ def update_session(session_id):
         conn = get_synergy_db()
         cursor = conn.cursor()
         
-        query = f"UPDATE sessions.sessions SET {', '.join(fields)} WHERE session_id = ?"
+        query = f"UPDATE sessions.sessions SET {', '.join(fields)} WHERE session_id = %s"
         cursor.execute(query, values)
         conn.commit()
         
@@ -290,7 +290,7 @@ def delete_session(session_id):
         # Delete from Kanban DB
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('DELETE FROM sessions.sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('DELETE FROM sessions.sessions WHERE session_id = %s', (session_id,))
         conn.commit()
         
         if cursor.rowcount == 0:
@@ -302,7 +302,7 @@ def delete_session(session_id):
         # Delete from bridge table
         ai_conn = get_ai_db()
         cursor = ai_conn.cursor()
-        cursor.execute('DELETE FROM kanban_task_links WHERE kanban_session_id = ?', (session_id,))
+        cursor.execute('DELETE FROM kanban_task_links WHERE kanban_session_id = %s', (session_id,))
         ai_conn.commit()
         ai_conn.close()
         
@@ -348,7 +348,7 @@ def assign_agent(session_id):
         # Check if session exists
         conn = get_synergy_db()
         cursor = conn.cursor()
-        cursor.execute('SELECT title, status, kanban_column FROM sessions.sessions WHERE session_id = ?', (session_id,))
+        cursor.execute('SELECT title, status, kanban_column FROM sessions.sessions WHERE session_id = %s', (session_id,))
         session = cursor.fetchone()
         conn.close()
         
@@ -367,7 +367,7 @@ def assign_agent(session_id):
             (agent_id, agent_name, kanban_session_id, kanban_title, kanban_status,
              kanban_column, sync_direction, auto_sync_enabled, agent_work_status,
              created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s)
             ON CONFLICT(kanban_session_id) DO UPDATE SET
                 agent_id = excluded.agent_id,
                 agent_name = excluded.agent_name,
@@ -405,7 +405,7 @@ def get_agent_status(session_id):
         cursor = ai_conn.cursor()
         cursor.execute('''
             SELECT * FROM kanban_task_links 
-            WHERE kanban_session_id = ?
+            WHERE kanban_session_id = %s
         ''', (session_id,))
         agent_link = cursor.fetchone()
         ai_conn.close()
@@ -451,7 +451,7 @@ def sync_from_agent(session_id):
         cursor = ai_conn.cursor()
         cursor.execute('''
             SELECT * FROM kanban_task_links 
-            WHERE kanban_session_id = ?
+            WHERE kanban_session_id = %s
         ''', (session_id,))
         agent_link = cursor.fetchone()
         
@@ -462,10 +462,9 @@ def sync_from_agent(session_id):
         # Update agent status
         cursor.execute('''
             UPDATE kanban_task_links
-            SET agent_work_status = ?,
-                last_synced_at = ?,
-                notes = COALESCE(?, notes)
-            WHERE kanban_session_id = ?
+            SET agent_work_status = %s, last_synced_at = %s,
+                notes = COALESCE( %s, notes)
+            WHERE kanban_session_id = %s
         ''', (agent_status, datetime.now().isoformat(), data.get('notes'), session_id))
         
         ai_conn.commit()
@@ -486,10 +485,9 @@ def sync_from_agent(session_id):
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE sessions.sessions
-            SET kanban_column = ?,
-                updated_at = ?,
+            SET kanban_column = %s, updated_at = %s,
                 notes = COALESCE(notes || '\n' || ?, notes)
-            WHERE session_id = ?
+            WHERE session_id = %s
         ''', (new_column, datetime.now().isoformat(), 
               f"Agent status: {agent_status}", session_id))
         

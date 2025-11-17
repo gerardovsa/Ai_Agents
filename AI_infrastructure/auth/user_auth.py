@@ -359,7 +359,7 @@ class UserAuthManager:
                 # Create user
                 cursor.execute('''
                     INSERT INTO users (username, email, password_hash, primary_gmail, role, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                 ''', (username, email, password_hash, primary_gmail or email, role, json.dumps({})))
                 
                 user_id = cursor.lastrowid
@@ -367,7 +367,7 @@ class UserAuthManager:
                 # Create default workspace
                 cursor.execute('''
                     INSERT INTO workspaces (user_id, name, description, metadata)
-                    VALUES (?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s)
                 ''', (user_id, f"{username}'s Workspace", "Default workspace", json.dumps({})))
                 
                 workspace_id = cursor.lastrowid
@@ -379,7 +379,7 @@ class UserAuthManager:
                         cursor.execute('''
                             INSERT INTO user_gmail_accounts 
                             (user_id, gmail_address, display_name, is_primary)
-                            VALUES (?, ?, ?, ?)
+                            VALUES (%s, %s, %s, %s)
                         ''', (user_id, gmail_data['email'], gmail_data['display_name'], gmail_data['is_primary']))
                     
                     print(f"Auto-linked {len(gmail_accounts)} Gmail accounts from .env.master")
@@ -435,8 +435,8 @@ class UserAuthManager:
             with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO user_sessions (user_id, token, expires_at)
-                    VALUES (?, ?, ?)
+                    INSERT INTO sessions.user_sessions (user_id, token, expires_at)
+                    VALUES (%s, %s, %s)
                 ''', (user_data.get('id'), token, token_payload['exp']))
                 conn.commit()
         except Exception as e:
@@ -463,7 +463,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT id, username, email, password_hash, role, primary_gmail
                 FROM users
-                WHERE username = ? OR email = ?
+                WHERE username = %s OR email = %s
             ''', (username, username))
             
             row = cursor.fetchone()
@@ -481,7 +481,7 @@ class UserAuthManager:
             
             # Get user's workspaces
             cursor.execute('''
-                SELECT id, name FROM workspaces WHERE user_id = ?
+                SELECT id, name FROM workspaces WHERE user_id = %s
             ''', (user_id,))
             workspaces = [{'id': w[0], 'name': w[1]} for w in cursor.fetchall()]
             
@@ -489,7 +489,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT gmail_address, display_name, is_primary
                 FROM user_gmail_accounts
-                WHERE user_id = ?
+                WHERE user_id = %s
             ''', (user_id,))
             gmail_accounts = [
                 {
@@ -516,13 +516,13 @@ class UserAuthManager:
             
             # Store session
             cursor.execute('''
-                INSERT INTO user_sessions (user_id, token, expires_at)
-                VALUES (?, ?, ?)
+                INSERT INTO sessions.user_sessions (user_id, token, expires_at)
+                VALUES (%s, %s, %s)
             ''', (user_id, token, exp_time.strftime('%Y-%m-%d %H:%M:%S')))
             
             # Update last active
             cursor.execute('''
-                UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = ?
+                UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = %s
             ''', (user_id,))
             
             conn.commit()
@@ -604,21 +604,21 @@ class UserAuthManager:
             try:
                 
                 # First check total sessions in database
-                cursor.execute('SELECT COUNT(*) FROM user_sessions')
+                cursor.execute('SELECT COUNT(*) FROM sessions.user_sessions')
                 result = cursor.fetchone()
                 total_sessions = result['count'] if isinstance(result, dict) else result[0]
                 print(f"   Total sessions in DB: {total_sessions}")
                 
                 cursor.execute('''
-                    SELECT user_id, expires_at FROM user_sessions
-                    WHERE token = ?
+                    SELECT user_id, expires_at FROM sessions.user_sessions
+                    WHERE token = %s
                 ''', (token,))
                 
                 result = cursor.fetchone()
                 if not result:
                     print(f"    Token NOT found in database")
                     print(f"   Checking sessions for user_id={payload.get('user_id')}...")
-                    cursor.execute('SELECT COUNT(*) FROM user_sessions WHERE user_id = ?', (payload.get('user_id'),))
+                    cursor.execute('SELECT COUNT(*) FROM sessions.user_sessions WHERE user_id = %s', (payload.get('user_id'),))
                     count_result = cursor.fetchone()
                     user_sessions = count_result['count'] if isinstance(count_result, dict) else count_result[0]
                     print(f"   User has {user_sessions} session(s) in DB")
@@ -716,14 +716,14 @@ class UserAuthManager:
                     cursor.execute('''
                         UPDATE user_gmail_accounts
                         SET is_primary = 0
-                        WHERE user_id = ?
+                        WHERE user_id = %s
                     ''', (user_id,))
                 
                 # Insert or update Gmail account
                 cursor.execute('''
                     INSERT INTO user_gmail_accounts 
                     (user_id, gmail_address, display_name, access_token, refresh_token, is_primary)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     ON CONFLICT(user_id, gmail_address) DO UPDATE SET
                         display_name = excluded.display_name,
                         access_token = excluded.access_token,
@@ -748,7 +748,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT gmail_address, display_name, is_primary, created_at
                 FROM user_gmail_accounts
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY is_primary DESC, created_at ASC
             ''', (user_id,))
             
@@ -767,7 +767,7 @@ class UserAuthManager:
         with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id FROM workspaces WHERE user_id = ? LIMIT 1
+                SELECT id FROM workspaces WHERE user_id = %s LIMIT 1
             ''', (user_id,))
             row = cursor.fetchone()
             return row[0] if row else None
@@ -807,7 +807,7 @@ class UserAuthManager:
                 cursor.execute('''
                     INSERT INTO user_platform_credentials 
                     (user_id, platform, credential_type, credential_key, credential_value, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     ON CONFLICT(user_id, platform, credential_key) 
                     DO UPDATE SET 
                         credential_value = excluded.credential_value,
@@ -844,7 +844,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT 'access_token' as credential_key, access_token as credential_value
                 FROM oauth_tokens
-                WHERE user_id = ? AND platform = ? AND is_active = 1
+                WHERE user_id = %s AND platform = %s AND is_active = 1
                 ORDER BY updated_at DESC
                 LIMIT 1
             ''', (user_id, platform))
@@ -858,7 +858,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT credential_key, credential_value
                 FROM user_platform_credentials
-                WHERE user_id = ? AND platform = ? AND is_active = 1
+                WHERE user_id = %s AND platform = %s AND is_active = 1
             ''', (user_id, platform))
             
             return {row[0]: row[1] for row in cursor.fetchall()}
@@ -883,7 +883,7 @@ class UserAuthManager:
                 cursor.execute('''
                     SELECT access_token
                     FROM oauth_tokens
-                    WHERE user_id = ? AND platform = ? AND is_active = 1
+                    WHERE user_id = %s AND platform = %s AND is_active = 1
                     ORDER BY updated_at DESC
                     LIMIT 1
                 ''', (user_id, platform))
@@ -896,7 +896,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT credential_value
                 FROM user_platform_credentials
-                WHERE user_id = ? AND platform = ? AND credential_key = ? AND is_active = 1
+                WHERE user_id = %s AND platform = %s AND credential_key = %s AND is_active = 1
             ''', (user_id, platform, credential_key))
             
             row = cursor.fetchone()
@@ -916,13 +916,13 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT DISTINCT platform
                 FROM oauth_tokens
-                WHERE user_id = ? AND is_active = 1
+                WHERE user_id = %s AND is_active = 1
                 
                 UNION
                 
                 SELECT DISTINCT platform
                 FROM user_platform_credentials
-                WHERE user_id = ? AND is_active = 1
+                WHERE user_id = %s AND is_active = 1
                 
                 ORDER BY platform
             ''', (user_id, user_id))
@@ -961,7 +961,7 @@ class UserAuthManager:
                         is_valid,
                         is_active
                     FROM oauth_tokens
-                    WHERE user_id = ? AND platform = 'google'
+                    WHERE user_id = %s AND platform = 'google'
                     AND is_active = 1
                     ORDER BY updated_at DESC
                     LIMIT 1
@@ -1054,7 +1054,7 @@ class UserAuthManager:
                         is_valid,
                         is_active
                     FROM oauth_tokens
-                    WHERE user_id = ? AND platform = 'microsoft'
+                    WHERE user_id = %s AND platform = 'microsoft'
                     AND is_active = 1
                     ORDER BY updated_at DESC
                     LIMIT 1
@@ -1210,7 +1210,7 @@ def require_auth(f):
                     INSERT INTO oauth_tokens
                     (user_id, platform, access_token, refresh_token, expires_at, 
                      metadata, account_identifier, account_name, is_active, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 1, CURRENT_TIMESTAMP)
                     ON CONFLICT(user_id, platform) DO UPDATE SET
                         access_token = excluded.access_token,
                         refresh_token = excluded.refresh_token,
@@ -1257,7 +1257,7 @@ def require_auth(f):
                 cursor.execute('''
                     SELECT access_token, refresh_token, expires_at, metadata, created_at
                     FROM oauth_tokens
-                    WHERE user_id = ? AND platform = 'microsoft'
+                    WHERE user_id = %s AND platform = 'microsoft'
                     AND is_active = 1
                     ORDER BY updated_at DESC
                     LIMIT 1
@@ -1310,7 +1310,7 @@ def require_auth(f):
                 cursor.execute('''
                     SELECT id, username, email, role, primary_gmail, created_at
                     FROM users
-                    WHERE email = ?
+                    WHERE email = %s
                 ''', (email,))
                 
                 row = cursor.fetchone()
@@ -1372,7 +1372,7 @@ def require_auth(f):
                 
                 cursor.execute('''
                     INSERT INTO users (username, email, password_hash, primary_gmail, role, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                 ''', (username, email, password_hash, primary_gmail or email, role, json.dumps(metadata)))
                 
                 user_id = cursor.lastrowid
@@ -1380,7 +1380,7 @@ def require_auth(f):
                 # Create default workspace
                 cursor.execute('''
                     INSERT INTO workspaces (user_id, name, description, metadata)
-                    VALUES (?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s)
                 ''', (user_id, f"{username}'s Workspace", "Default workspace", json.dumps({})))
                 
                 workspace_id = cursor.lastrowid
@@ -1426,7 +1426,7 @@ def require_auth(f):
         # Get user info
         with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT username, email, role FROM users WHERE id = ?', (user_id,))
+            cursor.execute('SELECT username, email, role FROM users WHERE id = %s', (user_id,))
             row = cursor.fetchone()
             
             if not row:
@@ -1454,8 +1454,8 @@ def require_auth(f):
         with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO user_sessions (user_id, token, expires_at)
-                VALUES (?, ?, ?)
+                INSERT INTO sessions.user_sessions (user_id, token, expires_at)
+                VALUES (%s, %s, %s)
             ''', (user_id, token, expiry.isoformat()))
             conn.commit()
         
@@ -1480,8 +1480,8 @@ def require_auth(f):
             with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT user_id FROM user_sessions
-                    WHERE token = ? AND expires_at > CURRENT_TIMESTAMP
+                    SELECT user_id FROM sessions.user_sessions
+                    WHERE token = %s AND expires_at > CURRENT_TIMESTAMP
                 ''', (token,))
                 
                 if not cursor.fetchone():

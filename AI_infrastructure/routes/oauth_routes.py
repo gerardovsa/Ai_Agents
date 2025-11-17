@@ -173,7 +173,7 @@ def oauth_workspace_callback():
         cursor = conn.cursor()
         
         # Get or create user
-        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = ?', (user_email,))
+        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = %s', (user_email,))
         user_row = cursor.fetchone()
         
         if user_row:
@@ -183,7 +183,7 @@ def oauth_workspace_callback():
             # Auto-create user if OAuth login
             username = user_email.split('@')[0]
             cursor.execute(
-                'INSERT INTO ai_infrastructure.users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
+                'INSERT INTO ai_infrastructure.users (username, email, password_hash, role) VALUES (%s, %s, %s, %s)',
                 (username, user_email, 'oauth_google', 'user')
             )
             user_id = cursor.lastrowid
@@ -193,7 +193,7 @@ def oauth_workspace_callback():
         cursor.execute('''
             INSERT OR REPLACE INTO ai_infrastructure.user_platform_credentials 
             (user_id, platform, credential_type, credential_key, credential_value, is_active, metadata, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         ''', (user_id, 'google', 'oauth', 'access_token', credentials.token, 1, json.dumps({
             'scopes': list(credentials.scopes),
             'expiry': credentials.expiry.isoformat() if credentials.expiry else None,
@@ -205,7 +205,7 @@ def oauth_workspace_callback():
             cursor.execute('''
                 INSERT OR REPLACE INTO ai_infrastructure.user_platform_credentials 
                 (user_id, platform, credential_type, credential_key, credential_value, is_active, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             ''', (user_id, 'google', 'oauth', 'refresh_token', credentials.refresh_token, 1))
         
         conn.commit()

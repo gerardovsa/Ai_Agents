@@ -119,7 +119,7 @@ def build_user_context(user_id: int, ip_address: Optional[str] = None) -> Dict:
             cursor.execute("""
                 SELECT id, username, email, created_at
                 FROM users
-                WHERE id = ?
+                WHERE id = %s
             """, (user_id,))
             
             user_row = cursor.fetchone()
@@ -134,7 +134,7 @@ def build_user_context(user_id: int, ip_address: Optional[str] = None) -> Dict:
             cursor.execute("""
                 SELECT platform, is_connected
                 FROM user_platform_credentials
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY updated_at DESC
             """, (user_id,))
             

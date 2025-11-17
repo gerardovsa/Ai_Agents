@@ -184,7 +184,7 @@ def list_threads():
                 (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY timestamp DESC LIMIT 1) as last_message_role
             FROM sessions.threads t
             LEFT JOIN sessions.messages m ON t.id = m.thread_id
-            WHERE t.user_id = ?
+            WHERE t.user_id = %s
             GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
                      t.metadata, t.location, t.tags, t.synergy_card_id, 
                      t.parent_thread_id, t.branch_name, t.workflow_slug, t.workflow_title,
@@ -1132,7 +1132,7 @@ def get_threads_details():
         
         print("[THREADS DETAILS] Step 4: Building query...")
         # Build query with placeholders
-        placeholders = ','.join(['?' for _ in thread_ids])
+        placeholders = ','.join(['%s' for _ in thread_ids])
         print(f"[THREADS DETAILS] Step 5: Placeholders: {placeholders}")
         
         # Query threads FROM sessions.sessions database (includes location column for agent assignments)
@@ -1500,16 +1500,16 @@ def delete_assignment(location):
         cursor = conn.cursor()
         
         # Ensure user row exists
-        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", (user_id,))
         if not cursor.fetchone():
             cursor.execute("""
                 INSERT INTO ai_infrastructure.users (id, username, email, metadata)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
             """, (user_id, f'user_{user_id}', f'user_{user_id}@example.com', '{}'))
             print(f'[DELETE ASSIGNMENT] Created user row for user {user_id}')
         
         # Get current metadata
-        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", (user_id,))
         row = cursor.fetchone()
         metadata = json.loads(row[0] or '{}')
         
@@ -1521,8 +1521,8 @@ def delete_assignment(location):
         metadata['thread_assignments'] = assignments
         cursor.execute("""
             UPDATE ai_infrastructure.users
-            SET metadata = ?
-            WHERE id = ?
+            SET metadata = %s
+            WHERE id = %s
         """, (json.dumps(metadata), user_id))
         
         conn.commit()
