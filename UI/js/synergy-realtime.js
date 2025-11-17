@@ -302,7 +302,7 @@ window.SynergyRealtime = {
         // DISABLED: Connection status indicators suppressed to avoid UI clutter
         // Only log to console for debugging
         this._log(`Connection status: ${status}`);
-        
+
         // Don't show any visual indicators
         return;
     },

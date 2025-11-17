@@ -250,27 +250,27 @@ def generate_jwt_token(payload: dict):
                 # For PostgreSQL, try to use DEFAULT or generate id manually
                 # Check if sequence exists, otherwise use MAX(id) + 1
                 try:
-                    cursor.execute('SELECT MAX(id) FROM ai_infrastructure.user_sessions')
+                    cursor.execute('SELECT MAX(id) FROM sessions.user_sessions')
                     result = cursor.fetchone()
                     max_id = result['max'] if isinstance(result, dict) else result[0]
                     next_id = (max_id or 0) + 1
                     
                     insert_sql = '''
-                        INSERT INTO ai_infrastructure.user_sessions (id, user_id, token, expires_at)
+                        INSERT INTO sessions.user_sessions (id, user_id, token, expires_at)
                         VALUES (%s, %s, %s, %s)
                     '''
                     insert_sql, insert_params = convert_sql_placeholders(insert_sql, (next_id, payload['user_id'], token, expires_at))
                 except:
                     # Fallback: try without id (in case DEFAULT works)
                     insert_sql = '''
-                        INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
+                        INSERT INTO sessions.user_sessions (user_id, token, expires_at)
                         VALUES (%s, %s, %s)
                     '''
                     insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
             else:
                 # SQLite: Don't insert id (AUTOINCREMENT handles it)
                 insert_sql = '''
-                    INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
+                    INSERT INTO sessions.user_sessions (user_id, token, expires_at)
                     VALUES (%s, %s, %s)
                 '''
                 insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Thread Manager - Thread CRUD Operations
 
 Handles all thread lifecycle operations including:
@@ -496,7 +496,7 @@ class ThreadManager:
             SELECT * FROM threads 
             WHERE {where_sql}
             ORDER BY {params.sort_by} {sort_order}
-            LIMIT ? OFFSET ?
+            LIMIT %s OFFSET %s
         """, query_params + [params.page_size, offset])
         
         rows = cursor.fetchall()

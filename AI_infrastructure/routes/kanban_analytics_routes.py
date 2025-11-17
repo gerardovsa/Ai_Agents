@@ -1,4 +1,4 @@
-"""
+﻿"""
 FILE: AI_infrastructure/routes/kanban_analytics_routes.py
 PURPOSE: REST API endpoints for Kanban Analytics SQLite database
 
@@ -638,7 +638,7 @@ def get_customer_analytics():
         cursor.execute("""
             SELECT * FROM v_customer_summary
             ORDER BY total_value DESC
-            LIMIT ?
+            LIMIT %s
         """, (limit,))
         
         customers = [dict(row) for row in cursor.fetchall()]

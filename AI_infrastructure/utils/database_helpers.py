@@ -266,63 +266,108 @@ def execute_sql_server_query(server: str, database: str, query: str, params: Opt
 
 def execute_sqlite_query(db_path: str, query: str, params: Optional[tuple] = None) -> List[Dict]:
     """
-    Execute SQLite query and return results as list of dicts (uses connection pooling)
+    Execute database query and return results as list of dicts (Supabase or SQLite)
+    
+    MIGRATION NOTE: This function now uses Supabase PostgreSQL instead of SQLite.
+    The db_path parameter is used to determine the schema:
+      - Contains 'sessions': uses 'sessions' schema
+      - Contains 'synergy': uses 'synergy_sessions' schema
+      - Otherwise: uses 'ai_infrastructure' schema
     
     Args:
-        db_path: Path to SQLite database
-        query: SQL query
+        db_path: Path to SQLite database (legacy) or schema name identifier
+        query: SQL query (use %s placeholders, not ?)
         params: Query parameters
     
     Returns:
         List of dictionaries (rows)
     """
     try:
-        with get_pooled_sqlite_connection(db_path) as conn:
-            cursor = conn.cursor()
-            
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            
-            # Fetch rows (already as dicts due to row_factory)
-            rows = cursor.fetchall()
-            
-            # Convert sqlite3.Row to dict
-            results = [dict(row) for row in rows]
-            
-            return results
+        # Import here to avoid circular dependencies
+        from shared.database_utils import get_database_connection
+        
+        # Determine schema from db_path
+        if 'sessions' in str(db_path).lower():
+            schema = 'sessions'
+        elif 'synergy' in str(db_path).lower():
+            schema = 'synergy_sessions'
+        else:
+            schema = 'ai_infrastructure'
+        
+        # Use Supabase-compatible connection
+        conn = get_database_connection(schema)
+        cursor = conn.cursor()
+        
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        
+        # Fetch rows
+        rows = cursor.fetchall()
+        
+        # Convert to list of dicts
+        results = [dict(row) for row in rows] if rows else []
+        
+        cursor.close()
+        conn.close()
+        
+        return results
     
     except Exception as e:
-        raise DatabaseConnectionError(f"SQLite query failed: {e}")
+        raise DatabaseConnectionError(f"Database query failed: {e}")
 
 
 def execute_sqlite_update(db_path: str, query: str, params: Optional[tuple] = None) -> int:
     """
-    Execute SQLite UPDATE/INSERT/DELETE and return affected rows (uses connection pooling)
+    Execute database UPDATE/INSERT/DELETE and return affected rows (Supabase or SQLite)
+    
+    MIGRATION NOTE: This function now uses Supabase PostgreSQL instead of SQLite.
+    The db_path parameter is used to determine the schema:
+      - Contains 'sessions': uses 'sessions' schema
+      - Contains 'synergy': uses 'synergy_sessions' schema
+      - Otherwise: uses 'ai_infrastructure' schema
     
     Args:
-        db_path: Path to SQLite database
-        query: SQL query
+        db_path: Path to SQLite database (legacy) or schema name identifier
+        query: SQL query (use %s placeholders, not ?)
         params: Query parameters
     
     Returns:
         Number of affected rows
     """
     try:
-        with get_pooled_sqlite_connection(db_path) as conn:
-            cursor = conn.cursor()
-            
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            
-            # Note: Connection pooling context manager handles commit automatically
-            return cursor.rowcount
+        # Import here to avoid circular dependencies
+        from shared.database_utils import get_database_connection
+        
+        # Determine schema from db_path
+        if 'sessions' in str(db_path).lower():
+            schema = 'sessions'
+        elif 'synergy' in str(db_path).lower():
+            schema = 'synergy_sessions'
+        else:
+            schema = 'ai_infrastructure'
+        
+        # Use Supabase-compatible connection
+        conn = get_database_connection(schema)
+        cursor = conn.cursor()
+        
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        
+        # Commit and get rowcount
+        conn.commit()
+        rowcount = cursor.rowcount
+        
+        cursor.close()
+        conn.close()
+        
+        return rowcount
     
     except Exception as e:
-        raise DatabaseConnectionError(f"SQLite update failed: {e}")
+        raise DatabaseConnectionError(f"Database update failed: {e}")
 
 
 def get_sqlite_schema(db_path: str) -> Dict[str, List[Dict]]:

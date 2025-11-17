@@ -978,8 +978,8 @@ CRITICAL: NO BULK TOOL SCHEMAS!
         # Note: id is INTEGER, thread_slug is TEXT (timestamp)
         cursor.execute("""
             SELECT synergy_card_id
-            FROM sessions.threads 
-            WHERE thread_slug = $1
+            FROM threads 
+            WHERE thread_slug = %s
             LIMIT 1
         """, (str(session_id),))
         
@@ -1128,8 +1128,8 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
         # Note: id is INTEGER, thread_slug is TEXT (timestamp)
         cursor.execute("""
             SELECT synergy_card_id
-            FROM sessions.threads 
-            WHERE thread_slug = $1
+            FROM threads 
+            WHERE thread_slug = %s
             LIMIT 1
         """, (str(session_id),))
         
@@ -1277,7 +1277,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                             # Don't try to save to non-existent saved_threads table
                             update_query = """
                                 UPDATE sessions.threads 
-                                SET updated_at = datetime('now')
+                                SET updated_at = CURRENT_TIMESTAMP
                                 WHERE thread_slug = %s
                             """
                             

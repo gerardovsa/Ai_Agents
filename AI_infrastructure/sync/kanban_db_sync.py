@@ -1,4 +1,4 @@
-"""
+﻿"""
 FILE: AI_infrastructure/sync/kanban_db_sync.py
 PURPOSE: Sync InHouse Kanban data from SQL Server to local SQLite database
 
@@ -827,7 +827,7 @@ def get_sync_history(sqlite_path: Optional[str] = None, limit: int = 10) -> List
     cursor.execute("""
         SELECT * FROM sync_history
         ORDER BY sync_start DESC
-        LIMIT ?
+        LIMIT %s
     """, (limit,))
     
     history = [dict(row) for row in cursor.fetchall()]

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Thread Management Routes
 Thread/conversation management for all AI agents
 """
@@ -82,15 +82,16 @@ def create_thread():
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
-        # PostgreSQL: Use DEFAULT for id to auto-generate from sequence
+        # PostgreSQL: Exclude id column to let sequence auto-generate
         insert_query = """
             INSERT INTO sessions.threads (
-                id, thread_slug, workspace_id, name, user_id, created_at, updated_at,
+                thread_slug, workspace_id, name, user_id, created_at, updated_at,
                 metadata, location, tags, synergy_card_id,
                 parent_thread_id, branch_point_message_id, branch_name
             ) VALUES (
-                DEFAULT, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
+            RETURNING id
         """
         
         cursor.execute(
@@ -111,6 +112,10 @@ def create_thread():
                 branch_name                     # branch_name
             )
         )
+        
+        # Get the auto-generated id
+        generated_id_result = cursor.fetchone()
+        generated_id = generated_id_result[0] if isinstance(generated_id_result, tuple) else generated_id_result['id']
         conn.commit()
         conn.close()
         
@@ -190,7 +195,7 @@ def list_threads():
                      t.parent_thread_id, t.branch_name, t.workflow_slug, t.workflow_title,
                      t.internal_doc_slug, t.internal_doc_title
             ORDER BY t.updated_at DESC
-            LIMIT ?
+            LIMIT %s
         """
         
         # Convert ? placeholders to %s for PostgreSQL

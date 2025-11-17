@@ -1,4 +1,4 @@
-"""
+﻿"""
 Workspace Manager - Workspace CRUD Operations
 
 Handles all workspace lifecycle operations including:
@@ -460,7 +460,7 @@ class WorkspaceManager:
             SELECT * FROM workspaces 
             WHERE {where_sql}
             ORDER BY {params.sort_by} {sort_order}
-            LIMIT ? OFFSET ?
+            LIMIT %s OFFSET %s
         """, query_params + [params.page_size, offset])
         
         rows = cursor.fetchall()

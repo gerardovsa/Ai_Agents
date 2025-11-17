@@ -270,7 +270,7 @@ def generate_jwt_token(user_data):
         expires_at = (datetime.utcnow() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
         
         cursor.execute('''
-            INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
+            INSERT INTO sessions.user_sessions (user_id, token, expires_at)
             VALUES (%s, %s, %s)
         ''', (user_data.get('id'), token, expires_at))
         

@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Automation Scheduler
 ========================
 Flexible task scheduler for AI agent automation pipeline.
@@ -612,7 +612,7 @@ class AutomationScheduler:
             SELECT * FROM task_executions 
             WHERE task_id = %s 
             ORDER BY started_at DESC 
-            LIMIT ?
+            LIMIT %s
         ''', (task_id, limit))
         
         executions = cursor.fetchall()

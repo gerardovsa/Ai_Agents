@@ -1,4 +1,4 @@
-"""
+﻿"""
 Message Manager - Message Operations
 
 Handles all message-related operations including:
@@ -434,7 +434,7 @@ class MessageManager:
             SELECT * FROM messages 
             WHERE {where_sql}
             ORDER BY id ASC
-            LIMIT ? OFFSET ?
+            LIMIT %s OFFSET %s
         """, query_params + [params.page_size, offset])
         
         rows = cursor.fetchall()
@@ -490,7 +490,7 @@ class MessageManager:
         params = [thread_id]
         
         if limit:
-            query += " LIMIT ?"
+            query += " LIMIT %s"
             params.append(limit)
         
         cursor.execute(query, params)
@@ -569,7 +569,7 @@ class MessageManager:
             SELECT * FROM messages 
             WHERE thread_id = %s AND content LIKE %s
             ORDER BY id DESC
-            LIMIT ?
+            LIMIT %s
         """, (thread_id, search_pattern, limit))
         
         rows = cursor.fetchall()

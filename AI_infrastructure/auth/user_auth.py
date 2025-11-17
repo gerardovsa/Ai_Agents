@@ -641,7 +641,7 @@ class UserAuthManager:
                 if is_using_supabase():
                     cursor.execute("SELECT NOW() as current_time")
                 else:
-                    cursor.execute("SELECT datetime('now') as current_time")
+                    cursor.execute("SELECT CURRENT_TIMESTAMP as current_time")
                 
                 time_result = cursor.fetchone()
                 current_time = time_result['current_time'] if isinstance(time_result, dict) else time_result[0]

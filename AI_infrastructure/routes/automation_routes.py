@@ -1,4 +1,4 @@
-"""
+﻿"""
 Automation Visual Workflows API Routes
 =======================================
 REST API endpoints for visual automation canvas and AI-interpreted workflows.
@@ -668,7 +668,7 @@ def get_execution_history(automation_id):
             SELECT * FROM automation_executions
             WHERE automation_id = %s AND user_id = %s
             ORDER BY started_at DESC
-            LIMIT ?
+            LIMIT %s
         """, (automation_id, user_id, limit))
         
         rows = cursor.fetchall()

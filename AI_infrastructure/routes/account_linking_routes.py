@@ -190,7 +190,7 @@ def get_link_status():
             FROM ai_infrastructure.account_link_requests
             WHERE user_id = %s
             AND status = 'pending'
-            AND expires_at > datetime('now')
+            AND expires_at > CURRENT_TIMESTAMP
         ''', (user_id,))
         pending_links = [dict(row) for row in cursor.fetchall()]
         
@@ -308,7 +308,7 @@ def confirm_link():
         cursor.execute('''
             INSERT INTO ai_infrastructure.user_account_links 
             (primary_user_id, linked_user_id, linked_email, link_type, link_status, link_token, confirmed_at)
-            VALUES (%s, %s, %s, %s, %s, %s, datetime('now'))
+            VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         ''', (primary_user_id, secondary_user_id, secondary_email, 'oauth', 'confirmed', link_token))
         
         # Mark secondary account as non-primary

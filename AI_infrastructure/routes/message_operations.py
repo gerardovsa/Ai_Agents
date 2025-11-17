@@ -14,11 +14,7 @@ Date: November 8, 2025
 """
 
 from flask import Blueprint, request, jsonify
-from utils.database_helpers import (
-    execute_sqlite_query,
-    execute_sqlite_update,
-    get_sessions_database_path
-)
+from shared.database_utils import get_database_connection
 import json
 from datetime import datetime
 import uuid
@@ -56,39 +52,45 @@ def fork_thread():
         if not all([thread_id, message_id, user_id]):
             return error_response("thread_id, message_id, and user_id are required")
         
-        db_path = get_sessions_database_path()
+        # Get database connection
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
         
         # Get original thread
-        thread_query = "SELECT * FROM sessions.threads WHERE id = %s"
-        thread = execute_sqlite_query(db_path, thread_query, (thread_id,))
+        thread_query = "SELECT * FROM threads WHERE id = %s"
+        cursor.execute(thread_query, (thread_id,))
+        thread = cursor.fetchone()
         if not thread:
+            cursor.close()
+            conn.close()
             return error_response("Thread not found", 404)
-        thread = thread[0]
         
         # Get messages up to fork point
         messages_query = """
-            SELECT * FROM sessions.messages 
+            SELECT * FROM messages 
             WHERE thread_id = %s 
-            AND created_at <= (SELECT created_at FROM sessions.messages WHERE id = %s)
+            AND created_at <= (SELECT created_at FROM messages WHERE id = %s)
             ORDER BY created_at ASC
         """
-        messages = execute_sqlite_query(db_path, messages_query, (thread_id, message_id))
+        cursor.execute(messages_query, (thread_id, message_id))
+        messages = cursor.fetchall()
         
         # Create new thread
         new_thread_slug = str(int(datetime.now().timestamp() * 1000))
         insert_thread = """
-            INSERT INTO sessions.threads (
+            INSERT INTO threads (
                 thread_slug, name, user_id, location, tags, 
                 parent_thread_id, branch_name, branch_point_message_id,
                 metadata, synergy_card_id, created_at, updated_at
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
         """
         
         metadata = json.loads(thread['metadata']) if thread.get('metadata') else {}
         metadata['forked_from'] = thread['thread_slug']
         metadata['fork_message_id'] = message_id
         
-        execute_sqlite_update(db_path, insert_thread, (
+        cursor.execute(insert_thread, (
             new_thread_slug,
             f"{thread['name']} - {branch_name}",
             user_id,
@@ -103,24 +105,21 @@ def fork_thread():
             datetime.now().isoformat()
         ))
         
-        # Get new thread ID
-        new_thread = execute_sqlite_query(
-            db_path, 
-            "SELECT id FROM sessions.threads WHERE thread_slug = %s", 
-            (new_thread_slug,)
-        )[0]
+        # Get new thread ID from RETURNING clause
+        new_thread = cursor.fetchone()
         new_thread_id = new_thread['id']
+        conn.commit()
         
         # Copy messages to new thread
         for msg in messages:
             insert_msg = """
-                INSERT INTO sessions.messages (
+                INSERT INTO messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
                     tokens_used, metadata, created_at, updated_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            execute_sqlite_update(db_path, insert_msg, (
+            cursor.execute(insert_msg, (
                 new_thread_id,
                 msg.get('session_id'),
                 msg['role'],
@@ -135,6 +134,10 @@ def fork_thread():
                 msg['created_at'],
                 datetime.now().isoformat()
             ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
         
         return success_response({
             'new_thread_id': new_thread_id,
@@ -168,35 +171,41 @@ def clone_thread():
         if not all([thread_id, user_id]):
             return error_response("thread_id and user_id are required")
         
-        db_path = get_sessions_database_path()
+        # Get database connection
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
         
         # Get original thread
-        thread_query = "SELECT * FROM sessions.threads WHERE id = %s"
-        thread = execute_sqlite_query(db_path, thread_query, (thread_id,))
+        thread_query = "SELECT * FROM threads WHERE id = %s"
+        cursor.execute(thread_query, (thread_id,))
+        thread = cursor.fetchone()
         if not thread:
+            cursor.close()
+            conn.close()
             return error_response("Thread not found", 404)
-        thread = thread[0]
         
         # Get all messages
-        messages_query = "SELECT * FROM sessions.messages WHERE thread_id = %s ORDER BY created_at ASC"
-        messages = execute_sqlite_query(db_path, messages_query, (thread_id,))
+        messages_query = "SELECT * FROM messages WHERE thread_id = %s ORDER BY created_at ASC"
+        cursor.execute(messages_query, (thread_id,))
+        messages = cursor.fetchall()
         
         # Create new thread
         new_thread_slug = str(int(datetime.now().timestamp() * 1000))
         final_name = new_name or f"Copy of {thread['name']}"
         
         insert_thread = """
-            INSERT INTO sessions.threads (
+            INSERT INTO threads (
                 thread_slug, name, user_id, location, tags, 
                 metadata, synergy_card_id, created_at, updated_at
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
         """
         
         metadata = json.loads(thread['metadata']) if thread.get('metadata') else {}
         metadata['cloned_from'] = thread['thread_slug']
         metadata['clone_date'] = datetime.now().isoformat()
         
-        execute_sqlite_update(db_path, insert_thread, (
+        cursor.execute(insert_thread, (
             new_thread_slug,
             final_name,
             user_id,
@@ -208,24 +217,21 @@ def clone_thread():
             datetime.now().isoformat()
         ))
         
-        # Get new thread ID
-        new_thread = execute_sqlite_query(
-            db_path, 
-            "SELECT id FROM sessions.threads WHERE thread_slug = %s", 
-            (new_thread_slug,)
-        )[0]
+        # Get new thread ID from RETURNING clause
+        new_thread = cursor.fetchone()
         new_thread_id = new_thread['id']
+        conn.commit()
         
         # Copy all messages
         for msg in messages:
             insert_msg = """
-                INSERT INTO sessions.messages (
+                INSERT INTO messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
                     tokens_used, metadata, created_at, updated_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            execute_sqlite_update(db_path, insert_msg, (
+            cursor.execute(insert_msg, (
                 new_thread_id,
                 f"cloned_{msg.get('session_id', '')}",
                 msg['role'],
@@ -240,6 +246,10 @@ def clone_thread():
                 msg['created_at'],
                 datetime.now().isoformat()
             ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
         
         return success_response({
             'new_thread_id': new_thread_id,
@@ -271,17 +281,23 @@ def delete_messages():
         if not message_ids:
             return error_response("message_ids array is required")
         
-        db_path = get_sessions_database_path()
+        # Get database connection
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
         
         # Delete messages
         placeholders = ','.join('%s' * len(message_ids))
-        delete_query = f"DELETE FROM sessions.messages WHERE id IN ({placeholders})"
-        execute_sqlite_update(db_path, delete_query, message_ids)
+        delete_query = f"DELETE FROM messages WHERE id IN ({placeholders})"
+        cursor.execute(delete_query, tuple(message_ids))
         
         # Update thread updated_at
         if thread_id:
-            update_thread = "UPDATE sessions.threads SET updated_at = %s WHERE id = %s"
-            execute_sqlite_update(db_path, update_thread, (datetime.now().isoformat(), thread_id))
+            update_thread = "UPDATE threads SET updated_at = %s WHERE id = %s"
+            cursor.execute(update_thread, (datetime.now().isoformat(), thread_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
         
         return success_response({
             'deleted_count': len(message_ids)
@@ -313,17 +329,20 @@ def copy_messages():
         if not all([message_ids, target_thread_id, user_id]):
             return error_response("message_ids, target_thread_id, and user_id are required")
         
-        db_path = get_sessions_database_path()
+        # Get database connection
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
         
         # Get messages to copy
         placeholders = ','.join('%s' * len(message_ids))
-        messages_query = f"SELECT * FROM sessions.messages WHERE id IN ({placeholders}) ORDER BY created_at ASC"
-        messages = execute_sqlite_query(db_path, messages_query, message_ids)
+        messages_query = f"SELECT * FROM messages WHERE id IN ({placeholders}) ORDER BY created_at ASC"
+        cursor.execute(messages_query, tuple(message_ids))
+        messages = cursor.fetchall()
         
         # Copy messages to target thread
         for msg in messages:
             insert_msg = """
-                INSERT INTO sessions.messages (
+                INSERT INTO messages (
                     thread_id, session_id, role, content, prompt, 
                     response_data, user_id, api_session_id, tool_calls,
                     tokens_used, metadata, created_at, updated_at
@@ -333,7 +352,7 @@ def copy_messages():
             msg_metadata['copied_from_message_id'] = msg['id']
             msg_metadata['copy_date'] = datetime.now().isoformat()
             
-            execute_sqlite_update(db_path, insert_msg, (
+            cursor.execute(insert_msg, (
                 target_thread_id,
                 msg.get('session_id'),
                 msg['role'],
@@ -350,8 +369,12 @@ def copy_messages():
             ))
         
         # Update target thread timestamp
-        update_thread = "UPDATE sessions.threads SET updated_at = %s WHERE id = %s"
-        execute_sqlite_update(db_path, update_thread, (datetime.now().isoformat(), target_thread_id))
+        update_thread = "UPDATE threads SET updated_at = %s WHERE id = %s"
+        cursor.execute(update_thread, (datetime.now().isoformat(), target_thread_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
         
         return success_response({
             'copied_count': len(messages),
@@ -374,22 +397,30 @@ def export_thread():
         if not thread_id:
             return error_response("thread_id is required")
         
-        db_path = get_sessions_database_path()
+        # Get database connection
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
         
         # Get thread
-        thread_query = "SELECT * FROM sessions.threads WHERE id = %s"
-        thread = execute_sqlite_query(db_path, thread_query, (thread_id,))
+        thread_query = "SELECT * FROM threads WHERE id = %s"
+        cursor.execute(thread_query, (thread_id,))
+        thread = cursor.fetchone()
         if not thread:
+            cursor.close()
+            conn.close()
             return error_response("Thread not found", 404)
-        thread = thread[0]
         
         # Get messages
         messages_query = """
-            SELECT * FROM sessions.messages 
+            SELECT * FROM messages 
             WHERE thread_id = %s 
             ORDER BY created_at ASC
         """
-        messages = execute_sqlite_query(db_path, messages_query, (thread_id,))
+        cursor.execute(messages_query, (thread_id,))
+        messages = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
         
         # Build export data
         export_data = {

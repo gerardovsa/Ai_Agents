@@ -160,7 +160,7 @@ class Diagnostics:
         try:
             cursor.execute("""
                 SELECT COUNT(*) FROM user_sessions 
-                WHERE datetime(expires_at) > datetime('now')
+                WHERE expires_at > CURRENT_TIMESTAMP
             """)
             activity["active_sessions"] = cursor.fetchone()[0]
         except:

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Enhanced Thread Manager API
 Implements AnythingLLM-style thread/message management with database persistence
 
@@ -278,7 +278,7 @@ class ThreadManager:
                 SELECT * FROM v_thread_summary 
                 WHERE workspace_name = (SELECT name FROM workspaces WHERE slug = %s)
                 ORDER BY updated_at DESC
-                LIMIT ? OFFSET ?
+                LIMIT %s OFFSET %s
             ''', (workspace_slug, limit, offset))
             
             return [dict(row) for row in cursor.fetchall()]
