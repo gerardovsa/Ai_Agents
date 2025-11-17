@@ -158,7 +158,7 @@ window.SynergyRealtime = {
 
     _handleError(error) {
         console.error('[REALTIME] Connection error:', error);
-        
+
         // Provide helpful error messages
         if (error.message === 'timeout') {
             console.warn('[REALTIME] Connection timeout - Server may be starting (Render cold start). Retrying...');

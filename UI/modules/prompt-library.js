@@ -89,7 +89,8 @@ console.log('[PROMPT LIBRARY] ========================================');
             return allPrompts;
         } catch (error) {
             console.error('[PROMPT LIBRARY] Failed to fetch prompts:', error);
-            showNotification('Failed to load prompt library', 'error');
+            // Notification muted - check console for errors
+            // showNotification('Failed to load prompt library', 'error');
             return [];
         }
     }

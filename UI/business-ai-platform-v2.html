@@ -19327,11 +19327,11 @@
                 this.updateCollapsedStatus(agentId);
 
                 if (threadInfo && typeof ThreadManager !== 'undefined') {
-                    // Use universal ThreadManager.renderThreadInfoContainer()
+                    // Use universal ThreadManager.renderThreadInfoContainer() with compact=true for agent columns
                     headerEl.innerHTML = ThreadManager.renderThreadInfoContainer(
                         `agent-${agentId}`,
                         threadInfo.threadId,
-                        false  // full mode (not compact)
+                        true  // compact mode (for agent columns)
                     );
                 } else {
                     // No thread loaded - show empty state
