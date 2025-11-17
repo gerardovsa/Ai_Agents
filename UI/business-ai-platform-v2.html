@@ -16540,6 +16540,7 @@
                 const requestBody = {
                     message: message,
                     session_id: sessionId,
+                    thread_id: sessionId,  // CRITICAL: Include thread_id for database saves
                     conversation_history: conversationHistory,
                     user_context: userContext,  // NEW: Include user personalisation
                     context: {
