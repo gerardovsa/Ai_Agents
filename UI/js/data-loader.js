@@ -47,7 +47,11 @@ window.DataLoader = {
 
     // Configuration
     config: {
-        apiBaseUrl: window.API_BASE_URL || 'http://localhost:5001',
+        // Use environment-detected API URL (set by business-ai-platform-v2.html)
+        // Will use window.location.origin on Render, localhost:5001 in dev
+        get apiBaseUrl() {
+            return window.API_BASE_URL || window.location.origin || 'http://localhost:5001';
+        },
         cacheTTL: 5 * 60 * 1000,      // 5 minutes
         batchSize: 50,                // Max items per batch request
         batchDelay: 50,               // Delay before sending batch (ms)
