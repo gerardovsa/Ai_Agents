@@ -19391,15 +19391,36 @@
                             ThreadManager.currentThreadId = null;
                         }
 
-                        // Clear Prime chat container
+                        // Clear Prime chat messages container (remove all message bubbles but keep welcome container)
                         const primeMessages = document.getElementById('ai-chat-messages');
-                        if (primeMessages) primeMessages.innerHTML = '';
+                        if (primeMessages) {
+                            // Remove all message bubbles but preserve the welcome container
+                            const messageBubbles = primeMessages.querySelectorAll('.message-bubble, .ai-message, .user-message');
+                            messageBubbles.forEach(bubble => bubble.remove());
+                            console.log(`[ISOLATION] Cleared ${messageBubbles.length} message bubbles from Prime`);
+                        }
+
+                        // Show Prime welcome container with fresh greeting
+                        const welcomeContainer = document.getElementById('prime-welcome-container');
+                        if (welcomeContainer) {
+                            welcomeContainer.style.display = 'flex';
+                            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.initWelcomeMessage === 'function') {
+                                ThreadManager.initWelcomeMessage('prime');
+                            }
+                            console.log(`[ISOLATION] Prime welcome container shown`);
+                        }
 
                         // Clear Prime thread info container and show no-thread message
                         const primeThreadInfo = document.getElementById('prime-thread-info');
-                        if (primeThreadInfo && typeof ThreadManager !== 'undefined') {
-                            primeThreadInfo.innerHTML = ThreadManager.renderThreadInfoContainer('prime', null, false);
-                            console.log(`[ISOLATION] Prime thread info cleared - showing welcome message`);
+                        if (primeThreadInfo) {
+                            // Show simple "no thread assigned" message
+                            primeThreadInfo.innerHTML = `
+                                <div class="agent-no-thread" id="prime-no-thread">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>No thread assigned</span>
+                                </div>
+                            `;
+                            console.log(`[ISOLATION] Prime thread info cleared - showing "no thread assigned"`);
                         }
 
                         // CRITICAL: Always clear AppState when thread leaves Prime
