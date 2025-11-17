@@ -19390,18 +19390,25 @@
                         if (typeof ThreadManager !== 'undefined') {
                             ThreadManager.currentThreadId = null;
                         }
-                        
+
                         // Clear Prime chat container
                         const primeMessages = document.getElementById('ai-chat-messages');
                         if (primeMessages) primeMessages.innerHTML = '';
-                        
+
+                        // Clear Prime thread info container and show no-thread message
+                        const primeThreadInfo = document.getElementById('prime-thread-info');
+                        if (primeThreadInfo && typeof ThreadManager !== 'undefined') {
+                            primeThreadInfo.innerHTML = ThreadManager.renderThreadInfoContainer('prime', null, false);
+                            console.log(`[ISOLATION] Prime thread info cleared - showing welcome message`);
+                        }
+
                         // CRITICAL: Always clear AppState when thread leaves Prime
                         if (typeof AppState !== 'undefined' && AppState.sessionId === thread.id) {
                             AppState.sessionId = null;
                             AppState.chatMessages = [];
                             console.log(`[ISOLATION] Prime AppState cleared (was: ${thread.id})`);
                         }
-                        
+
                         console.log(`[ISOLATION] Prime fully cleared`);
                     } else if (currentLocation.startsWith('agent-')) {
                         // Unload from another agent

@@ -844,7 +844,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT 'access_token' as credential_key, access_token as credential_value
                 FROM oauth_tokens
-                WHERE user_id = %s AND platform = %s AND is_active = 1
+                WHERE user_id = %s AND platform = %s AND is_active = TRUE
                 ORDER BY updated_at DESC
                 LIMIT 1
             ''', (user_id, platform))
@@ -858,7 +858,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT credential_key, credential_value
                 FROM user_platform_credentials
-                WHERE user_id = %s AND platform = %s AND is_active = 1
+                WHERE user_id = %s AND platform = %s AND is_active = TRUE
             ''', (user_id, platform))
             
             return {row[0]: row[1] for row in cursor.fetchall()}
@@ -883,7 +883,7 @@ class UserAuthManager:
                 cursor.execute('''
                     SELECT access_token
                     FROM oauth_tokens
-                    WHERE user_id = %s AND platform = %s AND is_active = 1
+                    WHERE user_id = %s AND platform = %s AND is_active = TRUE
                     ORDER BY updated_at DESC
                     LIMIT 1
                 ''', (user_id, platform))
@@ -896,7 +896,7 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT credential_value
                 FROM user_platform_credentials
-                WHERE user_id = %s AND platform = %s AND credential_key = %s AND is_active = 1
+                WHERE user_id = %s AND platform = %s AND credential_key = %s AND is_active = TRUE
             ''', (user_id, platform, credential_key))
             
             row = cursor.fetchone()
@@ -916,13 +916,13 @@ class UserAuthManager:
             cursor.execute('''
                 SELECT DISTINCT platform
                 FROM oauth_tokens
-                WHERE user_id = %s AND is_active = 1
+                WHERE user_id = %s AND is_active = TRUE
                 
                 UNION
                 
                 SELECT DISTINCT platform
                 FROM user_platform_credentials
-                WHERE user_id = %s AND is_active = 1
+                WHERE user_id = %s AND is_active = TRUE
                 
                 ORDER BY platform
             ''', (user_id, user_id))
@@ -962,7 +962,7 @@ class UserAuthManager:
                         is_active
                     FROM oauth_tokens
                     WHERE user_id = %s AND platform = 'google'
-                    AND is_active = 1
+                    AND is_active = TRUE
                     ORDER BY updated_at DESC
                     LIMIT 1
                 ''', (user_id,))
@@ -1055,7 +1055,7 @@ class UserAuthManager:
                         is_active
                     FROM oauth_tokens
                     WHERE user_id = %s AND platform = 'microsoft'
-                    AND is_active = 1
+                    AND is_active = TRUE
                     ORDER BY updated_at DESC
                     LIMIT 1
                 ''', (user_id,))
@@ -1258,7 +1258,7 @@ def require_auth(f):
                     SELECT access_token, refresh_token, expires_at, metadata, created_at
                     FROM oauth_tokens
                     WHERE user_id = %s AND platform = 'microsoft'
-                    AND is_active = 1
+                    AND is_active = TRUE
                     ORDER BY updated_at DESC
                     LIMIT 1
                 ''', (user_id,))
