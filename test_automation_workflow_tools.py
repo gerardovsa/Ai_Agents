@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test Automation Workflow Tools
 ================================
 
@@ -21,6 +21,10 @@ Tests:
 
 import sys
 from pathlib import Path
+
+# Fix encoding for Windows console
+sys.stdout.reconfigure(encoding='utf-8')
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.registry_v3 import RegistryV3
@@ -29,15 +33,15 @@ import json
 
 def test_tool_registry():
     """Test that all automation_workflow tools are loaded"""
-    print("\n🧪 TEST 1: Tool Registry Loading")
+    print("\n TEST 1: Tool Registry Loading")
     print("=" * 60)
     
     registry = RegistryV3()
     automation_tools = [t for t in registry.tools if 'automation_workflow' in t]
     
-    print(f"✅ Loaded {len(automation_tools)} automation_workflow tools:")
+    print(f" Loaded {len(automation_tools)} automation_workflow tools:")
     for tool in sorted(automation_tools):
-        print(f"   • {tool}")
+        print(f"    {tool}")
     
     expected_tools = [
         'automation_workflow_create',
@@ -55,16 +59,16 @@ def test_tool_registry():
     
     missing = set(expected_tools) - set(automation_tools)
     if missing:
-        print(f"\n❌ Missing tools: {missing}")
+        print(f"\n Missing tools: {missing}")
         return False
     
-    print(f"\n✅ All {len(expected_tools)} tools loaded successfully")
+    print(f"\n[OK] All {len(expected_tools)} tools loaded successfully")
     return True
 
 
 def test_workflow_crud():
     """Test workflow CRUD operations"""
-    print("\n🧪 TEST 2: Workflow CRUD Operations")
+    print("\n TEST 2: Workflow CRUD Operations")
     print("=" * 60)
     
     registry = RegistryV3()
@@ -92,9 +96,9 @@ def test_workflow_crud():
     
     try:
         # CREATE
-        print("\n📝 Creating workflow...")
+        print("\n Creating workflow...")
         result = registry.execute_tool(
-            'automation_workflow_create',
+            tool_name='automation_workflow_create',
             user_id=1,
             name='Test Email Handler',
             workflow_json=workflow_json,
@@ -104,86 +108,81 @@ def test_workflow_crud():
         )
         
         if not result.get('success'):
-            print(f"❌ Create failed: {result}")
+            print(f" Create failed: {result}")
             return False
         
         workflow_id = result['workflow_id']
         slug = result['slug']
-        print(f"✅ Created workflow: {workflow_id}")
+        print(f" Created workflow: {workflow_id}")
         print(f"   Slug: {slug}")
         
         # LIST
-        print("\n📋 Listing workflows...")
-        result = registry.execute_tool(
-            'automation_workflow_list',
+        print("\n Listing workflows...")
+        result = registry.execute_tool(tool_name='automation_workflow_list',
             user_id=1
         )
         
         if not result.get('success'):
-            print(f"❌ List failed: {result}")
+            print(f" List failed: {result}")
             return False
         
         count = result['count']
-        print(f"✅ Found {count} workflows")
+        print(f" Found {count} workflows")
         
         # GET by ID
-        print(f"\n🔍 Getting workflow by ID: {workflow_id}")
-        result = registry.execute_tool(
-            'automation_workflow_get',
+        print(f"\n Getting workflow by ID: {workflow_id}")
+        result = registry.execute_tool(tool_name='automation_workflow_get',
             workflow_id=workflow_id
         )
         
         if not result.get('success'):
-            print(f"❌ Get failed: {result}")
+            print(f" Get failed: {result}")
             return False
         
         workflow = result['workflow']
-        print(f"✅ Retrieved: {workflow['name']}")
+        print(f" Retrieved: {workflow['name']}")
         
         # GET by slug
-        print(f"\n🔍 Getting workflow by slug: {slug}")
-        result = registry.execute_tool(
-            'automation_workflow_get',
+        print(f"\n Getting workflow by slug: {slug}")
+        result = registry.execute_tool(tool_name='automation_workflow_get',
             slug=slug
         )
         
         if not result.get('success'):
-            print(f"❌ Get by slug failed: {result}")
+            print(f" Get by slug failed: {result}")
             return False
         
-        print(f"✅ Retrieved by slug: {result['workflow']['name']}")
+        print(f" Retrieved by slug: {result['workflow']['name']}")
         
         # UPDATE
-        print("\n✏️  Updating workflow...")
-        result = registry.execute_tool(
-            'automation_workflow_update',
+        print("\n  Updating workflow...")
+        result = registry.execute_tool(tool_name='automation_workflow_update',
             workflow_id=workflow_id,
             updates={'enabled': False, 'description': 'Updated description'}
         )
         
         if not result.get('success'):
-            print(f"❌ Update failed: {result}")
+            print(f" Update failed: {result}")
             return False
         
-        print(f"✅ Updated workflow (enabled: {result['workflow']['enabled']})")
+        print(f" Updated workflow (enabled: {result['workflow']['enabled']})")
         
         # DELETE
-        print(f"\n🗑️  Deleting workflow: {workflow_id}")
-        result = registry.execute_tool(
-            'automation_workflow_delete',
+        print(f"\n  Deleting workflow: {workflow_id}")
+        result = registry.execute_tool(tool_name='automation_workflow_delete',
             workflow_id=workflow_id
         )
         
         if not result.get('success'):
-            print(f"❌ Delete failed: {result}")
+            print(f" Delete failed: {result}")
             return False
         
-        print("✅ Workflow deleted successfully")
+        print(" Workflow deleted successfully")
         
         return True
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f" Test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -191,7 +190,7 @@ def test_workflow_crud():
 
 def test_execution_tracking():
     """Test execution tracking"""
-    print("\n🧪 TEST 3: Execution Tracking")
+    print("\n TEST 3: Execution Tracking")
     print("=" * 60)
     
     registry = RegistryV3()
@@ -200,40 +199,37 @@ def test_execution_tracking():
         # Create test workflow first
         workflow_json = json.dumps({"trigger": {"type": "manual"}})
         
-        result = registry.execute_tool(
-            'automation_workflow_create',
+        result = registry.execute_tool(tool_name='automation_workflow_create',
             user_id=1,
             name='Test Execution Workflow',
             workflow_json=workflow_json
         )
         
         workflow_id = result['workflow_id']
-        print(f"✅ Created test workflow: {workflow_id}")
+        print(f" Created test workflow: {workflow_id}")
         
         # START EXECUTION
-        print("\n▶️  Starting execution...")
+        print("\n  Starting execution...")
         trigger_data = json.dumps({"triggered_by": "test_script"})
         
-        result = registry.execute_tool(
-            'automation_workflow_execute',
+        result = registry.execute_tool(tool_name='automation_workflow_execute',
             workflow_id=workflow_id,
             trigger_data=trigger_data,
             executed_by=1
         )
         
         if not result.get('success'):
-            print(f"❌ Execute failed: {result}")
+            print(f" Execute failed: {result}")
             return False
         
         execution_id = result['execution_id']
-        print(f"✅ Started execution: {execution_id}")
+        print(f" Started execution: {execution_id}")
         
         # UPDATE EXECUTION
-        print("\n🔄 Updating execution status...")
+        print("\n Updating execution status...")
         execution_state = json.dumps({"node_1": {"result": "success"}})
         
-        result = registry.execute_tool(
-            'automation_workflow_execution_update',
+        result = registry.execute_tool(tool_name='automation_workflow_execution_update',
             execution_id=execution_id,
             status='completed',
             execution_state=execution_state,
@@ -241,37 +237,36 @@ def test_execution_tracking():
         )
         
         if not result.get('success'):
-            print(f"❌ Update execution failed: {result}")
+            print(f" Update execution failed: {result}")
             return False
         
-        print("✅ Execution updated to: completed")
+        print(" Execution updated to: completed")
         
         # GET HISTORY
-        print("\n📜 Getting execution history...")
-        result = registry.execute_tool(
-            'automation_workflow_execution_history',
+        print("\n Getting execution history...")
+        result = registry.execute_tool(tool_name='automation_workflow_execution_history',
             workflow_id=workflow_id,
             limit=10
         )
         
         if not result.get('success'):
-            print(f"❌ Get history failed: {result}")
+            print(f" Get history failed: {result}")
             return False
         
         count = result['count']
-        print(f"✅ Found {count} executions")
+        print(f" Found {count} executions")
         
         if result['executions']:
             exec_data = result['executions'][0]
             print(f"   Latest: {exec_data['status']} (duration: {exec_data.get('duration_ms')}ms)")
         
         # Cleanup
-        registry.execute_tool('automation_workflow_delete', workflow_id=workflow_id)
+        registry.execute_tool(tool_name='automation_workflow_delete', workflow_id=workflow_id)
         
         return True
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f" Test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -279,25 +274,25 @@ def test_execution_tracking():
 
 def test_templates():
     """Test template operations"""
-    print("\n🧪 TEST 4: Template Operations")
+    print("\n TEST 4: Template Operations")
     print("=" * 60)
     
     registry = RegistryV3()
     
     try:
         # LIST TEMPLATES
-        print("\n📚 Listing templates...")
-        result = registry.execute_tool('automation_workflow_template_list')
+        print("\n Listing templates...")
+        result = registry.execute_tool(tool_name='automation_workflow_template_list')
         
         if not result.get('success'):
-            print(f"❌ List templates failed: {result}")
+            print(f" List templates failed: {result}")
             return False
         
         count = result['count']
-        print(f"✅ Found {count} templates")
+        print(f" Found {count} templates")
         
         if count == 0:
-            print("ℹ️  No templates found - run seed script to add templates")
+            print("  No templates found - run seed script to add templates")
             return True
         
         # Get first template
@@ -306,29 +301,28 @@ def test_templates():
         print(f"   Template: {template['name']}")
         
         # CLONE TEMPLATE
-        print(f"\n📋 Cloning template: {template_id}")
-        result = registry.execute_tool(
-            'automation_workflow_template_clone',
+        print(f"\n Cloning template: {template_id}")
+        result = registry.execute_tool(tool_name='automation_workflow_template_clone',
             template_id=template_id,
             user_id=1,
             name='Cloned Test Workflow'
         )
         
         if not result.get('success'):
-            print(f"❌ Clone template failed: {result}")
+            print(f" Clone template failed: {result}")
             return False
         
         workflow = result['workflow']
-        print(f"✅ Cloned to workflow: {workflow['name']}")
+        print(f" Cloned to workflow: {workflow['name']}")
         print(f"   Workflow ID: {workflow['workflow_id']}")
         
         # Cleanup
-        registry.execute_tool('automation_workflow_delete', workflow_id=workflow['workflow_id'])
+        registry.execute_tool(tool_name='automation_workflow_delete', workflow_id=workflow['workflow_id'])
         
         return True
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f" Test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -336,7 +330,7 @@ def test_templates():
 
 def test_schedules():
     """Test schedule creation"""
-    print("\n🧪 TEST 5: Schedule Creation")
+    print("\n TEST 5: Schedule Creation")
     print("=" * 60)
     
     registry = RegistryV3()
@@ -345,20 +339,18 @@ def test_schedules():
         # Create test workflow
         workflow_json = json.dumps({"trigger": {"type": "schedule"}})
         
-        result = registry.execute_tool(
-            'automation_workflow_create',
+        result = registry.execute_tool(tool_name='automation_workflow_create',
             user_id=1,
             name='Scheduled Workflow',
             workflow_json=workflow_json
         )
         
         workflow_id = result['workflow_id']
-        print(f"✅ Created workflow: {workflow_id}")
+        print(f" Created workflow: {workflow_id}")
         
         # CREATE CRON SCHEDULE
-        print("\n⏰ Creating cron schedule (daily at 8am)...")
-        result = registry.execute_tool(
-            'automation_workflow_schedule_create',
+        print("\n Creating cron schedule (daily at 8am)...")
+        result = registry.execute_tool(tool_name='automation_workflow_schedule_create',
             workflow_id=workflow_id,
             schedule_type='cron',
             cron_expression='0 8 * * *',
@@ -366,35 +358,34 @@ def test_schedules():
         )
         
         if not result.get('success'):
-            print(f"❌ Create schedule failed: {result}")
+            print(f" Create schedule failed: {result}")
             return False
         
         schedule = result['schedule']
-        print(f"✅ Created schedule: {schedule['schedule_type']}")
+        print(f" Created schedule: {schedule['schedule_type']}")
         print(f"   Cron: {schedule['cron_expression']}")
         
         # CREATE INTERVAL SCHEDULE
-        print("\n⏰ Creating interval schedule (every 2 hours)...")
-        result = registry.execute_tool(
-            'automation_workflow_schedule_create',
+        print("\n Creating interval schedule (every 2 hours)...")
+        result = registry.execute_tool(tool_name='automation_workflow_schedule_create',
             workflow_id=workflow_id,
             schedule_type='interval',
             interval_minutes=120
         )
         
         if not result.get('success'):
-            print(f"❌ Create interval schedule failed: {result}")
+            print(f" Create interval schedule failed: {result}")
             return False
         
-        print(f"✅ Created interval schedule: every 120 minutes")
+        print(f" Created interval schedule: every 120 minutes")
         
         # Cleanup
-        registry.execute_tool('automation_workflow_delete', workflow_id=workflow_id)
+        registry.execute_tool(tool_name='automation_workflow_delete', workflow_id=workflow_id)
         
         return True
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f" Test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -403,7 +394,7 @@ def test_schedules():
 def main():
     """Run all tests"""
     print("\n" + "=" * 60)
-    print("🧪 AUTOMATION WORKFLOW TOOLS TEST SUITE")
+    print(" AUTOMATION WORKFLOW TOOLS TEST SUITE")
     print("=" * 60)
     
     tests = [
@@ -421,31 +412,32 @@ def main():
             result = test_func()
             results.append((name, result))
         except Exception as e:
-            print(f"\n❌ {name} failed with exception: {e}")
+            print(f"\n {name} failed with exception: {e}")
             results.append((name, False))
     
     # Summary
     print("\n" + "=" * 60)
-    print("📊 TEST SUMMARY")
+    print(" TEST SUMMARY")
     print("=" * 60)
     
     passed = sum(1 for _, result in results if result)
     total = len(results)
     
     for name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = " PASS" if result else " FAIL"
         print(f"{status} - {name}")
     
     print("\n" + "=" * 60)
     print(f"Results: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 All tests passed!")
+        print(" All tests passed!")
     else:
-        print("⚠️  Some tests failed")
+        print("  Some tests failed")
     
     print("=" * 60)
 
 
 if __name__ == '__main__':
     main()
+

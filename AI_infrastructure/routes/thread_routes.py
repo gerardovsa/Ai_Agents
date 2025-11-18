@@ -178,8 +178,11 @@ def list_threads():
                 t.location, 
                 t.tags, 
                 t.synergy_card_id, 
+                t.synergy_card_name,
                 t.parent_thread_id, 
                 t.branch_name,
+                t.workflow_id,
+                t.workflow_name,
                 t.workflow_slug,
                 t.workflow_title,
                 t.internal_doc_slug,
@@ -191,9 +194,9 @@ def list_threads():
             LEFT JOIN sessions.messages m ON t.id = m.thread_id
             WHERE t.user_id = %s
             GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
-                     t.metadata, t.location, t.tags, t.synergy_card_id, 
-                     t.parent_thread_id, t.branch_name, t.workflow_slug, t.workflow_title,
-                     t.internal_doc_slug, t.internal_doc_title
+                     t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
+                     t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
+                     t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title
             ORDER BY t.updated_at DESC
             LIMIT %s
         """
@@ -220,8 +223,11 @@ def list_threads():
                 'agent': row['location'] or 'main',  # Alias for frontend compatibility
                 'tags': json.loads(row['tags']) if row['tags'] else [],
                 'synergy_card_id': row['synergy_card_id'],
+                'synergy_card_name': row['synergy_card_name'],
                 'parent_thread_id': row['parent_thread_id'],
                 'branch_name': row['branch_name'],
+                'workflow_id': row['workflow_id'],
+                'workflow_name': row['workflow_name'],
                 'workflow_slug': row['workflow_slug'],
                 'workflow_title': row['workflow_title'],
                 'internal_doc_slug': row['internal_doc_slug'],

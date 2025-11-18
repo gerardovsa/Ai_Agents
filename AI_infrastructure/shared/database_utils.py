@@ -144,6 +144,10 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             print(f"🔷 [DB] Attempting Supabase connection for '{db_name}'...")
             print(f"🔷 [DB] Connection timeout: 30s, Statement timeout: 60s")
             
+            # Suppress PostgreSQL warnings for deprecated supautils parameters
+            import warnings
+            warnings.filterwarnings('ignore', message='.*supautils.*')
+            
             conn = psycopg2.connect(
                 db_url,
                 cursor_factory=RealDictCursor,
@@ -152,7 +156,7 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                 keepalives_idle=30,
                 keepalives_interval=10,
                 keepalives_count=5,
-                options='-c statement_timeout=60000'  # 60 seconds statement timeout (in milliseconds)
+                options='-c statement_timeout=60000 -c client_min_messages=ERROR'  # Suppress server warnings
             )
             
             # Set search_path to use the correct schema
@@ -216,7 +220,8 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                     keepalives=1,
                     keepalives_idle=30,
                     keepalives_interval=10,
-                    keepalives_count=5
+                    keepalives_count=5,
+                    options='-c client_min_messages=ERROR'  # Suppress server warnings
                 )
                 
                 schema_name = get_supabase_schema_name(db_name)

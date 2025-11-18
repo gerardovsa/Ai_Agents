@@ -202,7 +202,7 @@ const AgentColumn = (function () {
                         ${agentName} Ready
                     </div>
                     <div style="margin-bottom: 20px; opacity: 0.8; font-size: 0.95em; color: var(--text-secondary, #9ca3af);">
-                        No active thread – start a new chat or load from history
+                        No active thread, start a new chat or load from history
                     </div>
                     <div style="background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 8px; border-left: 3px solid var(--accent-primary, #667eea); margin-bottom: 20px; text-align: left;">
                         <div style="font-weight: 600; margin-bottom: 8px; font-size: 0.9em; color: var(--text-primary, #e5e7eb);">💡 Quick Tip</div>

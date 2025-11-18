@@ -79,17 +79,18 @@ def create_thread():
         created = datetime.now().isoformat()
         
         # Insert into database
+        db_path = get_sessions_database_path()
+        
         insert_query = """
             INSERT INTO sessions.threads (
                 thread_slug, workspace_id, name, user_id, created_at, updated_at,
                 metadata, location, tags, synergy_card_id,
                 parent_thread_id, branch_point_message_id, branch_name
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(
+        execute_sqlite_update(
+            db_path,
             insert_query,
             (
                 thread_id,                      # thread_slug
@@ -107,8 +108,6 @@ def create_thread():
                 branch_name                     # branch_name
             )
         )
-        conn.commit()
-        conn.close()
         
         thread_data = {
             'id': thread_id,
@@ -180,7 +179,7 @@ def list_threads():
                 (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY timestamp DESC LIMIT 1) as last_message_role
             FROM sessions.threads t
             LEFT JOIN sessions.messages m ON t.id = m.thread_id
-            WHERE t.user_id = %s
+            WHERE t.user_id = ?
             GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
                      t.metadata, t.location, t.tags, t.synergy_card_id, 
                      t.parent_thread_id, t.branch_name, t.workflow_slug, t.workflow_title,
@@ -262,20 +261,19 @@ def update_thread_metadata_fields():
         
         update_query = """
             UPDATE sessions.threads SET
-                workflow_slug = %s,
-                workflow_title = %s,
-                internal_doc_slug = %s,
-                internal_doc_title = %s,
+                workflow_slug = ?,
+                workflow_title = ?,
+                internal_doc_slug = ?,
+                internal_doc_title = ?,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE thread_slug = %s
+            WHERE thread_slug = ?
         """
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(update_query, (
-                data.get('workflow_slug')
-        conn.commit()
-        conn.close(),
+        execute_sqlite_update(
+            db_path,
+            update_query,
+            (
+                data.get('workflow_slug'),
                 data.get('workflow_title'),
                 data.get('internal_doc_slug'),
                 data.get('internal_doc_title'),
@@ -569,11 +567,7 @@ def save_thread():
                 summary_generated_at TEXT DEFAULT NULL
             )
         """
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(create_table_query, None)
-        conn.commit()
-        conn.close()
+        execute_sqlite_update(db_path, create_table_query, None)
         
         # Insert thread
         thread_id = f"{agent_id}_{session_id}"
@@ -586,7 +580,7 @@ def save_thread():
              message_count, context, saved_at, last_updated,
              tags, synergy_card_id, parent_thread_id, branch_point_message_id, 
              branch_name, summary, summary_generated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, datetime('now'), datetime('now'),
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'),
                     ?, ?, ?, ?, ?, ?, ?)
         """
         
@@ -610,11 +604,7 @@ def save_thread():
             summary_generated_at
         ]
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(insert_query, params)
-        conn.commit()
-        conn.close()
+        execute_sqlite_update(db_path, insert_query, params)
         
         # INTEGRATION: Update thread assignments in sessions.db if location is an agent
         if location and location != 'prime' and location.startswith('agent-'):
@@ -723,15 +713,10 @@ def delete_thread(thread_id):
         
         delete_query = """
             DELETE FROM sessions.saved_threads
-            WHERE thread_id = %s
+            WHERE thread_id = ?
         """
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(delete_query, [thread_id])
-        conn.commit()
-        rowcount = cursor.rowcount
-        conn.close()
+        rowcount = execute_sqlite_update(db_path, delete_query, [thread_id])
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -771,19 +756,19 @@ def update_thread_metadata(thread_id):
         params = []
         
         if 'name' in data:
-            update_fields.append("name = %s")
+            update_fields.append("name = ?")
             params.append(data['name'])
         
         if 'tags' in data:
-            update_fields.append("tags = %s")
+            update_fields.append("tags = ?")
             params.append(json.dumps(data['tags']))
         
         if 'synergy_card_id' in data:
-            update_fields.append("synergy_card_id = %s")
+            update_fields.append("synergy_card_id = ?")
             params.append(data['synergy_card_id'])
         
         if 'location' in data:
-            update_fields.append("location = %s")
+            update_fields.append("location = ?")
             params.append(data['location'])
         
         if not update_fields:
@@ -798,15 +783,10 @@ def update_thread_metadata(thread_id):
         update_query = f"""
             UPDATE sessions.threads
             SET {', '.join(update_fields)}
-            WHERE thread_slug = %s
+            WHERE thread_slug = ?
         """
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(update_query, params)
-        conn.commit()
-        rowcount = cursor.rowcount
-        conn.close()
+        rowcount = execute_sqlite_update(db_path, update_query, params)
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -950,11 +930,7 @@ def autosave_thread():
                     saved_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             """
-            conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(create_table_query, None)
-        conn.commit()
-        conn.close()
+            execute_sqlite_update(db_path, create_table_query, None)
             
             # Save thread
             thread_id = f"{agent_id}_{session_id}"
@@ -965,7 +941,7 @@ def autosave_thread():
                 INSERT OR REPLACE INTO sessions.saved_threads 
                 (thread_id, agent_id, session_id, thread_name, conversation, 
                  message_count, context, created_at, saved_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, datetime('now'))
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             """
             
             params = [
@@ -979,11 +955,7 @@ def autosave_thread():
                 state.get('created_at')
             ]
             
-            conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(insert_query, params)
-        conn.commit()
-        conn.close()
+            execute_sqlite_update(db_path, insert_query, params)
             
             return success_response({
                 'autosaved': True,
@@ -1017,11 +989,7 @@ def mark_thread_read(thread_id):
         """
         
         try:
-            conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(alter_query, None)
-        conn.commit()
-        conn.close()
+            execute_sqlite_update(db_path, alter_query, None)
         except:
             # Column might already exist
             pass
@@ -1030,15 +998,10 @@ def mark_thread_read(thread_id):
         update_query = """
             UPDATE sessions.saved_threads
             SET last_read = datetime('now')
-            WHERE thread_id = %s
+            WHERE thread_id = ?
         """
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(update_query, [thread_id])
-        conn.commit()
-        rowcount = cursor.rowcount
-        conn.close()
+        rowcount = execute_sqlite_update(db_path, update_query, [thread_id])
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -1448,16 +1411,16 @@ def delete_assignment(location):
         cursor = conn.cursor()
         
         # Ensure user row exists
-        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", (user_id,))
+        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = ?", (user_id,))
         if not cursor.fetchone():
             cursor.execute("""
                 INSERT INTO ai_infrastructure.users (id, username, email, metadata)
-                VALUES (%s, %s, %s, %s)
+                VALUES (?, ?, ?, ?)
             """, (user_id, f'user_{user_id}', f'user_{user_id}@example.com', '{}'))
             print(f'[DELETE ASSIGNMENT] Created user row for user {user_id}')
         
         # Get current metadata
-        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", (user_id,))
+        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = ?", (user_id,))
         row = cursor.fetchone()
         metadata = json.loads(row[0] or '{}')
         
@@ -1469,8 +1432,8 @@ def delete_assignment(location):
         metadata['thread_assignments'] = assignments
         cursor.execute("""
             UPDATE ai_infrastructure.users
-            SET metadata = %s
-            WHERE id = %s
+            SET metadata = ?
+            WHERE id = ?
         """, (json.dumps(metadata), user_id))
         
         conn.commit()
@@ -1525,10 +1488,10 @@ def lock_thread(thread_id):
         
         query = """
             UPDATE sessions.threads 
-            SET locked_by_device = %s,
-                locked_by_device_name = %s,
-                locked_at = %s
-            WHERE id = %s
+            SET locked_by_device = ?,
+                locked_by_device_name = ?,
+                locked_at = ?
+            WHERE id = ?
         """
         
         result = execute_sqlite_update(
@@ -1574,7 +1537,7 @@ def unlock_thread(thread_id):
             SET locked_by_device = NULL,
                 locked_by_device_name = NULL,
                 locked_at = NULL
-            WHERE id = %s
+            WHERE id = ?
         """
         
         result = execute_sqlite_update(

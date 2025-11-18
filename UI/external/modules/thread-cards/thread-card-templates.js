@@ -1,0 +1,536 @@
+/**
+ * FILE: AI_infrastructure/threads/frontend/thread_card_templates.js
+ * PURPOSE: HTML template generation for thread info cards (extracted from business-ai-platform-v2.html)
+ * 
+ * DEPENDENCIES:
+ * - None (pure template functions)
+ * - Uses ES6 template literals
+ * 
+ * EXPORTS:
+ * - ThreadCardTemplates.welcomeContainer(toolCount) - Prime welcome screen (no thread loaded)
+ * - ThreadCardTemplates.noThreadMessage(agentName, agentIcon) - No-thread message for agents/synergy
+ * - ThreadCardTemplates.compactCard(thread, location, agent, meta, slug) - Compact card (agents, synergy, sidebar)
+ * - ThreadCardTemplates.fullCard(thread, location, agent, meta, slug) - Full card (Prime panel)
+ * - ThreadCardTemplates.headerRow(thread, location, agent, compact) - Row 1: Title, agent badge, actions
+ * - ThreadCardTemplates.metaRow(thread, meta) - Row 2: Message count, date, time
+ * - ThreadCardTemplates.copyThreadRow(thread, slug) - Row 3: Copy dropdown + thread ID badge
+ * - ThreadCardTemplates.uiLinksRow(thread, location, synergyMeta) - Row 4: Synergy/Workflow pills
+ * - ThreadCardTemplates.tagsRow(thread, location) - Row 5: Tags + token count + add tag button
+ * - ThreadCardTemplates.lockControlsRow(thread) - Row 6: Device lock controls (full mode only)
+ * 
+ * USED BY:
+ * - business-ai-platform-v2.html (ThreadManager.renderThreadInfoContainer)
+ * 
+ * RELATED FILES:
+ * - AI_infrastructure/threads/styles/thread_card_styles.css (styling)
+ * - AI_infrastructure/threads/frontend/thread_card_actions.js (event handlers)
+ * - AI_infrastructure/threads/frontend/thread_card.js (core module with Realtime)
+ * 
+ * NOTES:
+ * - All HTML uses ES6 template literals for readability
+ * - Uses safeEscape() for user-generated content (defined in parent scope)
+ * - Maintains exact same HTML structure as original (no breaking changes)
+ * - Supports both compact (agents, synergy, sidebar) and full (Prime) modes
+ * - Synergy metadata includes priority, description, users, last active
+ * - Workflow metadata includes workflow_name, workflow_id
+ * - Device lock controls show lock/unlock buttons based on state
+ * 
+ * LAST MODIFIED: 2025-01-XX - Extracted from business-ai-platform-v2.html (Phase 2)
+ */
+
+// Global namespace for thread card templates
+window.ThreadCardTemplates = {
+
+    /**
+     * Welcome Container - Prime panel (no thread loaded)
+     * Shows interactive visualizations, tool count, quick start buttons
+     * 
+     * @param {number} toolCount - Number of available tools (default: 594)
+     * @returns {string} HTML string for welcome container
+     */
+    welcomeContainer(toolCount = 594) {
+        return `
+            <div class="ai-chat-header-info" id="prime-thread-info" style="padding: 20px; text-align: center;">
+                <div style="font-size: 24px; font-weight: 600; color: #1a1a2e; margin-bottom: 12px;">
+                    Welcome to Prime
+                </div>
+                <div style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                    Your AI assistant with ${toolCount} tools and interactive visualizations
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button onclick="ThreadManager.createNewThread('prime')" 
+                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-plus"></i> Start New Chat
+                    </button>
+                    <button onclick="ThreadManager.showThreadHistory('prime')" 
+                            style="background: white; color: #667eea; border: 2px solid #667eea; padding: 12px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-history"></i> Thread History
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * No Thread Message - Agents/Synergy panels (no thread assigned)
+     * Simple message showing agent icon and name
+     * 
+     * @param {string} agentName - Agent display name (e.g., "Agent-1", "Synergy")
+     * @param {string} agentIcon - FontAwesome icon class (e.g., "fa-robot", "fa-users")
+     * @returns {string} HTML string for no-thread message
+     */
+    noThreadMessage(agentName, agentIcon) {
+        return `
+            <div class="ai-chat-header-info" style="padding: 20px; text-align: center; color: #666;">
+                <i class="fas ${agentIcon}" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <div style="font-size: 16px; font-weight: 500;">
+                    No thread loaded in ${agentName}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Compact Card - For agent panels, synergy panel, sidebar items
+     * 5-row layout: Header | Meta | Copy+ID | UI Links | Tags
+     * 
+     * @param {Object} thread - Thread object from database
+     * @param {string} location - Location identifier (e.g., "agent-1", "synergy", "sidebar")
+     * @param {Object} agent - Agent metadata {name, icon, class}
+     * @param {Object} meta - Display metadata {msgCount, dateStr, timeStr}
+     * @param {string} slug - Shortened thread slug for display
+     * @param {Object} synergyMeta - Synergy session metadata (optional)
+     * @returns {string} HTML string for compact thread card
+     */
+    compactCard(thread, location, agent, meta, slug, synergyMeta = null) {
+        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyPriority = synergyMeta?.priority || '';
+
+        return `
+            <div class="thread-item compact" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}" onclick="ThreadManager.loadThread('${thread.id}')">
+                
+                ${this.headerRow(thread, location, agent, true)}
+                
+                ${this.metaRow(thread, meta)}
+                
+                ${this.copyThreadRow(thread, slug)}
+                
+                ${this.uiLinksRow(thread, location, synergyMeta)}
+                
+                ${this.tagsRow(thread, location)}
+                
+            </div>
+        `;
+    },
+
+    /**
+     * Full Card - For Prime panel
+     * 6-row layout: Header | Meta | Copy+ID | Synergy | Tags+Workflow | Lock Controls
+     * 
+     * @param {Object} thread - Thread object from database
+     * @param {string} location - Location identifier (should be "prime")
+     * @param {Object} agent - Agent metadata {name, icon, class}
+     * @param {Object} meta - Display metadata {msgCount, dateStr, timeStr}
+     * @param {string} slug - Shortened thread slug for display
+     * @param {Object} synergyMeta - Synergy session metadata (optional)
+     * @returns {string} HTML string for full thread card
+     */
+    fullCard(thread, location, agent, meta, slug, synergyMeta = null) {
+        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyPriority = synergyMeta?.priority || '';
+
+        return `
+            <div class="ai-chat-header-info" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}">
+                
+                ${this.headerRow(thread, location, agent, false)}
+                
+                <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                    <span class="thread-meta-item" title="Message count">
+                        <i class="fas fa-comments"></i> ${meta.msgCount} msgs
+                    </span>
+                    <span class="thread-meta-item" title="Last updated">
+                        <i class="fas fa-calendar"></i> ${meta.dateStr}
+                    </span>
+                    <span class="thread-meta-item" title="Time">
+                        <i class="fas fa-clock"></i> ${meta.timeStr}
+                    </span>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                    ${this._copyThreadDropdown(thread)}
+                    ${this._threadIdBadge(thread, slug)}
+                </div>
+                
+                ${this._synergyRow(thread, synergyMeta)}
+                
+                ${this.tagsRow(thread, location, true)}
+                
+                ${this.lockControlsRow(thread)}
+                
+            </div>
+        `;
+    },
+
+    /**
+     * Header Row (Row 1) - Title | Agent Badge | Action Buttons/Unload
+     * Compact mode: Title, agent badge, action buttons (rename, edit, fork, clone, archive, delete)
+     * Full mode: Title, agent badge, unload button (agent panels only)
+     * 
+     * @param {Object} thread - Thread object
+     * @param {string} location - Location identifier
+     * @param {Object} agent - Agent metadata {name, icon, class}
+     * @param {boolean} compact - Compact mode flag
+     * @returns {string} HTML string for header row
+     */
+    headerRow(thread, location, agent, compact) {
+        const actionButtons = compact && location !== 'synergy' ? `
+            <button class="thread-action-btn rename"
+                onclick="event.stopPropagation(); ThreadManager.renameThread('${thread.id}')"
+                title="Rename thread">
+                <i class="fas fa-pencil-alt"></i>
+            </button>
+            <button class="thread-action-btn edit"
+                onclick="event.stopPropagation(); ThreadManager.editThread('${thread.id}')"
+                title="Edit thread">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="thread-action-btn fork"
+                onclick="event.stopPropagation(); ThreadManager.forkThread('${thread.id}')"
+                title="Fork thread (branch from current point)">
+                <i class="fas fa-code-branch"></i>
+            </button>
+            <button class="thread-action-btn clone"
+                onclick="event.stopPropagation(); ThreadManager.cloneThread('${thread.id}')"
+                title="Clone thread (duplicate all messages)">
+                <i class="fas fa-clone"></i>
+            </button>
+            <button class="thread-action-btn archive"
+                onclick="event.stopPropagation(); ThreadManager.archiveThread('${thread.id}')"
+                title="Archive thread">
+                <i class="fas fa-archive"></i>
+            </button>
+            <button class="thread-action-btn delete"
+                onclick="event.stopPropagation(); ThreadManager.deleteThread('${thread.id}')"
+                title="Delete thread">
+                <i class="fas fa-trash"></i>
+            </button>
+        ` : '';
+
+        const unloadButton = !compact && location !== 'synergy' && location !== 'prime' && location.startsWith('agent-') ? `
+            <button class="agent-unload-btn"
+                onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
+                title="Unload thread from agent (move to Prime)">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        ` : '';
+
+        return `
+            <div class="thread-item-header">
+                <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}" style="flex: 1; font-size: ${compact ? '14px' : '16px'}; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${thread.title || 'Untitled'}
+                </span>
+                <div style="display: flex; align-items: center; gap: ${compact ? '6px' : '8px'}; flex-shrink: 0;">
+                    <div class="thread-item-agent-badge ${agent.class}">
+                        <i class="fas ${agent.icon}"></i> ${agent.name}
+                    </div>
+                    ${actionButtons}
+                    ${unloadButton}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Meta Row (Row 2) - Message count, date, time
+     * 
+     * @param {Object} thread - Thread object
+     * @param {Object} meta - Display metadata {msgCount, dateStr, timeStr}
+     * @returns {string} HTML string for meta row
+     */
+    metaRow(thread, meta) {
+        return `
+            <div class="thread-item-meta" style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                <span class="thread-meta-item" title="Message count">
+                    <i class="fas fa-comments"></i> ${meta.msgCount} msgs
+                </span>
+                <span class="thread-meta-item" title="Last updated">
+                    <i class="fas fa-calendar"></i> ${meta.dateStr}
+                </span>
+                <span class="thread-meta-item" title="Time">
+                    <i class="fas fa-clock"></i> ${meta.timeStr}
+                </span>
+            </div>
+        `;
+    },
+
+    /**
+     * Copy Thread Row (Row 3) - Copy dropdown + Thread ID badge
+     * 
+     * @param {Object} thread - Thread object
+     * @param {string} slug - Shortened thread slug
+     * @returns {string} HTML string for copy row
+     */
+    copyThreadRow(thread, slug) {
+        return `
+            <div class="thread-item-meta" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <span class="thread-meta-item" title="Message count">
+                        <i class="fas fa-comments"></i> ${thread.message_count || 0} msgs
+                    </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    ${this._copyThreadDropdown(thread)}
+                    ${this._threadIdBadge(thread, slug)}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * UI Links Row (Row 4) - Synergy (green) and Workflow (orange) pills
+     * 
+     * @param {Object} thread - Thread object
+     * @param {string} location - Location identifier
+     * @param {Object} synergyMeta - Synergy session metadata (optional)
+     * @returns {string} HTML string for UI links row
+     */
+    uiLinksRow(thread, location, synergyMeta = null) {
+        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyPriority = synergyMeta?.priority || '';
+
+        const safeEscape = window.safeEscape || ((str) => String(str).replace(/[&<>"']/g, ''));
+
+        return `
+            <div class="thread-ui-links-row" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                
+                <!-- Synergy Session (GREEN pill) -->
+                ${thread.synergy_card_id ? `
+                    <div class="thread-item-synergy" data-synergy-id="${thread.synergy_card_id}" style="background: #10b98115; border: 1px solid #10b981; border-radius: 8px; padding: 8px;">
+                        <button class="synergy-badge" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;"
+                            onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${safeEscape(thread.synergy_card_id)}', '${safeEscape(synergyDisplay)}')"
+                            data-tooltip-title="${safeEscape(synergyDisplay)}"
+                            data-tooltip-desc="${synergyMeta ? safeEscape(synergyMeta.description || '') : ''}"
+                            data-tooltip-users="${synergyMeta && Array.isArray(synergyMeta.assignees) ? safeEscape(synergyMeta.assignees.join(', ')) : ''}"
+                            data-tooltip-updated="${synergyMeta && synergyMeta.last_active ? new Date(synergyMeta.last_active).toLocaleString() : ''}">
+                            <i class="fas fa-link"></i>
+                            <span class="synergy-badge-title">${synergyDisplay}</span>
+                            ${synergyPriority ? `<span class="synergy-badge-priority" style="background: white; color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px;">${synergyPriority}</span>` : ''}
+                        </button>
+                        ${location !== 'synergy' ? `
+                            <button class="thread-synergy-unlink" style="background: transparent; border: none; color: #10b981; cursor: pointer; padding: 4px 8px;" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
+                                <i class="fas fa-unlink"></i> Unlink
+                            </button>
+                        ` : ''}
+                    </div>
+                ` : (location !== 'synergy' ? `
+                    <div class="thread-item-synergy thread-item-synergy-unlinked" style="border: 1px dashed #10b981; border-radius: 8px; padding: 8px;">
+                        <button class="synergy-create-link" style="background: transparent; border: none; color: #10b981; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;" onclick="event.stopPropagation(); ThreadManager.openSynergySyncModal('${thread.id}')" title="Link thread to Synergy session">
+                            <i class="fas fa-link"></i> Link Synergy Session
+                        </button>
+                    </div>
+                ` : '')}
+                
+                <!-- Workflow Automation (ORANGE pill) -->
+                ${thread.workflow_id ? `
+                    <div class="thread-item-workflow" data-workflow-id="${thread.workflow_id}" style="background: #f9731615; border: 1px solid #f97316; border-radius: 8px; padding: 8px;">
+                        <button class="workflow-badge" style="background: #f97316; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;"
+                            onclick="event.stopPropagation(); ThreadManager.openWorkflowDetails('${thread.workflow_id}')"
+                            title="${thread.workflow_name || thread.workflow_id}">
+                            <i class="fas fa-robot"></i>
+                            <span class="workflow-badge-title">${thread.workflow_name || thread.workflow_id}</span>
+                        </button>
+                        ${location !== 'synergy' ? `
+                            <button class="thread-workflow-unlink" style="background: transparent; border: none; color: #f97316; cursor: pointer; padding: 4px 8px;" title="Unlink workflow" onclick="event.stopPropagation(); ThreadManager.unlinkWorkflow('${thread.id}', '${thread.workflow_id}')">
+                                <i class="fas fa-unlink"></i> Unlink
+                            </button>
+                        ` : ''}
+                    </div>
+                ` : (location !== 'synergy' ? `
+                    <div class="thread-item-workflow thread-item-workflow-unlinked" style="border: 1px dashed #f97316; border-radius: 8px; padding: 8px;">
+                        <button class="workflow-create-link" style="background: transparent; border: none; color: #f97316; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;" onclick="event.stopPropagation(); ThreadManager.openWorkflowLinkModal('${thread.id}')" title="Link thread to Workflow automation">
+                            <i class="fas fa-robot"></i> Link Workflow
+                        </button>
+                    </div>
+                ` : '')}
+                
+            </div>
+        `;
+    },
+
+    /**
+     * Tags Row (Row 5) - Tags + Token count + Add tag button + Workflow slug (full mode only)
+     * 
+     * @param {Object} thread - Thread object
+     * @param {string} location - Location identifier
+     * @param {boolean} fullMode - Full mode flag (includes workflow slug)
+     * @returns {string} HTML string for tags row
+     */
+    tagsRow(thread, location, fullMode = false) {
+        const workflowSlug = fullMode && thread.workflow_slug ? `
+            <span class="thread-workflow-slug" id="workflow-slug-${thread.id}" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 140, 0, 0.15); border: 1px solid #ff8c00; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-family: 'Courier New', monospace; color: #ff8c00; cursor: pointer;" title="Click to load workflow" onclick="event.stopPropagation(); ThreadManager.loadWorkflowFromSlug('${thread.id}')">
+                <i class="fas fa-project-diagram"></i> <span id="workflow-slug-text-${thread.id}">${thread.workflow_slug}</span>
+                <button onclick="event.stopPropagation(); ThreadManager.unlinkWorkflowSlug('${thread.id}')" style="border: none; background: none; color: #ff8c00; padding: 0 2px; cursor: pointer; font-size: 12px; line-height: 1;" title="Remove workflow link">&times;</button>
+            </span>
+        ` : (fullMode ? `
+            <span class="thread-workflow-slug" id="workflow-slug-${thread.id}" style="display: none; align-items: center; gap: 4px; background: rgba(255, 140, 0, 0.15); border: 1px solid #ff8c00; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-family: 'Courier New', monospace; color: #ff8c00; cursor: pointer;" title="Click to load workflow" onclick="event.stopPropagation(); ThreadManager.loadWorkflowFromSlug('${thread.id}')">
+                <i class="fas fa-project-diagram"></i> <span id="workflow-slug-text-${thread.id}"></span>
+                <button onclick="event.stopPropagation(); ThreadManager.unlinkWorkflowSlug('${thread.id}')" style="border: none; background: none; color: #ff8c00; padding: 0 2px; cursor: pointer; font-size: 12px; line-height: 1; display: none;" title="Remove workflow link">&times;</button>
+            </span>
+        ` : '');
+
+        return `
+            <div class="thread-tags-row" id="thread-tags-row-${thread.id}" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+                ${thread.tags ? thread.tags.map(tag => `
+                    <span class="thread-tag-pill">
+                        <i class="fas fa-tag"></i> ${tag}
+                        ${location !== 'synergy' ? `
+                            <button onclick="event.stopPropagation(); ThreadManager.removeTag('${thread.id}', '${tag}')" 
+                                    class="tag-remove-btn" 
+                                    title="Remove tag">&times;</button>
+                        ` : ''}
+                    </span>
+                `).join('') : ''}
+                ${workflowSlug}
+                ${typeof thread.token_count !== 'undefined' ? `
+                    <span class="thread-token-count" id="token-count-${thread.id}" title="Estimated tokens: ${thread.token_count}">
+                        Tokens: <strong>${(thread.token_count).toLocaleString()}</strong>
+                    </span>
+                ` : `
+                    <span class="thread-token-count" id="token-count-${thread.id}" style="display:none">
+                        Tokens: <strong>0</strong>
+                    </span>
+                `}
+                ${location !== 'synergy' ? `
+                    <button class="add-tag-btn" 
+                            onclick="event.stopPropagation(); ThreadManager.showAddTagModal('${location}', '${thread.id}')" 
+                            title="Add tags to this thread">
+                        <i class="fas fa-plus"></i> Tag
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    /**
+     * Lock Controls Row (Row 6) - Device lock/unlock buttons (full mode only)
+     * Shows lock status badge, lock button, unlock button, edit device name button
+     * 
+     * @param {Object} thread - Thread object
+     * @returns {string} HTML string for lock controls row
+     */
+    lockControlsRow(thread) {
+        return `
+            <div class="lock-unlock-container" id="lock-controls-${thread.id}" style="display: flex; margin-top: 8px;">
+                <!-- Lock Status Badge (shown when locked by another device) -->
+                <div class="lock-status-badge" id="lock-status-${thread.id}" style="display: none;">
+                    <i class="fas fa-lock"></i>
+                    <span>Locked to <strong id="lock-device-name-${thread.id}">Unknown Device</strong></span>
+                </div>
+                
+                <!-- Lock Button (shown when thread is unlocked) -->
+                <button class="lock-btn" id="lock-btn-${thread.id}" 
+                        onclick="event.stopPropagation(); DeviceLockManager.lockThread('${thread.id}')"
+                        title="Lock this thread to your current device">
+                    <i class="fas fa-lock"></i>
+                    <span>Lock Thread</span>
+                </button>
+                
+                <!-- Unlock Button (shown when thread is locked by this device) -->
+                <button class="unlock-btn" id="unlock-btn-${thread.id}" 
+                        onclick="event.stopPropagation(); DeviceLockManager.unlockThread('${thread.id}')"
+                        title="Unlock this thread for all devices">
+                    <i class="fas fa-unlock"></i>
+                    <span>Unlock Thread</span>
+                </button>
+                
+                <!-- Edit Device Name Button -->
+                <button class="edit-device-name-btn" 
+                        onclick="event.stopPropagation(); DeviceLockManager.showDeviceNameModal()"
+                        title="Set a custom name for this device">
+                    <i class="fas fa-edit"></i>
+                    <span id="current-device-name-display">Edit Device Name</span>
+                </button>
+            </div>
+        `;
+    },
+
+    // === PRIVATE HELPER METHODS ===
+
+    /**
+     * Copy Thread Dropdown - Internal helper
+     * @private
+     */
+    _copyThreadDropdown(thread) {
+        return `
+            <div class="thread-copy-dropdown" style="position: relative;">
+                <button class="thread-copy-btn"
+                    onclick="event.stopPropagation(); ThreadManager.toggleCopyMenu('${thread.id}')"
+                    title="Copy thread conversation">
+                    <i class="fas fa-file-alt"></i>
+                </button>
+                <div class="thread-copy-menu" id="copy-menu-${thread.id}" style="display: none;">
+                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'simple')">
+                        <i class="fas fa-align-left"></i> Simple
+                    </button>
+                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'detailed')">
+                        <i class="fas fa-list-ul"></i> Detailed
+                    </button>
+                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'json')">
+                        <i class="fas fa-code"></i> JSON
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Thread ID Badge - Internal helper
+     * @private
+     */
+    _threadIdBadge(thread, slug) {
+        return `
+            <button class="thread-id-badge"
+                onclick="event.stopPropagation(); ThreadManager.copyThreadId('${thread.id}')"
+                title="Copy thread slug: ${thread.id}">
+                <i class="fas fa-hashtag"></i> ${slug}
+            </button>
+        `;
+    },
+
+    /**
+     * Synergy Row - Full mode synergy section (internal helper)
+     * @private
+     */
+    _synergyRow(thread, synergyMeta) {
+        const safeEscape = window.safeEscape || ((str) => String(str).replace(/[&<>"']/g, ''));
+        const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
+        const synergyPriority = synergyMeta?.priority || '';
+
+        return thread.synergy_card_id ? `
+            <div class="thread-item-synergy" data-synergy-id="${thread.synergy_card_id}">
+                <button class="synergy-badge"
+                    onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${safeEscape(thread.synergy_card_id)}', '${safeEscape(synergyDisplay)}')"
+                    data-tooltip-title="${safeEscape(synergyDisplay)}"
+                    data-tooltip-desc="${safeEscape(synergyMeta?.description || thread.synergy_card_desc || '')}"
+                    data-tooltip-users="${safeEscape(thread.synergy_card_users || '')}"
+                    data-tooltip-updated="${thread.synergy_card_updated || ''}">
+                    <i class="fas fa-link"></i>
+                    <span class="synergy-badge-title">${synergyDisplay}</span>
+                    ${synergyPriority ? `<span class="synergy-badge-priority">${synergyPriority}</span>` : ''}
+                </button>
+                <button class="thread-synergy-unlink" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
+                    <i class="fas fa-unlink"></i>
+                </button>
+            </div>
+        ` : `
+            <div class="thread-item-synergy thread-item-synergy-unlinked">
+                <button class="synergy-create-link" onclick="event.stopPropagation(); ThreadManager.openSynergySyncModal('${thread.id}')" title="Link thread to Synergy session">
+                    <i class="fas fa-link"></i> Synergy Sync
+                </button>
+            </div>
+        `;
+    }
+};
+
+// Confirm module loaded
+console.log('✅ [ThreadCardTemplates] Module loaded successfully');

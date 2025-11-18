@@ -46,12 +46,111 @@ class AutomationCanvas {
         // Clipboard
         this.clipboard = null;
 
+        // Auto-save
+        this.autoSaveTimer = null;
+        this.autoSaveInterval = 30000; // 30 seconds
+        this.isDirty = false;
+        this.lastSaved = null;
+
         this.init();
     }
 
     init() {
         this.setupEventListeners();
         this.loadWorkflows();
+        this.startAutoSave();
+    }
+
+    startAutoSave() {
+        // Clear any existing timer
+        if (this.autoSaveTimer) {
+            clearInterval(this.autoSaveTimer);
+        }
+
+        // Start auto-save timer
+        this.autoSaveTimer = setInterval(() => {
+            if (this.isDirty && this.currentWorkflow) {
+                console.log('[AUTO-SAVE] Saving workflow automatically...');
+                this.autoSaveWorkflow();
+            }
+        }, this.autoSaveInterval);
+
+        console.log('[AUTO-SAVE] Auto-save enabled (30 second interval)');
+    }
+
+    markDirty() {
+        this.isDirty = true;
+        this.updateAutoSaveIndicator('unsaved');
+    }
+
+    async autoSaveWorkflow() {
+        if (!this.currentWorkflow) return;
+
+        try {
+            // Export current canvas state
+            const ui_json = {
+                shapes: this.shapes,
+                connections: this.connections
+            };
+
+            // Prepare workflow data
+            const workflowData = {
+                slug: this.workflowSlug,
+                title: this.workflowTitle,
+                description: this.workflowDescription,
+                status: this.workflowStatus,
+                ui_json: ui_json,
+                execution_json: this.currentWorkflow.execution_json || { steps: [] }
+            };
+
+            const response = await fetch('/api/automation/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                },
+                body: JSON.stringify(workflowData)
+            });
+
+            if (!response.ok) throw new Error('Auto-save failed');
+
+            this.isDirty = false;
+            this.lastSaved = new Date();
+            this.updateAutoSaveIndicator('saved');
+            console.log('[AUTO-SAVE] Workflow auto-saved successfully');
+        } catch (error) {
+            console.error('[AUTO-SAVE] Error:', error);
+            this.updateAutoSaveIndicator('error');
+        }
+    }
+
+    updateAutoSaveIndicator(status) {
+        // Find or create auto-save indicator
+        let indicator = document.getElementById('auto-save-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'auto-save-indicator';
+            indicator.style.cssText = 'position: fixed; top: 70px; right: 20px; padding: 8px 12px; background: rgba(0,0,0,0.8); color: white; border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 6px; z-index: 1000; transition: opacity 0.3s;';
+            document.body.appendChild(indicator);
+        }
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+        if (status === 'saved') {
+            indicator.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> Auto-saved at ${timeStr}`;
+            indicator.style.opacity = '1';
+            // Fade out after 3 seconds
+            setTimeout(() => {
+                indicator.style.opacity = '0.3';
+            }, 3000);
+        } else if (status === 'unsaved') {
+            indicator.innerHTML = `<i class="fas fa-circle" style="color: #fbbf24;"></i> Unsaved changes`;
+            indicator.style.opacity = '1';
+        } else if (status === 'error') {
+            indicator.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> Auto-save failed`;
+            indicator.style.opacity = '1';
+        }
     }
 
     setupEventListeners() {
@@ -204,6 +303,7 @@ class AutomationCanvas {
 
         this.shapes.push(shape);
         this.renderShape(shape);
+        this.markDirty(); // Track change for auto-save
         return shape;
     }
 
@@ -232,6 +332,7 @@ class AutomationCanvas {
         textInput.addEventListener('input', (e) => {
             shape.text = e.target.value;
             this.autoResizeShape(shape, shapeEl);
+            this.markDirty(); // Track change for auto-save
         });
         textInput.addEventListener('click', (e) => e.stopPropagation());
 
@@ -328,6 +429,7 @@ class AutomationCanvas {
         }
 
         this.renderConnections();
+        this.markDirty(); // Track change for auto-save
     }
 
     startDragShape(e, shape) {
@@ -360,6 +462,7 @@ class AutomationCanvas {
     endDragShape(e, shape) {
         document.getElementById(shape.id)?.classList.remove('dragging');
         this.isDragging = false;
+        this.markDirty(); // Track change for auto-save
     }
 
     startResize(e, shape, shapeEl) {
@@ -464,6 +567,7 @@ class AutomationCanvas {
 
         this.connections.push(connection);
         this.renderConnections();
+        this.markDirty(); // Track change for auto-save
     }
 
     getConnectionPoint(shape, position) {
@@ -1181,6 +1285,11 @@ class AutomationCanvas {
             const data = await response.json();
             console.log('Workflow saved:', data);
             this.showToast('Workflow saved successfully!', 'success');
+
+            // Reset dirty flag and update indicator
+            this.isDirty = false;
+            this.lastSaved = new Date();
+            this.updateAutoSaveIndicator('saved');
 
             // Reload workflows list
             await this.loadWorkflows();

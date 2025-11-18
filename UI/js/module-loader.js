@@ -200,8 +200,9 @@ async function initializeModuleSystem() {
     }
 
     try {
-        // Create ModuleManager instance if needed
-        if (!window.ModuleManager.initialize) {
+        // Create ModuleManager instance if it's still a class (not instantiated)
+        if (typeof window.ModuleManager === 'function') {
+            console.log('📦 Creating ModuleManager instance...');
             window.ModuleManager = new ModuleManager();
         }
 

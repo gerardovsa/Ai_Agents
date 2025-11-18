@@ -232,7 +232,7 @@ const AgentUI = (function () {
                             ${agentName} Ready
                         </div>
                         <div style="margin-bottom: 20px; opacity: 0.8; font-size: 0.95em; color: var(--text-secondary);">
-                            No active thread – start a new chat or load from history
+                            No active thread, start a new chat or load from history
                         </div>
                     </div>
                 </div>

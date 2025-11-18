@@ -1,0 +1,1208 @@
+/**
+ * THREAD CARD STYLES - Extracted from business-ai-platform-v2.html
+ * 
+ * PURPOSE: Unified styling for thread info cards across all locations
+ * - Prime panel (full mode)
+ * - Agent columns (compact mode)
+ * - Synergy cards (compact mode)
+ * - Thread history sidebar
+ * 
+ * FEATURES:
+ * - 5-row layout with collapse animations
+ * - Hover-based expansion (rows 4-5 hidden by default)
+ * - Action buttons (rename, edit, fork, clone, archive, delete)
+ * - UI pill badges (Synergy=green, Workflow=orange, Docs=blue)
+ * - Agent badges and location indicators
+ * - Tag management UI
+ * - Copy thread functionality
+ * - Device lock/unlock controls
+ * 
+ * LAST MODIFIED: 2025-11-17 - Extracted from main HTML
+ */
+
+/* ============================================================
+   BASE THREAD INFO CONTAINER
+   ============================================================ */
+
+.ai-chat-header-info {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 15px;
+    position: relative;
+}
+
+/* Hide rows 3+ by default (show only first 2 rows: title + meta) */
+.ai-chat-header-info>div:nth-child(n+3) {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    transition: all 0.25s ease-out;
+}
+
+/* Show all rows on hover (expand downward) */
+.ai-chat-header-info:hover>div:nth-child(n+3) {
+    opacity: 1;
+    max-height: 300px;
+    /* Increased to accommodate all content */
+    margin-top: 8px !important;
+    transition: all 0.3s ease-in 0.1s;
+}
+
+/* ============================================================
+   ROW 1: TITLE + AGENT BADGE
+   ============================================================ */
+
+.thread-info-row-1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.thread-info-title-row {
+    width: 100%;
+    margin-bottom: 6px;
+}
+
+.thread-title-display {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: block;
+    width: 100%;
+}
+
+.thread-title-display:hover {
+    background: var(--bg-hover, #21262d);
+}
+
+.thread-title-display.editing {
+    background: var(--bg-primary, #0d1117);
+    border: 1px solid var(--accent-primary, #58a6ff);
+    padding: 3px 7px;
+}
+
+.thread-title-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+}
+
+.thread-agent-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--accent-primary, #238636);
+    color: white;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.thread-agent-badge i {
+    font-size: 11px;
+}
+
+/* ============================================================
+   ROW 2: METADATA (MESSAGES, DATE, TIME)
+   ============================================================ */
+
+.thread-info-row-2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-muted, #9ca3af);
+    padding-left: 8px;
+    margin-bottom: 6px;
+}
+
+.thread-metadata-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.thread-metadata-item i {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+/* ============================================================
+   ROW 3: THREAD SLUG (FULL WIDTH)
+   ============================================================ */
+
+.thread-info-row-3 {
+    width: 100%;
+    padding-left: 8px;
+    margin-bottom: 6px;
+}
+
+.thread-id-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg-tertiary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    color: var(--text-muted, #9ca3af);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.thread-id-badge:hover {
+    background: var(--bg-secondary, #0d1117);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.thread-id-badge i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   COPY THREAD DROPDOWN
+   ============================================================ */
+
+.thread-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-secondary, #8b949e);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.thread-copy-btn:hover {
+    background: var(--bg-tertiary, #161b22);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.thread-copy-btn i {
+    font-size: 12px;
+}
+
+.thread-copy-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 140px;
+    background: var(--bg-secondary, #0d1117);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.thread-copy-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-default, #30363d);
+    color: var(--text-primary, #c9d1d9);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.thread-copy-menu button:last-child {
+    border-bottom: none;
+}
+
+.thread-copy-menu button:hover {
+    background: var(--bg-tertiary, #161b22);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.thread-copy-menu button i {
+    font-size: 12px;
+    width: 16px;
+    text-align: center;
+    color: var(--text-secondary, #8b949e);
+}
+
+.thread-copy-menu button:hover i {
+    color: var(--accent-primary, #58a6ff);
+}
+
+/* ============================================================
+   THREAD CARD COLLAPSE BEHAVIOR (AGENT & PRIME)
+   NEW LAYOUT:
+   Row 1: Title | Agent Badge + Unload (always visible)
+   Row 2: Meta info (msgs, date, time) (always visible)
+   Row 3: Copy + Thread ID (always visible)
+   Row 4: Synergy (hidden until hover)
+   Row 5: Tags (hidden until hover)
+   Action buttons: Hidden until hover
+   ============================================================ */
+
+/* Agent Thread Cards (thread-info-1, thread-info-2, thread-info-3) */
+/* Hide synergy and tags rows by default */
+#thread-info-1:not(:hover) .thread-item-synergy,
+#thread-info-1:not(:hover) .thread-tags-row,
+#thread-info-2:not(:hover) .thread-item-synergy,
+#thread-info-2:not(:hover) .thread-tags-row,
+#thread-info-3:not(:hover) .thread-item-synergy,
+#thread-info-3:not(:hover) .thread-tags-row {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+
+/* Show synergy and tags on hover */
+#thread-info-1:hover .thread-item-synergy,
+#thread-info-1:hover .thread-tags-row,
+#thread-info-2:hover .thread-item-synergy,
+#thread-info-2:hover .thread-tags-row,
+#thread-info-3:hover .thread-item-synergy,
+#thread-info-3:hover .thread-tags-row {
+    opacity: 1;
+    max-height: 200px;
+    transition: opacity 0.3s ease 0.1s, max-height 0.3s ease 0.1s;
+}
+
+/* Hide action buttons in row 1 until hover (for cleaner default view) */
+#thread-info-1:not(:hover) .thread-item-header .thread-item-actions,
+#thread-info-2:not(:hover) .thread-item-header .thread-item-actions,
+#thread-info-3:not(:hover) .thread-item-header .thread-item-actions {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+#thread-info-1:hover .thread-item-header .thread-item-actions,
+#thread-info-2:hover .thread-item-header .thread-item-actions,
+#thread-info-3:hover .thread-item-header .thread-item-actions {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease 0.1s;
+}
+
+/* Prime Panel Thread Card - Same collapse behavior */
+#prime-thread-info:not(:hover) .thread-item-synergy,
+#prime-thread-info:not(:hover) .thread-tags-row {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+
+#prime-thread-info:hover .thread-item-synergy,
+#prime-thread-info:hover .thread-tags-row {
+    opacity: 1;
+    max-height: 200px;
+    transition: opacity 0.3s ease 0.1s, max-height 0.3s ease 0.1s;
+}
+
+#prime-thread-info:not(:hover) .thread-item-header .thread-item-actions {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+#prime-thread-info:hover .thread-item-header .thread-item-actions {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease 0.1s;
+}
+
+/* ============================================================
+   DEVICE LOCK/UNLOCK CONTROLS
+   ============================================================ */
+
+.lock-unlock-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.lock-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #ff6b35;
+    font-weight: 500;
+}
+
+.lock-status-badge i {
+    font-size: 11px;
+}
+
+.lock-btn,
+.unlock-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.lock-btn {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+}
+
+.lock-btn:hover {
+    background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}
+
+.unlock-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.unlock-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.lock-btn:active,
+.unlock-btn:active {
+    transform: translateY(0);
+}
+
+.lock-btn i,
+.unlock-btn i {
+    font-size: 11px;
+}
+
+/* Locked thread styling */
+.thread-item.locked,
+.ai-chat-header-info.locked {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 1px rgba(255, 107, 53, 0.2);
+}
+
+.ai-chat-input-container.locked-read-only {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.ai-chat-input-container.locked-read-only::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+}
+
+.lock-read-only-banner {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #856404;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.lock-read-only-banner i {
+    font-size: 16px;
+    color: #ff6b35;
+}
+
+.lock-read-only-banner strong {
+    color: #ff6b35;
+}
+
+/* ============================================================
+   ADD TAG BUTTON
+   ============================================================ */
+
+.add-tag-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-muted, #9ca3af);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 3px;
+}
+
+.add-tag-btn:hover {
+    background: var(--bg-tertiary, #161b22);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.add-tag-btn i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   TAGS ROW
+   ============================================================ */
+
+.thread-tags-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+}
+
+.thread-tags-row.workflow-drop-active {
+    background-color: rgba(255, 140, 0, 0.1);
+    border-color: #ff8c00;
+    box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.2);
+}
+
+.thread-token-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    background: transparent;
+    color: var(--text-muted, #9ca3af);
+    font-size: 11px;
+    border-radius: 6px;
+}
+
+.thread-token-count strong {
+    color: var(--text-primary, #c9d1d9);
+    font-weight: 700;
+}
+
+.thread-token-count.token-normal {
+    color: var(--text-muted, #9ca3af);
+}
+
+.thread-token-count.token-caution {
+    color: #f59e0b;
+}
+
+.thread-token-count.token-critical {
+    color: #ef4444;
+}
+
+.thread-token-count.token-emergency {
+    color: #b91c1c;
+    font-weight: 800;
+}
+
+.thread-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--bg-tertiary, #1c2128);
+    color: var(--accent-primary, #58a6ff);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* ============================================================
+   SYNERGY SESSION LINK (GREEN PILL)
+   ============================================================ */
+
+.thread-synergy-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.thread-synergy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg-tertiary, #1c2128);
+    border: 1px solid var(--accent-primary, #58a6ff);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.thread-synergy-badge:hover {
+    background: var(--bg-hover, #21262d);
+    border-color: var(--accent-hover, #4493e6);
+}
+
+.thread-synergy-badge i {
+    color: var(--accent-primary, #58a6ff);
+}
+
+.thread-synergy-id {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+.thread-synergy-unlink {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin-left: 8px;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 4px;
+    color: #f85149;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.thread-synergy-unlink:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: rgba(248, 81, 73, 0.5);
+    color: #ff6b6b;
+}
+
+/* ============================================================
+   AGENT UNLOAD BUTTON (RED)
+   ============================================================ */
+
+.agent-unload-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 6px;
+    color: #f85149;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.agent-unload-btn:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: rgba(248, 81, 73, 0.5);
+    color: #ff6b6b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(248, 81, 73, 0.3);
+}
+
+/* ============================================================
+   UNIFIED THREAD-INFO CONTAINER
+   (Used in Prime, Agents, and Synergy cards)
+   ============================================================ */
+
+/* Compact mode for agent columns and Synergy cards */
+.thread-info-compact {
+    font-size: 12px !important;
+    padding: 10px 12px !important;
+    gap: 4px !important;
+}
+
+.thread-info-compact .thread-title-display {
+    font-size: 14px !important;
+}
+
+.thread-info-compact .thread-agent-badge {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+}
+
+.thread-info-compact .thread-metadata-item {
+    font-size: 11px !important;
+}
+
+.thread-info-compact .thread-id-badge {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+}
+
+.thread-info-compact .add-tag-btn {
+    font-size: 10px !important;
+    padding: 3px 10px !important;
+}
+
+.thread-info-compact .thread-tag-pill {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+}
+
+.thread-info-compact .synergy-badge {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+}
+
+/* Agent badge color variants */
+.thread-agent-badge-prime {
+    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+    color: #1a1a1a;
+}
+
+.thread-agent-badge-agent {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: #ffffff;
+}
+
+/* ============================================================
+   SYNERGY LINKED THREAD WRAPPER
+   ============================================================ */
+
+.synergy-linked-thread-wrapper {
+    margin-bottom: 8px;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    background: var(--bg-secondary, #0d1117);
+    transition: all 0.2s;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.synergy-linked-thread-wrapper:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    background: var(--bg-hover, #161b22);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.synergy-linked-thread-wrapper .ai-chat-header-info {
+    border: none;
+    background: transparent;
+}
+
+/* ============================================================
+   THREAD HISTORY SIDEBAR ITEMS
+   ============================================================ */
+
+.thread-item {
+    padding: var(--space-3);
+    border-radius: 8px;
+    cursor: grab;
+    margin-bottom: var(--space-2);
+    border: 1px solid var(--border-default);
+    background: var(--bg-secondary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    position: relative;
+    overflow: hidden;
+    min-height: 115px;
+}
+
+/* Fade gradient at bottom to indicate more content */
+.thread-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: linear-gradient(to bottom, transparent, var(--bg-secondary));
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+/* Hide gradient on hover (content is fully visible) */
+.thread-item:hover::after {
+    opacity: 0;
+}
+
+/* EXPANDED STATE ON HOVER */
+.thread-item:hover {
+    background: rgba(88, 166, 255, 0.12);
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 16px rgba(88, 166, 255, 0.3);
+    transform: translateY(-2px);
+    min-height: 240px;
+    z-index: 10;
+}
+
+.thread-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+    transform: rotate(3deg);
+}
+
+.thread-item.drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0.8;
+    transform: scale(0.95);
+    box-shadow: 0 8px 24px rgba(88, 166, 255, 0.4);
+}
+
+.thread-item.active {
+    background: rgba(88, 166, 255, 0.1);
+    border-color: var(--accent-primary);
+    border-width: 2px;
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+}
+
+/* COMPACT MODE: Hide rows 4-6 by default */
+.thread-item .thread-id-badge,
+.thread-item .thread-item-synergy,
+.thread-item .thread-tags-row,
+.thread-item .thread-item-assignment-warning {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* EXPANDED MODE: Show rows 4-6 on hover */
+.thread-item:hover .thread-id-badge,
+.thread-item:hover .thread-item-synergy,
+.thread-item:hover .thread-tags-row,
+.thread-item:hover .thread-item-assignment-warning {
+    opacity: 1;
+    max-height: 100px;
+    margin-top: 6px;
+}
+
+/* Also show assignment warning when explicitly shown */
+.thread-item.show-options .thread-item-assignment-warning {
+    opacity: 1;
+    max-height: 300px;
+}
+
+/* ============================================================
+   THREAD ITEM HEADER ROW
+   ============================================================ */
+
+.thread-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    margin-bottom: 0px;
+}
+
+.thread-item-title-row {
+    width: 100%;
+    margin-bottom: 6px;
+    margin-top: 6px;
+}
+
+.thread-item-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.thread-item-title-input {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 1px solid var(--accent-primary);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 500;
+    outline: none;
+}
+
+.thread-item-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Show buttons on parent thread-item hover */
+.thread-item:hover .thread-item-actions,
+.thread-info-container:hover .thread-item-actions,
+.synergy-linked-thread-wrapper:hover .thread-item-actions {
+    opacity: 1;
+}
+
+.thread-action-btn {
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.thread-action-btn:hover {
+    background: transparent;
+    transform: scale(1.1);
+}
+
+/* Unload Button - Red styling */
+.thread-action-btn.unload {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 4px;
+    color: #f85149;
+    font-size: 11px;
+}
+
+.thread-action-btn.unload:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: rgba(248, 81, 73, 0.5);
+    color: #ff6b6b;
+    transform: scale(1.1);
+}
+
+.thread-action-btn.delete:hover {
+    background: #ef4444;
+}
+
+/* ============================================================
+   THREAD ITEM META ROW
+   ============================================================ */
+
+.thread-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.thread-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.thread-meta-item i {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+/* ============================================================
+   THREAD ITEM AGENT BADGE
+   ============================================================ */
+
+.thread-item-agent-badge {
+    font-size: 11px;
+    color: white;
+    background: #8b5cf6;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.thread-item-agent-badge.main {
+    background: transparent;
+    border: solid 1px #ffd700;
+}
+
+.thread-item-agent-badge i {
+    font-size: 11px;
+}
+
+/* ============================================================
+   SYNERGY ITEM ROW (IN SIDEBAR)
+   ============================================================ */
+
+.thread-item-synergy {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.synergy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    color: #10b981;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.synergy-badge:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+    transform: scale(1.02);
+}
+
+.synergy-badge i {
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+/* Create & Link Button */
+.synergy-create-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    font-weight: 600;
+    color: #10b981;
+    white-space: nowrap;
+}
+
+.synergy-create-link:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #10b981;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.synergy-create-link i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   SYNERGY TOOLTIP (HOVER CARD)
+   ============================================================ */
+
+.synergy-tooltip {
+    position: fixed;
+    z-index: 10000;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    max-width: 420px;
+    min-width: 300px;
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateY(-5px);
+}
+
+.synergy-tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.synergy-tooltip-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+.synergy-tooltip-priority {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.synergy-tooltip-priority.high {
+    background: rgba(248, 81, 73, 0.2);
+    color: #f85149;
+}
+
+.synergy-tooltip-priority.medium {
+    background: rgba(210, 153, 34, 0.2);
+    color: #d29922;
+}
+
+.synergy-tooltip-priority.low {
+    background: rgba(88, 166, 255, 0.2);
+    color: #58a6ff;
+}
+
+.synergy-tooltip-desc {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.synergy-tooltip-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.synergy-tooltip-meta i {
+    width: 14px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+.synergy-tooltip-actions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-muted);
+}
+
+.synergy-tooltip-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(88, 166, 255, 0.15);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: 6px;
+    color: var(--accent-primary);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.synergy-tooltip-link:hover {
+    background: rgba(88, 166, 255, 0.25);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+/* Enhanced Synergy unlink button with Font Awesome icon */
+.synergy-unlink-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin-left: 8px;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 4px;
+    color: #f85149;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.synergy-unlink-btn:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: #f85149;
+    transform: scale(1.1);
+}
+
+.synergy-unlink-btn i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   END THREAD CARD STYLES
+   ============================================================ */

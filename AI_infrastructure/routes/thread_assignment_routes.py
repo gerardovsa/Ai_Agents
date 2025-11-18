@@ -66,17 +66,20 @@ def get_row_value(row, column_name_or_index):
 
 
 def get_db_connection():
-    """Get connection to ai_infrastructure.db (users table is here)"""
-    from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
-    db_path = get_ai_infrastructure_db_path()
+    """Get connection to Supabase PostgreSQL"""
+    import psycopg2
+    import os
     
-    print(f'🔷 [Thread Assignments] Using: {db_path}')
+    # Get Supabase connection string from environment
+    connection_string = os.getenv('SUPABASE_DB_URL')
     
-    conn = get_database_connection('ai_infrastructure')
-    # Only set row_factory for SQLite connections (not PostgreSQL)
-    if hasattr(conn, 'row_factory'):
-        conn.row_factory = sqlite3.Row
-    return conn
+    if not connection_string:
+        # Fallback for local development
+        connection_string = "postgresql://postgres.xnpbpowppyugjvhnmnfk:Tswizzle132$@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+    
+    print('[Thread Assignments] Connecting to Supabase PostgreSQL...')
+    
+    return psycopg2.connect(connection_string)
 
 
 def enforce_thread_assignment_rules(user_id, session_id, location):
@@ -140,7 +143,7 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
                 del assignments[loc]
                 logger.info(f"🔄 [RULE 1] Removed thread {session_id} from {loc} (thread can only be in one location)")
         
-        # If moving to Prime, we're done (Prime is implicit - not stored)
+        # If moving to Prime, we're done (Prime is implicit - not stored in metadata)
         if location == 'prime':
             metadata['thread_assignments'] = assignments
             cursor.execute("""
@@ -149,7 +152,15 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
                 WHERE id = %s
             """, [json.dumps(metadata), user_id])
             
-            logger.info(f"✅ Thread {session_id} moved to Prime (removed from {previous_location})")
+            # CRITICAL: Also update sessions.threads.location to 'prime'
+            cursor.execute("""
+                UPDATE sessions.threads 
+                SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+                WHERE thread_slug = %s AND user_id = %s
+            """, [session_id, user_id])
+            conn.commit()
+            
+            logger.info(f"✅ Thread {session_id} moved to Prime in both metadata and sessions.threads (removed from {previous_location})")
             return {
                 'previous_location': previous_location,
                 'displaced_thread': None
@@ -165,13 +176,38 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         assignments[location] = session_id
         logger.info(f"✅ [RULE 3] Assigned thread {session_id} to {location} (most recent assignment)")
         
-        # Save back to database
+        # Save back to database (LEGACY metadata - keep for backward compatibility)
         metadata['thread_assignments'] = assignments
         cursor.execute("""
             UPDATE ai_infrastructure.users 
             SET metadata = %s, last_active = CURRENT_TIMESTAMP
             WHERE id = %s
         """, [json.dumps(metadata), user_id])
+        
+        # CRITICAL: Also update sessions.threads.location (NEW SINGLE SOURCE OF TRUTH)
+        cursor.execute("""
+            UPDATE sessions.threads 
+            SET location = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE thread_slug = %s AND user_id = %s
+        """, [location, session_id, user_id])
+        conn.commit()
+        
+        # If thread was displaced, move it to Prime
+        if displaced_thread:
+            cursor.execute("""
+                UPDATE sessions.threads 
+                SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+                WHERE thread_slug = %s AND user_id = %s
+            """, [displaced_thread, user_id])
+            conn.commit()
+            logger.info(f"🔄 Moved displaced thread {displaced_thread} to Prime in sessions.threads")
+        
+        # If thread had a previous location, ensure it's cleared in sessions.threads
+        if previous_location and previous_location != location:
+            # Already updated above with new location, no additional action needed
+            pass
+        
+        logger.info(f"✅ Updated sessions.threads.location for thread {session_id} → {location}")
         
         return {
             'previous_location': previous_location,

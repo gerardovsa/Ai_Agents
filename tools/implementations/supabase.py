@@ -26,9 +26,12 @@ def _get_client():
     if not HAS_SUPABASE:
         raise Exception("Supabase client not available - install dependencies")
     
+    # Use service key to bypass RLS policies for automation workflows
+    service_key = SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
+    
     return SupabaseClient(
-        supabase_url=SUPABASE_URL,
-        supabase_key=SUPABASE_ANON_KEY
+        url=SUPABASE_URL,
+        key=service_key
     )
 
 
@@ -51,7 +54,7 @@ def supabase_query(table: str, select: str = "*", filters: dict = None,
     
     try:
         client = _get_client()
-        query = client.table(table).select(select)
+        query = client.query(table).select(select)
         
         # Apply filters
         if filters:
@@ -74,8 +77,8 @@ def supabase_query(table: str, select: str = "*", filters: dict = None,
         response = query.execute()
         
         return {
-            'data': response.data,
-            'count': len(response.data)
+            'data': response,
+            'count': len(response)
         }
         
     except Exception as e:
@@ -98,11 +101,11 @@ def supabase_insert(table: str, data: dict):
     
     try:
         client = _get_client()
-        response = client.table(table).insert(data).execute()
+        response = client.query(table).insert(data).execute()
         
         return {
-            'data': response.data,
-            'count': len(response.data) if response.data else 0
+            'data': response,
+            'count': len(response) if response else 0
         }
         
     except Exception as e:
@@ -126,7 +129,7 @@ def supabase_update(table: str, data: dict, filters: dict):
     
     try:
         client = _get_client()
-        query = client.table(table).update(data)
+        query = client.query(table).update(data)
         
         # Apply filters
         for key, value in filters.items():
@@ -135,8 +138,8 @@ def supabase_update(table: str, data: dict, filters: dict):
         response = query.execute()
         
         return {
-            'data': response.data,
-            'count': len(response.data) if response.data else 0
+            'data': response,
+            'count': len(response) if response else 0
         }
         
     except Exception as e:
@@ -159,7 +162,7 @@ def supabase_delete(table: str, filters: dict):
     
     try:
         client = _get_client()
-        query = client.table(table).delete()
+        query = client.query(table).delete()
         
         # Apply filters
         for key, value in filters.items():
@@ -168,8 +171,8 @@ def supabase_delete(table: str, filters: dict):
         response = query.execute()
         
         return {
-            'data': response.data,
-            'count': len(response.data) if response.data else 0
+            'data': response,
+            'count': len(response) if response else 0
         }
         
     except Exception as e:
@@ -267,7 +270,7 @@ def supabase_rpc(function_name: str, parameters: dict = None):
         response = client.rpc(function_name, parameters or {}).execute()
         
         return {
-            'data': response.data,
+            'data': response,
             'function': function_name
         }
         
@@ -291,7 +294,7 @@ def supabase_count(table: str, filters: dict = None):
     
     try:
         client = _get_client()
-        query = client.table(table).select('*', count='exact')
+        query = client.query(table).select('*', count='exact')
         
         # Apply filters
         if filters:
@@ -810,7 +813,7 @@ def supabase_get_schema(table: str = None):
         
         if table:
             # Get specific table schema
-            response = client.table(table).select('*').limit(0).execute()
+            response = client.query(table).select('*').limit(0).execute()
             return {
                 'table': table,
                 'schema': 'Table structure retrieved'
@@ -873,9 +876,9 @@ def automation_workflow_create(user_id: int, name: str, workflow_json: str,
         # Remove None values
         data = {k: v for k, v in data.items() if v is not None}
         
-        response = client.table('automation_workflows').insert(data).execute()
+        response = client.insert('automation_workflows', data)
         
-        workflow = response.data[0] if response.data else None
+        workflow = response[0] if response else None
         
         return {
             'success': True,
@@ -907,7 +910,7 @@ def automation_workflow_list(user_id: int, category: str = None, enabled: bool =
         client = _get_client()
         
         # Build query
-        query = client.table('automation_workflows').select('*').eq('user_id', user_id)
+        query = client.query('automation_workflows').select('*').eq('user_id', user_id)
         
         if category:
             query = query.eq('category', category)
@@ -915,13 +918,13 @@ def automation_workflow_list(user_id: int, category: str = None, enabled: bool =
         if enabled is not None:
             query = query.eq('enabled', enabled)
         
-        query = query.order('updated_at', desc=True)
+        query = query.order('updated_at', ascending=False)
         response = query.execute()
         
         return {
             'success': True,
-            'workflows': response.data,
-            'count': len(response.data)
+            'workflows': response,
+            'count': len(response)
         }
         
     except Exception as e:
@@ -946,20 +949,20 @@ def automation_workflow_get(workflow_id: str = None, slug: str = None):
         client = _get_client()
         
         if workflow_id:
-            query = client.table('automation_workflows').select('*').eq('workflow_id', workflow_id)
+            query = client.query('automation_workflows').select('*').eq('workflow_id', workflow_id)
         elif slug:
-            query = client.table('automation_workflows').select('*').eq('slug', slug)
+            query = client.query('automation_workflows').select('*').eq('slug', slug)
         else:
             raise ValueError("Either workflow_id or slug must be provided")
         
         response = query.execute()
         
-        if not response.data:
+        if not response:
             raise ValueError(f"Workflow not found: {workflow_id or slug}")
         
         return {
             'success': True,
-            'workflow': response.data[0]
+            'workflow': response[0]
         }
         
     except Exception as e:
@@ -984,14 +987,14 @@ def automation_workflow_update(workflow_id: str, updates: dict):
         client = _get_client()
         
         # updated_at will be auto-updated by trigger
-        response = client.table('automation_workflows').update(updates).eq('workflow_id', workflow_id).execute()
+        response = client.update('automation_workflows', updates, {'workflow_id': workflow_id})
         
-        if not response.data:
+        if not response:
             raise ValueError(f"Workflow {workflow_id} not found or update failed")
         
         return {
             'success': True,
-            'workflow': response.data[0]
+            'workflow': response[0]
         }
         
     except Exception as e:
@@ -1014,7 +1017,7 @@ def automation_workflow_delete(workflow_id: str):
     try:
         client = _get_client()
         
-        response = client.table('automation_workflows').delete().eq('workflow_id', workflow_id).execute()
+        response = client.delete('automation_workflows', {'workflow_id': workflow_id})
         
         return {
             'success': True,
@@ -1051,9 +1054,9 @@ def automation_workflow_execute(workflow_id: str, trigger_data: str, executed_by
             'executed_by': executed_by
         }
         
-        response = client.table('workflow_executions').insert(data).execute()
+        response = client.insert('workflow_executions', data)
         
-        execution = response.data[0] if response.data else None
+        execution = response[0] if response else None
         
         return {
             'success': True,
@@ -1106,11 +1109,11 @@ def automation_workflow_execution_update(execution_id: str, status: str,
         # Remove None values
         updates = {k: v for k, v in updates.items() if v is not None}
         
-        response = client.table('workflow_executions').update(updates).eq('execution_id', execution_id).execute()
+        response = client.update('workflow_executions', updates, {'execution_id': execution_id})
         
         return {
             'success': True,
-            'execution': response.data[0] if response.data else None
+            'execution': response[0] if response else None
         }
         
     except Exception as e:
@@ -1134,17 +1137,17 @@ def automation_workflow_execution_history(workflow_id: str, limit: int = 20):
     try:
         client = _get_client()
         
-        response = (client.table('workflow_executions')
+        response = (client.query('workflow_executions')
                     .select('*')
                     .eq('workflow_id', workflow_id)
-                    .order('started_at', desc=True)
+                    .order('started_at', ascending=False)
                     .limit(limit)
                     .execute())
         
         return {
             'success': True,
-            'executions': response.data,
-            'count': len(response.data)
+            'executions': response,
+            'count': len(response)
         }
         
     except Exception as e:
@@ -1168,7 +1171,7 @@ def automation_workflow_template_list(category: str = None, featured: bool = Non
     try:
         client = _get_client()
         
-        query = client.table('workflow_templates').select('*')
+        query = client.query('workflow_templates').select('*')
         
         if category:
             query = query.eq('category', category)
@@ -1176,13 +1179,13 @@ def automation_workflow_template_list(category: str = None, featured: bool = Non
         if featured:
             query = query.eq('featured', True)
         
-        query = query.order('use_count', desc=True)
+        query = query.order('use_count', ascending=False)
         response = query.execute()
         
         return {
             'success': True,
-            'templates': response.data,
-            'count': len(response.data)
+            'templates': response,
+            'count': len(response)
         }
         
     except Exception as e:
@@ -1208,12 +1211,12 @@ def automation_workflow_template_clone(template_id: str, user_id: int, name: str
         client = _get_client()
         
         # Get template
-        template_response = client.table('workflow_templates').select('*').eq('template_id', template_id).execute()
+        template_response = client.query('workflow_templates').select('*').eq('template_id', template_id).execute()
         
-        if not template_response.data:
+        if not template_response:
             raise ValueError(f"Template {template_id} not found")
         
-        template = template_response.data[0]
+        template = template_response[0]
         
         # Generate new slug
         import re
@@ -1233,15 +1236,15 @@ def automation_workflow_template_clone(template_id: str, user_id: int, name: str
             'canvas_data': template['canvas_data']
         }
         
-        workflow_response = client.table('automation_workflows').insert(workflow_data).execute()
+        workflow_response = client.insert('automation_workflows', workflow_data)
         
         # Increment use count
         new_use_count = template.get('use_count', 0) + 1
-        client.table('workflow_templates').update({'use_count': new_use_count}).eq('template_id', template_id).execute()
+        client.update('workflow_templates', {'use_count': new_use_count}, {'template_id': template_id})
         
         return {
             'success': True,
-            'workflow': workflow_response.data[0] if workflow_response.data else None,
+            'workflow': workflow_response[0] if workflow_response else None,
             'cloned_from_template': template_id
         }
         
@@ -1286,11 +1289,11 @@ def automation_workflow_schedule_create(workflow_id: str, schedule_type: str,
         # Remove None values
         data = {k: v for k, v in data.items() if v is not None}
         
-        response = client.table('workflow_schedules').insert(data).execute()
+        response = client.insert('workflow_schedules', data)
         
         return {
             'success': True,
-            'schedule': response.data[0] if response.data else None
+            'schedule': response[0] if response else None
         }
         
     except Exception as e:

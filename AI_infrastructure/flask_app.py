@@ -26,7 +26,7 @@ logger = setup_logger('flask_app')
 log_init(logger, "AI_agents standalone - No external dependencies")
 
 # Now import Flask and other dependencies
-from flask import Flask, jsonify, request, Response, send_from_directory
+from flask import Flask, jsonify, request, Response, send_from_directory, send_file
 from flask_cors import CORS, cross_origin
 from datetime import datetime
 from flask_socketio import SocketIO
@@ -371,7 +371,9 @@ socketio = SocketIO(
     logger=False,
     engineio_logger=False,
     ping_timeout=60,
-    ping_interval=25
+    ping_interval=25,
+    always_connect=True,
+    engineio_logger_level='WARNING'  # Only show warnings/errors
 )
 
 # Track connected clients and their rooms
@@ -384,21 +386,26 @@ connected_clients = {}
 @socketio.on('connect', namespace='/ws/synergy')
 def ws_synergy_connect(auth=None):
     """Handle client connection to Synergy namespace"""
-    from flask_socketio import emit
-    from flask import request as flask_request
-    
-    client_id = flask_request.sid
-    connected_clients[client_id] = {
-        'rooms': set(),
-        'connected_at': datetime.now().isoformat()
-    }
-    
-    print(f'[WS] Client connected to /ws/synergy: {client_id}')
-    emit('connected', {
-        'status': 'connected',
-        'client_id': client_id,
-        'timestamp': datetime.now().isoformat()
-    })
+    try:
+        from flask_socketio import emit
+        from flask import request as flask_request
+        
+        client_id = flask_request.sid
+        connected_clients[client_id] = {
+            'rooms': set(),
+            'connected_at': datetime.now().isoformat()
+        }
+        
+        print(f'[WS] Client connected to /ws/synergy: {client_id}')
+        emit('connected', {
+            'status': 'connected',
+            'client_id': client_id,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        print(f'[WS ERROR] Connection failed: {e}')
+        import traceback
+        traceback.print_exc()
 
 @socketio.on('disconnect', namespace='/ws/synergy')
 def ws_synergy_disconnect():
@@ -458,6 +465,28 @@ def ws_synergy_ping(data):
         'timestamp': datetime.now().isoformat(),
         'data': data
     })
+
+# ============================================================================
+# SOCKETIO ERROR HANDLERS
+# ============================================================================
+
+@socketio.on_error(namespace='/ws/synergy')
+def ws_synergy_error_handler(e):
+    """Handle errors in /ws/synergy namespace"""
+    print(f'[WS ERROR] /ws/synergy error: {e}')
+    import traceback
+    traceback.print_exc()
+
+@socketio.on_error_default
+def default_error_handler(e):
+    """Handle errors in default namespace"""
+    print(f'[WS ERROR] Default namespace error: {e}')
+    import traceback
+    traceback.print_exc()
+
+# ============================================================================
+# SOCKETIO EVENT HANDLERS (CONTINUED)
+# ============================================================================
 
 @socketio.on('broadcast', namespace='/ws/synergy')
 def ws_synergy_broadcast(data):
@@ -582,6 +611,34 @@ def health_check():
     return response
 
 
+@app.route('/api/config/supabase', methods=['GET', 'OPTIONS'])
+def get_supabase_config():
+    """Get Supabase configuration for frontend"""
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+    
+    # Load from config.py which reads from .env.master or .env
+    try:
+        from config import SUPABASE_URL, SUPABASE_ANON_KEY
+        anon_key = SUPABASE_ANON_KEY
+    except (ImportError, AttributeError):
+        # Fallback to SUPABASE_KEY if SUPABASE_ANON_KEY not found
+        from config import SUPABASE_URL
+        anon_key = os.getenv('SUPABASE_KEY') or os.getenv('SUPABASE_ANON_KEY')
+    
+    response = jsonify({
+        'url': SUPABASE_URL,
+        'anonKey': anon_key
+    })
+    
+    # Add CORS headers explicitly
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+    
+    return response
+
+
 # ============================================================================
 # TEMPLATE SERVING - Connect to existing HTML UIs
 # ============================================================================
@@ -616,6 +673,28 @@ def favicon():
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     """Serve static files (JS, CSS, images)"""
+    print(f"🔷 [STATIC] Requested: {filename}")
+    
+    # Check if file is in AI_infrastructure folder (new modular files)
+    if filename.startswith('AI_infrastructure/'):
+        # Get the project root directory (parent of AI_infrastructure/)
+        project_root = Path(__file__).parent.parent
+        full_path = project_root / filename
+        
+        print(f"🔷 [STATIC] Project root: {project_root}")
+        print(f"🔷 [STATIC] Full path: {full_path}")
+        print(f"🔷 [STATIC] File exists: {full_path.exists()}")
+        
+        if full_path.exists():
+            # Extract the directory and filename parts for send_from_directory
+            # send_from_directory handles MIME types automatically
+            file_dir = full_path.parent
+            file_name = full_path.name
+            print(f"🔷 [STATIC] ✓ Serving from dir: {file_dir}, file: {file_name}")
+            return send_from_directory(file_dir, file_name)
+    
+    # Fallback to old static directory
+    print(f"🔷 [STATIC] Falling back to STATIC_DIR: {STATIC_DIR}")
     return send_from_directory(STATIC_DIR, filename)
 
 

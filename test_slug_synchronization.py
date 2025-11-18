@@ -16,7 +16,7 @@ from datetime import datetime
 
 # Configuration
 API_BASE_URL = "http://localhost:5001"
-USER_ID = 1
+USER_ID = 14  # Using actual logged-in user from server logs
 
 class Colors:
     GREEN = '\033[92m'
@@ -77,7 +77,8 @@ class SlugSyncTester:
         if response.status_code == 200:
             data = response.json()
             if data.get('success'):
-                self.test_thread_id = data['thread']['id']
+                thread_data = data.get('data', {}).get('thread', data.get('thread', {}))
+                self.test_thread_id = thread_data.get('id')
                 print_success(f"Test thread created: {self.test_thread_id}")
                 return True
         
@@ -118,7 +119,7 @@ class SlugSyncTester:
         
         if response.status_code == 200:
             data = response.json()
-            threads = data.get('threads', [])
+            threads = data.get('data', {}).get('threads', data.get('threads', []))
             
             test_thread = next((t for t in threads if t['id'] == self.test_thread_id), None)
             
@@ -199,7 +200,7 @@ class SlugSyncTester:
         
         if response.status_code == 200:
             data = response.json()
-            threads = data.get('threads', [])
+            threads = data.get('data', {}).get('threads', data.get('threads', []))
             
             test_thread = next((t for t in threads if t['id'] == self.test_thread_id), None)
             
@@ -254,7 +255,7 @@ class SlugSyncTester:
         
         if response.status_code == 200:
             data = response.json()
-            threads = data.get('threads', [])
+            threads = data.get('data', {}).get('threads', data.get('threads', []))
             
             test_thread = next((t for t in threads if t['id'] == self.test_thread_id), None)
             
@@ -316,7 +317,7 @@ class SlugSyncTester:
         
         if response.status_code == 200:
             data = response.json()
-            threads = data.get('threads', [])
+            threads = data.get('data', {}).get('threads', data.get('threads', []))
             
             test_thread = next((t for t in threads if t['id'] == self.test_thread_id), None)
             
@@ -447,12 +448,13 @@ def main():
     
     # Check if server is running
     try:
-        response = requests.get(f"{API_BASE_URL}/api/health", timeout=5)
-        if response.status_code != 200:
+        response = requests.get(f"{API_BASE_URL}/api/threads/list?user_id={USER_ID}", timeout=5)
+        if response.status_code not in [200, 401]:  # 401 is OK, means auth is working
             print_error("Server is not responding properly. Please start BISTART.")
             return
-    except requests.exceptions.RequestException:
-        print_error("Cannot connect to server. Please ensure Flask app is running (BISTART).")
+    except requests.exceptions.RequestException as e:
+        print_error(f"Cannot connect to server: {e}")
+        print_error("Please ensure Flask app is running (BISTART).")
         return
     
     print_success("Server is online\n")

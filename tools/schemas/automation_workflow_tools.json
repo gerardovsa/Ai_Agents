@@ -38,15 +38,30 @@
                         "description": "Optional custom slug (auto-generated from name if not provided)"
                     }
                 },
-                "required": ["user_id", "name", "workflow_json"]
+                "required": [
+                    "user_id",
+                    "name",
+                    "workflow_json"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "workflow": {"type": "object", "description": "Created workflow with workflow_id, slug, timestamps"},
-                    "workflow_id": {"type": "string", "description": "UUID of created workflow"},
-                    "slug": {"type": "string", "description": "Generated or provided slug"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "workflow": {
+                        "type": "object",
+                        "description": "Created workflow with workflow_id, slug, timestamps"
+                    },
+                    "workflow_id": {
+                        "type": "string",
+                        "description": "UUID of created workflow"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "description": "Generated or provided slug"
+                    }
                 }
             }
         },
@@ -70,14 +85,24 @@
                         "description": "Filter by enabled status (optional)"
                     }
                 },
-                "required": ["user_id"]
+                "required": [
+                    "user_id"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "workflows": {"type": "array", "description": "Array of workflow objects"},
-                    "count": {"type": "integer", "description": "Number of workflows returned"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "workflows": {
+                        "type": "array",
+                        "description": "Array of workflow objects"
+                    },
+                    "count": {
+                        "type": "integer",
+                        "description": "Number of workflows returned"
+                    }
                 }
             }
         },
@@ -102,8 +127,13 @@
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "workflow": {"type": "object", "description": "Complete workflow object with all fields"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "workflow": {
+                        "type": "object",
+                        "description": "Complete workflow object with all fields"
+                    }
                 }
             }
         },
@@ -123,13 +153,21 @@
                         "description": "Fields to update: name, workflow_json, canvas_data, enabled, description, category, etc."
                     }
                 },
-                "required": ["workflow_id", "updates"]
+                "required": [
+                    "workflow_id",
+                    "updates"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "workflow": {"type": "object", "description": "Updated workflow object"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "workflow": {
+                        "type": "object",
+                        "description": "Updated workflow object"
+                    }
                 }
             }
         },
@@ -145,14 +183,22 @@
                         "description": "Workflow UUID to delete"
                     }
                 },
-                "required": ["workflow_id"]
+                "required": [
+                    "workflow_id"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "deleted": {"type": "boolean"},
-                    "workflow_id": {"type": "string"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "deleted": {
+                        "type": "boolean"
+                    },
+                    "workflow_id": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -176,14 +222,26 @@
                         "description": "User ID who triggered the execution"
                     }
                 },
-                "required": ["workflow_id", "trigger_data", "executed_by"]
+                "required": [
+                    "workflow_id",
+                    "trigger_data",
+                    "executed_by"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "execution_id": {"type": "string", "description": "UUID of created execution"},
-                    "execution": {"type": "object", "description": "Execution record"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "execution_id": {
+                        "type": "string",
+                        "description": "UUID of created execution"
+                    },
+                    "execution": {
+                        "type": "object",
+                        "description": "Execution record"
+                    }
                 }
             }
         },
@@ -219,13 +277,21 @@
                         "description": "Execution duration in milliseconds"
                     }
                 },
-                "required": ["execution_id", "status"]
+                "required": [
+                    "execution_id",
+                    "status"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "execution": {"type": "object", "description": "Updated execution record"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "execution": {
+                        "type": "object",
+                        "description": "Updated execution record"
+                    }
                 }
             }
         },
@@ -245,14 +311,24 @@
                         "description": "Max executions to return (default: 20)"
                     }
                 },
-                "required": ["workflow_id"]
+                "required": [
+                    "workflow_id"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "executions": {"type": "array", "description": "Array of execution records"},
-                    "count": {"type": "integer", "description": "Number of executions returned"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "executions": {
+                        "type": "array",
+                        "description": "Array of execution records"
+                    },
+                    "count": {
+                        "type": "integer",
+                        "description": "Number of executions returned"
+                    }
                 }
             }
         },
@@ -277,9 +353,17 @@
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "templates": {"type": "array", "description": "Array of template objects"},
-                    "count": {"type": "integer", "description": "Number of templates"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "templates": {
+                        "type": "array",
+                        "description": "Array of template objects"
+                    },
+                    "count": {
+                        "type": "integer",
+                        "description": "Number of templates"
+                    }
                 }
             }
         },
@@ -303,14 +387,25 @@
                         "description": "Optional custom name (uses template name if not provided)"
                     }
                 },
-                "required": ["template_id", "user_id"]
+                "required": [
+                    "template_id",
+                    "user_id"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "workflow": {"type": "object", "description": "Created workflow from template"},
-                    "cloned_from_template": {"type": "string", "description": "Template UUID"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "workflow": {
+                        "type": "object",
+                        "description": "Created workflow from template"
+                    },
+                    "cloned_from_template": {
+                        "type": "string",
+                        "description": "Template UUID"
+                    }
                 }
             }
         },
@@ -346,13 +441,21 @@
                         "description": "Timezone (default: UTC)"
                     }
                 },
-                "required": ["workflow_id", "schedule_type"]
+                "required": [
+                    "workflow_id",
+                    "schedule_type"
+                ]
             },
             "returns": {
                 "type": "object",
                 "properties": {
-                    "success": {"type": "boolean"},
-                    "schedule": {"type": "object", "description": "Created schedule record"}
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "schedule": {
+                        "type": "object",
+                        "description": "Created schedule record"
+                    }
                 }
             }
         }

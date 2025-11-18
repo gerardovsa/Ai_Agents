@@ -125,23 +125,16 @@ Start-Sleep -Seconds 3
 Write-Host "[3/4] Opening Platform in Browser..." -ForegroundColor Green
 Write-Host ""
 
-# Open browser to platform (direct file access)
-$UI_FILE = "$UI_DIR\business-ai-platform-v2.html"
-Start-Process $UI_FILE
+# Open browser to Flask server (not direct file access)
+Start-Process "http://localhost:5001"
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "   PLATFORM LAUNCHED SUCCESSFULLY!" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "   Flask Backend:  http://localhost:5001" -ForegroundColor White
-Write-Host "   UI Platform:    file:///$UI_DIR/business-ai-platform-v2.html" -ForegroundColor White
-Write-Host "" 
-Write-Host "   Note: UI opened directly from file system" -ForegroundColor Gray
-Write-Host "         Connected to Flask backend on port 5001" -ForegroundColor Gray
-Write-Host ""
-Write-Host "    Flask Backend:  http://localhost:5001" -ForegroundColor Yellow
-Write-Host "    UI Platform:    Opened in default browser" -ForegroundColor Yellow
+Write-Host "    Platform URL:   http://localhost:5001" -ForegroundColor Yellow
+Write-Host "    UI opened in default browser" -ForegroundColor White
 Write-Host ""
 Write-Host "    1 PowerShell window opened:" -ForegroundColor White
 Write-Host "    - Flask Backend (Port 5001)" -ForegroundColor Gray
