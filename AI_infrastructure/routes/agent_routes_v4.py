@@ -474,7 +474,8 @@ def start_agent(agent_id):
             data = request.form  # Set data to form for consistent access
             session_id = request.form.get('session_id')
             prompt = request.form.get('message', '')
-            thread_id = request.form.get('thread_id') or session_id  # Extract thread_id from form
+            # CRITICAL FIX: Use thread_slug for unique thread identification
+            thread_slug = request.form.get('thread_slug') or request.form.get('thread_id') or session_id
             files = request.files.getlist('files')
             print(f"[START] Form fields: {list(request.form.keys())}")
             print(f"[START] Files uploaded: {len(files)}")
@@ -491,12 +492,13 @@ def start_agent(agent_id):
             data = request.json or {}
             session_id = data.get('session_id')
             prompt = data.get('message', '')
-            thread_id = data.get('thread_id') or session_id  # Extract thread_id from JSON
+            # CRITICAL FIX: Use thread_slug for unique thread identification
+            thread_slug = data.get('thread_slug') or data.get('thread_id') or session_id
             file_data = None
             print(f"[START] JSON keys: {list(data.keys())}")
         
         print(f"[START] session_id: {session_id}")
-        print(f"[START] thread_id: {thread_id}")
+        print(f"[START] thread_slug: {thread_slug}")
         print(f"[START] prompt length: {len(prompt)} chars")
         
         if not prompt:
@@ -509,21 +511,16 @@ def start_agent(agent_id):
             from datetime import datetime
             session_id = f"session_{int(datetime.now().timestamp()*1000)}_{secrets.token_urlsafe(8)}"
         
-        # CRITICAL THREAD ISOLATION FIX (Nov 18, 2025):
-        # Ensure session_id === thread_id for proper thread isolation
-        # This prevents messages from one thread leaking into another thread
-        if thread_id:
-            if session_id != thread_id:
-                print(f"[START] ⚠️  THREAD ISOLATION WARNING:")
-                print(f"  - session_id: {session_id}")
-                print(f"  - thread_id: {thread_id}")
-                print(f"  - These MUST be equal for proper isolation!")
-                print(f"[START] 🔧 FIX: Forcing session_id = thread_id to maintain thread isolation")
-                session_id = thread_id  # Force use thread_id for isolation
+        # CRITICAL THREAD ISOLATION FIX (Nov 19, 2025):
+        # Use thread_slug (globally unique) instead of thread_id (numeric, can collide)
+        # thread_slug is the unique identifier from database (e.g., "1763479637070")
+        # This prevents messages from one thread appearing in another agent's chat
+        if not thread_slug:
+            # If no thread_slug provided, use session_id as fallback
+            thread_slug = session_id
+            print(f"[START] ℹ️  No thread_slug provided, using session_id as thread_slug: {session_id[:8]}...")
         else:
-            # If no thread_id provided, use session_id as thread_id
-            thread_id = session_id
-            print(f"[START] ℹ️  No thread_id provided, using session_id as thread_id: {session_id[:8]}...")
+            print(f"[START] ✅ Using thread_slug for isolation: {thread_slug[:12]}...")
         
         # CRITICAL FIX: Read conversation_history from frontend request
         # Frontend sends full conversation history in data.conversation_history
@@ -558,9 +555,9 @@ def start_agent(agent_id):
                 print(f"[START] Pruned conversation: {original_count} -> {len(conversation_history)} messages")
         
         # Get or create agent state (IMPORTANT: This ensures conversation is in agent_state_manager)
-        # CRITICAL: Use thread_id (not session_id) for proper message isolation
-        # This ensures state keys match database thread IDs
-        state = agent_state_manager.get_or_create_state(agent_id, thread_id)
+        # CRITICAL: Use thread_slug (not session_id) for proper message isolation
+        # thread_slug is globally unique identifier from database
+        state = agent_state_manager.get_or_create_state(agent_id, thread_slug)
         
         # CRITICAL FIX: Always UPDATE state with conversation_history from frontend
         # THEN add the current user message (which isn't in conversation_history yet)
@@ -576,16 +573,16 @@ def start_agent(agent_id):
         user_message = {'role': 'user', 'content': prompt}
         state['conversation'].append(user_message)
         print(f"[START] Added current user message to conversation - {len(state['conversation'])} messages total")
-        print(f"[START] State key: {agent_id}_{thread_id} (using thread_id for isolation)")
+        print(f"[START] State key: {agent_id}_{thread_slug} (using thread_slug for isolation)")
         print(f"[START] Full state dict keys: {list(state.keys())}")
         print(f"[START] Conversation in state: {len(state.get('conversation', []))} messages")
         
         print(f"[START] Getting agent resources...")
-        lock = agent_state_manager.get_lock(agent_id, thread_id)
+        lock = agent_state_manager.get_lock(agent_id, thread_slug)
         print(f"[START] Lock acquired: {lock}")
-        queue = agent_state_manager.get_queue(agent_id, thread_id)
+        queue = agent_state_manager.get_queue(agent_id, thread_slug)
         print(f"[START] Queue acquired: {queue}")
-        agent_state_manager.update_status(agent_id, thread_id, 'processing')
+        agent_state_manager.update_status(agent_id, thread_slug, 'processing')
         print(f"[START] Status updated to 'processing'")
         
         # Acquire lock before starting worker (worker will release it when done)
@@ -616,11 +613,11 @@ def start_agent(agent_id):
             print(f"[START] Starting file agent worker thread...")
             print(f"[START]   - Agent: {agent_id}")
             print(f"[START]   - Session: {session_id[:16]}...")
-            print(f"[START]   - Thread: {thread_id}")
+            print(f"[START]   - Thread Slug: {thread_slug}")
             print(f"[START]   - Files: {len(file_data)}")
             threading.Thread(
                 target=run_agent_worker,
-                args=(agent_id, prompt, file_data, lock, session_id, queue, state['conversation'], state['context'], user_id, thread_id),
+                args=(agent_id, prompt, file_data, lock, session_id, queue, state['conversation'], state['context'], user_id, thread_slug),
                 daemon=True
             ).start()
             print(f"[START] File agent worker thread started")
@@ -628,14 +625,14 @@ def start_agent(agent_id):
             print(f"[START] Starting simple agent worker thread...")
             print(f"[START]   - Agent: {agent_id}")
             print(f"[START]   - Session: {session_id[:16]}...")
-            print(f"[START]   - Thread: {thread_id}")
+            print(f"[START]   - Thread Slug: {thread_slug}")
             print(f"[START]   - Prompt: '{prompt[:50]}...'")
             print(f"[START]   - AI Client: {'initialized' if ai_client else 'None'}")
             print(f"[START]   - User ID: {user_id}")
             print(f"[START]   - Conversation size: {len(state['conversation'])} messages")
             threading.Thread(
                 target=run_simple_agent_worker,
-                args=(agent_id, prompt, lock, session_id, queue, state['conversation'], ai_client, user_id, thread_id),
+                args=(agent_id, prompt, lock, session_id, queue, state['conversation'], ai_client, user_id, thread_slug),
                 daemon=True
             ).start()
             print(f"[START] Simple agent worker thread started")
@@ -667,7 +664,7 @@ def start_agent(agent_id):
         try:
             print(f"\nLocal variables at error:")
             print(f"  - session_id: {locals().get('session_id', 'N/A')}")
-            print(f"  - thread_id: {locals().get('thread_id', 'N/A')}")
+            print(f"  - thread_slug: {locals().get('thread_slug', 'N/A')}")
             print(f"  - prompt length: {len(locals().get('prompt', '')) if 'prompt' in locals() else 'N/A'}")
             print(f"  - is_form_data: {locals().get('is_form_data', 'N/A')}")
             print(f"  - file_data: {bool(locals().get('file_data', False))}")
@@ -702,25 +699,26 @@ def stream_agent(agent_id):
     - Recursive continuation (unlimited rounds)
     - Proper conversation history
     """
-    session_id = request.args.get('session_id')
+    # CRITICAL FIX (Nov 19, 2025): Use thread_slug for unique identification
+    # Frontend sends thread_slug (globally unique UUID from database)
+    # Fallback to session_id for backward compatibility
+    thread_slug = request.args.get('thread_slug') or request.args.get('session_id')
     
-    if not session_id:
-        return error_response("Missing session_id", 400)
+    if not thread_slug:
+        return error_response("Missing thread_slug or session_id", 400)
     
     # Get agent state and conversation history
-    # CRITICAL: Use session_id as thread_id (they should be equal per line 494-507)
-    # This ensures state lookup matches the key used in /start endpoint
-    thread_id = session_id  # session_id === thread_id (enforced earlier)
-    state = agent_state_manager.get_or_create_state(agent_id, thread_id)
+    # CRITICAL: Use thread_slug (globally unique) for state lookup
+    # This ensures messages don't leak between different agents' threads
+    state = agent_state_manager.get_or_create_state(agent_id, thread_slug)
     conversation = state.get('conversation', [])
     
     # Debug logging
-    print(f"[Stream {agent_id}] Session: {session_id}")
-    print(f"[Stream {agent_id}] Thread: {thread_id}")
+    print(f"[Stream {agent_id}] Thread Slug: {thread_slug}")
     print(f"[Stream {agent_id}] Conversation length: {len(conversation)}")
     print(f"[Stream {agent_id}] 🔍 DEBUG State Manager:")
     print(f"  - All state keys in manager: {list(agent_state_manager.states.keys())}")
-    state_key = f"{agent_id}_{thread_id}"
+    state_key = f"{agent_id}_{thread_slug}"
     if state_key in agent_state_manager.states:
         print(f"  - ✅ State exists for key: {state_key}")
         print(f"  - State conversation length: {len(agent_state_manager.states[state_key].get('conversation', []))}")
@@ -1043,11 +1041,13 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         try:
             from core.prompt_injection_manager import get_prompt_manager
             
-            # Get injection parameters from request
-            quick_actions = request.json.get('quick_actions', []) if request.json else []
-            library_prompts = request.json.get('library_prompts', []) if request.json else []
-            custom_prompt = request.json.get('custom_prompt', None) if request.json else None
-            user_custom_prompts = request.json.get('user_custom_prompts', []) if request.json else []
+            # Get injection parameters from request (with proper Content-Type check)
+            # FIX: Check content_type to avoid 415 error
+            has_json = request.content_type and 'application/json' in request.content_type
+            quick_actions = request.json.get('quick_actions', []) if has_json and request.json else []
+            library_prompts = request.json.get('library_prompts', []) if has_json and request.json else []
+            custom_prompt = request.json.get('custom_prompt', None) if has_json and request.json else None
+            user_custom_prompts = request.json.get('user_custom_prompts', []) if has_json and request.json else []
             
             # Apply prompt injections if any provided
             if quick_actions or library_prompts or custom_prompt or user_custom_prompts:
@@ -1082,19 +1082,25 @@ CRITICAL: NO BULK TOOL SCHEMAS!
 - This prevents sending 200+ tool schemas when you only need 1-2 tools"""
     
     # ============================================
-    # SYNERGY CONTEXT INJECTION
+    # COMPREHENSIVE CONTEXT INJECTION
     # ============================================
-    # Check if this thread is linked to a Synergy project
-    # If yes, inject project context into system prompt
+    # Inject context for ALL linked resources:
+    # 1. Synergy Sessions (project management)
+    # 2. Workflow Automation (workflow_slug)
+    # 3. Automation Workflows (automation_slug)
+    # 4. Internal Documentation (internal_doc_slug)
     try:
         # Get thread info FROM sessions.db
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
-        # Find thread by session_id (thread_slug = session_id in most cases)
-        # Note: id is INTEGER, thread_slug is TEXT (timestamp)
+        # Fetch ALL context fields
         cursor.execute("""
-            SELECT synergy_card_id
+            SELECT 
+                synergy_card_id,
+                workflow_slug, workflow_title,
+                automation_slug, automation_title,
+                internal_doc_slug, internal_doc_title
             FROM threads 
             WHERE thread_slug = %s
             LIMIT 1
@@ -1103,89 +1109,150 @@ CRITICAL: NO BULK TOOL SCHEMAS!
         thread_row = cursor.fetchone()
         conn.close()
         
-        if thread_row and thread_row['synergy_card_id']:
-            synergy_card_id = thread_row['synergy_card_id']
+        if thread_row:
+            context_sections = []
             
-            # Fetch Synergy project details
-            conn = get_database_connection('synergy_sessions')
-            cursor = conn.cursor()
+            # ==========================================
+            # 1. SYNERGY SESSION CONTEXT
+            # ==========================================
+            if thread_row['synergy_card_id']:
+                synergy_card_id = thread_row['synergy_card_id']
+                
+                # Fetch Synergy project details
+                conn = get_database_connection('synergy_sessions')
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT 
+                        title, description, project_name, priority, status,
+                        tags, documents, next_steps, notes, due_date
+                    FROM synergy_sessions.synergy_sessions 
+                    WHERE session_id = %s
+                """, (synergy_card_id,))
+                
+                synergy_row = cursor.fetchone()
+                conn.close()
+                
+                if synergy_row:
+                    print(f"[Stream {agent_id}] 🎯 SYNERGY LINKED → {synergy_card_id} | '{synergy_row['title']}' | {synergy_row['priority']} | {synergy_row['status']}")
+                    
+                    synergy_context = f"\n\n{'='*80}\n"
+                    synergy_context += "🎯 SYNERGY PROJECT CONTEXT\n"
+                    synergy_context += f"{'='*80}\n\n"
+                    synergy_context += f"You are working on a Synergy project:\n\n"
+                    synergy_context += f"**Project:** {synergy_row['title']}\n"
+                    if synergy_row['project_name']:
+                        synergy_context += f"**Category:** {synergy_row['project_name']}\n"
+                    if synergy_row['description']:
+                        synergy_context += f"**Description:** {synergy_row['description']}\n"
+                    synergy_context += f"**Priority:** {synergy_row['priority']}\n"
+                    synergy_context += f"**Status:** {synergy_row['status']}\n"
+                    
+                    if synergy_row['notes']:
+                        synergy_context += f"\n**Notes:** {synergy_row['notes']}\n"
+                    
+                    if synergy_row['next_steps']:
+                        try:
+                            next_steps = json.loads(synergy_row['next_steps']) if isinstance(synergy_row['next_steps'], str) else synergy_row['next_steps']
+                            if next_steps and isinstance(next_steps, list):
+                                synergy_context += "\n**Next Steps:**\n"
+                                for step in next_steps:
+                                    if isinstance(step, dict):
+                                        icon = "✅" if step.get('completed') else "⏳"
+                                        synergy_context += f"- {icon} {step.get('description', 'N/A')}\n"
+                        except:
+                            pass
+                    
+                    if synergy_row['due_date']:
+                        synergy_context += f"\n**Due Date:** {synergy_row['due_date']}\n"
+                    
+                    synergy_context += f"\n**Available Tools:**\n"
+                    synergy_context += f"- synergy_get_session('{synergy_card_id}') - Get full project details\n"
+                    synergy_context += f"- synergy_update_session('{synergy_card_id}', ...) - Update project\n"
+                    synergy_context += f"- synergy_list_threads('{synergy_card_id}') - List related threads\n"
+                    
+                    context_sections.append(synergy_context)
             
-            cursor.execute("""
-                SELECT 
-                    title, description, project_name, priority, status,
-                    tags, documents, next_steps, notes, due_date
-                FROM synergy_sessions.synergy_sessions 
-                WHERE session_id = %s
-            """, (synergy_card_id,))
+            # ==========================================
+            # 2. WORKFLOW AUTOMATION CONTEXT
+            # ==========================================
+            if thread_row['workflow_slug']:
+                workflow_slug = thread_row['workflow_slug']
+                workflow_title = thread_row['workflow_title'] or workflow_slug
+                
+                print(f"[Stream {agent_id}] ⚙️ WORKFLOW LINKED → {workflow_slug} | '{workflow_title}'")
+                
+                workflow_context = f"\n\n{'='*80}\n"
+                workflow_context += "⚙️ WORKFLOW AUTOMATION CONTEXT\n"
+                workflow_context += f"{'='*80}\n\n"
+                workflow_context += f"You are working with an automation workflow:\n\n"
+                workflow_context += f"**Workflow:** {workflow_title}\n"
+                workflow_context += f"**Slug:** {workflow_slug}\n"
+                workflow_context += f"\n**Available Tools:**\n"
+                workflow_context += f"- automation_get_workflow_by_slug('{workflow_slug}') - Get workflow details\n"
+                workflow_context += f"- automation_open_workflow_in_canvas('{workflow_slug}') - Open in editor\n"
+                workflow_context += f"- automation_execute_workflow('{workflow_slug}', ...) - Execute workflow\n"
+                
+                context_sections.append(workflow_context)
             
-            synergy_row = cursor.fetchone()
-            conn.close()
+            # ==========================================
+            # 3. AUTOMATION SLUG CONTEXT
+            # ==========================================
+            if thread_row['automation_slug']:
+                automation_slug = thread_row['automation_slug']
+                automation_title = thread_row['automation_title'] or automation_slug
+                
+                print(f"[Stream {agent_id}] 🤖 AUTOMATION LINKED → {automation_slug} | '{automation_title}'")
+                
+                automation_context = f"\n\n{'='*80}\n"
+                automation_context += "🤖 AUTOMATION CONTEXT\n"
+                automation_context += f"{'='*80}\n\n"
+                automation_context += f"You are working with an automation:\n\n"
+                automation_context += f"**Automation:** {automation_title}\n"
+                automation_context += f"**Slug:** {automation_slug}\n"
+                
+                context_sections.append(automation_context)
             
-            if synergy_row:
-                # LOG: Synergy session details
-                print(f"[Stream {agent_id}] 🎯 SYNERGY LINKED → Session: {synergy_card_id} | Title: '{synergy_row['title']}' | Priority: {synergy_row['priority']} | Status: {synergy_row['status']}")
+            # ==========================================
+            # 4. INTERNAL DOCUMENTATION CONTEXT
+            # ==========================================
+            if thread_row['internal_doc_slug']:
+                doc_slug = thread_row['internal_doc_slug']
+                doc_title = thread_row['internal_doc_title'] or doc_slug
                 
-                # Build Synergy context string
-                synergy_context = f"\n\n{'='*80}\n"
-                synergy_context += "SYNERGY PROJECT CONTEXT\n"
-                synergy_context += f"{'='*80}\n\n"
-                synergy_context += f"You are working on a Synergy project:\n\n"
-                synergy_context += f"**Project:** {synergy_row['title']}\n"
-                if synergy_row['project_name']:
-                    synergy_context += f"**Category:** {synergy_row['project_name']}\n"
-                if synergy_row['description']:
-                    synergy_context += f"**Description:** {synergy_row['description']}\n"
-                synergy_context += f"**Priority:** {synergy_row['priority']}\n"
-                synergy_context += f"**Status:** {synergy_row['status']}\n"
+                print(f"[Stream {agent_id}] 📄 INTERNAL DOC LINKED → {doc_slug} | '{doc_title}'")
                 
-                # Add notes if present
-                if synergy_row['notes']:
-                    synergy_context += f"\n**Project Notes:**\n{synergy_row['notes']}\n"
+                doc_context = f"\n\n{'='*80}\n"
+                doc_context += "📄 INTERNAL DOCUMENTATION CONTEXT\n"
+                doc_context += f"{'='*80}\n\n"
+                doc_context += f"You are working with internal documentation:\n\n"
+                doc_context += f"**Document:** {doc_title}\n"
+                doc_context += f"**Slug:** {doc_slug}\n"
+                doc_context += f"\n**Available Tools:**\n"
+                doc_context += f"- synergy_get_internal_doc('{doc_slug}') - Read document content\n"
+                doc_context += f"- synergy_update_internal_doc('{doc_slug}', ...) - Update document\n"
                 
-                # Add next steps if present
-                if synergy_row['next_steps']:
-                    try:
-                        next_steps = json.loads(synergy_row['next_steps']) if isinstance(synergy_row['next_steps'], str) else synergy_row['next_steps']
-                        if next_steps and isinstance(next_steps, list) and len(next_steps) > 0:
-                            synergy_context += "\n**Next Steps:**\n"
-                            for step in next_steps:
-                                if isinstance(step, dict):
-                                    status_icon = "✅" if step.get('completed') else "⏳"
-                                    synergy_context += f"- {status_icon} {step.get('description', 'N/A')}\n"
-                    except:
-                        pass
+                context_sections.append(doc_context)
+            
+            # ==========================================
+            # INJECT ALL CONTEXTS INTO SYSTEM PROMPT
+            # ==========================================
+            if context_sections:
+                for context in context_sections:
+                    system_prompt += context
+                    system_prompt += f"{'='*80}\n"
                 
-                # Add documents if present
-                if synergy_row['documents']:
-                    try:
-                        documents = json.loads(synergy_row['documents']) if isinstance(synergy_row['documents'], str) else synergy_row['documents']
-                        if documents and isinstance(documents, list) and len(documents) > 0:
-                            synergy_context += "\n**Project Documents:**\n"
-                            for doc in documents:
-                                if isinstance(doc, dict):
-                                    synergy_context += f"- {doc.get('title', 'Untitled')} ({doc.get('type', 'file')})\n"
-                    except:
-                        pass
-                
-                # Add due date if present
-                if synergy_row['due_date']:
-                    synergy_context += f"\n**Due Date:** {synergy_row['due_date']}\n"
-                
-                synergy_context += f"\n{'='*80}\n"
-                synergy_context += "Use this context to provide relevant assistance for this specific project.\n"
-                synergy_context += f"{'='*80}\n"
-                
-                # Append to system prompt
-                system_prompt += synergy_context
-                print(f"[Stream {agent_id}] ✅ Synergy context injected into system prompt")
+                print(f"[Stream {agent_id}] ✅ Context injection complete: {len(context_sections)} section(s) added")
             else:
-                print(f"[Stream {agent_id}] ⚠️  Synergy session {synergy_card_id} not found in synergy_sessions.db")
+                print(f"[Stream {agent_id}] ℹ️ NO LINKED RESOURCES - Thread is standalone")
         else:
-            print(f"[Stream {agent_id}] ℹ️  NO SYNERGY LINK - Thread not linked to any Synergy session")
+            print(f"[Stream {agent_id}] ⚠️ Thread not found: {session_id}")
     
     except Exception as e:
-        print(f"[Stream {agent_id}] ⚠️  Error checking Synergy context: {e}")
-        # Continue without Synergy context - not critical
+        print(f"[Stream {agent_id}] ⚠️ Error injecting context: {e}")
+        import traceback
+        traceback.print_exc()
+        # Continue without context - not critical
     
     # Continue with original code
     system_prompt_continued = """
@@ -1433,9 +1500,9 @@ def get_agent_status(agent_id):
         return error_response("Missing session_id", 400)
     
     try:
-        # Use session_id as thread_id (they should be equal)
-        thread_id = session_id
-        state = agent_state_manager.get_or_create_state(agent_id, thread_id)
+        # Use session_id as thread_slug for backward compatibility
+        thread_slug = session_id
+        state = agent_state_manager.get_or_create_state(agent_id, thread_slug)
         return success_response({
             'status': state['status'],
             'message_count': len(state['conversation'])
@@ -1452,9 +1519,9 @@ def get_agent_history(agent_id):
         return error_response("Missing session_id", 400)
     
     try:
-        # Use session_id as thread_id (they should be equal)
-        thread_id = session_id
-        state = agent_state_manager.get_or_create_state(agent_id, thread_id)
+        # Use session_id as thread_slug for backward compatibility
+        thread_slug = session_id
+        state = agent_state_manager.get_or_create_state(agent_id, thread_slug)
         return list_response(state['conversation'])
     except Exception as e:
         return error_response(str(e), 500)
@@ -1468,9 +1535,9 @@ def clear_agent_conversation(agent_id):
         session_id = data.get('session_id')
         if not session_id:
             return error_response("Missing session_id", 400)
-        # Use session_id as thread_id (they should be equal)
-        thread_id = session_id
-        agent_state_manager.clear_conversation(agent_id, thread_id)
+        # Use session_id as thread_slug for backward compatibility
+        thread_slug = session_id
+        agent_state_manager.clear_conversation(agent_id, thread_slug)
         return success_response(message="Conversation cleared")
     except Exception as e:
         return error_response(str(e), 500)
