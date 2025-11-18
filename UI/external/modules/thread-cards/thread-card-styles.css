@@ -755,49 +755,23 @@
    ============================================================ */
 
 .thread-item {
-    padding: var(--space-3);
-    border-radius: 8px;
-    cursor: grab;
+    /* Just a wrapper for drag-and-drop - let inner card control everything */
+    padding: 0;
     margin-bottom: var(--space-2);
-    border: 1px solid var(--border-default);
-    background: var(--bg-secondary);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+    cursor: grab;
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    border: none;
+    background: transparent;
+    box-shadow: none;
     position: relative;
-    overflow: hidden;
-    min-height: 115px;
+    overflow: visible;
 }
 
-/* Fade gradient at bottom to indicate more content */
-.thread-item::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 30px;
-    background: linear-gradient(to bottom, transparent, var(--bg-secondary));
-    pointer-events: none;
-    opacity: 1;
-    transition: opacity 0.3s ease;
-}
-
-/* Hide gradient on hover (content is fully visible) */
-.thread-item:hover::after {
-    opacity: 0;
-}
-
-/* EXPANDED STATE ON HOVER */
-.thread-item:hover {
-    background: rgba(88, 166, 255, 0.12);
-    border-color: var(--accent-primary);
-    box-shadow: 0 4px 16px rgba(88, 166, 255, 0.3);
-    transform: translateY(-2px);
-    min-height: 240px;
-    z-index: 10;
-}
+/* Removed gradient and hover effects - handled by inner .agent-thread-card */
 
 .thread-item.dragging {
     opacity: 0.5;
@@ -821,26 +795,7 @@
     box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
 }
 
-/* COMPACT MODE: Hide rows 4-6 by default */
-.thread-item .thread-id-badge,
-.thread-item .thread-item-synergy,
-.thread-item .thread-tags-row,
-.thread-item .thread-item-assignment-warning {
-    opacity: 0;
-    max-height: 0;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* EXPANDED MODE: Show rows 4-6 on hover */
-.thread-item:hover .thread-id-badge,
-.thread-item:hover .thread-item-synergy,
-.thread-item:hover .thread-tags-row,
-.thread-item:hover .thread-item-assignment-warning {
-    opacity: 1;
-    max-height: 100px;
-    margin-top: 6px;
-}
+/* Compact/expand behavior handled by inner .agent-thread-card via .thread-expand-on-hover */
 
 /* Also show assignment warning when explicitly shown */
 .thread-item.show-options .thread-item-assignment-warning {

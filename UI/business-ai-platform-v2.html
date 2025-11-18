@@ -2739,7 +2739,12 @@
             color: var(--text-muted);
             display: flex;
             align-items: center;
-            gap: var(--space-2);
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        .synergy-item-meta .card-meta {
+            margin-left: auto;
         }
 
         .synergy-item-actions {
@@ -4308,45 +4313,34 @@
         }
 
         .thread-item {
-            /* Removed padding, border, background - just a wrapper for drag-and-drop */
+            /* Just a wrapper for drag-and-drop - let inner card control everything */
             padding: 0;
-            border-radius: 0;
-            cursor: grab;
             margin-bottom: var(--space-2);
+            cursor: grab;
+            display: block;
+            width: 100%;
+            height: auto;
+            min-height: auto;
+            max-height: none;
             border: none;
             background: transparent;
-            /*    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);  */
             box-shadow: none;
-            display: flex;
-            flex-direction: column;
-            gap: 0;
             position: relative;
             overflow: visible;
-            min-height: auto;
-            /* COMPACT: Show only 3 rows */
         }
 
         /* Removed gradient and hover effects - handled by inner .agent-thread-card */
 
-        /* AGENT-ASSIGNED THREADS - Dark Purple Border */
-        .thread-item.agent-assigned {
+        /* Border color classes - applied to inner card, not wrapper */
+        .thread-item.agent-assigned .ai-chat-header-info {
             border-left: 3px solid #8b5cf6;
-            border-left-width: 3px !important;
         }
 
-        .thread-item.agent-assigned:hover {
-            background: rgba(139, 92, 246, 0.08);
-            border-color: #8b5cf6;
-            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25);
-        }
-
-        /* SYNERGY-TAGGED THREADS - Green accent */
-        .thread-item.synergy-tagged {
+        .thread-item.synergy-tagged .ai-chat-header-info {
             border-left: 3px solid #10b981;
         }
 
-        /* AUTOMATION-TAGGED THREADS - Orange accent */
-        .thread-item.automation-tagged {
+        .thread-item.automation-tagged .ai-chat-header-info {
             border-left: 3px solid #f59e0b;
         }
 
@@ -4789,6 +4783,7 @@
             border: 1px solid var(--border-default);
             border-radius: 10px;
             padding: 16px;
+            padding-top: 12px;
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
             max-width: 420px;
             min-width: 300px;
@@ -4812,6 +4807,34 @@
             align-items: center;
             gap: 8px;
             line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: calc(100% - 30px);
+            padding-right: 30px;
+        }
+
+        .synergy-tooltip-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .synergy-tooltip-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
 
         .synergy-tooltip-priority {
@@ -14981,10 +15004,20 @@
                         <div class="synergy-item-info">
                             <div class="synergy-item-title">${this.escapeHtml(session.title)}</div>
                             <div class="synergy-item-meta">
-                                <span style="color: ${priorityColors[session.priority]};">
+                                <span class="card-status" style="background: var(--bg-quaternary); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                                    ${session.status}
+                                </span>
+                                <span class="card-time" style="opacity: 0.7; font-size: 10px;">
+                                    <i class="fas fa-clock"></i> ${new Date(session.updated_at).toLocaleDateString()}
+                                </span>
+                                <span class="card-meta" style="color: ${priorityColors[session.priority]}; font-weight: 600; font-size: 10px;">
                                     <i class="fas fa-circle"></i> ${session.priority}
                                 </span>
-                                <span>${session.status}</span>
+                                <span class="card-stats" style="display: flex; gap: 8px; font-size: 10px; opacity: 0.8;">
+                                    <span><i class="fas fa-comments"></i> ${session.message_count || 0}</span>
+                                    <span><i class="fas fa-file"></i> ${this.parseJsonField(session.documents, []).length}</span>
+                                    <span><i class="fas fa-tasks"></i> ${this.parseJsonField(session.next_steps, []).filter(s => s && s.completed).length}/${this.parseJsonField(session.next_steps, []).length}</span>
+                                </span>
                             </div>
                         </div>
                         <div class="synergy-item-actions">
@@ -15838,10 +15871,8 @@
                     sidebar.classList.toggle('collapsed');
                     const isOpen = !sidebar.classList.contains('collapsed');
 
-                    // Show/hide toggle button
-                    if (toggle) {
-                        toggle.style.display = isOpen ? 'none' : 'flex';
-                    }
+                    // Keep toggle visible at all times
+                    // (removed toggle.style.display logic to keep it always visible)
 
                     // Update container margin based on side
                     if (container) {
@@ -26275,9 +26306,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     }
 
                     synergyTooltip.innerHTML = `
+                        <button class="synergy-tooltip-close" onclick="document.querySelector('.synergy-tooltip')?.remove();" title="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
                         <div class="synergy-tooltip-title">
                             <i class="fas fa-link"></i>
-                            ${title}
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</span>
                             ${priorityHtml}
                         </div>
                         ${desc ? `<div class="synergy-tooltip-desc">${desc}</div>` : ''}

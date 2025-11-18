@@ -533,11 +533,8 @@ def start_agent(agent_id):
                 print(f"[START] Pruned conversation: {original_count} -> {len(conversation_history)} messages")
         
         # Get or create agent state (IMPORTANT: This ensures conversation is in agent_state_manager)
-        state = agent_state_manager.get_or_create_state(agent_id, session_id, {
-            'session_id': session_id,
-            'conversation': [],
-            'context': {}
-        })
+        # NOTE: context should be a string like 'triple_agent', 'single_viewer', etc.
+        state = agent_state_manager.get_or_create_state(agent_id, session_id, 'triple_agent')
         
         # CRITICAL FIX: Always UPDATE state with conversation_history from frontend
         # THEN add the current user message (which isn't in conversation_history yet)
@@ -553,6 +550,9 @@ def start_agent(agent_id):
         user_message = {'role': 'user', 'content': prompt}
         state['conversation'].append(user_message)
         print(f"[START] Added current user message to conversation - {len(state['conversation'])} messages total")
+        print(f"[START] State key: {agent_id}_{session_id}")
+        print(f"[START] Full state dict keys: {list(state.keys())}")
+        print(f"[START] Conversation in state: {len(state.get('conversation', []))} messages")
         
         lock = agent_state_manager.get_lock(agent_id, session_id)
         queue = agent_state_manager.get_queue(agent_id, session_id)
@@ -629,19 +629,21 @@ def stream_agent(agent_id):
         return error_response("Missing session_id", 400)
     
     # Get agent state and conversation history
-    state = agent_state_manager.get_or_create_state(agent_id, session_id, {})
+    # NOTE: context should be a string like 'triple_agent', 'single_viewer', etc.
+    state = agent_state_manager.get_or_create_state(agent_id, session_id, 'triple_agent')
     conversation = state.get('conversation', [])
     
     # Debug logging
     print(f"[Stream {agent_id}] Session: {session_id}")
     print(f"[Stream {agent_id}] Conversation length: {len(conversation)}")
     print(f"[Stream {agent_id}] 🔍 DEBUG State Manager:")
-    print(f"  - All agent_ids in manager: {list(agent_state_manager.states.keys())}")
-    if agent_id in agent_state_manager.states:
-        print(f"  - All sessions for agent {agent_id}: {list(agent_state_manager.states[agent_id].keys())}")
+    print(f"  - All state keys in manager: {list(agent_state_manager.states.keys())}")
+    state_key = f"{agent_id}_{session_id}"
+    if state_key in agent_state_manager.states:
+        print(f"  - ✅ State exists for key: {state_key}")
+        print(f"  - State conversation length: {len(agent_state_manager.states[state_key].get('conversation', []))}")
     else:
-        print(f"  - ❌ Agent {agent_id} NOT in state manager!")
-    print(f"  - Requested session exists: {session_id in agent_state_manager.states.get(agent_id, {})}")
+        print(f"  - ❌ State NOT found for key: {state_key}")
     
     if conversation:
         print(f"[Stream {agent_id}] Last message: {conversation[-1].get('role')} - {str(conversation[-1].get('content', ''))[:100]}")
