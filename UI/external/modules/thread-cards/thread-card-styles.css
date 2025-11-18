@@ -1034,6 +1034,19 @@
     flex-shrink: 0;
 }
 
+/* Synergy badge title (truncate if too long to allow space for unlink button) */
+.synergy-badge-title {
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Synergy badge priority pill */
+.synergy-badge-priority {
+    flex-shrink: 0;
+}
+
 /* Create & Link Button */
 .synergy-create-link {
     display: inline-flex;
