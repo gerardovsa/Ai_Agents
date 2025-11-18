@@ -756,6 +756,408 @@ def export_automation(automation_id):
         return jsonify({'error': str(e)}), 500
 
 
+@automation_bp.route('/<slug>/publish', methods=['POST'])
+def publish_workflow(slug):
+    """
+    Publish workflow as live automation
+    
+    This endpoint validates the workflow structure, enables it for execution,
+    and optionally links it to a thread and creates scheduling.
+    
+    Request body:
+    {
+        "thread_id": 123,                              // Optional: Link to thread
+        "automation_title": "Email to Sheets (Live)",  // Optional: Custom title
+        "schedule_cron": "0 */1 * * *",               // Optional: Cron schedule
+        "timezone": "UTC"                              // Optional: Timezone
+    }
+    
+    Process:
+        1. Validate workflow structure
+        2. Generate automation_slug (or use existing)
+        3. Update status to 'active'
+        4. Link to thread if thread_id provided
+        5. Create schedule if schedule_cron provided
+    
+    Response:
+    {
+        "success": true,
+        "automation_slug": "workflow-1737052800",
+        "workflow_slug": "workflow-1737052800",
+        "validation": {
+            "valid": true,
+            "errors": [],
+            "warnings": ["..."]
+        },
+        "scheduled": true,
+        "next_run": "2025-11-20T01:00:00Z",
+        "message": "Workflow published successfully"
+    }
+    """
+    try:
+        user_id = request.headers.get('X-User-ID', 1)
+        data = request.json or {}
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get workflow by slug
+        cursor.execute("""
+            SELECT automation_id, slug, title, ui_json, execution_json, status
+            FROM visual_automations
+            WHERE slug = %s AND user_id = %s
+        """, (slug, user_id))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
+        
+        # Parse workflow JSON for validation
+        ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
+        
+        # STEP 1: Validate workflow structure
+        validation_result = validate_workflow_structure(ui_json)
+        
+        if not validation_result['valid']:
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'Workflow validation failed',
+                'validation': validation_result
+            }), 400
+        
+        # STEP 2: Update workflow status to 'active'
+        automation_title = data.get('automation_title', f"{row['title']} (Live)")
+        
+        cursor.execute("""
+            UPDATE visual_automations
+            SET status = 'active',
+                title = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE slug = %s
+        """, (automation_title, slug))
+        
+        # STEP 3: Link to thread if provided
+        thread_id = data.get('thread_id')
+        if thread_id:
+            # Update thread with automation_slug
+            try:
+                cursor.execute("""
+                    UPDATE sessions.threads
+                    SET automation_slug = %s,
+                        automation_title = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (slug, automation_title, thread_id))
+            except Exception as e:
+                # Thread linking failed, but continue with publish
+                print(f"Warning: Could not link to thread {thread_id}: {e}")
+        
+        # STEP 4: Create schedule if provided
+        scheduled = False
+        next_run = None
+        task_id = None
+        
+        schedule_cron = data.get('schedule_cron')
+        if schedule_cron:
+            try:
+                scheduler = get_scheduler()
+                
+                execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
+                
+                task_data = {
+                    'task_name': f'Automation: {automation_title}',
+                    'description': f'Published workflow: {slug}',
+                    'created_by': 'user',
+                    'created_by_user_id': user_id,
+                    'trigger_type': 'cron',
+                    'cron_expression': schedule_cron,
+                    'action_type': 'execute_automation',
+                    'action_payload': json.dumps({
+                        'automation_id': row['automation_id'],
+                        'slug': slug,
+                        'ui_json': ui_json,
+                        'execution_json': execution_json
+                    }),
+                    'requires_approval': False,
+                    'enabled': True
+                }
+                
+                task_id = scheduler.create_task(task_data)
+                scheduled = True
+                
+                # Get next run time
+                task = scheduler.get_task(task_id)
+                next_run = task.get('next_run')
+                
+                # Update workflow with scheduler info
+                cursor.execute("""
+                    UPDATE visual_automations
+                    SET is_scheduled = 1,
+                        scheduler_task_id = %s,
+                        schedule_cron = %s,
+                        timezone = %s
+                    WHERE slug = %s
+                """, (task_id, schedule_cron, data.get('timezone', 'UTC'), slug))
+                
+            except Exception as e:
+                print(f"Warning: Could not create schedule: {e}")
+        
+        conn.commit()
+        conn.close()
+        
+        response = {
+            'success': True,
+            'automation_slug': slug,
+            'workflow_slug': slug,
+            'automation_title': automation_title,
+            'validation': validation_result,
+            'scheduled': scheduled,
+            'message': 'Workflow published successfully'
+        }
+        
+        if scheduled and next_run:
+            response['next_run'] = next_run
+            response['task_id'] = task_id
+        
+        if thread_id:
+            response['thread_id'] = thread_id
+            response['thread_linked'] = True
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@automation_bp.route('/link-to-thread', methods=['POST'])
+def link_workflow_to_thread():
+    """
+    Link workflow to thread in database
+    
+    This provides a reliable backend endpoint for thread-workflow association,
+    ensuring database consistency even if frontend operations fail.
+    
+    Request body:
+    {
+        "thread_id": 123,
+        "workflow_slug": "workflow-1737052800",
+        "workflow_title": "Email to Sheets",
+        "automation_slug": "workflow-1737052800",  // Optional: For published workflows
+        "automation_title": "Email to Sheets (Live)"  // Optional
+    }
+    
+    Response:
+    {
+        "success": true,
+        "thread_id": 123,
+        "workflow_slug": "workflow-1737052800",
+        "automation_slug": "workflow-1737052800",  // If provided
+        "message": "Workflow linked to thread successfully"
+    }
+    """
+    try:
+        data = request.json
+        
+        # Validate required fields
+        if 'thread_id' not in data or 'workflow_slug' not in data:
+            return jsonify({'error': 'thread_id and workflow_slug required'}), 400
+        
+        thread_id = data['thread_id']
+        workflow_slug = data['workflow_slug']
+        workflow_title = data.get('workflow_title', workflow_slug)
+        automation_slug = data.get('automation_slug')
+        automation_title = data.get('automation_title')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Build update query based on what's provided
+        update_fields = ['workflow_slug = %s', 'workflow_title = %s', 'updated_at = CURRENT_TIMESTAMP']
+        params = [workflow_slug, workflow_title]
+        
+        if automation_slug:
+            update_fields.append('automation_slug = %s')
+            params.append(automation_slug)
+        
+        if automation_title:
+            update_fields.append('automation_title = %s')
+            params.append(automation_title)
+        
+        params.append(thread_id)
+        
+        query = f"""
+            UPDATE sessions.threads SET
+                {', '.join(update_fields)}
+            WHERE id = %s
+        """
+        
+        cursor.execute(query, params)
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'error': f'Thread {thread_id} not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        response = {
+            'success': True,
+            'thread_id': thread_id,
+            'workflow_slug': workflow_slug,
+            'workflow_title': workflow_title,
+            'message': 'Workflow linked to thread successfully'
+        }
+        
+        if automation_slug:
+            response['automation_slug'] = automation_slug
+            response['automation_title'] = automation_title
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@automation_bp.route('/<slug>/status', methods=['GET'])
+def get_workflow_status(slug):
+    """
+    Get workflow/automation execution status
+    
+    Returns current status, execution history, and scheduling information.
+    
+    Response:
+    {
+        "success": true,
+        "workflow": {
+            "slug": "workflow-1737052800",
+            "title": "Email to Sheets",
+            "status": "active",  // draft, active, inactive
+            "is_scheduled": true,
+            "schedule_cron": "0 */1 * * *",
+            "next_run": "2025-11-20T01:00:00Z"
+        },
+        "execution_status": {
+            "currently_running": false,
+            "last_execution": {
+                "execution_id": 123,
+                "started_at": "2025-11-19T12:00:00Z",
+                "completed_at": "2025-11-19T12:00:15Z",
+                "status": "completed",
+                "duration_ms": 15000
+            },
+            "total_executions": 42,
+            "success_rate": 0.95
+        }
+    }
+    """
+    try:
+        user_id = request.headers.get('X-User-ID', 1)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get workflow info
+        cursor.execute("""
+            SELECT automation_id, slug, title, status, is_scheduled, 
+                   schedule_cron, scheduler_task_id, execution_count,
+                   last_executed_at, created_at, updated_at
+            FROM visual_automations
+            WHERE slug = %s AND user_id = %s
+        """, (slug, user_id))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'error': f'Workflow with slug "{slug}" not found'}), 404
+        
+        # Get next run time from scheduler
+        next_run = None
+        if row['scheduler_task_id']:
+            try:
+                scheduler = get_scheduler()
+                task = scheduler.get_task(row['scheduler_task_id'])
+                next_run = task.get('next_run')
+            except:
+                pass
+        
+        # Get execution statistics
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_executions,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successful_executions,
+                MAX(CASE WHEN status IN ('running', 'pending') THEN 1 ELSE 0 END) as currently_running
+            FROM automation_executions
+            WHERE automation_id = %s
+        """, (row['automation_id'],))
+        
+        stats_row = cursor.fetchone()
+        
+        # Get last execution
+        cursor.execute("""
+            SELECT execution_id, started_at, completed_at, status, duration_ms, error_message
+            FROM automation_executions
+            WHERE automation_id = %s
+            ORDER BY started_at DESC
+            LIMIT 1
+        """, (row['automation_id'],))
+        
+        last_exec_row = cursor.fetchone()
+        
+        conn.close()
+        
+        # Calculate success rate
+        total_execs = stats_row['total_executions'] if stats_row else 0
+        successful_execs = stats_row['successful_executions'] if stats_row else 0
+        success_rate = (successful_execs / total_execs) if total_execs > 0 else 0.0
+        
+        # Build response
+        response = {
+            'success': True,
+            'workflow': {
+                'slug': row['slug'],
+                'title': row['title'],
+                'status': row['status'],
+                'is_scheduled': bool(row['is_scheduled']),
+                'schedule_cron': row['schedule_cron'],
+                'created_at': str(row['created_at']),
+                'updated_at': str(row['updated_at'])
+            },
+            'execution_status': {
+                'currently_running': bool(stats_row['currently_running']) if stats_row else False,
+                'total_executions': total_execs,
+                'success_rate': round(success_rate, 2)
+            }
+        }
+        
+        if next_run:
+            response['workflow']['next_run'] = next_run
+        
+        if last_exec_row:
+            response['execution_status']['last_execution'] = {
+                'execution_id': last_exec_row['execution_id'],
+                'started_at': str(last_exec_row['started_at']),
+                'completed_at': str(last_exec_row['completed_at']) if last_exec_row['completed_at'] else None,
+                'status': last_exec_row['status'],
+                'duration_ms': last_exec_row['duration_ms'],
+                'error_message': last_exec_row['error_message']
+            }
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 # Helper functions for workflow analysis
 def _analyze_workflow(shapes, connections):
     """Generate natural language interpretation of workflow"""
@@ -846,3 +1248,78 @@ def _apply_improvements(original_flow, improvements, tools_sequence):
     refined_flow['tools_sequence'] = tools_sequence
     
     return refined_flow
+
+
+def validate_workflow_structure(workflow_json):
+    """
+    Validate workflow structure before publishing
+    
+    Args:
+        workflow_json: Parsed workflow JSON with shapes and connections
+    
+    Returns:
+        {
+            'valid': bool,
+            'errors': [list of error messages],
+            'warnings': [list of warning messages]
+        }
+    """
+    errors = []
+    warnings = []
+    
+    # Extract shapes and connections
+    shapes = workflow_json.get('shapes', [])
+    connections = workflow_json.get('connections', [])
+    
+    if not shapes:
+        errors.append("Workflow must have at least one shape/node")
+        return {'valid': False, 'errors': errors, 'warnings': warnings}
+    
+    # Check for trigger node (hexagon or trigger type)
+    has_trigger = any(
+        s.get('type') in ['hexagon', 'trigger'] or 
+        'trigger' in s.get('text', '').lower() 
+        for s in shapes
+    )
+    if not has_trigger:
+        errors.append("Workflow must have a trigger node (starting point)")
+    
+    # Check for end node
+    has_end = any(
+        s.get('type') in ['circle', 'end'] or 
+        'end' in s.get('text', '').lower() or
+        'complete' in s.get('text', '').lower()
+        for s in shapes
+    )
+    if not has_end:
+        warnings.append("Workflow should have an end node for clarity")
+    
+    # Check all nodes are connected
+    if connections:
+        shape_ids = {s['id'] for s in shapes}
+        connected_ids = {c.get('from') for c in connections} | {c.get('to') for c in connections}
+        orphan_nodes = shape_ids - connected_ids
+        
+        if orphan_nodes:
+            orphan_texts = [s['text'] for s in shapes if s['id'] in orphan_nodes]
+            warnings.append(f"Unconnected nodes found: {', '.join(orphan_texts[:3])}")
+    
+    # Check for circular dependencies (basic check)
+    if len(connections) > len(shapes):
+        warnings.append("Workflow may have circular dependencies or redundant connections")
+    
+    # Validate connection structure
+    for conn in connections:
+        if 'from' not in conn or 'to' not in conn:
+            errors.append(f"Invalid connection structure: missing 'from' or 'to' field")
+    
+    # Check for empty action nodes
+    empty_actions = [s['id'] for s in shapes if not s.get('text', '').strip()]
+    if empty_actions:
+        warnings.append(f"Found {len(empty_actions)} nodes with no text/action defined")
+    
+    return {
+        'valid': len(errors) == 0,
+        'errors': errors,
+        'warnings': warnings
+    }

@@ -379,6 +379,91 @@
                 "type": "object",
                 "description": "Confirmation that workflow was opened in canvas with UI command"
             }
+        },
+        {
+            "name": "automation_publish_workflow",
+            "description": "Publish a draft workflow as a live automation. Validates workflow structure, activates it for execution, optionally schedules it with cron expression, and links it to the current thread. Use this when user says 'publish this workflow', 'activate the automation', 'make this live', or 'schedule this to run'.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "Workflow slug to publish (e.g., 'workflow-1737052800')"
+                    },
+                    "thread_id": {
+                        "type": "integer",
+                        "description": "Thread ID to link the published automation to (usually the current thread)"
+                    },
+                    "automation_title": {
+                        "type": "string",
+                        "description": "Optional custom title for the live automation (e.g., 'Email to Sheets (Production)'). If not provided, adds '(Live)' to workflow title."
+                    },
+                    "schedule_cron": {
+                        "type": "string",
+                        "description": "Optional cron expression for scheduling (e.g., '0 9 * * *' for daily at 9am, '0 */1 * * *' for hourly). If provided, automation will run on schedule."
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "description": "Optional timezone for schedule (e.g., 'America/New_York', 'UTC'). Defaults to UTC."
+                    }
+                },
+                "required": [
+                    "slug"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Publish result with validation status, automation_slug, scheduling info, and success message. Includes validation warnings/errors, next run time if scheduled, and thread linking confirmation."
+            },
+            "examples": [
+                {
+                    "description": "Publish workflow and schedule it to run hourly",
+                    "parameters": {
+                        "slug": "workflow-1737052800",
+                        "thread_id": 123,
+                        "schedule_cron": "0 */1 * * *",
+                        "timezone": "UTC"
+                    }
+                },
+                {
+                    "description": "Publish workflow without scheduling (manual execution only)",
+                    "parameters": {
+                        "slug": "workflow-email-processor",
+                        "thread_id": 456,
+                        "automation_title": "Email Processor (Production)"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "automation_get_workflow_status",
+            "description": "Get the current status of a workflow/automation including execution history, scheduling information, and success rate. Use this when user asks 'how is my workflow doing?', 'show me the status', 'is it running?', or 'when did it last run?'.",
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "Workflow slug to check status for (e.g., 'workflow-1737052800')"
+                    }
+                },
+                "required": [
+                    "slug"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Complete status information including workflow metadata (title, status, schedule), execution stats (total runs, success rate, currently running), and last execution details (time, duration, status, error if failed). Also includes next run time if scheduled."
+            },
+            "examples": [
+                {
+                    "description": "Check status of email automation",
+                    "parameters": {
+                        "slug": "workflow-email-to-sheets"
+                    }
+                }
+            ]
         }
     ]
 }

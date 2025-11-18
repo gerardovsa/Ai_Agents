@@ -131,9 +131,12 @@
     <!-- Action handlers for thread operations (Phase 4: Action Handler Extraction) -->
     <script src="external/modules/thread-cards/thread-card-actions.js"></script>
 
-    <!-- ==================== SYNERGY CARD RENDERER MODULE ==================== -->
-    <!-- Renders Synergy session cards in sidebar and dashboard views -->
-    <script src="external/modules/synergy-card-renderer.js"></script>
+    <!-- ==================== SYNERGY MODULE (Nov 2025) ==================== -->
+    <!-- Synergy session management with milestone-based task hierarchy -->
+    <script src="external/modules/synergy/synergy-card-renderer.js"></script>
+    <script src="external/modules/synergy/synergy-milestone-renderer.js"></script>
+    <script src="external/modules/synergy/synergy-milestone-interactions.js"></script>
+    <link rel="stylesheet" href="external/modules/synergy/synergy-milestone-styles.css">
 
     <style>
         /* ==================== ROOT VARIABLES ==================== */
@@ -2890,117 +2893,10 @@
             border-color: #3b82f6;
         }
 
-        .synergy-card-collapsed {
-            display: none;
-            padding: var(--space-3);
-            border-top: 1px solid var(--border-default);
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .synergy-session-item.expanded .synergy-card-collapsed {
-            display: block;
-            max-height: calc(100vh - 250px);
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        .synergy-card-collapsed::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .synergy-card-collapsed::-webkit-scrollbar-thumb {
-            background: var(--border-default);
-            border-radius: 3px;
-        }
-
-        .synergy-card-section {
-            margin-bottom: var(--space-3);
-        }
-
-        .synergy-card-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .synergy-card-section-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: var(--space-2);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .synergy-card-description {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-            margin-bottom: var(--space-3);
-            padding: var(--space-2);
-            background: var(--bg-secondary);
-            border-radius: 6px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .synergy-card-description::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .synergy-card-description::-webkit-scrollbar-thumb {
-            background: var(--border-default);
-            border-radius: 3px;
-        }
-
-        .synergy-card-description p {
-            margin: 0 0 8px 0;
-        }
-
-        .synergy-card-description p:last-child {
-            margin-bottom: 0;
-        }
-
-        .synergy-card-description strong {
-            color: var(--text-primary);
-        }
-
-        .synergy-card-description ul,
-        .synergy-card-description ol {
-            margin: 8px 0;
-            padding-left: 20px;
-        }
-
-        .synergy-card-description li {
-            margin: 4px 0;
-        }
-
-        .synergy-expand-btn {
-            width: 100%;
-            padding: 10px;
-            background: var(--bg-secondary);
-            border: 1px dashed var(--border-default);
-            border-radius: 6px;
-            color: var(--accent-primary);
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-            margin-top: var(--space-2);
-        }
-
-        .synergy-expand-btn:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-            border-style: solid;
-        }
+        /* ==================== SYNERGY CARD STYLES ==================== */
+        /* MOVED TO: UI/external/modules/synergy/synergy-milestone-styles.css (Nov 2025) */
+        /* All .synergy-card-* and milestone-related CSS is now in the external module */
+        /* See: SYNERGY_MODULE_MIGRATION_COMPLETE.md for details */
 
         .ai-chat-header-row {
             display: flex;
@@ -12895,6 +12791,77 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Load Workflow Modal -->
+                    <div class="workflow-modal-overlay" id="load-workflow-modal-overlay" style="display: none;">
+                        <div class="workflow-modal" style="max-width: 900px; width: 90vw;">
+                            <div class="workflow-modal-header">
+                                <div class="workflow-modal-title">
+                                    <i class="fas fa-folder-open"></i>
+                                    <span>Load Workflow</span>
+                                </div>
+                                <button class="workflow-modal-close" id="close-load-workflow-modal">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="workflow-modal-body">
+                                <!-- Search and Filters -->
+                                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                                    <div style="flex: 1;">
+                                        <input type="text" class="workflow-form-input" id="workflow-search-input"
+                                            placeholder="Search workflows by title, slug, or description...">
+                                    </div>
+                                    <select class="workflow-form-select" id="workflow-filter-category"
+                                        style="width: 200px;">
+                                        <option value="">All Categories</option>
+                                        <option value="sales">Sales</option>
+                                        <option value="marketing">Marketing</option>
+                                        <option value="operations">Operations</option>
+                                        <option value="finance">Finance</option>
+                                        <option value="hr">Human Resources</option>
+                                        <option value="it">IT & Tech</option>
+                                        <option value="customer_service">Customer Service</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    <select class="workflow-form-select" id="workflow-filter-status"
+                                        style="width: 150px;">
+                                        <option value="">All Status</option>
+                                        <option value="draft">Draft</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+
+                                <!-- Workflow List -->
+                                <div id="workflow-load-list"
+                                    style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
+                                    <!-- Loading state -->
+                                    <div id="workflow-load-loading"
+                                        style="padding: 60px; text-align: center; color: var(--text-secondary);">
+                                        <i class="fas fa-spinner fa-spin"
+                                            style="font-size: 32px; margin-bottom: 12px;"></i>
+                                        <div>Loading workflows...</div>
+                                    </div>
+
+                                    <!-- Empty state -->
+                                    <div id="workflow-load-empty"
+                                        style="display: none; padding: 60px; text-align: center; color: var(--text-muted);">
+                                        <i class="fas fa-inbox"
+                                            style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                                        <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">No Workflows
+                                            Found</div>
+                                        <div style="font-size: 13px;">Create your first workflow using the "New" button
+                                        </div>
+                                    </div>
+
+                                    <!-- Workflow items will be inserted here -->
+                                </div>
+                            </div>
+                            <div class="workflow-modal-footer">
+                                <button class="workflow-modal-btn" id="cancel-load-workflow-btn">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- ==================== MULTI-AGENT TAB (NATO AI COLUMNS) ==================== -->
@@ -22318,7 +22285,7 @@
                 // CRITICAL: Always sync session_id with thread.id when loading thread
                 this.sessions[agentId] = thread.id;  // ✅ Use thread_slug as session_id
                 console.log(`[LOAD] Agent ${agentId} session_id synced to thread_slug: ${thread.id}`);
-                
+
                 // Assign thread to this agent in backend ONLY if location changed
                 // During restoration, skip this call (thread.location already correct from database)
                 const expectedLocation = `agent-${agentId}`;
@@ -23638,7 +23605,7 @@
                 // 🔧 CRITICAL THREAD ISOLATION FIX (Nov 19, 2025):
                 // Get current thread for this agent FIRST
                 const currentThread = ThreadManager.getThreadByAgent(getAgentName(agentId));
-                
+
                 if (!currentThread) {
                     console.error(`[sendAgentMessage] No thread loaded for agent ${agentId}`);
                     updateAgentStatus(agentId, 'error', 'No thread loaded');
@@ -28162,7 +28129,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         body: JSON.stringify({
                             user_id: (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1,
                             thread_id: thread.id,
-                            title: thread.title,
+                            name: thread.title || thread.name || 'Untitled Thread',  // CRITICAL: Backend expects 'name' field (see sessions.threads schema)
                             messages: thread.messages || [],
                             agent: thread.agent || 'main',
                             location: location,  // NEW: Include Prime/Agent location
@@ -29787,8 +29754,20 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         }
                     }
 
-                    // Truncate title if too long
-                    const threadTitle = thread.title || 'Untitled';
+                    // Get title from MultiAgent.loadedThreads (source of truth) or fallback to thread object
+                    let threadTitle = thread.title || 'Untitled';
+
+                    // Check if this thread is loaded in any agent - use that title (always correct)
+                    if (typeof MultiAgent !== 'undefined' && MultiAgent.loadedThreads) {
+                        for (const agentId in MultiAgent.loadedThreads) {
+                            const loadedThread = MultiAgent.loadedThreads[agentId];
+                            if (loadedThread && loadedThread.threadId === thread.id && loadedThread.threadTitle) {
+                                threadTitle = loadedThread.threadTitle;
+                                break;
+                            }
+                        }
+                    }
+
                     const truncatedTitle = threadTitle.length > 35 ? threadTitle.substring(0, 32) + '...' : threadTitle;
                     const truncatedThreadId = thread.id.length > 20 ? thread.id.substring(0, 17) + '...' : thread.id;
                     const truncatedSynergyId = thread.synergy_card_id ?
@@ -29858,7 +29837,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                     
                                                     <!-- ROW 2: Title (Full Width) -->
                                                     <div class="thread-item-title-row">
-                                                        <span class="thread-item-title" id="thread-title-${thread.id}" title="${thread.title || 'Untitled'}">${truncatedTitle || thread.title || 'Untitled'}</span>
+                                                        <span class="thread-item-title" id="thread-title-${thread.id}" title="${threadTitle}">${truncatedTitle}</span>
                                                     </div>
                                                     
                                                     <!-- ROW 3: Meta Info + Thread Slug -->
@@ -44635,10 +44614,12 @@ AND tablename = 'synergy_sessions';`;
             console.log(`🌍Š [Universal Stream] Starting for agent ${agentId}, container: ${containerId}`);
 
             // CRITICAL FIX: Use thread_slug for stream isolation
-            const currentThread = ThreadManager.getThreadByAgent(agentId === 1 || agentId === '1' ? 'prime' : `Agent ${agentId}`);
+            // Use getAgentName() for consistent agent name format (e.g., "Alpha-8", not "Agent 8")
+            const agentName = getAgentName(agentId);
+            const currentThread = ThreadManager.getThreadByAgent(agentName);
             const threadSlug = currentThread ? currentThread.id : sessionId;
             const streamUrl = `${API_BASE_URL}/api/agent/stream/${agentId}?thread_slug=${threadSlug}`;
-            console.log(`[Universal Stream] Connecting with thread_slug: ${threadSlug}`);
+            console.log(`[Universal Stream] Agent: ${agentName}, Thread: ${threadSlug}, Container: ${containerId}`);
             const response = await fetch(streamUrl);
 
             if (!response.ok) {

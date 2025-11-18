@@ -1627,3 +1627,71 @@
     display: flex;
     gap: var(--space-2);
 }
+
+/* ==================== LOADED SHAPE STYLES (FOR WORKFLOW LOADING) ==================== */
+
+/* Shape Header - Icon + Label */
+.shape-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    width: 100%;
+}
+
+.shape-header i {
+    font-size: 18px;
+    opacity: 0.9;
+}
+
+/* Shape Description - Below header */
+.shape-description {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.4;
+    padding: 4px 8px;
+    opacity: 0.8;
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+/* Shape Delete Button - Top right corner */
+.shape-delete-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background: rgba(239, 68, 68, 0.9);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 5;
+}
+
+.automation-shape:hover .shape-delete-btn {
+    opacity: 1;
+}
+
+.shape-delete-btn:hover {
+    background: rgba(239, 68, 68, 1);
+    transform: scale(1.1);
+}
+
+.shape-delete-btn i {
+    font-size: 12px;
+}

@@ -694,16 +694,16 @@ def create_session():
 
 @synergy_bp.route('/<session_id>', methods=['GET'])
 def get_session(session_id):
-    """Get session by ID"""
+    """Get session by ID - includes milestones if uses_milestones=TRUE"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute('SELECT * FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
         row = cursor.fetchone()
-        conn.close()
         
         if not row:
+            conn.close()
             return jsonify({
                 'success': False,
                 'error': 'Session not found'
@@ -721,12 +721,93 @@ def get_session(session_id):
                 except:
                     session[field] = []
         
+        # If session uses milestones, fetch milestone data
+        if session.get('uses_milestones'):
+            cursor.execute('''
+                SELECT milestone_id, milestone_number, milestone_name, description,
+                       completed, due_date, priority, estimated_hours, actual_hours,
+                       created_at, completed_at
+                FROM synergy_sessions.milestones 
+                WHERE session_id = %s
+                ORDER BY milestone_number
+            ''', (session_id,))
+            
+            milestones = []
+            for m_row in cursor.fetchall():
+                milestone = {
+                    'milestone_id': m_row[0],
+                    'milestone_number': m_row[1],
+                    'milestone_name': m_row[2],
+                    'description': m_row[3],
+                    'completed': m_row[4],
+                    'due_date': m_row[5],
+                    'priority': m_row[6],
+                    'estimated_hours': m_row[7],
+                    'actual_hours': m_row[8],
+                    'created_at': m_row[9],
+                    'completed_at': m_row[10],
+                    'tasks': []
+                }
+                
+                # Get tasks for this milestone
+                cursor.execute('''
+                    SELECT task_id, task, completed, blocked, blocker_reason, 
+                           blocker_type, task_order, created_at, completed_at, blocked_since
+                    FROM synergy_sessions.tasks 
+                    WHERE milestone_id = %s
+                    ORDER BY task_order
+                ''', (milestone['milestone_id'],))
+                
+                for t_row in cursor.fetchall():
+                    task = {
+                        'task_id': t_row[0],
+                        'task': t_row[1],
+                        'completed': t_row[2],
+                        'blocked': t_row[3],
+                        'blocker_reason': t_row[4],
+                        'blocker_type': t_row[5],
+                        'task_order': t_row[6],
+                        'created_at': t_row[7],
+                        'completed_at': t_row[8],
+                        'blocked_since': t_row[9],
+                        'subtasks': []
+                    }
+                    
+                    # Get subtasks for this task
+                    cursor.execute('''
+                        SELECT subtask_id, task, completed, subtask_order, created_at, completed_at
+                        FROM synergy_sessions.subtasks 
+                        WHERE task_id = %s
+                        ORDER BY subtask_order
+                    ''', (task['task_id'],))
+                    
+                    for s_row in cursor.fetchall():
+                        subtask = {
+                            'subtask_id': s_row[0],
+                            'task': s_row[1],
+                            'completed': s_row[2],
+                            'subtask_order': s_row[3],
+                            'created_at': s_row[4],
+                            'completed_at': s_row[5]
+                        }
+                        task['subtasks'].append(subtask)
+                    
+                    milestone['tasks'].append(task)
+                
+                milestones.append(milestone)
+            
+            session['milestones'] = milestones
+        
+        conn.close()
+        
         return jsonify({
             'success': True,
             'session': session
         })
     
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -1724,4 +1805,1070 @@ def export_internal_doc(doc_id, format):
         print(f"[INTERNAL DOC ERROR] Failed to export {doc_id} as {format}: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== MILESTONE-BASED TASK MANAGEMENT ====================
+# New endpoints for milestone → task → subtask hierarchy (Nov 2025)
+# Replaces legacy next_steps + checklist structure
+
+@synergy_bp.route('/milestone/create', methods=['POST'])
+def create_milestone():
+    """
+    Create new milestone with tasks in one call
+    
+    Request Body:
+    {
+        "session_id": "sess_abc123",
+        "milestone_name": "Database Setup",
+        "description": "Create customer database and import contacts",
+        "tasks": [
+            "Create Google Sheet",
+            {
+                "task": "Import existing contacts",
+                "subtasks": ["Export from old CRM", "Clean data", "Import"]
+            }
+        ],
+        "due_date": "2025-11-25",
+        "priority": "high",
+        "estimated_hours": 3
+    }
+    
+    Response:
+    {
+        "success": true,
+        "milestone_id": "ms_a1b2c3d4",
+        "milestone_number": 1,
+        "tasks_created": 2,
+        "subtasks_created": 3
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data.get('session_id'):
+            return jsonify({'success': False, 'error': 'session_id required'}), 400
+        if not data.get('milestone_name'):
+            return jsonify({'success': False, 'error': 'milestone_name required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if session exists
+        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (data['session_id'],))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Get next milestone number
+        cursor.execute('''
+            SELECT COALESCE(MAX(milestone_number), 0) + 1 
+            FROM synergy_sessions.milestones 
+            WHERE session_id = %s
+        ''', (data['session_id'],))
+        milestone_number = cursor.fetchone()[0]
+        
+        # Generate milestone ID
+        milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Insert milestone
+        cursor.execute('''
+            INSERT INTO synergy_sessions.milestones (
+                milestone_id, session_id, milestone_number, milestone_name,
+                description, completed, due_date, priority, estimated_hours,
+                created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            milestone_id,
+            data['session_id'],
+            milestone_number,
+            data['milestone_name'],
+            data.get('description'),
+            False,
+            data.get('due_date'),
+            data.get('priority', 'medium'),
+            data.get('estimated_hours'),
+            datetime.now().isoformat(),
+            datetime.now().isoformat()
+        ))
+        
+        # Insert tasks
+        tasks_created = 0
+        subtasks_created = 0
+        tasks_list = data.get('tasks', [])
+        
+        for task_order, task_item in enumerate(tasks_list, start=1):
+            task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}"
+            
+            # Handle both string and object formats
+            if isinstance(task_item, str):
+                task_text = task_item
+                subtasks = []
+            else:
+                task_text = task_item.get('task', '')
+                subtasks = task_item.get('subtasks', [])
+            
+            # Insert task
+            cursor.execute('''
+                INSERT INTO synergy_sessions.tasks (
+                    task_id, milestone_id, task, completed, task_order, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (task_id, milestone_id, task_text, False, task_order, datetime.now().isoformat()))
+            tasks_created += 1
+            
+            # Insert subtasks
+            for subtask_order, subtask_text in enumerate(subtasks, start=1):
+                subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{task_order}_{subtask_order}"
+                cursor.execute('''
+                    INSERT INTO synergy_sessions.subtasks (
+                        subtask_id, task_id, task, completed, subtask_order, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                ''', (subtask_id, task_id, subtask_text, False, subtask_order, datetime.now().isoformat()))
+                subtasks_created += 1
+        
+        # Mark session as using milestones
+        cursor.execute('''
+            UPDATE synergy_sessions.synergy_sessions 
+            SET uses_milestones = TRUE, last_active = %s
+            WHERE session_id = %s
+        ''', (datetime.now().isoformat(), data['session_id']))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'milestone_number': milestone_number,
+            'tasks_created': tasks_created,
+            'subtasks_created': subtasks_created
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to create milestone: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>/task/create', methods=['POST'])
+def create_milestone_task(milestone_id):
+    """
+    Add task to existing milestone
+    
+    Request Body:
+    {
+        "task": "Set up database backups",
+        "subtasks": ["Configure automated backups", "Test restore procedure"]
+    }
+    
+    Response:
+    {
+        "success": true,
+        "task_id": "task_x1y2z3",
+        "subtasks_created": 2
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data.get('task'):
+            return jsonify({'success': False, 'error': 'task text required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if milestone exists
+        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Get next task order
+        cursor.execute('''
+            SELECT COALESCE(MAX(task_order), 0) + 1 
+            FROM synergy_sessions.tasks 
+            WHERE milestone_id = %s
+        ''', (milestone_id,))
+        task_order = cursor.fetchone()[0]
+        
+        # Generate task ID
+        task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Insert task
+        cursor.execute('''
+            INSERT INTO synergy_sessions.tasks (
+                task_id, milestone_id, task, completed, task_order, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (task_id, milestone_id, data['task'], False, task_order, datetime.now().isoformat()))
+        
+        # Insert subtasks
+        subtasks_created = 0
+        subtasks = data.get('subtasks', [])
+        for subtask_order, subtask_text in enumerate(subtasks, start=1):
+            subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}_{subtask_order}"
+            cursor.execute('''
+                INSERT INTO synergy_sessions.subtasks (
+                    subtask_id, task_id, task, completed, subtask_order, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (subtask_id, task_id, subtask_text, False, subtask_order, datetime.now().isoformat()))
+            subtasks_created += 1
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'subtasks_created': subtasks_created
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to create task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/task/<task_id>/subtask/create', methods=['POST'])
+def create_task_subtask(task_id):
+    """
+    Add subtask to existing task
+    
+    Request Body:
+    {
+        "subtask": "Validate data integrity"
+    }
+    
+    Response:
+    {
+        "success": true,
+        "subtask_id": "sub_p1q2r3"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data.get('subtask'):
+            return jsonify({'success': False, 'error': 'subtask text required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if task exists
+        cursor.execute('SELECT task_id FROM synergy_sessions.tasks WHERE task_id = %s', (task_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        # Get next subtask order
+        cursor.execute('''
+            SELECT COALESCE(MAX(subtask_order), 0) + 1 
+            FROM synergy_sessions.subtasks 
+            WHERE task_id = %s
+        ''', (task_id,))
+        subtask_order = cursor.fetchone()[0]
+        
+        # Generate subtask ID
+        subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Insert subtask
+        cursor.execute('''
+            INSERT INTO synergy_sessions.subtasks (
+                subtask_id, task_id, task, completed, subtask_order, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (subtask_id, task_id, data['subtask'], False, subtask_order, datetime.now().isoformat()))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to create subtask: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/subtask/<subtask_id>/complete', methods=['PATCH'])
+def complete_subtask(subtask_id):
+    """
+    Mark subtask complete (auto-checks if parent task should complete)
+    
+    Request Body:
+    {
+        "completed": true
+    }
+    
+    Response:
+    {
+        "success": true,
+        "subtask_id": "sub_p1q2r3",
+        "completed": true,
+        "task_auto_completed": false,
+        "milestone_auto_completed": false
+    }
+    """
+    try:
+        data = request.get_json()
+        completed = data.get('completed', True)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get subtask info
+        cursor.execute('''
+            SELECT s.task_id, t.milestone_id 
+            FROM synergy_sessions.subtasks s
+            JOIN synergy_sessions.tasks t ON s.task_id = t.task_id
+            WHERE s.subtask_id = %s
+        ''', (subtask_id,))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Subtask not found'}), 404
+        
+        task_id = row[0]
+        milestone_id = row[1]
+        
+        # Update subtask
+        cursor.execute('''
+            UPDATE synergy_sessions.subtasks 
+            SET completed = %s, completed_at = %s
+            WHERE subtask_id = %s
+        ''', (completed, datetime.now().isoformat() if completed else None, subtask_id))
+        
+        # Check if all subtasks in this task are completed
+        task_auto_completed = False
+        milestone_auto_completed = False
+        
+        if completed:
+            cursor.execute('''
+                SELECT COUNT(*) FROM synergy_sessions.subtasks 
+                WHERE task_id = %s AND NOT completed
+            ''', (task_id,))
+            remaining_subtasks = cursor.fetchone()[0]
+            
+            if remaining_subtasks == 0:
+                # All subtasks done - auto-complete task
+                cursor.execute('''
+                    UPDATE synergy_sessions.tasks 
+                    SET completed = TRUE, completed_at = %s
+                    WHERE task_id = %s
+                ''', (datetime.now().isoformat(), task_id))
+                task_auto_completed = True
+                
+                # Check if all tasks in milestone are completed
+                cursor.execute('''
+                    SELECT COUNT(*) FROM synergy_sessions.tasks 
+                    WHERE milestone_id = %s AND NOT completed
+                ''', (milestone_id,))
+                remaining_tasks = cursor.fetchone()[0]
+                
+                if remaining_tasks == 0:
+                    # All tasks done - auto-complete milestone
+                    cursor.execute('''
+                        UPDATE synergy_sessions.milestones 
+                        SET completed = TRUE, completed_at = %s
+                        WHERE milestone_id = %s
+                    ''', (datetime.now().isoformat(), milestone_id))
+                    milestone_auto_completed = True
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id,
+            'completed': completed,
+            'task_auto_completed': task_auto_completed,
+            'milestone_auto_completed': milestone_auto_completed
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to complete subtask: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/task/<task_id>/complete', methods=['PATCH'])
+def complete_task(task_id):
+    """
+    Mark task complete (auto-completes all subtasks)
+    
+    Request Body:
+    {
+        "completed": true
+    }
+    
+    Response:
+    {
+        "success": true,
+        "task_id": "task_x1y2z3",
+        "completed": true,
+        "milestone_completed": false,
+        "auto_completed_subtasks": 3
+    }
+    """
+    try:
+        data = request.get_json()
+        completed = data.get('completed', True)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get task info
+        cursor.execute('''
+            SELECT milestone_id FROM synergy_sessions.tasks WHERE task_id = %s
+        ''', (task_id,))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        milestone_id = row[0]
+        
+        # Update task
+        cursor.execute('''
+            UPDATE synergy_sessions.tasks 
+            SET completed = %s, completed_at = %s
+            WHERE task_id = %s
+        ''', (completed, datetime.now().isoformat() if completed else None, task_id))
+        
+        # Auto-complete all subtasks
+        auto_completed_subtasks = 0
+        if completed:
+            cursor.execute('''
+                UPDATE synergy_sessions.subtasks 
+                SET completed = TRUE, completed_at = %s
+                WHERE task_id = %s AND NOT completed
+            ''', (datetime.now().isoformat(), task_id))
+            auto_completed_subtasks = cursor.rowcount
+        
+        # Check if all tasks in milestone are completed
+        milestone_completed = False
+        if completed:
+            cursor.execute('''
+                SELECT COUNT(*) FROM synergy_sessions.tasks 
+                WHERE milestone_id = %s AND NOT completed
+            ''', (milestone_id,))
+            remaining_tasks = cursor.fetchone()[0]
+            
+            if remaining_tasks == 0:
+                # All tasks done - auto-complete milestone
+                cursor.execute('''
+                    UPDATE synergy_sessions.milestones 
+                    SET completed = TRUE, completed_at = %s
+                    WHERE milestone_id = %s
+                ''', (datetime.now().isoformat(), milestone_id))
+                milestone_completed = True
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'completed': completed,
+            'milestone_completed': milestone_completed,
+            'auto_completed_subtasks': auto_completed_subtasks
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to complete task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>/complete', methods=['PATCH'])
+def complete_milestone(milestone_id):
+    """
+    Mark entire milestone complete (completes all tasks/subtasks)
+    
+    Request Body:
+    {
+        "completed": true
+    }
+    
+    Response:
+    {
+        "success": true,
+        "milestone_id": "ms_a1b2c3d4",
+        "completed": true,
+        "tasks_completed": 5,
+        "subtasks_completed": 12
+    }
+    """
+    try:
+        data = request.get_json()
+        completed = data.get('completed', True)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check milestone exists
+        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Update milestone
+        cursor.execute('''
+            UPDATE synergy_sessions.milestones 
+            SET completed = %s, completed_at = %s
+            WHERE milestone_id = %s
+        ''', (completed, datetime.now().isoformat() if completed else None, milestone_id))
+        
+        # Auto-complete all tasks
+        tasks_completed = 0
+        subtasks_completed = 0
+        
+        if completed:
+            # Complete all tasks in milestone
+            cursor.execute('''
+                UPDATE synergy_sessions.tasks 
+                SET completed = TRUE, completed_at = %s
+                WHERE milestone_id = %s AND NOT completed
+            ''', (datetime.now().isoformat(), milestone_id))
+            tasks_completed = cursor.rowcount
+            
+            # Complete all subtasks in milestone
+            cursor.execute('''
+                UPDATE synergy_sessions.subtasks s
+                SET completed = TRUE, completed_at = %s
+                FROM synergy_sessions.tasks t
+                WHERE s.task_id = t.task_id 
+                  AND t.milestone_id = %s 
+                  AND NOT s.completed
+            ''', (datetime.now().isoformat(), milestone_id))
+            subtasks_completed = cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'completed': completed,
+            'tasks_completed': tasks_completed,
+            'subtasks_completed': subtasks_completed
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to complete milestone: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>/progress', methods=['GET'])
+def get_milestone_progress(milestone_id):
+    """
+    Get completion percentage and remaining items
+    
+    Response:
+    {
+        "milestone_id": "ms_a1b2c3d4",
+        "milestone_name": "Database Setup",
+        "progress_percentage": 66.7,
+        "tasks_completed": 2,
+        "tasks_total": 3,
+        "subtasks_completed": 5,
+        "subtasks_total": 8,
+        "remaining_tasks": ["Set up validation"],
+        "blocked_tasks": [],
+        "due_date": "2025-11-25",
+        "on_track": true
+    }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get milestone info
+        cursor.execute('''
+            SELECT milestone_name, due_date, completed 
+            FROM synergy_sessions.milestones 
+            WHERE milestone_id = %s
+        ''', (milestone_id,))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        milestone_name = row[0]
+        due_date = row[1]
+        completed = row[2]
+        
+        # Get task statistics
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total_tasks,
+                SUM(CASE WHEN completed THEN 1 ELSE 0 END) as completed_tasks,
+                SUM(CASE WHEN blocked THEN 1 ELSE 0 END) as blocked_tasks
+            FROM synergy_sessions.tasks 
+            WHERE milestone_id = %s
+        ''', (milestone_id,))
+        task_stats = cursor.fetchone()
+        tasks_total = task_stats[0]
+        tasks_completed = task_stats[1]
+        blocked_tasks_count = task_stats[2]
+        
+        # Get subtask statistics
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total_subtasks,
+                SUM(CASE WHEN s.completed THEN 1 ELSE 0 END) as completed_subtasks
+            FROM synergy_sessions.subtasks s
+            JOIN synergy_sessions.tasks t ON s.task_id = t.task_id
+            WHERE t.milestone_id = %s
+        ''', (milestone_id,))
+        subtask_stats = cursor.fetchone()
+        subtasks_total = subtask_stats[0]
+        subtasks_completed = subtask_stats[1]
+        
+        # Calculate progress percentage
+        total_items = tasks_total + subtasks_total
+        completed_items = tasks_completed + subtasks_completed
+        progress_percentage = round((completed_items / total_items * 100), 1) if total_items > 0 else 0
+        
+        # Get remaining tasks
+        cursor.execute('''
+            SELECT task FROM synergy_sessions.tasks 
+            WHERE milestone_id = %s AND NOT completed
+            ORDER BY task_order
+        ''', (milestone_id,))
+        remaining_tasks = [row[0] for row in cursor.fetchall()]
+        
+        # Get blocked tasks
+        cursor.execute('''
+            SELECT task, blocker_reason, blocker_type
+            FROM synergy_sessions.tasks 
+            WHERE milestone_id = %s AND blocked
+        ''', (milestone_id,))
+        blocked_tasks = [{'task': row[0], 'reason': row[1], 'type': row[2]} for row in cursor.fetchall()]
+        
+        conn.close()
+        
+        # Determine if on track (simple heuristic)
+        on_track = True
+        if due_date and not completed:
+            from datetime import datetime as dt
+            due = dt.fromisoformat(due_date.replace('Z', '+00:00'))
+            now = dt.now(due.tzinfo) if due.tzinfo else dt.now()
+            if now > due:
+                on_track = False  # Past due date
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'milestone_name': milestone_name,
+            'progress_percentage': progress_percentage,
+            'tasks_completed': tasks_completed,
+            'tasks_total': tasks_total,
+            'subtasks_completed': subtasks_completed,
+            'subtasks_total': subtasks_total,
+            'remaining_tasks': remaining_tasks,
+            'blocked_tasks': blocked_tasks,
+            'blocked_tasks_count': blocked_tasks_count,
+            'due_date': due_date,
+            'on_track': on_track
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to get progress: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/milestones', methods=['GET'])
+def get_session_milestones(session_id):
+    """
+    Get all milestones for session (with tasks and subtasks)
+    
+    Response:
+    {
+        "success": true,
+        "session_id": "sess_abc123",
+        "milestones": [
+            {
+                "milestone_id": "ms_001",
+                "milestone_number": 1,
+                "milestone_name": "Database Setup",
+                "description": "...",
+                "completed": false,
+                "progress_percentage": 66.7,
+                "tasks": [...]
+            }
+        ]
+    }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check session exists
+        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        # Get all milestones
+        cursor.execute('''
+            SELECT milestone_id, milestone_number, milestone_name, description,
+                   completed, due_date, priority, estimated_hours, actual_hours,
+                   created_at, completed_at
+            FROM synergy_sessions.milestones 
+            WHERE session_id = %s
+            ORDER BY milestone_number
+        ''', (session_id,))
+        
+        milestones = []
+        for m_row in cursor.fetchall():
+            milestone = {
+                'milestone_id': m_row[0],
+                'milestone_number': m_row[1],
+                'milestone_name': m_row[2],
+                'description': m_row[3],
+                'completed': m_row[4],
+                'due_date': m_row[5],
+                'priority': m_row[6],
+                'estimated_hours': m_row[7],
+                'actual_hours': m_row[8],
+                'created_at': m_row[9],
+                'completed_at': m_row[10],
+                'tasks': []
+            }
+            
+            # Get tasks for this milestone
+            cursor.execute('''
+                SELECT task_id, task, completed, blocked, blocker_reason, 
+                       blocker_type, task_order, created_at, completed_at
+                FROM synergy_sessions.tasks 
+                WHERE milestone_id = %s
+                ORDER BY task_order
+            ''', (milestone['milestone_id'],))
+            
+            for t_row in cursor.fetchall():
+                task = {
+                    'task_id': t_row[0],
+                    'task': t_row[1],
+                    'completed': t_row[2],
+                    'blocked': t_row[3],
+                    'blocker_reason': t_row[4],
+                    'blocker_type': t_row[5],
+                    'task_order': t_row[6],
+                    'created_at': t_row[7],
+                    'completed_at': t_row[8],
+                    'subtasks': []
+                }
+                
+                # Get subtasks for this task
+                cursor.execute('''
+                    SELECT subtask_id, task, completed, subtask_order, created_at, completed_at
+                    FROM synergy_sessions.subtasks 
+                    WHERE task_id = %s
+                    ORDER BY subtask_order
+                ''', (task['task_id'],))
+                
+                for s_row in cursor.fetchall():
+                    subtask = {
+                        'subtask_id': s_row[0],
+                        'task': s_row[1],
+                        'completed': s_row[2],
+                        'subtask_order': s_row[3],
+                        'created_at': s_row[4],
+                        'completed_at': s_row[5]
+                    }
+                    task['subtasks'].append(subtask)
+                
+                milestone['tasks'].append(task)
+            
+            # Calculate progress percentage
+            total_tasks = len(milestone['tasks'])
+            completed_tasks = sum(1 for t in milestone['tasks'] if t['completed'])
+            total_subtasks = sum(len(t['subtasks']) for t in milestone['tasks'])
+            completed_subtasks = sum(sum(1 for s in t['subtasks'] if s['completed']) for t in milestone['tasks'])
+            
+            total_items = total_tasks + total_subtasks
+            completed_items = completed_tasks + completed_subtasks
+            milestone['progress_percentage'] = round((completed_items / total_items * 100), 1) if total_items > 0 else 0
+            
+            milestones.append(milestone)
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'milestones': milestones
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to get milestones: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/task/<task_id>/block', methods=['PATCH'])
+def block_task(task_id):
+    """
+    Mark task as blocked with reason
+    
+    Request Body:
+    {
+        "blocked": true,
+        "blocker_reason": "Waiting for client brand guidelines",
+        "blocker_type": "external"
+    }
+    
+    Response:
+    {
+        "success": true,
+        "task_id": "task_x1y2z3",
+        "blocked": true
+    }
+    """
+    try:
+        data = request.get_json()
+        blocked = data.get('blocked', True)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check task exists
+        cursor.execute('SELECT task_id FROM synergy_sessions.tasks WHERE task_id = %s', (task_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        # Update task
+        cursor.execute('''
+            UPDATE synergy_sessions.tasks 
+            SET blocked = %s, blocker_reason = %s, blocker_type = %s, blocked_since = %s
+            WHERE task_id = %s
+        ''', (
+            blocked,
+            data.get('blocker_reason') if blocked else None,
+            data.get('blocker_type') if blocked else None,
+            datetime.now().isoformat() if blocked else None,
+            task_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'blocked': blocked
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to block task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>/documents', methods=['PATCH'])
+def update_milestone_documents(milestone_id):
+    """
+    Update milestone documents array
+    
+    Request Body:
+    {
+        "documents": [
+            {"id": "doc1", "name": "Requirements.pdf", "url": "https://...", "type": "pdf"},
+            {"id": "doc2", "name": "Design Mockups", "url": "https://...", "type": "internal"}
+        ]
+    }
+    
+    Response:
+    {"success": true, "milestone_id": "mile_xxx", "documents_count": 2}
+    """
+    try:
+        data = request.get_json()
+        documents = data.get('documents', [])
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check milestone exists
+        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Update documents
+        cursor.execute('''
+            UPDATE synergy_sessions.milestones 
+            SET documents = %s, updated_at = %s
+            WHERE milestone_id = %s
+        ''', (json.dumps(documents), datetime.now().isoformat(), milestone_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'documents_count': len(documents)
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to update documents: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>/links', methods=['PATCH'])
+def update_milestone_links(milestone_id):
+    """
+    Update milestone links array
+    
+    Request Body:
+    {
+        "links": [
+            {"id": "link1", "name": "API Documentation", "url": "https://..."},
+            {"id": "link2", "name": "GitHub Repo", "url": "https://..."}
+        ]
+    }
+    
+    Response:
+    {"success": true, "milestone_id": "mile_xxx", "links_count": 2}
+    """
+    try:
+        data = request.get_json()
+        links = data.get('links', [])
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check milestone exists
+        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Update links
+        cursor.execute('''
+            UPDATE synergy_sessions.milestones 
+            SET links = %s, updated_at = %s
+            WHERE milestone_id = %s
+        ''', (json.dumps(links), datetime.now().isoformat(), milestone_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'links_count': len(links)
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to update links: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>/update', methods=['PATCH'])
+def update_milestone_field(milestone_id):
+    """
+    Update any milestone field (inline editing support)
+    
+    Request Body:
+    {
+        "field": "milestone_name",
+        "value": "Updated Milestone Name"
+    }
+    
+    Supported fields:
+    - milestone_name
+    - description
+    - due_date
+    - estimated_hours
+    - blocker_reason
+    
+    Response:
+    {"success": true, "milestone_id": "mile_xxx", "field": "milestone_name", "value": "..."}
+    """
+    try:
+        data = request.get_json()
+        field = data.get('field')
+        value = data.get('value')
+        
+        # Whitelist allowed fields for security
+        allowed_fields = ['milestone_name', 'description', 'due_date', 'estimated_hours', 'blocker_reason']
+        if field not in allowed_fields:
+            return jsonify({'success': False, 'error': f'Field {field} not allowed'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check milestone exists
+        cursor.execute('SELECT milestone_id FROM synergy_sessions.milestones WHERE milestone_id = %s', (milestone_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        # Update field
+        cursor.execute(f'''
+            UPDATE synergy_sessions.milestones 
+            SET {field} = %s, updated_at = %s
+            WHERE milestone_id = %s
+        ''', (value, datetime.now().isoformat(), milestone_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'milestone_id': milestone_id,
+            'field': field,
+            'value': value
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to update milestone: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/milestone/<milestone_id>', methods=['GET'])
+def get_milestone(milestone_id):
+    """
+    Get milestone by ID with all details
+    
+    Response:
+    {
+        "success": true,
+        "milestone": {
+            "milestone_id": "mile_xxx",
+            "session_id": "syn_xxx",
+            "milestone_number": 1,
+            "milestone_name": "Setup Database",
+            "description": "...",
+            "documents": "[...]",
+            "links": "[...]",
+            ...
+        }
+    }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT * FROM synergy_sessions.milestones 
+            WHERE milestone_id = %s
+        ''', (milestone_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'success': False, 'error': 'Milestone not found'}), 404
+        
+        milestone = dict(zip([desc[0] for desc in cursor.description], row))
+        
+        return jsonify({
+            'success': True,
+            'milestone': milestone
+        })
+    
+    except Exception as e:
+        print(f"[MILESTONE ERROR] Failed to get milestone: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

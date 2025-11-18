@@ -52,6 +52,9 @@ class AutomationCanvas {
         this.isDirty = false;
         this.lastSaved = null;
 
+        // API configuration
+        this.apiBaseUrl = window.API_BASE_URL || 'http://localhost:5001';
+
         this.init();
     }
 
@@ -59,6 +62,15 @@ class AutomationCanvas {
         this.setupEventListeners();
         this.loadWorkflows();
         this.startAutoSave();
+    }
+
+    /**
+     * Get full API URL for a given endpoint
+     * @param {string} endpoint - API endpoint path (e.g., '/api/automation/list')
+     * @returns {string} Full URL
+     */
+    getApiUrl(endpoint) {
+        return `${this.apiBaseUrl}${endpoint}`;
     }
 
     startAutoSave() {
@@ -103,7 +115,7 @@ class AutomationCanvas {
                 execution_json: this.currentWorkflow.execution_json || { steps: [] }
             };
 
-            const response = await fetch('/api/automation/save', {
+            const response = await fetch(this.getApiUrl('/api/automation/save'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -595,6 +607,105 @@ class AutomationCanvas {
         }
     }
 
+    clearCanvas() {
+        // Clear all shapes from DOM
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        if (!canvas) return;
+
+        // Remove all shape elements
+        const shapeElements = canvas.querySelectorAll('[id^="shape-"]');
+        shapeElements.forEach(el => el.remove());
+
+        // Remove connections SVG
+        document.getElementById('connections-svg')?.remove();
+
+        console.log('[CANVAS] Cleared all shapes and connections');
+    }
+
+    renderAllShapes() {
+        // Render all shapes from this.shapes array onto the canvas
+        console.log(`[CANVAS] Rendering ${this.shapes.length} shapes`);
+
+        this.shapes.forEach(shape => {
+            // Use existing createShape logic but pass the shape data
+            const canvas = document.getElementById('automation-canvas-wrapper');
+            if (!canvas) return;
+
+            // Create shape element
+            const shapeEl = document.createElement('div');
+            shapeEl.className = 'automation-shape';
+            shapeEl.id = `shape-${shape.id}`;
+            shapeEl.style.left = `${shape.x}px`;
+            shapeEl.style.top = `${shape.y}px`;
+            shapeEl.style.width = `${shape.width || 200}px`;
+            shapeEl.style.height = `${shape.height || 80}px`;
+            shapeEl.style.background = shape.color || this.currentColor;
+            shapeEl.draggable = true;
+
+            // Set data attributes
+            shapeEl.dataset.shapeType = shape.type || 'rectangle';
+
+            // Add content based on type
+            const icon = this.getShapeIcon(shape.type);
+            const label = shape.label || shape.text || 'Untitled';
+            const description = shape.description || '';
+
+            shapeEl.innerHTML = `
+                <div class="shape-header">
+                    <i class="${icon}"></i>
+                    <span>${label}</span>
+                </div>
+                ${description ? `<div class="shape-description">${description}</div>` : ''}
+                <button class="shape-delete-btn" title="Delete shape">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            // Add event listeners
+            shapeEl.addEventListener('mousedown', (e) => {
+                if (!e.target.closest('.shape-delete-btn')) {
+                    this.startDragShape(e, shape);
+                }
+            });
+
+            shapeEl.addEventListener('click', (e) => {
+                if (!e.target.closest('.shape-delete-btn')) {
+                    this.selectShape(`shape-${shape.id}`);
+                }
+            });
+
+            const deleteBtn = shapeEl.querySelector('.shape-delete-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deleteShape(`shape-${shape.id}`);
+                });
+            }
+
+            canvas.appendChild(shapeEl);
+        });
+
+        console.log('[CANVAS] All shapes rendered');
+    }
+
+    getShapeIcon(type) {
+        // Return Font Awesome icon class for shape type
+        const iconMap = {
+            'trigger': 'fas fa-bolt',
+            'wait': 'fas fa-hand-paper',
+            'schedule': 'fas fa-calendar',
+            'end': 'fas fa-flag',
+            'database': 'fas fa-database',
+            'output': 'fas fa-file-export',
+            'tool': 'fas fa-cog',
+            'instructions': 'fas fa-info-circle',
+            'rectangle': 'fas fa-square',
+            'circle': 'fas fa-circle',
+            'diamond': 'fas fa-diamond'
+        };
+        return iconMap[type] || 'fas fa-square';
+    }
+
     renderConnections() {
         // Remove existing SVG
         document.getElementById('connections-svg')?.remove();
@@ -975,7 +1086,7 @@ class AutomationCanvas {
 
     async loadWorkflows() {
         try {
-            const response = await fetch('/api/automation/list', {
+            const response = await fetch(this.getApiUrl('/api/automation/list'), {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
                 }
@@ -1144,7 +1255,7 @@ class AutomationCanvas {
 
     async loadWorkflow(workflowId) {
         try {
-            const response = await fetch(`/api/automation/${workflowId}`, {
+            const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
                 }
@@ -1194,7 +1305,7 @@ class AutomationCanvas {
             }
 
             // Workflow not in list, fetch from backend by slug
-            const response = await fetch(`/api/automation/list?slug=${encodeURIComponent(slug)}`, {
+            const response = await fetch(this.getApiUrl(`/api/automation/list?slug=${encodeURIComponent(slug)}`), {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
                 }
@@ -1271,7 +1382,7 @@ class AutomationCanvas {
         };
 
         try {
-            const response = await fetch('/api/automation/save', {
+            const response = await fetch(this.getApiUrl('/api/automation/save'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1303,7 +1414,7 @@ class AutomationCanvas {
         if (!confirm('Create a copy of this workflow?')) return;
 
         try {
-            const response = await fetch(`/api/automation/${workflowId}`, {
+            const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
                 }
@@ -1328,7 +1439,7 @@ class AutomationCanvas {
             };
 
             // Save duplicate
-            const saveResponse = await fetch('/api/automation/save', {
+            const saveResponse = await fetch(this.getApiUrl('/api/automation/save'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1377,7 +1488,7 @@ class AutomationCanvas {
         if (!confirm('Are you sure you want to delete this workflow? This cannot be undone.')) return;
 
         try {
-            const response = await fetch(`/api/automation/${workflowId}`, {
+            const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
@@ -1930,13 +2041,299 @@ class AutomationCanvas {
         }
     }
 
-    showLoadWorkflowDialog() {
-        // With floating palette, workflows are managed through API
-        // For now, show simple message - can be enhanced to show modal with workflow list
-        this.showToast('Load Workflow: Saved workflows can be accessed through the API. Use the "New" button to create a new workflow or check the backend /api/automation/list endpoint for saved workflows.', 'info', 7000);
+    async showLoadWorkflowDialog() {
+        const modal = document.getElementById('load-workflow-modal-overlay');
+        if (!modal) {
+            this.showToast('Load workflow modal not found', 'error');
+            return;
+        }
 
-        // TODO: Future enhancement - show modal with workflow list from /api/automation/list
-        // this.openWorkflowModal('load');
+        // Show modal
+        modal.style.display = 'flex';
+
+        // Show loading state
+        const loadingEl = document.getElementById('workflow-load-loading');
+        const emptyEl = document.getElementById('workflow-load-empty');
+        const listEl = document.getElementById('workflow-load-list');
+
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        // Fetch workflows from API
+        try {
+            const response = await fetch(this.getApiUrl('/api/automation/list'), {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to load workflows');
+
+            const data = await response.json();
+            this.workflows = data.workflows || [];
+
+            // Hide loading state
+            if (loadingEl) loadingEl.style.display = 'none';
+
+            // Render workflow list
+            this.renderLoadWorkflowList();
+
+            // Setup modal event listeners
+            this.setupLoadWorkflowModalListeners();
+
+        } catch (error) {
+            console.error('Error loading workflows:', error);
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (emptyEl) {
+                emptyEl.style.display = 'block';
+                emptyEl.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5; color: #f59e0b;"></i>
+                    <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">Error Loading Workflows</div>
+                    <div style="font-size: 13px;">${error.message}</div>
+                `;
+            }
+        }
+    }
+
+    renderLoadWorkflowList() {
+        const listEl = document.getElementById('workflow-load-list');
+        const emptyEl = document.getElementById('workflow-load-empty');
+        const searchInput = document.getElementById('workflow-search-input');
+        const categoryFilter = document.getElementById('workflow-filter-category');
+        const statusFilter = document.getElementById('workflow-filter-status');
+
+        if (!listEl) return;
+
+        // Get filter values
+        const searchTerm = searchInput?.value.toLowerCase() || '';
+        const categoryValue = categoryFilter?.value || '';
+        const statusValue = statusFilter?.value || '';
+
+        // Filter workflows
+        let filteredWorkflows = this.workflows.filter(wf => {
+            const matchesSearch = !searchTerm ||
+                wf.title?.toLowerCase().includes(searchTerm) ||
+                wf.slug?.toLowerCase().includes(searchTerm) ||
+                wf.description?.toLowerCase().includes(searchTerm);
+
+            const matchesCategory = !categoryValue || wf.category === categoryValue;
+            const matchesStatus = !statusValue || wf.status === statusValue;
+
+            return matchesSearch && matchesCategory && matchesStatus;
+        });
+
+        // Show/hide empty state
+        if (filteredWorkflows.length === 0) {
+            if (emptyEl) emptyEl.style.display = 'block';
+            // Remove any existing workflow items
+            const existingItems = listEl.querySelectorAll('.workflow-load-item');
+            existingItems.forEach(item => item.remove());
+            return;
+        }
+
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        // Remove any existing workflow items
+        const existingItems = listEl.querySelectorAll('.workflow-load-item');
+        existingItems.forEach(item => item.remove());
+
+        // Render workflow items
+        filteredWorkflows.forEach(workflow => {
+            const item = this.createLoadWorkflowItem(workflow);
+            listEl.appendChild(item);
+        });
+    }
+
+    createLoadWorkflowItem(workflow) {
+        const item = document.createElement('div');
+        item.className = 'workflow-load-item';
+        item.style.cssText = `
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        `;
+
+        // Status badge
+        const statusColors = {
+            draft: '#6B7280',
+            active: '#10B981',
+            inactive: '#EF4444'
+        };
+        const statusColor = statusColors[workflow.status] || statusColors.draft;
+
+        // Format dates
+        const createdDate = workflow.created_at ? new Date(workflow.created_at).toLocaleDateString() : 'Unknown';
+        const updatedDate = workflow.updated_at ? new Date(workflow.updated_at).toLocaleDateString() : 'Never';
+
+        // Count shapes and connections (ui_json contains shapes and connections arrays)
+        const uiJson = workflow.ui_json || {};
+        const shapeCount = (uiJson.shapes && Array.isArray(uiJson.shapes)) ? uiJson.shapes.length : 0;
+        const connectionCount = (uiJson.connections && Array.isArray(uiJson.connections)) ? uiJson.connections.length : 0;
+
+        item.innerHTML = `
+            <div style="flex-shrink: 0;">
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: var(--accent-primary); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-project-diagram" style="font-size: 20px; color: white;"></i>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${workflow.title || 'Untitled Workflow'}
+                    </div>
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; flex-shrink: 0;" title="${workflow.status || 'draft'}"></div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); font-family: 'Courier New', monospace; margin-bottom: 6px;">
+                    ${workflow.slug || 'no-slug'}
+                </div>
+                ${workflow.description ? `
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        ${workflow.description}
+                    </div>
+                ` : ''}
+                <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted);">
+                    <span><i class="fas fa-shapes" style="margin-right: 4px;"></i>${shapeCount} shapes</span>
+                    <span><i class="fas fa-link" style="margin-right: 4px;"></i>${connectionCount} connections</span>
+                    <span><i class="fas fa-calendar" style="margin-right: 4px;"></i>${updatedDate}</span>
+                    ${workflow.category ? `<span><i class="fas fa-tag" style="margin-right: 4px;"></i>${workflow.category}</span>` : ''}
+                </div>
+            </div>
+        `;
+
+        // Hover effect
+        item.addEventListener('mouseenter', () => {
+            item.style.background = 'var(--bg-hover)';
+        });
+        item.addEventListener('mouseleave', () => {
+            item.style.background = 'transparent';
+        });
+
+        // Click to load
+        item.addEventListener('click', () => {
+            this.loadWorkflowFromList(workflow);
+        });
+
+        return item;
+    }
+
+    setupLoadWorkflowModalListeners() {
+        // Close button
+        const closeBtn = document.getElementById('close-load-workflow-modal');
+        const cancelBtn = document.getElementById('cancel-load-workflow-btn');
+        const modal = document.getElementById('load-workflow-modal-overlay');
+
+        const closeModal = () => {
+            if (modal) modal.style.display = 'none';
+        };
+
+        if (closeBtn) {
+            closeBtn.removeEventListener('click', closeModal);
+            closeBtn.addEventListener('click', closeModal);
+        }
+
+        if (cancelBtn) {
+            cancelBtn.removeEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+        }
+
+        // Click outside to close
+        if (modal) {
+            modal.removeEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+
+        // Search and filter inputs
+        const searchInput = document.getElementById('workflow-search-input');
+        const categoryFilter = document.getElementById('workflow-filter-category');
+        const statusFilter = document.getElementById('workflow-filter-status');
+
+        const refilter = () => this.renderLoadWorkflowList();
+
+        if (searchInput) {
+            searchInput.removeEventListener('input', refilter);
+            searchInput.addEventListener('input', refilter);
+        }
+
+        if (categoryFilter) {
+            categoryFilter.removeEventListener('change', refilter);
+            categoryFilter.addEventListener('change', refilter);
+        }
+
+        if (statusFilter) {
+            statusFilter.removeEventListener('change', refilter);
+            statusFilter.addEventListener('change', refilter);
+        }
+    }
+
+    async loadWorkflowFromList(workflow) {
+        try {
+            // Close modal
+            const modal = document.getElementById('load-workflow-modal-overlay');
+            if (modal) modal.style.display = 'none';
+
+            // Show loading toast
+            this.showToast(`Loading workflow: ${workflow.title}...`, 'info', 2000);
+
+            // Use workflow data from list (already has ui_json)
+            // No need to fetch again unless we need execution data
+
+            // Set current workflow
+            this.currentWorkflow = workflow;
+            this.workflowSlug = workflow.slug;
+            this.workflowTitle = workflow.title;
+            this.workflowDescription = workflow.description || '';
+            this.workflowStatus = workflow.status || 'draft';
+
+            // Load workflow data onto canvas (ui_json contains shapes and connections)
+            const uiJson = workflow.ui_json || {};
+            if (uiJson.shapes || uiJson.connections) {
+                this.shapes = (Array.isArray(uiJson.shapes) ? uiJson.shapes : []).filter(s => s && s.id);
+                this.connections = (Array.isArray(uiJson.connections) ? uiJson.connections : []).filter(c => c && c.id);
+
+                // Update shape IDs to prevent conflicts
+                if (this.shapes.length > 0) {
+                    const maxId = Math.max(...this.shapes.map(s => s.id));
+                    this.nextShapeId = maxId + 1;
+                }
+
+                if (this.connections.length > 0) {
+                    const maxId = Math.max(...this.connections.map(c => c.id));
+                    this.nextConnectionId = maxId + 1;
+                }
+
+                // Clear existing canvas
+                this.clearCanvas();
+
+                // Render all shapes and connections
+                this.renderAllShapes();
+                this.renderConnections();
+
+                // Update workflow name display
+                const nameDisplay = document.getElementById('workflow-name-display');
+                if (nameDisplay) {
+                    nameDisplay.textContent = `[${this.workflowSlug}]`;
+                }
+
+                // Center canvas on shapes
+                this.recenterToShapes();
+
+                this.showToast(`Workflow loaded: ${this.workflowTitle}`, 'success');
+            } else {
+                this.showToast('Workflow has no data', 'warning');
+            }
+
+        } catch (error) {
+            console.error('Error loading workflow:', error);
+            this.showToast(`Error loading workflow: ${error.message}`, 'error');
+        }
     }
 }
 

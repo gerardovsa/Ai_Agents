@@ -293,8 +293,14 @@ window.ThreadCardTemplates = {
      */
     headerRowWithActions(thread, location, agent, currentLocation) {
         const isInAgent = currentLocation && currentLocation.startsWith('agent-');
+        const threadTitle = thread.title || thread.name || 'Untitled Thread';
 
         return `
+            <div class="thread-item-header">
+                <div class="thread-item-title" style="flex: 1; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 8px;" title="${threadTitle}">
+                    ${threadTitle}
+                </div>
+            </div>
             <div class="thread-item-header">
                 <div class="thread-item-agent-badge ${agent.class}">
                     <i class="fas ${agent.icon}"></i> ${agent.name}

@@ -118,11 +118,26 @@ class SynergyCardRenderer {
         const tags = this.parseJsonField(session.tags, []);
         const assignees = this.parseJsonField(session.assignees, []);
 
-        // Calculate stats
-        const completedSteps = nextSteps.filter(s => s && s.completed).length;
-        const totalSteps = nextSteps.length;
-        const completedChecklist = checklist.filter(c => c && c.completed).length;
-        const totalChecklist = checklist.length;
+        // Calculate milestone stats
+        let completedMilestones = 0;
+        let totalMilestones = 0;
+        let estimatedHours = 0;
+
+        if (session.uses_milestones && session.milestones) {
+            totalMilestones = session.milestones.length;
+            completedMilestones = session.milestones.filter(m => m.completed).length;
+            estimatedHours = session.milestones
+                .filter(m => !m.completed && m.estimated_hours)
+                .reduce((sum, m) => sum + parseFloat(m.estimated_hours || 0), 0);
+        } else {
+            // Legacy: use next_steps + checklist
+            const completedSteps = nextSteps.filter(s => s && s.completed).length;
+            const totalSteps = nextSteps.length;
+            const completedChecklist = checklist.filter(c => c && c.completed).length;
+            const totalChecklist = checklist.length;
+            totalMilestones = totalSteps + totalChecklist;
+            completedMilestones = completedSteps + completedChecklist;
+        }
 
         let html = '';
 
@@ -130,7 +145,7 @@ class SynergyCardRenderer {
         html += this.renderCardMeta(assignees, session.due_date);
 
         // Card Stats
-        html += this.renderCardStats(session.message_count, documents.length, completedSteps, totalSteps, completedChecklist, totalChecklist);
+        html += this.renderCardStats(session.message_count, documents.length, completedMilestones, totalMilestones, estimatedHours);
 
         // Description
         if (session.description) {
@@ -143,11 +158,8 @@ class SynergyCardRenderer {
         // Links
         html += this.renderLinks(links);
 
-        // Next Steps
-        html += this.renderNextSteps(nextSteps, session.session_id, completedSteps, totalSteps);
-
-        // Checklist
-        html += this.renderChecklist(checklist, session.session_id, completedChecklist, totalChecklist);
+        // Tasks Section (supports both milestone and legacy structures)
+        html += this.renderTasksSection(session);
 
         // Linked Threads
         html += this.renderLinkedThreads(session);
@@ -172,12 +184,12 @@ class SynergyCardRenderer {
     renderCardMeta(assignees, dueDate) {
         if (assignees.length === 0 && !dueDate) return '';
 
-        let html = '<div class="card-meta" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; font-size: 12px;">';
+        let html = '<div class="card-meta">';
 
         if (assignees.length > 0) {
             html += `
-                <span style="background: var(--bg-quaternary); color: var(--text-primary); padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
-                    <i class="fas fa-users" style="font-size: 8px;"></i> ${assignees.join(', ')}
+                <span>
+                    👥 Assignees: ${assignees.join(', ')}
                 </span>
             `;
         }
@@ -186,8 +198,9 @@ class SynergyCardRenderer {
             const dueDateObj = new Date(dueDate);
             const isOverdue = dueDateObj < new Date();
             html += `
-                <span style="background: ${isOverdue ? '#dc2626' : 'var(--bg-quaternary)'}; color: ${isOverdue ? 'white' : 'var(--text-primary)'}; padding: 3px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-calendar" style="font-size: 11px;"></i> Due: ${dueDateObj.toLocaleDateString()}
+                <span style="${isOverdue ? 'color: #dc2626; font-weight: 600;' : ''}">
+                    📅 Due Date: ${dueDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    ${isOverdue ? ' (OVERDUE)' : ''}
                 </span>
             `;
         }
@@ -196,25 +209,13 @@ class SynergyCardRenderer {
         return html;
     }
 
-    renderCardStats(messageCount, docsCount, completedSteps, totalSteps, completedChecklist, totalChecklist) {
+    renderCardStats(messageCount, docsCount, completedMilestones, totalMilestones, estimatedHours) {
         return `
-            <div class="card-stats" style="display: flex; gap: 16px; margin-bottom: 16px; padding: 12px; background: var(--bg-quaternary); border-radius: 6px; font-size: 12px;">
-                <span style="display: flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-comments" style="color: var(--accent-primary);"></i> 
-                    <span>${messageCount || 0}</span>
-                </span>
-                <span style="display: flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-file" style="color: var(--accent-primary);"></i> 
-                    <span>${docsCount}</span>
-                </span>
-                <span style="display: flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-tasks" style="color: var(--accent-primary);"></i> 
-                    <span>${completedSteps}/${totalSteps}</span>
-                </span>
-                <span style="display: flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-check-square" style="color: var(--accent-primary);"></i> 
-                    <span>${completedChecklist}/${totalChecklist}</span>
-                </span>
+            <div class="card-stats">
+                <span>💬 Messages: ${messageCount || 0}</span>
+                <span>📄 Documents: ${docsCount}</span>
+                <span>🎯 Milestones: ${completedMilestones}/${totalMilestones}</span>
+                ${estimatedHours ? `<span>⏰ Est. ${estimatedHours} hrs remaining</span>` : ''}
             </div>
         `;
     }
@@ -513,6 +514,49 @@ class SynergyCardRenderer {
                 Open in Popup Window
             </button>
         `;
+    }
+
+    /**
+     * Render tasks section - supports BOTH legacy (next_steps + checklist) and new (milestones)
+     * 
+     * @param {Object} session - Session object
+     * @returns {string} HTML for tasks section
+     */
+    renderTasksSection(session) {
+        // Check if session uses new milestone structure
+        if (session.uses_milestones && session.milestones && session.milestones.length > 0) {
+            // Use new milestone renderer
+            if (window.SynergyMilestoneRenderer) {
+                return window.SynergyMilestoneRenderer.renderMilestones(session.milestones, session.session_id);
+            }
+        }
+
+        // Fallback to legacy rendering (next_steps + checklist)
+        const nextSteps = this.parseJsonField(session.next_steps, []);
+        const checklist = this.parseJsonField(session.checklist, []);
+
+        const completedSteps = nextSteps.filter(s => s && s.completed).length;
+        const totalSteps = nextSteps.length;
+
+        const completedChecklist = checklist.reduce((count, item) => {
+            if (item.completed) count++;
+            if (item.subtasks) {
+                count += item.subtasks.filter(s => s.completed).length;
+            }
+            return count;
+        }, 0);
+
+        const totalChecklist = checklist.reduce((count, item) => {
+            count++;
+            if (item.subtasks) count += item.subtasks.length;
+            return count;
+        }, 0);
+
+        let html = '';
+        html += this.renderNextSteps(nextSteps, session.session_id, completedSteps, totalSteps);
+        html += this.renderChecklist(checklist, session.session_id, completedChecklist, totalChecklist);
+
+        return html;
     }
 }
 

@@ -19,6 +19,8 @@ EXPORTS:
 - automation_export_workflow(automation_id, **kwargs) - Export workflow JSON
 - automation_get_workflow_by_slug(slug, **kwargs) - Get workflow by slug
 - automation_open_workflow_in_canvas(slug, message_to_user, **kwargs) - Open workflow in UI
+- automation_publish_workflow(slug, thread_id, **kwargs) - Publish workflow as live automation
+- automation_get_workflow_status(slug, **kwargs) - Get workflow execution status
 
 USED BY:
 - AI agents via tools registry for workflow automation
@@ -28,7 +30,7 @@ NOTES:
 - API endpoint: http://localhost:5001/api/automation/
 - Returns standardized JSON responses
 
-LAST MODIFIED: 2025-11-16 - Initial creation for automation canvas integration
+LAST MODIFIED: 2025-11-19 - Added publish_workflow and get_workflow_status functions
 """
 
 import requests
@@ -592,3 +594,201 @@ def automation_open_workflow_in_canvas(
         'message': message_to_user or f"Opening workflow '{workflow['title']}' in canvas...",
         'instructions': 'The workflow is now displayed in the Automation Canvas. You can edit shapes, connections, and settings visually.'
     }
+
+
+def automation_publish_workflow(
+    slug: str,
+    thread_id: Optional[int] = None,
+    automation_title: Optional[str] = None,
+    schedule_cron: Optional[str] = None,
+    timezone: str = 'UTC',
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Publish a draft workflow as a live automation
+    
+    This function validates the workflow structure, activates it for execution,
+    optionally schedules it with a cron expression, and links it to a thread.
+    
+    Args:
+        slug: Workflow slug to publish (e.g., 'workflow-1737052800')
+        thread_id: Thread ID to link the automation to (optional)
+        automation_title: Custom title for live automation (optional, adds '(Live)' if not provided)
+        schedule_cron: Cron expression for scheduling (optional, e.g., '0 9 * * *')
+        timezone: Timezone for schedule (optional, defaults to 'UTC')
+        **kwargs: Credential injection (jwt_token, _user_id)
+    
+    Returns:
+        Dict with:
+        - success: Boolean
+        - automation_slug: Published automation slug
+        - workflow_slug: Original workflow slug
+        - automation_title: Title of published automation
+        - validation: Validation result with errors/warnings
+        - scheduled: Whether automation was scheduled
+        - next_run: Next execution time (if scheduled)
+        - task_id: Scheduler task ID (if scheduled)
+        - thread_id: Linked thread ID (if provided)
+        - thread_linked: Whether thread linking succeeded
+        - message: Success message
+    
+    Raises:
+        AutomationError: If publishing fails or validation errors exist
+    
+    Example:
+        >>> result = automation_publish_workflow(
+        ...     slug='workflow-email-processor',
+        ...     thread_id=123,
+        ...     schedule_cron='0 */1 * * *',
+        ...     timezone='America/New_York'
+        ... )
+        >>> print(result['message'])
+        'Workflow published successfully'
+        >>> print(result['next_run'])
+        '2025-11-20T01:00:00Z'
+    """
+    try:
+        api_url = _get_api_url()
+        headers = _get_headers(kwargs)
+        
+        # Build request payload
+        payload = {
+            'thread_id': thread_id,
+            'automation_title': automation_title,
+            'schedule_cron': schedule_cron,
+            'timezone': timezone
+        }
+        
+        # Remove None values
+        payload = {k: v for k, v in payload.items() if v is not None}
+        
+        # Call publish endpoint
+        response = requests.post(
+            f'{api_url}/api/automation/{slug}/publish',
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 400:
+            # Validation failed
+            data = response.json()
+            error_msg = data.get('error', 'Workflow validation failed')
+            validation = data.get('validation', {})
+            
+            error_details = []
+            if validation.get('errors'):
+                error_details.append(f"Errors: {', '.join(validation['errors'])}")
+            if validation.get('warnings'):
+                error_details.append(f"Warnings: {', '.join(validation['warnings'])}")
+            
+            full_error = f"{error_msg}. {' '.join(error_details)}" if error_details else error_msg
+            raise AutomationError(full_error)
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data.get('success'):
+            raise AutomationError(data.get('error', 'Unknown error during publish'))
+        
+        return {
+            'success': True,
+            'automation_slug': data['automation_slug'],
+            'workflow_slug': data['workflow_slug'],
+            'automation_title': data['automation_title'],
+            'validation': data['validation'],
+            'scheduled': data.get('scheduled', False),
+            'next_run': data.get('next_run'),
+            'task_id': data.get('task_id'),
+            'thread_id': data.get('thread_id'),
+            'thread_linked': data.get('thread_linked', False),
+            'message': data['message']
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise AutomationError(f'Failed to publish workflow: {str(e)}')
+    except Exception as e:
+        raise AutomationError(f'Unexpected error during publish: {str(e)}')
+
+
+def automation_get_workflow_status(
+    slug: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Get workflow/automation execution status
+    
+    Returns current status, execution history, scheduling information,
+    and performance statistics for a workflow.
+    
+    Args:
+        slug: Workflow slug (e.g., 'workflow-1737052800')
+        **kwargs: Credential injection (jwt_token, _user_id)
+    
+    Returns:
+        Dict with:
+        - success: Boolean
+        - workflow: Workflow metadata
+            - slug: Workflow slug
+            - title: Workflow title
+            - status: Current status (draft, active, inactive)
+            - is_scheduled: Whether workflow is scheduled
+            - schedule_cron: Cron expression (if scheduled)
+            - next_run: Next execution time (if scheduled)
+            - created_at: Creation timestamp
+            - updated_at: Last update timestamp
+        - execution_status: Execution statistics
+            - currently_running: Whether workflow is currently executing
+            - total_executions: Total number of runs
+            - success_rate: Success rate (0.0 to 1.0)
+            - last_execution: Last execution details
+                - execution_id: Execution ID
+                - started_at: Start timestamp
+                - completed_at: Completion timestamp
+                - status: Execution status (completed, failed, running)
+                - duration_ms: Execution duration in milliseconds
+                - error_message: Error message (if failed)
+    
+    Raises:
+        AutomationError: If status check fails or workflow not found
+    
+    Example:
+        >>> result = automation_get_workflow_status('workflow-email-to-sheets')
+        >>> print(f"Status: {result['workflow']['status']}")
+        Status: active
+        >>> print(f"Success rate: {result['execution_status']['success_rate']*100:.1f}%")
+        Success rate: 95.2%
+        >>> if result['workflow']['is_scheduled']:
+        ...     print(f"Next run: {result['workflow']['next_run']}")
+        Next run: 2025-11-20T09:00:00Z
+    """
+    try:
+        api_url = _get_api_url()
+        headers = _get_headers(kwargs)
+        
+        # Call status endpoint
+        response = requests.get(
+            f'{api_url}/api/automation/{slug}/status',
+            headers=headers,
+            timeout=10
+        )
+        
+        if response.status_code == 404:
+            raise AutomationError(f'Workflow with slug "{slug}" not found')
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data.get('success'):
+            raise AutomationError(data.get('error', 'Failed to get workflow status'))
+        
+        return {
+            'success': True,
+            'workflow': data['workflow'],
+            'execution_status': data['execution_status']
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise AutomationError(f'Failed to get workflow status: {str(e)}')
+    except Exception as e:
+        raise AutomationError(f'Unexpected error getting status: {str(e)}')

@@ -522,6 +522,16 @@ def start_agent(agent_id):
         else:
             print(f"[START] ✅ Using thread_slug for isolation: {thread_slug[:12]}...")
         
+        # VALIDATION: Ensure thread_slug is not empty
+        if not thread_slug or not thread_slug.strip():
+            print(f"[START] ❌ ERROR: thread_slug is empty or invalid")
+            return error_response("thread_slug is required and cannot be empty", 400)
+        
+        # VALIDATION: Check thread_slug format (should be numeric timestamp)
+        if not thread_slug.isdigit():
+            print(f"[START] ⚠️  WARNING: thread_slug format is non-standard: {thread_slug}")
+            # Continue anyway for backward compatibility
+        
         # CRITICAL VALIDATION: session_id MUST equal thread_slug for isolation
         if thread_slug and session_id and thread_slug != session_id:
             print(f"[START] ❌ THREAD ISOLATION ERROR:")
@@ -715,8 +725,21 @@ def stream_agent(agent_id):
     # Fallback to session_id for backward compatibility
     thread_slug = request.args.get('thread_slug') or request.args.get('session_id')
     
+    # VALIDATION: Ensure thread_slug is provided and valid
     if not thread_slug:
+        print(f"[Stream {agent_id}] ❌ ERROR: Missing thread_slug parameter")
         return error_response("Missing thread_slug or session_id", 400)
+    
+    # Validate thread_slug is not empty string
+    if not thread_slug.strip():
+        print(f"[Stream {agent_id}] ❌ ERROR: Empty thread_slug provided")
+        return error_response("thread_slug cannot be empty", 400)
+    
+    # Validate thread_slug format (should be numeric timestamp)
+    if not thread_slug.isdigit():
+        print(f"[Stream {agent_id}] ⚠️  WARNING: Invalid thread_slug format: {thread_slug}")
+        # Don't block - could be legacy format
+        # return error_response("Invalid thread_slug format (expected numeric)", 400)
     
     # Get agent state and conversation history
     # CRITICAL: Use thread_slug (globally unique) for state lookup
@@ -770,15 +793,15 @@ def stream_agent(agent_id):
                 break
     
     if not last_message:
-        error_msg = f"No user message found in conversation. Session: {session_id}, Conv length: {len(conversation)}"
+        error_msg = f"No user message found in conversation. Session: {thread_slug}, Conv length: {len(conversation)}"
         if conversation:
             error_msg += f", Last role: {conversation[-1].get('role')}"
             error_msg += f", All roles: {[msg.get('role') for msg in conversation]}"
         else:
-            error_msg += " (conversation is empty - /start endpoint may have failed or used different session_id)"
+            error_msg += " (conversation is empty - /start endpoint may have failed or used different thread_slug)"
         
         print(f"[Stream {agent_id}] ❌ ERROR: {error_msg}")
-        print(f"[Stream {agent_id}] 💡 SUGGESTION: Check if /start endpoint was called with same session_id")
+        print(f"[Stream {agent_id}] 💡 SUGGESTION: Check if /start endpoint was called with same thread_slug")
         print(f"[Stream {agent_id}] 💡 SUGGESTION: Check if message was added to agent_state_manager")
         return error_response(error_msg, 400)
     
@@ -1115,7 +1138,7 @@ CRITICAL: NO BULK TOOL SCHEMAS!
             FROM threads 
             WHERE thread_slug = %s
             LIMIT 1
-        """, (str(session_id),))
+        """, (str(thread_slug),))
         
         thread_row = cursor.fetchone()
         conn.close()
@@ -1257,13 +1280,14 @@ CRITICAL: NO BULK TOOL SCHEMAS!
             else:
                 print(f"[Stream {agent_id}] ℹ️ NO LINKED RESOURCES - Thread is standalone")
         else:
-            print(f"[Stream {agent_id}] ⚠️ Thread not found: {session_id}")
+            print(f"[Stream {agent_id}] ⚠️ Thread not found: {thread_slug}")
     
     except Exception as e:
         print(f"[Stream {agent_id}] ⚠️ Error injecting context: {e}")
         import traceback
         traceback.print_exc()
         # Continue without context - not critical
+        # Note: Error is logged but stream continues (context injection is optional)
     
     # Continue with original code
     system_prompt_continued = """
@@ -1309,86 +1333,14 @@ Platforms available: google_workspace, microsoft_365, woocommerce, stripe, slack
 Use tools in multiple rounds with interleaved thinking to complete complex tasks."""
     
     # ============================================
-    # SYNERGY CONTEXT INJECTION (Into conversation)
+    # CONTEXT ALREADY INJECTED INTO SYSTEM PROMPT
     # ============================================
-    # Check if this thread is linked to a Synergy project
-    # If yes, prepend project context to the user's current message
-    synergy_context_prefix = ""
-    try:
-        # Get thread info FROM sessions.db
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Find thread by session_id (thread_slug = session_id)
-        # Note: id is INTEGER, thread_slug is TEXT (timestamp)
-        cursor.execute("""
-            SELECT synergy_card_id
-            FROM threads 
-            WHERE thread_slug = %s
-            LIMIT 1
-        """, (str(session_id),))
-        
-        thread_row = cursor.fetchone()
-        conn.close()
-        
-        if thread_row and thread_row['synergy_card_id']:
-            synergy_card_id = thread_row['synergy_card_id']
-            
-            # Fetch Synergy project details
-            conn = get_database_connection('synergy_sessions')
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT 
-                    title, description, project_name, priority, status,
-                    tags, documents, next_steps, notes, due_date
-                FROM synergy_sessions.synergy_sessions 
-                WHERE session_id = %s
-            """, (synergy_card_id,))
-            
-            synergy_row = cursor.fetchone()
-            conn.close()
-            
-            if synergy_row:
-                # LOG: Synergy session details
-                print(f"[Stream {agent_id}] 🎯 SYNERGY LINKED → Session: {synergy_card_id} | Title: '{synergy_row['title']}' | Priority: {synergy_row['priority']} | Status: {synergy_row['status']}")
-                
-                # Build Synergy context prefix for user message
-                synergy_context_prefix = f"[SYNERGY PROJECT CONTEXT]\n"
-                synergy_context_prefix += f"Project: {synergy_row['title']}\n"
-                if synergy_row['description']:
-                    synergy_context_prefix += f"Description: {synergy_row['description']}\n"
-                synergy_context_prefix += f"Status: {synergy_row['status']} | Priority: {synergy_row['priority']}\n"
-                
-                # Add notes if present
-                if synergy_row['notes']:
-                    synergy_context_prefix += f"Notes: {synergy_row['notes']}\n"
-                
-                # Add next steps if present
-                if synergy_row['next_steps']:
-                    try:
-                        next_steps = json.loads(synergy_row['next_steps']) if isinstance(synergy_row['next_steps'], str) else synergy_row['next_steps']
-                        if next_steps and isinstance(next_steps, list) and len(next_steps) > 0:
-                            pending_steps = [s for s in next_steps if isinstance(s, dict) and not s.get('completed')]
-                            if pending_steps:
-                                synergy_context_prefix += f"Pending Steps: {', '.join([s.get('description', '') for s in pending_steps[:3]])}\n"
-                    except:
-                        pass
-                
-                synergy_context_prefix += f"[/SYNERGY CONTEXT]\n\n"
-                
-                print(f"[Stream {agent_id}] ✅ Synergy context prepended to user message")
-            else:
-                print(f"[Stream {agent_id}] ⚠️  Synergy session {synergy_card_id} not found in synergy_sessions.db")
-        else:
-            print(f"[Stream {agent_id}] ℹ️  NO SYNERGY LINK - Thread not linked to any Synergy session")
+    # Note: All context (Synergy, Workflow, Automation, Internal Docs) 
+    # is already injected into system_prompt above (lines 1087-1260).
+    # No need to prepend to user message - this was causing duplication.
     
-    except Exception as e:
-        print(f"[Stream {agent_id}] ⚠️ Error fetching Synergy context: {e}")
-        # Continue without Synergy context - not critical
-    
-    # Prepend Synergy context to user message if present
-    user_message_with_context = synergy_context_prefix + last_message if synergy_context_prefix else last_message
+    # Use the raw user message (no prefix needed)
+    user_message_with_context = last_message
     
     # Extract AI preferences from user_prefs (CRITICAL for Extended + Interleaved Thinking)
     ai_model = user_prefs.get('ai_model', 'claude-sonnet-4-5-20250929') if user_prefs else 'claude-sonnet-4-5-20250929'
@@ -1413,13 +1365,13 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
         import json  # CRITICAL: Import json inside nested function to avoid scope issues
         try:
             # Yield start event
-            yield stream_sse_event('start', {'session_id': session_id, 'agent_id': agent_id})
+            yield stream_sse_event('start', {'session_id': thread_slug, 'agent_id': agent_id})
             
             # Execute streaming request with multi-round support + AI PREFERENCES
             # CRITICAL: Use conversation_without_current (past messages only)
             # user_prompt contains the current message to process (with Synergy context if applicable)
             for event in execute_streaming_request(
-                session_id=session_id,
+                session_id=thread_slug,
                 user_prompt=user_message_with_context,
                 conversation_history=conversation_without_current,
                 system_prompt=system_prompt,
@@ -1439,34 +1391,20 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                 if event_type == 'complete':
                     try:
                         # Get final conversation state from agent_state_manager
-                        final_state = agent_state_manager.get_state(agent_id, session_id)
+                        final_state = agent_state_manager.get_state(agent_id, thread_slug)
                         
                         if final_state and final_state.get('conversation'):
                             # Auto-save thread to database (FIXED: Use sessions.db, not stock db)
                             from utils.database_helpers import execute_sqlite_update, get_sessions_database_path
                             
                             db_path = get_sessions_database_path()
-                            thread_id = f"{agent_id}_{session_id}"
+                            thread_id = f"{agent_id}_{thread_slug}"
                             conversation_json = json.dumps(final_state['conversation'])
                             
                             # Determine location from thread assignments
-                            location = 'prime'  # Default
-                            try:
-                                from routes.thread_assignment_routes import get_db_connection as get_sessions_db
-                                conn = get_sessions_db()
-                                cursor = conn.cursor()
-                                cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
-                                row = cursor.fetchone()
-                                if row and row['metadata']:
-                                    metadata = json.loads(row['metadata'])
-                                    assignments = metadata.get('thread_assignments', {})
-                                    for loc, tid in assignments.items():
-                                        if tid == session_id:
-                                            location = loc
-                                            break
-                                conn.close()
-                            except Exception as e:
-                                print(f"⚠️ [Auto-Save] Could not determine thread location: {e}")
+                            # Note: This is optional - just for logging purposes
+                            # Thread location is already stored in threads table
+                            location = 'prime'  # Default (not critical for saving)
                             
                             # Update thread's updated_at timestamp (thread already exists from creation)
                             # Don't try to save to non-existent saved_threads table
@@ -1476,7 +1414,7 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                                 WHERE thread_slug = %s
                             """
                             
-                            params = [session_id]
+                            params = [thread_slug]
                             
                             execute_sqlite_update(db_path, update_query, params)
                             print(f"✅ [Auto-Save] Thread updated: {thread_id} ({len(final_state['conversation'])} messages)")
