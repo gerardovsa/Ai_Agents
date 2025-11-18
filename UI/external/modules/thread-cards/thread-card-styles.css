@@ -620,23 +620,24 @@
     display: flex !important;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     padding: 0;
-    margin-left: 8px;
-    background: rgba(248, 81, 73, 0.1);
-    border: 1px solid rgba(248, 81, 73, 0.3);
+    margin-left: 0;
+    background: transparent;
+    border: none;
     border-radius: 4px;
-    color: #f85149;
-    font-size: 11px;
+    color: rgba(248, 81, 73, 0.7);
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .thread-synergy-unlink:hover {
-    background: rgba(248, 81, 73, 0.2);
-    border-color: rgba(248, 81, 73, 0.5);
-    color: #ff6b6b;
+    background: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    transform: scale(1.1);
 }
 
 /* ============================================================
@@ -964,6 +965,69 @@
     display: flex;
     align-items: center;
     width: 100%;
+    gap: 8px;
+}
+
+/* Linked synergy: compact horizontal layout with no background */
+.thread-item-synergy-linked {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* Unlinked synergy: dashed border with padding */
+.thread-item-synergy-unlinked {
+    border: 1px dashed #10b981;
+    border-radius: 8px;
+    padding: 8px;
+    background: transparent;
+}
+
+/* Workflow containers - match synergy styling */
+.thread-item-workflow {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+}
+
+.thread-item-workflow-linked {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+.thread-item-workflow-unlinked {
+    border: 1px dashed #f97316;
+    border-radius: 8px;
+    padding: 8px;
+    background: transparent;
+}
+
+.thread-workflow-unlink {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(249, 115, 22, 0.7);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.thread-workflow-unlink:hover {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+    transform: scale(1.1);
 }
 
 .synergy-badge {

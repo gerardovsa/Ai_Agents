@@ -320,7 +320,6 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             
             # Single retry attempt
             try:
-                import time
                 time.sleep(2)  # Wait 2 seconds before retry
                 
                 print(f"🔷 [DB] Retry attempt for '{db_name}'...")

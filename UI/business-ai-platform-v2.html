@@ -3179,35 +3179,8 @@
             transition: opacity 0.3s ease 0.1s;
         }
 
-        /* Prime Panel Thread Card - Same collapse behavior */
-        #prime-thread-info:not(:hover) .thread-item-synergy,
-        #prime-thread-info:not(:hover) .thread-tags-row {
-            opacity: 0;
-            max-height: 0;
-            overflow: hidden;
-            margin: 0 !important;
-            padding: 0 !important;
-            transition: opacity 0.2s ease, max-height 0.2s ease;
-        }
-
-        #prime-thread-info:hover .thread-item-synergy,
-        #prime-thread-info:hover .thread-tags-row {
-            opacity: 1;
-            max-height: 200px;
-            transition: opacity 0.3s ease 0.1s, max-height 0.3s ease 0.1s;
-        }
-
-        #prime-thread-info:not(:hover) .thread-item-header .thread-item-actions {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        #prime-thread-info:hover .thread-item-header .thread-item-actions {
-            opacity: 1;
-            pointer-events: auto;
-            transition: opacity 0.3s ease 0.1s;
-        }
+        /* Prime Panel Thread Card - Uses same compact card structure as agents
+         * Hover-expand behavior handled by .agent-thread-card class in thread-card-styles.css */
 
         /* ==================== DEVICE LOCK/UNLOCK BUTTONS ==================== */
         .lock-unlock-container {
@@ -6756,6 +6729,8 @@
             flex-direction: column;
             gap: var(--space-2);
             margin-bottom: 10px;
+            position: relative;
+            /* Contains absolutely positioned buttons */
 
             /* STATE 1-3: Hidden (pushed down by container height collapse) */
             opacity: 0;
@@ -6770,23 +6745,32 @@
         }
 
         .ai-chat-input-controls {
-            display: flex;
-            gap: 8px;
-            align-items: flex-end;
+            /* Doesn't affect wrapper height - buttons overlay */
+            position: relative;
+            width: 100%;
         }
 
-        /* Center textarea */
+        /* Center textarea - takes full width, buttons overlay on right */
         .ai-chat-center {
-            flex: 1;
-            display: flex;
+            width: 100%;
+            margin-right: 72px;
+            /* 20px + 32px (buttons) + 20px */
         }
 
-        /* Right button column - all buttons vertically stacked */
+        /* Right button column - absolutely positioned, overlays on right side of textarea */
         .ai-chat-right-buttons {
+            position: absolute;
+            bottom: -10px;
+            right: 20px;
+            /* 20px from right edge of panel */
             display: flex;
             flex-direction: column;
             gap: 6px;
             width: 32px;
+            pointer-events: auto;
+            /* Buttons clickable even when overlaying */
+            z-index: 10;
+            /* Above textarea */
         }
 
         .ai-chat-attach-btn,
@@ -7092,6 +7076,8 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 6px;
             padding: var(--space-3);
+            padding-right: 50px;
+            /* Space for overlaying button column */
             color: var(--text-primary);
             font-size: 14px;
             resize: none;
@@ -18636,47 +18622,47 @@
             const inputContainer = document.querySelector('.ai-chat-input-container');
             const messagesArea = document.querySelector('.ai-chat-messages');
             let isExpanded = false;
-            
+
             // STATE 4: Expand input area (click on bar or focus input)
             function expandInputArea() {
                 if (isExpanded) return;
-                
+
                 isExpanded = true;
                 inputContainer?.classList.add('expanded');
-                
+
                 // Auto-scroll after expansion (flex layout handles space automatically)
                 setTimeout(() => {
                     performAutoScroll();
                 }, 100);
-                
+
                 // Focus input
                 input?.focus();
-                
+
                 console.log('[STATE 4] Input area expanded - flex layout handles space');
             }
-            
+
             // STATE 1: Collapse input area (blur with empty input)
             function collapseInputArea() {
                 if (!isExpanded) return;
-                
+
                 isExpanded = false;
                 inputContainer?.classList.remove('expanded');
-                
+
                 console.log('[STATE 1] Input area collapsed - messages naturally expand');
             }
-            
+
             // Click on collapsed bar to expand (STATE 1 → STATE 4)
             inputContainer.addEventListener('click', (e) => {
                 if (!isExpanded && e.target === inputContainer) {
                     expandInputArea();
                 }
             });
-            
+
             // Focus input to expand (STATE 1 → STATE 4)
             input.addEventListener('focus', () => {
                 expandInputArea();
             });
-            
+
             // Blur to collapse (STATE 4 → STATE 1) - only if empty
             input.addEventListener('blur', () => {
                 setTimeout(() => {
@@ -18685,7 +18671,7 @@
                     }
                 }, LAYOUT_CONSTANTS.BLUR_DELAY);
             });
-            
+
             // After sending message, keep expanded (STATE 4 stays)
             // (Handled by sendChatMessage - don't auto-collapse)            // File attachment button click
             attachBtn.addEventListener('click', () => {
@@ -18730,9 +18716,9 @@
                 const newHeight = Math.min(input.scrollHeight, LAYOUT_CONSTANTS.MAX_INPUT_HEIGHT);
                 input.style.height = newHeight + 'px';
 
-                // Update messages padding as textarea expands (only in STATE 4)
-                if (inputContainer?.classList.contains('expanded')) {
-                    setTimeout(() => updateMessagesBottomPadding(), 0);
+                // Flex layout automatically handles space - just scroll if needed
+                if (inputContainer?.classList.contains('expanded') && autoScrollEnabled) {
+                    setTimeout(() => performAutoScroll(), 0);
                 }
             });
 
@@ -18884,19 +18870,15 @@
             }
 
             const resizeObserver = new ResizeObserver(entries => {
-                // Only update if input is expanded (STATE 4)
-                if (inputContainer.classList.contains('expanded')) {
-                    updateMessagesBottomPadding();
-
-                    // Auto-scroll if enabled
-                    if (autoScrollEnabled) {
-                        performAutoScroll();
-                    }
+                // Flex layout automatically handles space
+                // Just auto-scroll if needed
+                if (inputContainer.classList.contains('expanded') && autoScrollEnabled) {
+                    performAutoScroll();
                 }
             });
 
             resizeObserver.observe(inputContainer);
-            console.log('[RESIZE OBSERVER] Watching .ai-chat-input-container for size changes');
+            console.log('[RESIZE OBSERVER] Watching .ai-chat-input-container for size changes (flex layout)');
         }
 
         function toggleChat() {
@@ -28574,17 +28556,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     }
                 }
 
-                // Use compact template for agent columns, full template for Prime
-                console.log(`🔷 [renderThreadInfoContainer] Rendering card:`, { compact, threadId: thread.id, location });
+                // Use compact template for ALL locations (Prime, Agents, History)
+                // Prime will use compactCard with headerRowClean (no unload button)
+                // Agents will use compactCard with headerRowWithUnload ([X] button)
+                console.log(`🔷 [renderThreadInfoContainer] Rendering compact card:`, { location, threadId: thread.id });
 
-                let html;
-                if (compact) {
-                    console.log(`🔷 [renderThreadInfoContainer] Using compactCard for ${location}`);
-                    html = ThreadCardTemplates.compactCard(thread, location, agent, meta, slug, synergyMeta);
-                } else {
-                    console.log(`🔷 [renderThreadInfoContainer] Using fullCard for ${location}`);
-                    html = ThreadCardTemplates.fullCard(thread, location, agent, meta, slug, synergyMeta);
-                }
+                let html = ThreadCardTemplates.compactCard(thread, location, agent, meta, slug, synergyMeta);
 
                 console.log(`🔷 [renderThreadInfoContainer] Generated HTML length:`, html ? html.length : 0);
                 return html;

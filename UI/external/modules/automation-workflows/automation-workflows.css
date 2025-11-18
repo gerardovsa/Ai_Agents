@@ -249,7 +249,7 @@
 
 .floating-shape-palette {
     position: absolute;
-    top: 20px;
+    top: 80px;
     left: 16px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-default);
@@ -826,8 +826,8 @@
 
 .zoom-controls {
     position: absolute;
-    top: 20px;
-    right: 240px;
+    top: 80px;
+    left: 310px;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -1100,8 +1100,8 @@
 /* Minimap */
 .canvas-minimap {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 360px;
+    left: 20px;
     width: 200px;
     height: 150px;
     background: var(--bg-tertiary);

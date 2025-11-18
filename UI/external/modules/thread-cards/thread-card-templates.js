@@ -91,10 +91,14 @@ window.ThreadCardTemplates = {
     },
 
     /**
-     * Compact Card - For agent panels (MATCHES PRIME DESIGN + HOVER EXPAND)
+     * Compact Card - Used for ALL locations (Prime, Agents, Thread History)
+     * Updated Nov 18, 2025 - Now unified across all thread card locations
      * 
      * ALWAYS VISIBLE: 
-     *   Row 1: Title + Agent Badge + Unload Button
+     *   Row 1: Title + Agent Badge + Header Actions (varies by location)
+     *          - Prime: Clean header (no buttons)
+     *          - Agents: Unload button [X]
+     *          - Thread History: Full action button set
      *   Row 2: Meta (msgs/date/time)
      * 
      * HOVER EXPAND (smooth transition):
@@ -105,11 +109,12 @@ window.ThreadCardTemplates = {
      *   Row 7: Lock/Unlock + Device
      * 
      * @param {Object} thread - Thread object from database
-     * @param {string} location - Location identifier (e.g., "agent-1", "agent-2")
+     * @param {string} location - Location identifier (e.g., "prime", "agent-1", "thread-history")
      * @param {Object} agent - Agent metadata {name, icon, class}
      * @param {Object} meta - Display metadata {msgCount, dateStr, timeStr}
      * @param {string} slug - Shortened thread slug for display
      * @param {Object} synergyMeta - Synergy session metadata (optional)
+     * @param {string} currentLocation - Current thread location (for thread-history)
      * @returns {string} HTML string for compact thread card with hover expand
      */
     compactCard(thread, location, agent, meta, slug, synergyMeta = null, currentLocation = null) {
@@ -118,9 +123,16 @@ window.ThreadCardTemplates = {
 
         // Use different header based on location
         const isThreadHistory = location === 'thread-history';
-        const headerHtml = isThreadHistory
-            ? this.headerRowWithActions(thread, location, agent, currentLocation)
-            : this.headerRowWithUnload(thread, location, agent);
+        const isPrime = location === 'prime';
+        
+        let headerHtml;
+        if (isThreadHistory) {
+            headerHtml = this.headerRowWithActions(thread, location, agent, currentLocation);
+        } else if (isPrime) {
+            headerHtml = this.headerRowClean(thread, location, agent);
+        } else {
+            headerHtml = this.headerRowWithUnload(thread, location, agent);
+        }
 
         return `
             <div class="ai-chat-header-info agent-thread-card" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}">
@@ -166,9 +178,11 @@ window.ThreadCardTemplates = {
     },
 
     /**
-     * Full Card - For Prime panel
-     * 6-row layout: Header | Meta | Copy+ID | Synergy | Tags+Workflow | Lock Controls
+     * Full Card - DEPRECATED (Nov 18, 2025)
+     * Prime now uses compactCard() with headerRowClean() for consistency
+     * Kept for backwards compatibility only
      * 
+     * @deprecated Use compactCard() instead
      * @param {Object} thread - Thread object from database
      * @param {string} location - Location identifier (should be "prime")
      * @param {Object} agent - Agent metadata {name, icon, class}
@@ -463,8 +477,8 @@ window.ThreadCardTemplates = {
                 
                 <!-- Synergy Session (GREEN pill) -->
                 ${thread.synergy_card_id ? `
-                    <div class="thread-item-synergy" data-synergy-id="${thread.synergy_card_id}" style="background: #10b98115; border: 1px solid #10b981; border-radius: 8px; padding: 8px;">
-                        <button class="synergy-badge" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;"
+                    <div class="thread-item-synergy thread-item-synergy-linked" data-synergy-id="${thread.synergy_card_id}">
+                        <button class="synergy-badge" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; flex: 1;"
                             onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${safeEscape(thread.synergy_card_id)}', '${safeEscape(synergyDisplay)}')"
                             data-tooltip-title="${safeEscape(synergyDisplay)}"
                             data-tooltip-desc="${synergyMeta ? safeEscape(synergyMeta.description || '') : ''}"
@@ -475,8 +489,8 @@ window.ThreadCardTemplates = {
                             ${synergyPriority ? `<span class="synergy-badge-priority" style="background: white; color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px;">${synergyPriority}</span>` : ''}
                         </button>
                         ${location !== 'synergy' ? `
-                            <button class="thread-synergy-unlink" style="background: transparent; border: none; color: #10b981; cursor: pointer; padding: 4px 8px;" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
-                                <i class="fas fa-unlink"></i> Unlink
+                            <button class="thread-synergy-unlink" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
+                                <i class="fas fa-unlink"></i>
                             </button>
                         ` : ''}
                     </div>
@@ -490,16 +504,16 @@ window.ThreadCardTemplates = {
                 
                 <!-- Workflow Automation (ORANGE pill) -->
                 ${thread.workflow_id ? `
-                    <div class="thread-item-workflow" data-workflow-id="${thread.workflow_id}" style="background: #f9731615; border: 1px solid #f97316; border-radius: 8px; padding: 8px;">
-                        <button class="workflow-badge" style="background: #f97316; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;"
+                    <div class="thread-item-workflow thread-item-workflow-linked" data-workflow-id="${thread.workflow_id}">
+                        <button class="workflow-badge" style="background: #f97316; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; flex: 1;"
                             onclick="event.stopPropagation(); ThreadManager.openWorkflowDetails('${thread.workflow_id}')"
                             title="${thread.workflow_name || thread.workflow_id}">
                             <i class="fas fa-robot"></i>
                             <span class="workflow-badge-title">${thread.workflow_name || thread.workflow_id}</span>
                         </button>
                         ${location !== 'synergy' ? `
-                            <button class="thread-workflow-unlink" style="background: transparent; border: none; color: #f97316; cursor: pointer; padding: 4px 8px;" title="Unlink workflow" onclick="event.stopPropagation(); ThreadManager.unlinkWorkflow('${thread.id}', '${thread.workflow_id}')">
-                                <i class="fas fa-unlink"></i> Unlink
+                            <button class="thread-workflow-unlink" title="Unlink workflow" onclick="event.stopPropagation(); ThreadManager.unlinkWorkflow('${thread.id}', '${thread.workflow_id}')">
+                                <i class="fas fa-unlink"></i>
                             </button>
                         ` : ''}
                     </div>
