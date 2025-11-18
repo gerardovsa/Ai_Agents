@@ -614,29 +614,52 @@ def health_check():
 @app.route('/api/config/supabase', methods=['GET', 'OPTIONS'])
 def get_supabase_config():
     """Get Supabase configuration for frontend"""
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-    
-    # Load from config.py which reads from .env.master or .env
     try:
-        from config import SUPABASE_URL, SUPABASE_ANON_KEY
-        anon_key = SUPABASE_ANON_KEY
-    except (ImportError, AttributeError):
-        # Fallback to SUPABASE_KEY if SUPABASE_ANON_KEY not found
-        from config import SUPABASE_URL
-        anon_key = os.getenv('SUPABASE_KEY') or os.getenv('SUPABASE_ANON_KEY')
-    
-    response = jsonify({
-        'url': SUPABASE_URL,
-        'anonKey': anon_key
-    })
-    
-    # Add CORS headers explicitly
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
-    
-    return response
+        # Try to get from environment first (for Render deployment)
+        supabase_url = os.getenv('SUPABASE_URL')
+        
+        # Try multiple possible key names in order of preference
+        anon_key = (
+            os.getenv('SUPABASE_ANON_KEY') or 
+            os.getenv('SUPABASE_KEY') or 
+            os.getenv('SUPABASE_SERVICE_KEY')  # Fallback to service key if anon key not available
+        )
+        
+        # If not in env, try to load from config.py
+        if not supabase_url or not anon_key:
+            import sys
+            sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+            try:
+                from config import SUPABASE_URL, SUPABASE_ANON_KEY
+                supabase_url = supabase_url or SUPABASE_URL
+                anon_key = anon_key or SUPABASE_ANON_KEY
+            except (ImportError, AttributeError) as e:
+                print(f"⚠️ [SUPABASE CONFIG] Could not load from config.py: {e}")
+        
+        if not supabase_url or not anon_key:
+            return jsonify({
+                'error': 'Supabase configuration not found',
+                'details': 'SUPABASE_URL or SUPABASE_*_KEY not set in environment'
+            }), 500
+        
+        response = jsonify({
+            'url': supabase_url,
+            'anonKey': anon_key
+        })
+        
+        # Add CORS headers explicitly
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        
+        return response
+        
+    except Exception as e:
+        print(f"❌ [SUPABASE CONFIG] Error: {str(e)}")
+        return jsonify({
+            'error': 'Failed to load Supabase config',
+            'details': str(e)
+        }), 500
 
 
 # ============================================================================
