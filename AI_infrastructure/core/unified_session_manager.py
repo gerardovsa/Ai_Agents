@@ -27,7 +27,7 @@ import os
 from AI_infrastructure.shared.database_utils import get_database_connection
 
 # Setup logging
-from utils.logger_config import setup_logger, log_db
+from AI_infrastructure.utils.logger_config import setup_logger, log_db
 logger = setup_logger('core.unified_session_manager')
 
 
