@@ -256,22 +256,6 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             _pool_stats['connections_acquired'] += 1
             _pool_stats['total_wait_time'] += wait_time
             
-            # Wrap connection to return it to pool on close
-            original_close = conn.close
-            
-            def close_and_return_to_pool():
-                """Return connection to pool instead of closing"""
-                try:
-                    # Reset connection state before returning
-                    if not conn.closed:
-                        conn.rollback()  # Clean any pending transactions
-                        pool_instance.putconn(conn)
-                        _pool_stats['connections_returned'] += 1
-                except Exception as e:
-                    print(f"⚠️ [POOL] Error returning connection: {e}")
-            
-            conn.close = close_and_return_to_pool
-            
             # Set search_path and configure connection
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
@@ -282,8 +266,41 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             
             print(f"🔷 [POOL] Got connection from pool for '{schema_name}' (wait: {wait_time*1000:.1f}ms)")
             
-            # Wrap connection to provide automatic placeholder conversion
-            return DatabaseConnection(conn)
+            # Wrap connection to return to pool on close
+            # Can't override conn.close directly on psycopg2 (read-only), so use wrapper
+            class PooledConnection:
+                def __init__(self, conn, pool, schema):
+                    self._conn = conn
+                    self._pool = pool
+                    self._schema = schema
+                    self._closed = False
+                
+                def close(self):
+                    """Return to pool instead of closing"""
+                    if not self._closed:
+                        try:
+                            if not self._conn.closed:
+                                self._conn.rollback()
+                                self._pool.putconn(self._conn)
+                                _pool_stats['connections_returned'] += 1
+                            self._closed = True
+                        except Exception as e:
+                            print(f"⚠️ [POOL] Error returning connection: {e}")
+                
+                def __getattr__(self, name):
+                    return getattr(self._conn, name)
+                
+                def __enter__(self):
+                    return self
+                
+                def __exit__(self, exc_type, exc_val, exc_tb):
+                    self.close()
+                    return False
+            
+            pooled_conn = PooledConnection(conn, pool_instance, schema_name)
+            
+            # Wrap with DatabaseConnection for placeholder conversion
+            return DatabaseConnection(pooled_conn)
             
         except psycopg2.OperationalError as e:
             # Connection failed - detailed error logging

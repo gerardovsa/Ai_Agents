@@ -24,6 +24,7 @@ from typing import Dict, Optional, List, Any
 import uuid
 import json
 import os
+from AI_infrastructure.shared.database_utils import get_database_connection
 
 # Setup logging
 from utils.logger_config import setup_logger, log_db
@@ -71,27 +72,37 @@ class UnifiedSessionManager:
         max_retries = 5
         for attempt in range(max_retries):
             try:
-                conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
+                conn = get_database_connection()
+                cursor = conn.cursor()
                 
-                # Enable WAL mode for better concurrency (multiple readers, one writer)
-                # Skip WAL mode on Render - ephemeral filesystem doesn't support it
-                is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
+                # Check if we're using PostgreSQL (Supabase) or SQLite
+                # PostgreSQL connections come from the pool, SQLite are direct
+                is_postgres = hasattr(conn, '_conn') and 'psycopg2' in str(type(getattr(conn, '_conn', conn)))
                 
-                if not is_render:
-                    try:
-                        conn.execute("PRAGMA journal_mode=WAL")
-                        print("✓ [DB] WAL mode enabled (local/persistent filesystem)")
-                    except sqlite3.OperationalError as e:
-                        print(f"⚠ [DB] WAL mode failed (expected on ephemeral FS): {e}")
-                        conn.execute("PRAGMA journal_mode=DELETE")  # Fallback to DELETE mode
+                if not is_postgres:
+                    # SQLite-specific optimizations
+                    is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
+                    
+                    if not is_render:
+                        try:
+                            cursor.execute("PRAGMA journal_mode=WAL")
+                            print("✓ [DB] WAL mode enabled (local/persistent filesystem)")
+                        except sqlite3.OperationalError as e:
+                            print(f"⚠ [DB] WAL mode failed (expected on ephemeral FS): {e}")
+                            cursor.execute("PRAGMA journal_mode=DELETE")  # Fallback to DELETE mode
+                    else:
+                        print("✓ [DB] Using DELETE journal mode (Render ephemeral filesystem)")
+                        cursor.execute("PRAGMA journal_mode=DELETE")
+                    
+                    # Optimize for performance
+                    cursor.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe
+                    cursor.execute("PRAGMA cache_size=-64000")  # 64MB cache
+                    cursor.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
                 else:
-                    print("✓ [DB] Using DELETE journal mode (Render ephemeral filesystem)")
-                    conn.execute("PRAGMA journal_mode=DELETE")
+                    # PostgreSQL (Supabase) - no PRAGMA needed, already configured by pool
+                    print("✓ [DB] Using PostgreSQL (Supabase) - pool configured")
                 
-                # Optimize for performance
-                conn.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe
-                conn.execute("PRAGMA cache_size=-64000")  # 64MB cache
-                conn.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
+                cursor.close()
                 
                 # If we got here, initialization succeeded
                 break
@@ -99,14 +110,16 @@ class UnifiedSessionManager:
             except sqlite3.OperationalError as e:
                 if "database is locked" in str(e) and attempt < max_retries - 1:
                     # Another worker is initializing - wait and retry
+                    import time
                     time.sleep(0.5 * (attempt + 1))  # Exponential backoff
                     continue
                 else:
                     # Either not a lock error, or we've exhausted retries
                     raise
         
-        # Create tables
-        conn.execute("""
+        # Create tables (database-agnostic)
+        cursor = conn.cursor()
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
                 ui_context TEXT NOT NULL,
@@ -117,6 +130,7 @@ class UnifiedSessionManager:
                 metadata TEXT
             )
         """)
+        cursor.close()
         conn.commit()
         conn.close()
         
@@ -156,7 +170,7 @@ class UnifiedSessionManager:
             #  ONLY store in DB if NOT from CLI
             if source != 'cli':
                 # Use connection timeout for stability
-                with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+                with get_database_connection() as conn:
                     conn.execute("""
                         INSERT INTO sessions (session_id, ui_context, agent_id, conversation, metadata)
                         VALUES (%s, %s, %s, %s, %s)
@@ -188,7 +202,7 @@ class UnifiedSessionManager:
                 return self.sessions[session_id]
             
             # Load from DB (slow path - session not active)
-            with sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False) as conn:
+            with get_database_connection() as conn:
                 cursor = conn.execute("""
                     SELECT session_id, ui_context, agent_id, conversation, metadata, created_at, last_active
                     FROM sessions
@@ -238,7 +252,7 @@ class UnifiedSessionManager:
                     return
             
             # Update DB (only for UI sessions)
-            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+            with get_database_connection() as conn:
                 conn.execute("""
                     UPDATE sessions
                     SET conversation = %s, last_active = CURRENT_TIMESTAMP
@@ -261,7 +275,7 @@ class UnifiedSessionManager:
                 self.sessions[session_id]['last_active'] = datetime.now().isoformat()
             
             # Update DB
-            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+            with get_database_connection() as conn:
                 conn.execute("""
                     UPDATE sessions
                     SET metadata = %s, last_active = CURRENT_TIMESTAMP
@@ -305,7 +319,7 @@ class UnifiedSessionManager:
             max_age_hours: Sessions inactive longer than this are removed from cache
         """
         with self.lock:
-            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+            with get_database_connection() as conn:
                 # Get inactive session IDs
                 cursor = conn.execute("""
                     SELECT session_id
@@ -341,7 +355,7 @@ class UnifiedSessionManager:
             self.locks.pop(session_id, None)
             
             # Remove from DB
-            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+            with get_database_connection() as conn:
                 conn.execute("DELETE FROM sessions WHERE session_id = %s", (session_id,))
                 conn.commit()
             
@@ -367,7 +381,7 @@ class UnifiedSessionManager:
         with self.lock:
             active_count = len(self.sessions)
             
-            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+            with get_database_connection() as conn:
                 cursor = conn.execute("SELECT COUNT(*) FROM sessions")
                 total_count = cursor.fetchone()[0]
             
@@ -378,7 +392,7 @@ class UnifiedSessionManager:
     
     def _update_last_active(self, session_id: str):
         """Update last active timestamp (internal helper)"""
-        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+        with get_database_connection() as conn:
             conn.execute("""
                 UPDATE sessions
                 SET last_active = CURRENT_TIMESTAMP

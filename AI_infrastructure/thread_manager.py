@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import List, Dict, Optional, Any
 import re
 from pathlib import Path
+from AI_infrastructure.shared.database_utils import get_database_connection
 
 
 def strip_thinking_blocks_from_content(content: Any) -> Any:
@@ -77,7 +78,7 @@ class ThreadManager:
     
     def _get_connection(self):
         """Get database connection"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection()
         conn.row_factory = sqlite3.Row  # Enable dictionary-like access
         return conn
     
@@ -103,7 +104,7 @@ class ThreadManager:
         from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
         db_path = get_ai_infrastructure_db_path()
         
-        conn = sqlite3.connect(str(db_path))
+        conn = get_database_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         

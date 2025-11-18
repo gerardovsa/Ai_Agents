@@ -28,6 +28,7 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+from AI_infrastructure.shared.database_utils import get_database_connection
 
 
 class PromptInjectionManager:
@@ -53,7 +54,7 @@ class PromptInjectionManager:
     
     def _ensure_tables(self):
         """Create prompt-related tables if they don't exist"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection()
         cursor = conn.cursor()
         
         # Table for prompt library (replaces user_custom_prompts)
@@ -430,7 +431,7 @@ Consider usability, accessibility, and user satisfaction."""
     
     def get_user_custom_prompt(self, user_id: int, prompt_name: str) -> Optional[str]:
         """Get a user's custom prompt by name"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -518,7 +519,7 @@ Consider usability, accessibility, and user satisfaction."""
         is_quick_action: bool = False
     ) -> int:
         """Save a user's custom prompt"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection()
         cursor = conn.cursor()
         
         # Convert is_quick_action to type field
@@ -544,7 +545,7 @@ Consider usability, accessibility, and user satisfaction."""
         custom_prompt: Optional[str] = None
     ) -> int:
         """Save a user's prompt preference combination"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -567,7 +568,7 @@ Consider usability, accessibility, and user satisfaction."""
     
     def get_prompt_preference(self, user_id: int, preference_name: str) -> Optional[Dict[str, Any]]:
         """Get a user's saved prompt preference"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -615,7 +616,7 @@ Consider usability, accessibility, and user satisfaction."""
     
     def list_user_custom_prompts(self, user_id: int) -> List[Dict[str, Any]]:
         """List all custom prompts for a user"""
-        conn = sqlite3.connect(self.db_path)
+        conn = get_database_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
