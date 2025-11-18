@@ -73,7 +73,7 @@ class AgentStateManager:
                 self.states[key] = {
                     'agent_id': agent_id,
                     'agent_name': self.agent_names.get(agent_id, f'Agent {agent_id}'),
-                    'session_id': session_id,
+                    'session_id': thread_id,  # FIXED: Use thread_id (session_id === thread_id)
                     'status': 'idle',
                     'conversation': [],
                     'queue': Queue(),
@@ -85,7 +85,7 @@ class AgentStateManager:
                 }
                 self.locks[key] = threading.Lock()
                 
-                print(f"[AgentState] Created state for {self.agent_names.get(agent_id, agent_id)} (session: {session_id[:8]}...)")
+                print(f"[AgentState] Created state for {self.agent_names.get(agent_id, agent_id)} (thread: {thread_id[:8]}...)")
             
             return self.states[key]
     
