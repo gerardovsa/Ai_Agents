@@ -12553,10 +12553,8 @@
                                 </div>
                             </div>
 
-                            <!-- Canvas -->
-                            <div class="automation-canvas" id="automation-canvas">
-                                <!-- Floating Shape Palette (Top-Left) -->
-                                <div class="floating-shape-palette">
+                            <!-- Fixed Menu Bar with Shapes, Colors, and Zoom -->
+                            <div class="floating-shape-palette">
                                     <div class="floating-palette-title">
                                         <i class="fas fa-shapes"></i> Shapes
                                     </div>
@@ -12611,9 +12609,9 @@
                                             <span style="font-size: 11px; font-weight: 600;">INSTRUCTIONS</span>
                                         </div>
                                     </div>
-                                    <div class="floating-color-row" style="display: none;">
+                                    <div class="floating-color-row">
                                         <label style="font-size: 11px; color: var(--text-muted); margin-right: 8px;">
-                                            <i class="fas fa-palette"></i>
+                                            <i class="fas fa-palette"></i> Colors
                                         </label>
                                         <div class="color-swatch-row">
                                             <div class="color-swatch selected" data-color="#58a6ff"
@@ -12634,29 +12632,33 @@
                                                 title="System Gray"></div>
                                         </div>
                                     </div>
+
+                                    <!-- Zoom Controls (Inline in Toolbar) -->
+                                    <div class="zoom-controls">
+                                        <button class="zoom-btn" id="zoom-out-btn" title="Zoom out (Ctrl -)">
+                                            <i class="fas fa-search-minus"></i>
+                                        </button>
+                                        <span class="zoom-level" id="zoom-level">100%</span>
+                                        <button class="zoom-btn" id="zoom-in-btn" title="Zoom in (Ctrl +)">
+                                            <i class="fas fa-search-plus"></i>
+                                        </button>
+                                        <button class="zoom-btn" id="zoom-reset-btn" title="Reset zoom (Ctrl 0)">
+                                            <i class="fas fa-compress"></i>
+                                        </button>
+                                        <button class="zoom-btn" id="recenter-btn" title="Recenter to shapes">
+                                            <i class="fas fa-crosshairs"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <!-- Zoom Controls (Floating Top-Right) -->
-                                <div class="zoom-controls">
-                                    <button class="zoom-btn" id="zoom-out-btn" title="Zoom out (Ctrl -)">
-                                        <i class="fas fa-search-minus"></i>
-                                    </button>
-                                    <span class="zoom-level" id="zoom-level">100%</span>
-                                    <button class="zoom-btn" id="zoom-in-btn" title="Zoom in (Ctrl +)">
-                                        <i class="fas fa-search-plus"></i>
-                                    </button>
-                                    <button class="zoom-btn" id="zoom-reset-btn" title="Reset zoom (Ctrl 0)">
-                                        <i class="fas fa-compress"></i>
-                                    </button>
-                                    <button class="zoom-btn" id="recenter-btn" title="Recenter to shapes">
-                                        <i class="fas fa-crosshairs"></i>
-                                    </button>
-                                </div>
-                                <div class="automation-canvas-wrapper" id="automation-canvas-wrapper">
-                                    <!-- Shapes will be added here dynamically -->
+                                <!-- Canvas Grid Area (Scrollable) -->
+                                <div class="automation-canvas" id="automation-canvas">
+                                    <div class="automation-canvas-wrapper" id="automation-canvas-wrapper">
+                                        <!-- Shapes will be added here dynamically -->
+                                    </div>
                                 </div>
 
-                                <!-- Minimap -->
+                                <!-- Minimap (Fixed Top-Right) -->
                                 <div class="canvas-minimap" id="canvas-minimap">
                                     <div class="minimap-content" id="minimap-content">
                                         <div class="minimap-viewport" id="minimap-viewport"></div>

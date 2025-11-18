@@ -533,8 +533,9 @@ def start_agent(agent_id):
                 print(f"[START] Pruned conversation: {original_count} -> {len(conversation_history)} messages")
         
         # Get or create agent state (IMPORTANT: This ensures conversation is in agent_state_manager)
-        # NOTE: context should be a string like 'triple_agent', 'single_viewer', etc.
-        state = agent_state_manager.get_or_create_state(agent_id, session_id, 'triple_agent')
+        # CRITICAL: Use thread_id (not session_id) for proper message isolation
+        # This ensures state keys match database thread IDs
+        state = agent_state_manager.get_or_create_state(agent_id, thread_id)
         
         # CRITICAL FIX: Always UPDATE state with conversation_history from frontend
         # THEN add the current user message (which isn't in conversation_history yet)
@@ -550,13 +551,13 @@ def start_agent(agent_id):
         user_message = {'role': 'user', 'content': prompt}
         state['conversation'].append(user_message)
         print(f"[START] Added current user message to conversation - {len(state['conversation'])} messages total")
-        print(f"[START] State key: {agent_id}_{session_id}")
+        print(f"[START] State key: {agent_id}_{thread_id} (using thread_id for isolation)")
         print(f"[START] Full state dict keys: {list(state.keys())}")
         print(f"[START] Conversation in state: {len(state.get('conversation', []))} messages")
         
-        lock = agent_state_manager.get_lock(agent_id, session_id)
-        queue = agent_state_manager.get_queue(agent_id, session_id)
-        agent_state_manager.update_status(agent_id, session_id, 'processing')
+        lock = agent_state_manager.get_lock(agent_id, thread_id)
+        queue = agent_state_manager.get_queue(agent_id, thread_id)
+        agent_state_manager.update_status(agent_id, thread_id, 'processing')
         
         # Acquire lock before starting worker (worker will release it when done)
         lock.acquire()
@@ -629,16 +630,19 @@ def stream_agent(agent_id):
         return error_response("Missing session_id", 400)
     
     # Get agent state and conversation history
-    # NOTE: context should be a string like 'triple_agent', 'single_viewer', etc.
-    state = agent_state_manager.get_or_create_state(agent_id, session_id, 'triple_agent')
+    # CRITICAL: Use session_id as thread_id (they should be equal per line 494-507)
+    # This ensures state lookup matches the key used in /start endpoint
+    thread_id = session_id  # session_id === thread_id (enforced earlier)
+    state = agent_state_manager.get_or_create_state(agent_id, thread_id)
     conversation = state.get('conversation', [])
     
     # Debug logging
     print(f"[Stream {agent_id}] Session: {session_id}")
+    print(f"[Stream {agent_id}] Thread: {thread_id}")
     print(f"[Stream {agent_id}] Conversation length: {len(conversation)}")
     print(f"[Stream {agent_id}] 🔍 DEBUG State Manager:")
     print(f"  - All state keys in manager: {list(agent_state_manager.states.keys())}")
-    state_key = f"{agent_id}_{session_id}"
+    state_key = f"{agent_id}_{thread_id}"
     if state_key in agent_state_manager.states:
         print(f"  - ✅ State exists for key: {state_key}")
         print(f"  - State conversation length: {len(agent_state_manager.states[state_key].get('conversation', []))}")
