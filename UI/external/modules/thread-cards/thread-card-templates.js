@@ -91,33 +91,69 @@ window.ThreadCardTemplates = {
     },
 
     /**
-     * Compact Card - For agent panels, synergy panel, sidebar items
-     * 5-row layout: Header | Meta | Copy+ID | UI Links | Tags
+     * Compact Card - For agent panels (MATCHES PRIME DESIGN + HOVER EXPAND)
+     * 
+     * ALWAYS VISIBLE: 
+     *   Row 1: Title + Agent Badge + Unload Button
+     *   Row 2: Meta (msgs/date/time)
+     * 
+     * HOVER EXPAND (smooth transition):
+     *   Row 3: Copy Thread + Thread Slug
+     *   Row 4: Synergy Session (green pill)
+     *   Row 5: Workflow Automation (orange pill)
+     *   Row 6: Tags
+     *   Row 7: Lock/Unlock + Device
      * 
      * @param {Object} thread - Thread object from database
-     * @param {string} location - Location identifier (e.g., "agent-1", "synergy", "sidebar")
+     * @param {string} location - Location identifier (e.g., "agent-1", "agent-2")
      * @param {Object} agent - Agent metadata {name, icon, class}
      * @param {Object} meta - Display metadata {msgCount, dateStr, timeStr}
      * @param {string} slug - Shortened thread slug for display
      * @param {Object} synergyMeta - Synergy session metadata (optional)
-     * @returns {string} HTML string for compact thread card
+     * @returns {string} HTML string for compact thread card with hover expand
      */
     compactCard(thread, location, agent, meta, slug, synergyMeta = null) {
         const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
 
         return `
-            <div class="thread-item compact" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}" onclick="ThreadManager.loadThread('${thread.id}')">
+            <div class="ai-chat-header-info agent-thread-card" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}">
                 
-                ${this.headerRow(thread, location, agent, true)}
+                <!-- ALWAYS VISIBLE: Row 1 - Title + Badge + Unload -->
+                ${this.headerRowWithUnload(thread, location, agent)}
                 
-                ${this.metaRow(thread, meta)}
+                <!-- ALWAYS VISIBLE: Row 2 - Meta (msgs/date/time) -->
+                <div class="thread-meta-row-always-visible" style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                    <span class="thread-meta-item" title="Message count">
+                        <i class="fas fa-comments"></i> ${meta.msgCount} msgs
+                    </span>
+                    <span class="thread-meta-item" title="Last updated">
+                        <i class="fas fa-calendar"></i> ${meta.dateStr}
+                    </span>
+                    <span class="thread-meta-item" title="Time">
+                        <i class="fas fa-clock"></i> ${meta.timeStr}
+                    </span>
+                </div>
                 
-                ${this.copyThreadRow(thread, slug)}
-                
-                ${this.uiLinksRow(thread, location, synergyMeta)}
-                
-                ${this.tagsRow(thread, location)}
+                <!-- HOVER EXPAND: Rows 3-7 -->
+                <div class="thread-expand-on-hover">
+                    
+                    <!-- Row 3: Copy + Thread ID -->
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                        ${this._copyThreadDropdown(thread)}
+                        ${this._threadIdBadge(thread, slug)}
+                    </div>
+                    
+                    <!-- Row 4-5: Synergy + Workflow UI Links -->
+                    ${this.uiLinksRow(thread, location, synergyMeta)}
+                    
+                    <!-- Row 6: Tags -->
+                    ${this.tagsRow(thread, location)}
+                    
+                    <!-- Row 7: Lock Controls -->
+                    ${this.lockControlsRow(thread)}
+                    
+                </div>
                 
             </div>
         `;
@@ -142,7 +178,7 @@ window.ThreadCardTemplates = {
         return `
             <div class="ai-chat-header-info" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}">
                 
-                ${this.headerRow(thread, location, agent, false)}
+                ${this.headerRowClean(thread, location, agent)}
                 
                 <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
                     <span class="thread-meta-item" title="Message count">
@@ -172,7 +208,62 @@ window.ThreadCardTemplates = {
     },
 
     /**
+     * Header Row Clean - Title + Agent Badge ONLY (for Prime)
+     * NO action buttons, NO unload button - clean design for Prime panel
+     * 
+     * @param {Object} thread - Thread object
+     * @param {string} location - Location identifier
+     * @param {Object} agent - Agent metadata {name, icon, class}
+     * @returns {string} HTML string for clean header row
+     */
+    headerRowClean(thread, location, agent) {
+        return `
+            <div class="thread-item-header">
+                <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}" style="flex: 1; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${thread.title || 'Untitled'}
+                </span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                    <div class="thread-item-agent-badge ${agent.class}">
+                        <i class="fas ${agent.icon}"></i> ${agent.name}
+                    </div>
+                    
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Header Row With Unload - Title + Agent Badge + Unload Button (for Agent columns)
+     * Includes [X] unload button to send thread back to Prime
+     * 
+     * @param {Object} thread - Thread object
+     * @param {string} location - Location identifier (e.g., "agent-1")
+     * @param {Object} agent - Agent metadata {name, icon, class}
+     * @returns {string} HTML string for header row with unload button
+     */
+    headerRowWithUnload(thread, location, agent) {
+        return `
+            <div class="thread-item-header">
+                <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}" style="flex: 1; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${thread.title || 'Untitled'}
+                </span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                    <div class="thread-item-agent-badge ${agent.class}">
+                        <i class="fas ${agent.icon}"></i> ${agent.name}
+                    </div>
+                    <button class="agent-unload-btn" 
+                            onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 
+                            title="Unload thread from agent (move to Prime)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
      * Header Row (Row 1) - Title | Agent Badge | Action Buttons/Unload
+     * LEGACY - Keep for backward compatibility with sidebar thread list items
      * Compact mode: Title, agent badge, action buttons (rename, edit, fork, clone, archive, delete)
      * Full mode: Title, agent badge, unload button (agent panels only)
      * 

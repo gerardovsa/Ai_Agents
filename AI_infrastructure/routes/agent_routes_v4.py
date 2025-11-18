@@ -490,6 +490,22 @@ def start_agent(agent_id):
             from datetime import datetime
             session_id = f"session_{int(datetime.now().timestamp()*1000)}_{secrets.token_urlsafe(8)}"
         
+        # CRITICAL THREAD ISOLATION FIX (Nov 18, 2025):
+        # Ensure session_id === thread_id for proper thread isolation
+        # This prevents messages from one thread leaking into another thread
+        if thread_id:
+            if session_id != thread_id:
+                print(f"[START] ⚠️  THREAD ISOLATION WARNING:")
+                print(f"  - session_id: {session_id}")
+                print(f"  - thread_id: {thread_id}")
+                print(f"  - These MUST be equal for proper isolation!")
+                print(f"[START] 🔧 FIX: Forcing session_id = thread_id to maintain thread isolation")
+                session_id = thread_id  # Force use thread_id for isolation
+        else:
+            # If no thread_id provided, use session_id as thread_id
+            thread_id = session_id
+            print(f"[START] ℹ️  No thread_id provided, using session_id as thread_id: {session_id[:8]}...")
+        
         # CRITICAL FIX: Read conversation_history from frontend request
         # Frontend sends full conversation history in data.conversation_history
         if is_form_data:

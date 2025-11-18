@@ -44,6 +44,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     3. Thinking blocks must have 'thinking' field (string) and 'signature' field
     4. Text blocks must have 'text' field (string)
     5. tool_use blocks must have 'id', 'name', 'input' fields
+    6. CRITICAL: Every tool_use.id MUST have a matching tool_result.tool_use_id in the next user message
     
     Args:
         content: List of content blocks from assistant message
@@ -52,6 +53,11 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
         Tuple of (validated_content, extracted_tool_results)
         - validated_content: Assistant blocks (thinking, tool_use, text)
         - extracted_tool_results: tool_result blocks that were incorrectly in assistant message
+    
+    CRITICAL FIX (Nov 18, 2025):
+    - Verify tool_use IDs match tool_result IDs
+    - If mismatch detected, return EMPTY to truncate conversation
+    - Prevents API error: "tool_use ids were found without tool_result blocks"
     """
     if not isinstance(content, list) or not content:
         return content, []
@@ -59,6 +65,7 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     # STEP 1: Validate and filter blocks, extract tool_result blocks
     validated_blocks = []
     extracted_tool_results = []
+    tool_use_ids = []  # Track tool_use IDs for verification
     
     for block in content:
         if not isinstance(block, dict):
@@ -73,6 +80,12 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
             print(f"[Combined Worker] ⚠️ Extracting tool_result from assistant message (will be moved to user message)")
             extracted_tool_results.append(block)
             continue
+        
+        # Track tool_use IDs for verification
+        if block_type == 'tool_use':
+            tool_use_id = block.get('id')
+            if tool_use_id:
+                tool_use_ids.append(tool_use_id)
         
         # RULE 2: Validate thinking blocks
         if block_type in ('thinking', 'redacted_thinking'):
@@ -139,12 +152,53 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     if not has_thinking:
         print(f"[Combined Worker] ℹ️  No thinking blocks in message (this is OK - API handles it)")
     
-    # STEP 3: Check if first block is already thinking
+    # STEP 3: CRITICAL ID VERIFICATION (Nov 18, 2025 FIX)
+    # Verify that extracted tool_result IDs match the tool_use IDs
+    # This prevents API error: "tool_use ids were found without tool_result blocks"
+    if tool_use_ids and extracted_tool_results:
+        tool_result_ids = [tr.get('tool_use_id') for tr in extracted_tool_results]
+        
+        print(f"[Combined Worker]  CRITICAL ID VERIFICATION:")
+        print(f"  - tool_use IDs in assistant: {tool_use_ids}")
+        print(f"  - tool_result IDs extracted: {tool_result_ids}")
+        
+        # Check for ID mismatch (tool_use without matching tool_result)
+        missing_results = []
+        for tool_use_id in tool_use_ids:
+            if tool_use_id not in tool_result_ids:
+                missing_results.append(tool_use_id)
+        
+        if missing_results:
+            print(f"[Combined Worker] ❌ CRITICAL ERROR: tool_use IDs without matching tool_result:")
+            print(f"  - Missing tool_results for: {missing_results}")
+            print(f"  - This WILL cause API error: 'tool_use ids were found without tool_result blocks'")
+            print(f"[Combined Worker] 🔧 FIX: Returning EMPTY to truncate conversation at this malformed message")
+            # Return empty lists - this will cause the message to be skipped
+            # and conversation will be truncated to before this malformed message
+            return [], []
+        
+        # Check for extra tool_results (results without matching tool_use)
+        extra_results = []
+        for tool_result_id in tool_result_ids:
+            if tool_result_id not in tool_use_ids:
+                extra_results.append(tool_result_id)
+        
+        if extra_results:
+            print(f"[Combined Worker] ⚠️ WARNING: tool_result IDs without matching tool_use:")
+            print(f"  - Extra tool_results for: {extra_results}")
+            print(f"[Combined Worker] 🔧 FIX: Removing orphaned tool_results")
+            # Remove tool_results that don't have matching tool_use
+            extracted_tool_results = [tr for tr in extracted_tool_results if tr.get('tool_use_id') in tool_use_ids]
+            print(f"  - Kept {len(extracted_tool_results)} matching tool_results")
+        
+        print(f"[Combined Worker] ✅ ID VERIFICATION PASSED: All tool_use IDs have matching tool_results")
+    
+    # STEP 4: Check if first block is already thinking
     first_block_type = validated_blocks[0].get('type')
     if first_block_type in ('thinking', 'redacted_thinking'):
         return validated_blocks, extracted_tool_results  # Already correct order
     
-    # STEP 4: Reorder: thinking blocks first, then others
+    # STEP 5: Reorder: thinking blocks first, then others
     thinking_blocks = [
         b for b in validated_blocks 
         if b.get('type') in ('thinking', 'redacted_thinking')

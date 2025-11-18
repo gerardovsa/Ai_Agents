@@ -1204,5 +1204,71 @@
 }
 
 /* ============================================================
+   AGENT THREAD CARD - HOVER EXPAND (Nov 18, 2025)
+   ============================================================ */
+
+/* Agent thread cards show only top 2 rows by default */
+.agent-thread-card {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Always visible: Title + Badge + Unload, and Meta row */
+.thread-meta-row-always-visible {
+    opacity: 1 !important;
+    max-height: 50px !important;
+    overflow: visible !important;
+    margin-top: 8px !important;
+}
+
+/* Expandable content (hidden by default) */
+.thread-expand-on-hover {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+/* Show all content on hover */
+.agent-thread-card:hover .thread-expand-on-hover {
+    max-height: 500px;
+    /* Enough for all rows */
+    opacity: 1;
+    overflow: visible;
+}
+
+/* Unload button styling */
+.agent-unload-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 6px;
+    color: #f85149;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.agent-unload-btn:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: #f85149;
+    transform: scale(1.1);
+}
+
+.agent-unload-btn i {
+    font-size: 12px;
+}
+
+/* Smooth transition for all child elements when expanding */
+.agent-thread-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+/* ============================================================
    END THREAD CARD STYLES
    ============================================================ */
