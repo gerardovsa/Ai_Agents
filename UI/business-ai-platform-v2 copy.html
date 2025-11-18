@@ -2225,7 +2225,6 @@
         .synergy-view-tab {
             flex: 1;
             padding: 8px 16px;
-            background: transparent;
             border: none;
             border-radius: 6px;
             color: var(--text-secondary);
@@ -2237,6 +2236,7 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            background: var(--bg-secondary);
         }
 
         .synergy-view-tab:hover {
@@ -2643,6 +2643,7 @@
             transition: all 0.2s ease;
             overflow: hidden;
         }
+
 
         .synergy-session-item.expanded {
             border-color: var(--accent-primary);
@@ -27651,7 +27652,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         console.log('[UI UPDATE] Available thread IDs:', this.threads.map(t => t.id));
                         return;
                     }
-                    
+
                     // Inject universal thread-info card
                     container.innerHTML = this.renderThreadInfoContainer('prime', threadId, false);
                     console.log('[UI UPDATE] Prime header updated with universal card for thread:', threadId);
@@ -30348,10 +30349,10 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 try {
                     // FIXED: Use thread.location field (single source of truth) instead of API call
                     const agentLocation = `agent-${agentId}`;
-                    
+
                     // Check if any thread has this agent's location
                     const assignedThread = this.threads.find(t => t.location === agentLocation);
-                    
+
                     if (!assignedThread) {
                         // Agent has NO assigned threads - show "Start New Chat" button
                         console.log(`[NEW] [checkAndShowEmptyState] agent-${agentId} has no assigned thread (checked thread.location field), showing empty state`);

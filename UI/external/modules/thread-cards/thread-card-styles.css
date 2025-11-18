@@ -379,8 +379,8 @@
     font-size: 11px;
 }
 
-.lock-btn,
-.unlock-btn {
+/* Lock/Unlock Toggle Button */
+.lock-toggle-btn {
     padding: 6px 12px;
     border: none;
     border-radius: 6px;
@@ -392,38 +392,45 @@
     align-items: center;
     gap: 6px;
     transition: all 0.2s ease;
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
-.lock-btn {
+/* Unlocked state (default - gray) */
+.lock-toggle-btn[data-locked="false"] {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.lock-toggle-btn[data-locked="false"]:hover {
     background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
-}
-
-.lock-btn:hover {
-    background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
 }
 
-.unlock-btn {
+/* Locked state (green) */
+.lock-toggle-btn[data-locked="true"] {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
-.unlock-btn:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+.lock-toggle-btn[data-locked="true"]:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
-.lock-btn:active,
-.unlock-btn:active {
+.lock-toggle-btn:active {
     transform: translateY(0);
 }
 
-.lock-btn i,
-.unlock-btn i {
+.lock-toggle-btn i {
     font-size: 11px;
+    transition: transform 0.2s ease;
+}
+
+/* Rotate icon when locked */
+.lock-toggle-btn[data-locked="true"] i {
+    transform: rotate(-15deg);
 }
 
 /* Locked thread styling */
@@ -1042,6 +1049,11 @@
     white-space: nowrap;
 }
 
+/* Tighter constraint for agent columns (350px width) */
+.agent-thread-card .synergy-badge-title {
+    max-width: 160px;
+}
+
 /* Synergy badge priority pill */
 .synergy-badge-priority {
     flex-shrink: 0;
@@ -1223,6 +1235,13 @@
 /* Agent thread cards show only top 2 rows by default */
 .agent-thread-card {
     transition: all 0.3s ease-in-out;
+}
+
+/* When inside .thread-item, fill the entire container */
+.thread-item .ai-chat-header-info.agent-thread-card {
+    width: 100%;
+    margin: 0;
+    border-radius: 8px;
 }
 
 /* Always visible: Title + Badge + Unload, and Meta row */

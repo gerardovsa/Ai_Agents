@@ -746,13 +746,13 @@ def delete_thread(thread_id):
             # Just clear from state manager with the full ID
             agent_state_manager.clear_conversation('prime', thread_id)
         
-        # Delete from Supabase (saved_threads table)
+        # Delete from Supabase (sessions.threads table)
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
         delete_query = """
-            DELETE FROM sessions.saved_threads
-            WHERE thread_id = %s
+            DELETE FROM sessions.threads
+            WHERE id = %s
         """
         
         cursor.execute(delete_query, [thread_id])

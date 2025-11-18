@@ -119,6 +119,10 @@
     <!-- HTML template generation for thread cards (Phase 2: Template Extraction) -->
     <script src="external/modules/thread-cards/thread-card-templates.js"></script>
 
+    <!-- ==================== THREAD LOCK TOGGLE MODULE ==================== -->
+    <!-- Lock/Unlock toggle button functionality for thread cards -->
+    <script src="external/modules/thread-cards/thread-lock-toggle.js"></script>
+
     <!-- ==================== THREAD CARD REALTIME MODULE ==================== -->
     <!-- Supabase Realtime subscriptions for auto-refresh (Phase 3: Realtime Integration) -->
     <script src="external/modules/thread-cards/thread-card-realtime.js"></script>
@@ -787,7 +791,7 @@
             padding: var(--space-4) 0;
             gap: var(--space-3);
             overflow-y: auto;
-            z-index: 1000;
+            z-index: 10000;
         }
 
         .sidebar-icon-btn {
@@ -837,7 +841,7 @@
             padding: var(--space-4) 0;
             gap: var(--space-3);
             overflow-y: auto;
-            z-index: 1000;
+            z-index: 10000;
         }
 
         .right-sidebar-btn {
@@ -850,7 +854,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             color: var(--text-secondary);
             font-size: 18px;
             position: relative;
@@ -1129,7 +1133,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: opacity 0.8s ease, width 0.8s ease;
+            transition: opacity 0.3s ease, width 0.3s ease, transform 0.3s ease;
             position: relative;
             min-width: 300px;
             max-width: 800px;
@@ -2076,12 +2080,14 @@
         .synergy-sidebar.collapsed {
             left: 0;
             top: 60px;
+            height: calc(100vh - 60px);
             transform: translateX(-100%);
         }
 
         .synergy-sidebar:not(.collapsed) {
             left: 60px;
             top: 60px;
+            height: calc(100vh - 60px);
             transform: translateX(0);
         }
 
@@ -2326,28 +2332,54 @@
         /* ==================== AUTOMATIONS SIDEBAR ==================== */
         .automations-sidebar {
             position: fixed;
-            right: 0;
             top: 0;
             height: 100vh;
             width: 480px;
             background: var(--bg-secondary);
-            border-left: 1px solid var(--border-default);
             display: flex;
             flex-direction: column;
             z-index: 9999;
-            transform: translateX(100%);
-            transition: right 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+            transition: left 0.3s ease, right 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Left side positioning */
+        .automations-sidebar[data-side="left"] {
+            left: 0;
+            border-right: 1px solid var(--border-default);
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .automations-sidebar[data-side="left"].collapsed {
+            left: 0;
+            top: 60px;
+            height: calc(100vh - 60px);
+            transform: translateX(-100%);
+        }
+
+        .automations-sidebar[data-side="left"]:not(.collapsed) {
+            left: 60px;
+            top: 60px;
+            height: calc(100vh - 60px);
+            transform: translateX(0);
+        }
+
+        /* Right side positioning */
+        .automations-sidebar[data-side="right"] {
+            right: 0;
+            border-left: 1px solid var(--border-default);
             box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
         }
 
-        .automations-sidebar.collapsed {
+        .automations-sidebar[data-side="right"].collapsed {
             right: 0;
             top: 60px;
+            height: calc(100vh - 60px);
             transform: translateX(100%);
         }
 
-        .automations-sidebar:not(.collapsed) {
+        .automations-sidebar[data-side="right"]:not(.collapsed) {
             right: 60px;
+            height: calc(100vh - 60px);
             top: 60px;
             transform: translateX(0);
         }
@@ -4276,54 +4308,25 @@
         }
 
         .thread-item {
-            padding: var(--space-3);
-            border-radius: 8px;
+            /* Removed padding, border, background - just a wrapper for drag-and-drop */
+            padding: 0;
+            border-radius: 0;
             cursor: grab;
             margin-bottom: var(--space-2);
-            border: 1px solid var(--border-default);
-            background: var(--bg-secondary);
+            border: none;
+            background: transparent;
             /*    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);  */
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: none;
             display: flex;
             flex-direction: column;
-            gap: var(--space-2);
+            gap: 0;
             position: relative;
-            overflow: hidden;
-            min-height: 115px;
+            overflow: visible;
+            min-height: auto;
             /* COMPACT: Show only 3 rows */
         }
 
-        /* Fade gradient at bottom to indicate more content */
-        .thread-item::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 30px;
-            background: linear-gradient(to bottom, transparent, var(--bg-secondary));
-            pointer-events: none;
-            opacity: 1;
-            transition: opacity 0.3s ease;
-        }
-
-        /* Hide gradient on hover (content is fully visible) */
-        .thread-item:hover::after {
-            opacity: 0;
-        }
-
-        /* EXPANDED STATE ON HOVER - Smooth animations */
-        .thread-item:hover {
-            background: rgba(88, 166, 255, 0.08);
-            border-color: var(--accent-primary);
-            box-shadow: 0 4px 16px rgba(88, 166, 255, 0.25);
-            transform: translateY(-2px);
-            min-height: 240px;
-            /* EXPAND: Show all rows (increased for full content) */
-            z-index: 10;
-            /* Lift above other cards */
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        /* Removed gradient and hover effects - handled by inner .agent-thread-card */
 
         /* AGENT-ASSIGNED THREADS - Dark Purple Border */
         .thread-item.agent-assigned {
@@ -10152,6 +10155,7 @@
 
         .synergy-session-item:hover {
             background: var(--bg-tertiary, #1c2128);
+            border-color: var(--accent-primary, #2f81f7);
         }
 
         .synergy-session-item:last-child {
@@ -11353,9 +11357,9 @@
                 <i class="fa-solid fa-hexagon-nodes-bolt fa-lg"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="card-test" title="Thread Card Test Dashboard">
+            <!-- <button class="sidebar-icon-btn" data-tab="card-test" title="Thread Card Test Dashboard">
                 <i class="fas fa-vial"></i>
-            </button>
+            </button> -->
 
             <!-- MODULES SECTION - Icons added dynamically by ModuleManager -->
             <div class="sidebar-divider" style="margin-top: 16px;"></div>
@@ -13088,127 +13092,7 @@
                     </div>
                 </div>
 
-                <!-- ==================== CARD TEST DASHBOARD TAB ==================== -->
-                <div class="tab-content" id="tab-card-test">
-                    <div style="padding: 20px; background: var(--bg-secondary); height: 100%; overflow-y: auto;">
-                        <h2 style="margin-bottom: 20px; color: var(--text-primary);">
-                            <i class="fas fa-vial"></i> Thread Card Layout Testing
-                        </h2>
-
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
-                            <!-- Layout 1: Current Full Card -->
-                            <div style="background: var(--bg-primary); border-radius: 8px; padding: 15px;">
-                                <h3 style="margin-bottom: 10px; color: var(--accent-primary);">Layout 1: Full Card
-                                    (Current)</h3>
-                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Shows all
-                                    rows, expands on hover</p>
-                                <div id="test-card-1"></div>
-                            </div>
-
-                            <!-- Layout 2: Compact Always -->
-                            <div style="background: var(--bg-primary); border-radius: 8px; padding: 15px;">
-                                <h3 style="margin-bottom: 10px; color: var(--accent-primary);">Layout 2: Always Compact
-                                </h3>
-                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Shows only
-                                    title + meta, no expansion</p>
-                                <div id="test-card-2"></div>
-                            </div>
-
-                            <!-- Layout 3: Two-Line with Icons -->
-                            <div style="background: var(--bg-primary); border-radius: 8px; padding: 15px;">
-                                <h3 style="margin-bottom: 10px; color: var(--accent-primary);">Layout 3: Icon Grid</h3>
-                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Compact with
-                                    action icons in grid</p>
-                                <div id="test-card-3"></div>
-                            </div>
-
-                            <!-- Layout 4: Minimal Single Line -->
-                            <div style="background: var(--bg-primary); border-radius: 8px; padding: 15px;">
-                                <h3 style="margin-bottom: 10px; color: var(--accent-primary);">Layout 4: Single Line
-                                </h3>
-                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Ultra
-                                    compact, one line</p>
-                                <div id="test-card-4"></div>
-                            </div>
-
-                            <!-- Layout 5: Card with Sidebar Actions -->
-                            <div style="background: var(--bg-primary); border-radius: 8px; padding: 15px;">
-                                <h3 style="margin-bottom: 10px; color: var(--accent-primary);">Layout 5: Sidebar Actions
-                                </h3>
-                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Actions on
-                                    right sidebar</p>
-                                <div id="test-card-5"></div>
-                            </div>
-
-                            <!-- Layout 6: Tabbed Info -->
-                            <div style="background: var(--bg-primary); border-radius: 8px; padding: 15px;">
-                                <h3 style="margin-bottom: 10px; color: var(--accent-primary);">Layout 6: Tabbed</h3>
-                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Info
-                                    organized in tabs</p>
-                                <div id="test-card-6"></div>
-                            </div>
-                        </div>
-
-                        <script>
-                            // Populate test cards when tab is opened
-                            document.addEventListener('DOMContentLoaded', () => {
-                                // Get a sample thread for testing
-                                const getSampleThread = () => {
-                                    if (typeof ThreadManager !== 'undefined' && ThreadManager.threads.length > 0) {
-                                        return ThreadManager.threads[0];
-                                    }
-                                    // Fallback mock thread
-                                    return {
-                                        id: '1234567890',
-                                        title: 'Sample Thread for Testing',
-                                        message_count: 25,
-                                        created: Date.now() - 86400000,
-                                        updated: Date.now(),
-                                        synergy_card_id: 'syn_123',
-                                        synergy_card_title: 'Test Synergy Session',
-                                        tags: ['urgent', 'research'],
-                                        agent: 'Alpha-1'
-                                    };
-                                };
-
-                                // Render test cards when switching to this tab
-                                const renderTestCards = () => {
-                                    const thread = getSampleThread();
-                                    if (!ThreadManager) return;
-
-                                    // Layout 1: Current full card
-                                    document.getElementById('test-card-1').innerHTML = ThreadManager.renderThreadInfoContainer('prime', thread.id, false);
-
-                                    // Layout 2-6: Will be implemented with custom templates
-                                    document.getElementById('test-card-2').innerHTML = '<div style="padding: 10px; color: var(--text-muted);">Coming soon...</div>';
-                                    document.getElementById('test-card-3').innerHTML = '<div style="padding: 10px; color: var(--text-muted);">Coming soon...</div>';
-                                    document.getElementById('test-card-4').innerHTML = '<div style="padding: 10px; color: var(--text-muted);">Coming soon...</div>';
-                                    document.getElementById('test-card-5').innerHTML = '<div style="padding: 10px; color: var(--text-muted);">Coming soon...</div>';
-                                    document.getElementById('test-card-6').innerHTML = '<div style="padding: 10px; color: var(--text-muted);">Coming soon...</div>';
-                                };
-
-                                // Render when tab becomes active
-                                const observer = new MutationObserver(() => {
-                                    const cardTestTab = document.getElementById('tab-card-test');
-                                    if (cardTestTab && cardTestTab.classList.contains('active')) {
-                                        renderTestCards();
-                                        observer.disconnect();
-                                    }
-                                });
-
-                                const cardTestTab = document.getElementById('tab-card-test');
-                                if (cardTestTab) {
-                                    observer.observe(cardTestTab, { attributes: true, attributeFilter: ['class'] });
-                                }
-                            });
-                        </script>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- ==================== AI CHAT PANEL ==================== -->
+            </div> <!-- ==================== AI CHAT PANEL ==================== -->
             <div class="ai-chat-panel" id="ai-chat-panel">
                 <div class="ai-chat-header">
                     <!-- Row 1: AI Prime title and actions -->
@@ -15946,10 +15830,29 @@
 
                 // Toggle sidebar visibility
                 const sidebar = document.getElementById('automations-sidebar');
+                const toggle = document.getElementById('automations-sidebar-toggle');
+                const container = document.querySelector('.platform-container');
+
                 if (sidebar) {
+                    const side = sidebar.getAttribute('data-side') || 'right';
                     sidebar.classList.toggle('collapsed');
                     const isOpen = !sidebar.classList.contains('collapsed');
-                    console.log(`${isOpen ? '▶️' : '◀️'} [AUTOMATIONS] Sidebar ${isOpen ? 'opened' : 'closed'}`);
+
+                    // Show/hide toggle button
+                    if (toggle) {
+                        toggle.style.display = isOpen ? 'none' : 'flex';
+                    }
+
+                    // Update container margin based on side
+                    if (container) {
+                        if (isOpen) {
+                            container.setAttribute('data-automations-side', side);
+                        } else {
+                            container.removeAttribute('data-automations-side');
+                        }
+                    }
+
+                    console.log(`${isOpen ? '▶️' : '◀️'} [AUTOMATIONS] Sidebar ${isOpen ? 'opened' : 'closed'} on ${side} side`);
                 }
             },
 
@@ -16365,11 +16268,16 @@
         // ==================== AUTOMATIONS TOGGLE BUTTON POSITIONING & DRAGGING ====================
         function initializeAutomationsToggleButton() {
             const toggle = document.getElementById('automations-sidebar-toggle');
-            if (!toggle) return;
+            const sidebar = document.getElementById('automations-sidebar');
+            if (!toggle || !sidebar) return;
 
             let userHasDragged = false;
 
-            // Position toggle on right side
+            // Load saved side preference
+            const savedSide = localStorage.getItem('automations-sidebar-side') || 'right';
+            setAutomationsSidebarSide(savedSide);
+
+            // Position toggle
             function positionToggle() {
                 const savedTop = localStorage.getItem('automations-toggle-top');
                 const hasSavedPosition = savedTop && savedTop !== 'null';
@@ -16404,34 +16312,69 @@
                 }
             });
 
-            // Make button draggable
+            // Make button draggable (vertical + side-switching)
             let isDragging = false;
             let offsetY = 0;
+            let startX = 0;
 
             toggle.addEventListener('mousedown', (e) => {
                 isDragging = true;
                 offsetY = e.clientY - toggle.getBoundingClientRect().top;
+                startX = e.clientX;
                 toggle.style.cursor = 'grabbing';
+                toggle.classList.add('dragging');
                 e.preventDefault();
             });
 
             document.addEventListener('mousemove', (e) => {
                 if (isDragging) {
+                    // Vertical dragging
                     const newTop = e.clientY - offsetY;
                     toggle.style.top = `${newTop}px`;
+
+                    // Side switching based on mouse position
+                    const deltaX = e.clientX - startX;
+                    if (Math.abs(deltaX) > 10) {
+                        const currentSide = sidebar.getAttribute('data-side') || 'right';
+                        const newSide = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
+
+                        if (newSide !== currentSide) {
+                            setAutomationsSidebarSide(newSide);
+                        }
+                    }
                 }
             });
 
             document.addEventListener('mouseup', () => {
                 if (isDragging) {
                     isDragging = false;
-                    toggle.style.cursor = 'grab';
+                    toggle.style.cursor = 'move';
+                    toggle.classList.remove('dragging');
                     userHasDragged = true;
 
-                    // Save position to localStorage
+                    // Save position and side to localStorage
                     localStorage.setItem('automations-toggle-top', toggle.style.top);
+                    const side = sidebar.getAttribute('data-side') || 'right';
+                    localStorage.setItem('automations-sidebar-side', side);
                 }
             });
+        }
+
+        // Helper function to set automations sidebar side
+        function setAutomationsSidebarSide(side) {
+            const sidebar = document.getElementById('automations-sidebar');
+            const toggle = document.getElementById('automations-sidebar-toggle');
+            const container = document.querySelector('.platform-container');
+
+            if (!sidebar || !toggle) return;
+
+            sidebar.setAttribute('data-side', side);
+            toggle.setAttribute('data-side', side);
+
+            // Update container margin only if sidebar is open
+            if (!sidebar.classList.contains('collapsed')) {
+                container.setAttribute('data-automations-side', side);
+            }
         }
 
         // Initialize when DOM is ready
@@ -21310,12 +21253,17 @@
             },
 
             // Set loaded thread for agent
-            setLoadedThread(agentId, threadId, threadTitle, messageCount = 0) {
+            setLoadedThread(agentId, threadId, threadTitle, messageCount = 0, metadata = {}) {
                 this.loadedThreads[agentId] = {
                     threadId,
                     threadTitle,
                     messageCount,
-                    loadedAt: new Date().toISOString()
+                    loadedAt: new Date().toISOString(),
+                    synergyCardId: metadata.synergyCardId || null,
+                    synergySessionName: metadata.synergySessionName || null,
+                    workflowId: metadata.workflowId || null,
+                    automationId: metadata.automationId || null,
+                    lastActivity: metadata.lastActivity || new Date().toISOString()
                 };
                 this.updateAgentHeader(agentId);
                 this.saveState();
@@ -21448,22 +21396,28 @@
                 for (let i = 1; i <= maxAgentId; i++) {
                     const agentName = this.getAgentName(i);
                     const agentIcon = this.getAgentIcon(i);
-                    const hasThread = assignments[`agent-${i}`];
+                    const threadInfo = this.loadedThreads[i];
+                    const column = document.getElementById(`agent-${i}`);
+                    const messagesContainer = column?.querySelector(`#messages-${i}`);
+                    const messageCount = messagesContainer?.children.length || 0;
 
                     const badge = document.createElement('div');
                     badge.className = 'agent-quick-nav-badge';
                     badge.id = `quick-nav-badge-${i}`;
                     badge.dataset.agentId = i;
 
-                    // Highlight if has thread
-                    if (hasThread) {
+                    // Highlight if has thread or messages
+                    if (threadInfo || messageCount > 0) {
                         badge.classList.add('has-thread');
+
+                        // Add tooltip data
+                        this.addBadgeTooltipData(badge, i, threadInfo, messageCount);
                     }
 
                     badge.innerHTML = `
                         <i class="fas ${agentIcon}"></i>
                         <span>${agentName}</span>
-                        ${hasThread ? '<span class="thread-indicator">1</span>' : ''}
+                        ${messageCount > 0 ? `<span class="thread-indicator">${messageCount}</span>` : ''}
                     `;
 
                     badge.onclick = () => this.scrollToAgent(i);
@@ -21513,6 +21467,90 @@
                 }
             },
 
+            // Add tooltip data to badge
+            addBadgeTooltipData(badge, agentId, threadInfo, messageCount) {
+                if (!badge) return;
+
+                const agentName = this.getAgentName(agentId);
+                let tooltipTitle = agentName;
+                let tooltipLines = [];
+
+                // Thread title
+                if (threadInfo?.threadTitle) {
+                    tooltipTitle = threadInfo.threadTitle;
+                    tooltipLines.push(`<div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">${agentName}</div>`);
+                }
+
+                // Message count
+                tooltipLines.push(`<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                    <i class="fas fa-comments" style="color: #60a5fa;"></i>
+                    <span><strong>${messageCount}</strong> message${messageCount !== 1 ? 's' : ''}</span>
+                </div>`);
+
+                // Last activity
+                if (threadInfo?.lastActivity) {
+                    const lastActive = this.getRelativeTime(threadInfo.lastActivity);
+                    tooltipLines.push(`<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                        <i class="fas fa-clock" style="color: #a78bfa;"></i>
+                        <span>${lastActive}</span>
+                    </div>`);
+                }
+
+                // Links row
+                let links = [];
+
+                // Synergy link
+                if (threadInfo?.synergyCardId) {
+                    const synergyName = threadInfo.synergySessionName || threadInfo.synergyCardId;
+                    links.push(`<div style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #10b981; border-radius: 4px; font-size: 11px;">
+                        <i class="fas fa-link"></i>
+                        <span>${synergyName}</span>
+                    </div>`);
+                }
+
+                // Workflow link
+                if (threadInfo?.workflowId) {
+                    links.push(`<div style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #3b82f6; border-radius: 4px; font-size: 11px;">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Workflow</span>
+                    </div>`);
+                }
+
+                // Automation link
+                if (threadInfo?.automationId) {
+                    links.push(`<div style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #8b5cf6; border-radius: 4px; font-size: 11px;">
+                        <i class="fas fa-bolt"></i>
+                        <span>Automation</span>
+                    </div>`);
+                }
+
+                if (links.length > 0) {
+                    tooltipLines.push(`<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        ${links.join('')}
+                    </div>`);
+                }
+
+                // Set tooltip attributes
+                badge.setAttribute('data-tooltip-title', tooltipTitle);
+                badge.setAttribute('data-tooltip-content', tooltipLines.join(''));
+            },
+
+            // Get relative time string
+            getRelativeTime(isoString) {
+                const date = new Date(isoString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+                if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+                return date.toLocaleDateString();
+            },
+
             // Update badge state (highlight if has thread/messages)
             updateQuickNavBadge(agentId) {
                 const badge = document.getElementById(`quick-nav-badge-${agentId}`);
@@ -21521,31 +21559,37 @@
                 const column = document.getElementById(`agent-${agentId}`);
                 if (!column) return;
 
-                // Check if agent has messages
+                // Get actual message count
                 const messagesContainer = column.querySelector(`#messages-${agentId}`);
-                const hasMessages = messagesContainer && messagesContainer.children.length > 0;
+                const messageCount = messagesContainer?.children.length || 0;
 
                 // Check if agent has loaded thread
-                const hasThread = this.loadedThreads[agentId];
+                const threadInfo = this.loadedThreads[agentId];
 
                 // Highlight badge if has thread or messages
-                if (hasThread || hasMessages) {
+                if (threadInfo || messageCount > 0) {
                     badge.classList.add('has-thread');
-                    // Add/update thread indicator
+
+                    // Update tooltip data
+                    this.addBadgeTooltipData(badge, agentId, threadInfo, messageCount);
+
+                    // Add/update thread indicator with actual count
                     let indicator = badge.querySelector('.thread-indicator');
-                    if (!indicator && hasThread) {
+                    if (!indicator) {
                         indicator = document.createElement('span');
                         indicator.className = 'thread-indicator';
-                        indicator.textContent = '1';
                         badge.appendChild(indicator);
                     }
+                    indicator.textContent = messageCount.toString();
                 } else {
                     badge.classList.remove('has-thread');
-                    // Remove thread indicator if exists
+                    // Remove thread indicator and tooltip
                     const indicator = badge.querySelector('.thread-indicator');
                     if (indicator) {
                         indicator.remove();
                     }
+                    badge.removeAttribute('data-tooltip-title');
+                    badge.removeAttribute('data-tooltip-content');
                 }
 
                 this.updateDashboardStats();
@@ -22012,7 +22056,14 @@
 
                 // Store thread info with message count
                 const messageCount = thread.messages ? thread.messages.length : 0;
-                this.setLoadedThread(agentId, thread.id, thread.title, messageCount);
+                const metadata = {
+                    synergyCardId: thread.synergy_card_id || null,
+                    synergySessionName: thread.synergy_card_name || null,
+                    workflowId: thread.workflow_id || null,
+                    automationId: thread.automation_id || null,
+                    lastActivity: thread.updated_at || new Date().toISOString()
+                };
+                this.setLoadedThread(agentId, thread.id, thread.title, messageCount, metadata);
 
                 // CRITICAL: Clear AppState.sessionId when thread loads into agent
                 // (Thread is now in agent, NOT in Prime)
@@ -22094,7 +22145,31 @@
                     // Load thread messages with proper rendering (using addAgentMessage)
                     console.log(`[LOAD] Rendering ${thread.messages.length} messages from memory...`);
                     thread.messages.forEach((msg, index) => {
-                        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+                        console.log(`[DEBUG] Message ${index + 1} structure:`, {
+                            role: msg.role,
+                            contentType: typeof msg.content,
+                            isArray: Array.isArray(msg.content),
+                            content: Array.isArray(msg.content) ? `Array[${msg.content.length}]` : (typeof msg.content === 'string' ? msg.content.substring(0, 100) : msg.content)
+                        });
+
+                        // Handle both string content and structured content (array with text/thinking/tool_use blocks)
+                        let content;
+                        if (typeof msg.content === 'string') {
+                            content = msg.content;
+                        } else if (Array.isArray(msg.content)) {
+                            // Extract text blocks from structured content
+                            const textBlocks = msg.content
+                                .filter(block => block.type === 'text')
+                                .map(block => block.text)
+                                .join('\n\n');
+
+                            // If no text blocks found, stringify the whole content
+                            content = textBlocks || JSON.stringify(msg.content);
+
+                            console.log(`[DEBUG] Extracted text from ${msg.content.length} blocks: ${textBlocks.substring(0, 100)}`);
+                        } else {
+                            content = JSON.stringify(msg.content);
+                        }
 
                         if (msg.role === 'user') {
                             addAgentMessage(agentId, 'user', content);
@@ -22142,6 +22217,9 @@
                 }
 
                 console.log(`[OK] Thread loaded into ${this.getAgentName(agentId)} with ${thread.messages ? thread.messages.length : 0} messages (TwoRule rendering)`);
+
+                // Update agent header with thread info card
+                this.updateAgentHeader(agentId);
 
                 // âœ… VALIDATE: Check session isolation after loading
                 setTimeout(() => {
@@ -23128,7 +23206,15 @@
             }
 
             // Update agent thread info
-            MultiAgent.setLoadedThread(agentId, thread.id, thread.title);
+            const messageCount = thread.messages ? thread.messages.length : 0;
+            const metadata = {
+                synergyCardId: thread.synergy_card_id || null,
+                synergySessionName: thread.synergy_card_name || null,
+                workflowId: thread.workflow_id || null,
+                automationId: thread.automation_id || null,
+                lastActivity: thread.updated_at || new Date().toISOString()
+            };
+            MultiAgent.setLoadedThread(agentId, thread.id, thread.title, messageCount, metadata);
 
             // Update thread's agent assignment
             thread.agent = `multi-agent-${agentId}`;
@@ -23718,6 +23804,8 @@
             // RENDER AI RESPONSES
             else if (role === 'ai') {
                 console.log(` Rendering message for Agent ${agentId}...`);
+                console.log(`[DEBUG] Content type: ${typeof content}, length: ${content ? content.length : 0}`);
+                console.log(`[DEBUG] Content preview:`, content ? content.substring(0, 200) : 'empty');
 
                 // TRY VISUALIZATION ENGINE FIRST
                 if (!window.USE_BASIC_RENDERER && typeof TwoRuleStreamProcessor !== 'undefined') {
@@ -26115,15 +26203,43 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 let synergyTooltip = null;
                 let tooltipTimeout = null;
                 let hideTimeout = null;
+                let currentTooltipBadge = null; // Track which badge is showing tooltip
+
+                // Helper function to strip markdown formatting
+                const stripMarkdown = (text) => {
+                    if (!text) return '';
+                    return text
+                        .replace(/\*\*(.+?)\*\*/g, '$1')  // Bold: **text** → text
+                        .replace(/\*(.+?)\*/g, '$1')      // Italic: *text* → text
+                        .replace(/\[(.+?)\]\(.+?\)/g, '$1')  // Links: [text](url) → text
+                        .replace(/`(.+?)`/g, '$1')        // Code: `text` → text
+                        .replace(/^#+\s+/gm, '')          // Headers: # text → text
+                        .replace(/^>\s+/gm, '')           // Blockquotes: > text → text
+                        .replace(/^[-*+]\s+/gm, '• ')     // Lists: - item → • item
+                        .trim();
+                };
 
                 const showSynergyTooltip = (badge, event) => {
                     // Clear any pending hide
                     clearTimeout(hideTimeout);
+                    clearTimeout(tooltipTimeout);
 
-                    // Get tooltip data
-                    const sessionId = badge.closest('.thread-item-synergy')?.getAttribute('data-synergy-id') || '';
+                    // Track current badge
+                    currentTooltipBadge = badge;
+
+                    // Keep thread-item open while tooltip is visible
+                    const threadItem = badge.closest('.thread-item');
+                    if (threadItem) {
+                        threadItem.classList.add('tooltip-active');
+                    }
+
+                    // Get tooltip data from badge attributes
+                    // Support both .thread-item-synergy and agent column badges
+                    const container = badge.closest('.thread-item-synergy') || badge.closest('.ai-chat-header-info');
+                    const sessionId = container?.getAttribute('data-synergy-id') || badge.getAttribute('data-synergy-id') || '';
                     const title = badge.getAttribute('data-tooltip-title') || sessionId || 'Unknown Session';
-                    const desc = badge.getAttribute('data-tooltip-desc') || '';
+                    const rawDesc = badge.getAttribute('data-tooltip-desc') || '';
+                    const desc = stripMarkdown(rawDesc);  // Strip markdown formatting
                     const users = badge.getAttribute('data-tooltip-users') || '';
                     const updated = badge.getAttribute('data-tooltip-updated') || '';
                     const priority = badge.querySelector('.synergy-badge-priority')?.textContent?.toLowerCase() || '';
@@ -26138,6 +26254,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         synergyTooltip.addEventListener('mouseenter', () => {
                             clearTimeout(hideTimeout);
                             clearTimeout(tooltipTimeout);
+                            // Keep thread-item open
+                            if (currentTooltipBadge) {
+                                const threadItem = currentTooltipBadge.closest('.thread-item');
+                                if (threadItem) {
+                                    threadItem.classList.add('tooltip-active');
+                                }
+                            }
                         });
 
                         synergyTooltip.addEventListener('mouseleave', () => {
@@ -26187,57 +26310,130 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     synergyTooltip.style.left = `${left}px`;
                     synergyTooltip.style.top = `${top}px`;
 
-                    // Show tooltip
+                    // Show tooltip with longer delay for better UX
                     clearTimeout(tooltipTimeout);
                     tooltipTimeout = setTimeout(() => {
                         synergyTooltip.classList.add('show');
-                    }, 200);
+                    }, 500); // Increased from 200ms to 500ms
                 };
 
                 const hideSynergyTooltip = () => {
-                    // Add delay before hiding to allow mouse to move to tooltip
+                    // Add longer delay before hiding to allow mouse to move to tooltip
                     clearTimeout(tooltipTimeout);
                     clearTimeout(hideTimeout);
                     hideTimeout = setTimeout(() => {
                         if (synergyTooltip) {
                             synergyTooltip.classList.remove('show');
+
+                            // Remove tooltip-active class from thread-item
+                            if (currentTooltipBadge) {
+                                const threadItem = currentTooltipBadge.closest('.thread-item');
+                                if (threadItem) {
+                                    threadItem.classList.remove('tooltip-active');
+                                }
+                            }
+                            currentTooltipBadge = null;
                         }
-                    }, 300);
+                    }, 800); // Increased from 300ms to 800ms
                 };
 
                 // Tooltip event listeners (delegated)
+                // Catch ALL synergy badges (thread-item-synergy, agent columns, anywhere)
                 document.addEventListener('mouseover', (e) => {
-                    const badge = e.target.closest('.thread-item-synergy .synergy-badge');
+                    const badge = e.target.closest('.synergy-badge[data-tooltip-title]');
                     if (badge) {
                         showSynergyTooltip(badge, e);
                     }
                 });
 
                 document.addEventListener('mouseout', (e) => {
-                    const badge = e.target.closest('.thread-item-synergy .synergy-badge');
-                    if (badge && !e.relatedTarget?.closest('.synergy-tooltip')) {
-                        hideSynergyTooltip();
+                    const badge = e.target.closest('.synergy-badge[data-tooltip-title]');
+                    if (badge) {
+                        // Only hide if mouse is not moving to tooltip, thread-item, or agent header
+                        const movingToTooltip = e.relatedTarget?.closest('.synergy-tooltip');
+                        const movingToThreadItem = e.relatedTarget?.closest('.thread-item');
+                        const movingToAgentHeader = e.relatedTarget?.closest('.ai-chat-header-info');
+
+                        if (!movingToTooltip && !movingToThreadItem && !movingToAgentHeader) {
+                            hideSynergyTooltip();
+                        }
                     }
                 });
 
                 // Hide tooltip when scrolling
                 document.addEventListener('scroll', hideSynergyTooltip, true);
 
-                // Apply tooltip to ALL Synergy badges (agent columns, sidebar, everywhere)
+                // ==================== AGENT BADGE TOOLTIP SYSTEM ====================
+                let agentTooltip = null;
+                let agentTooltipTimeout = null;
+
+                const showAgentBadgeTooltip = (badge, event) => {
+                    clearTimeout(agentTooltipTimeout);
+
+                    const title = badge.getAttribute('data-tooltip-title');
+                    const content = badge.getAttribute('data-tooltip-content');
+
+                    if (!title) return;
+
+                    // Create or get tooltip
+                    if (!agentTooltip) {
+                        agentTooltip = document.createElement('div');
+                        agentTooltip.className = 'agent-badge-tooltip';
+                        document.body.appendChild(agentTooltip);
+                    }
+
+                    // Build tooltip HTML
+                    agentTooltip.innerHTML = `
+                        <div class="agent-tooltip-title">${title}</div>
+                        ${content ? `<div class="agent-tooltip-content">${content}</div>` : ''}
+                    `;
+
+                    // Position tooltip
+                    const rect = badge.getBoundingClientRect();
+                    const tooltipRect = agentTooltip.getBoundingClientRect();
+
+                    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                    const top = rect.bottom + 8;
+
+                    // Keep tooltip in viewport
+                    if (left < 10) left = 10;
+                    if (left + tooltipRect.width > window.innerWidth - 10) {
+                        left = window.innerWidth - tooltipRect.width - 10;
+                    }
+
+                    agentTooltip.style.left = `${left}px`;
+                    agentTooltip.style.top = `${top}px`;
+                    agentTooltip.classList.add('show');
+                };
+
+                const hideAgentBadgeTooltip = () => {
+                    agentTooltipTimeout = setTimeout(() => {
+                        if (agentTooltip) {
+                            agentTooltip.classList.remove('show');
+                        }
+                    }, 300);
+                };
+
+                // Event listeners for agent badges
                 document.addEventListener('mouseover', (e) => {
-                    const badge = e.target.closest('.synergy-badge[data-tooltip-title]');
-                    if (badge && !badge.closest('.thread-item-synergy')) {
-                        // Apply same tooltip logic to agent/sidebar badges
-                        showSynergyTooltip(badge, e);
+                    const badge = e.target.closest('.agent-quick-nav-badge[data-tooltip-title]');
+                    if (badge) {
+                        showAgentBadgeTooltip(badge, e);
                     }
                 });
 
                 document.addEventListener('mouseout', (e) => {
-                    const badge = e.target.closest('.synergy-badge[data-tooltip-title]');
-                    if (badge && !badge.closest('.thread-item-synergy') && !e.relatedTarget?.closest('.synergy-tooltip')) {
-                        hideSynergyTooltip();
+                    const badge = e.target.closest('.agent-quick-nav-badge[data-tooltip-title]');
+                    if (badge) {
+                        const movingToTooltip = e.relatedTarget?.closest('.agent-badge-tooltip');
+                        if (!movingToTooltip) {
+                            hideAgentBadgeTooltip();
+                        }
                     }
                 });
+
+                // Hide on scroll
+                document.addEventListener('scroll', hideAgentBadgeTooltip, true);
             },
 
             createThread() {
@@ -27892,7 +28088,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
              */
             updatePrimeHeader(threadId) {
                 console.log('🔷 [updatePrimeHeader] Called with threadId:', threadId);
-                
+
                 const container = document.getElementById('prime-thread-info');
                 if (!container) {
                     console.error('❌ [updatePrimeHeader] Prime thread-info container not found');
@@ -27915,11 +28111,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                     console.log('🔷 [updatePrimeHeader] Rendering thread info container for:', threadId);
                     console.log('🔷 [updatePrimeHeader] Thread data:', { id: thread.id, title: thread.title, msgCount: thread.message_count });
-                    
+
                     // Inject universal thread-info card
                     const html = this.renderThreadInfoContainer('prime', threadId, false);
                     console.log('🔷 [updatePrimeHeader] Generated HTML length:', html ? html.length : 0);
-                    
+
                     container.innerHTML = html;
                     console.log('✅ [updatePrimeHeader] Prime header updated with universal card for thread:', threadId);
                     console.log('🔷 [updatePrimeHeader] Container innerHTML length:', container.innerHTML.length);
@@ -29221,6 +29417,59 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     }
 
                     const thread = item.data;
+
+                    // Use ThreadCardTemplates.compactCard for consistent rendering with agent columns
+                    if (typeof ThreadCardTemplates !== 'undefined') {
+                        // Get current location
+                        const currentLocation = threadToLocation[thread.id] || 'prime';
+
+                        // Prepare agent metadata
+                        let agentName = 'Prime';
+                        let agentIcon = 'fa-star';
+                        let agentClass = 'main';
+
+                        if (currentLocation && currentLocation !== 'prime') {
+                            const match = currentLocation.match(/agent-(\d+)/);
+                            if (match && typeof MultiAgent !== 'undefined') {
+                                const agentId = parseInt(match[1]);
+                                agentName = MultiAgent.getAgentName(agentId);
+                                agentIcon = MultiAgent.getAgentIcon(agentId);
+                                agentClass = 'agent';
+                            }
+                        }
+
+                        const agent = { name: agentName, icon: agentIcon, class: agentClass };
+
+                        // Prepare meta info
+                        const date = new Date(thread.updated || thread.created);
+                        const meta = {
+                            msgCount: thread.message_count || (thread.messages && thread.messages.length) || 0,
+                            dateStr: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            timeStr: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                        };
+
+                        const slug = thread.id;
+
+                        // Get synergy metadata from cache
+                        const synergyMeta = thread.synergy_card_id ? cache[thread.synergy_card_id] : null;
+
+                        // Generate card HTML using template (pass currentLocation for action buttons)
+                        const cardHtml = ThreadCardTemplates.compactCard(thread, 'thread-history', agent, meta, slug, synergyMeta, currentLocation);
+
+                        // Wrap in thread-item container with drag-and-drop and click handlers
+                        return `<div class="thread-item ${thread.id === this.currentThreadId ? 'active' : ''}"
+                                    draggable="true"
+                                    data-thread-id="${thread.id}"
+                                    data-synergy-id="${thread.synergy_card_id || ''}"
+                                    data-current-location="${currentLocation}"
+                                    ondragstart="ThreadManager.handleDragStart(event)"
+                                    ondragend="ThreadManager.handleDragEnd(event)"
+                                    ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${currentLocation}')">
+                                    ${cardHtml}
+                                </div>`;
+                    }
+
+                    // FALLBACK: Legacy inline HTML (if ThreadCardTemplates not loaded)
                     const date = new Date(thread.updated);
                     const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                     const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -29441,7 +29690,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             closeThreadMenu() {
                 const menu = document.getElementById('thread-menu');
+                const threadsBtn = document.getElementById('threads-btn');
+
                 menu.classList.remove('active');
+                if (threadsBtn) {
+                    threadsBtn.classList.remove('active');
+                }
             },
 
             showStartNewChatButton(containerId, location = 'prime') {
@@ -30232,6 +30486,9 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         const priorityStyle = priorityColors[priority] || priorityColors['medium'];
                         const column = session.kanban_column || session.column || 'other';
                         const tags = session.tags ? (typeof session.tags === 'string' ? JSON.parse(session.tags) : session.tags) : [];
+                        const lastUpdated = session.updated_at || session.last_active || session.created_at;
+                        const formattedDate = lastUpdated ? new Date(lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown';
+                        const formattedTime = lastUpdated ? new Date(lastUpdated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
 
                         return `
                             <div 
@@ -30258,15 +30515,20 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                 <div style="display: flex; align-items: start; gap: 8px; margin-bottom: 6px;">
                                     <i class="fas ${columnIcons[column] || 'fa-folder'}" style="color: var(--text-tertiary, #6b7280); font-size: 12px; margin-top: 2px;"></i>
                                     <div style="flex: 1;">
-                                        <div style="font-size: 13px; font-weight: 500; color: var(--text-primary, #e6edf3); margin-bottom: 4px;">
-                                            ${session.title}
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                            <div style="font-size: 13px; font-weight: 500; color: var(--text-primary, #e6edf3);">
+                                                ${session.title}
+                                            </div>
+                                            <span style="font-size: 10px; color: var(--text-tertiary, #6b7280); white-space: nowrap; margin-left: 8px;">
+                                                <i class="fas fa-clock" style="font-size: 8px;"></i> ${formattedTime}
+                                            </span>
                                         </div>
                                         ${session.description ? `
                                             <div style="font-size: 11px; color: var(--text-secondary, #9ca3af); line-height: 1.4; margin-bottom: 4px;">
                                                 ${session.description.substring(0, 100)}${session.description.length > 100 ? '...' : ''}
                                             </div>
                                         ` : ''}
-                                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
                                             <span style="
                                                 display: inline-block;
                                                 padding: 2px 6px;
@@ -30278,7 +30540,19 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                 font-weight: 600;
                                                 text-transform: uppercase;
                                             ">${session.priority || 'medium'}</span>
-                                            ${tags.slice(0, 3).map(tag => `
+                                            <span style="
+                                                display: inline-block;
+                                                padding: 2px 6px;
+                                                background: var(--bg-secondary, #0d1117);
+                                                color: var(--text-tertiary, #6b7280);
+                                                border: 1px solid var(--border-color, #374151);
+                                                border-radius: 3px;
+                                                font-size: 9px;
+                                                font-weight: 500;
+                                            ">
+                                                <i class="fas ${columnIcons[column] || 'fa-folder'}" style="font-size: 8px;"></i> ${column.toUpperCase()}
+                                            </span>
+                                            ${tags.slice(0, 2).map(tag => `
                                                 <span style="
                                                     font-size: 10px;
                                                     color: var(--text-tertiary, #6b7280);
@@ -30289,7 +30563,10 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                                     <i class="fas fa-tag" style="font-size: 8px;"></i> ${tag}
                                                 </span>
                                             `).join('')}
-                                            ${tags.length > 3 ? `<span style="font-size: 10px; color: var(--text-tertiary, #6b7280);">+${tags.length - 3} more</span>` : ''}
+                                            ${tags.length > 2 ? `<span style="font-size: 10px; color: var(--text-tertiary, #6b7280);">+${tags.length - 2}</span>` : ''}
+                                        </div>
+                                        <div style="font-size: 10px; color: var(--text-tertiary, #6b7280);">
+                                            <i class="fas fa-calendar" style="font-size: 8px;"></i> Updated ${formattedDate}
                                         </div>
                                     </div>
                                 </div>
@@ -32623,12 +32900,21 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 this.mainAppInitialized = false; // Reset main app flag for re-login
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('userProfile');
+                localStorage.removeItem('dev_mode_user'); // Clear dev mode flag
                 this.showLogin();
             },
 
             showLogin() {
-                document.getElementById('loginOverlay').classList.remove('hidden');
-                document.querySelector('.platform-container').classList.remove('active');
+                const loginOverlay = document.getElementById('loginOverlay');
+                const platformContainer = document.querySelector('.platform-container');
+
+                // Reset display states
+                loginOverlay.style.display = 'flex';
+                loginOverlay.classList.remove('hidden');
+                platformContainer.classList.remove('active');
+                platformContainer.style.opacity = '0';
+
+                console.log('🔷 [AUTH] Login screen displayed');
             },
 
             async showMainApp() {
@@ -32878,7 +33164,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 }
             }
 
-            panel.classList.toggle('show');
+            const isOpen = panel.classList.toggle('show');
+            const notifBtn = document.getElementById('notificationBellBtn-sidebar');
+            if (notifBtn) {
+                notifBtn.classList.toggle('active', isOpen);
+            }
             console.log('🔔 Notification panel toggled:', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
         }
 
@@ -32957,7 +33247,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     // Toggle prompt sidebar
                     const promptSidebar = document.getElementById('prompt-sidebar');
                     if (promptSidebar) {
-                        promptSidebar.classList.toggle('show');
+                        const isOpen = promptSidebar.classList.toggle('show');
+                        this.classList.toggle('active', isOpen);
                         console.log('⚡ Prompt sidebar toggled:', promptSidebar.classList.contains('show') ? 'VISIBLE' : 'HIDDEN');
                     } else {
                         console.warn('⚠️ Prompt sidebar not found - may not be initialized yet');
@@ -35181,11 +35472,58 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             padding: 2px 6px;
             font-size: 11px;
             font-weight: 700;
+            min-width: 20px;
         }
 
         .agent-quick-nav-badge.active .thread-indicator,
         .agent-quick-nav-badge.has-thread .thread-indicator {
             background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Agent Badge Tooltip */
+        .agent-badge-tooltip {
+            position: fixed;
+            background: #1e293b;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            min-width: 220px;
+            max-width: 320px;
+            z-index: 10000;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+
+        .agent-badge-tooltip.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .agent-tooltip-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .agent-tooltip-content {
+            line-height: 1.6;
+        }
+
+        .agent-tooltip-content>div {
+            margin-bottom: 6px;
+        }
+
+        .agent-tooltip-content>div:last-child {
+            margin-bottom: 0;
         }
 
         .kanban-cards-container {

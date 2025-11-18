@@ -112,15 +112,21 @@ window.ThreadCardTemplates = {
      * @param {Object} synergyMeta - Synergy session metadata (optional)
      * @returns {string} HTML string for compact thread card with hover expand
      */
-    compactCard(thread, location, agent, meta, slug, synergyMeta = null) {
+    compactCard(thread, location, agent, meta, slug, synergyMeta = null, currentLocation = null) {
         const synergyDisplay = thread.synergy_card_title || thread.synergy_card_id || 'Synergy Session';
         const synergyPriority = synergyMeta?.priority || '';
+
+        // Use different header based on location
+        const isThreadHistory = location === 'thread-history';
+        const headerHtml = isThreadHistory
+            ? this.headerRowWithActions(thread, location, agent, currentLocation)
+            : this.headerRowWithUnload(thread, location, agent);
 
         return `
             <div class="ai-chat-header-info agent-thread-card" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}">
                 
-                <!-- ALWAYS VISIBLE: Row 1 - Title + Badge + Unload -->
-                ${this.headerRowWithUnload(thread, location, agent)}
+                <!-- ALWAYS VISIBLE: Row 1 - Title + Badge + Actions/Unload -->
+                ${headerHtml}
                 
                 <!-- ALWAYS VISIBLE: Row 2 - Meta (msgs/date/time) -->
                 <div class="thread-meta-row-always-visible" style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
@@ -255,6 +261,67 @@ window.ThreadCardTemplates = {
                             onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 
                             title="Unload thread from agent (move to Prime)">
                         <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Header Row With Actions - Agent Badge + All Action Buttons (for Thread History)
+     * Includes all action buttons: unload (if in agent), rename, edit, fork, clone, archive, delete
+     * 
+     * @param {Object} thread - Thread object
+     * @param {string} location - Location identifier (e.g., "thread-history")
+     * @param {Object} agent - Agent metadata {name, icon, class}
+     * @param {string} currentLocation - Where thread is currently assigned (prime, agent-1, etc.)
+     * @returns {string} HTML string for header row with action buttons
+     */
+    headerRowWithActions(thread, location, agent, currentLocation) {
+        const isInAgent = currentLocation && currentLocation.startsWith('agent-');
+
+        return `
+            <div class="thread-item-header">
+                <div class="thread-item-agent-badge ${agent.class}">
+                    <i class="fas ${agent.icon}"></i> ${agent.name}
+                </div>
+                <div class="thread-item-actions">
+                    ${isInAgent ? `
+                    <button class="thread-action-btn unload"
+                        onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
+                        title="Unload thread from agent (move to Prime)">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                    ` : ''}
+                    <button class="thread-action-btn rename"
+                        onclick="event.stopPropagation(); ThreadManager.startRename('${thread.id}')"
+                        title="Rename thread">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="thread-action-btn edit"
+                        onclick="event.stopPropagation(); ThreadManager.editThread('${thread.id}')"
+                        title="Edit thread">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="thread-action-btn fork"
+                        onclick="event.stopPropagation(); ThreadManager.forkThread('${thread.id}')"
+                        title="Fork thread (branch from current point)">
+                        <i class="fas fa-code-branch"></i>
+                    </button>
+                    <button class="thread-action-btn clone"
+                        onclick="event.stopPropagation(); ThreadManager.cloneThread('${thread.id}')"
+                        title="Clone thread (duplicate all messages)">
+                        <i class="fas fa-clone"></i>
+                    </button>
+                    <button class="thread-action-btn archive"
+                        onclick="event.stopPropagation(); ThreadManager.archiveThread('${thread.id}')"
+                        title="Archive thread">
+                        <i class="fas fa-archive"></i>
+                    </button>
+                    <button class="thread-action-btn delete"
+                        onclick="event.stopPropagation(); ThreadManager.deleteThread('${thread.id}')"
+                        title="Delete thread">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
@@ -503,35 +570,29 @@ window.ThreadCardTemplates = {
     },
 
     /**
-     * Lock Controls Row (Row 6) - Device lock/unlock buttons (full mode only)
-     * Shows lock status badge, lock button, unlock button, edit device name button
+     * Lock Controls Row (Row 6) - Device lock/unlock toggle + device name (full mode only)
+     * Shows lock status badge OR single lock/unlock toggle button + edit device name button
      * 
      * @param {Object} thread - Thread object
      * @returns {string} HTML string for lock controls row
      */
     lockControlsRow(thread) {
         return `
-            <div class="lock-unlock-container" id="lock-controls-${thread.id}" style="display: flex; margin-top: 8px;">
+            <div class="lock-unlock-container" id="lock-controls-${thread.id}" style="display: flex; gap: 8px; margin-top: 8px;">
                 <!-- Lock Status Badge (shown when locked by another device) -->
                 <div class="lock-status-badge" id="lock-status-${thread.id}" style="display: none;">
                     <i class="fas fa-lock"></i>
                     <span>Locked to <strong id="lock-device-name-${thread.id}">Unknown Device</strong></span>
                 </div>
                 
-                <!-- Lock Button (shown when thread is unlocked) -->
-                <button class="lock-btn" id="lock-btn-${thread.id}" 
-                        onclick="event.stopPropagation(); DeviceLockManager.lockThread('${thread.id}')"
-                        title="Lock this thread to your current device">
-                    <i class="fas fa-lock"></i>
-                    <span>Lock Thread</span>
-                </button>
-                
-                <!-- Unlock Button (shown when thread is locked by this device) -->
-                <button class="unlock-btn" id="unlock-btn-${thread.id}" 
-                        onclick="event.stopPropagation(); DeviceLockManager.unlockThread('${thread.id}')"
-                        title="Unlock this thread for all devices">
-                    <i class="fas fa-unlock"></i>
-                    <span>Unlock Thread</span>
+                <!-- Single Lock/Unlock Toggle Button -->
+                <button class="lock-toggle-btn" 
+                        id="lock-toggle-${thread.id}" 
+                        data-locked="false"
+                        onclick="event.stopPropagation(); DeviceLockManager.toggleThreadLock('${thread.id}')"
+                        title="Lock/Unlock this thread">
+                    <i class="fas fa-lock-open"></i>
+                    <span class="lock-toggle-text">Lock Thread</span>
                 </button>
                 
                 <!-- Edit Device Name Button -->

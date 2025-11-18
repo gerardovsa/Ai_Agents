@@ -214,7 +214,7 @@ console.log('[PROMPT LIBRARY] ========================================');
                     <i class="fas fa-bolt"></i>
                     <span>Instructions Catalogue</span>
                 </div>
-                <button class="prompt-sidebar-close" onclick="window.closeSidebar()" title="Close">
+                <button class="synergy-icon-btn" onclick="window.closeSidebar()" title="Close sidebar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -237,26 +237,6 @@ console.log('[PROMPT LIBRARY] ========================================');
             <div class="prompt-sidebar-body">
                 <!-- TAB 1: BROWSE PROMPTS -->
                 <div id="browse-tab" class="sidebar-tab-content active">
-                    <!-- QUICK ACTIONS BAR -->
-                    <div class="quick-actions-bar">
-                        <button class="quick-action-btn active" data-filter="all" onclick="window.filterByQuickAction('all')" title="Show All Prompts">
-                            <i class="fas fa-th"></i>
-                            <span>All</span>
-                        </button>
-                        <button class="quick-action-btn" data-filter="recent" onclick="window.filterByQuickAction('recent')" title="Recently Used">
-                            <i class="fas fa-clock"></i>
-                            <span>Recent</span>
-                        </button>
-                        <button class="quick-action-btn" data-filter="favorites" onclick="window.filterByQuickAction('favorites')" title="Favorite Prompts">
-                            <i class="fas fa-star"></i>
-                            <span>Favorites</span>
-                        </button>
-                        <button class="quick-action-btn" data-filter="most_used" onclick="window.filterByQuickAction('most_used')" title="Most Used">
-                            <i class="fas fa-fire"></i>
-                            <span>Top Used</span>
-                        </button>
-                    </div>
-
                     <div class="prompt-dropdown-search-row">
                         <div class="search-wrapper">
                             <i class="fas fa-search search-icon"></i>
@@ -274,16 +254,30 @@ console.log('[PROMPT LIBRARY] ========================================');
                     </div>
                     
                     <div class="action-buttons-row">
-                        <button class="action-btn active" data-filter="all" data-tooltip="Show All Types" onclick="window.filterPromptsByType('all')">
+                        <!-- Filter by collection (ALL, RECENT, FAVORITES, TOP USED) -->
+                        <button class="action-btn active" data-filter="all" data-tooltip="All Prompts" onclick="window.filterByQuickAction('all')">
                             <i class="fas fa-th"></i>
                         </button>
-                        <button class="action-btn" data-filter="quick" data-tooltip="Quick Actions" onclick="window.filterPromptsByType('quick')">
+                        <button class="action-btn" data-filter="recent" data-tooltip="Recently Used" onclick="window.filterByQuickAction('recent')">
+                            <i class="fas fa-clock"></i>
+                        </button>
+                        <button class="action-btn" data-filter="favorites" data-tooltip="Favorites" onclick="window.filterByQuickAction('favorites')">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        <button class="action-btn" data-filter="most_used" data-tooltip="Most Used" onclick="window.filterByQuickAction('most_used')">
+                            <i class="fas fa-fire"></i>
+                        </button>
+                        <!-- Separator -->
+                        <div style="width: 1px; height: 24px; background: var(--border-default, #30363d); margin: 0 4px;"></div>
+                        <!-- Filter by type (QUICK, DETAILED) -->
+                        <button class="action-btn" data-filter="quick" data-tooltip="Quick Actions Only" onclick="window.filterPromptsByType('quick')">
                             <i class="fas fa-bolt"></i>
                         </button>
-                        <button class="action-btn" data-filter="detailed" data-tooltip="Detailed Prompts" onclick="window.filterPromptsByType('detailed')">
+                        <button class="action-btn" data-filter="detailed" data-tooltip="Detailed Prompts Only" onclick="window.filterPromptsByType('detailed')">
                             <i class="fas fa-list-ul"></i>
                         </button>
-                        <button class="action-btn action-btn-create" data-tooltip="Create New Prompt" onclick="window.showEditorTab()">
+                        <!-- Create button on far right -->
+                        <button class="action-btn action-btn-create" data-tooltip="Create New Prompt" onclick="window.showEditorTab()" style="margin-left: auto;">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
@@ -361,7 +355,10 @@ console.log('[PROMPT LIBRARY] ========================================');
             <!-- FOOTER -->
             <div class="prompt-sidebar-footer">
                 <div id="browse-footer" class="footer-content active">
-                    <button class="btn-secondary" onclick="window.closeSidebar()">Close</button>
+                    <div style="flex: 1;"></div>
+                    <button class="synergy-icon-btn" onclick="window.closeSidebar()" title="Close sidebar">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
                 <div id="editor-footer" class="footer-content">
                     <button id="delete-btn" class="btn-delete" onclick="window.deletePrompt()" style="display:none;">
@@ -711,18 +708,23 @@ console.log('[PROMPT LIBRARY] ========================================');
     }
 
     /**
-     * Filter by quick action (Recent, Favorites, Most Used)
+     * Filter by quick action (All, Recent, Favorites, Most Used)
      */
     window.filterByQuickAction = function (filter) {
         console.log('[PROMPT LIBRARY] Quick action filter:', filter);
         currentFilter = filter;
 
-        // Update active button
-        document.querySelectorAll('.quick-action-btn').forEach(btn => {
-            if (btn.dataset.filter === filter) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
+        // Update active button (now in action-buttons-row)
+        // Only toggle buttons in the first group (all, recent, favorites, most_used)
+        const filterButtons = ['all', 'recent', 'favorites', 'most_used'];
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            const btnFilter = btn.dataset.filter;
+            if (filterButtons.includes(btnFilter)) {
+                if (btnFilter === filter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
             }
         });
 
@@ -993,6 +995,9 @@ console.log('[PROMPT LIBRARY] ========================================');
                     <div class="prompt-description">${escapeHtml(prompt.description || '')}</div>
                 </div>
                 <div class="prompt-actions">
+                    <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
+                        ${prompt.type === 'quick_action' ? 'Quick' : 'Full'}
+                    </span>
                     <button class="prompt-star-btn ${isFavorite ? 'active' : ''}" 
                             onclick="event.stopPropagation(); window.toggleFavorite(${prompt.id});"
                             title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
@@ -1004,9 +1009,7 @@ console.log('[PROMPT LIBRARY] ========================================');
                             title="Edit prompt">
                         <i class="fas fa-pencil-alt"></i>
                     </button>
-                    <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
-                        ${prompt.type === 'quick_action' ? 'Quick' : 'Full'}
-                    </span>
+
                 </div>
             </div>
         `;
@@ -1456,21 +1459,38 @@ console.log('[PROMPT LIBRARY] ========================================');
     };
 
     /**
-     * Filter prompts by type (quick/detailed/all)
+     * Filter prompts by type (quick/detailed only - not all/recent/favorites)
      */
     window.filterPromptsByType = function (filterType) {
-        // Update active button
-        document.querySelectorAll('.action-btn[data-filter]').forEach(btn => {
-            btn.classList.remove('active');
+        // Update active button (only toggle within type group: quick, detailed)
+        const typeButtons = ['quick', 'detailed'];
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            const btnFilter = btn.dataset.filter;
+            if (typeButtons.includes(btnFilter)) {
+                if (btnFilter === filterType) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            }
         });
-        const activeBtn = document.querySelector(`.action-btn[data-filter="${filterType}"]`);
-        if (activeBtn) activeBtn.classList.add('active');
 
         // Filter prompts
         const category = document.getElementById('category-dropdown')?.value || 'all';
         const searchTerm = document.getElementById('inline-search')?.value || '';
 
         let filteredPrompts = [...allPrompts];
+
+        // Apply current filter (all/recent/favorites/most_used)
+        if (currentFilter === 'favorites') {
+            filteredPrompts = filteredPrompts.filter(p => favoritePromptIds.has(p.id));
+        } else if (currentFilter === 'recent') {
+            // TODO: Implement recent tracking
+            filteredPrompts = filteredPrompts.slice(0, 10);
+        } else if (currentFilter === 'most_used') {
+            // TODO: Implement usage tracking
+            filteredPrompts = filteredPrompts.slice(0, 10);
+        }
 
         // Filter by category
         if (category !== 'all') {
@@ -1537,25 +1557,27 @@ console.log('[PROMPT LIBRARY] ========================================');
         container.innerHTML = prompts.map(prompt => {
             const isSelected = selectedPrompts.some(p => p.id === prompt.id);
             const iconClass = categoryIcons[prompt.category] || 'fa-bolt';
+            const borderColor = categoryColors[prompt.category] || '#58a6ff';
 
             return `
-            <div class="prompt-list-item ${isSelected ? 'selected' : ''}" data-id="${prompt.id}">
-                    <div class="prompt-clickable" onclick="window.togglePromptSelection(${prompt.id})">
-                        <i class="prompt-icon fas ${iconClass}"></i>
-                        <div class="prompt-info">
-                            <div class="prompt-name">${escapeHtml(prompt.name)}</div>
-                            <div class="prompt-description">${escapeHtml(prompt.description || '')}</div>
-                        </div>
-                        <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
-                            ${prompt.type === 'quick_action' ? 'Quick' : 'Detailed'}
-                        </span>
-                    </div>
-                    <button class="prompt-edit-btn" style="display: none;"
-                            onclick="event.stopPropagation(); window.openPromptModal(${prompt.id})"
-                            title="Edit prompt">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
+            <div class="prompt-list-item ${isSelected ? 'selected' : ''}" 
+                 onclick="window.togglePromptSelection(${prompt.id})"
+                 data-id="${prompt.id}"
+                 style="border-left-color: ${borderColor};">
+                <i class="prompt-icon fas ${iconClass}" style="color: ${borderColor};"></i>
+                <div class="prompt-info">
+                    <div class="prompt-name">${escapeHtml(prompt.name)}</div>
+                    <div class="prompt-description">${escapeHtml(prompt.description || '')}</div>
                 </div>
+                <span class="prompt-type-badge ${prompt.type === 'quick_action' ? 'quick' : 'full'}">
+                    ${prompt.type === 'quick_action' ? 'Quick' : 'Detailed'}
+                </span>
+                <button class="prompt-edit-btn" style="display: none;"
+                        onclick="event.stopPropagation(); window.openPromptModal(${prompt.id})"
+                        title="Edit prompt">
+                    <i class="fas fa-pencil-alt"></i>
+                </button>
+            </div>
             `;
         }).join('');
     }

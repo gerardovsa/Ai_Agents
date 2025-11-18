@@ -52,8 +52,9 @@ window.ThreadCardRealtime = {
             return;
         }
 
-        // Check if Supabase client exists
-        if (!window.supabaseClient) {
+        // Check if Supabase client exists (try both lowercase and uppercase)
+        const supabaseClient = window.supabaseClient || window.SUPABASE_CLIENT;
+        if (!supabaseClient) {
             console.warn('[ThreadCardRealtime] Supabase client not available - skipping Realtime');
             return;
         }
@@ -62,7 +63,7 @@ window.ThreadCardRealtime = {
 
         try {
             // Create channel for threads table
-            this.channel = window.supabaseClient
+            this.channel = supabaseClient
                 .channel('threads-realtime-channel')
                 .on('postgres_changes', {
                     event: 'INSERT',
@@ -336,8 +337,9 @@ window.ThreadCardRealtime = {
         console.log('[ThreadCardRealtime] Cleaning up subscriptions...');
 
         try {
-            if (this.channel) {
-                await window.supabaseClient.removeChannel(this.channel);
+            const supabaseClient = window.supabaseClient || window.SUPABASE_CLIENT;
+            if (this.channel && supabaseClient) {
+                await supabaseClient.removeChannel(this.channel);
                 this.channel = null;
             }
 
@@ -362,7 +364,8 @@ window.ThreadCardRealtime = {
      * @param {string} threadId - Thread slug to refresh
      */
     async manualRefresh(threadId) {
-        if (!window.supabaseClient) {
+        const supabaseClient = window.supabaseClient || window.SUPABASE_CLIENT;
+        if (!supabaseClient) {
             console.warn('[ThreadCardRealtime] Supabase client not available');
             return;
         }
@@ -370,7 +373,7 @@ window.ThreadCardRealtime = {
         try {
             console.log(`[ThreadCardRealtime] Manual refresh for ${threadId}`);
 
-            const { data, error } = await window.supabaseClient
+            const { data, error } = await supabaseClient
                 .from('threads')
                 .select('*')
                 .eq('thread_slug', threadId)
