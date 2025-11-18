@@ -138,6 +138,7 @@ from routes.file_routes import file_bp  # NEW: File storage management (upload, 
 from routes.prompt_library_routes import prompt_routes  # NEW: Prompt library (database-backed prompt management)
 from routes.token_routes import token_routes  # NEW: Token tracking (real-time token counts for threads)
 from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-device session management)
+from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool monitoring dashboard
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 
 # Initialize Flask app
@@ -271,6 +272,7 @@ app.register_blueprint(user_management_bp)                           # NEW: Sub-
 app.register_blueprint(render_bp)                                    # NEW: Render cloud management (6 endpoints: /api/render/*)
 app.register_blueprint(prompt_routes)                                # NEW: Prompt library (10 endpoints: /api/prompts/*)
 app.register_blueprint(token_routes)                                 # NEW: Token tracking (3 endpoints: /api/tokens/*)
+app.register_blueprint(pool_monitor_bp)                              # NEW: Connection pool monitoring (4 endpoints: /api/pool/*)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
 
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)

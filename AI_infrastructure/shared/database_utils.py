@@ -31,6 +31,8 @@ import os
 import sqlite3
 from pathlib import Path
 from typing import Union, Tuple
+import threading
+import time
 from dotenv import load_dotenv
 
 # Load environment variables from project root
@@ -40,6 +42,19 @@ if _env_file.exists():
     load_dotenv(_env_file)
 else:
     load_dotenv()  # Try default .env
+
+# CONNECTION POOLING - Thread-safe connection pools
+_connection_pools = {}
+_pool_lock = threading.Lock()
+_pool_stats = {
+    'pools_created': 0,
+    'connections_acquired': 0,
+    'connections_returned': 0,
+    'pool_hits': 0,
+    'pool_misses': 0,
+    'total_wait_time': 0.0,
+    'avg_wait_time': 0.0
+}
 
 def is_using_supabase() -> bool:
     """
@@ -92,6 +107,102 @@ def get_supabase_schema_name(db_name: str) -> str:
     return db_name.lower().replace('.db', '')
 
 
+def get_connection_pool(schema_name: str):
+    """
+    Get or create thread-safe connection pool for schema
+    
+    CONNECTION POOLING BENEFITS:
+    - 10-100x faster connections (reuse instead of create)
+    - Thread-safe for concurrent requests
+    - Resource efficient (maintains 2-20 connections)
+    - Automatic cleanup (connections returned to pool)
+    
+    Args:
+        schema_name: PostgreSQL schema name
+    
+    Returns:
+        psycopg2.pool.ThreadedConnectionPool
+    
+    Pool Configuration:
+        - Min connections: 2 (always ready)
+        - Max connections: 20 (scales with traffic)
+        - Connection timeout: 30s
+        - Statement timeout: 60s
+    """
+    global _connection_pools, _pool_stats
+    
+    with _pool_lock:
+        if schema_name not in _connection_pools:
+            try:
+                import psycopg2
+                from psycopg2 import pool
+            except ImportError:
+                raise ImportError("psycopg2 not installed. Run: pip install psycopg2-binary")
+            
+            db_url = os.getenv('SUPABASE_DB_URL')
+            if not db_url:
+                raise ValueError("SUPABASE_DB_URL not set in environment")
+            
+            # Create thread-safe connection pool
+            # Min=2 (always ready), Max=20 (scales with traffic)
+            _connection_pools[schema_name] = pool.ThreadedConnectionPool(
+                minconn=2,
+                maxconn=20,
+                dsn=db_url,
+                sslmode='require',
+                connect_timeout=30,
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5
+            )
+            
+            _pool_stats['pools_created'] += 1
+            _pool_stats['pool_misses'] += 1
+            
+            print(f"🔷 [POOL] Created connection pool for '{schema_name}' (2-20 connections)")
+            print(f"🔷 [POOL] Total pools: {_pool_stats['pools_created']}")
+        else:
+            _pool_stats['pool_hits'] += 1
+        
+        return _connection_pools[schema_name]
+
+
+def get_pool_stats():
+    """
+    Get connection pool statistics
+    
+    Returns:
+        dict: Pool stats including hits, misses, avg wait time
+    """
+    global _pool_stats
+    
+    if _pool_stats['connections_acquired'] > 0:
+        _pool_stats['avg_wait_time'] = (
+            _pool_stats['total_wait_time'] / _pool_stats['connections_acquired']
+        )
+    
+    return dict(_pool_stats)
+
+
+def close_all_pools():
+    """
+    Close all connection pools (for graceful shutdown)
+    """
+    global _connection_pools
+    
+    with _pool_lock:
+        for schema_name, pool_instance in _connection_pools.items():
+            try:
+                pool_instance.closeall()
+                print(f"🔷 [POOL] Closed pool for '{schema_name}'")
+            except Exception as e:
+                print(f"❌ [POOL] Error closing pool '{schema_name}': {e}")
+        
+        _connection_pools.clear()
+        print(f"🔷 [POOL] All pools closed")
+
+
 def get_database_connection(db_name: str = 'ai_infrastructure'):
     """
     Get database connection with auto-detection (SQLite or Supabase)
@@ -121,7 +232,9 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         # -> psycopg2.Connection to Supabase (ai_infrastructure schema)
     """
     if is_using_supabase():
-        # SUPABASE POSTGRESQL (Render deployment)
+        # SUPABASE POSTGRESQL WITH CONNECTION POOLING (Render deployment)
+        global _pool_stats
+        
         try:
             import psycopg2
             from psycopg2.extras import RealDictCursor
@@ -130,46 +243,44 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                 "psycopg2 not installed. Run: pip install psycopg2-binary"
             )
         
-        # Get connection string from environment
-        db_url = os.getenv('SUPABASE_DB_URL')
-        if not db_url:
-            raise ValueError(
-                "SUPABASE_DB_URL not set in environment. "
-                "Use Session Pooler URL: postgresql://postgres.PROJECT:[PASSWORD]@aws-X-region.pooler.supabase.com:5432/postgres"
-            )
+        schema_name = get_supabase_schema_name(db_name)
         
         try:
-            # Connect to Supabase Session Pooler (IPv4 compatible)
-            # Use connection pooler for Render compatibility
-            print(f"🔷 [DB] Attempting Supabase connection for '{db_name}'...")
-            print(f"🔷 [DB] Connection timeout: 30s, Statement timeout: 60s")
+            # GET CONNECTION FROM POOL (FAST - reuses existing connections)
+            start_time = time.time()
+            pool_instance = get_connection_pool(schema_name)
+            conn = pool_instance.getconn()
+            wait_time = time.time() - start_time
             
-            # Suppress PostgreSQL warnings for deprecated supautils parameters
-            import warnings
-            warnings.filterwarnings('ignore', message='.*supautils.*')
+            # Track pool stats
+            _pool_stats['connections_acquired'] += 1
+            _pool_stats['total_wait_time'] += wait_time
             
-            conn = psycopg2.connect(
-                db_url,
-                cursor_factory=RealDictCursor,
-                connect_timeout=30,
-                keepalives=1,
-                keepalives_idle=30,
-                keepalives_interval=10,
-                keepalives_count=5,
-                options='-c statement_timeout=60000 -c client_min_messages=ERROR'  # Suppress server warnings
-            )
+            # Wrap connection to return it to pool on close
+            original_close = conn.close
             
-            # Set search_path to use the correct schema
-            schema_name = get_supabase_schema_name(db_name)
-            with conn.cursor() as cursor:
-                # Create schema if it doesn't exist
-                cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
-                cursor.execute(f"SET search_path TO {schema_name}, public")
-                # Set statement timeout for all queries on this connection
-                cursor.execute("SET statement_timeout = '60s'")
+            def close_and_return_to_pool():
+                """Return connection to pool instead of closing"""
+                try:
+                    # Reset connection state before returning
+                    if not conn.closed:
+                        conn.rollback()  # Clean any pending transactions
+                        pool_instance.putconn(conn)
+                        _pool_stats['connections_returned'] += 1
+                except Exception as e:
+                    print(f"⚠️ [POOL] Error returning connection: {e}")
             
+            conn.close = close_and_return_to_pool
+            
+            # Set search_path and configure connection
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+            cursor.execute(f"SET search_path TO {schema_name}, public")
+            cursor.execute("SET statement_timeout = '60s'")
+            cursor.close()
             conn.commit()
-            print(f"✅ [DB] Connected to Supabase PostgreSQL (schema: {schema_name})")
+            
+            print(f"🔷 [POOL] Got connection from pool for '{schema_name}' (wait: {wait_time*1000:.1f}ms)")
             
             # Wrap connection to provide automatic placeholder conversion
             return DatabaseConnection(conn)
