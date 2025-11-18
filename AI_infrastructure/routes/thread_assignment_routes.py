@@ -453,6 +453,66 @@ def assign_thread():
         }), 500
 
 
+@thread_assignment_bp.route('/api/agent/threads/<thread_id>/assign', methods=['POST'])
+def assign_thread_by_id(thread_id):
+    """
+    Assign thread to location with strict rule enforcement (frontend-friendly URL)
+    This is an alias for /api/thread-assignments/assign with URL path parameter
+    
+    URL parameter:
+        thread_id: Thread ID from URL path
+    
+    Request JSON:
+        {
+            "location": "agent-1",  // or "prime"
+            "agent_name": "Bravo-2"  // optional, for logging
+        }
+    
+    RULES ENFORCED:
+    1. Thread can only be in ONE location (Prime OR one agent)
+    2. Agent can only have ONE thread
+    3. Most recent assignment wins - old assignments auto-removed
+    
+    Returns:
+        {
+            "success": true,
+            "assignment": {
+                "session_id": "1762192838469",
+                "location": "agent-1",
+                "previous_location": "agent-2",  // where thread was before (or null)
+                "displaced_thread": "1762193002345"  // thread kicked out (or null)
+            }
+        }
+    """
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id', 1)
+        location = data.get('location', 'prime')
+        agent_name = data.get('agent_name', location)
+        
+        logger.info(f"📌 [ASSIGN] Thread {thread_id} → {location} ({agent_name}) [user {user_id}]")
+        
+        # Enforce rules and get what changed
+        result = enforce_thread_assignment_rules(user_id, thread_id, location)
+        
+        return jsonify({
+            'success': True,
+            'assignment': {
+                'session_id': thread_id,
+                'location': location,
+                'previous_location': result['previous_location'],
+                'displaced_thread': result['displaced_thread']
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error assigning thread {thread_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @thread_assignment_bp.route('/api/thread-assignments/clear/<location>', methods=['POST'])
 def clear_location(location):
     """

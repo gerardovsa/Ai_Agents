@@ -1355,7 +1355,9 @@ def get_agent_status(agent_id):
         return error_response("Missing session_id", 400)
     
     try:
-        state = agent_state_manager.get_or_create_state(agent_id, session_id, {})
+        # Use session_id as thread_id (they should be equal)
+        thread_id = session_id
+        state = agent_state_manager.get_or_create_state(agent_id, thread_id)
         return success_response({
             'status': state['status'],
             'message_count': len(state['conversation'])
@@ -1372,7 +1374,9 @@ def get_agent_history(agent_id):
         return error_response("Missing session_id", 400)
     
     try:
-        state = agent_state_manager.get_or_create_state(agent_id, session_id, {})
+        # Use session_id as thread_id (they should be equal)
+        thread_id = session_id
+        state = agent_state_manager.get_or_create_state(agent_id, thread_id)
         return list_response(state['conversation'])
     except Exception as e:
         return error_response(str(e), 500)
@@ -1386,7 +1390,9 @@ def clear_agent_conversation(agent_id):
         session_id = data.get('session_id')
         if not session_id:
             return error_response("Missing session_id", 400)
-        agent_state_manager.clear_conversation(agent_id, session_id)
+        # Use session_id as thread_id (they should be equal)
+        thread_id = session_id
+        agent_state_manager.clear_conversation(agent_id, thread_id)
         return success_response(message="Conversation cleared")
     except Exception as e:
         return error_response(str(e), 500)

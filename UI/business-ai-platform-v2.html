@@ -5389,17 +5389,19 @@
         .ai-chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: var(--space-4) var(--space-4) 0 var(--space-4);
-            /* padding-bottom set dynamically by JavaScript when input is focused */
+            padding: var(--space-4);
+            /* No bottom padding needed - input naturally takes space */
             display: flex;
             flex-direction: column;
             gap: var(--space-4);
-            transition: padding-bottom 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            min-height: 0;
+            /* Allow flex shrinking */
         }
 
         /* Drag and Drop Visual Feedback (Added Nov 8, 2025) */
         .ai-chat-messages.drag-over,
-        .agent-chat-messages.drag-over {
+        .agent-chat-messages.drag-over,
+        #prime-thread-info.drag-over {
             background: rgba(88, 166, 255, 0.08);
             border: 2px dashed var(--accent-primary);
             box-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
@@ -6666,15 +6668,81 @@
         }
 
         .ai-chat-input-container {
+            /* Natural flex child at bottom - pushes messages up */
+            flex-shrink: 0;
+            /* Don't shrink this container */
+            padding: 0 20px 0 20px;
+            background: transparent;
+            transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+            height: 30px;
+            /* STATE 1: Collapsed bar height */
+            overflow: hidden;
+            /* Hide content when collapsed */
+            cursor: pointer;
+            /* Indicate clickable */
+            position: relative;
+        }
+
+        /* STATE 4: Expanded state */
+        .ai-chat-input-container.expanded {
+            height: auto;
+            padding: 20px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-default);
+            cursor: default;
+            /* Normal cursor when expanded */
+            overflow: visible;
+            /* Show content when expanded */
+        }
+
+        /* Collapsed bar visual (STATE 1 & 2 & 3) */
+        .ai-chat-input-container::before {
+            content: '';
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
             right: 0;
-            padding: 20px !important;
-            background: transparent;
-            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-            z-index: 100;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
             pointer-events: none;
+        }
+
+        /* STATE 3: Bar hover - accent color border */
+        .ai-chat-input-container:not(.expanded):hover::before {
+            background: var(--accent-primary);
+            box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
+        }
+
+        /* Chevron indicator (STATE 1, 2, 3) */
+        .ai-chat-input-container::after {
+            content: '⋀⋀';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            color: rgba(139, 148, 158, 0.5);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            opacity: 1;
+        }
+
+        /* STATE 3: Bar hover - glow chevrons */
+        .ai-chat-input-container:not(.expanded):hover::after {
+            color: var(--accent-primary);
+            text-shadow: 0 0 8px rgba(88, 166, 255, 0.8);
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        /* STATE 4: Hide chevrons when expanded */
+        .ai-chat-input-container.expanded::after {
+            opacity: 0;
+        }
+
+        /* Hide bar border when expanded */
+        .ai-chat-input-container.expanded::before {
+            opacity: 0;
         }
 
         /* Hide chat input when welcome message is visible */
@@ -6683,18 +6751,21 @@
             display: none;
         }
 
-        /* Keep transparent on hover and focus */
-        .ai-chat-input-container:hover,
-        .ai-chat-input-container:focus-within,
-        .ai-chat-input-container.active {
-            background: transparent;
-        }
-
         .ai-chat-input-wrapper {
             display: flex;
             flex-direction: column;
             gap: var(--space-2);
             margin-bottom: 10px;
+
+            /* STATE 1-3: Hidden (pushed down by container height collapse) */
+            opacity: 0;
+            transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        /* STATE 4: Become visible */
+        .ai-chat-input-container.expanded .ai-chat-input-wrapper {
+            opacity: 1;
             pointer-events: auto;
         }
 
@@ -6752,14 +6823,15 @@
             opacity: 0.5;
         }
 
-        .ai-chat-input-container:hover .ai-chat-attach-btn,
-        .ai-chat-input-container:hover .ai-chat-feedback-btn {
+        /* STATE 4: Buttons become visible and interactive */
+        .ai-chat-input-container.expanded .ai-chat-attach-btn,
+        .ai-chat-input-container.expanded .ai-chat-feedback-btn {
             background: transparent;
             border: 1px solid var(--border-default, #30363d);
             color: var(--text-primary);
         }
 
-        .ai-chat-input-container:hover .ai-chat-send-btn {
+        .ai-chat-input-container.expanded .ai-chat-send-btn {
             background: var(--accent-primary);
             color: white;
             border: 1px solid var(--accent-primary);
@@ -6800,7 +6872,8 @@
             justify-content: center;
         }
 
-        .ai-chat-input-container:hover .ai-chat-autoscroll-btn {
+        /* STATE 4: Button visible and interactive */
+        .ai-chat-input-container.expanded .ai-chat-autoscroll-btn {
             color: var(--text-secondary);
             border-color: var(--border-default);
         }
@@ -12553,117 +12626,116 @@
                                 </div>
                             </div>
 
-                            <!-- Fixed Menu Bar with Shapes, Colors, and Zoom -->
+                            <!-- Floating Shape Palette (Fixed - Outside Canvas) -->
                             <div class="floating-shape-palette">
-                                    <div class="floating-palette-title">
-                                        <i class="fas fa-shapes"></i> Shapes
+                                <div class="floating-palette-title">
+                                    <i class="fas fa-shapes"></i> Shapes
+                                </div>
+                                <div class="floating-shape-row"
+                                    style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                                    <div class="floating-shape-item" draggable="true" data-shape="trigger"
+                                        title="Trigger - Start workflow"
+                                        style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                        <i class="fas fa-bolt" style="color: #10B981; font-size: 16px;"></i>
+                                        <span style="font-size: 11px; font-weight: 600;">TRIGGER</span>
                                     </div>
-                                    <div class="floating-shape-row"
-                                        style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-                                        <div class="floating-shape-item" draggable="true" data-shape="trigger"
-                                            title="Trigger - Start workflow"
-                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
-                                            <i class="fas fa-bolt" style="color: #10B981; font-size: 16px;"></i>
-                                            <span style="font-size: 11px; font-weight: 600;">TRIGGER</span>
-                                        </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="wait"
-                                            title="Wait - Delay/pause"
-                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
-                                            <i class="fas fa-hand-paper" style="color: #F59E0B; font-size: 16px;"></i>
-                                            <span style="font-size: 11px; font-weight: 600;">WAIT</span>
-                                        </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="schedule"
-                                            title="Schedule - Scheduled tasks"
-                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
-                                            <i class="fas fa-calendar" style="color: #3B82F6; font-size: 16px;"></i>
-                                            <span style="font-size: 11px; font-weight: 600;">SCHEDULE</span>
-                                        </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="end"
-                                            title="End - Workflow finish"
-                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
-                                            <i class="fas fa-flag" style="color: #EF4444; font-size: 16px;"></i>
-                                            <span style="font-size: 11px; font-weight: 600;">END</span>
-                                        </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="database"
-                                            title="Database - Data operations"
-                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
-                                            <i class="fas fa-database" style="color: #EC4899; font-size: 16px;"></i>
-                                            <span style="font-size: 11px; font-weight: 600;">DATABASE</span>
-                                        </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="output"
-                                            title="Output - Export data"
-                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
-                                            <i class="fas fa-file-export" style="color: #EAB308; font-size: 16px;"></i>
-                                            <span style="font-size: 11px; font-weight: 600;">OUTPUT</span>
-                                        </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="tool"
-                                            title="Tool - Execute tool"
-                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
-                                            <i class="fas fa-cog" style="color: #6B7280; font-size: 16px;"></i>
-                                            <span style="font-size: 11px; font-weight: 600;">TOOL</span>
-                                        </div>
-                                        <div class="floating-shape-item" draggable="true" data-shape="instructions"
-                                            title="Instructions - Info/notes"
-                                            style="display: flex; align-items: center; gap: 6px; padding: 8px;">
-                                            <i class="fas fa-info-circle" style="color: #EC4899; font-size: 16px;"></i>
-                                            <span style="font-size: 11px; font-weight: 600;">INSTRUCTIONS</span>
-                                        </div>
+                                    <div class="floating-shape-item" draggable="true" data-shape="wait"
+                                        title="Wait - Delay/pause"
+                                        style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                        <i class="fas fa-hand-paper" style="color: #F59E0B; font-size: 16px;"></i>
+                                        <span style="font-size: 11px; font-weight: 600;">WAIT</span>
                                     </div>
-                                    <div class="floating-color-row">
-                                        <label style="font-size: 11px; color: var(--text-muted); margin-right: 8px;">
-                                            <i class="fas fa-palette"></i> Colors
-                                        </label>
-                                        <div class="color-swatch-row">
-                                            <div class="color-swatch selected" data-color="#58a6ff"
-                                                style="background: #58a6ff;" title="Primary Blue"></div>
-                                            <div class="color-swatch" data-color="#0078d4" style="background: #0078d4;"
-                                                title="Microsoft Blue"></div>
-                                            <div class="color-swatch" data-color="#ea4335" style="background: #ea4335;"
-                                                title="Google Red"></div>
-                                            <div class="color-swatch" data-color="#3fb950" style="background: #3fb950;"
-                                                title="Success Green"></div>
-                                            <div class="color-swatch" data-color="#d29922" style="background: #d29922;"
-                                                title="Warning Yellow"></div>
-                                            <div class="color-swatch" data-color="#f85149" style="background: #f85149;"
-                                                title="Error Red"></div>
-                                            <div class="color-swatch" data-color="#9b59b6" style="background: #9b59b6;"
-                                                title="Synergy Purple"></div>
-                                            <div class="color-swatch" data-color="#6c757d" style="background: #6c757d;"
-                                                title="System Gray"></div>
-                                        </div>
+                                    <div class="floating-shape-item" draggable="true" data-shape="schedule"
+                                        title="Schedule - Scheduled tasks"
+                                        style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                        <i class="fas fa-calendar" style="color: #3B82F6; font-size: 16px;"></i>
+                                        <span style="font-size: 11px; font-weight: 600;">SCHEDULE</span>
                                     </div>
-
-                                    <!-- Zoom Controls (Inline in Toolbar) -->
-                                    <div class="zoom-controls">
-                                        <button class="zoom-btn" id="zoom-out-btn" title="Zoom out (Ctrl -)">
-                                            <i class="fas fa-search-minus"></i>
-                                        </button>
-                                        <span class="zoom-level" id="zoom-level">100%</span>
-                                        <button class="zoom-btn" id="zoom-in-btn" title="Zoom in (Ctrl +)">
-                                            <i class="fas fa-search-plus"></i>
-                                        </button>
-                                        <button class="zoom-btn" id="zoom-reset-btn" title="Reset zoom (Ctrl 0)">
-                                            <i class="fas fa-compress"></i>
-                                        </button>
-                                        <button class="zoom-btn" id="recenter-btn" title="Recenter to shapes">
-                                            <i class="fas fa-crosshairs"></i>
-                                        </button>
+                                    <div class="floating-shape-item" draggable="true" data-shape="end"
+                                        title="End - Workflow finish"
+                                        style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                        <i class="fas fa-flag" style="color: #EF4444; font-size: 16px;"></i>
+                                        <span style="font-size: 11px; font-weight: 600;">END</span>
+                                    </div>
+                                    <div class="floating-shape-item" draggable="true" data-shape="database"
+                                        title="Database - Data operations"
+                                        style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                        <i class="fas fa-database" style="color: #EC4899; font-size: 16px;"></i>
+                                        <span style="font-size: 11px; font-weight: 600;">DATABASE</span>
+                                    </div>
+                                    <div class="floating-shape-item" draggable="true" data-shape="output"
+                                        title="Output - Export data"
+                                        style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                        <i class="fas fa-file-export" style="color: #EAB308; font-size: 16px;"></i>
+                                        <span style="font-size: 11px; font-weight: 600;">OUTPUT</span>
+                                    </div>
+                                    <div class="floating-shape-item" draggable="true" data-shape="tool"
+                                        title="Tool - Execute tool"
+                                        style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                        <i class="fas fa-cog" style="color: #6B7280; font-size: 16px;"></i>
+                                        <span style="font-size: 11px; font-weight: 600;">TOOL</span>
+                                    </div>
+                                    <div class="floating-shape-item" draggable="true" data-shape="instructions"
+                                        title="Instructions - Info/notes"
+                                        style="display: flex; align-items: center; gap: 6px; padding: 8px;">
+                                        <i class="fas fa-info-circle" style="color: #EC4899; font-size: 16px;"></i>
+                                        <span style="font-size: 11px; font-weight: 600;">INSTRUCTIONS</span>
                                     </div>
                                 </div>
-
-                                <!-- Canvas Grid Area (Scrollable) -->
-                                <div class="automation-canvas" id="automation-canvas">
-                                    <div class="automation-canvas-wrapper" id="automation-canvas-wrapper">
-                                        <!-- Shapes will be added here dynamically -->
+                                <div class="floating-color-row" style="display: none;">
+                                    <label style="font-size: 11px; color: var(--text-muted); margin-right: 8px;">
+                                        <i class="fas fa-palette"></i>
+                                    </label>
+                                    <div class="color-swatch-row">
+                                        <div class="color-swatch selected" data-color="#58a6ff"
+                                            style="background: #58a6ff;" title="Primary Blue"></div>
+                                        <div class="color-swatch" data-color="#0078d4" style="background: #0078d4;"
+                                            title="Microsoft Blue"></div>
+                                        <div class="color-swatch" data-color="#ea4335" style="background: #ea4335;"
+                                            title="Google Red"></div>
+                                        <div class="color-swatch" data-color="#3fb950" style="background: #3fb950;"
+                                            title="Success Green"></div>
+                                        <div class="color-swatch" data-color="#d29922" style="background: #d29922;"
+                                            title="Warning Yellow"></div>
+                                        <div class="color-swatch" data-color="#f85149" style="background: #f85149;"
+                                            title="Error Red"></div>
+                                        <div class="color-swatch" data-color="#9b59b6" style="background: #9b59b6;"
+                                            title="Synergy Purple"></div>
+                                        <div class="color-swatch" data-color="#6c757d" style="background: #6c757d;"
+                                            title="System Gray"></div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Minimap (Fixed Top-Right) -->
-                                <div class="canvas-minimap" id="canvas-minimap">
-                                    <div class="minimap-content" id="minimap-content">
-                                        <div class="minimap-viewport" id="minimap-viewport"></div>
-                                        <!-- Minimap shapes will be rendered here -->
-                                    </div>
+                            <!-- Zoom Controls (Fixed - Outside Canvas) -->
+                            <div class="zoom-controls">
+                                <button class="zoom-btn" id="zoom-out-btn" title="Zoom out (Ctrl -)">
+                                    <i class="fas fa-search-minus"></i>
+                                </button>
+                                <span class="zoom-level" id="zoom-level">100%</span>
+                                <button class="zoom-btn" id="zoom-in-btn" title="Zoom in (Ctrl +)">
+                                    <i class="fas fa-search-plus"></i>
+                                </button>
+                                <button class="zoom-btn" id="zoom-reset-btn" title="Reset zoom (Ctrl 0)">
+                                    <i class="fas fa-compress"></i>
+                                </button>
+                                <button class="zoom-btn" id="recenter-btn" title="Recenter to shapes">
+                                    <i class="fas fa-crosshairs"></i>
+                                </button>
+                            </div>
+
+                            <!-- Minimap (Fixed - Outside Canvas) -->
+                            <div class="canvas-minimap" id="canvas-minimap">
+                                <div class="minimap-content" id="minimap-content">
+                                    <div class="minimap-viewport" id="minimap-viewport"></div>
+                                    <!-- Minimap shapes will be rendered here -->
+                                </div>
+                            </div>
+
+                            <!-- Canvas (Scrollable Grid) -->
+                            <div class="automation-canvas" id="automation-canvas">
+                                <div class="automation-canvas-wrapper" id="automation-canvas-wrapper">
+                                    <!-- Shapes will be added here dynamically -->
                                 </div>
                             </div>
                         </div>
@@ -17854,7 +17926,7 @@
                         const welcomeContainer = document.getElementById('prime-welcome-container');
                         if (welcomeContainer) {
                             welcomeContainer.style.display = 'none';
-                            console.log('[WELCOME] Hidden - thread dropped on Prime');
+                            console.log('[WELCOME] Hidden - thread dropped on Prime chat area');
                         }
 
                         // ✨ Use master sync function for robust location update
@@ -17863,11 +17935,52 @@
                         // Load thread into Prime
                         await ThreadManager.switchThread(threadId);
 
-                        console.log(`✅ [DROP] Thread ${threadId} moved to Prime AI`);
+                        console.log(`✅ [DROP] Thread ${threadId} moved to Prime AI (chat area)`);
                     }
                 });
 
-                console.log('[DRAG-DROP] Prime drop zone configured');
+                console.log('[DRAG-DROP] Prime chat area drop zone configured');
+            }
+
+            // Setup Prime thread info container as drop zone
+            const primeThreadInfo = document.getElementById('prime-thread-info');
+            if (primeThreadInfo) {
+                primeThreadInfo.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    primeThreadInfo.classList.add('drag-over');
+                });
+
+                primeThreadInfo.addEventListener('dragleave', (e) => {
+                    if (e.target === primeThreadInfo) {
+                        primeThreadInfo.classList.remove('drag-over');
+                    }
+                });
+
+                primeThreadInfo.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    primeThreadInfo.classList.remove('drag-over');
+
+                    const threadId = e.dataTransfer.getData('text/plain');
+                    if (threadId) {
+                        // Hide welcome container when thread is dropped
+                        const welcomeContainer = document.getElementById('prime-welcome-container');
+                        if (welcomeContainer) {
+                            welcomeContainer.style.display = 'none';
+                            console.log('[WELCOME] Hidden - thread dropped on Prime thread info');
+                        }
+
+                        // ✨ Use master sync function for robust location update
+                        await ThreadManager.syncThreadLocationEverywhere(threadId, 'main');
+
+                        // Load thread into Prime and update thread info card
+                        await ThreadManager.switchThread(threadId);
+
+                        console.log(`✅ [DROP] Thread ${threadId} moved to Prime AI (thread info area)`);
+                    }
+                });
+
+                console.log('[DRAG-DROP] Prime thread info drop zone configured');
             }
 
             // Setup agent columns as drop zones (dynamically finds all agent columns)
@@ -18448,34 +18561,17 @@
             // console.log(`[AUTO-SCROLL] ${autoScrollEnabled ? 'Enabled' : 'Disabled'}`);
         }
 
-        // Update messages container padding based on input container height
+        // No longer needed - flex layout handles space automatically
         function updateMessagesBottomPadding() {
-            const inputContainer = document.querySelector('.ai-chat-input-container');
-            const messagesContainer = document.querySelector('.ai-chat-messages');
-            if (!inputContainer || !messagesContainer) {
-                // console.warn('[PADDING UPDATE] Missing containers:', { inputContainer, messagesContainer });
-                return;
-            }
-
-            // Get the actual height of the input container
-            const containerHeight = inputContainer.offsetHeight;
-            const newPadding = containerHeight + LAYOUT_CONSTANTS.PADDING_BUFFER;
-
-            // Add bottom padding to messages to push them up
-            messagesContainer.style.paddingBottom = `${newPadding}px`;
-
-            // console.log(`[PADDING UPDATE] Input height: ${containerHeight}px, New padding: ${newPadding}px`);
-
-            // Auto-scroll to bottom if enabled
+            // Flex layout naturally pushes messages up when input expands
+            // Just trigger auto-scroll
             performAutoScroll();
         }
 
-        // Remove bottom padding from messages container
+        // No longer needed - flex layout handles space automatically
         function resetMessagesBottomPadding() {
-            const messagesContainer = document.querySelector('.ai-chat-messages');
-            if (!messagesContainer) return;
-
-            messagesContainer.style.paddingBottom = 'var(--space-4)';
+            // Flex layout naturally gives messages more space when input collapses
+            // Nothing to do
         }
 
         function initChatPanel() {
@@ -18536,25 +18632,62 @@
             closeBtn.addEventListener('click', toggleChat);
             sendBtn.addEventListener('click', sendChatMessage);
 
-            // Add padding to messages when user clicks/focuses input area
+            // ==================== 4-STATE SLIDING INPUT SYSTEM ====================
             const inputContainer = document.querySelector('.ai-chat-input-container');
-            input.addEventListener('focus', () => {
-                console.log('[FOCUS EVENT] Input focused, adding active class');
-                inputContainer?.classList.add('active');
-                updateMessagesBottomPadding();
+            const messagesArea = document.querySelector('.ai-chat-messages');
+            let isExpanded = false;
+            
+            // STATE 4: Expand input area (click on bar or focus input)
+            function expandInputArea() {
+                if (isExpanded) return;
+                
+                isExpanded = true;
+                inputContainer?.classList.add('expanded');
+                
+                // Auto-scroll after expansion (flex layout handles space automatically)
+                setTimeout(() => {
+                    performAutoScroll();
+                }, 100);
+                
+                // Focus input
+                input?.focus();
+                
+                console.log('[STATE 4] Input area expanded - flex layout handles space');
+            }
+            
+            // STATE 1: Collapse input area (blur with empty input)
+            function collapseInputArea() {
+                if (!isExpanded) return;
+                
+                isExpanded = false;
+                inputContainer?.classList.remove('expanded');
+                
+                console.log('[STATE 1] Input area collapsed - messages naturally expand');
+            }
+            
+            // Click on collapsed bar to expand (STATE 1 → STATE 4)
+            inputContainer.addEventListener('click', (e) => {
+                if (!isExpanded && e.target === inputContainer) {
+                    expandInputArea();
+                }
             });
+            
+            // Focus input to expand (STATE 1 → STATE 4)
+            input.addEventListener('focus', () => {
+                expandInputArea();
+            });
+            
+            // Blur to collapse (STATE 4 → STATE 1) - only if empty
             input.addEventListener('blur', () => {
-                // Delay removal to allow for smooth transition
                 setTimeout(() => {
                     if (document.activeElement !== input && input.value.trim() === '') {
-                        console.log('[BLUR EVENT] Input blurred and empty, removing padding');
-                        inputContainer?.classList.remove('active');
-                        resetMessagesBottomPadding();
+                        collapseInputArea();
                     }
                 }, LAYOUT_CONSTANTS.BLUR_DELAY);
             });
-
-            // File attachment button click
+            
+            // After sending message, keep expanded (STATE 4 stays)
+            // (Handled by sendChatMessage - don't auto-collapse)            // File attachment button click
             attachBtn.addEventListener('click', () => {
                 fileInput.click();
             });
@@ -18597,8 +18730,8 @@
                 const newHeight = Math.min(input.scrollHeight, LAYOUT_CONSTANTS.MAX_INPUT_HEIGHT);
                 input.style.height = newHeight + 'px';
 
-                // Update messages padding as textarea expands
-                if (inputContainer?.classList.contains('active')) {
+                // Update messages padding as textarea expands (only in STATE 4)
+                if (inputContainer?.classList.contains('expanded')) {
                     setTimeout(() => updateMessagesBottomPadding(), 0);
                 }
             });
@@ -18751,8 +18884,8 @@
             }
 
             const resizeObserver = new ResizeObserver(entries => {
-                // Only update if input is active (has focus or content)
-                if (inputContainer.classList.contains('active')) {
+                // Only update if input is expanded (STATE 4)
+                if (inputContainer.classList.contains('expanded')) {
                     updateMessagesBottomPadding();
 
                     // Auto-scroll if enabled
@@ -27735,8 +27868,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         }
                     }
                 } else {
-                    // Thread in Prime or unassigned - open directly
-                    console.log(`âœ… [handleThreadDoubleClick] Thread in Prime, opening immediately`);
+                    // Thread in Prime, thread-history, or unassigned - open in Prime
+                    console.log(`[handleThreadDoubleClick] Opening thread in Prime`);
                     this.openThreadInPrime(threadId);
                 }
             },
