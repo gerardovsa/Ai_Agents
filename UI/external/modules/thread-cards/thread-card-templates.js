@@ -488,6 +488,12 @@ window.ThreadCardTemplates = {
                             <span class="synergy-badge-title">${synergyDisplay}</span>
                             ${synergyPriority ? `<span class="synergy-badge-priority" style="background: white; color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px;">${synergyPriority}</span>` : ''}
                         </button>
+                        <button class="thread-synergy-info" title="Show description" onclick="event.stopPropagation(); const badge = this.parentElement.querySelector('.synergy-badge[data-tooltip-title]'); if (badge && window.showSynergyTooltip) { window.showSynergyTooltip(badge, event); }">
+                            <i class="fas fa-question-circle"></i>
+                        </button>
+                        <button class="thread-synergy-popout" title="Open in popup" onclick="event.stopPropagation(); if(typeof synergyBoard !== 'undefined') { if(synergyBoard.sessions.length === 0) { synergyBoard.loadSessions().then(() => synergyBoard.popOutCard('${safeEscape(thread.synergy_card_id)}')); } else { synergyBoard.popOutCard('${safeEscape(thread.synergy_card_id)}'); } }">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
                         ${location !== 'synergy' ? `
                             <button class="thread-synergy-unlink" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
                                 <i class="fas fa-unlink"></i>
@@ -495,10 +501,9 @@ window.ThreadCardTemplates = {
                         ` : ''}
                     </div>
                 ` : (location !== 'synergy' ? `
-                    <div class="thread-item-synergy thread-item-synergy-unlinked" style="border: 1px dashed #10b981; border-radius: 8px; padding: 8px;">
-                        <button class="synergy-create-link" style="background: transparent; border: none; color: #10b981; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;" onclick="event.stopPropagation(); ThreadManager.openSynergySyncModal('${thread.id}')" title="Link thread to Synergy session">
-                            <i class="fas fa-link"></i> Link Synergy Session
-                        </button>
+                    <div class="thread-item-synergy thread-item-synergy-unlinked" onclick="event.stopPropagation(); ThreadManager.openSynergySyncModal('${thread.id}')" title="Link thread to Synergy session">
+                        <i class="fas fa-link"></i>
+                        <span>Link Synergy Session</span>
                     </div>
                 ` : '')}
                 
@@ -518,10 +523,9 @@ window.ThreadCardTemplates = {
                         ` : ''}
                     </div>
                 ` : (location !== 'synergy' ? `
-                    <div class="thread-item-workflow thread-item-workflow-unlinked" style="border: 1px dashed #f97316; border-radius: 8px; padding: 8px;">
-                        <button class="workflow-create-link" style="background: transparent; border: none; color: #f97316; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;" onclick="event.stopPropagation(); ThreadManager.openWorkflowLinkModal('${thread.id}')" title="Link thread to Workflow automation">
-                            <i class="fas fa-robot"></i> Link Workflow
-                        </button>
+                    <div class="thread-item-workflow thread-item-workflow-unlinked" onclick="event.stopPropagation(); ThreadManager.openWorkflowLinkModal('${thread.id}')" title="Link thread to Workflow automation">
+                        <i class="fas fa-robot"></i>
+                        <span>Link Workflow</span>
                     </div>
                 ` : '')}
                 

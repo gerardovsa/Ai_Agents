@@ -640,6 +640,56 @@
     transform: scale(1.1);
 }
 
+/* Synergy info button (?) - triggers tooltip */
+.thread-synergy-info {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(16, 185, 129, 0.7);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.thread-synergy-info:hover {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    transform: scale(1.1);
+}
+
+/* Synergy popout button - opens card in popup */
+.thread-synergy-popout {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(16, 185, 129, 0.7);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.thread-synergy-popout:hover {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    transform: scale(1.1);
+}
+
 /* ============================================================
    AGENT UNLOAD BUTTON (RED)
    ============================================================ */
@@ -976,12 +1026,30 @@
     border-radius: 0;
 }
 
-/* Unlinked synergy: dashed border with padding */
+/* Unlinked synergy: dashed border, clickable container */
 .thread-item-synergy-unlinked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     border: 1px dashed #10b981;
-    border-radius: 8px;
-    padding: 8px;
+    border-radius: 6px;
+    padding: 6px 12px;
     background: transparent;
+    color: #10b981;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.thread-item-synergy-unlinked:hover {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: #10b981;
+    border-style: solid;
+}
+
+.thread-item-synergy-unlinked i {
+    font-size: 12px;
+    flex-shrink: 0;
 }
 
 /* Workflow containers - match synergy styling */
@@ -1000,10 +1068,28 @@
 }
 
 .thread-item-workflow-unlinked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     border: 1px dashed #f97316;
-    border-radius: 8px;
-    padding: 8px;
+    border-radius: 6px;
+    padding: 6px 12px;
     background: transparent;
+    color: #f97316;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.thread-item-workflow-unlinked:hover {
+    background: rgba(249, 115, 22, 0.08);
+    border-color: #f97316;
+    border-style: solid;
+}
+
+.thread-item-workflow-unlinked i {
+    font-size: 12px;
+    flex-shrink: 0;
 }
 
 .thread-workflow-unlink {

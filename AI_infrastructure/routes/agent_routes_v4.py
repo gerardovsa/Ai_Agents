@@ -522,6 +522,17 @@ def start_agent(agent_id):
         else:
             print(f"[START] ✅ Using thread_slug for isolation: {thread_slug[:12]}...")
         
+        # CRITICAL VALIDATION: session_id MUST equal thread_slug for isolation
+        if thread_slug and session_id and thread_slug != session_id:
+            print(f"[START] ❌ THREAD ISOLATION ERROR:")
+            print(f"  - session_id: {session_id}")
+            print(f"  - thread_slug: {thread_slug}")
+            print(f"  - MISMATCH DETECTED - This causes cross-contamination!")
+            
+            # FORCE thread_slug as session_id
+            print(f"[START] 🔧 FORCING session_id = thread_slug for isolation")
+            session_id = thread_slug
+        
         # CRITICAL FIX: Read conversation_history from frontend request
         # Frontend sends full conversation history in data.conversation_history
         # NOTE: Empty history is NORMAL for first message from user

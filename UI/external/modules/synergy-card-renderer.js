@@ -1,0 +1,522 @@
+/**
+ * Synergy Card Renderer Module
+ * 
+ * Handles rendering of Synergy session cards in sidebar and dashboard views
+ * Supports current structure: next_steps + checklist
+ * 
+ * Usage:
+ *   const renderer = new SynergyCardRenderer();
+ *   const cardHTML = renderer.renderCollapsedCard(sessionData);
+ */
+
+class SynergyCardRenderer {
+    constructor() {
+        this.priorityColors = {
+            'critical': '#dc2626',
+            'high': '#ef4444',
+            'medium': '#fbbf24',
+            'low': '#22c55e'
+        };
+    }
+
+    /**
+     * Parse JSON field safely
+     */
+    parseJsonField(field, fallback = []) {
+        if (field === null || field === undefined) return fallback;
+        if (Array.isArray(field)) return field;
+        if (typeof field === 'object' && field !== null) return field;
+        if (typeof field === 'string' && field.trim()) {
+            try {
+                return JSON.parse(field);
+            } catch (e) {
+                return fallback;
+            }
+        }
+        return fallback;
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Create session list item with header and collapsed card
+     */
+    createSessionItem(session, expandedSessions = new Set(), pinnedSessions = new Set()) {
+        const item = document.createElement('div');
+        item.className = 'synergy-session-item';
+        if (expandedSessions.has(session.session_id)) {
+            item.classList.add('expanded');
+        }
+        item.dataset.sessionId = session.session_id;
+
+        const isPinned = pinnedSessions.has(session.session_id);
+        const documents = this.parseJsonField(session.documents, []);
+        const nextSteps = this.parseJsonField(session.next_steps, []);
+
+        item.innerHTML = `
+            <div class="synergy-item-header" onclick="SynergySidebar.toggleExpand(event, '${session.session_id}')">
+                <div class="synergy-item-chevron">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                <div class="synergy-item-info">
+                    <div class="synergy-item-title">${this.escapeHtml(session.title)}</div>
+                    <div class="synergy-item-meta">
+                        <span class="card-status" style="background: var(--bg-quaternary); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                            ${session.status}
+                        </span>
+                        <span class="card-time" style="opacity: 0.7; font-size: 10px;">
+                            <i class="fas fa-clock"></i> ${new Date(session.updated_at).toLocaleDateString()}
+                        </span>
+                        <span class="card-meta" style="color: ${this.priorityColors[session.priority]}; font-weight: 600; font-size: 10px; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-circle" style="font-size: 6px;"></i> ${session.priority}
+                        </span>
+                        <span class="card-stats" style="display: flex; gap: 8px; font-size: 10px; opacity: 0.8;">
+                            <span><i class="fas fa-comments"></i> ${session.message_count || 0}</span>
+                            <span><i class="fas fa-file"></i> ${documents.length}</span>
+                            <span><i class="fas fa-tasks"></i> ${nextSteps.filter(s => s && s.completed).length}/${nextSteps.length}</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="synergy-item-actions">
+                    <button class="synergy-item-btn pin ${isPinned ? 'pinned' : ''}" 
+                        onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')" 
+                        title="${isPinned ? 'Unpin' : 'Pin'} session">
+                        <i class="fas fa-thumbtack"></i>
+                    </button>
+                    <button class="synergy-item-btn popout" 
+                        onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}'); return false;" 
+                        title="Pop out">
+                        <i class="fas fa-external-link-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="synergy-card-collapsed">
+                ${this.renderCollapsedCard(session)}
+            </div>
+        `;
+
+        return item;
+    }
+
+    /**
+     * Render the full collapsed card content
+     */
+    renderCollapsedCard(session) {
+        // Parse JSON fields
+        const documents = this.parseJsonField(session.documents, []);
+        const links = this.parseJsonField(session.links, []);
+        const nextSteps = this.parseJsonField(session.next_steps, []);
+        const checklist = this.parseJsonField(session.checklist, []);
+        const tags = this.parseJsonField(session.tags, []);
+        const assignees = this.parseJsonField(session.assignees, []);
+
+        // Calculate stats
+        const completedSteps = nextSteps.filter(s => s && s.completed).length;
+        const totalSteps = nextSteps.length;
+        const completedChecklist = checklist.filter(c => c && c.completed).length;
+        const totalChecklist = checklist.length;
+
+        let html = '';
+
+        // Card Meta (assignees and due date)
+        html += this.renderCardMeta(assignees, session.due_date);
+
+        // Card Stats
+        html += this.renderCardStats(session.message_count, documents.length, completedSteps, totalSteps, completedChecklist, totalChecklist);
+
+        // Description
+        if (session.description) {
+            html += this.renderDescription(session.description);
+        }
+
+        // Documents
+        html += this.renderDocuments(documents, session.session_id);
+
+        // Links
+        html += this.renderLinks(links);
+
+        // Next Steps
+        html += this.renderNextSteps(nextSteps, session.session_id, completedSteps, totalSteps);
+
+        // Checklist
+        html += this.renderChecklist(checklist, session.session_id, completedChecklist, totalChecklist);
+
+        // Linked Threads
+        html += this.renderLinkedThreads(session);
+
+        // Notes
+        html += this.renderNotes(session.notes);
+
+        // Activity Log
+        html += this.renderActivityLog(session);
+
+        // Tags
+        if (tags.length > 0) {
+            html += this.renderTags(tags);
+        }
+
+        // Popup button
+        html += this.renderPopupButton(session.session_id);
+
+        return html;
+    }
+
+    renderCardMeta(assignees, dueDate) {
+        if (assignees.length === 0 && !dueDate) return '';
+
+        let html = '<div class="card-meta" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; font-size: 12px;">';
+
+        if (assignees.length > 0) {
+            html += `
+                <span style="background: var(--bg-quaternary); color: var(--text-primary); padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-users" style="font-size: 8px;"></i> ${assignees.join(', ')}
+                </span>
+            `;
+        }
+
+        if (dueDate) {
+            const dueDateObj = new Date(dueDate);
+            const isOverdue = dueDateObj < new Date();
+            html += `
+                <span style="background: ${isOverdue ? '#dc2626' : 'var(--bg-quaternary)'}; color: ${isOverdue ? 'white' : 'var(--text-primary)'}; padding: 3px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-calendar" style="font-size: 11px;"></i> Due: ${dueDateObj.toLocaleDateString()}
+                </span>
+            `;
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    renderCardStats(messageCount, docsCount, completedSteps, totalSteps, completedChecklist, totalChecklist) {
+        return `
+            <div class="card-stats" style="display: flex; gap: 16px; margin-bottom: 16px; padding: 12px; background: var(--bg-quaternary); border-radius: 6px; font-size: 12px;">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-comments" style="color: var(--accent-primary);"></i> 
+                    <span>${messageCount || 0}</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-file" style="color: var(--accent-primary);"></i> 
+                    <span>${docsCount}</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-tasks" style="color: var(--accent-primary);"></i> 
+                    <span>${completedSteps}/${totalSteps}</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-check-square" style="color: var(--accent-primary);"></i> 
+                    <span>${completedChecklist}/${totalChecklist}</span>
+                </span>
+            </div>
+        `;
+    }
+
+    renderDescription(description) {
+        const descriptionHtml = typeof marked !== 'undefined'
+            ? marked.parse(description)
+            : this.escapeHtml(description).replace(/\n/g, '<br>');
+
+        return `
+            <div class="synergy-card-section" style="margin-bottom: 16px;">
+                <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-align-left"></i>
+                    Description
+                </div>
+                <div class="synergy-card-description" style="font-size: 13px; line-height: 1.6; color: var(--text-primary);">${descriptionHtml}</div>
+            </div>
+        `;
+    }
+
+    renderDocuments(documents, sessionId) {
+        let html = `
+            <div class="synergy-card-section" style="margin-bottom: 16px;">
+                <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-file-alt"></i>
+                    Documents ${documents.length > 0 ? `(${documents.length})` : ''}
+                </div>
+                <div style="font-size: 13px;">
+        `;
+
+        if (documents.length > 0) {
+            html += documents.map((doc, idx) => {
+                const displayNumber = idx + 1;
+                if (doc.type === 'internal_doc') {
+                    return `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px; cursor: pointer;"
+                            onclick="event.stopPropagation(); window.internalDocsManager.openInternalDocPopup('${doc.doc_id}', '${sessionId}');">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; background: linear-gradient(135deg, #58a6ff 0%, #4a8fe7 100%); color: white; font-weight: 700; border-radius: 4px; font-size: 10px; padding: 0 6px; white-space: nowrap;">D${displayNumber}</span>
+                            <i class="fas fa-${doc.doc_type === 'spreadsheet' ? 'table' : 'file-alt'}" style="color: var(--accent-primary);"></i>
+                            <span style="flex: 1;">${this.escapeHtml(doc.title)}</span>
+                            <span style="font-size: 11px; color: var(--text-muted);">${doc.doc_type === 'spreadsheet' ? 'Spreadsheet' : 'Document'} v${doc.version || 1}</span>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; background: linear-gradient(135deg, #58a6ff 0%, #4a8fe7 100%); color: white; font-weight: 700; border-radius: 4px; font-size: 10px; padding: 0 6px;">D${displayNumber}</span>
+                            <i class="fas fa-file" style="color: var(--accent-primary);"></i>
+                            <span style="flex: 1;">${this.escapeHtml(doc.title || doc.name)}</span>
+                            ${doc.url ? `<a href="${this.escapeHtml(doc.url)}" target="_blank" style="color: var(--accent-primary); text-decoration: none;"
+                                onclick="event.stopPropagation();">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>` : ''}
+                        </div>
+                    `;
+                }
+            }).join('');
+        } else {
+            html += '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No documents added</div>';
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    renderLinks(links) {
+        let html = `
+            <div class="synergy-card-section" style="margin-bottom: 16px;">
+                <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-link"></i>
+                    Links ${links.length > 0 ? `(${links.length})` : ''}
+                </div>
+                <div style="font-size: 13px;">
+        `;
+
+        if (links.length > 0) {
+            html += links.map((link, idx) => {
+                const displayNumber = idx + 1;
+                return `
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; background: linear-gradient(135deg, #58a6ff 0%, #4a8fe7 100%); color: white; font-weight: 700; border-radius: 4px; font-size: 10px; padding: 0 6px;">L${displayNumber}</span>
+                        <i class="fas fa-external-link-alt" style="color: var(--accent-primary);"></i>
+                        <a href="${this.escapeHtml(link.url)}" target="_blank" 
+                            style="flex: 1; color: var(--accent-primary); text-decoration: none;"
+                            onclick="event.stopPropagation();">
+                            ${this.escapeHtml(link.title)}
+                        </a>
+                        <span style="font-size: 11px; color: var(--text-muted);">${link.type || 'external'}</span>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            html += '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No links added</div>';
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    renderNextSteps(nextSteps, sessionId, completedSteps, totalSteps) {
+        let html = `
+            <div class="synergy-card-section" style="margin-bottom: 16px;">
+                <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-tasks"></i>
+                    Next Steps ${nextSteps.length > 0 ? `(${completedSteps}/${totalSteps})` : ''}
+                </div>
+                <div style="font-size: 13px;">
+        `;
+
+        if (nextSteps.length > 0) {
+            html += nextSteps.map((step, idx) => {
+                const displayNumber = idx + 1;
+                return `
+                    <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; background: linear-gradient(135deg, #58a6ff 0%, #4a8fe7 100%); color: white; font-weight: 700; border-radius: 4px; font-size: 10px; padding: 0 6px;">N${displayNumber}</span>
+                        <input type="checkbox" 
+                            ${step.completed ? 'checked' : ''}
+                            onchange="event.stopPropagation(); window.synergyBoard.toggleStep('${sessionId}', ${idx});"
+                            style="margin-top: 3px; cursor: pointer;">
+                        <span style="flex: 1; ${step.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
+                            ${this.escapeHtml(step.description)}
+                        </span>
+                        ${step.due_date ? `<span style="font-size: 11px; color: var(--text-muted);"><i class="fas fa-calendar"></i> ${new Date(step.due_date).toLocaleDateString()}</span>` : ''}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            html += '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No next steps added</div>';
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    renderChecklist(checklist, sessionId, completedChecklist, totalChecklist) {
+        let html = `
+            <div class="synergy-card-section" style="margin-bottom: 16px;">
+                <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-check-square"></i>
+                    Checklist ${checklist.length > 0 ? `(${completedChecklist}/${totalChecklist})` : ''}
+                </div>
+                <div style="font-size: 13px;">
+        `;
+
+        if (checklist.length > 0) {
+            html += checklist.map((item, idx) => {
+                const displayNumber = idx + 1;
+                const taskText = item.task || item.item || item.text;
+                const subtasks = item.subtasks || [];
+
+                let itemHtml = `
+                    <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px; margin-bottom: 4px; background: var(--bg-quaternary); border-radius: 4px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; background: linear-gradient(135deg, #58a6ff 0%, #4a8fe7 100%); color: white; font-weight: 700; border-radius: 4px; font-size: 10px; padding: 0 6px;">C${displayNumber}</span>
+                        <input type="checkbox" 
+                            ${item.completed ? 'checked' : ''}
+                            onchange="event.stopPropagation(); window.synergyBoard.toggleChecklistItem('${sessionId}', ${idx});"
+                            style="margin-top: 3px; cursor: pointer;">
+                        <span style="flex: 1; ${item.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
+                            ${this.escapeHtml(taskText)}
+                        </span>
+                    </div>
+                `;
+
+                if (subtasks.length > 0) {
+                    itemHtml += '<div style="margin-left: 32px; margin-top: 4px;">';
+                    itemHtml += subtasks.map((subtask, subIdx) => {
+                        const subDisplayNumber = `${displayNumber}.${subIdx + 1}`;
+                        const subtaskText = subtask.task || subtask.item || subtask.text;
+                        return `
+                            <div style="display: flex; align-items: flex-start; gap: 6px; padding: 6px 8px; margin-bottom: 2px; background: var(--bg-secondary); border-radius: 4px; font-size: 11px;">
+                                <span style="display: inline-block; min-width: 36px; padding: 2px 6px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 9px; color: #666; text-align: center; font-weight: 600;">C${subDisplayNumber}</span>
+                                <input type="checkbox" 
+                                    ${subtask.completed ? 'checked' : ''}
+                                    onchange="event.stopPropagation(); window.synergyBoard.toggleChecklistSubtask('${sessionId}', ${idx}, ${subIdx});"
+                                    style="margin-top: 2px; cursor: pointer;">
+                                <span style="flex: 1; ${subtask.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
+                                    ${this.escapeHtml(subtaskText)}
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+                    itemHtml += '</div>';
+                }
+
+                return itemHtml;
+            }).join('');
+        } else {
+            html += '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No checklist items added</div>';
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    renderLinkedThreads(session) {
+        const threadIds = this.parseJsonField(session.thread_ids, []);
+        let html = `
+            <div class="synergy-card-section" style="margin-bottom: 16px;" id="sidebar-threads-section-${session.session_id}">
+                <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-comments"></i>
+                    Linked Threads ${threadIds.length > 0 ? `(${threadIds.length})` : ''}
+                </div>
+                <div class="sidebar-thread-list-loading" style="font-size: 13px;">
+                    ${threadIds.length > 0 ? '<i class="fas fa-spinner fa-spin"></i> Loading linked threads...' : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No linked threads</div>'}
+                </div>
+            </div>
+        `;
+
+        // Load thread info cards asynchronously
+        if (threadIds.length > 0 && window.synergyBoard) {
+            setTimeout(() => {
+                const threadsSection = document.getElementById(`sidebar-threads-section-${session.session_id}`);
+                const loadingDiv = threadsSection ? threadsSection.querySelector('.sidebar-thread-list-loading') : null;
+
+                if (threadsSection && loadingDiv) {
+                    window.synergyBoard.renderLinkedThreads(threadIds).then(threadsHTML => {
+                        if (loadingDiv) {
+                            loadingDiv.outerHTML = threadsHTML;
+                        }
+                    }).catch(err => {
+                        console.warn('[SYNERGY CARD] Failed to load linked threads', err);
+                        if (loadingDiv) {
+                            loadingDiv.innerHTML = '<div style="opacity: 0.6; font-style: italic; padding: 8px;"><i class="fas fa-exclamation-circle"></i> Failed to load threads</div>';
+                        }
+                    });
+                }
+            }, 100);
+        }
+
+        return html;
+    }
+
+    renderNotes(notes) {
+        return `
+            <div class="synergy-card-section" style="margin-bottom: 16px;">
+                <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-sticky-note"></i>
+                    Notes
+                </div>
+                <div style="font-size: 13px;">
+                    ${notes ? `<div style="padding: 8px;">${this.escapeHtml(notes)}</div>` : '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No notes added</div>'}
+                </div>
+            </div>
+        `;
+    }
+
+    renderActivityLog(session) {
+        const recentActivity = this.parseJsonField(session.recent_activity, []);
+        let html = `
+            <div class="synergy-card-section" style="margin-bottom: 16px;">
+                <div class="synergy-card-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-history"></i>
+                    Activity Log
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+        `;
+
+        if (recentActivity.length > 0) {
+            html += recentActivity.slice(0, 5).map(activity => `
+                <div style="padding: 6px 0; border-bottom: 1px solid var(--border-muted);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>${this.escapeHtml(activity.action || activity.description || 'Activity')}</span>
+                        <span style="font-size: 10px; color: var(--text-muted);">${activity.timestamp ? new Date(activity.timestamp).toLocaleString() : ''}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            if (recentActivity.length > 5) {
+                html += `<div style="text-align: center; padding: 8px; color: var(--text-muted); font-size: 11px;">...and ${recentActivity.length - 5} more activities</div>`;
+            }
+        } else {
+            html += '<div style="opacity: 0.6; font-style: italic; padding: 8px;">No activity yet</div>';
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    renderTags(tags) {
+        return `
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; padding-top: 8px; border-top: 1px solid var(--border-muted);">
+                ${tags.map(tag => `
+                    <span style="background: var(--accent-primary); color: white; padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-tag" style="font-size: 8px;"></i> ${this.escapeHtml(tag)}
+                    </span>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    renderPopupButton(sessionId) {
+        return `
+            <button class="synergy-expand-btn" onclick="event.stopPropagation(); SynergySidebar.openInPopup('${sessionId}'); return false;"
+                style="width: 100%; margin-top: 16px; padding: 10px; background: var(--bg-quaternary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+                <i class="fas fa-external-link-alt"></i>
+                Open in Popup Window
+            </button>
+        `;
+    }
+}
+
+// Export for use in main HTML
+if (typeof window !== 'undefined') {
+    window.SynergyCardRenderer = SynergyCardRenderer;
+}

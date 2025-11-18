@@ -131,10 +131,6 @@
     <!-- Action handlers for thread operations (Phase 4: Action Handler Extraction) -->
     <script src="external/modules/thread-cards/thread-card-actions.js"></script>
 
-    <!-- ==================== SYNERGY CARD RENDERER MODULE ==================== -->
-    <!-- Renders Synergy session cards in sidebar and dashboard views -->
-    <script src="external/modules/synergy-card-renderer.js"></script>
-
     <style>
         /* ==================== ROOT VARIABLES ==================== */
         :root {
@@ -15034,7 +15030,6 @@
             currentView: 'list',
             currentFilter: 'all',
             searchQuery: '',
-            cardRenderer: null, // Will be initialized with SynergyCardRenderer module
 
             async toggleSidebar() {
                 console.log('🔷 [SYNERGY SIDEBAR] Toggle clicked');
@@ -15146,35 +15141,69 @@
             },
 
             createSessionItem(session, showCollapsed = false) {
-                // Initialize renderer if not already done
-                if (!this.cardRenderer) {
-                    this.cardRenderer = new SynergyCardRenderer();
+                const item = document.createElement('div');
+                item.className = 'synergy-session-item';
+                if (this.expandedSessions.has(session.session_id)) {
+                    item.classList.add('expanded');
                 }
+                item.dataset.sessionId = session.session_id;
 
-                // Use external module to create session item
-                return this.cardRenderer.createSessionItem(session, this.expandedSessions, this.pinnedSessions);
+                const priorityColors = {
+                    'critical': '#dc2626',
+                    'high': '#ef4444',
+                    'medium': '#fbbf24',
+                    'low': '#22c55e'
+                };
+
+                const isPinned = this.pinnedSessions.has(session.session_id);
+                const isExpanded = this.expandedSessions.has(session.session_id);
+
+                item.innerHTML = `
+                    <div class="synergy-item-header" onclick="SynergySidebar.toggleExpand(event, '${session.session_id}')">
+                        <div class="synergy-item-chevron">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div class="synergy-item-info">
+                            <div class="synergy-item-title">${this.escapeHtml(session.title)}</div>
+                            <div class="synergy-item-meta">
+                                <span class="card-status" style="background: var(--bg-quaternary); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                                    ${session.status}
+                                </span>
+                                <span class="card-time" style="opacity: 0.7; font-size: 10px;">
+                                    <i class="fas fa-clock"></i> ${new Date(session.updated_at).toLocaleDateString()}
+                                </span>
+                                <span class="card-meta" style="color: ${priorityColors[session.priority]}; font-weight: 600; font-size: 10px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-circle" style="font-size: 6px;"></i> ${session.priority}
+                                </span>
+                                <span class="card-stats" style="display: flex; gap: 8px; font-size: 10px; opacity: 0.8;">
+                                    <span><i class="fas fa-comments"></i> ${session.message_count || 0}</span>
+                                    <span><i class="fas fa-file"></i> ${this.parseJsonField(session.documents, []).length}</span>
+                                    <span><i class="fas fa-tasks"></i> ${this.parseJsonField(session.next_steps, []).filter(s => s && s.completed).length}/${this.parseJsonField(session.next_steps, []).length}</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="synergy-item-actions">
+                            <button class="synergy-item-btn pin ${isPinned ? 'pinned' : ''}" 
+                                onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')" 
+                                title="${isPinned ? 'Unpin' : 'Pin'} session">
+                                <i class="fas fa-thumbtack"></i>
+                            </button>
+                            <button class="synergy-item-btn popout" 
+                                onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}'); return false;" 
+                                title="Pop out">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="synergy-card-collapsed">
+                        ${this.renderCollapsedCard(session)}
+                    </div>
+                `;
+
+                return item;
             },
 
             renderCollapsedCard(session) {
-                // Initialize renderer if not already done
-                if (!this.cardRenderer) {
-                    this.cardRenderer = new SynergyCardRenderer();
-                }
-
-                // Use external module to render card
-                return this.cardRenderer.renderCollapsedCard(session);
-            },
-
-            // DEPRECATED - Kept for backward compatibility, now delegates to module
-            parseJsonField(field, fallback = []) {
-                if (!this.cardRenderer) {
-                    this.cardRenderer = new SynergyCardRenderer();
-                }
-                return this.cardRenderer.parseJsonField(field, fallback);
-            },
-
-            // Legacy code below (for reference - will be removed after testing)
-            _oldRenderCollapsedCard_DEPRECATED(session) {
                 const priorityColors = {
                     'critical': '#dc2626',
                     'high': '#ef4444',
@@ -19347,11 +19376,7 @@
                     }
                 }
 
-                // CRITICAL FIX: Use thread_slug for stream isolation
-                const currentThread = ThreadManager.getThreadByAgent(getAgentName(agentId));
-                const threadSlug = currentThread ? currentThread.id : sessionId;
-                const streamUrl = `${API_BASE_URL}/api/agent/stream/${agentId}?thread_slug=${threadSlug}${promptParams}`;
-                console.log(`[Stream] Connecting with thread_slug: ${threadSlug}`);
+                const streamUrl = `${API_BASE_URL}/api/agent/stream/${agentId}?session_id=${sessionId}${promptParams}`;
                 const response = await fetch(streamUrl);
 
                 if (!response.ok) {
@@ -22315,10 +22340,6 @@
                     );
                 }
 
-                // CRITICAL: Always sync session_id with thread.id when loading thread
-                this.sessions[agentId] = thread.id;  // ✅ Use thread_slug as session_id
-                console.log(`[LOAD] Agent ${agentId} session_id synced to thread_slug: ${thread.id}`);
-                
                 // Assign thread to this agent in backend ONLY if location changed
                 // During restoration, skip this call (thread.location already correct from database)
                 const expectedLocation = `agent-${agentId}`;
@@ -23635,24 +23656,17 @@
             const startTime = Date.now();
 
             try {
-                // 🔧 CRITICAL THREAD ISOLATION FIX (Nov 19, 2025):
+                // 🔧 CRITICAL THREAD ISOLATION FIX (Nov 18, 2025):
                 // Get current thread for this agent FIRST
                 const currentThread = ThreadManager.getThreadByAgent(getAgentName(agentId));
-                
-                if (!currentThread) {
-                    console.error(`[sendAgentMessage] No thread loaded for agent ${agentId}`);
-                    updateAgentStatus(agentId, 'error', 'No thread loaded');
-                    sendBtn.disabled = false;
-                    return;
-                }
 
-                // CRITICAL FIX: Use thread.id (which is thread_slug) as BOTH session_id and thread_slug
-                const threadSlug = currentThread.id;
-                const sessionId = threadSlug;  // ✅ FORCE SYNC!
+                // ALWAYS use thread.id as session_id for proper isolation
+                // This ensures messages stay in the correct thread
+                const sessionId = currentThread ? currentThread.id : Date.now().toString();
 
                 // Update MultiAgent.sessions to match thread (maintain sync)
                 if (!MultiAgent.sessions[agentId] || MultiAgent.sessions[agentId] !== sessionId) {
-                    console.log(`[Agent ${getAgentName(agentId)}] 🔧 Syncing session_id with thread_slug: ${sessionId}`);
+                    console.log(`[Agent ${getAgentName(agentId)}] 🔧 Syncing session_id with thread_id: ${sessionId}`);
                     MultiAgent.sessions[agentId] = sessionId;
                 }
 
@@ -23684,8 +23698,6 @@
                 })) : [];
 
                 console.log(`[Agent ${getAgentName(agentId)}] Thread loaded:`, currentThread ? currentThread.title : 'New thread');
-                console.log(`[Agent ${getAgentName(agentId)}] Thread slug: ${threadSlug}`);
-                console.log(`[Agent ${getAgentName(agentId)}] Session ID: ${sessionId} (${sessionId === threadSlug ? '✅ SYNCED' : '❌ MISMATCH!'})`);
                 console.log(`[Agent ${getAgentName(agentId)}] History: ${conversationHistory.length} messages (thinking blocks filtered out)`);
 
                 // Prepare request based on whether files are attached
@@ -23699,7 +23711,6 @@
                     const formData = new FormData();
                     formData.append('message', message);
                     formData.append('session_id', sessionId);
-                    formData.append('thread_slug', threadSlug);  // ✅ CRITICAL: Add thread_slug
                     formData.append('agent_name', getAgentName(agentId));
                     formData.append('conversation_history', JSON.stringify(conversationHistory));
                     formData.append('thread_id', currentThread ? currentThread.id : '');
@@ -23739,7 +23750,6 @@
                     const payload = {
                         message: message,
                         session_id: sessionId,
-                        thread_slug: threadSlug,  // ✅ CRITICAL: Add thread_slug
                         agent_name: getAgentName(agentId),
                         conversation_history: conversationHistory,
                         thread_id: currentThread ? currentThread.id : null,
@@ -28319,13 +28329,10 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         this.threads = threads.map(thread => {
                             // Backend returns 'location' field (agent-1, agent-2, etc.)
                             const location = thread.location || thread.agent || 'prime';
-                            // CRITICAL: Backend uses 'name' field, not 'title' (see sessions.threads schema)
-                            const threadTitle = thread.name || thread.title || 'Untitled Thread';
                             return {
                                 id: thread.id || thread.thread_slug,  // Use thread_slug (e.g., 1762614784052)
                                 thread_id: thread.thread_id,  // Database ID (e.g., 1)
-                                title: threadTitle,  // Map 'name' field to 'title' for frontend consistency
-                                name: threadTitle,   // Keep 'name' for backward compatibility
+                                title: thread.title || thread.name || 'Untitled Thread',
                                 messages: thread.messages || [],  // Messages array (empty, loaded separately)
                                 message_count: thread.message_count || 0,  // Message count from database
                                 created: thread.created || thread.created_at || new Date().toISOString(),
@@ -29745,22 +29752,20 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         // Get synergy metadata from cache
                         const synergyMeta = thread.synergy_card_id ? cache[thread.synergy_card_id] : null;
 
-                        // Generate card HTML using template (if available)
-                        if (typeof ThreadCardTemplates !== 'undefined' && ThreadCardTemplates.compactCard) {
-                            const cardHtml = ThreadCardTemplates.compactCard(thread, 'thread-history', agent, meta, slug, synergyMeta, currentLocation);
+                        // Generate card HTML using template (pass currentLocation for action buttons)
+                        const cardHtml = ThreadCardTemplates.compactCard(thread, 'thread-history', agent, meta, slug, synergyMeta, currentLocation);
 
-                            // Wrap in thread-item container with drag-and-drop and click handlers
-                            return `<div class="thread-item ${thread.id === this.currentThreadId ? 'active' : ''}"
-                                        draggable="true"
-                                        data-thread-id="${thread.id}"
-                                        data-synergy-id="${thread.synergy_card_id || ''}"
-                                        data-current-location="${currentLocation}"
-                                        ondragstart="ThreadManager.handleDragStart(event)"
-                                        ondragend="ThreadManager.handleDragEnd(event)"
-                                        ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${currentLocation}')">
-                                        ${cardHtml}
-                                    </div>`;
-                        }
+                        // Wrap in thread-item container with drag-and-drop and click handlers
+                        return `<div class="thread-item ${thread.id === this.currentThreadId ? 'active' : ''}"
+                                    draggable="true"
+                                    data-thread-id="${thread.id}"
+                                    data-synergy-id="${thread.synergy_card_id || ''}"
+                                    data-current-location="${currentLocation}"
+                                    ondragstart="ThreadManager.handleDragStart(event)"
+                                    ondragend="ThreadManager.handleDragEnd(event)"
+                                    ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${currentLocation}')">
+                                    ${cardHtml}
+                                </div>`;
                     }
 
                     // FALLBACK: Legacy inline HTML (if ThreadCardTemplates not loaded)
@@ -33491,16 +33496,24 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
         // Logout handler
         function handleLogout() {
-            UIComponents.showConfirmation({
-                title: 'Logout?',
-                message: 'Are you sure you want to logout?',
-                variant: 'warning',
-                confirmLabel: 'Logout',
-                cancelLabel: 'Stay Logged In',
-                onConfirm: () => {
+            // Try UIComponents first
+            if (window.UIComponents && typeof UIComponents.showConfirmation === 'function') {
+                UIComponents.showConfirmation({
+                    title: 'Logout?',
+                    message: 'Are you sure you want to logout?',
+                    variant: 'warning',
+                    confirmLabel: 'Logout',
+                    cancelLabel: 'Stay Logged In',
+                    onConfirm: () => {
+                        UserAuth.logout();
+                    }
+                });
+            } else {
+                // Fallback to native confirm if UIComponents not available
+                if (confirm('Logout?\n\nAre you sure you want to logout?')) {
                     UserAuth.logout();
                 }
-            });
+            }
         }
 
         // ==================== USER PROFILE DROPDOWN ====================
@@ -44634,11 +44647,7 @@ AND tablename = 'synergy_sessions';`;
         async function handleUniversalStream(agentId, sessionId, containerId) {
             console.log(`🌍Š [Universal Stream] Starting for agent ${agentId}, container: ${containerId}`);
 
-            // CRITICAL FIX: Use thread_slug for stream isolation
-            const currentThread = ThreadManager.getThreadByAgent(agentId === 1 || agentId === '1' ? 'prime' : `Agent ${agentId}`);
-            const threadSlug = currentThread ? currentThread.id : sessionId;
-            const streamUrl = `${API_BASE_URL}/api/agent/stream/${agentId}?thread_slug=${threadSlug}`;
-            console.log(`[Universal Stream] Connecting with thread_slug: ${threadSlug}`);
+            const streamUrl = `${API_BASE_URL}/api/agent/stream/${agentId}?session_id=${sessionId}`;
             const response = await fetch(streamUrl);
 
             if (!response.ok) {
