@@ -458,30 +458,49 @@ def extract_user_from_token():
 @agent_bp.route('/agent/<agent_id>/start', methods=['POST'])
 def start_agent(agent_id):
     """Universal agent start endpoint"""
+    print(f"\n{'='*80}")
+    print(f"[START] Agent {agent_id} - Request received")
+    print(f"{'='*80}")
+    
     try:
+        # Log request details
+        print(f"[START] Content-Type: {request.content_type}")
+        print(f"[START] Method: {request.method}")
+        
         is_form_data = request.content_type and 'multipart/form-data' in request.content_type
         
         if is_form_data:
+            print(f"[START] Processing as multipart/form-data")
             data = request.form  # Set data to form for consistent access
             session_id = request.form.get('session_id')
             prompt = request.form.get('message', '')
             thread_id = request.form.get('thread_id') or session_id  # Extract thread_id from form
             files = request.files.getlist('files')
+            print(f"[START] Form fields: {list(request.form.keys())}")
+            print(f"[START] Files uploaded: {len(files)}")
             if not files:
                 return error_response("No files uploaded", 400)
             try:
                 content_blocks = process_file_uploads(files)
             except FileValidationError as e:
+                print(f"[START ERROR] File validation failed: {e}")
                 return error_response(str(e), 400)
             file_data = content_blocks
         else:
+            print(f"[START] Processing as JSON")
             data = request.json or {}
             session_id = data.get('session_id')
             prompt = data.get('message', '')
             thread_id = data.get('thread_id') or session_id  # Extract thread_id from JSON
             file_data = None
+            print(f"[START] JSON keys: {list(data.keys())}")
+        
+        print(f"[START] session_id: {session_id}")
+        print(f"[START] thread_id: {thread_id}")
+        print(f"[START] prompt length: {len(prompt)} chars")
         
         if not prompt:
+            print(f"[START ERROR] No message provided")
             return error_response("Missing 'message' in request", 400)
         
         # Create session if not provided
@@ -508,16 +527,22 @@ def start_agent(agent_id):
         
         # CRITICAL FIX: Read conversation_history from frontend request
         # Frontend sends full conversation history in data.conversation_history
+        # NOTE: Empty history is NORMAL for first message from user
         if is_form_data:
             # For form data, conversation_history might be a JSON string
             conv_history_str = request.form.get('conversation_history', '[]')
             try:
                 conversation_history = json.loads(conv_history_str) if isinstance(conv_history_str, str) else []
-            except:
+            except Exception as parse_error:
+                print(f"[START WARNING] Failed to parse conversation_history: {parse_error}")
                 conversation_history = []
         else:
             conversation_history = data.get('conversation_history', [])
-        print(f"[START] Received {len(conversation_history)} messages in conversation_history from frontend")
+        
+        if len(conversation_history) == 0:
+            print(f"[START] No conversation history (first message from user)")
+        else:
+            print(f"[START] Received {len(conversation_history)} messages in conversation_history")
         
         # CRITICAL: Prune conversation IMMEDIATELY if it's too large
         # This prevents re-sending 231K+ tokens that already exceeded the limit
@@ -555,15 +580,23 @@ def start_agent(agent_id):
         print(f"[START] Full state dict keys: {list(state.keys())}")
         print(f"[START] Conversation in state: {len(state.get('conversation', []))} messages")
         
+        print(f"[START] Getting agent resources...")
         lock = agent_state_manager.get_lock(agent_id, thread_id)
+        print(f"[START] Lock acquired: {lock}")
         queue = agent_state_manager.get_queue(agent_id, thread_id)
+        print(f"[START] Queue acquired: {queue}")
         agent_state_manager.update_status(agent_id, thread_id, 'processing')
+        print(f"[START] Status updated to 'processing'")
         
         # Acquire lock before starting worker (worker will release it when done)
+        print(f"[START] Acquiring lock for worker thread...")
         lock.acquire()
+        print(f"[START] Lock acquired successfully")
         
+        print(f"[START] Initializing AI client...")
         ai_client = current_app.config.get('AI_CLIENT')
         if ai_client is None:
+            print(f"[START] AI client not in config, initializing...")
             from core.unified_ai_client import initialize_ai_client
             import sys
             from pathlib import Path
@@ -571,27 +604,44 @@ def start_agent(agent_id):
             from config import Config
             ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
             current_app.config['AI_CLIENT'] = ai_client
+            print(f"[START] AI client initialized and cached")
+        else:
+            print(f"[START] Using cached AI client")
         
         # Get user_id from middleware (g.user_id) for OAuth credential injection
         user_id = g.get('user_id', 1)
         print(f"[START] User ID for credential injection: {user_id}")
         
         if file_data:
-            print(f"[START] Starting file agent worker for agent {agent_id}, session {session_id[:8]}, thread {thread_id}")
+            print(f"[START] Starting file agent worker thread...")
+            print(f"[START]   - Agent: {agent_id}")
+            print(f"[START]   - Session: {session_id[:16]}...")
+            print(f"[START]   - Thread: {thread_id}")
+            print(f"[START]   - Files: {len(file_data)}")
             threading.Thread(
                 target=run_agent_worker,
                 args=(agent_id, prompt, file_data, lock, session_id, queue, state['conversation'], state['context'], user_id, thread_id),
                 daemon=True
             ).start()
+            print(f"[START] File agent worker thread started")
         else:
-            print(f"[START] Starting simple agent worker for agent {agent_id}, session {session_id[:8]}, thread {thread_id}")
-            print(f"[START] Worker args: agent_id={agent_id}, prompt='{prompt[:50]}...', ai_client={ai_client is not None}, user_id={user_id}, thread_id={thread_id}")
+            print(f"[START] Starting simple agent worker thread...")
+            print(f"[START]   - Agent: {agent_id}")
+            print(f"[START]   - Session: {session_id[:16]}...")
+            print(f"[START]   - Thread: {thread_id}")
+            print(f"[START]   - Prompt: '{prompt[:50]}...'")
+            print(f"[START]   - AI Client: {'initialized' if ai_client else 'None'}")
+            print(f"[START]   - User ID: {user_id}")
+            print(f"[START]   - Conversation size: {len(state['conversation'])} messages")
             threading.Thread(
                 target=run_simple_agent_worker,
                 args=(agent_id, prompt, lock, session_id, queue, state['conversation'], ai_client, user_id, thread_id),
                 daemon=True
             ).start()
-            print(f"[START] Thread started successfully")
+            print(f"[START] Simple agent worker thread started")
+        
+        print(f"[START] Returning success response")
+        print(f"{'='*80}\n")
         
         return success_response({
             'session_id': session_id,
@@ -601,6 +651,34 @@ def start_agent(agent_id):
         })
     
     except Exception as e:
+        import traceback
+        import sys
+        error_details = traceback.format_exc()
+        
+        print(f"\n{'='*80}")
+        print(f"❌ [AGENT START ERROR] Unhandled exception in start_agent()")
+        print(f"{'='*80}")
+        print(f"Agent ID: {agent_id}")
+        print(f"Error Type: {type(e).__name__}")
+        print(f"Error Message: {str(e)}")
+        print(f"Error Args: {e.args}")
+        
+        # Try to extract local variables from the exception context
+        try:
+            print(f"\nLocal variables at error:")
+            print(f"  - session_id: {locals().get('session_id', 'N/A')}")
+            print(f"  - thread_id: {locals().get('thread_id', 'N/A')}")
+            print(f"  - prompt length: {len(locals().get('prompt', '')) if 'prompt' in locals() else 'N/A'}")
+            print(f"  - is_form_data: {locals().get('is_form_data', 'N/A')}")
+            print(f"  - file_data: {bool(locals().get('file_data', False))}")
+            print(f"  - conversation_history length: {len(locals().get('conversation_history', [])) if 'conversation_history' in locals() else 'N/A'}")
+        except Exception as local_error:
+            print(f"  Could not extract local variables: {local_error}")
+        
+        print(f"\nFull Traceback:")
+        print(error_details)
+        print(f"{'='*80}\n")
+        
         return error_response(f"Agent start failed: {str(e)}", 500)
 
 
