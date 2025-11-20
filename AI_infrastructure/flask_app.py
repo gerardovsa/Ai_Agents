@@ -34,12 +34,17 @@ import json
 from queue import Queue, Empty
 import threading
 
-# Load environment variables from .env.master file (local development only)
+# Load environment variables from .env or .env.master file (local development only)
 from dotenv import load_dotenv
-env_file_path = os.path.join(os.path.dirname(__file__), '..', '.env.master')
-if os.path.exists(env_file_path):
-    load_dotenv(env_file_path)
+env_master_path = os.path.join(os.path.dirname(__file__), '..', '.env.master')
+env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+
+if os.path.exists(env_master_path):
+    load_dotenv(env_master_path)
     log_config(logger, "Loaded .env.master file (local development)")
+elif os.path.exists(env_path):
+    load_dotenv(env_path)
+    log_config(logger, "Loaded .env file (local development)")
 else:
     log_config(logger, "Using environment variables from system (production/Render)")
 
@@ -51,6 +56,8 @@ log_config(logger, f"OPENAI_API_KEY: {'SET' if os.getenv('OPENAI_API_KEY') else 
 log_config(logger, f"DEEPSEEK_API_KEY_1: {'SET' if os.getenv('DEEPSEEK_API_KEY_1') else 'NOT SET'}")
 log_config(logger, f"MICROSOFT_CLIENT_ID: {'SET' if os.getenv('MICROSOFT_CLIENT_ID') else 'NOT SET'}")
 log_config(logger, f"MICROSOFT_CLIENT_SECRET: {'SET' if os.getenv('MICROSOFT_CLIENT_SECRET') else 'NOT SET'}")
+log_config(logger, f"SUPABASE_URL: {'SET' if os.getenv('SUPABASE_URL') else 'NOT SET'}")
+log_config(logger, f"SUPABASE_KEY: {'SET' if os.getenv('SUPABASE_KEY') else 'NOT SET'}")
 
 # Stock Management - ENABLED (Supabase + local fallback)
 from AI_infrastructure.utils.db_path_helper import get_stock_db_path
@@ -410,15 +417,34 @@ def ws_synergy_connect(auth=None):
         traceback.print_exc()
 
 @socketio.on('disconnect', namespace='/ws/synergy')
-def ws_synergy_disconnect():
-    """Handle client disconnection"""
-    from flask import request as flask_request
+def ws_synergy_disconnect(sid=None):
+    """
+    Handle client disconnection from /ws/synergy namespace
     
-    client_id = flask_request.sid
-    if client_id in connected_clients:
-        del connected_clients[client_id]
+    Args:
+        sid: Session ID passed by Flask-SocketIO (optional, fallback to request.sid)
     
-    print(f'[WS] Client disconnected from /ws/synergy: {client_id}')
+    Note: Flask-SocketIO automatically passes the session ID to disconnect handlers.
+    This works identically on local Windows and Render Linux deployments with Supabase.
+    """
+    try:
+        from flask import request as flask_request
+        
+        # Use passed sid parameter (Flask-SocketIO provides this)
+        # Fallback to flask_request.sid for backward compatibility
+        client_id = sid or flask_request.sid
+        
+        if client_id in connected_clients:
+            del connected_clients[client_id]
+            log_config(logger, f"Client disconnected from /ws/synergy: {client_id}")
+        else:
+            log_warning(logger, f"Client disconnect event for unknown client: {client_id}")
+    
+    except Exception as e:
+        # Prevent exceptions from breaking WebSocket connection handling
+        log_error(logger, f"Error in ws_synergy_disconnect: {e}")
+        import traceback
+        traceback.print_exc()
 
 @socketio.on('subscribe', namespace='/ws/synergy')
 def ws_synergy_subscribe(data):

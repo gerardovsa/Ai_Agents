@@ -314,26 +314,35 @@ This means:
 
     /**
      * Enhance ThreadManager.loadThreadsFromBackend to include workflow fields
+     * NOTE: As of Nov 2025, workflow fields are now included directly in loadThreadsFromBackend
+     * This enhancement is kept for backward compatibility but may not be needed
      */
-    if (window.ThreadManager) {
+    if (window.ThreadManager && typeof window.ThreadManager.loadThreadsFromBackend === 'function') {
         const originalLoadThreadsFromBackend = window.ThreadManager.loadThreadsFromBackend;
 
-        window.ThreadManager.loadThreadsFromBackend = async function () {
-            const result = await originalLoadThreadsFromBackend.call(this);
+        // Only enhance if the original method exists
+        if (originalLoadThreadsFromBackend) {
+            window.ThreadManager.loadThreadsFromBackend = async function () {
+                const result = await originalLoadThreadsFromBackend.call(this);
 
-            // Add workflow and document fields to loaded threads
-            this.threads = this.threads.map(thread => ({
-                ...thread,
-                workflow_slug: thread.workflow_slug || null,
-                workflow_title: thread.workflow_title || null,
-                internal_doc_slug: thread.internal_doc_slug || null,
-                internal_doc_title: thread.internal_doc_title || null
-            }));
+                // Add workflow and document fields to loaded threads (if not already present)
+                this.threads = this.threads.map(thread => ({
+                    ...thread,
+                    workflow_slug: thread.workflow_slug || null,
+                    workflow_title: thread.workflow_title || null,
+                    internal_doc_slug: thread.internal_doc_slug || null,
+                    internal_doc_title: thread.internal_doc_title || null
+                }));
 
-            return result;
-        };
+                return result;
+            };
 
-        console.log('✅ [WORKFLOW] ThreadManager.loadThreadsFromBackend enhanced');
+            console.log('✅ [WORKFLOW] ThreadManager.loadThreadsFromBackend enhanced');
+        } else {
+            console.log('ℹ️ [WORKFLOW] ThreadManager.loadThreadsFromBackend already includes workflow fields');
+        }
+    } else {
+        console.warn('⚠️ [WORKFLOW] ThreadManager.loadThreadsFromBackend not available yet - workflow fields included in base implementation');
     }
 
     // ============================================================

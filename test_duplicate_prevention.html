@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duplicate Prevention Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button.success {
+            background: #27ae60;
+        }
+
+        button.success:hover {
+            background: #229954;
+        }
+
+        .log {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .result.pass {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .result.fail {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+        .result.info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Duplicate Prevention Test Suite</h1>
+    <p>Tests the quick fix applied to <code>ThreadManager.addMessageToThread()</code></p>
+
+    <div class="test-section">
+        <h2>Quick Tests</h2>
+        <button onclick="runTest1()">Test 1: Basic Duplicate Prevention</button>
+        <button onclick="runTest2()">Test 2: String vs Array Content</button>
+        <button onclick="runTest3()">Test 3: Duplicate Text Blocks</button>
+        <button onclick="runTest4()">Test 4: Different Roles</button>
+        <button onclick="runAllTests()" class="success">Run All Tests</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Output</h2>
+        <div id="console" class="log"></div>
+    </div>
+
+    <script>
+        // Mock ThreadManager with the new duplicate prevention logic
+        const ThreadManager = {
+            threads: [],
+            currentThreadId: null,
+
+            createThread(title = 'Test Thread') {
+                const id = `thread_${Date.now()}`;
+                this.threads.push({
+                    id: id,
+                    title: title,
+                    messages: [],
+                    created: new Date().toISOString(),
+                    updated: new Date().toISOString()
+                });
+                this.currentThreadId = id;
+                return id;
+            },
+
+            // NEW: Duplicate prevention logic (from quick fix)
+            addMessageToThread(message, threadId = null) {
+                const targetThreadId = threadId || this.currentThreadId;
+                const thread = this.threads.find(t => t.id === targetThreadId);
+
+                if (thread) {
+                    if (!thread.messages) {
+                        thread.messages = [];
+                    }
+
+                    // QUICK FIX (Nov 20, 2025): Prevent duplicate messages
+                    const isDuplicate = thread.messages.some(existing => {
+                        // Compare role
+                        if (existing.role !== message.role) return false;
+
+                        // Compare content (normalize both to JSON for comparison)
+                        const normalizeContent = (content) => {
+                            if (typeof content === 'string') {
+                                return JSON.stringify([{ type: 'text', text: content }]);
+                            }
+                            if (Array.isArray(content)) {
+                                // Deduplicate text blocks before comparison
+                                const seen = new Set();
+                                const deduped = content.filter(block => {
+                                    if (block.type === 'text') {
+                                        const text = block.text || block.content || '';
+                                        if (seen.has(text)) return false;
+                                        seen.add(text);
+                                        return true;
+                                    }
+                                    return true;
+                                });
+                                return JSON.stringify(deduped);
+                            }
+                            return JSON.stringify(content);
+                        };
+
+                        const existingContent = normalizeContent(existing.content);
+                        const newContent = normalizeContent(message.content);
+
+                        return existingContent === newContent;
+                    });
+
+                    if (isDuplicate) {
+                        log(`[DUPLICATE PREVENTED] Message already exists in thread ${targetThreadId}`, {
+                            role: message.role,
+                            contentPreview: typeof message.content === 'string'
+                                ? message.content.substring(0, 50)
+                                : JSON.stringify(message.content).substring(0, 50)
+                        });
+                        return false;
+                    }
+
+                    thread.messages.push(message);
+                    thread.updated = new Date().toISOString();
+                    thread.message_count = thread.messages.length;
+
+                    log(`[OK] [addMessageToThread] Added message to thread ${targetThreadId}, count: ${thread.message_count}`);
+                    return true;
+                }
+
+                log(`[WARN] [addMessageToThread] Thread ${targetThreadId} not found`);
+                return false;
+            }
+        };
+
+        // Logging
+        function log(message, data = null) {
+            const consoleDiv = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            let text = `[${timestamp}] ${message}`;
+            if (data) {
+                text += '\n' + JSON.stringify(data, null, 2);
+            }
+            consoleDiv.textContent += text + '\n\n';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function addResult(testName, passed, message) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `<strong>${passed ? '✅' : '❌'} ${testName}</strong><br>${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function addInfo(message) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('console').textContent = '';
+        }
+
+        // Test 1: Basic Duplicate Prevention
+        function runTest1() {
+            clearResults();
+            addInfo('<strong>TEST 1: Basic Duplicate Prevention</strong>');
+
+            const threadId = ThreadManager.createThread('Test 1');
+
+            // Add message first time
+            const result1 = ThreadManager.addMessageToThread({
+                role: 'user',
+                content: 'Hello World',
+                timestamp: new Date().toISOString()
+            }, threadId);
+
+            // Try to add same message again
+            const result2 = ThreadManager.addMessageToThread({
+                role: 'user',
+                content: 'Hello World',
+                timestamp: new Date().toISOString()
+            }, threadId);
+
+            const thread = ThreadManager.threads.find(t => t.id === threadId);
+
+            if (result1 === true && result2 === false && thread.messages.length === 1) {
+                addResult('Test 1', true, 'First message added, duplicate rejected. Message count: 1');
+            } else {
+                addResult('Test 1', false, `Expected: First=true, Second=false, Count=1. Got: First=${result1}, Second=${result2}, Count=${thread.messages.length}`);
+            }
+        }
+
+        // Test 2: String vs Array Content
+        function runTest2() {
+            clearResults();
+            addInfo('<strong>TEST 2: String vs Array Content</strong>');
+
+            const threadId = ThreadManager.createThread('Test 2');
+
+            // Add message as string
+            const result1 = ThreadManager.addMessageToThread({
+                role: 'user',
+                content: 'Hello World',
+                timestamp: new Date().toISOString()
+            }, threadId);
+
+            // Try to add same message as array
+            const result2 = ThreadManager.addMessageToThread({
+                role: 'user',
+                content: [{ type: 'text', text: 'Hello World' }],
+                timestamp: new Date().toISOString()
+            }, threadId);
+
+            const thread = ThreadManager.threads.find(t => t.id === threadId);
+
+            if (result1 === true && result2 === false && thread.messages.length === 1) {
+                addResult('Test 2', true, 'String and array with same text are considered duplicates. Message count: 1');
+            } else {
+                addResult('Test 2', false, `Expected duplicate detection. Got: First=${result1}, Second=${result2}, Count=${thread.messages.length}`);
+            }
+        }
+
+        // Test 3: Duplicate Text Blocks
+        function runTest3() {
+            clearResults();
+            addInfo('<strong>TEST 3: Duplicate Text Blocks in Array</strong>');
+
+            const threadId = ThreadManager.createThread('Test 3');
+
+            // Add message with duplicate text blocks
+            const result1 = ThreadManager.addMessageToThread({
+                role: 'user',
+                content: [
+                    { type: 'text', text: 'Hello' },
+                    { type: 'text', text: 'Hello' }  // Duplicate
+                ],
+                timestamp: new Date().toISOString()
+            }, threadId);
+
+            // Try to add same message (normalized)
+            const result2 = ThreadManager.addMessageToThread({
+                role: 'user',
+                content: [{ type: 'text', text: 'Hello' }],
+                timestamp: new Date().toISOString()
+            }, threadId);
+
+            const thread = ThreadManager.threads.find(t => t.id === threadId);
+
+            if (result1 === true && result2 === false && thread.messages.length === 1) {
+                addResult('Test 3', true, 'Messages with duplicate blocks are normalized and compared. Message count: 1');
+            } else {
+                addResult('Test 3', false, `Expected duplicate detection after normalization. Got: First=${result1}, Second=${result2}, Count=${thread.messages.length}`);
+            }
+        }
+
+        // Test 4: Different Roles
+        function runTest4() {
+            clearResults();
+            addInfo('<strong>TEST 4: Different Roles (Not Duplicates)</strong>');
+
+            const threadId = ThreadManager.createThread('Test 4');
+
+            // Add user message
+            const result1 = ThreadManager.addMessageToThread({
+                role: 'user',
+                content: 'Hello',
+                timestamp: new Date().toISOString()
+            }, threadId);
+
+            // Add assistant message with same content
+            const result2 = ThreadManager.addMessageToThread({
+                role: 'assistant',
+                content: 'Hello',
+                timestamp: new Date().toISOString()
+            }, threadId);
+
+            const thread = ThreadManager.threads.find(t => t.id === threadId);
+
+            if (result1 === true && result2 === true && thread.messages.length === 2) {
+                addResult('Test 4', true, 'Different roles with same content are NOT duplicates. Message count: 2');
+            } else {
+                addResult('Test 4', false, `Expected both messages to be added. Got: First=${result1}, Second=${result2}, Count=${thread.messages.length}`);
+            }
+        }
+
+        // Run all tests
+        function runAllTests() {
+            clearResults();
+            addInfo('<strong>🧪 RUNNING ALL TESTS</strong>');
+
+            setTimeout(() => {
+                runTest1();
+                setTimeout(() => {
+                    runTest2();
+                    setTimeout(() => {
+                        runTest3();
+                        setTimeout(() => {
+                            runTest4();
+                            addInfo('<strong>✅ ALL TESTS COMPLETE</strong>');
+                        }, 100);
+                    }, 100);
+                }, 100);
+            }, 100);
+        }
+
+        // Initialize
+        log('Test framework loaded. Click buttons above to run tests.');
+    </script>
+</body>
+
+</html>

@@ -9,6 +9,7 @@ DEPENDENCIES:
 
 EXPORTS:
 - automation_create_workflow(title, actions, **kwargs) - Create new workflow
+- automation_update_workflow(slug, add_actions, remove_actions, **kwargs) - Update existing workflow
 - automation_list_workflows(**kwargs) - List user's workflows
 - automation_get_workflow(automation_id, **kwargs) - Get workflow details
 - automation_execute_workflow(automation_id, **kwargs) - Execute workflow
@@ -30,11 +31,13 @@ NOTES:
 - API endpoint: http://localhost:5001/api/automation/
 - Returns standardized JSON responses
 
-LAST MODIFIED: 2025-11-19 - Added publish_workflow and get_workflow_status functions
+LAST MODIFIED: 2025-11-20 - Added automation_update_workflow for programmatic workflow updates
 """
 
 import requests
 import json
+import random
+import string
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -42,6 +45,13 @@ from datetime import datetime
 class AutomationError(Exception):
     """Custom exception for automation errors"""
     pass
+
+
+def _generate_unique_slug() -> str:
+    """Generate unique workflow slug: wf_<8-random-chars>_<timestamp>"""
+    random_chars = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    timestamp = int(datetime.now().timestamp())
+    return f"wf_{random_chars}_{timestamp}"
 
 
 def _get_api_url() -> str:
@@ -164,7 +174,7 @@ def automation_create_workflow(
             'execution_prompt': execution_prompt,
             'tools_sequence': [a['tool'] for a in actions],
             'category': category,
-            'slug': f"workflow_{title.lower().replace(' ', '_')}",
+            'slug': _generate_unique_slug(),  # Use unique slug format: wf_<random>_<timestamp>
             'schedule_cron': trigger.get('schedule_cron') if trigger and trigger.get('type') == 'schedule' else None
         }
         
@@ -190,6 +200,136 @@ def automation_create_workflow(
         raise AutomationError(f"Failed to create workflow: {str(e)}")
     except Exception as e:
         raise AutomationError(f"Error creating workflow: {str(e)}")
+
+
+def automation_update_workflow(
+    slug: str,
+    add_actions: Optional[List[Dict[str, Any]]] = None,
+    remove_actions: Optional[List[int]] = None,
+    update_trigger: Optional[Dict[str, Any]] = None,
+    update_action_parameters: Optional[Dict[str, Any]] = None,
+    update_metadata: Optional[Dict[str, Any]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Update an existing workflow - add/remove actions, modify trigger, change parameters
+    UI automatically refreshes canvas after update
+    
+    Args:
+        slug: Workflow slug (wf_<8random>_<timestamp>) - REQUIRED
+        add_actions: Actions to add (with optional position)
+        remove_actions: Array of action positions to remove
+        update_trigger: New trigger configuration
+        update_action_parameters: Update parameters of existing action
+        update_metadata: Update title/description
+        **kwargs: Credential injection (jwt_token, _user_id)
+    
+    Returns:
+        Dict with updated workflow, action_count, visual_flow_json, message
+    
+    Raises:
+        AutomationError: If update fails
+    
+    Examples:
+        # Add email notification
+        automation_update_workflow(
+            slug='wf_a3f8b2c1_1732029847',
+            add_actions=[{
+                'tool': 'gmail_send_email',
+                'parameters': {'to': 'user@example.com', 'subject': 'Done'}
+            }]
+        )
+        
+        # Change schedule to every 2 hours
+        automation_update_workflow(
+            slug='wf_a3f8b2c1_1732029847',
+            update_trigger={'type': 'schedule', 'schedule_cron': '0 */2 * * *'}
+        )
+        
+        # Remove first action
+        automation_update_workflow(
+            slug='wf_a3f8b2c1_1732029847',
+            remove_actions=[0]
+        )
+    """
+    if not slug:
+        raise AutomationError("slug is required")
+    
+    if not slug.startswith('wf_'):
+        raise AutomationError(f"Invalid slug format: {slug} (must start with 'wf_')")
+    
+    # Build update payload
+    payload = {'slug': slug}
+    
+    if add_actions:
+        payload['add_actions'] = add_actions
+    
+    if remove_actions:
+        payload['remove_actions'] = remove_actions
+    
+    if update_trigger:
+        payload['update_trigger'] = update_trigger
+    
+    if update_action_parameters:
+        payload['update_action_parameters'] = update_action_parameters
+    
+    if update_metadata:
+        payload['update_metadata'] = update_metadata
+    
+    # At least one update operation required
+    if not any([add_actions, remove_actions, update_trigger, update_action_parameters, update_metadata]):
+        raise AutomationError("At least one update operation required (add_actions, remove_actions, update_trigger, update_action_parameters, or update_metadata)")
+    
+    api_url = _get_api_url()
+    headers = _get_headers(kwargs)
+    
+    try:
+        response = requests.put(
+            f'{api_url}/api/automation/update',
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 404:
+            raise AutomationError(f"Workflow not found: {slug}")
+        
+        if response.status_code == 400:
+            error_data = response.json()
+            raise AutomationError(f"Invalid update: {error_data.get('error', 'Unknown error')}")
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        # Build success message
+        changes = []
+        if add_actions:
+            changes.append(f"added {len(add_actions)} action(s)")
+        if remove_actions:
+            changes.append(f"removed {len(remove_actions)} action(s)")
+        if update_trigger:
+            changes.append("updated trigger")
+        if update_action_parameters:
+            changes.append(f"updated action {update_action_parameters.get('position', '?')} parameters")
+        if update_metadata:
+            changes.append("updated metadata")
+        
+        changes_text = ", ".join(changes)
+        
+        return {
+            'success': True,
+            'automation_id': data.get('automation_id'),
+            'slug': slug,
+            'action_count': data.get('action_count', 0),
+            'visual_flow_json': data.get('visual_flow_json'),
+            'ui_refreshed': True,
+            'message': f"Workflow updated successfully: {changes_text}. UI canvas has auto-refreshed."
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise AutomationError(f"Failed to update workflow: {str(e)}")
+    except Exception as e:
+        raise AutomationError(f"Error updating workflow: {str(e)}")
 
 
 def automation_list_workflows(

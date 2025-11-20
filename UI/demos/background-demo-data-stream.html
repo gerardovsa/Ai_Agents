@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Data Stream (Subtle Matrix)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            background: #0d1117;
+        }
+
+        /* Data Stream Canvas */
+        #dataCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Gradient Overlay */
+        .gradient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center,
+                    rgba(13, 17, 23, 0.2) 0%,
+                    rgba(13, 17, 23, 0.7) 50%,
+                    rgba(13, 17, 23, 0.95) 100%);
+            z-index: 2;
+        }
+
+        /* Content Overlay */
+        .content-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        /* Demo Login Box */
+        .login-container {
+            background: linear-gradient(145deg, rgba(22, 27, 34, 0.98) 0%, rgba(13, 17, 23, 0.98) 100%);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 20px;
+            padding: 48px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.8),
+                0 0 30px rgba(88, 166, 255, 0.1);
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(48, 54, 61, 0.8);
+            border-top: 4px solid #58a6ff;
+            border-radius: 50%;
+            margin: 0 auto 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #58a6ff;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(48, 54, 61, 0.5);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #58a6ff, #3fb950);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressGrow 3s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
+        }
+
+        @keyframes progressGrow {
+
+            0%,
+            100% {
+                width: 0%;
+            }
+
+            50% {
+                width: 100%;
+            }
+        }
+
+        .demo-label {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #58a6ff;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 100;
+            background: rgba(13, 17, 23, 0.9);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="demo-label">Alt Matrix 1: Data Stream (Binary Columns)</div>
+
+    <!-- Data Stream Canvas -->
+    <canvas id="dataCanvas"></canvas>
+
+    <!-- Gradient Overlay -->
+    <div class="gradient-overlay"></div>
+
+    <!-- Content -->
+    <div class="content-overlay">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="spinner"></div>
+                <h1>Business AI Platform</h1>
+                <p>Loading your workspace...</p>
+            </div>
+            <div class="loading-text">Processing data streams...</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Stream Effect - Binary numbers falling (less obvious than Matrix)
+        const canvas = document.getElementById('dataCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            columns = Math.floor(canvas.width / fontSize);
+            streams = initializeStreams();
+        });
+
+        const fontSize = 16;
+        let columns = Math.floor(canvas.width / fontSize);
+
+        // Only binary digits
+        const chars = '01';
+
+        // Stream data structure
+        function initializeStreams() {
+            return Array(columns).fill(null).map(() => ({
+                y: -Math.random() * canvas.height,
+                speed: 2 + Math.random() * 8,
+                length: 10 + Math.random() * 20,
+                opacity: 0.3 + Math.random() * 0.4
+            }));
+        }
+
+        let streams = initializeStreams();
+
+        function draw() {
+            // Fade effect
+            ctx.fillStyle = 'rgba(13, 17, 23, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = `${fontSize}px "Courier New", monospace`;
+
+            streams.forEach((stream, i) => {
+                const x = i * fontSize;
+
+                // Draw stream of characters
+                for (let j = 0; j < stream.length; j++) {
+                    const y = stream.y - (j * fontSize);
+
+                    if (y > 0 && y < canvas.height) {
+                        // Fade based on position in stream
+                        const fade = 1 - (j / stream.length);
+                        const opacity = stream.opacity * fade;
+
+                        // Color gradient from blue to cyan
+                        const colorMix = j / stream.length;
+                        const r = Math.floor(88 + (63 - 88) * colorMix);
+                        const g = Math.floor(166 + (185 - 166) * colorMix);
+                        const b = Math.floor(255 + (80 - 255) * colorMix);
+
+                        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+
+                        // Head of stream brighter
+                        if (j === 0) {
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${opacity * 2})`;
+                        }
+
+                        const text = chars[Math.floor(Math.random() * chars.length)];
+                        ctx.fillText(text, x, y);
+
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                // Move stream
+                stream.y += stream.speed;
+
+                // Reset when off screen
+                if (stream.y - (stream.length * fontSize) > canvas.height) {
+                    stream.y = -stream.length * fontSize;
+                    stream.speed = 2 + Math.random() * 8;
+                }
+            });
+        }
+
+        setInterval(draw, 50);
+    </script>
+</body>
+
+</html>

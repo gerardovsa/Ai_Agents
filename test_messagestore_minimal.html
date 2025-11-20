@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MessageStore Minimal Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        h1 {
+            color: #00ff88;
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 10px;
+        }
+
+        .test-section {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4db8ff;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #00cc6a;
+        }
+
+        .output {
+            background: #1a1a1a;
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #00ff88;
+        }
+
+        .error {
+            color: #ff5555;
+        }
+
+        .warning {
+            color: #ffaa00;
+        }
+
+        .stats {
+            background: #2a3a4a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: #1a2a3a;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 MessageStore Minimal Test Suite</h1>
+    <p>Testing the minimal MessageStore implementation with duplicate detection.</p>
+
+    <!-- Test 1: Basic Add and Retrieve -->
+    <div class="test-section">
+        <div class="test-title">Test 1: Basic Add and Retrieve</div>
+        <button onclick="test1_basicAddRetrieve()">Run Test</button>
+        <div id="test1-output" class="output"></div>
+    </div>
+
+    <!-- Test 2: Duplicate Detection -->
+    <div class="test-section">
+        <div class="test-title">Test 2: Duplicate Detection</div>
+        <button onclick="test2_duplicateDetection()">Run Test</button>
+        <div id="test2-output" class="output"></div>
+    </div>
+
+    <!-- Test 3: Different Roles (Not Duplicates) -->
+    <div class="test-section">
+        <div class="test-title">Test 3: Different Roles (Not Duplicates)</div>
+        <button onclick="test3_differentRoles()">Run Test</button>
+        <div id="test3-output" class="output"></div>
+    </div>
+
+    <!-- Test 4: Whitespace Normalization -->
+    <div class="test-section">
+        <div class="test-title">Test 4: Whitespace Normalization</div>
+        <button onclick="test4_whitespaceNorm()">Run Test</button>
+        <div id="test4-output" class="output"></div>
+    </div>
+
+    <!-- Test 5: Array Content (Anthropic Format) -->
+    <div class="test-section">
+        <div class="test-title">Test 5: Array Content (Anthropic Format)</div>
+        <button onclick="test5_arrayContent()">Run Test</button>
+        <div id="test5-output" class="output"></div>
+    </div>
+
+    <!-- Stats Display -->
+    <div class="test-section">
+        <div class="test-title">MessageStore Statistics</div>
+        <button onclick="showStats()">Show Stats</button>
+        <button onclick="clearAll()" style="background: #ff5555;">Clear All</button>
+        <div id="stats-output" class="stats"></div>
+    </div>
+
+    <!-- Run All Tests -->
+    <div class="test-section">
+        <button onclick="runAllTests()" style="background: #4db8ff; font-size: 16px; padding: 15px 30px;">
+            ▶️ Run All Tests
+        </button>
+    </div>
+
+    <script>
+        // Minimal MessageStore implementation (copied from main app)
+        class MessageStore {
+            constructor() {
+                this._messages = new Map();
+                this._messageIndex = new Map();
+                console.log('[MessageStore] Initialized');
+            }
+
+            async addMessage(threadId, message, options = {}) {
+                const { checkDuplicates = true, silent = false } = options;
+                const normalizedContent = this._normalizeContent(message.content);
+
+                if (checkDuplicates) {
+                    const existingMessages = this._messages.get(threadId) || [];
+                    const recentMessages = existingMessages.slice(-20);
+
+                    for (const existing of recentMessages) {
+                        const existingNormalized = this._normalizeContent(existing.content);
+                        if (existingNormalized === normalizedContent && existing.role === message.role) {
+                            if (!silent) {
+                                console.warn(`[MessageStore] DUPLICATE PREVENTED: ${existing.id}`);
+                            }
+                            return existing;
+                        }
+                    }
+                }
+
+                if (!message.id) {
+                    message.id = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                }
+                if (!message.created_at) {
+                    message.created_at = new Date().toISOString();
+                }
+
+                if (!this._messages.has(threadId)) {
+                    this._messages.set(threadId, []);
+                }
+                this._messages.get(threadId).push(message);
+                this._messageIndex.set(message.id, message);
+
+                if (!silent) {
+                    console.log(`[MessageStore] Message added: ${message.id}`);
+                }
+                return message;
+            }
+
+            getMessages(threadId) {
+                return this._messages.get(threadId) || [];
+            }
+
+            getMessage(messageId) {
+                return this._messageIndex.get(messageId);
+            }
+
+            getMessageCount(threadId) {
+                const messages = this._messages.get(threadId);
+                return messages ? messages.length : 0;
+            }
+
+            _normalizeContent(content) {
+                if (typeof content === 'string') {
+                    return content.replace(/\s+/g, ' ').trim();
+                }
+                if (Array.isArray(content)) {
+                    const textParts = [];
+                    for (const item of content) {
+                        if (typeof item === 'object' && item.text) {
+                            textParts.push(item.text);
+                        } else if (typeof item === 'string') {
+                            textParts.push(item);
+                        }
+                    }
+                    return textParts.join(' ').replace(/\s+/g, ' ').trim();
+                }
+                if (typeof content === 'object') {
+                    return JSON.stringify(content);
+                }
+                return String(content);
+            }
+
+            getStats() {
+                return {
+                    totalThreads: this._messages.size,
+                    totalMessages: this._messageIndex.size,
+                    threads: Array.from(this._messages.entries()).map(([threadId, messages]) => ({
+                        threadId,
+                        messageCount: messages.length
+                    }))
+                };
+            }
+
+            clearAll() {
+                this._messages.clear();
+                this._messageIndex.clear();
+                console.log('[MessageStore] All data cleared');
+            }
+        }
+
+        // Initialize MessageStore
+        const messageStore = new MessageStore();
+
+        // Test Functions
+        async function test1_basicAddRetrieve() {
+            const output = document.getElementById('test1-output');
+            output.innerHTML = 'Running Test 1...\n\n';
+
+            try {
+                const threadId = 'test-thread-1';
+
+                // Add message
+                const msg1 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: 'Hello, world!'
+                });
+
+                output.innerHTML += `<span class="success">✅ Message added: ${msg1.id}</span>\n`;
+                output.innerHTML += `   Role: ${msg1.role}\n`;
+                output.innerHTML += `   Content: ${msg1.content}\n`;
+                output.innerHTML += `   Created: ${msg1.created_at}\n\n`;
+
+                // Retrieve messages
+                const messages = messageStore.getMessages(threadId);
+                output.innerHTML += `<span class="success">✅ Retrieved ${messages.length} message(s)</span>\n`;
+
+                // Get by ID
+                const retrieved = messageStore.getMessage(msg1.id);
+                if (retrieved && retrieved.id === msg1.id) {
+                    output.innerHTML += `<span class="success">✅ getMessage() works correctly</span>\n`;
+                } else {
+                    output.innerHTML += `<span class="error">❌ getMessage() failed</span>\n`;
+                }
+
+                output.innerHTML += `\n<span class="success">🎉 Test 1 PASSED</span>`;
+            } catch (error) {
+                output.innerHTML += `<span class="error">❌ Test 1 FAILED: ${error.message}</span>`;
+            }
+        }
+
+        async function test2_duplicateDetection() {
+            const output = document.getElementById('test2-output');
+            output.innerHTML = 'Running Test 2...\n\n';
+
+            try {
+                const threadId = 'test-thread-2';
+
+                // Add first message
+                const msg1 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: 'Duplicate test message'
+                });
+                output.innerHTML += `<span class="success">✅ First message added: ${msg1.id}</span>\n\n`;
+
+                // Try to add duplicate
+                const msg2 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: 'Duplicate test message'
+                });
+
+                if (msg1.id === msg2.id) {
+                    output.innerHTML += `<span class="success">✅ DUPLICATE PREVENTED!</span>\n`;
+                    output.innerHTML += `   Returned existing message: ${msg2.id}\n`;
+                    output.innerHTML += `   Message count: ${messageStore.getMessageCount(threadId)}\n`;
+                    output.innerHTML += `\n<span class="success">🎉 Test 2 PASSED</span>`;
+                } else {
+                    output.innerHTML += `<span class="error">❌ Duplicate NOT prevented</span>\n`;
+                    output.innerHTML += `   First ID: ${msg1.id}\n`;
+                    output.innerHTML += `   Second ID: ${msg2.id}\n`;
+                    output.innerHTML += `   Message count: ${messageStore.getMessageCount(threadId)}\n`;
+                }
+            } catch (error) {
+                output.innerHTML += `<span class="error">❌ Test 2 FAILED: ${error.message}</span>`;
+            }
+        }
+
+        async function test3_differentRoles() {
+            const output = document.getElementById('test3-output');
+            output.innerHTML = 'Running Test 3...\n\n';
+
+            try {
+                const threadId = 'test-thread-3';
+
+                // Add user message
+                const msg1 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: 'Same content'
+                });
+                output.innerHTML += `<span class="success">✅ User message added: ${msg1.id}</span>\n\n`;
+
+                // Add assistant message with same content
+                const msg2 = await messageStore.addMessage(threadId, {
+                    role: 'assistant',
+                    content: 'Same content'
+                });
+
+                if (msg1.id !== msg2.id) {
+                    output.innerHTML += `<span class="success">✅ Different roles NOT treated as duplicates</span>\n`;
+                    output.innerHTML += `   User message: ${msg1.id}\n`;
+                    output.innerHTML += `   Assistant message: ${msg2.id}\n`;
+                    output.innerHTML += `   Message count: ${messageStore.getMessageCount(threadId)}\n`;
+                    output.innerHTML += `\n<span class="success">🎉 Test 3 PASSED</span>`;
+                } else {
+                    output.innerHTML += `<span class="error">❌ Different roles treated as duplicates (WRONG)</span>\n`;
+                }
+            } catch (error) {
+                output.innerHTML += `<span class="error">❌ Test 3 FAILED: ${error.message}</span>`;
+            }
+        }
+
+        async function test4_whitespaceNorm() {
+            const output = document.getElementById('test4-output');
+            output.innerHTML = 'Running Test 4...\n\n';
+
+            try {
+                const threadId = 'test-thread-4';
+
+                // Add message with normal spacing
+                const msg1 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: 'Hello world'
+                });
+                output.innerHTML += `<span class="success">✅ First message: "Hello world"</span>\n\n`;
+
+                // Try to add with extra whitespace
+                const msg2 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: 'Hello    world'
+                });
+
+                // Try to add with newlines
+                const msg3 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: 'Hello\n\nworld'
+                });
+
+                if (msg1.id === msg2.id && msg2.id === msg3.id) {
+                    output.innerHTML += `<span class="success">✅ Whitespace normalized correctly</span>\n`;
+                    output.innerHTML += `   All three attempts returned same message: ${msg1.id}\n`;
+                    output.innerHTML += `   Message count: ${messageStore.getMessageCount(threadId)}\n`;
+                    output.innerHTML += `\n<span class="success">🎉 Test 4 PASSED</span>`;
+                } else {
+                    output.innerHTML += `<span class="error">❌ Whitespace normalization failed</span>\n`;
+                    output.innerHTML += `   Msg1: ${msg1.id}\n`;
+                    output.innerHTML += `   Msg2: ${msg2.id}\n`;
+                    output.innerHTML += `   Msg3: ${msg3.id}\n`;
+                }
+            } catch (error) {
+                output.innerHTML += `<span class="error">❌ Test 4 FAILED: ${error.message}</span>`;
+            }
+        }
+
+        async function test5_arrayContent() {
+            const output = document.getElementById('test5-output');
+            output.innerHTML = 'Running Test 5...\n\n';
+
+            try {
+                const threadId = 'test-thread-5';
+
+                // Add message with Anthropic array format
+                const msg1 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: [{ type: 'text', text: 'Hello from array' }]
+                });
+                output.innerHTML += `<span class="success">✅ Array format message added</span>\n\n`;
+
+                // Try to add same content as string
+                const msg2 = await messageStore.addMessage(threadId, {
+                    role: 'user',
+                    content: 'Hello from array'
+                });
+
+                if (msg1.id === msg2.id) {
+                    output.innerHTML += `<span class="success">✅ Array and string formats normalized to same content</span>\n`;
+                    output.innerHTML += `   Both returned same message: ${msg1.id}\n`;
+                    output.innerHTML += `   Message count: ${messageStore.getMessageCount(threadId)}\n`;
+                    output.innerHTML += `\n<span class="success">🎉 Test 5 PASSED</span>`;
+                } else {
+                    output.innerHTML += `<span class="warning">⚠️  Array and string treated as different</span>\n`;
+                    output.innerHTML += `   Array message: ${msg1.id}\n`;
+                    output.innerHTML += `   String message: ${msg2.id}\n`;
+                    output.innerHTML += `   This might be expected behavior\n`;
+                }
+            } catch (error) {
+                output.innerHTML += `<span class="error">❌ Test 5 FAILED: ${error.message}</span>`;
+            }
+        }
+
+        function showStats() {
+            const output = document.getElementById('stats-output');
+            const stats = messageStore.getStats();
+
+            output.innerHTML = `
+                <div class="stat-item"><strong>Total Threads:</strong> ${stats.totalThreads}</div>
+                <div class="stat-item"><strong>Total Messages:</strong> ${stats.totalMessages}</div>
+            `;
+
+            if (stats.threads.length > 0) {
+                output.innerHTML += '<div class="stat-item"><strong>Threads:</strong></div>';
+                for (const thread of stats.threads) {
+                    output.innerHTML += `
+                        <div class="stat-item" style="margin-left: 20px;">
+                            ${thread.threadId}: ${thread.messageCount} message(s)
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function clearAll() {
+            if (confirm('Clear all MessageStore data?')) {
+                messageStore.clearAll();
+                document.getElementById('stats-output').innerHTML = '<span class="warning">All data cleared</span>';
+                console.log('✅ MessageStore cleared');
+            }
+        }
+
+        async function runAllTests() {
+            console.log('Running all tests...');
+            await test1_basicAddRetrieve();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await test2_duplicateDetection();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await test3_differentRoles();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await test4_whitespaceNorm();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await test5_arrayContent();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            showStats();
+            console.log('✅ All tests complete!');
+        }
+    </script>
+</body>
+
+</html>

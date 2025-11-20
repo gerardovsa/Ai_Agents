@@ -578,7 +578,13 @@ Always provide data-driven insights with actionable recommendations."""
             
             # Add delta content
             if delta_type == 'text_delta':
-                sse_event['text'] = event.delta.text
+                text_content = event.delta.text
+                # CRITICAL FIX (Nov 19, 2025): Filter empty text deltas from Anthropic
+                # Anthropic sends empty text_delta events between tool_use blocks in interleaved thinking mode
+                # These create empty bubbles in the UI and break conversation history
+                if not text_content or not text_content.strip():
+                    return None  # ← Skip empty text deltas entirely
+                sse_event['text'] = text_content
             elif delta_type == 'thinking_delta':
                 sse_event['thinking'] = event.delta.thinking
             elif delta_type == 'input_json_delta':

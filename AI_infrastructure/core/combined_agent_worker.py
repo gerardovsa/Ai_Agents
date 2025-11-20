@@ -100,7 +100,8 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
             print(f"  - Has 'signature' key: {'signature' in block}")
             if 'signature' in block:
                 sig_value = block['signature']
-                print(f"  - Signature value: {repr(sig_value)} (type: {type(sig_value).__name__})")
+                sig_preview = str(sig_value)[:20] + '...' if len(str(sig_value)) > 20 else str(sig_value)
+                print(f"  - Signature value: {repr(sig_preview)} (type: {type(sig_value).__name__})")
                 print(f"  - Is empty string: {sig_value == ''}")
                 print(f"  - Is None: {sig_value is None}")
                 print(f"  - Is falsy: {not sig_value}")
@@ -115,6 +116,14 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
         elif block_type == 'text':
             if 'text' not in block or not isinstance(block.get('text'), str):
                 print(f"[Combined Worker] ⚠️ Removing invalid text block (missing 'text' field)")
+                continue
+            
+            # CRITICAL FIX (Nov 19, 2025): Filter empty text blocks
+            # Empty text blocks between tool_use blocks cause API error:
+            # "tool_use ids were found without tool_result blocks"
+            text_content = block.get('text', '').strip()
+            if not text_content:
+                print(f"[Combined Worker] ⚠️ Removing empty text block (would break tool_use/tool_result pairing)")
                 continue
         
         # RULE 4: Validate tool_use blocks
@@ -373,7 +382,8 @@ def validate_conversation_history(conversation_history: List[Dict]) -> List[Dict
                     print(f"    - Keys: {list(block.keys())}")
                     print(f"    - Has signature: {'signature' in block}")
                     if 'signature' in block:
-                        print(f"    - Signature value: {repr(block['signature'])}")
+                        sig_preview = str(block['signature'])[:20] + '...' if len(str(block['signature'])) > 20 else str(block['signature'])
+                        print(f"    - Signature value: {repr(sig_preview)}")
             
             # CRITICAL: Extract tool_result blocks that don't belong in assistant messages
             message['content'], extracted_tool_results = validate_and_reorder_assistant_content(message['content'])
@@ -389,7 +399,8 @@ def validate_conversation_history(conversation_history: List[Dict]) -> List[Dict
                     print(f"    - Keys: {list(block.keys())}")
                     print(f"    - Has signature: {'signature' in block}")
                     if 'signature' in block:
-                        print(f"    - Signature value: {repr(block['signature'])}")
+                        sig_preview = str(block['signature'])[:20] + '...' if len(str(block['signature'])) > 20 else str(block['signature'])
+                        print(f"    - Signature value: {repr(sig_preview)}")
             
             if before_types != after_types:
                 print(f"[Combined Worker] 🔧 Message {idx} (assistant) reordered:")
@@ -707,15 +718,16 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
     Context-aware truncation for tool results
     
     TOKEN LIMITS BY INTENT:
-    1. INTENTIONAL reads (read_file, get_document, download) → 60K tokens (240KB)
-    2. BULK queries (list, search, get_all) → 2K tokens (8KB)
-    3. Single records (get_by_id, find_one) → 10K tokens (40KB)
-    4. Meta-tools/Unknown (execute_tool, etc.) → 1K tokens (4KB) - VERY STRICT
+    1. META-TOOLS (list_available_platforms, etc.) → NEVER TRUNCATED (tool discovery)
+    2. INTENTIONAL reads (read_file, get_document, download) → 60K tokens (240KB)
+    3. BULK queries (list, search, get_all) → 2K tokens (8KB)
+    4. Single records (get_by_id, find_one) → 10K tokens (40KB)
+    5. Unknown tools → 40K tokens (160KB) - Allow larger results
     
     This prevents:
     - Blocking legitimate document reads (user asks "read this 100-page report")
     - Allowing accidental bulk dumps (Xero returns 1000 clients unexpectedly)
-    - Meta-tool results ballooning conversation history (execute_tool wrapping bulk queries)
+    - Truncating tool discovery results (list_platform_tools needs full catalog)
     
     Args:
         result: Tool execution result (any type)
@@ -725,6 +737,32 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
     Returns:
         Truncated result string suitable for Claude API
     """
+    # META-TOOLS: NEVER truncate (required for tool discovery and navigation)
+    META_TOOLS_NO_TRUNCATE = [
+        'list_available_platforms',
+        'list_platform_tools',
+        'get_tool_schema',
+        'search_tools',
+        'get_platform_guide',
+        'recommend_tools_for_task',
+        'get_workflow_steps'
+    ]
+    
+    if tool_name in META_TOOLS_NO_TRUNCATE:
+        print(f"[Combined Worker] 🔷 META-TOOL '{tool_name}' - NO TRUNCATION (tool discovery)")
+        # Return full result with metadata
+        if isinstance(result, str):
+            result_str = result
+        else:
+            try:
+                result_str = json.dumps(result, indent=2)
+            except:
+                result_str = str(result)
+        
+        estimated_tokens = len(result_str) // 4
+        metadata_header = f"[METADATA: {estimated_tokens} tokens, {len(result_str)} bytes, tool={tool_name}, truncated=False, type=META_TOOL]\n\n"
+        return metadata_header + result_str
+    
     # STEP 1: Determine tool intent and set appropriate limits
     tool_lower = tool_name.lower()
     
@@ -765,8 +803,8 @@ def smart_truncate_tool_result(result: Any, tool_name: str, max_tokens: int = 20
         truncate_aggressive = False
         intent = "SINGLE_RECORD"
     else:
-        max_tokens = 1000  # 4KB - Very strict for meta-tools and unknown tools
-        truncate_aggressive = True
+        max_tokens = 40000  # 160KB - Allow larger results for unknown tools
+        truncate_aggressive = False
         intent = "UNKNOWN"
     
     # Convert to string first
@@ -1462,18 +1500,13 @@ def run_simple_agent_worker(
                         else:
                             result = registry.execute_tool(tool_name=tool_name, **tool_input_copy)
                     
-                    # Smart truncation based on tool type (uses configuration)
-                    from core.tool_result_limits import get_token_limit_for_tool, AUTO_TRUNCATE_ENABLED
+                    # Smart truncation based on tool type (with META-TOOLS exemption)
+                    # Use smart_truncate_tool_result which exempts meta-tools from truncation
+                    result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)
                     
-                    max_tokens = get_token_limit_for_tool(tool_name)
-                    
-                    # Truncate if enabled
-                    if AUTO_TRUNCATE_ENABLED:
-                        result_str, original_tokens, final_tokens = truncate_tool_result(result, max_tokens)
-                    else:
-                        result_str = str(result)
-                        original_tokens = estimate_tokens(result_str)
-                        final_tokens = original_tokens
+                    # Estimate tokens for tracking
+                    original_tokens = estimate_tokens(str(result))
+                    final_tokens = estimate_tokens(result_str)
                     iteration_token_count += final_tokens
                     
                     # INJECT SESSION STATUS into tool result (Option B)
@@ -1863,7 +1896,34 @@ def execute_streaming_request(
         
         # Add user prompt (only on round 1)
         if user_prompt and current_round == 1:
-            messages.append({'role': 'user', 'content': user_prompt})
+            # CRITICAL FIX (Nov 18, 2025): Check if last message is also user (consecutive roles)
+            # If so, merge current prompt with last user message instead of appending
+            if messages and messages[-1].get('role') == 'user':
+                print(f"{log_prefix} ⚠️  Last message is also 'user' - merging current prompt instead of appending")
+                print(f"{log_prefix} 🔧 Original last message content: {str(messages[-1].get('content', ''))[:100]}")
+                
+                # Get existing content
+                existing_content = messages[-1].get('content', '')
+                
+                # Convert both to block format for consistent handling
+                if isinstance(existing_content, str):
+                    existing_blocks = [{'type': 'text', 'text': existing_content}]
+                elif isinstance(existing_content, list):
+                    existing_blocks = existing_content
+                else:
+                    existing_blocks = []
+                
+                # Add current prompt as new text block
+                existing_blocks.append({'type': 'text', 'text': user_prompt})
+                
+                # Update the last message
+                messages[-1]['content'] = existing_blocks
+                
+                print(f"{log_prefix} ✅ Merged current prompt into last user message ({len(existing_blocks)} total blocks)")
+            else:
+                # Normal case: last message is assistant, so we can append user message
+                messages.append({'role': 'user', 'content': user_prompt})
+                print(f"{log_prefix} ✅ Appended current prompt as new user message")
         
         # CRITICAL: Prune conversation if needed to avoid 413 error
         # This prevents "Request exceeds the maximum size" errors
@@ -1986,7 +2046,8 @@ def execute_streaming_request(
                     print(f"[Combined Worker] 🔍 Serializing thinking block:")
                     print(f"  - Has signature attr: {hasattr(block, 'signature')}")
                     if hasattr(block, 'signature'):
-                        print(f"  - Signature value: {repr(block.signature)}")
+                        sig_preview = str(block.signature)[:20] + '...' if len(str(block.signature)) > 20 else str(block.signature)
+                        print(f"  - Signature value: {repr(sig_preview)}")
                         print(f"  - Signature is truthy: {bool(block.signature)}")
                     
                     thinking_dict = {'type': 'thinking', 'thinking': block.thinking}
@@ -2076,7 +2137,17 @@ def execute_streaming_request(
                 if hasattr(block, 'type') and block.type == 'text':
                     final_text += block.text
             
-            yield {'type': 'complete', 'session_id': session_id, 'full_response': final_text, 'stop_reason': stop_reason, 'total_rounds': current_round}
+            # CRITICAL FIX (Nov 19, 2025): Send updated conversation_history to frontend
+            # This allows frontend to sync its conversation state with backend's authoritative state
+            # Backend has tool_use/tool_result blocks properly structured, frontend needs to know!
+            yield {
+                'type': 'complete', 
+                'session_id': session_id, 
+                'full_response': final_text, 
+                'stop_reason': stop_reason, 
+                'total_rounds': current_round,
+                'conversation_history': conversation_history  # Frontend will sync with this!
+            }
     
     except Exception as e:
         print(f"{log_prefix} ERROR: {str(e)}")

@@ -236,19 +236,34 @@ def _add_temporal_data(location: Dict) -> Dict:
         # Work hours (9 AM - 5 PM)
         is_work_hours = 9 <= hour < 17 and not is_weekend
         
-        # Season (Northern Hemisphere - can be adjusted)
+        # Season - Detect hemisphere based on latitude
         month = now.month
-        if month in [12, 1, 2]:
-            season = 'Winter'
-        elif month in [3, 4, 5]:
-            season = 'Spring'
-        elif month in [6, 7, 8]:
-            season = 'Summer'
-        else:
-            season = 'Fall'
+        latitude = location.get('latitude', 0)
         
-        # Add temporal data
-        location['current_time'] = now.strftime('%Y-%m-%d %H:%M:%S %Z')
+        # Southern Hemisphere (latitude < 0) has opposite seasons
+        if latitude < 0:
+            # Southern Hemisphere
+            if month in [12, 1, 2]:
+                season = 'Summer'
+            elif month in [3, 4, 5]:
+                season = 'Autumn'
+            elif month in [6, 7, 8]:
+                season = 'Winter'
+            else:
+                season = 'Spring'
+        else:
+            # Northern Hemisphere
+            if month in [12, 1, 2]:
+                season = 'Winter'
+            elif month in [3, 4, 5]:
+                season = 'Spring'
+            elif month in [6, 7, 8]:
+                season = 'Summer'
+            else:
+                season = 'Fall/Autumn'
+        
+        # Add temporal data (use 12-hour format with AM/PM)
+        location['current_time'] = now.strftime('%Y-%m-%d at %I:%M %p %Z')
         location['time_of_day'] = time_of_day
         location['day_of_week'] = day_of_week
         location['day_of_week_num'] = day_of_week_num

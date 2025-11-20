@@ -31,11 +31,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import validation functions from combined worker (Nov 7, 2025)
 # CRITICAL FIX: Use unified validation to prevent API errors
-from core.combined_agent_worker import (
-    validate_conversation_history,
-    validate_and_reorder_assistant_content,
-    normalize_content_to_blocks
-)
+try:
+    # Try relative import first (when imported from routes)
+    from core.combined_agent_worker import (
+        validate_conversation_history,
+        validate_and_reorder_assistant_content,
+        normalize_content_to_blocks
+    )
+except ModuleNotFoundError:
+    # Fallback to direct import (when running from core folder)
+    from combined_agent_worker import (
+        validate_conversation_history,
+        validate_and_reorder_assistant_content,
+        normalize_content_to_blocks
+    )
 from tools.registry_v3 import get_registry
 from AI_infrastructure.auth.credential_injector import inject_user_credentials_into_tool
 
@@ -78,7 +87,7 @@ class StreamingAgentWorker:
         tools: List[Dict],
         system_prompt: str,
         user_id: Optional[int] = None,
-        max_rounds: int = 20,
+        max_rounds: int = 30,
         current_round: int = 1
     ) -> Generator[Dict[str, Any], None, None]:
         """

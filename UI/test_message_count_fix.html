@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Count Update Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .test-result.pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .test-result.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .test-result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .thread-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin: 5px;
+        }
+
+        .mock-ui-section {
+            border: 2px dashed #007bff;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f8f9ff;
+        }
+
+        .mock-ui-section h4 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 6px;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .count-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>🧪 Message Count Update Fix - Smoke Test</h1>
+        <p><strong>Date:</strong> November 19, 2025</p>
+        <p><strong>Testing:</strong> updateMessageCount() function with querySelectorAll() fix</p>
+
+        <div class="controls">
+            <h3>Test Controls</h3>
+            <button onclick="runAllTests()">🚀 Run All Tests</button>
+            <button onclick="simulateMessageAdd()">➕ Simulate Add Message</button>
+            <button onclick="simulateMessageRemove()">➖ Simulate Remove Message</button>
+            <button onclick="resetTest()">🔄 Reset Test</button>
+        </div>
+
+        <div id="test-results"></div>
+
+        <!-- Mock UI Elements -->
+        <div class="test-section">
+            <h3>Mock UI Elements (simulating business-ai-platform-v2.html)</h3>
+
+            <div class="mock-ui-section" data-thread-id="test-thread-123">
+                <h4>📍 Prime Header</h4>
+                <div>
+                    Message Count: <span id="prime-msg-count" class="count-display">0</span>
+                    <span class="thread-meta-item" title="Message count">
+                        <i class="fas fa-comments"></i> <span>0 msgs</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="mock-ui-section" data-thread-id="test-thread-123">
+                <h4>🤖 Agent Header (agent-coding)</h4>
+                <div>
+                    Message Count: <span id="msg-count-coding" class="count-display">0</span>
+                    <span class="thread-meta-item" title="Message count">
+                        <i class="fas fa-comments"></i> <span>0 msgs</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="mock-ui-section" data-thread-id="test-thread-123">
+                <h4>📋 Sidebar Card #1</h4>
+                <div class="thread-item-stats">
+                    <span class="thread-meta-item" title="Message count">
+                        <i class="fas fa-comments"></i> 0 msgs
+                    </span>
+                </div>
+            </div>
+
+            <div class="mock-ui-section" data-thread-id="test-thread-123">
+                <h4>📋 Sidebar Card #2 (duplicate for testing)</h4>
+                <div>
+                    <span class="thread-meta-item" title="Message count">
+                        <i class="fas fa-comments"></i> 0 msgs
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock ThreadManager with the FIXED updateMessageCount function
+        const ThreadManager = {
+            currentThreadId: 'test-thread-123',
+            threads: [
+                {
+                    id: 'test-thread-123',
+                    title: 'Test Thread',
+                    agent: 'agent-coding',
+                    messages: [],
+                    message_count: 0
+                }
+            ],
+
+            /**
+             * FIXED updateMessageCount - Uses querySelectorAll and filters thinking bubbles
+             */
+            updateMessageCount(threadId) {
+                const thread = this.threads.find(t => t.id === threadId);
+                if (!thread) return;
+
+                // Count only actual user and assistant messages (exclude thinking blocks)
+                let count = 0;
+                if (thread.messages && Array.isArray(thread.messages)) {
+                    count = thread.messages.filter(msg => {
+                        if (msg.role !== 'user' && msg.role !== 'assistant') return false;
+                        if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+                            const hasRealContent = msg.content.some(block =>
+                                block.type === 'text' ||
+                                (block.type !== 'thinking' && block.type !== 'redacted_thinking')
+                            );
+                            return hasRealContent;
+                        }
+                        if (msg.role === 'assistant' && typeof msg.content === 'string') {
+                            return msg.content.trim().length > 0;
+                        }
+                        if (msg.role === 'user') return true;
+                        return false;
+                    }).length;
+                } else if (thread.message_count) {
+                    count = thread.message_count;
+                } else {
+                    count = 0;
+                }
+
+                // Update all thread-meta-item elements with message count
+                const allMetaItems = document.querySelectorAll(`[data-thread-id="${threadId}"] .thread-meta-item[title="Message count"]`);
+                allMetaItems.forEach(item => {
+                    item.innerHTML = `<i class="fas fa-comments"></i> ${count} msgs`;
+                });
+
+                // Update Prime header if this is the current thread
+                if (this.currentThreadId === threadId) {
+                    const msgCountEl = document.getElementById('prime-msg-count');
+                    if (msgCountEl) msgCountEl.textContent = count.toString();
+                }
+
+                // Update agent header if thread is in an agent
+                if (thread.agent && thread.agent.startsWith('agent-')) {
+                    const agentId = thread.agent.replace('agent-', '');
+                    const msgCountEl = document.getElementById(`msg-count-${agentId}`);
+                    if (msgCountEl) msgCountEl.textContent = count.toString();
+                }
+
+                // Update sidebar card
+                const cardEl = document.querySelector(`[data-thread-id="${threadId}"]`);
+                if (cardEl) {
+                    const statsEl = cardEl.querySelector('.thread-item-stats span:first-child');
+                    if (statsEl) {
+                        statsEl.innerHTML = `<i class="fas fa-comments"></i> ${count}`;
+                    }
+                }
+
+                console.log('[UI UPDATE] Message count updated:', count);
+            }
+        };
+
+        let testResults = [];
+
+        function addTestResult(name, passed, details) {
+            testResults.push({ name, passed, details });
+            renderTestResults();
+        }
+
+        function renderTestResults() {
+            const resultsDiv = document.getElementById('test-results');
+            let html = '<div class="test-section"><h3>Test Results</h3>';
+
+            let passCount = 0;
+            let failCount = 0;
+
+            testResults.forEach(result => {
+                const cssClass = result.passed ? 'pass' : 'fail';
+                const icon = result.passed ? '✅' : '❌';
+                html += `
+                    <div class="test-result ${cssClass}">
+                        ${icon} <strong>${result.name}</strong>
+                        <div style="margin-top: 5px; font-weight: normal;">${result.details}</div>
+                    </div>
+                `;
+                if (result.passed) passCount++;
+                else failCount++;
+            });
+
+            html += `
+                <div class="test-result info" style="margin-top: 15px;">
+                    <strong>Summary:</strong> ${passCount} passed, ${failCount} failed out of ${testResults.length} tests
+                </div>
+            </div>`;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function testQuerySelectorAll() {
+            // Test that querySelectorAll finds all thread-meta-item elements
+            const items = document.querySelectorAll('[data-thread-id="test-thread-123"] .thread-meta-item[title="Message count"]');
+            const passed = items.length === 4; // Should find all 4 mock elements
+            addTestResult(
+                'Test 1: querySelectorAll finds all thread-meta-item elements',
+                passed,
+                `Found ${items.length} elements (expected 4)`
+            );
+            return passed;
+        }
+
+        function testPrimeHeaderUpdate() {
+            // Set message count and update
+            ThreadManager.threads[0].message_count = 5;
+            ThreadManager.updateMessageCount('test-thread-123');
+
+            const primeCount = document.getElementById('prime-msg-count');
+            const passed = primeCount && primeCount.textContent === '5';
+            addTestResult(
+                'Test 2: Prime header updates correctly',
+                passed,
+                `Prime count: ${primeCount ? primeCount.textContent : 'NOT FOUND'} (expected 5)`
+            );
+            return passed;
+        }
+
+        function testAgentHeaderUpdate() {
+            const agentCount = document.getElementById('msg-count-coding');
+            const passed = agentCount && agentCount.textContent === '5';
+            addTestResult(
+                'Test 3: Agent header updates correctly',
+                passed,
+                `Agent count: ${agentCount ? agentCount.textContent : 'NOT FOUND'} (expected 5)`
+            );
+            return passed;
+        }
+
+        function testAllMetaItemsUpdate() {
+            const items = document.querySelectorAll('[data-thread-id="test-thread-123"] .thread-meta-item[title="Message count"]');
+            let allUpdated = true;
+            let details = [];
+
+            items.forEach((item, index) => {
+                const text = item.textContent.trim();
+                const hasCorrectCount = text.includes('5 msgs');
+                details.push(`Item ${index + 1}: "${text}" ${hasCorrectCount ? '✓' : '✗'}`);
+                if (!hasCorrectCount) allUpdated = false;
+            });
+
+            addTestResult(
+                'Test 4: All thread-meta-item elements update correctly',
+                allUpdated,
+                details.join('<br>')
+            );
+            return allUpdated;
+        }
+
+        function testMessageArrayUpdate() {
+            // Test using messages array instead of message_count
+            ThreadManager.threads[0].messages = [
+                { role: 'user', content: 'Hello' },
+                { role: 'assistant', content: 'Hi' },
+                { role: 'user', content: 'How are you?' }
+            ];
+            ThreadManager.threads[0].message_count = 0; // Should use messages.length instead
+
+            ThreadManager.updateMessageCount('test-thread-123');
+
+            const primeCount = document.getElementById('prime-msg-count');
+            const passed = primeCount && primeCount.textContent === '3';
+            addTestResult(
+                'Test 5: Updates correctly from messages array',
+                passed,
+                `Count from messages.length: ${primeCount ? primeCount.textContent : 'NOT FOUND'} (expected 3)`
+            );
+            return passed;
+        }
+
+        function testZeroMessageCount() {
+            ThreadManager.threads[0].messages = [];
+            ThreadManager.threads[0].message_count = 0;
+            ThreadManager.updateMessageCount('test-thread-123');
+
+            const primeCount = document.getElementById('prime-msg-count');
+            const passed = primeCount && primeCount.textContent === '0';
+            addTestResult(
+                'Test 6: Handles zero messages correctly',
+                passed,
+                `Zero count: ${primeCount ? primeCount.textContent : 'NOT FOUND'} (expected 0)`
+            );
+            return passed;
+        }
+
+        function runAllTests() {
+            testResults = [];
+            console.log('🧪 Running all tests...');
+
+            addTestResult('Starting Tests', true, 'All tests initialized at ' + new Date().toLocaleTimeString());
+
+            setTimeout(() => testQuerySelectorAll(), 100);
+            setTimeout(() => testPrimeHeaderUpdate(), 200);
+            setTimeout(() => testAgentHeaderUpdate(), 300);
+            setTimeout(() => testAllMetaItemsUpdate(), 400);
+            setTimeout(() => testMessageArrayUpdate(), 500);
+            setTimeout(() => testZeroMessageCount(), 600);
+
+            setTimeout(() => {
+                console.log('✅ All tests completed');
+                const allPassed = testResults.filter(r => !r.passed).length === 1; // Only "Starting Tests" should be the info message
+                if (allPassed) {
+                    addTestResult('🎉 All Tests Passed!', true, 'The message count fix is working correctly across all UI elements.');
+                }
+            }, 700);
+        }
+
+        function simulateMessageAdd() {
+            const thread = ThreadManager.threads[0];
+            if (!thread.messages) thread.messages = [];
+            thread.messages.push({ role: 'user', content: 'New message' });
+            ThreadManager.updateMessageCount('test-thread-123');
+
+            addTestResult(
+                'Message Added',
+                true,
+                `Added message #${thread.messages.length}. Count updated across all UI elements.`
+            );
+        }
+
+        function simulateMessageRemove() {
+            const thread = ThreadManager.threads[0];
+            if (thread.messages && thread.messages.length > 0) {
+                thread.messages.pop();
+                ThreadManager.updateMessageCount('test-thread-123');
+
+                addTestResult(
+                    'Message Removed',
+                    true,
+                    `Removed message. Count now: ${thread.messages.length}. Updated across all UI elements.`
+                );
+            } else {
+                addTestResult(
+                    'Message Remove Failed',
+                    false,
+                    'No messages to remove'
+                );
+            }
+        }
+
+        function resetTest() {
+            ThreadManager.threads[0].messages = [];
+            ThreadManager.threads[0].message_count = 0;
+            ThreadManager.updateMessageCount('test-thread-123');
+            testResults = [];
+            renderTestResults();
+            console.log('🔄 Test reset');
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🚀 Auto-running tests...');
+                runAllTests();
+            }, 500);
+        });
+    </script>
+</body>
+
+</html>

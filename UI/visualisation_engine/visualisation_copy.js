@@ -678,8 +678,6 @@ class VisualizationEngine {
         if (this.isInitialized) return;
 
         try {
-            console.log('🎨 Initializing UNIFIED Visualization Engine V1.19 - NO LOADING STATES...');
-
             await this.loadFontAwesome();
 
             this.loadLibrariesAsync();
@@ -692,7 +690,6 @@ class VisualizationEngine {
             this.initializeMermaidFontController();
 
             this.isInitialized = true;
-            console.log('NIFIED Visualization Engine V1.19 initialized - NO LOADING STATES!');
 
         } catch (error) {
             console.error(' Failed to initialize UNIFIED Visualization Engine V1.19:', error);
@@ -748,7 +745,6 @@ class VisualizationEngine {
     initializeMermaidFontController() {
         try {
             window.mermaidFontController = new MermaidFontController();
-            console.log('ermaid font controller initialized');
         } catch (error) {
             console.error(' Failed to initialize Mermaid font controller:', error);
         }
@@ -1588,8 +1584,6 @@ class VisualizationEngine {
         styleSheet.id = 'viz-engine-styles';
         styleSheet.textContent = styles;
         document.head.appendChild(styleSheet);
-
-        console.log(`nified styles injected - NO LOADING STATES`);
     }
 
     // 2.3.2
@@ -9591,7 +9585,6 @@ ${svgData}`;
 // 11.1.1
 if (typeof window !== 'undefined') {
     window.mermaidFontController = new MermaidFontController();
-    console.log('ermaid font controller initialized');
 }
 
 // Export for use by visualization engine (only if defined here and not already provided)
@@ -9599,12 +9592,6 @@ if (typeof window !== 'undefined' &&
     typeof window.renderEnhancedMarkdown !== 'function' &&
     typeof renderEnhancedMarkdown === 'function') {
     window.renderEnhancedMarkdown = renderEnhancedMarkdown;
-    console.log('enderEnhancedMarkdown exported globally');
-} else {
-    // Either already provided (e.g., by streamingTwoRule.js) or not defined locally
-    if (typeof window !== 'undefined' && typeof window.renderEnhancedMarkdown === 'function') {
-        console.log('ℹ️ renderEnhancedMarkdown already available globally');
-    }
 }
 
 
@@ -9626,12 +9613,8 @@ if (typeof module === 'undefined') {
     }
 }
 
-console.log('NIFIED Visualization Engine V1.19 loaded with STABLE CONTAINERS!');
-console.log('🎯 FIXED: No more UI jumping - stable 500px containers with loading overlays');
-console.log('🎯 FIXED: Direct text rendering without unnecessary wrapper containers');
-console.log('🎯 ENHANCED: Loading states inside stable containers, not replacing them');
-console.log('🎯 UPDATED: Enhanced Mermaid node text formatting with isolated HTML classes');
-console.log('🎉 STABLE VISUALIZATION LOADING ACHIEVED!');
+console.log('⚙️ Initializing Unified Visualization Engine V1.19...');
+console.log('✅ Unified Visualization Engine V1.19 loaded successfully');
 
 
 

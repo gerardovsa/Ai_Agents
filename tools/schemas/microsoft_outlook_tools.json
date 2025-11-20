@@ -159,7 +159,7 @@
     },
     {
       "name": "microsoft_outlook_list_messages",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList emails from inbox or specific folder. Returns message metadata including sender, subject, preview, and date.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_list_messages', ...) - DO NOT call directly!\n\n🎯 PERFORMANCE TIP: ALWAYS use filtering parameters (max_results, unread_only, search, filter) to reduce data size and improve response time!\n\nList emails from inbox or specific folder. Returns message metadata including sender, subject, preview, and date.\n\nFILTERING EXAMPLES:\n• max_results=10 (limit to 10 emails)\n• unread_only=True (only unread)\n• search='project update' (keyword search)\n• filter='receivedDateTime ge 2025-11-15' (date filter)\n\nWithout filters, may return 500+ emails causing slow performance and truncated results!",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "high",
@@ -173,7 +173,7 @@
           },
           "max_results": {
             "type": "integer",
-            "description": "Maximum number of messages to return (default: 50, max: 500)",
+            "description": "⚠️ CRITICAL: Maximum number of messages to return (default: 50, max: 500). ALWAYS set this to prevent returning hundreds of emails! Recommended: 10-25 for quick scans, 50 for thorough reviews.",
             "default": 50
           },
           "filter": {
@@ -228,7 +228,7 @@
     },
     {
       "name": "microsoft_outlook_search_messages",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_search_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAdvanced search across all email folders with multiple criteria. Supports date ranges, sender filters, attachment checks, and keyword search.",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_outlook_search_messages', ...) - DO NOT call directly!\n\n🎯 BEST FOR: Date range searches and multi-criteria filtering!\n\nAdvanced search across all email folders with multiple criteria. Supports date ranges, sender filters, attachment checks, and keyword search.\n\nRECOMMENDED USAGE:\n• ALWAYS use date_from/date_to for time-based queries ('last week', 'this month')\n• Set max_results to reasonable limit (default: 50)\n• Combine filters for precision (date + sender + keywords)\n\nEXAMPLE: query='invoice', date_from='2025-11-01', date_to='2025-11-19', max_results=20",
       "platform": "microsoft_outlook",
       "category": "basic",
       "priority": "high",
@@ -257,7 +257,7 @@
           },
           "max_results": {
             "type": "integer",
-            "description": "Maximum results (default: 50)",
+            "description": "⚠️ IMPORTANT: Maximum results to return (default: 50). Use lower values (10-25) for focused searches. Higher values (50-100) only when user needs comprehensive results.",
             "default": 50
           }
         },

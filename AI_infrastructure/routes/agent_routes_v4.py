@@ -1075,13 +1075,24 @@ Additional Preferences (YOU MUST FOLLOW THESE):
         try:
             from core.prompt_injection_manager import get_prompt_manager
             
-            # Get injection parameters from request (with proper Content-Type check)
-            # FIX: Check content_type to avoid 415 error
-            has_json = request.content_type and 'application/json' in request.content_type
-            quick_actions = request.json.get('quick_actions', []) if has_json and request.json else []
-            library_prompts = request.json.get('library_prompts', []) if has_json and request.json else []
-            custom_prompt = request.json.get('custom_prompt', None) if has_json and request.json else None
-            user_custom_prompts = request.json.get('user_custom_prompts', []) if has_json and request.json else []
+            # CRITICAL FIX: Read from query parameters (request.args) not POST body
+            # Frontend sends these as URL params: ?quick_actions=x,y&library_prompts=z
+            # Parse comma-separated strings into lists
+            quick_actions_str = request.args.get('quick_actions', '')
+            library_prompts_str = request.args.get('library_prompts', '')
+            custom_prompt = request.args.get('custom_prompt', None)
+            
+            # Debug: Show what was received
+            if quick_actions_str or library_prompts_str or custom_prompt:
+                print(f"[Stream {agent_id}] 📥 Received prompt injection parameters:")
+                print(f"  - quick_actions (raw): '{quick_actions_str}'")
+                print(f"  - library_prompts (raw): '{library_prompts_str}'")
+                print(f"  - custom_prompt: '{custom_prompt[:50] if custom_prompt else None}'")
+            
+            # Convert comma-separated strings to lists
+            quick_actions = [qa.strip() for qa in quick_actions_str.split(',') if qa.strip()] if quick_actions_str else []
+            library_prompts = [lp.strip() for lp in library_prompts_str.split(',') if lp.strip()] if library_prompts_str else []
+            user_custom_prompts = []  # Not yet implemented in UI
             
             # Apply prompt injections if any provided
             if quick_actions or library_prompts or custom_prompt or user_custom_prompts:
@@ -1333,6 +1344,14 @@ Platforms available: google_workspace, microsoft_365, woocommerce, stripe, slack
 Use tools in multiple rounds with interleaved thinking to complete complex tasks."""
     
     # ============================================
+    # APPEND CONTINUED PROMPT TO SYSTEM PROMPT
+    # ============================================
+    # CRITICAL FIX: Append the continuation to complete the system prompt
+    system_prompt += system_prompt_continued
+    
+    print(f"[Stream {agent_id}] ✅ System prompt complete: {len(system_prompt)} characters")
+    
+    # ============================================
     # CONTEXT ALREADY INJECTED INTO SYSTEM PROMPT
     # ============================================
     # Note: All context (Synergy, Workflow, Automation, Internal Docs) 
@@ -1394,29 +1413,23 @@ Use tools in multiple rounds with interleaved thinking to complete complex tasks
                         final_state = agent_state_manager.get_state(agent_id, thread_slug)
                         
                         if final_state and final_state.get('conversation'):
-                            # Auto-save thread to database (FIXED: Use sessions.db, not stock db)
-                            from utils.database_helpers import execute_sqlite_update, get_sessions_database_path
-                            
-                            db_path = get_sessions_database_path()
+                            # Auto-save thread to database (SUPABASE COMPATIBLE)
                             thread_id = f"{agent_id}_{thread_slug}"
-                            conversation_json = json.dumps(final_state['conversation'])
                             
-                            # Determine location from thread assignments
-                            # Note: This is optional - just for logging purposes
-                            # Thread location is already stored in threads table
-                            location = 'prime'  # Default (not critical for saving)
+                            # Update thread's updated_at timestamp using connection
+                            conn = get_database_connection('sessions')
+                            cursor = conn.cursor()
                             
-                            # Update thread's updated_at timestamp (thread already exists from creation)
-                            # Don't try to save to non-existent saved_threads table
                             update_query = """
-                                UPDATE sessions.threads 
+                                UPDATE threads 
                                 SET updated_at = CURRENT_TIMESTAMP
                                 WHERE thread_slug = %s
                             """
                             
-                            params = [thread_slug]
-                            
-                            execute_sqlite_update(db_path, update_query, params)
+                            cursor.execute(update_query, (thread_slug,))
+                            conn.commit()
+                            cursor.close()
+                            conn.close()
                             print(f"✅ [Auto-Save] Thread updated: {thread_id} ({len(final_state['conversation'])} messages)")
                     
                     except Exception as save_error:
@@ -1898,13 +1911,12 @@ def simple_chat():
                 response_text = result.get('response', '')
                 tool_calls_list = result.get('tool_calls', [])
                 
-                # Save messages to database with metadata
+                # Save messages to database with metadata (SUPABASE COMPATIBLE)
                 try:
                     from thread_manager import ThreadManager
-                    from utils.database_helpers import get_sessions_database_path
                     
                     thread_id = data.get('thread_id') or session_id
-                    thread_mgr = ThreadManager(get_sessions_database_path())
+                    thread_mgr = ThreadManager()  # Uses get_database_connection() internally
                     
                     # Save user message
                     thread_mgr.add_message(

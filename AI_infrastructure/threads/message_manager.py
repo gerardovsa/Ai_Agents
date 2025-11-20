@@ -85,17 +85,19 @@ class MessageManager:
     def add_message(
         self,
         message_data: MessageCreate,
-        check_permissions: bool = True
+        check_permissions: bool = True,
+        check_duplicates: bool = True
     ) -> Message:
         """
-        Add message to thread
+        Add message to thread with optional duplicate detection
         
         Args:
             message_data: MessageCreate model with message details
             check_permissions: Whether to check thread permissions
+            check_duplicates: Whether to check for duplicate messages (DEFAULT: True)
         
         Returns:
-            Message: Created message object
+            Message: Created message object (or existing if duplicate detected)
         
         Raises:
             ThreadNotFoundError: If thread doesn't exist
@@ -132,6 +134,37 @@ class MessageManager:
                 if thread_row['user_id'] != message_data.user_id:
                     # TODO: Check workspace permissions and shares
                     pass
+            
+            # NEW: Duplicate detection (before message limit check)
+            if check_duplicates:
+                normalized_content = self._normalize_content(message_data.content)
+                
+                # Check last 20 messages for duplicates
+                cursor.execute("""
+                    SELECT id, content, role, created_at 
+                    FROM messages 
+                    WHERE thread_id = %s 
+                    ORDER BY created_at DESC 
+                    LIMIT 20
+                """, (message_data.thread_id,))
+                
+                recent_messages = cursor.fetchall()
+                
+                for existing_msg in recent_messages:
+                    existing_normalized = self._normalize_content(existing_msg['content'])
+                    
+                    # Check if content matches and role matches
+                    if (existing_normalized == normalized_content and 
+                        existing_msg['role'] == message_data.role.value):
+                        
+                        print(f"[DUPLICATE PREVENTED] Message already exists in thread {message_data.thread_id}. "
+                              f"Existing message ID: {existing_msg['id']}, "
+                              f"Created: {existing_msg['created_at']}")
+                        
+                        # Return existing message instead of creating duplicate
+                        existing_message = self.get_message(existing_msg['id'])
+                        conn.close()
+                        return existing_message
             
             # Check message limit
             cursor.execute("""
@@ -606,24 +639,49 @@ class MessageManager:
         conn.close()
         
         if not row:
-            # Log response time for debugging (do not persist in DB)
-            if response_time_ms is not None:
-                try:
-                    print(f"[TIMING] message_id={message_id} response_time_ms={response_time_ms}")
-                except Exception:
-                    pass
-
-            return {
-                'id': message_id,
-                'workspace_id': workspace_id,
-                'thread_id': thread_id,
-                'role': role,
-                'content': content,
-                'prompt': prompt,
-                'include': include,
-                'tool_calls': tool_calls or [],
-                'tokens_used': tokens_used,
-                'response_time_ms': response_time_ms,
-                'created_at': timestamp,
-                'metadata': metadata or {}
-            }
+            return None
+        
+        return self.get_message(row['id'])
+    
+    def _normalize_content(self, content: Any) -> str:
+        """
+        Normalize message content for duplicate detection
+        
+        Handles different content formats:
+        - String: normalize whitespace
+        - List/Array: extract text from all items
+        - Dict: convert to JSON string
+        
+        Args:
+            content: Message content (string, list, or dict)
+        
+        Returns:
+            str: Normalized content string
+        """
+        if isinstance(content, str):
+            # String format - normalize whitespace
+            return ' '.join(content.split())
+        
+        elif isinstance(content, list):
+            # Array format - extract text from all items
+            text_parts = []
+            for item in content:
+                if isinstance(item, dict):
+                    # Check for 'text' field in dict
+                    if 'text' in item:
+                        text_parts.append(item['text'])
+                    elif 'type' in item and item.get('type') == 'text':
+                        text_parts.append(item.get('text', ''))
+                elif isinstance(item, str):
+                    text_parts.append(item)
+            
+            combined = ' '.join(text_parts)
+            return ' '.join(combined.split())
+        
+        elif isinstance(content, dict):
+            # Dict format - convert to JSON string
+            return json.dumps(content, sort_keys=True)
+        
+        else:
+            # Unknown format - convert to string
+            return str(content)

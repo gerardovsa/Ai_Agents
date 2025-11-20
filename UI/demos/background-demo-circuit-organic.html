@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Organic Circuit Flow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            background: #0d1117;
+        }
+
+        #organicCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .gradient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center,
+                    rgba(13, 17, 23, 0.3) 0%,
+                    rgba(13, 17, 23, 0.7) 50%,
+                    rgba(13, 17, 23, 0.9) 100%);
+            z-index: 2;
+        }
+
+        .content-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .login-container {
+            background: linear-gradient(145deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.95) 100%);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 20px;
+            padding: 48px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(48, 54, 61, 0.8);
+            border-top: 4px solid #3fb950;
+            border-radius: 50%;
+            margin: 0 auto 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #3fb950;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(48, 54, 61, 0.5);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3fb950, #58a6ff);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressGrow 3s ease-in-out infinite;
+        }
+
+        @keyframes progressGrow {
+
+            0%,
+            100% {
+                width: 0%;
+            }
+
+            50% {
+                width: 100%;
+            }
+        }
+
+        .demo-label {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #3fb950;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 100;
+            background: rgba(13, 17, 23, 0.9);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="demo-label">Circuit Board v3: Organic Neural Flow</div>
+
+    <canvas id="organicCanvas"></canvas>
+    <div class="gradient-overlay"></div>
+
+    <div class="content-overlay">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="spinner"></div>
+                <h1>Business AI Platform</h1>
+                <p>Loading your workspace...</p>
+            </div>
+            <div class="loading-text">Neural network syncing...</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('organicCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Organic spline path (smooth curves like veins/neurons)
+        class OrganicPath {
+            constructor(startAngle) {
+                const distance = Math.max(canvas.width, canvas.height) * 0.7;
+                this.startX = centerX + Math.cos(startAngle) * distance;
+                this.startY = centerY + Math.sin(startAngle) * distance;
+                this.endX = centerX;
+                this.endY = centerY;
+
+                // Generate smooth control points for natural curves
+                this.controlPoints = [];
+                const numPoints = 4 + Math.floor(Math.random() * 3);
+
+                for (let i = 0; i < numPoints; i++) {
+                    const t = (i + 1) / (numPoints + 1);
+                    const baseDist = distance * (1 - t);
+
+                    // Add organic variation
+                    const noiseAngle = startAngle + (Math.random() - 0.5) * Math.PI * 0.5;
+                    const noiseOffset = (Math.random() - 0.5) * 250;
+
+                    const x = centerX + Math.cos(noiseAngle) * baseDist + noiseOffset;
+                    const y = centerY + Math.sin(noiseAngle) * baseDist + noiseOffset;
+
+                    this.controlPoints.push({ x, y });
+                }
+
+                // Add some intermediate nodes for thicker sections
+                this.nodes = this.controlPoints.filter((_, i) => Math.random() > 0.5);
+            }
+
+            draw() {
+                // Draw organic curved path
+                ctx.strokeStyle = 'rgba(63, 185, 80, 0.25)';
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                ctx.beginPath();
+                ctx.moveTo(this.startX, this.startY);
+
+                // Use quadratic curves between control points for smoothness
+                for (let i = 0; i < this.controlPoints.length; i++) {
+                    const cp = this.controlPoints[i];
+                    const nextPoint = this.controlPoints[i + 1] || { x: this.endX, y: this.endY };
+
+                    // Calculate midpoint
+                    const midX = (cp.x + nextPoint.x) / 2;
+                    const midY = (cp.y + nextPoint.y) / 2;
+
+                    ctx.quadraticCurveTo(cp.x, cp.y, midX, midY);
+                }
+
+                ctx.lineTo(this.endX, this.endY);
+                ctx.stroke();
+
+                // Draw nodes (synapses)
+                ctx.fillStyle = 'rgba(63, 185, 80, 0.4)';
+                this.nodes.forEach(node => {
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            getPointAtProgress(t) {
+                // Catmull-Rom spline approximation
+                const points = [
+                    { x: this.startX, y: this.startY },
+                    ...this.controlPoints,
+                    { x: this.endX, y: this.endY }
+                ];
+
+                const totalSegments = points.length - 1;
+                const segment = Math.floor(t * totalSegments);
+                const localT = (t * totalSegments) % 1;
+
+                if (segment >= totalSegments) {
+                    return points[points.length - 1];
+                }
+
+                const p0 = points[Math.max(0, segment - 1)];
+                const p1 = points[segment];
+                const p2 = points[segment + 1];
+                const p3 = points[Math.min(points.length - 1, segment + 2)];
+
+                // Catmull-Rom interpolation
+                const t2 = localT * localT;
+                const t3 = t2 * localT;
+
+                const x = 0.5 * (
+                    (2 * p1.x) +
+                    (-p0.x + p2.x) * localT +
+                    (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+                    (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+                );
+
+                const y = 0.5 * (
+                    (2 * p1.y) +
+                    (-p0.y + p2.y) * localT +
+                    (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+                    (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+                );
+
+                return { x, y };
+            }
+        }
+
+        // Energy pulse
+        class EnergyPulse {
+            constructor(path) {
+                this.path = path;
+                this.progress = Math.random();
+                this.speed = 0.002 + Math.random() * 0.004;
+                this.size = 3 + Math.random() * 2;
+                this.color = { r: 63, g: 185, b: 80 };
+            }
+
+            update() {
+                this.progress += this.speed;
+                if (this.progress > 1) {
+                    this.progress = 0;
+                }
+            }
+
+            draw() {
+                const pos = this.path.getPointAtProgress(this.progress);
+
+                // Organic glow
+                const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, this.size * 4);
+                gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.9)`);
+                gradient.addColorStop(0.5, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.4)`);
+                gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`);
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, this.size * 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Bright core
+                ctx.fillStyle = 'rgba(200, 255, 200, 0.9)';
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = 'rgba(63, 185, 80, 0.8)';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Create paths
+        const paths = [];
+        const pathCount = 18;
+        for (let i = 0; i < pathCount; i++) {
+            const angle = (i / pathCount) * Math.PI * 2;
+            paths.push(new OrganicPath(angle));
+        }
+
+        // Create pulses
+        const pulses = [];
+        paths.forEach(path => {
+            for (let i = 0; i < 4; i++) {
+                const pulse = new EnergyPulse(path);
+                pulse.progress = i / 4;
+                pulses.push(pulse);
+            }
+        });
+
+        // Central core (neural center)
+        function drawCentralCore() {
+            const pulse = Math.sin(Date.now() * 0.002) * 0.4 + 0.6;
+
+            // Outer rings
+            for (let i = 3; i > 0; i--) {
+                ctx.strokeStyle = `rgba(63, 185, 80, ${0.2 * pulse / i})`;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'rgba(63, 185, 80, 0.3)';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 60 + i * 20, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Core glow
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 70);
+            gradient.addColorStop(0, `rgba(63, 185, 80, ${0.4 * pulse})`);
+            gradient.addColorStop(1, 'rgba(63, 185, 80, 0)');
+            ctx.fillStyle = gradient;
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 70, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            paths.forEach(path => path.draw());
+            drawCentralCore();
+
+            pulses.forEach(pulse => {
+                pulse.update();
+                pulse.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+
+</html>

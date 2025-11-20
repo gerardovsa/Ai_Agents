@@ -142,7 +142,7 @@ class AutomationCanvas {
         if (!indicator) {
             indicator = document.createElement('div');
             indicator.id = 'auto-save-indicator';
-            indicator.style.cssText = 'position: fixed; top: 70px; right: 20px; padding: 8px 12px; background: rgba(0,0,0,0.8); color: white; border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 6px; z-index: 1000; transition: opacity 0.3s;';
+            indicator.style.cssText = 'position: fixed; bottom: 15px; left: 15px; padding: 8px 12px; background: rgba(0,0,0,0.8); color: white; border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 6px; z-index: 1000; transition: opacity 0.3s;';
             document.body.appendChild(indicator);
         }
 
@@ -166,6 +166,20 @@ class AutomationCanvas {
     }
 
     setupEventListeners() {
+        // Palette collapse/expand toggle
+        const paletteToggle = document.getElementById('palette-toggle');
+        if (paletteToggle) {
+            paletteToggle.addEventListener('click', () => {
+                const paletteShapes = document.getElementById('palette-shapes');
+                const chevron = document.getElementById('palette-chevron');
+                if (paletteShapes && chevron) {
+                    const isCollapsed = paletteShapes.style.display === 'none';
+                    paletteShapes.style.display = isCollapsed ? 'flex' : 'none';
+                    chevron.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
+                }
+            });
+        }
+
         // Shape palette drag-and-drop (floating palette)
         document.querySelectorAll('.floating-shape-item').forEach(item => {
             item.addEventListener('dragstart', (e) => this.handleShapeDragStart(e));
@@ -205,11 +219,14 @@ class AutomationCanvas {
             }
         });
 
-        // Title input auto-generate slug
+        // Title input - DO NOT auto-generate slug (slug must remain immutable)
         document.getElementById('workflow-title-input')?.addEventListener('input', (e) => {
-            const title = e.target.value;
-            const slug = this.generateSlug(title);
-            document.getElementById('workflow-slug-input').value = slug || '';
+            // Slug should NOT change when title changes
+            // If this is a new workflow and no slug exists yet, generate one
+            const slugInput = document.getElementById('workflow-slug-input');
+            if (slugInput && !slugInput.value) {
+                slugInput.value = this.generateSlug();
+            }
         });
 
         // Workflow card click to edit
@@ -607,8 +624,8 @@ class AutomationCanvas {
         }
     }
 
-    clearCanvas() {
-        // Clear all shapes from DOM
+    clearCanvasDOM() {
+        // Clear all shapes from DOM (without resetting data arrays)
         const canvas = document.getElementById('automation-canvas-wrapper');
         if (!canvas) return;
 
@@ -619,73 +636,42 @@ class AutomationCanvas {
         // Remove connections SVG
         document.getElementById('connections-svg')?.remove();
 
-        console.log('[CANVAS] Cleared all shapes and connections');
+        console.log('[CANVAS] Cleared DOM elements (shapes data preserved)');
     }
 
     renderAllShapes() {
-        // Render all shapes from this.shapes array onto the canvas
+        // Render all shapes from this.shapes array onto the canvas using the standard renderShape method
         console.log(`[CANVAS] Rendering ${this.shapes.length} shapes`);
 
         this.shapes.forEach(shape => {
-            // Use existing createShape logic but pass the shape data
-            const canvas = document.getElementById('automation-canvas-wrapper');
-            if (!canvas) return;
-
-            // Create shape element
-            const shapeEl = document.createElement('div');
-            shapeEl.className = 'automation-shape';
-            shapeEl.id = `shape-${shape.id}`;
-            shapeEl.style.left = `${shape.x}px`;
-            shapeEl.style.top = `${shape.y}px`;
-            shapeEl.style.width = `${shape.width || 200}px`;
-            shapeEl.style.height = `${shape.height || 80}px`;
-            shapeEl.style.background = shape.color || this.currentColor;
-            shapeEl.draggable = true;
-
-            // Set data attributes
-            shapeEl.dataset.shapeType = shape.type || 'rectangle';
-
-            // Add content based on type
-            const icon = this.getShapeIcon(shape.type);
-            const label = shape.label || shape.text || 'Untitled';
-            const description = shape.description || '';
-
-            shapeEl.innerHTML = `
-                <div class="shape-header">
-                    <i class="${icon}"></i>
-                    <span>${label}</span>
-                </div>
-                ${description ? `<div class="shape-description">${description}</div>` : ''}
-                <button class="shape-delete-btn" title="Delete shape">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-
-            // Add event listeners
-            shapeEl.addEventListener('mousedown', (e) => {
-                if (!e.target.closest('.shape-delete-btn')) {
-                    this.startDragShape(e, shape);
-                }
-            });
-
-            shapeEl.addEventListener('click', (e) => {
-                if (!e.target.closest('.shape-delete-btn')) {
-                    this.selectShape(`shape-${shape.id}`);
-                }
-            });
-
-            const deleteBtn = shapeEl.querySelector('.shape-delete-btn');
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.deleteShape(`shape-${shape.id}`);
-                });
+            // Normalize shape data structure (old format uses 'text', new uses 'label' + 'description')
+            if (!shape.text && (shape.label || shape.description)) {
+                // Combine label and description into text field for consistency
+                const label = (shape.label && shape.label !== 'null') ? shape.label : '';
+                const description = (shape.description && shape.description !== 'null') ? shape.description : '';
+                shape.text = label + (description ? '\n' + description : '');
+            } else if (!shape.text) {
+                shape.text = '';
             }
 
-            canvas.appendChild(shapeEl);
+            // Ensure shape has required properties for renderShape
+            if (!shape.width) shape.width = 150;
+            if (!shape.height) shape.height = 80;
+            if (!shape.color) shape.color = this.currentColor;
+
+            // Fix shape ID format (remove 'shape-' prefix if present, renderShape will add it)
+            const originalId = shape.id;
+            if (typeof shape.id === 'string' && shape.id.startsWith('shape-')) {
+                shape.id = shape.id;  // Keep as is, renderShape expects just the ID part
+            } else if (typeof shape.id === 'number') {
+                shape.id = `shape_${shape.id}`;  // Convert number to string format
+            }
+
+            // Use the standard renderShape method for full functionality
+            this.renderShape(shape);
         });
 
-        console.log('[CANVAS] All shapes rendered');
+        console.log('[CANVAS] All shapes rendered with full interactivity');
     }
 
     getShapeIcon(type) {
@@ -1092,14 +1078,20 @@ class AutomationCanvas {
                 }
             });
 
-            if (!response.ok) throw new Error('Failed to load workflows');
+            if (!response.ok) {
+                // Gracefully handle API not available (backend may not be running)
+                console.warn('[AutomationCanvas] Workflows API not available - showing empty state');
+                this.workflows = [];
+                this.renderWorkflowList();
+                return;
+            }
 
             const data = await response.json();
             this.workflows = data.workflows || [];
             this.renderWorkflowList();
         } catch (error) {
-            console.error('Error loading workflows:', error);
-            // Show empty state if no workflows or error
+            // Silently handle fetch errors (backend offline, network issues, etc.)
+            console.warn('[AutomationCanvas] Could not load workflows - showing empty state:', error.message);
             this.workflows = [];
             this.renderWorkflowList();
         }
@@ -1216,9 +1208,8 @@ class AutomationCanvas {
     }
 
     async createNewWorkflow() {
-        // Generate slug from timestamp
-        const timestamp = Date.now();
-        const slug = `workflow-${timestamp}`;
+        // Generate TRUE unique slug (not title-based)
+        const slug = this.generateSlug();
 
         // Create new workflow object
         const newWorkflow = {
@@ -1245,7 +1236,7 @@ class AutomationCanvas {
         this.workflowDescription = 'Describe your automation workflow';
         this.workflowStatus = 'draft';
 
-        console.log('Created new workflow:', slug);
+        console.log('Created new workflow with unique slug:', slug);
 
         // Add to workflows list temporarily (will be saved when user saves)
         this.workflows.unshift(newWorkflow);
@@ -1873,7 +1864,8 @@ class AutomationCanvas {
 
         const workflowData = {
             title: title,
-            slug: slugInput.value || this.generateSlug(title),
+            // Use existing slug OR generate new unique slug (NOT title-based)
+            slug: slugInput.value || this.workflowSlug || this.generateSlug(),
             created_at: timestampInput.value || new Date().toISOString(),
             category: categorySelect.value || 'other',
             description: descriptionInput.value.trim(),
@@ -1914,7 +1906,20 @@ class AutomationCanvas {
         this.closeWorkflowModal();
     }
 
-    generateSlug(title) {
+    generateSlug(title = '') {
+        // Generate TRUE unique slug (not title-based)
+        // Format: wf_<8-char-random>_<timestamp>
+        // Example: wf_a3f8b2c1_1732029847
+
+        const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
+        const randomPart = Math.random().toString(36).substring(2, 10); // 8 random chars
+
+        return `wf_${randomPart}_${timestamp}`;
+    }
+
+    generateReadableSlug(title) {
+        // Generate human-readable slug from title (for display/reference only)
+        // NOT used as unique identifier
         return title
             .toLowerCase()
             .replace(/[^a-z0-9\s-]/g, '')
@@ -2067,7 +2072,21 @@ class AutomationCanvas {
                 }
             });
 
-            if (!response.ok) throw new Error('Failed to load workflows');
+            if (!response.ok) {
+                // Gracefully handle API not available
+                console.warn('[LoadWorkflow] Workflows API not available');
+                this.workflows = [];
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (emptyEl) {
+                    emptyEl.style.display = 'block';
+                    emptyEl.innerHTML = `
+                        <i class="fas fa-cloud-slash" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <p style="margin-bottom: 8px; opacity: 0.8;">Backend API not available</p>
+                        <p style="font-size: 12px; opacity: 0.6;">Start the backend server to load workflows</p>
+                    `;
+                }
+                return;
+            }
 
             const data = await response.json();
             this.workflows = data.workflows || [];
@@ -2082,7 +2101,7 @@ class AutomationCanvas {
             this.setupLoadWorkflowModalListeners();
 
         } catch (error) {
-            console.error('Error loading workflows:', error);
+            console.warn('[LoadWorkflow] Could not load workflows:', error.message);
             if (loadingEl) loadingEl.style.display = 'none';
             if (emptyEl) {
                 emptyEl.style.display = 'block';
@@ -2294,23 +2313,73 @@ class AutomationCanvas {
 
             // Load workflow data onto canvas (ui_json contains shapes and connections)
             const uiJson = workflow.ui_json || {};
+            console.log('[LOAD] ui_json:', uiJson);
+            console.log('[LOAD] shapes array:', uiJson.shapes);
+            console.log('[LOAD] shapes is array:', Array.isArray(uiJson.shapes));
+
             if (uiJson.shapes || uiJson.connections) {
-                this.shapes = (Array.isArray(uiJson.shapes) ? uiJson.shapes : []).filter(s => s && s.id);
+                // Sanitize shape data to remove null values
+                const rawShapes = Array.isArray(uiJson.shapes) ? uiJson.shapes : [];
+                console.log('[LOAD] Raw shapes count:', rawShapes.length);
+
+                this.shapes = rawShapes
+                    .filter(s => {
+                        const hasId = s && s.id;
+                        if (!hasId) console.log('[LOAD] Filtered out shape (no id):', s);
+                        return hasId;
+                    })
+                    .map(s => ({
+                        ...s,
+                        label: (s.label && s.label !== 'null') ? s.label : (s.text && s.text !== 'null') ? s.text : null,
+                        description: (s.description && s.description !== 'null') ? s.description : null
+                    }));
+
+                console.log('[LOAD] Filtered shapes count:', this.shapes.length);
+                console.log('[LOAD] Shapes:', this.shapes);
+
                 this.connections = (Array.isArray(uiJson.connections) ? uiJson.connections : []).filter(c => c && c.id);
+                console.log('[LOAD] Connections count:', this.connections.length);
 
                 // Update shape IDs to prevent conflicts
                 if (this.shapes.length > 0) {
-                    const maxId = Math.max(...this.shapes.map(s => s.id));
-                    this.nextShapeId = maxId + 1;
+                    // Handle both string and numeric IDs
+                    const numericIds = this.shapes.map(s => {
+                        const id = s.id;
+                        // If ID is a string like "shape_1", extract the number
+                        if (typeof id === 'string') {
+                            const match = id.match(/\d+/);
+                            return match ? parseInt(match[0]) : 0;
+                        }
+                        return typeof id === 'number' ? id : 0;
+                    }).filter(id => id > 0);
+
+                    if (numericIds.length > 0) {
+                        const maxId = Math.max(...numericIds);
+                        this.nextShapeId = maxId + 1;
+                        console.log('[LOAD] Next shape ID:', this.nextShapeId);
+                    }
                 }
 
                 if (this.connections.length > 0) {
-                    const maxId = Math.max(...this.connections.map(c => c.id));
-                    this.nextConnectionId = maxId + 1;
+                    // Handle both string and numeric IDs
+                    const numericIds = this.connections.map(c => {
+                        const id = c.id;
+                        if (typeof id === 'string') {
+                            const match = id.match(/\d+/);
+                            return match ? parseInt(match[0]) : 0;
+                        }
+                        return typeof id === 'number' ? id : 0;
+                    }).filter(id => id > 0);
+
+                    if (numericIds.length > 0) {
+                        const maxId = Math.max(...numericIds);
+                        this.nextConnectionId = maxId + 1;
+                        console.log('[LOAD] Next connection ID:', this.nextConnectionId);
+                    }
                 }
 
-                // Clear existing canvas
-                this.clearCanvas();
+                // Clear existing canvas DOM (preserve this.shapes array)
+                this.clearCanvasDOM();
 
                 // Render all shapes and connections
                 this.renderAllShapes();

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadManager Smoke Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        h1 { color: #4ec9b0; }
+        .test-section {
+            background: #252526;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007acc;
+        }
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #3e3e42;
+        }
+        .test-item:last-child { border-bottom: none; }
+        .test-name {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .test-result {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .pass {
+            background: #1e8e3e;
+            color: white;
+        }
+        .fail {
+            background: #f14c4c;
+            color: white;
+        }
+        .summary {
+            background: #264f78;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .summary h2 { margin: 0 0 10px 0; }
+        .count { font-size: 24px; font-weight: bold; }
+        .pass-count { color: #4ec9b0; }
+        .fail-count { color: #f48771; }
+        pre {
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            border: 1px solid #3e3e42;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 ThreadManager Smoke Test</h1>
+    <p>Testing thread_manager.js file integrity and critical methods...</p>
+
+    <div id="test-results"></div>
+    <div id="summary" class="summary" style="display:none;">
+        <h2>Test Summary</h2>
+        <div class="count">
+            <span class="pass-count" id="pass-count">0</span> passed / 
+            <span class="fail-count" id="fail-count">0</span> failed
+        </div>
+    </div>
+
+    <!-- Mock dependencies -->
+    <script>
+        // Mock UserAuth for testing
+        window.UserAuth = {
+            user: { id: 1, user_id: 1 },
+            token: 'test_token_123'
+        };
+        
+        // Mock API_BASE_URL
+        window.API_BASE_URL = 'http://localhost:5001';
+    </script>
+
+    <!-- Load thread_manager.js -->
+    <script src="modules/threads/thread_manager.js"></script>
+
+    <!-- Run tests -->
+    <script>
+        const tests = [];
+        let passCount = 0;
+        let failCount = 0;
+
+        function addTest(name, testFunc) {
+            try {
+                const result = testFunc();
+                tests.push({ name, pass: result, error: null });
+                if (result) passCount++;
+                else failCount++;
+            } catch (error) {
+                tests.push({ name, pass: false, error: error.message });
+                failCount++;
+            }
+        }
+
+        // Wait for script to load
+        setTimeout(() => {
+            console.log('Starting ThreadManager smoke tests...');
+
+            // Test 1: ThreadManager exists
+            addTest('ThreadManager object exists', () => {
+                return typeof ThreadManager !== 'undefined';
+            });
+
+            // Test 2: ThreadManager has properties
+            addTest('ThreadManager.threads array exists', () => {
+                return Array.isArray(ThreadManager.threads);
+            });
+
+            // Test 3: Critical methods exist
+            addTest('ThreadManager.init() exists', () => {
+                return typeof ThreadManager.init === 'function';
+            });
+
+            addTest('ThreadManager.assignThread() exists', () => {
+                return typeof ThreadManager.assignThread === 'function';
+            });
+
+            addTest('ThreadManager.restoreThreadAssignments() exists', () => {
+                return typeof ThreadManager.restoreThreadAssignments === 'function';
+            });
+
+            addTest('ThreadManager.renderThreadList() exists', () => {
+                return typeof ThreadManager.renderThreadList === 'function';
+            });
+
+            addTest('ThreadManager.loadThreadsFromBackend() exists', () => {
+                return typeof ThreadManager.loadThreadsFromBackend === 'function';
+            });
+
+            addTest('ThreadManager.initWelcomeMessage() exists', () => {
+                return typeof ThreadManager.initWelcomeMessage === 'function';
+            });
+
+            addTest('ThreadManager.syncThreadLocationEverywhere() exists', () => {
+                return typeof ThreadManager.syncThreadLocationEverywhere === 'function';
+            });
+
+            addTest('ThreadManager.refreshAllThreadInfoCards() exists', () => {
+                return typeof ThreadManager.refreshAllThreadInfoCards === 'function';
+            });
+
+            // Test 4: Welcome system
+            addTest('ThreadManager.quickTips array exists', () => {
+                return Array.isArray(ThreadManager.quickTips) && ThreadManager.quickTips.length > 0;
+            });
+
+            addTest('ThreadManager.getTimeBasedGreeting() works', () => {
+                const greeting = ThreadManager.getTimeBasedGreeting();
+                return greeting && typeof greeting.title === 'string';
+            });
+
+            addTest('ThreadManager.getNextQuickTip() works', () => {
+                const tip = ThreadManager.getNextQuickTip();
+                return typeof tip === 'string' && tip.length > 0;
+            });
+
+            // Test 5: MessageStore exists
+            addTest('MessageStore exists', () => {
+                return typeof MessageStore !== 'undefined';
+            });
+
+            addTest('MessageStore.addMessage() exists', () => {
+                return typeof MessageStore.addMessage === 'function';
+            });
+
+            addTest('MessageStore.getMessages() exists', () => {
+                return typeof MessageStore.getMessages === 'function';
+            });
+
+            // Test 6: DeviceLockManager exists
+            addTest('DeviceLockManager exists', () => {
+                return typeof DeviceLockManager !== 'undefined';
+            });
+
+            addTest('DeviceLockManager.init() exists', () => {
+                return typeof DeviceLockManager.init === 'function';
+            });
+
+            // Test 7: UserAuth exists
+            addTest('UserAuth exists', () => {
+                return typeof UserAuth !== 'undefined';
+            });
+
+            addTest('UserAuth.init() exists', () => {
+                return typeof UserAuth.init === 'function';
+            });
+
+            addTest('UserAuth.login() exists', () => {
+                return typeof UserAuth.login === 'function';
+            });
+
+            // Render results
+            renderResults();
+        }, 500);
+
+        function renderResults() {
+            const container = document.getElementById('test-results');
+            
+            tests.forEach(test => {
+                const section = document.createElement('div');
+                section.className = 'test-section';
+                
+                const item = document.createElement('div');
+                item.className = 'test-item';
+                
+                const name = document.createElement('div');
+                name.className = 'test-name';
+                name.textContent = test.name;
+                
+                const result = document.createElement('div');
+                result.className = `test-result ${test.pass ? 'pass' : 'fail'}`;
+                result.textContent = test.pass ? '✓ PASS' : '✗ FAIL';
+                
+                item.appendChild(name);
+                item.appendChild(result);
+                section.appendChild(item);
+                
+                if (test.error) {
+                    const error = document.createElement('pre');
+                    error.textContent = `Error: ${test.error}`;
+                    error.style.color = '#f48771';
+                    section.appendChild(error);
+                }
+                
+                container.appendChild(section);
+            });
+
+            // Show summary
+            document.getElementById('pass-count').textContent = passCount;
+            document.getElementById('fail-count').textContent = failCount;
+            document.getElementById('summary').style.display = 'block';
+
+            // Console summary
+            console.log(`\n${'='.repeat(60)}`);
+            console.log(`SMOKE TEST RESULTS: ${passCount}/${tests.length} passed`);
+            console.log(`${'='.repeat(60)}`);
+            
+            if (failCount === 0) {
+                console.log('%c✓ ALL TESTS PASSED!', 'background: #1e8e3e; color: white; padding: 8px; font-weight: bold;');
+            } else {
+                console.log('%c✗ SOME TESTS FAILED', 'background: #f14c4c; color: white; padding: 8px; font-weight: bold;');
+                tests.filter(t => !t.pass).forEach(t => {
+                    console.log(`  - ${t.name}: ${t.error || 'Failed'}`);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

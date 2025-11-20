@@ -3088,6 +3088,15 @@ window.internalDocsManager = new InternalDocsManager(window.API_BASE_URL || 'htt
 //     window.internalDocsManager.init();
 // }
 
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = InternalDocsManager;
+}
+
+// Create global instance
+window.InternalDocsManager = InternalDocsManager;
+window.internalDocsManager = new InternalDocsManager();
+
 // ✅ NEW: Initialize AFTER authentication in business-ai-platform-v2.html
 // Call window.internalDocsManager.init() in UserAuth.showMainApp() or initializeMainApp()
 // Then call window.internalDocsManager.loadUserProfile() to load user data

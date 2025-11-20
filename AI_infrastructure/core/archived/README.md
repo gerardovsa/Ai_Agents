@@ -1,22 +1,56 @@
-# Archived Agent Workers
+# Archived Session Management & Agent Worker Files
 
-**Date Archived:** November 7, 2025
+**Date Archived:** November 20, 2025  
+**Reason:** Consolidation into unified_session_manager.py and combined_agent_worker.py
+
+## ✅ Archive Complete - 6 Session Files Added
+
+Added to archive on November 20, 2025:
+- **session_persistence.py** - In-memory session storage (extracted to unified_session_manager.py)
+- **session_database.py** - Complete SQLite implementation (extracted to unified_session_manager.py)
+- **session_handler.py** - V4 in-memory handler (duplicate of unified_session_manager.py)
+- **conversation_manager.py** - V4 sync conversation orchestrator (not used in production)
+- **response_serializer.py** - V4 response formatter (duplicate of combined_agent_worker.py)
+- **streaming_agent_worker.py** - Moved from core folder (already merged into combined_agent_worker.py)
 
 ## Why These Files Were Archived
 
-These agent worker files have been **replaced by `combined_agent_worker.py`**, which consolidates all functionality from both workers with enhanced validation and error handling.
+### Session Management Files (Nov 20, 2025)
 
-## Archived Files
+#### session_persistence.py
+- **Issue:** In-memory only (`_sessions = {}`), data lost on restart
+- **Extracted:** `load_or_create_session()`, `save_conversation()` → unified_session_manager.py
+- **Critical:** G_FOLDER pattern for multi-turn conversations
 
-### Primary Worker Files
-- **`agent_worker.py`** - Original non-streaming agent worker
-  - Functions: `run_agent_worker()`, `run_simple_agent_worker()`, `agent_worker()`
-  - Features: Basic conversation handling, tool execution
+#### session_database.py  
+- **Issue:** Complete but never called by any route
+- **Extracted:** `create_session()`, `add_message()`, `get_conversation()`, `prepare_content_for_storage()` → unified_session_manager.py
+- **Schema:** 5 tables (sessions, messages, activity_log, documents, next_steps)
+
+#### session_handler.py
+- **Issue:** V4 component, in-memory only, duplicate functionality
+- **Used By:** conversation_manager.py only (V4 sync - not production)
+
+#### conversation_manager.py
+- **Issue:** V4 synchronous experiment, not used in production streaming
+- **Used By:** None (agent_routes_v4.py uses combined_agent_worker.py)
+
+#### response_serializer.py
+- **Issue:** V4 component, functionality duplicated in combined_agent_worker.py
+- **Used By:** conversation_manager.py only (archived)
+
+### Agent Worker Files (Nov 7, 2025)
+
+#### agent_worker.py
+- Original non-streaming agent worker
+- Functions: `run_agent_worker()`, `run_simple_agent_worker()`, `agent_worker()`
+- Features: Basic conversation handling, tool execution
   
-- **`streaming_agent_worker.py`** - Original streaming agent worker
-  - Class: `StreamingAgentWorker`
-  - Functions: `execute_streaming_request()`, `create_streaming_worker()`
-  - Features: SSE streaming, real-time responses
+#### streaming_agent_worker.py
+- Original streaming agent worker
+- Class: `StreamingAgentWorker`
+- Functions: `execute_streaming_request()`, `create_streaming_worker()`
+- Features: SSE streaming, real-time responses
 
 ### Copy Files (Development Versions)
 - `agent_worker copy.py` - Development backup

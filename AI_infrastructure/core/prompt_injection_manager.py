@@ -60,7 +60,7 @@ class PromptInjectionManager:
         # Table for prompt library (replaces user_custom_prompts)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS prompt_library (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 workspace_id INTEGER,
                 name VARCHAR(200) NOT NULL,
@@ -101,7 +101,7 @@ class PromptInjectionManager:
         # Table for user's prompt preferences (saved combinations)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_prompt_preferences (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 preference_name TEXT NOT NULL,
                 quick_actions TEXT,

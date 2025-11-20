@@ -46,7 +46,7 @@ def init_prompt_library_table(db_path=None):
         try:
             with conn.cursor() as cursor:
                 create_table_sql = adapt_sql_for_database("""
-                    CREATE TABLE IF NOT EXISTS prompt_library (
+                    CREATE TABLE IF NOT EXISTS ai_infrastructure.prompt_library (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id INTEGER NOT NULL,
                         workspace_id INTEGER,
@@ -60,7 +60,7 @@ def init_prompt_library_table(db_path=None):
                         usage_count INTEGER DEFAULT 0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                        FOREIGN KEY (user_id) REFERENCES ai_infrastructure.users(id) ON DELETE CASCADE
                     )
                 """)
                 cursor.execute(create_table_sql)
@@ -71,7 +71,7 @@ def init_prompt_library_table(db_path=None):
             logger.warning(f"⚠️ Table creation warning: {table_error}")
             try:
                 with conn.cursor() as cursor:
-                    cursor.execute("SELECT 1 FROM prompt_library LIMIT 1")
+                    cursor.execute("SELECT 1 FROM ai_infrastructure.prompt_library LIMIT 1")
                 logger.info(f"✅ Table exists despite creation warning")
             except:
                 raise Exception(f"Table creation failed and table does not exist: {table_error}")
@@ -96,7 +96,7 @@ def init_prompt_library_table(db_path=None):
                 with conn.cursor() as cursor:
                     cursor.execute("""
                         SELECT 1 FROM pg_indexes 
-                        WHERE schemaname = CURRENT_SCHEMA() 
+                        WHERE schemaname = 'ai_infrastructure' 
                           AND indexname = %s
                     """, (idx_name,))
                     exists = cursor.fetchone()
@@ -110,7 +110,7 @@ def init_prompt_library_table(db_path=None):
                 conn.rollback()  # Clean state
                 with conn.cursor() as cursor:
                     cursor.execute("SET LOCAL statement_timeout = '10s'")
-                    cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON prompt_library({column})")
+                    cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON ai_infrastructure.prompt_library({column})")
                 conn.commit()
                 logger.info(f"✅ Index {idx_name} created")
                     
@@ -131,7 +131,7 @@ def init_prompt_library_table(db_path=None):
         try:
             conn.rollback()  # Ensure clean state
             with conn.cursor() as cursor:
-                cursor.execute("SELECT COUNT(*) FROM prompt_library")
+                cursor.execute("SELECT COUNT(*) FROM ai_infrastructure.prompt_library")
                 count = cursor.fetchone()[0]
             logger.info(f"✅ prompt_library table initialized ({count} existing prompts)")
         except Exception as count_error:

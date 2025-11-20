@@ -2,11 +2,13 @@
 Automation Visual Workflows API Routes
 =======================================
 REST API endpoints for visual automation canvas and AI-interpreted workflows.
+Last Modified: 2025-11-20 - Added PUT /api/automation/update endpoint
 
 Endpoints:
     POST   /api/automation/parse            - Parse visual flow and interpret intent
     POST   /api/automation/refine           - AI refines user's workflow  
     POST   /api/automation/save             - Save automation to database
+    PUT    /api/automation/update           - Update existing workflow (add/remove actions, modify trigger)
     GET    /api/automation/list             - List user's automations
     GET    /api/automation/<id>             - Get automation details
     DELETE /api/automation/<id>             - Delete automation
@@ -27,6 +29,29 @@ import os
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from scheduler import get_scheduler
 from shared.database_utils import get_database_connection
+
+
+def get_user_from_token(auth_header):
+    """Extract user ID from JWT token"""
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+    
+    token = auth_header.replace('Bearer ', '')
+    
+    try:
+        import jwt as pyjwt
+        from dotenv import load_dotenv
+        
+        env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env.master')
+        load_dotenv(env_path)
+        
+        jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-change-this')
+        payload = pyjwt.decode(token, jwt_secret, algorithms=['HS256'])
+        
+        return payload.get('user_id')
+    except Exception as e:
+        print(f"Error decoding JWT token: {e}")
+        return None
 
 automation_bp = Blueprint('automation', __name__, url_prefix='/api/automation')
 
@@ -262,7 +287,9 @@ def save_automation():
     """
     try:
         data = request.json
-        user_id = request.headers.get('X-User-ID', 1)  # TODO: Get from auth
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         # Validate required fields
         required = ['slug', 'title']
@@ -339,11 +366,227 @@ def save_automation():
         return jsonify({'error': str(e)}), 500
 
 
+@automation_bp.route('/update', methods=['PUT'])
+def update_workflow():
+    """
+    Update an existing workflow - add/remove actions, modify trigger, change parameters
+    UI automatically refreshes canvas after update
+    
+    Request body:
+    {
+        "slug": "wf_a3f8b2c1_1732029847",  // Required
+        "add_actions": [  // Optional
+            {
+                "tool": "gmail_send_email",
+                "parameters": {"to": "user@example.com", "subject": "Alert"},
+                "position": 3  // Optional, default: append to end
+            }
+        ],
+        "remove_actions": [0, 2],  // Optional - positions to remove
+        "update_trigger": {  // Optional
+            "type": "schedule",
+            "schedule_cron": "0 */2 * * *"
+        },
+        "update_action_parameters": {  // Optional
+            "position": 1,
+            "parameters": {"max_results": 50}
+        },
+        "update_metadata": {  // Optional
+            "title": "New Title",
+            "description": "New Description"
+        }
+    }
+    
+    Response:
+    {
+        "success": true,
+        "automation_id": "wf_a3f8b2c1_1732029847",
+        "slug": "wf_a3f8b2c1_1732029847",
+        "action_count": 5,
+        "visual_flow_json": {...},
+        "message": "Workflow updated successfully"
+    }
+    """
+    try:
+        data = request.json
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
+        
+        # Validate slug
+        slug = data.get('slug')
+        if not slug:
+            return jsonify({'error': 'slug is required'}), 400
+        
+        if not slug.startswith('wf_'):
+            return jsonify({'error': f'Invalid slug format: {slug} (must start with wf_)'}), 400
+        
+        # At least one update operation required
+        has_update = any([
+            data.get('add_actions'),
+            data.get('remove_actions'),
+            data.get('update_trigger'),
+            data.get('update_action_parameters'),
+            data.get('update_metadata')
+        ])
+        
+        if not has_update:
+            return jsonify({'error': 'At least one update operation required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get existing workflow
+        cursor.execute("""
+            SELECT automation_id, ui_json, execution_json, title, description, category
+            FROM visual_automations
+            WHERE slug = %s AND user_id = %s
+        """, (slug, user_id))
+        
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({'error': f'Workflow not found: {slug}'}), 404
+        
+        # Parse existing data
+        automation_id = row['automation_id']
+        ui_json = json.loads(row['ui_json'])
+        execution_json = json.loads(row['execution_json'])
+        current_title = row['title']
+        current_description = row['description']
+        current_category = row['category']
+        
+        # Get current actions from execution_json
+        actions = execution_json.get('actions', [])
+        trigger = execution_json.get('trigger', {'type': 'manual'})
+        
+        # Apply updates
+        changes = []
+        
+        # 1. Remove actions (do this first, before adding)
+        if data.get('remove_actions'):
+            remove_positions = sorted(data['remove_actions'], reverse=True)  # Remove from end first
+            for pos in remove_positions:
+                if 0 <= pos < len(actions):
+                    actions.pop(pos)
+                    changes.append(f'removed action at position {pos}')
+        
+        # 2. Add actions
+        if data.get('add_actions'):
+            for action_data in data['add_actions']:
+                position = action_data.get('position')
+                action = {
+                    'tool': action_data['tool'],
+                    'parameters': action_data.get('parameters', {})
+                }
+                if 'condition' in action_data:
+                    action['condition'] = action_data['condition']
+                
+                if position is not None and 0 <= position <= len(actions):
+                    actions.insert(position, action)
+                    changes.append(f'added action at position {position}')
+                else:
+                    actions.append(action)
+                    changes.append('added action to end')
+        
+        # 3. Update trigger
+        if data.get('update_trigger'):
+            trigger = data['update_trigger']
+            changes.append('updated trigger')
+        
+        # 4. Update action parameters
+        if data.get('update_action_parameters'):
+            pos = data['update_action_parameters'].get('position')
+            new_params = data['update_action_parameters'].get('parameters', {})
+            if pos is not None and 0 <= pos < len(actions):
+                # Merge new parameters with existing
+                actions[pos]['parameters'].update(new_params)
+                changes.append(f'updated action {pos} parameters')
+        
+        # 5. Update metadata
+        if data.get('update_metadata'):
+            if 'title' in data['update_metadata']:
+                current_title = data['update_metadata']['title']
+                changes.append('updated title')
+            if 'description' in data['update_metadata']:
+                current_description = data['update_metadata']['description']
+                changes.append('updated description')
+        
+        # Rebuild execution_json
+        execution_json['actions'] = actions
+        execution_json['trigger'] = trigger
+        
+        # Rebuild ui_json (visual flow)
+        shapes = []
+        connections = []
+        
+        # Add trigger node (hexagon, green)
+        shapes.append({
+            'id': 'node_trigger',
+            'type': 'hexagon',
+            'text': f"TRIGGER: {trigger.get('type', 'manual')}",
+            'color': '#10B981',
+            'x': 100,
+            'y': 100
+        })
+        
+        # Add action nodes (rectangles, blue)
+        for i, action in enumerate(actions):
+            shapes.append({
+                'id': f'node_action_{i}',
+                'type': 'rectangle',
+                'text': action['tool'],
+                'color': '#3B82F6',
+                'x': 100,
+                'y': 250 + (i * 150)
+            })
+            
+            # Connect previous node to this one
+            if i == 0:
+                connections.append({'from': 'node_trigger', 'to': f'node_action_{i}'})
+            else:
+                connections.append({'from': f'node_action_{i-1}', 'to': f'node_action_{i}'})
+        
+        ui_json['shapes'] = shapes
+        ui_json['connections'] = connections
+        
+        # Update database
+        cursor.execute("""
+            UPDATE visual_automations
+            SET ui_json = %s, execution_json = %s, title = %s, description = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE slug = %s AND user_id = %s
+        """, (
+            json.dumps(ui_json),
+            json.dumps(execution_json),
+            current_title,
+            current_description,
+            slug,
+            user_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'automation_id': automation_id,
+            'slug': slug,
+            'action_count': len(actions),
+            'visual_flow_json': ui_json,
+            'message': f"Workflow updated: {', '.join(changes)}"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @automation_bp.route('/list', methods=['GET'])
 def list_automations():
     """List user's automations with optional filters"""
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         # Query parameters
         category = request.args.get('category')
@@ -425,7 +668,9 @@ def list_automations():
 def get_automation(automation_id):
     """Get full automation details including visual flow JSON"""
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -472,7 +717,9 @@ def get_automation(automation_id):
 def delete_automation(automation_id):
     """Delete automation and deactivate any scheduled tasks"""
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -530,7 +777,9 @@ def activate_automation(automation_id):
     }
     """
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         data = request.json
         
         # Get automation
@@ -611,7 +860,9 @@ def activate_automation(automation_id):
 def deactivate_automation(automation_id):
     """Deactivate scheduled automation"""
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -658,7 +909,9 @@ def deactivate_automation(automation_id):
 def get_execution_history(automation_id):
     """Get automation execution history"""
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         limit = int(request.args.get('limit', 10))
         
         conn = get_db_connection()
@@ -702,7 +955,9 @@ def get_execution_history(automation_id):
 def export_automation(automation_id):
     """Export automation for canvas rendering"""
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         format_type = request.args.get('format', 'detailed')
         
         conn = get_db_connection()
@@ -795,7 +1050,9 @@ def publish_workflow(slug):
     }
     """
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         data = request.json or {}
         
         conn = get_db_connection()
@@ -1058,7 +1315,9 @@ def get_workflow_status(slug):
     }
     """
     try:
-        user_id = request.headers.get('X-User-ID', 1)
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
         
         conn = get_db_connection()
         cursor = conn.cursor()

@@ -52,10 +52,31 @@ window.ThreadCardRealtime = {
             return;
         }
 
+        // ✅ Wait for Supabase client to be initialized (max 5 seconds)
+        let attempts = 0;
+        const maxAttempts = 50; // 50 x 100ms = 5 seconds
+
+        while (attempts < maxAttempts) {
+            const supabaseClient = window.supabaseClient || window.SUPABASE_CLIENT;
+            if (supabaseClient) {
+                console.log('[ThreadCardRealtime] Supabase client found, initializing...');
+                break;
+            }
+
+            if (attempts === 0) {
+                console.log('[ThreadCardRealtime] Waiting for Supabase client initialization...');
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+
         // Check if Supabase client exists (try both lowercase and uppercase)
         const supabaseClient = window.supabaseClient || window.SUPABASE_CLIENT;
         if (!supabaseClient) {
-            console.warn('[ThreadCardRealtime] Supabase client not available - skipping Realtime');
+            console.warn('[ThreadCardRealtime] Supabase client not available after 5s - skipping Realtime');
+            console.warn('   Real-time thread updates will not work.');
+            console.warn('   Threads will refresh on manual page reload only.');
             return;
         }
 

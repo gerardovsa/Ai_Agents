@@ -72,7 +72,14 @@ const AgentColumn = (function () {
         column.dataset.agentId = agentId;
 
         // Get thread info if exists (assumes MultiAgent.getLoadedThread exists)
-        let threadInfoHtml = '<div class="no-thread-message"><i class="fas fa-inbox"></i> No thread assigned</div>';
+        let threadInfoHtml = `
+            <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
+                <i class="fas fa-inbox"></i> 
+                <span>Click to select a thread</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+            </div>
+            <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
+        `;
 
         if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.getLoadedThread === 'function') {
             const loadedThread = MultiAgent.getLoadedThread(agentId);
@@ -317,7 +324,242 @@ const AgentColumn = (function () {
         if (threadData && typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
             container.innerHTML = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, threadData.threadId, true);
         } else {
-            container.innerHTML = '<div class="no-thread-message"><i class="fas fa-inbox"></i> No thread assigned</div>';
+            container.innerHTML = `
+                <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
+                    <i class="fas fa-inbox"></i> 
+                    <span>Click to select a thread</span>
+                    <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                </div>
+                <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
+            `;
+        }
+    }
+
+    /**
+     * Show thread selector dropdown
+     * @param {number} agentId - Agent ID
+     */
+    function showThreadSelector(agentId) {
+        const dropdown = document.getElementById(`thread-selector-${agentId}`);
+        if (!dropdown) return;
+
+        // Close any other open dropdowns
+        document.querySelectorAll('.thread-selector-dropdown').forEach(d => {
+            if (d.id !== `thread-selector-${agentId}`) {
+                d.style.display = 'none';
+            }
+        });
+
+        // Toggle dropdown
+        const isVisible = dropdown.style.display === 'block';
+        dropdown.style.display = isVisible ? 'none' : 'block';
+
+        if (!isVisible) {
+            // Load threads from ThreadManager
+            if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
+                const threads = ThreadManager.threads.filter(t => !t.location || t.location === 'prime');
+
+                if (threads.length === 0) {
+                    dropdown.innerHTML = `
+                        <div class="thread-selector-empty">
+                            <i class="fas fa-inbox"></i>
+                            <p>No available threads</p>
+                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}); AgentColumn.hideThreadSelector(${agentId});">
+                                <i class="fas fa-plus"></i> Create New Thread
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    const threadItems = threads.map(thread => {
+                        const date = new Date(thread.updated || thread.created);
+                        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                        return `
+                            <div class="thread-selector-item" onclick="AgentColumn.loadThreadIntoAgent(${agentId}, '${thread.id}')">
+                                <div class="thread-item-icon">
+                                    <i class="fas fa-comments"></i>
+                                </div>
+                                <div class="thread-item-content">
+                                    <div class="thread-item-title">${thread.title || 'Untitled Thread'}</div>
+                                    <div class="thread-item-meta">
+                                        <span><i class="fas fa-message"></i> ${thread.message_count || 0}</span>
+                                        <span>${dateStr} ${timeStr}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    dropdown.innerHTML = `
+                        <div class="thread-selector-header">
+                            <span>Select a Thread</span>
+                            <button class="btn-close-dropdown" onclick="AgentColumn.hideThreadSelector(${agentId})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="thread-selector-list">
+                            ${threadItems}
+                        </div>
+                        <div class="thread-selector-footer">
+                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}); AgentColumn.hideThreadSelector(${agentId});">
+                                <i class="fas fa-plus"></i> Create New Thread
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Close dropdown when clicking outside
+        setTimeout(() => {
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!e.target.closest(`#thread-selector-${agentId}`) &&
+                    !e.target.closest('.no-thread-message')) {
+                    dropdown.style.display = 'none';
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }, 100);
+    }
+
+    /**
+     * Hide thread selector dropdown
+     * @param {number} agentId - Agent ID
+     */
+    function hideThreadSelector(agentId) {
+        const dropdown = document.getElementById(`thread-selector-${agentId}`);
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+    }
+
+    /**
+     * Load selected thread into agent
+     * @param {number} agentId - Agent ID
+     * @param {string} threadId - Thread ID to load
+     */
+    async function loadThreadIntoAgent(agentId, threadId) {
+        hideThreadSelector(agentId);
+
+        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadIntoAgent === 'function') {
+            await ThreadManager.loadThreadIntoAgent(threadId, `agent-${agentId}`);
+        } else {
+            console.warn('[AgentColumn] ThreadManager.loadThreadIntoAgent not available');
+        }
+    }
+
+    /**
+     * Show thread selector dropdown
+     * @param {number} agentId - Agent ID
+     */
+    function showThreadSelector(agentId) {
+        const dropdown = document.getElementById(`thread-selector-${agentId}`);
+        if (!dropdown) return;
+
+        // Close any other open dropdowns
+        document.querySelectorAll('.thread-selector-dropdown').forEach(d => {
+            if (d.id !== `thread-selector-${agentId}`) {
+                d.style.display = 'none';
+            }
+        });
+
+        // Toggle dropdown
+        const isVisible = dropdown.style.display === 'block';
+        dropdown.style.display = isVisible ? 'none' : 'block';
+
+        if (!isVisible) {
+            // Load threads from ThreadManager
+            if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
+                const threads = ThreadManager.threads.filter(t => !t.location || t.location === 'prime');
+
+                if (threads.length === 0) {
+                    dropdown.innerHTML = `
+                        <div class="thread-selector-empty">
+                            <i class="fas fa-inbox"></i>
+                            <p>No available threads</p>
+                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}); AgentColumn.hideThreadSelector(${agentId});">
+                                <i class="fas fa-plus"></i> Create New Thread
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    const threadItems = threads.map(thread => {
+                        const date = new Date(thread.updated || thread.created);
+                        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                        return `
+                            <div class="thread-selector-item" onclick="AgentColumn.loadThreadIntoAgent(${agentId}, '${thread.id}')">
+                                <div class="thread-item-icon">
+                                    <i class="fas fa-comments"></i>
+                                </div>
+                                <div class="thread-item-content">
+                                    <div class="thread-item-title">${thread.title || 'Untitled Thread'}</div>
+                                    <div class="thread-item-meta">
+                                        <span><i class="fas fa-message"></i> ${thread.message_count || 0}</span>
+                                        <span>${dateStr} ${timeStr}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    dropdown.innerHTML = `
+                        <div class="thread-selector-header">
+                            <span>Select a Thread</span>
+                            <button class="btn-close-dropdown" onclick="AgentColumn.hideThreadSelector(${agentId})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="thread-selector-list">
+                            ${threadItems}
+                        </div>
+                        <div class="thread-selector-footer">
+                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}); AgentColumn.hideThreadSelector(${agentId});">
+                                <i class="fas fa-plus"></i> Create New Thread
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Close dropdown when clicking outside
+        setTimeout(() => {
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!e.target.closest(`#thread-selector-${agentId}`) &&
+                    !e.target.closest('.no-thread-message')) {
+                    dropdown.style.display = 'none';
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }, 100);
+    }
+
+    /**
+     * Hide thread selector dropdown
+     * @param {number} agentId - Agent ID
+     */
+    function hideThreadSelector(agentId) {
+        const dropdown = document.getElementById(`thread-selector-${agentId}`);
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+    }
+
+    /**
+     * Load selected thread into agent
+     * @param {number} agentId - Agent ID
+     * @param {string} threadId - Thread ID to load
+     */
+    async function loadThreadIntoAgent(agentId, threadId) {
+        hideThreadSelector(agentId);
+
+        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadIntoAgent === 'function') {
+            await ThreadManager.loadThreadIntoAgent(threadId, `agent-${agentId}`);
+        } else {
+            console.warn('[AgentColumn] ThreadManager.loadThreadIntoAgent not available');
         }
     }
 
@@ -388,6 +630,30 @@ const AgentColumn = (function () {
         }
     });
 
+    /**
+     * Refresh all existing agent columns to update no-thread-message with clickable version
+     * Call this after page load to update any existing agents
+     */
+    function refreshAllAgentThreadInfos() {
+        for (let i = 1; i <= 3; i++) {
+            const container = document.getElementById(`thread-info-${i}`);
+            if (container) {
+                const hasThread = container.querySelector('.thread-info-card:not(.empty)');
+                if (!hasThread) {
+                    // Update with clickable version
+                    container.innerHTML = `
+                        <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${i})">
+                            <i class="fas fa-inbox"></i> 
+                            <span>Click to select a thread</span>
+                            <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                        </div>
+                        <div class="thread-selector-dropdown" id="thread-selector-${i}" style="display: none;"></div>
+                    `;
+                }
+            }
+        }
+    }
+
     // Public API
     return {
         create,
@@ -401,11 +667,46 @@ const AgentColumn = (function () {
         showHistory,
         sendMessage,
         getIcon,
-        getName
+        getName,
+        showThreadSelector,
+        hideThreadSelector,
+        loadThreadIntoAgent,
+        refreshAllAgentThreadInfos
     };
 })();
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AgentColumn;
+}
+
+// Auto-refresh on page load to update existing agent columns
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Delay to let MultiAgent initialize first
+            setTimeout(() => AgentColumn.refreshAllAgentThreadInfos(), 1500);
+        });
+    } else {
+        // Already loaded, refresh immediately
+        setTimeout(() => AgentColumn.refreshAllAgentThreadInfos(), 1500);
+    }
+
+    // Also refresh after a longer delay to catch late-initialized agents
+    setTimeout(() => AgentColumn.refreshAllAgentThreadInfos(), 3000);
+
+    // Event delegation for clickable no-thread-message (backup for onclick)
+    document.addEventListener('click', (e) => {
+        const noThreadMsg = e.target.closest('.no-thread-message.clickable');
+        if (noThreadMsg) {
+            // Extract agent ID from parent thread-info div
+            const threadInfoDiv = noThreadMsg.closest('[id^="thread-info-"]');
+            if (threadInfoDiv) {
+                const agentId = parseInt(threadInfoDiv.id.replace('thread-info-', ''));
+                if (!isNaN(agentId)) {
+                    AgentColumn.showThreadSelector(agentId);
+                }
+            }
+        }
+    });
 }

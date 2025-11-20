@@ -2478,26 +2478,15 @@ window.isStreamingActive = function () {
 // Respect centralized formatter if already defined to avoid collisions
 if (typeof window.renderMarkdown !== 'function') {
     window.renderMarkdown = renderMarkdown;
-    console.log('🧭 Two-Rule: set window.renderMarkdown (visualization-aware)');
-} else {
-    console.log('🧭 Two-Rule: using existing window.renderMarkdown from centralized formatter');
 }
-// Respect centralized formatter if present to avoid collisions
 if (typeof window.renderEnhancedMarkdown !== 'function') {
     window.renderEnhancedMarkdown = renderEnhancedMarkdown;
-    console.log('🧭 Two-Rule: set window.renderEnhancedMarkdown (no prior definition)');
-} else {
-    console.log('🧭 Two-Rule: using existing window.renderEnhancedMarkdown from centralized formatter');
 }
-
 if (typeof window.cleanMarkdownHTML !== 'function') {
     window.cleanMarkdownHTML = postProcessMarkdownHTML;
-    console.log('🧭 Two-Rule: set window.cleanMarkdownHTML (list-aware cleanup)');
 }
-
 if (typeof window.ensurePlotlyResponsive !== 'function') {
     window.ensurePlotlyResponsive = ensurePlotlyResponsive;
-    console.log('🧭 Two-Rule: set window.ensurePlotlyResponsive (responsive Plotly)');
 }
 window.isMarkdownContent = isMarkdownContent;
 window.hasVisualizationContent = hasVisualizationContent;
@@ -2528,10 +2517,5 @@ window.updateVisualizationBufferingIndicator = updateVisualizationBufferingIndic
 // NOTE: sidebarVisualizationState is managed by sidebar.js - we just use window.sidebarVisualizationState
 window.visualizationTracker = visualizationTracker;
 
-console.log('OMPLETE TWO-RULE STREAMING SYSTEM LOADED - WITH SIMPLE FIXES APPLIED');
-console.log('🎯 SIMPLE FIX #1: Robust thinking indicator removal implemented');
-console.log('🎯 SIMPLE FIX #2: Line break preservation in markdown rendering');
-console.log('🎯 SIMPLE FIX #3: Position-based visualization insertion logic');
-console.log('🎯 SIMPLE FIX #4: Package deduplication for visual and markdown content');
-console.log('🎯 SIMPLE FIX #5: Buffer position validation and accuracy improvements');
-console.log('🚀 READY: Enhanced Two-Rule streaming system with peripheral issue fixes!');
+console.log('⚙️ Initializing Two-Rule Streaming System...');
+console.log('✅ Two-Rule Streaming System loaded successfully');

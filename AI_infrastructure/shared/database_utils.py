@@ -144,10 +144,11 @@ def get_connection_pool(schema_name: str):
                 raise ValueError("SUPABASE_DB_URL not set in environment")
             
             # Create thread-safe connection pool
-            # Min=2 (always ready), Max=20 (scales with traffic)
+            # REDUCED for Supabase free tier (Session mode has low max_clients limit)
+            # Min=1 (minimal ready connections), Max=3 (small pool to avoid MaxClientsInSessionMode)
             _connection_pools[schema_name] = pool.ThreadedConnectionPool(
-                minconn=2,
-                maxconn=20,
+                minconn=1,
+                maxconn=3,
                 dsn=db_url,
                 sslmode='require',
                 connect_timeout=30,
@@ -313,7 +314,14 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             print(f"Error Message: {error_msg}")
             
             # Detailed diagnostics
-            if "timeout" in error_msg.lower():
+            if "max clients" in error_msg.lower() or "maxclientsinSessionmode" in error_msg:
+                print(f"\n DIAGNOSIS: Too many database connections")
+                print(f"   - Supabase free tier has connection limits")
+                print(f"   - Close other database connections")
+                print(f"   - Restart application to reset connection pool")
+                print(f"   - Consider upgrading Supabase plan")
+                print(f"   - Connection pool size reduced from 20 to 3")
+            elif "timeout" in error_msg.lower():
                 print(f"\n DIAGNOSIS: Connection timeout")
                 print(f"   - Supabase server may be slow or unreachable")
                 print(f"   - Network latency too high (>30 seconds)")
@@ -338,6 +346,11 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             # Single retry attempt
             try:
                 time.sleep(2)  # Wait 2 seconds before retry
+                
+                # Get database URL from environment
+                db_url = os.getenv('SUPABASE_DB_URL')
+                if not db_url:
+                    raise ValueError("SUPABASE_DB_URL not set in environment")
                 
                 print(f" [DB] Retry attempt for '{db_name}'...")
                 conn = psycopg2.connect(

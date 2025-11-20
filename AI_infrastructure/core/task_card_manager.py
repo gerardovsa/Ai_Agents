@@ -35,7 +35,7 @@ AFTER (Clean & Minimal):
 import json
 from datetime import datetime
 from typing import Dict, List, Optional
-from AI_infrastructure.core.session_database import get_session_db
+from AI_infrastructure.core.unified_session_manager import session_manager
 
 
 class TaskCardManager:
@@ -44,7 +44,8 @@ class TaskCardManager:
     """
     
     def __init__(self):
-        self.db = get_session_db()
+        # Uses unified_session_manager for all session data
+        pass
     
     def create_task_card_content(self, session_id: str) -> Dict[str, str]:
         """
@@ -53,8 +54,13 @@ class TaskCardManager:
         Returns:
             dict: {'title': '...', 'notes': '...'}
         """
-        # Get lightweight summary from database
-        summary = self.db.get_session_summary(session_id)
+        # Get session data from unified session manager
+        session_data = session_manager.get_session(session_id)
+        if not session_data:
+            return {'title': 'Unknown Session', 'notes': f'Session {session_id} not found'}
+        
+        # Build summary from session data
+        summary = self._build_summary_from_session(session_data)
         
         # Build minimal title
         priority_emoji = {
@@ -71,6 +77,40 @@ class TaskCardManager:
         return {
             'title': title,
             'notes': notes
+        }
+    
+    def _build_summary_from_session(self, session_data: Dict) -> Dict:
+        """Build summary dict from session data (compatible with old get_session_summary format)"""
+        conversation = session_data.get('conversation', [])
+        metadata = session_data.get('metadata', {})
+        
+        # Extract kanban metadata
+        kanban_data = metadata.get('kanban', {})
+        
+        # Count messages
+        message_count = len(conversation)
+        
+        # Count active docs (look for document creation in conversation)
+        active_docs = 0
+        for msg in conversation:
+            if isinstance(msg, dict):
+                content = str(msg.get('content', ''))
+                if 'document' in content.lower() or 'doc' in content.lower():
+                    active_docs += 1
+        
+        # Get pending steps from metadata
+        pending_steps = metadata.get('pending_steps', 0)
+        
+        return {
+            'title': metadata.get('title', f"Session {session_data['session_id'][:16]}"),
+            'priority': kanban_data.get('priority', 'medium'),
+            'project_name': metadata.get('project_name'),
+            'status': metadata.get('status', 'active'),
+            'last_active': session_data.get('last_active', session_data.get('created_at')),
+            'message_count': message_count,
+            'active_docs': active_docs,
+            'pending_steps': pending_steps,
+            'recent_activity': []  # Simplified - no recent activity tracking yet
         }
     
     def _format_clean_notes(self, summary: Dict) -> str:
@@ -163,7 +203,12 @@ class TaskCardManager:
         Returns:
             str: Formatted card text
         """
-        summary = self.db.get_session_summary(session_id)
+        # Get session data from unified session manager
+        session_data = session_manager.get_session(session_id)
+        if not session_data:
+            return f"Session {session_id} not found"
+        
+        summary = self._build_summary_from_session(session_data)
         
         priority_emoji = {
             'low': '🟢',

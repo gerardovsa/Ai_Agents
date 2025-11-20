@@ -589,12 +589,86 @@ const UIComponents = {
             modal.show();
             return modal;
         } else {
-            console.warn('[UIComponents] ModalSystem not loaded, falling back to native confirm');
-            if (confirm(`${config.title}\n\n${config.message}`)) {
-                if (config.onConfirm) config.onConfirm();
-            } else {
+            console.warn('[UIComponents] ModalSystem not loaded, rendering DOM confirmation modal');
+
+            // Create a simple DOM modal as a fallback instead of using native confirm()
+            const overlay = document.createElement('div');
+            overlay.className = 'uicomponents-confirm-overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.inset = '0';
+            overlay.style.background = 'rgba(0,0,0,0.5)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = 99999;
+
+            const dialog = document.createElement('div');
+            dialog.className = 'uicomponents-confirm-dialog';
+            dialog.style.background = 'var(--bg-primary, #0b1220)';
+            dialog.style.color = 'var(--text-primary, #e6edf3)';
+            dialog.style.border = '1px solid var(--border-color, #374151)';
+            dialog.style.padding = '18px';
+            dialog.style.borderRadius = '8px';
+            dialog.style.minWidth = '320px';
+            dialog.style.maxWidth = '480px';
+            dialog.style.boxShadow = '0 8px 24px rgba(0,0,0,0.6)';
+
+            const titleEl = document.createElement('div');
+            titleEl.style.fontWeight = 700;
+            titleEl.style.marginBottom = '8px';
+            titleEl.textContent = config.title || 'Confirm Action';
+
+            const msgEl = document.createElement('div');
+            msgEl.style.marginBottom = '14px';
+            msgEl.style.lineHeight = '1.4';
+            msgEl.textContent = config.message || 'Are you sure?';
+
+            const actions = document.createElement('div');
+            actions.style.display = 'flex';
+            actions.style.justifyContent = 'flex-end';
+            actions.style.gap = '8px';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.textContent = config.cancelLabel || 'Cancel';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'btn btn-primary';
+            confirmBtn.textContent = config.confirmLabel || 'Confirm';
+
+            actions.appendChild(cancelBtn);
+            actions.appendChild(confirmBtn);
+
+            dialog.appendChild(titleEl);
+            dialog.appendChild(msgEl);
+            dialog.appendChild(actions);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            // Focus handling
+            confirmBtn.focus();
+
+            const cleanup = () => {
+                try { overlay.remove(); } catch (e) { /* ignore */ }
+            };
+
+            cancelBtn.addEventListener('click', () => {
+                cleanup();
                 if (config.onCancel) config.onCancel();
-            }
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                cleanup();
+                if (config.onConfirm) config.onConfirm();
+            });
+
+            // Return a lightweight modal-like object
+            return {
+                element: overlay,
+                show: () => { overlay.style.display = 'flex'; },
+                hide: () => { overlay.style.display = 'none'; },
+                destroy: cleanup
+            };
         }
     },
 

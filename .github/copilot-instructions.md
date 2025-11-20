@@ -100,6 +100,390 @@ python test_progressive_with_google.py
 
 ---
 
+## 🤖 Visual Automation Workflows (November 2025)
+
+**NOTE**: Complete workflow creation instructions are in the tool schema `automation_tools.json` under `automation_create_workflow` description. The AI agent receives these instructions when the tool is loaded.
+
+**Quick Reference:**
+- Workflows use unique slugs: `wf_<8random>_<timestamp>` (immutable)
+- Trigger types: manual, schedule (cron), webhook, event
+- Actions: Sequential tool execution with {{placeholders}} for data flow
+- Categories: email, data_processing, notifications, scheduling, crm, accounting, other
+
+For complete examples, patterns, and detailed instructions, see the `automation_create_workflow` tool schema.
+
+---
+
+## Legacy Documentation (Archived Below) - November 2025
+
+**CRITICAL**: This is how AI agents create, understand, and manage visual automation workflows.
+
+### Workflow Architecture Overview
+
+**What is a Visual Automation Workflow?**
+- A drag-and-drop automation with visual nodes and connections
+- Stored with unique immutable slug: `wf_<8random>_<timestamp>`
+- Can be scheduled, triggered manually, or event-driven
+- Executes sequences of tools from the 594-tool library
+
+**Slug System (CRITICAL - Updated Nov 2025):**
+```
+Format: wf_a3f8b2c1_1732029847
+        ↑  ↑         ↑
+        |  |         └─ Unix timestamp (creation time)
+        |  └─────────── 8 random alphanumeric chars
+        └────────────── Prefix identifier
+
+❌ OLD (WRONG): workflow_email_summary (title-based, mutable)
+✅ NEW (CORRECT): wf_k7m3p9x2_1732125847 (unique, immutable)
+```
+
+### How to Create Workflows - Step-by-Step
+
+**User Request Example:**
+> "Create a workflow that emails me a summary of unread Gmail messages every morning at 9am"
+
+**AI Agent Process:**
+
+**Step 1: Analyze User Intent**
+```
+Identify:
+- Trigger: Schedule (daily at 9am)
+- Actions: 
+  1. Get Gmail messages
+  2. Summarize content
+  3. Send email with summary
+- Category: email
+```
+
+**Step 2: Call automation_create_workflow**
+```python
+automation_create_workflow(
+    title="Daily Gmail Summary",
+    description="Get unread emails, summarize them, and send to user every morning",
+    trigger={
+        "type": "schedule",
+        "schedule_cron": "0 9 * * *"  # 9am daily (cron format)
+    },
+    actions=[
+        {
+            "tool": "gmail_list_messages",
+            "parameters": {
+                "max_results": 20,
+                "query": "is:unread"
+            }
+        },
+        {
+            "tool": "ai_summarize_text",
+            "parameters": {
+                "text": "{{emails}}",  # Reference previous step output
+                "max_length": 500
+            }
+        },
+        {
+            "tool": "gmail_send_email",
+            "parameters": {
+                "to": "user@example.com",
+                "subject": "Daily Email Summary - {{date}}",
+                "body": "{{summary}}"  # Reference summary from step 2
+            }
+        }
+    ],
+    category="email"
+)
+```
+
+**Step 3: Backend Automatically Creates Visual Flow**
+```json
+{
+  "shapes": [
+    {
+      "id": "node_trigger",
+      "type": "hexagon",
+      "text": "TRIGGER: schedule",
+      "color": "#10B981",  // Green for triggers
+      "x": 100, "y": 100
+    },
+    {
+      "id": "node_action_0",
+      "type": "rectangle",
+      "text": "gmail_list_messages",
+      "color": "#3B82F6",  // Blue for actions
+      "x": 100, "y": 250
+    },
+    {
+      "id": "node_action_1",
+      "type": "rectangle",
+      "text": "ai_summarize_text",
+      "color": "#3B82F6",
+      "x": 100, "y": 400
+    },
+    {
+      "id": "node_action_2",
+      "type": "rectangle",
+      "text": "gmail_send_email",
+      "color": "#3B82F6",
+      "x": 100, "y": 550
+    }
+  ],
+  "connections": [
+    {"from": "node_trigger", "to": "node_action_0"},
+    {"from": "node_action_0", "to": "node_action_1"},
+    {"from": "node_action_1", "to": "node_action_2"}
+  ]
+}
+```
+
+**Step 4: Response to User**
+```
+AI Response:
+"Created workflow 'Daily Gmail Summary' with unique slug: wf_k7m3p9x2_1732125847
+
+This workflow will:
+1. ⏰ Trigger: Every day at 9:00 AM
+2. 📧 Get your last 20 unread Gmail messages
+3. 🧠 Summarize them into a concise digest
+4. 📤 Email you the summary
+
+You can:
+- Drag the slug pill into chat to view/edit
+- Schedule it with automation_schedule_workflow()
+- Execute manually with automation_execute_workflow()
+- Link it to this thread for context
+"
+```
+
+### Workflow Creation Patterns
+
+**Pattern 1: Simple Scheduled Task**
+```python
+automation_create_workflow(
+    title="Backup Sheets Daily",
+    trigger={"type": "schedule", "schedule_cron": "0 2 * * *"},  # 2am daily
+    actions=[
+        {"tool": "google_sheets_list", "parameters": {}},
+        {"tool": "google_drive_backup_file", "parameters": {"file_id": "{{sheet_id}}"}}
+    ],
+    category="data_processing"
+)
+```
+
+**Pattern 2: Conditional Logic**
+```python
+automation_create_workflow(
+    title="High Priority Email Alert",
+    trigger={"type": "event", "event_type": "gmail_new_message"},
+    actions=[
+        {
+            "tool": "gmail_get_message",
+            "parameters": {"message_id": "{{trigger.message_id}}"}
+        },
+        {
+            "tool": "slack_post_message",
+            "parameters": {
+                "channel": "#alerts",
+                "text": "Urgent email from {{sender}}"
+            },
+            "condition": "{{priority}} == 'high'"  # Only execute if high priority
+        }
+    ],
+    category="notifications"
+)
+```
+
+**Pattern 3: Multi-Step Data Pipeline**
+```python
+automation_create_workflow(
+    title="Sales Report Pipeline",
+    trigger={"type": "manual"},  # User-triggered
+    actions=[
+        {"tool": "shopify_list_orders", "parameters": {"status": "paid"}},
+        {"tool": "process_sales_data", "parameters": {"orders": "{{orders}}"}},
+        {"tool": "google_sheets_append_row", "parameters": {"values": "{{processed_data}}"}},
+        {"tool": "gmail_send_email", "parameters": {"subject": "Sales Report Ready"}}
+    ],
+    category="crm"
+)
+```
+
+### Trigger Types
+
+**1. Manual Trigger** (user clicks "Run")
+```python
+trigger={"type": "manual"}
+```
+
+**2. Schedule Trigger** (cron-based)
+```python
+trigger={
+    "type": "schedule",
+    "schedule_cron": "0 9 * * *",  # Daily at 9am
+    "timezone": "America/New_York"  # Optional
+}
+
+# Common cron patterns:
+# "0 9 * * *"      - Daily at 9am
+# "0 */2 * * *"    - Every 2 hours
+# "0 9 * * 1"      - Every Monday at 9am
+# "0 0 1 * *"      - First day of month
+# "*/15 * * * *"   - Every 15 minutes
+```
+
+**3. Webhook Trigger** (external API call)
+```python
+trigger={
+    "type": "webhook",
+    "webhook_url": "https://api.example.com/webhook/{{automation_id}}"
+}
+```
+
+**4. Event Trigger** (platform event)
+```python
+trigger={
+    "type": "event",
+    "event_type": "gmail_new_message"  # or shopify_new_order, etc.
+}
+```
+
+### Placeholder System (Data Flow Between Steps)
+
+**Use {{variable}} to reference previous step outputs:**
+
+```python
+actions=[
+    {
+        "tool": "gmail_list_messages",
+        "parameters": {"max_results": 10}
+        # Returns: {"messages": [...], "total": 10}
+    },
+    {
+        "tool": "ai_summarize_text",
+        "parameters": {
+            "text": "{{messages}}"  # ← Reference step 1 output
+        }
+        # Returns: {"summary": "..."}
+    },
+    {
+        "tool": "gmail_send_email",
+        "parameters": {
+            "body": "{{summary}}"  # ← Reference step 2 output
+        }
+    }
+]
+```
+
+**Special placeholders:**
+- `{{user_input}}` - Data provided at execution time
+- `{{trigger.data}}` - Data from trigger event
+- `{{date}}` - Current date
+- `{{timestamp}}` - Current timestamp
+
+### Categories (for Organization)
+
+```python
+category="email"           # Email automation
+category="data_processing" # Data pipelines
+category="notifications"   # Alerts and messages
+category="scheduling"      # Time-based tasks
+category="crm"            # Customer management
+category="accounting"     # Financial workflows
+category="other"          # General purpose
+```
+
+### Complete Workflow Lifecycle
+
+**1. Create**
+```python
+result = automation_create_workflow(...)
+slug = result['slug']  # wf_k7m3p9x2_1732125847
+```
+
+**2. Schedule (activate)**
+```python
+automation_schedule_workflow(
+    automation_id=slug,
+    schedule_cron="0 9 * * *"
+)
+```
+
+**3. Execute manually**
+```python
+automation_execute_workflow(
+    automation_id=slug,
+    input_data={"spreadsheet_id": "abc123"},
+    thread_id=42  # Link to conversation
+)
+```
+
+**4. Monitor**
+```python
+automation_get_execution_history(
+    automation_id=slug,
+    limit=20
+)
+```
+
+**5. Deactivate**
+```python
+automation_deactivate_workflow(automation_id=slug)
+```
+
+**6. Delete**
+```python
+automation_delete_workflow(automation_id=slug)
+```
+
+### Best Practices for AI Agents
+
+✅ **DO:**
+- Always explain the workflow clearly to the user
+- Use descriptive titles (user sees these)
+- Include error handling steps when possible
+- Test with manual trigger before scheduling
+- Use proper cron syntax for schedules
+- Reference slugs in conversations (they're unique identifiers)
+
+❌ **DON'T:**
+- Don't try to create slugs manually (backend auto-generates)
+- Don't assume title-based slug format (old system)
+- Don't forget to explain trigger timing to user
+- Don't create workflows without clear user intent
+- Don't schedule without confirming time/frequency
+
+### Common User Requests → Workflow Patterns
+
+**"Check my email every hour"**
+```python
+trigger={"type": "schedule", "schedule_cron": "0 * * * *"}
+actions=[{"tool": "gmail_list_messages", ...}]
+```
+
+**"When I get an order, update my sheet"**
+```python
+trigger={"type": "event", "event_type": "shopify_new_order"}
+actions=[{"tool": "google_sheets_append_row", ...}]
+```
+
+**"Run this every Monday morning"**
+```python
+trigger={"type": "schedule", "schedule_cron": "0 9 * * 1"}
+```
+
+**"Let me run it manually"**
+```python
+trigger={"type": "manual"}
+```
+
+### Linking Workflows to Threads
+
+When a workflow is created in a conversation:
+1. Call `automation_create_workflow()` → get slug
+2. Call `ThreadManager.linkWorkflow(thread_id, workflow_id, workflow_title)`
+3. Workflow pill appears in thread for easy access
+4. User can drag slug into chat to load workflow
+
+---
+
 ## Google Sheets Markdown Formatting v2.0 (November 2025) ⚡ ENHANCED
 
 **FEATURE**: Convert markdown syntax to professional Google Sheets formatting with v2.0 compact syntax!

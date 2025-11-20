@@ -1,0 +1,481 @@
+/**
+ * DEBUG MODULE - STYLING
+ * Advanced debugging sidebar for thread/message persistence
+ */
+
+.debug-sidebar {
+    position: fixed;
+    right: -450px;
+    top: 0;
+    width: 450px;
+    height: 100vh;
+    background: var(--bg-primary);
+    border-left: 1px solid var(--border-color);
+    z-index: 10000;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.debug-sidebar.open {
+    right: 0;
+}
+
+/* Header */
+.debug-header {
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.debug-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.debug-title i {
+    color: #F59E0B;
+    font-size: 20px;
+}
+
+.debug-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.debug-close-btn:hover {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.debug-icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-size: 16px;
+}
+
+.debug-icon-btn:hover {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Tabs */
+.debug-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.debug-tab {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.debug-tab:hover {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.debug-tab.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.debug-tab i {
+    font-size: 14px;
+}
+
+/* Content area */
+.debug-sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.debug-section {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+}
+
+.debug-section.active {
+    display: flex;
+}
+
+.debug-sidebar-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.debug-sidebar-content::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.debug-sidebar-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.debug-sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+.debug-section {
+    display: none;
+    padding: 20px;
+}
+
+.debug-section.active {
+    display: block;
+}
+
+.debug-section-header {
+    margin-bottom: 16px;
+}
+
+.debug-section-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.debug-section-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Action buttons */
+.debug-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.debug-btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.debug-btn i {
+    font-size: 14px;
+}
+
+.debug-btn-primary {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.debug-btn-primary:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.debug-btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.debug-btn-secondary:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+}
+
+.debug-btn-danger {
+    background: #EF4444;
+    color: white;
+}
+
+.debug-btn-danger:hover {
+    background: #DC2626;
+    transform: translateY(-1px);
+}
+
+.debug-btn:active {
+    transform: translateY(0);
+}
+
+/* Log output */
+.debug-log-output {
+    background: #1e1e1e;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.8;
+    user-select: text;
+    cursor: text;
+    color: #d4d4d4;
+    flex: 1;
+    min-height: 200px;
+    overflow-y: auto;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.debug-log-output span {
+    font-weight: 600;
+}
+
+.debug-log-output::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.debug-log-output::-webkit-scrollbar-track {
+    background: #2d2d2d;
+    border-radius: 4px;
+}
+
+.debug-log-output::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 4px;
+}
+
+.debug-log-output::-webkit-scrollbar-thumb:hover {
+    background: #5a5a5a;
+}
+
+.debug-log-output:empty::before {
+    content: 'No logs captured yet...';
+    color: #666;
+    font-style: italic;
+}
+
+/* Stats cards */
+.debug-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.debug-stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+.debug-stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.debug-stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+/* Thread list */
+.debug-thread-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.debug-thread-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.debug-thread-list::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 3px;
+}
+
+.debug-thread-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.debug-thread-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 12px;
+    transition: all 0.2s;
+}
+
+.debug-thread-item:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+}
+
+.debug-thread-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.debug-thread-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.debug-thread-meta i {
+    margin-right: 4px;
+    opacity: 0.7;
+}
+
+.debug-export-options {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.debug-export-btn {
+    flex: 1;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.debug-export-btn:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent-primary);
+}
+
+/* Filter controls */
+.debug-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.debug-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+}
+
+.debug-checkbox-label:hover {
+    color: var(--text-primary);
+}
+
+.debug-checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+}
+
+.debug-checkbox-label span {
+    user-select: none;
+}
+
+/* Toggle button (fixed position) */
+.debug-toggle-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    background: #F59E0B;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    transition: all 0.3s;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.debug-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.6);
+}
+
+.debug-toggle-btn:active {
+    transform: scale(0.95);
+}

@@ -124,7 +124,7 @@ window.ThreadCardTemplates = {
         // Use different header based on location
         const isThreadHistory = location === 'thread-history';
         const isPrime = location === 'prime';
-        
+
         let headerHtml;
         if (isThreadHistory) {
             headerHtml = this.headerRowWithActions(thread, location, agent, currentLocation);

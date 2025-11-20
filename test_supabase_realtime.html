@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Realtime Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #0a0e27;
+            color: #e2e8f0;
+        }
+
+        .test-section {
+            background: #1a1f3a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #2d3748;
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: #10b981;
+            border-bottom: 2px solid #10b981;
+            padding-bottom: 10px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status.success {
+            background: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .status.error {
+            background: #7f1d1d;
+            border-left: 4px solid #ef4444;
+        }
+
+        .status.info {
+            background: #1e3a8a;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin: 5px 0;
+            background: #0f1729;
+            border-left: 3px solid #6366f1;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #059669;
+        }
+
+        button:disabled {
+            background: #4b5563;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔥 Supabase Realtime Test</h1>
+
+    <div class="test-section">
+        <h2>1. Configuration Test</h2>
+        <div id="config-status"></div>
+        <button onclick="testConfig()">Test Config Endpoint</button>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Client Initialization</h2>
+        <div id="client-status"></div>
+        <button onclick="initializeClient()">Initialize Client</button>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Realtime Subscription</h2>
+        <div id="subscription-status"></div>
+        <button onclick="subscribeToThreads()" id="subscribe-btn" disabled>Subscribe to Threads</button>
+        <button onclick="unsubscribeFromThreads()" id="unsubscribe-btn" disabled>Unsubscribe</button>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Live Event Log</h2>
+        <div id="event-log"></div>
+        <button onclick="clearEventLog()">Clear Log</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let supabaseClient = null;
+        let channel = null;
+        const API_BASE_URL = 'http://localhost:5001';
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearEventLog() {
+            document.getElementById('event-log').innerHTML = '';
+        }
+
+        async function testConfig() {
+            const statusDiv = document.getElementById('config-status');
+            statusDiv.innerHTML = '<div class="status info">Testing config endpoint...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/config/supabase`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.innerHTML = `
+                        <div class="status success">✅ Config loaded successfully</div>
+                        <div class="status info">URL: ${data.url}</div>
+                        <div class="status info">Key: ${data.anonKey.substring(0, 30)}...</div>
+                    `;
+                    log('Config endpoint responded successfully', 'success');
+
+                    // Store for client initialization
+                    window.SUPABASE_URL = data.url;
+                    window.SUPABASE_ANON_KEY = data.anonKey;
+
+                    // Enable initialize button
+                    document.querySelector('[onclick="initializeClient()"]').disabled = false;
+                } else {
+                    statusDiv.innerHTML = `
+                        <div class="status error">❌ Config failed: ${data.error}</div>
+                        <div class="status error">Details: ${data.details}</div>
+                    `;
+                    log(`Config error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Network error: ${error.message}</div>`;
+                log(`Network error: ${error.message}`, 'error');
+            }
+        }
+
+        function initializeClient() {
+            const statusDiv = document.getElementById('client-status');
+
+            if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
+                statusDiv.innerHTML = '<div class="status error">❌ Config not loaded. Run Config Test first.</div>';
+                return;
+            }
+
+            try {
+                supabaseClient = supabase.createClient(
+                    window.SUPABASE_URL,
+                    window.SUPABASE_ANON_KEY
+                );
+
+                statusDiv.innerHTML = '<div class="status success">✅ Supabase client initialized</div>';
+                log('Supabase client created successfully', 'success');
+
+                // Enable subscribe button
+                document.getElementById('subscribe-btn').disabled = false;
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Client initialization failed: ${error.message}</div>`;
+                log(`Client init error: ${error.message}`, 'error');
+            }
+        }
+
+        function subscribeToThreads() {
+            const statusDiv = document.getElementById('subscription-status');
+
+            if (!supabaseClient) {
+                statusDiv.innerHTML = '<div class="status error">❌ Client not initialized</div>';
+                return;
+            }
+
+            try {
+                channel = supabaseClient
+                    .channel('threads-realtime-test')
+                    .on('postgres_changes', {
+                        event: '*',
+                        schema: 'sessions',
+                        table: 'threads'
+                    }, (payload) => {
+                        log(`🔔 EVENT: ${payload.eventType} - Thread: ${payload.new?.thread_slug || payload.old?.thread_slug}`, 'event');
+                        console.log('Realtime payload:', payload);
+                    })
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            statusDiv.innerHTML = '<div class="status success">✅ Subscribed to threads table</div>';
+                            log('Successfully subscribed to threads table', 'success');
+                            document.getElementById('subscribe-btn').disabled = true;
+                            document.getElementById('unsubscribe-btn').disabled = false;
+                        } else {
+                            statusDiv.innerHTML = `<div class="status info">Subscription status: ${status}</div>`;
+                            log(`Subscription status: ${status}`, 'info');
+                        }
+                    });
+
+                log('Subscription initiated...', 'info');
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Subscription failed: ${error.message}</div>`;
+                log(`Subscription error: ${error.message}`, 'error');
+            }
+        }
+
+        function unsubscribeFromThreads() {
+            if (channel) {
+                supabaseClient.removeChannel(channel);
+                channel = null;
+
+                document.getElementById('subscription-status').innerHTML = '<div class="status info">Unsubscribed</div>';
+                log('Unsubscribed from threads table', 'info');
+
+                document.getElementById('subscribe-btn').disabled = false;
+                document.getElementById('unsubscribe-btn').disabled = true;
+            }
+        }
+
+        // Auto-run config test on load
+        window.addEventListener('DOMContentLoaded', () => {
+            log('Test page loaded', 'info');
+            testConfig();
+        });
+    </script>
+</body>
+
+</html>

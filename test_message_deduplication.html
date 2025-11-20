@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Message Deduplication</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 0;
+        }
+
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+        }
+
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .test-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Message Deduplication Test</h1>
+    <p>This tests the fix for duplicate text blocks in user messages (e.g., "hello" + "hello" duplication)</p>
+
+    <div class="test-section">
+        <h2>Test 1: User Message with Duplicate Text Blocks</h2>
+        <button class="test-button" onclick="runTest1()">Run Test</button>
+        <div id="test1-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: User Message with Unique Text Blocks</h2>
+        <button class="test-button" onclick="runTest2()">Run Test</button>
+        <div id="test2-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: User Message with Simple String</h2>
+        <button class="test-button" onclick="runTest3()">Run Test</button>
+        <div id="test3-result"></div>
+    </div>
+
+    <script>
+        // Copy of the FIXED buildConversationHistoryForAPI function
+        function buildConversationHistoryForAPI(messages) {
+            console.log(`[BUILD API HISTORY] Processing ${messages.length} messages for Anthropic API...`);
+            const result = [];
+
+            messages.forEach((msg, index) => {
+                if (msg.role === 'user') {
+                    // User messages: keep as-is (simple text)
+                    // 🔧 FIX: Deduplicate array content blocks (prevents "hello" + "hello" duplication)
+                    let userContent;
+                    if (typeof msg.content === 'string') {
+                        userContent = msg.content;
+                    } else if (Array.isArray(msg.content)) {
+                        // Extract text blocks and deduplicate
+                        const textBlocks = msg.content.filter(b => b.type === 'text');
+                        const uniqueTexts = [];
+                        const seenTexts = new Set();
+
+                        textBlocks.forEach(block => {
+                            const text = block.text || block.content || '';
+                            if (text && !seenTexts.has(text)) {
+                                seenTexts.add(text);
+                                uniqueTexts.push(text);
+                            }
+                        });
+
+                        userContent = uniqueTexts.join('\n') || JSON.stringify(msg.content);
+
+                        if (textBlocks.length > uniqueTexts.length) {
+                            console.warn(`[DEDUP] User message had ${textBlocks.length} text blocks, deduplicated to ${uniqueTexts.length}`);
+                        }
+                    } else {
+                        userContent = String(msg.content);
+                    }
+
+                    result.push({
+                        role: 'user',
+                        content: userContent
+                    });
+                } else if (msg.role === 'assistant') {
+                    // Assistant messages: may need to split into multiple messages
+                    if (typeof msg.content === 'string') {
+                        // Simple text - keep as-is
+                        result.push({ role: 'assistant', content: msg.content });
+                    } else if (Array.isArray(msg.content)) {
+                        // Structured content - split by type
+                        const toolUseBlocks = msg.content.filter(b => b.type === 'tool_use');
+                        const toolResultBlocks = msg.content.filter(b => b.type === 'tool_result');
+                        const textBlocks = msg.content.filter(b => b.type === 'text');
+
+                        // 1. Assistant message with tool_use blocks (if any)
+                        if (toolUseBlocks.length > 0) {
+                            result.push({
+                                role: 'assistant',
+                                content: toolUseBlocks
+                            });
+                        }
+
+                        // 2. User message with tool_result blocks (if any)
+                        // CRITICAL: tool_result must be in USER message, not assistant!
+                        if (toolResultBlocks.length > 0) {
+                            result.push({
+                                role: 'user',
+                                content: toolResultBlocks
+                            });
+                        }
+
+                        // 3. Assistant message with text blocks (if any)
+                        if (textBlocks.length > 0) {
+                            const textContent = textBlocks.map(b => b.text || b.content || '').join('\n');
+                            if (textContent.trim()) {
+                                result.push({
+                                    role: 'assistant',
+                                    content: textContent
+                                });
+                            }
+                        }
+                    } else {
+                        // Unknown format - keep as-is
+                        result.push({ role: 'assistant', content: msg.content });
+                    }
+                }
+            });
+
+            console.log(`[BUILD API HISTORY] Result: ${result.length} messages (split tool_use/tool_result properly)`);
+            return result;
+        }
+
+        function runTest1() {
+            const testMessages = [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: 'hello' },
+                        { type: 'text', text: 'hello' }  // DUPLICATE
+                    ]
+                }
+            ];
+
+            const result = buildConversationHistoryForAPI(testMessages);
+            const resultDiv = document.getElementById('test1-result');
+
+            const expected = 'hello';
+            const actual = result[0].content;
+            const passed = actual === expected;
+
+            resultDiv.innerHTML = `
+                <div class="result ${passed ? 'pass' : 'fail'}">
+                    ${passed ? '✅ PASS' : '❌ FAIL'}: Duplicate text blocks were ${passed ? 'correctly' : 'NOT'} deduplicated
+                </div>
+                <pre><strong>Input:</strong>
+${JSON.stringify(testMessages, null, 2)}</pre>
+                <pre><strong>Output:</strong>
+${JSON.stringify(result, null, 2)}</pre>
+                <div class="result info">
+                    <strong>Expected:</strong> "hello" (single, no duplicate)<br>
+                    <strong>Actual:</strong> "${actual}"
+                </div>
+            `;
+        }
+
+        function runTest2() {
+            const testMessages = [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: 'hello' },
+                        { type: 'text', text: 'world' }  // UNIQUE
+                    ]
+                }
+            ];
+
+            const result = buildConversationHistoryForAPI(testMessages);
+            const resultDiv = document.getElementById('test2-result');
+
+            const expected = 'hello\nworld';
+            const actual = result[0].content;
+            const passed = actual === expected;
+
+            resultDiv.innerHTML = `
+                <div class="result ${passed ? 'pass' : 'fail'}">
+                    ${passed ? '✅ PASS' : '❌ FAIL'}: Unique text blocks were ${passed ? 'correctly' : 'NOT'} preserved
+                </div>
+                <pre><strong>Input:</strong>
+${JSON.stringify(testMessages, null, 2)}</pre>
+                <pre><strong>Output:</strong>
+${JSON.stringify(result, null, 2)}</pre>
+                <div class="result info">
+                    <strong>Expected:</strong> "hello\\nworld"<br>
+                    <strong>Actual:</strong> "${actual.replace(/\n/g, '\\n')}"
+                </div>
+            `;
+        }
+
+        function runTest3() {
+            const testMessages = [
+                {
+                    role: 'user',
+                    content: 'simple string message'
+                }
+            ];
+
+            const result = buildConversationHistoryForAPI(testMessages);
+            const resultDiv = document.getElementById('test3-result');
+
+            const expected = 'simple string message';
+            const actual = result[0].content;
+            const passed = actual === expected;
+
+            resultDiv.innerHTML = `
+                <div class="result ${passed ? 'pass' : 'fail'}">
+                    ${passed ? '✅ PASS' : '❌ FAIL'}: Simple string was ${passed ? 'correctly' : 'NOT'} preserved
+                </div>
+                <pre><strong>Input:</strong>
+${JSON.stringify(testMessages, null, 2)}</pre>
+                <pre><strong>Output:</strong>
+${JSON.stringify(result, null, 2)}</pre>
+                <div class="result info">
+                    <strong>Expected:</strong> "${expected}"<br>
+                    <strong>Actual:</strong> "${actual}"
+                </div>
+            `;
+        }
+
+        // Auto-run all tests on page load
+        window.addEventListener('load', () => {
+            runTest1();
+            runTest2();
+            runTest3();
+        });
+    </script>
+</body>
+
+</html>

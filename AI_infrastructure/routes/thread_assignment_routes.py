@@ -1,10 +1,10 @@
 """
 FILE: AI_infrastructure/routes/thread_assignment_routes.py
-PURPOSE: Store thread assignments in users.metadata JSON column (simple approach)
+PURPOSE: Store thread assignments in users.metadata JSON column and sessions.threads.location
 
 DEPENDENCIES:
 - flask - Blueprint routing
-- sqlite3 - Database operations (sessions.db)
+- psycopg2 - PostgreSQL database operations (Supabase)
 - json - JSON parsing
 
 EXPORTS:
@@ -15,54 +15,29 @@ USED BY:
 - UI/business-ai-platform-v2.html (AJAX calls from ThreadManager)
 
 RELATED FILES:
-- data/sessions.db (users table with metadata column)
+- Supabase PostgreSQL (ai_infrastructure.users, sessions.threads)
 - UI/business-ai-platform-v2.html (ThreadManager object)
 
 NOTES:
-- Stores only agent columns (agent-1, agent-2, etc.) in metadata JSON
+- Stores thread locations in BOTH places:
+  1. users.metadata JSON (legacy, backward compatibility)
+  2. sessions.threads.location (single source of truth)
 - Prime is implicit (any thread not in an agent is in Prime)
-- Uses existing users.metadata column (no new table needed)
 - JSON format: {"thread_assignments": {"agent-1": "session-id", ...}}
+- CRITICAL: Always cast thread_slug to ::text in PostgreSQL queries
 
-LAST MODIFIED: 2025-11-05 - Initial implementation
+LAST MODIFIED: 2025-11-20 - Removed SQLite, fixed PostgreSQL type casting
 """
 
 from flask import Blueprint, request, jsonify
 from pathlib import Path
 from shared.database_utils import get_database_connection
-import sqlite3
 import json
 import logging
 
 logger = logging.getLogger(__name__)
 
 thread_assignment_bp = Blueprint('thread_assignments', __name__)
-
-
-def get_row_value(row, column_name_or_index):
-    """
-    Get value from row that works with both SQLite (dict-like) and PostgreSQL (tuple)
-    
-    Args:
-        row: Database row (sqlite3.Row or psycopg2 tuple)
-        column_name_or_index: Column name (for SQLite) or index (for PostgreSQL)
-    
-    Returns:
-        Value from the row
-    """
-    if row is None:
-        return None
-    
-    # SQLite Row object (dict-like access)
-    if hasattr(row, 'keys'):
-        return row[column_name_or_index]
-    
-    # PostgreSQL tuple (index access)
-    if isinstance(column_name_or_index, str):
-        # If we got a column name but have a tuple, use index 0 (first column)
-        return row[0]
-    else:
-        return row[column_name_or_index]
 
 
 def get_db_connection():
@@ -121,8 +96,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
         row = cursor.fetchone()
         
-        # Parse metadata
-        metadata_value = get_row_value(row, 'metadata')
+        # Parse metadata (PostgreSQL returns tuple)
+        metadata_value = row[0] if row else None
         if metadata_value:
             try:
                 metadata = json.loads(metadata_value)
@@ -156,8 +131,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             cursor.execute("""
                 UPDATE sessions.threads 
                 SET location = 'prime', updated_at = CURRENT_TIMESTAMP
-                WHERE thread_slug = %s AND user_id = %s
-            """, [session_id, user_id])
+                WHERE thread_slug = %s::text AND user_id = %s
+            """, [str(session_id), user_id])
             conn.commit()
             
             logger.info(f"✅ Thread {session_id} moved to Prime in both metadata and sessions.threads (removed from {previous_location})")
@@ -188,8 +163,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         cursor.execute("""
             UPDATE sessions.threads 
             SET location = %s, updated_at = CURRENT_TIMESTAMP
-            WHERE thread_slug = %s AND user_id = %s
-        """, [location, session_id, user_id])
+            WHERE thread_slug = %s::text AND user_id = %s
+        """, [location, str(session_id), user_id])
         conn.commit()
         
         # If thread was displaced, move it to Prime
@@ -197,8 +172,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             cursor.execute("""
                 UPDATE sessions.threads 
                 SET location = 'prime', updated_at = CURRENT_TIMESTAMP
-                WHERE thread_slug = %s AND user_id = %s
-            """, [displaced_thread, user_id])
+                WHERE thread_slug = %s::text AND user_id = %s
+            """, [str(displaced_thread), user_id])
             conn.commit()
             logger.info(f"🔄 Moved displaced thread {displaced_thread} to Prime in sessions.threads")
         
@@ -258,8 +233,8 @@ def get_thread_assignments():
                 'assignments': {}
             })
         
-        # Get metadata value (works with both SQLite and PostgreSQL)
-        metadata_value = get_row_value(row, 'metadata')
+        # Get metadata value (PostgreSQL returns tuple)
+        metadata_value = row[0] if row else None
         
         if not metadata_value:
             logger.info(f"Empty metadata for user {user_id}")
@@ -350,8 +325,8 @@ def save_thread_assignments():
         
         row = cursor.fetchone()
         
-        # Parse or create metadata
-        metadata_value = get_row_value(row, 'metadata')
+        # Parse or create metadata (PostgreSQL returns tuple)
+        metadata_value = row[0] if row else None
         if metadata_value:
             try:
                 metadata = json.loads(metadata_value)
@@ -539,11 +514,9 @@ def clear_location(location):
         cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
         row = cursor.fetchone()
         
-        metadata_value = get_row_value(row, 'metadata')
+        metadata_value = row[0] if row else None
         if metadata_value:
             try:
-                metadata = json.loads(metadata_value)
-                metadata = json.loads(metadata_value)
                 metadata = json.loads(metadata_value)
                 assignments = metadata.get('thread_assignments', {})
                 
@@ -607,7 +580,7 @@ def get_thread_location(session_id):
         row = cursor.fetchone()
         conn.close()
         
-        metadata_value = get_row_value(row, 'metadata')
+        metadata_value = row[0] if row else None
         if metadata_value:
             try:
                 metadata = json.loads(metadata_value)
@@ -668,7 +641,7 @@ def validate_assignments():
         errors = []
         fixed = 0
         
-        metadata_value = get_row_value(row, 'metadata')
+        metadata_value = row[0] if row else None
         if metadata_value:
             try:
                 metadata = json.loads(metadata_value)

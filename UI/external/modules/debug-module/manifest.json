@@ -1,0 +1,46 @@
+{
+    "id": "debug-module",
+    "name": "Debug Console",
+    "version": "1.0.0",
+    "description": "Advanced debugging tools for thread persistence, message saving, and conversation history tracking. Extract clean logs for AI analysis.",
+    "icon": "fas fa-bug",
+    "color": "#F59E0B",
+    "author": "AI Agents Platform",
+    "scriptPath": "external/modules/debug-module/debug-module.js",
+    "stylePath": "external/modules/debug-module/debug-module.css",
+    "tabs": [
+        {
+            "id": "logs",
+            "name": "Log Extractor",
+            "icon": "fas fa-file-export",
+            "default": true,
+            "description": "Extract structured logs for debugging"
+        },
+        {
+            "id": "threads",
+            "name": "Thread Inspector",
+            "icon": "fas fa-comments",
+            "description": "Inspect thread state and persistence"
+        },
+        {
+            "id": "messages",
+            "name": "Message Tracker",
+            "icon": "fas fa-envelope",
+            "description": "Track message save/load operations"
+        }
+    ],
+    "features": [
+        "Extract clean structured logs",
+        "Thread persistence debugging",
+        "Message save/load tracking",
+        "Conversation history inspection",
+        "API request/response logging",
+        "Export logs as JSON/Text"
+    ],
+    "permissions": [
+        "debug.logs",
+        "debug.threads",
+        "debug.messages"
+    ],
+    "apiEndpoints": []
+}

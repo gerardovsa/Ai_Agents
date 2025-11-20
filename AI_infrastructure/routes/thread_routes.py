@@ -727,12 +727,14 @@ def delete_thread(thread_id):
     Delete saved thread from persistent storage
     
     Supports both formats:
-    - UUID format: "sess_abc123" or any UUID
+    - UUID format: "sess_abc123" or any UUID (thread_slug)
     - Legacy format: "agent_id_session_id"
     
-    Also clears from agent_state_manager if active
+    Also clears from agent_state_manager if active and deletes related messages
     """
     try:
+        print(f"[DELETE THREAD] Attempting to delete thread: {thread_id}")
+        
         # Try to parse as legacy format (agent_id_session_id)
         parts = thread_id.split('_', 1)
         if len(parts) == 2 and not thread_id.startswith('sess_'):
@@ -750,29 +752,60 @@ def delete_thread(thread_id):
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
         
-        delete_query = """
+        # First, get the internal thread ID
+        select_query = """
+            SELECT id FROM sessions.threads
+            WHERE thread_slug = %s
+        """
+        
+        cursor.execute(select_query, [thread_id])
+        result = cursor.fetchone()
+        
+        if not result:
+            conn.close()
+            print(f"[DELETE THREAD] Thread not found: {thread_id}")
+            return error_response(f"Thread {thread_id} not found", 404)
+        
+        internal_thread_id = result[0] if isinstance(result, tuple) else result['id']
+        print(f"[DELETE THREAD] Found thread with internal ID: {internal_thread_id}")
+        
+        # Delete related messages first (foreign key constraint)
+        delete_messages_query = """
+            DELETE FROM sessions.messages
+            WHERE thread_id = %s
+        """
+        
+        cursor.execute(delete_messages_query, [internal_thread_id])
+        messages_deleted = cursor.rowcount
+        print(f"[DELETE THREAD] Deleted {messages_deleted} messages")
+        
+        # Now delete the thread
+        delete_thread_query = """
             DELETE FROM sessions.threads
             WHERE id = %s
         """
         
-        cursor.execute(delete_query, [thread_id])
-        rowcount = cursor.rowcount
+        cursor.execute(delete_thread_query, [internal_thread_id])
+        threads_deleted = cursor.rowcount
+        
         conn.commit()
         conn.close()
         
-        if rowcount == 0:
-            return error_response(f"Thread {thread_id} not found", 404)
+        print(f"[DELETE THREAD] Successfully deleted thread {thread_id} (internal ID: {internal_thread_id})")
         
         return deleted_response(
-            message="Thread deleted successfully",
-            deleted_count=rowcount
+            message=f"Thread deleted successfully ({messages_deleted} messages removed)",
+            deleted_count=threads_deleted
         )
     
     except DatabaseConnectionError as e:
-        return error_response(f"Database error: {str(e)}", 500)
+        print(f"[DELETE THREAD] Database connection error: {str(e)}")
+        return error_response(f"Database connection error: {str(e)}", 500)
     except Exception as e:
-        return error_response(str(e), 500)
-        return error_response(str(e), 500)
+        print(f"[DELETE THREAD] Error deleting thread: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f"Failed to delete thread from database: {str(e)}", 500)
 
 
 @thread_bp.route('/<thread_id>/update', methods=['PATCH'])
@@ -1352,7 +1385,9 @@ def save_messages():
                 continue
             
             try:
-                cursor.execute(insert_query, (internal_thread_id, role, content))
+                # Serialize content to JSON if it's a dict/list (Anthropic format)
+                content_str = json.dumps(content) if isinstance(content, (dict, list)) else content
+                cursor.execute(insert_query, (internal_thread_id, role, content_str))
                 saved_count += 1
             except Exception as msg_error:
                 print(f"[MESSAGE SAVE ERROR] Failed to save message: {msg_error}")
@@ -1433,10 +1468,19 @@ def get_messages():
                 except:
                     metadata = {}
             
+            # Parse content JSON if it's a JSON string (Anthropic format)
+            content = row['content']
+            try:
+                # Try to parse as JSON (multi-block Anthropic format)
+                content = json.loads(content)
+            except:
+                # If parsing fails, keep as string (simple text message)
+                pass
+            
             messages.append({
                 'id': row['id'],
                 'role': row['role'],
-                'content': row['content'],
+                'content': content,
                 'tool_calls': json.loads(row['tool_calls']) if row['tool_calls'] else [],
                 'tokens_used': row.get('tokens_used'),
                 'response_time_ms': None,  # Not stored in DB (log only)

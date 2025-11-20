@@ -34,6 +34,13 @@
     flex: 1;
 }
 
+/* Drag-over state for drop zones */
+.agent-column.drag-over {
+    border: 2px solid var(--accent-primary);
+    background: rgba(103, 126, 234, 0.05);
+    box-shadow: 0 0 20px rgba(103, 126, 234, 0.3);
+}
+
 .agent-column.collapsed {
     min-width: 60px;
     max-width: 60px;

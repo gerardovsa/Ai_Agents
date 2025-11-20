@@ -272,6 +272,8 @@
     align-items: center;
     gap: 6px;
     margin-bottom: 4px;
+    width: 100%;
+    justify-content: space-between;
 }
 
 .floating-palette-title i {
@@ -490,7 +492,7 @@
     top: -28px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -559,9 +561,9 @@
     top: -24px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -1138,8 +1140,8 @@
     flex: 1;
     position: relative;
     background:
-        linear-gradient(var(--border-default) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border-default) 1px, transparent 1px);
+        linear-gradient(var(--border-muted) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-muted) 1px, transparent 1px);
     background-size: 20px 20px;
     background-position: -1px -1px;
     overflow: auto;

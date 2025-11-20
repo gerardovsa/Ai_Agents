@@ -171,7 +171,8 @@ class UnifiedSessionManager:
             if source != 'cli':
                 # Use connection timeout for stability
                 with get_database_connection() as conn:
-                    conn.execute("""
+                    cursor = conn.cursor()  # PostgreSQL needs cursor first
+                    cursor.execute("""
                         INSERT INTO sessions (session_id, ui_context, agent_id, conversation, metadata)
                         VALUES (%s, %s, %s, %s, %s)
                     """, (
@@ -181,6 +182,7 @@ class UnifiedSessionManager:
                         json.dumps([]),
                         json.dumps({'source': source})
                     ))
+                    cursor.close()
                     conn.commit()
                 print(f"[SessionManager] Created session: {session_id} (ui_context={ui_context}, agent_id={agent_id}, source={source})")
             else:
@@ -253,11 +255,13 @@ class UnifiedSessionManager:
             
             # Update DB (only for UI sessions)
             with get_database_connection() as conn:
-                conn.execute("""
+                cursor = conn.cursor()  # PostgreSQL needs cursor first
+                cursor.execute("""
                     UPDATE sessions
                     SET conversation = %s, last_active = CURRENT_TIMESTAMP
                     WHERE session_id = %s
                 """, (json.dumps(conversation), session_id))
+                cursor.close()
                 conn.commit()
     
     def update_metadata(self, session_id: str, metadata: Dict):
@@ -276,11 +280,13 @@ class UnifiedSessionManager:
             
             # Update DB
             with get_database_connection() as conn:
-                conn.execute("""
+                cursor = conn.cursor()  # PostgreSQL needs cursor first
+                cursor.execute("""
                     UPDATE sessions
                     SET metadata = %s, last_active = CURRENT_TIMESTAMP
                     WHERE session_id = %s
                 """, (json.dumps(metadata), session_id))
+                cursor.close()
                 conn.commit()
     
     def get_queue(self, session_id: str) -> Queue:
@@ -356,7 +362,9 @@ class UnifiedSessionManager:
             
             # Remove from DB
             with get_database_connection() as conn:
-                conn.execute("DELETE FROM sessions WHERE session_id = %s", (session_id,))
+                cursor = conn.cursor()  # PostgreSQL needs cursor first
+                cursor.execute("DELETE FROM sessions WHERE session_id = %s", (session_id,))
+                cursor.close()
                 conn.commit()
             
             print(f"[SessionManager] Deleted session: {session_id}")
@@ -393,11 +401,13 @@ class UnifiedSessionManager:
     def _update_last_active(self, session_id: str):
         """Update last active timestamp (internal helper)"""
         with get_database_connection() as conn:
-            conn.execute("""
+            cursor = conn.cursor()  # PostgreSQL needs cursor first
+            cursor.execute("""
                 UPDATE sessions
                 SET last_active = CURRENT_TIMESTAMP
                 WHERE session_id = %s
             """, (session_id,))
+            cursor.close()
             conn.commit()
 
 
