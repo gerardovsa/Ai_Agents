@@ -4,7 +4,7 @@
 # Region: Singapore (optimized for Australia)
 # Deployment Type: Docker
 # Repository: gerardovsa/AI_agents
-# branch: v6
+# branch: v7
 
 services:
   # ==================== AI Agents Backend Service ====================
@@ -20,11 +20,11 @@ services:
     image:
       url: ghcr.io/gerardovsa/ai_agents:latest
       # Alternatively, pin to specific commit:
-      # url: ghcr.io/gerardovsa/ai_agents:v5
+      # url: ghcr.io/gerardovsa/ai_agents:v7
     
     # Repository configuration (for reference only, image is pre-built)
     repo: https://github.com/gerardovsa/AI_agents
-    branch: v6
+    branch: v7
     
     # Deployment settings
     autoDeploy: true  # Auto-deploy on git push
