@@ -269,14 +269,19 @@ const MultiAgent = {
             messagesContainer.innerHTML = '';
         }
 
-        // Update thread info header
+        // Update thread info header - Show thread selector dropdown
         const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
         if (threadInfoContainer) {
             threadInfoContainer.innerHTML = `
-                        <div class="agent-thread-empty">
-                            <p style="margin: 8px 0; color: var(--text-muted); font-size: 13px;">No thread loaded</p>
-                        </div>
-                    `;
+                <div class="thread-info-wrapper">
+                    <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
+                        <i class="fas fa-inbox"></i> 
+                        <span>Click to select a thread</span>
+                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                    </div>
+                    <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
+                </div>
+            `;
         }
 
         this.saveState();
@@ -1339,10 +1344,19 @@ const MultiAgent = {
             console.error('[UNLOAD] Error updating backend assignment:', error);
         }
 
-        // Clear agent column UI
+        // Clear agent column UI - Show thread selector dropdown
         const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
         if (threadInfoContainer) {
-            threadInfoContainer.innerHTML = '<div class="no-thread-message"><i class="fas fa-inbox"></i> No thread assigned</div>';
+            threadInfoContainer.innerHTML = `
+                <div class="thread-info-wrapper">
+                    <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
+                        <i class="fas fa-inbox"></i> 
+                        <span>Click to select a thread</span>
+                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                    </div>
+                    <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
+                </div>
+            `;
         }
 
         // Clear messages

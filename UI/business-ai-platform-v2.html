@@ -5687,7 +5687,8 @@
             /* Allow flex shrinking */
         }
 
-        /* Drag and Drop Visual Feedback (Added Nov 8, 2025) */
+        /* Drag and Drop Visual Feedback (Updated Nov 21, 2025 - Full panel drop zones) */
+        .ai-chat-panel.drag-over,
         .ai-chat-messages.drag-over,
         .agent-chat-messages.drag-over,
         #prime-thread-info.drag-over {
@@ -5695,6 +5696,25 @@
             border: 2px dashed var(--accent-primary);
             box-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
             animation: pulse-drag 1s infinite;
+        }
+
+        /* Full panel drop overlay for Prime */
+        .ai-chat-panel.drag-over::before {
+            content: '📥 Drop thread here to load in Prime';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(88, 166, 255, 0.95);
+            color: white;
+            padding: 20px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+            z-index: 1000;
+            white-space: nowrap;
         }
 
         @keyframes pulse-drag {
@@ -7878,20 +7898,22 @@
         }
 
         .agent-column.drag-over::after {
-            content: '[LOAD] Drop thread here';
+            content: '📥 Drop thread here to load in this agent';
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(88, 166, 255, 0.95);
             color: white;
-            padding: var(--space-4) var(--space-5);
-            border-radius: 8px;
+            padding: 16px 24px;
+            border-radius: 12px;
             font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-size: 15px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
             pointer-events: none;
             z-index: 100;
+            white-space: nowrap;
+            text-align: center;
         }
 
         .agent-header {
@@ -14922,6 +14944,10 @@
                 <i class="fas fa-check-circle"></i>
                 <span>Validation</span>
             </button>
+            <button class="debug-tab" data-tab="poolmonitor" onclick="DebugSidebar.switchTab('poolmonitor')">
+                <i class="fas fa-database"></i>
+                <span>Pool Monitor</span>
+            </button>
         </div>
 
         <!-- Content Wrapper -->
@@ -15150,6 +15176,23 @@
                     </p>
                     <div id="debug-validation-output" class="debug-log-output">
                         Loading...
+                    </div>
+                </div>
+            </div>
+
+            <div class="debug-section" data-section="poolmonitor">
+                <div class="debug-section-header">
+                    <h3><i class="fas fa-database"></i> Connection Pool Monitor</h3>
+                    <button class="debug-export-btn" onclick="window.open('/api/pool/dashboard', '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Full Dashboard
+                    </button>
+                </div>
+                <div class="debug-section-content">
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        Real-time database connection pool statistics and health monitoring
+                    </p>
+                    <div id="debug-poolmonitor-output" class="debug-log-output">
+                        Loading pool stats...
                     </div>
                 </div>
             </div>
@@ -16443,145 +16486,11 @@
         function setupDragAndDropZones() {
             console.log('[DRAG-DROP] Setting up drop zones...');
 
-            // Setup Prime chat area as drop zone
-            const primeChatArea = document.getElementById('ai-chat-messages');
-            if (primeChatArea) {
-                primeChatArea.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    primeChatArea.classList.add('drag-over');
-                });
-
-                primeChatArea.addEventListener('dragleave', (e) => {
-                    if (e.target === primeChatArea) {
-                        primeChatArea.classList.remove('drag-over');
-                    }
-                });
-
-                primeChatArea.addEventListener('drop', async (e) => {
-                    e.preventDefault();
-                    primeChatArea.classList.remove('drag-over');
-
-                    const threadId = e.dataTransfer.getData('application/x-thread-id');
-                    if (threadId) {
-                        // Hide welcome container when thread is dropped
-                        const welcomeContainer = document.getElementById('prime-welcome-container');
-                        if (welcomeContainer) {
-                            welcomeContainer.style.display = 'none';
-                            console.log('[WELCOME] Hidden - thread dropped on Prime chat area');
-                        }
-
-                        // Assign thread to Prime (updates database + UI)
-                        await ThreadManager.assignThread(threadId, 'prime');
-
-                        // Load thread into Prime
-                        await ThreadManager.switchThread(threadId);
-
-                        console.log(`? [DROP] Thread ${threadId} moved to Prime AI (chat area)`);
-                    }
-                });
-
-                console.log('[DRAG-DROP] Prime chat area drop zone configured');
-            }
-
-            // Setup Prime thread info container as drop zone
-            const primeThreadInfo = document.getElementById('prime-thread-info');
-            if (primeThreadInfo) {
-                primeThreadInfo.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    primeThreadInfo.classList.add('drag-over');
-                });
-
-                primeThreadInfo.addEventListener('dragleave', (e) => {
-                    if (e.target === primeThreadInfo) {
-                        primeThreadInfo.classList.remove('drag-over');
-                    }
-                });
-
-                primeThreadInfo.addEventListener('drop', async (e) => {
-                    e.preventDefault();
-                    primeThreadInfo.classList.remove('drag-over');
-
-                    const threadId = e.dataTransfer.getData('application/x-thread-id');
-                    if (threadId) {
-                        // Hide welcome container when thread is dropped
-                        const welcomeContainer = document.getElementById('prime-welcome-container');
-                        if (welcomeContainer) {
-                            welcomeContainer.style.display = 'none';
-                            console.log('[WELCOME] Hidden - thread dropped on Prime thread info');
-                        }
-
-                        // Assign thread to Prime (updates database + UI)
-                        await ThreadManager.assignThread(threadId, 'prime');
-
-                        // Load thread into Prime and update thread info card
-                        await ThreadManager.switchThread(threadId);
-
-                        console.log(`? [DROP] Thread ${threadId} moved to Prime AI (thread info area)`);
-                    }
-                });
-
-                console.log('[DRAG-DROP] Prime thread info drop zone configured');
-            }
-
-            // Setup agent columns as drop zones (dynamically finds all agent columns)
-            document.querySelectorAll('.agent-column').forEach(agentColumn => {
-                const agentId = parseInt(agentColumn.dataset.agentId);
-
-                agentColumn.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    agentColumn.classList.add('drag-over');
-                });
-
-                agentColumn.addEventListener('dragleave', (e) => {
-                    // Only remove if leaving the column itself, not child elements
-                    if (e.target === agentColumn) {
-                        agentColumn.classList.remove('drag-over');
-                    }
-                });
-
-                agentColumn.addEventListener('drop', async (e) => {
-                    e.preventDefault();
-                    agentColumn.classList.remove('drag-over');
-
-                    const threadId = e.dataTransfer.getData('application/x-thread-id');
-                    const sourceLocation = e.dataTransfer.getData('application/x-source-location');
-
-                    if (!threadId) {
-                        console.warn('[AGENT DROP] No threadId in drop event');
-                        return;
-                    }
-
-                    console.log(`[AGENT DROP] Thread ${threadId} dropped on Agent ${agentId} from ${sourceLocation}`);
-
-                    // Find thread object
-                    const thread = ThreadManager.threads.find(t => t.id === threadId || t.thread_slug === threadId);
-                    if (!thread) {
-                        console.error(`? [AGENT DROP] Thread ${threadId} not found`);
-                        return;
-                    }
-
-                    // NOTE: assignThread() handles clearing source location automatically
-                    // No need to manually clear - the cascade system in assignThread handles it
-
-                    // Assign thread to agent (updates database + UI)
-                    await ThreadManager.assignThread(threadId, `agent-${agentId}`);
-
-                    // Load thread into agent using MultiAgent (which handles rendering)
-                    if (typeof MultiAgent !== 'undefined') {
-                        await MultiAgent.loadThreadIntoAgent(agentId, thread);
-                        console.log(`? [AGENT DROP] Thread loaded into Agent ${agentId} with universal card`);
-                    } else {
-                        console.error('? [AGENT DROP] MultiAgent not available');
-                    }
-                });
-
-                console.log(`[DRAG-DROP] Agent ${agentId} drop zone configured`);
-            });
-
-            console.log('[DRAG-DROP] All drop zones configured successfully');
+            // NOTE: All drop zones are now handled by ThreadManager
+            // - Prime: ThreadManager.setupPrimeDropZone() uses entire ai-chat-panel
+            // - Agents: ThreadManager.setupAgentDropZones() uses entire agent-column
+            // This provides much larger drop targets for better UX
+            console.log('[DRAG-DROP] Drop zones delegated to ThreadManager (full container areas)');
         }
 
         // ==================== WORKFLOW SLUG DROP ZONES (Added Jan 2025) ====================

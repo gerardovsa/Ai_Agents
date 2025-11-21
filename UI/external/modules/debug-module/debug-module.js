@@ -660,6 +660,8 @@ const DebugSidebar = {
             this.renderAutoSave();
         } else if (this.currentTab === 'validation') {
             this.renderValidation();
+        } else if (this.currentTab === 'poolmonitor') {
+            this.renderPoolMonitor();
         }
     },
 
@@ -1509,6 +1511,160 @@ ${sequenceHTML}
         navigator.clipboard.writeText(output.innerText).then(() => {
             alert('Validation report copied to clipboard!');
         });
+    },
+
+    async renderPoolMonitor() {
+        const output = document.getElementById('debug-poolmonitor-output');
+        if (!output) return;
+
+        try {
+            const response = await fetch('/api/pool/stats');
+            const data = await response.json();
+
+            const healthResponse = await fetch('/api/pool/health');
+            const healthData = await healthResponse.json();
+
+            // Fetch live connections
+            let liveData = null;
+            try {
+                const liveResponse = await fetch('/api/pool/connections/live');
+                liveData = await liveResponse.json();
+            } catch (e) {
+                console.warn('Live connections unavailable:', e);
+            }
+
+            let html = '<div style="font-family: monospace; font-size: 11px;">';
+
+            // Health Status Card
+            const healthColor = healthData.healthy ? '#10B981' : '#EF4444';
+            const healthIcon = healthData.healthy ? '✅' : '⚠️';
+            html += `<div style="padding: 12px; background: rgba(${healthData.healthy ? '16, 185, 129' : '239, 68, 68'}, 0.1); border-left: 3px solid ${healthColor}; border-radius: 6px; margin-bottom: 16px;">`;
+            html += `<div style="color: ${healthColor}; font-weight: bold; margin-bottom: 8px;">${healthIcon} POOL HEALTH: ${healthData.healthy ? 'HEALTHY' : 'WARNING'}</div>`;
+            if (healthData.warnings && healthData.warnings.length > 0) {
+                html += '<div style="color: #F59E0B; font-size: 10px; margin-top: 4px;">';
+                healthData.warnings.forEach(w => {
+                    html += `⚠️ ${w}<br>`;
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+
+            // Stats Grid
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">';
+
+            // Pools Created
+            html += '<div style="padding: 12px; background: #1e1e1e; border-radius: 6px;">';
+            html += '<div style="color: #888; font-size: 9px;">POOLS CREATED</div>';
+            html += `<div style="color: #3B82F6; font-size: 24px; font-weight: bold;">${data.pools_created || 0}</div>`;
+            html += '</div>';
+
+            // Hit Rate
+            const hitRate = ((data.pool_hits || 0) / Math.max(1, (data.pool_hits || 0) + (data.pool_misses || 0)) * 100).toFixed(1);
+            const hitRateColor = hitRate > 90 ? '#10B981' : hitRate > 70 ? '#F59E0B' : '#EF4444';
+            html += '<div style="padding: 12px; background: #1e1e1e; border-radius: 6px;">';
+            html += '<div style="color: #888; font-size: 9px;">HIT RATE</div>';
+            html += `<div style="color: ${hitRateColor}; font-size: 24px; font-weight: bold;">${hitRate}%</div>`;
+            html += '</div>';
+
+            // Avg Wait Time
+            const avgWait = ((data.avg_wait_time || 0) * 1000).toFixed(1);
+            const waitColor = avgWait < 50 ? '#10B981' : avgWait < 200 ? '#F59E0B' : '#EF4444';
+            html += '<div style="padding: 12px; background: #1e1e1e; border-radius: 6px;">';
+            html += '<div style="color: #888; font-size: 9px;">AVG WAIT TIME</div>';
+            html += `<div style="color: ${waitColor}; font-size: 24px; font-weight: bold;">${avgWait}<span style="font-size: 12px;">ms</span></div>`;
+            html += '</div>';
+
+            // Active Connections
+            const activeConns = (data.connections_acquired || 0) - (data.connections_returned || 0);
+            const connColor = activeConns < 10 ? '#10B981' : activeConns < 50 ? '#F59E0B' : '#EF4444';
+            html += '<div style="padding: 12px; background: #1e1e1e; border-radius: 6px;">';
+            html += '<div style="color: #888; font-size: 9px;">ACTIVE CONNS</div>';
+            html += `<div style="color: ${connColor}; font-size: 24px; font-weight: bold;">${activeConns}</div>`;
+            html += '</div>';
+
+            html += '</div>';
+
+            // Live Connections Section
+            if (liveData && liveData.connections) {
+                html += '<div style="margin-top: 16px; margin-bottom: 12px;">';
+                html += '<div style="color: #10B981; font-weight: bold; margin-bottom: 8px;">🔌 LIVE CONNECTIONS</div>';
+
+                // Summary bar
+                html += '<div style="display: flex; gap: 16px; padding: 8px; background: #1e1e1e; border-radius: 4px; margin-bottom: 8px;">';
+                html += `<span style="color: #3B82F6;">Total: ${liveData.total_connections}</span>`;
+                html += `<span style="color: #10B981;">Active: ${liveData.active_queries}</span>`;
+                html += `<span style="color: #888;">Idle: ${liveData.idle_connections}</span>`;
+                html += '</div>';
+
+                // Show active queries (limit to 5)
+                const activeConns = liveData.connections.filter(c => c.state === 'active').slice(0, 5);
+                if (activeConns.length > 0) {
+                    html += '<div style="color: #F59E0B; font-size: 10px; font-weight: bold; margin-top: 8px; margin-bottom: 4px;">⚡ ACTIVE QUERIES:</div>';
+                    activeConns.forEach(conn => {
+                        const duration = conn.duration_seconds ? conn.duration_seconds.toFixed(2) : '0.00';
+                        const durationColor = duration > 5 ? '#EF4444' : duration > 1 ? '#F59E0B' : '#10B981';
+
+                        html += '<div style="padding: 6px; margin-bottom: 4px; background: rgba(59, 130, 246, 0.05); border-left: 2px solid #3B82F6; border-radius: 2px;">';
+                        html += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
+                        html += `<span style="color: #3B82F6; font-size: 10px;">PID ${conn.pid} • ${conn.database}</span>`;
+                        html += `<span style="color: ${durationColor}; font-size: 9px;">${duration}s</span>`;
+                        html += '</div>';
+
+                        if (conn.query && conn.query.length > 0) {
+                            const displayQuery = conn.query.length > 80 ? conn.query.substring(0, 80) + '...' : conn.query;
+                            html += `<div style="color: #888; font-size: 9px; margin-top: 2px; font-family: 'Courier New', monospace;">${displayQuery}</div>`;
+                        }
+
+                        if (conn.wait_event) {
+                            html += `<div style="color: #F59E0B; font-size: 9px; margin-top: 2px;">⏱️ Waiting: ${conn.wait_event}</div>`;
+                        }
+                        html += '</div>';
+                    });
+                }
+
+                // Show idle connections count
+                if (liveData.idle_connections > 0) {
+                    html += `<div style="color: #888; font-size: 9px; margin-top: 6px; padding: 4px;">`;
+                    html += `💤 ${liveData.idle_connections} idle connection(s) in pool`;
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            }
+
+            // Pool Details
+            if (data.pools && Object.keys(data.pools).length > 0) {
+                html += '<div style="color: #10B981; font-weight: bold; margin-bottom: 8px;">📊 POOL CONFIGURATION</div>';
+                Object.entries(data.pools).forEach(([name, pool]) => {
+                    html += '<div style="padding: 8px; margin-bottom: 6px; background: #1e1e1e; border-radius: 4px;">';
+                    html += `<div style="color: #3B82F6; font-weight: bold;">${name}</div>`;
+                    html += '<div style="color: #888; font-size: 10px; margin-top: 4px;">';
+                    html += `Min: ${pool.min_connections || 0} | Max: ${pool.max_connections || 0} | Status: <span style="color: #10B981;">${pool.status || 'active'}</span>`;
+                    html += '</div></div>';
+                });
+            }
+
+            // Connection Stats
+            html += '<div style="margin-top: 16px; padding: 8px; background: #1e1e1e; border-radius: 4px;">';
+            html += '<div style="color: #888; font-size: 10px;">';
+            html += `Acquired: ${data.connections_acquired || 0} | `;
+            html += `Returned: ${data.connections_returned || 0} | `;
+            html += `Hits: ${data.pool_hits || 0} | `;
+            html += `Misses: ${data.pool_misses || 0}`;
+            html += '</div></div>';
+
+            // Link to Full Dashboard
+            html += '<div style="margin-top: 16px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 6px; text-align: center;">';
+            html += '<a href="/api/pool/dashboard" target="_blank" style="color: #3B82F6; text-decoration: none; font-weight: bold;">';
+            html += '🔷 Open Full Dashboard →';
+            html += '</a></div>';
+
+            html += '</div>';
+            output.innerHTML = html;
+
+        } catch (error) {
+            output.innerHTML = `<div style="color: #EF4444;">Failed to fetch pool stats: ${error.message}</div>`;
+        }
     }
 };
 

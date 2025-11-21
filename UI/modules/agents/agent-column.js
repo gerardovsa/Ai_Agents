@@ -73,12 +73,14 @@ const AgentColumn = (function () {
 
         // Get thread info if exists (assumes MultiAgent.getLoadedThread exists)
         let threadInfoHtml = `
-            <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
-                <i class="fas fa-inbox"></i> 
-                <span>Click to select a thread</span>
-                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+            <div class="thread-info-wrapper">
+                <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
+                    <i class="fas fa-inbox"></i> 
+                    <span>Click to select a thread</span>
+                    <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                </div>
+                <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
             </div>
-            <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
         `;
 
         if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.getLoadedThread === 'function') {
@@ -325,12 +327,14 @@ const AgentColumn = (function () {
             container.innerHTML = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, threadData.threadId, true);
         } else {
             container.innerHTML = `
-                <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
-                    <i class="fas fa-inbox"></i> 
-                    <span>Click to select a thread</span>
-                    <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                <div class="thread-info-wrapper">
+                    <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
+                        <i class="fas fa-inbox"></i> 
+                        <span>Click to select a thread</span>
+                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                    </div>
+                    <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
                 </div>
-                <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
             `;
         }
     }
@@ -685,19 +689,32 @@ const AgentColumn = (function () {
 
         console.log('🔄 [AgentColumn] Refreshing thread selectors for all agents and Prime...');
 
-        // Update Prime first
+        // Update Prime first - Check if it has a thread loaded
         const primeContainer = document.getElementById('prime-thread-info');
         if (primeContainer) {
             const hasThread = primeContainer.querySelector('.thread-info-card:not(.empty)');
             if (!hasThread) {
-                primeContainer.innerHTML = `
-                    <div class="no-thread-message clickable" id="prime-no-thread" onclick="AgentColumn.showPrimeThreadSelector()" style="cursor: pointer !important;">
-                        <i class="fas fa-inbox"></i>
-                        <span>Click to select a thread</span>
-                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                    </div>
-                    <div class="thread-selector-dropdown" id="thread-selector-prime" style="display: none;"></div>
-                `;
+                // Prime with no thread: Show welcome message OR thread selector
+                // Check if there's an existing welcome container
+                const hasWelcome = primeContainer.querySelector('.ai-chat-header-info');
+                if (!hasWelcome) {
+                    // Show welcome container with "Start New Chat" button
+                    if (typeof ThreadCardTemplates !== 'undefined') {
+                        primeContainer.innerHTML = ThreadCardTemplates.welcomeContainer(594);
+                    } else {
+                        // Fallback to thread selector
+                        primeContainer.innerHTML = `
+                            <div class="thread-info-wrapper">
+                                <div class="no-thread-message clickable" id="prime-no-thread" onclick="AgentColumn.showPrimeThreadSelector()" style="cursor: pointer !important;">
+                                    <i class="fas fa-inbox"></i>
+                                    <span>Click to select a thread</span>
+                                    <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                                </div>
+                                <div class="thread-selector-dropdown" id="thread-selector-prime" style="display: none;"></div>
+                            </div>
+                        `;
+                    }
+                }
             }
         }
 
@@ -707,14 +724,16 @@ const AgentColumn = (function () {
             if (container) {
                 const hasThread = container.querySelector('.thread-info-card:not(.empty)');
                 if (!hasThread) {
-                    // Update with clickable version
+                    // Update with clickable thread selector
                     container.innerHTML = `
-                        <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${i})">
-                            <i class="fas fa-inbox"></i> 
-                            <span>Click to select a thread</span>
-                            <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                        <div class="thread-info-wrapper">
+                            <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${i})">
+                                <i class="fas fa-inbox"></i> 
+                                <span>Click to select a thread</span>
+                                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                            </div>
+                            <div class="thread-selector-dropdown" id="thread-selector-${i}" style="display: none;"></div>
                         </div>
-                        <div class="thread-selector-dropdown" id="thread-selector-${i}" style="display: none;"></div>
                     `;
                 }
             }

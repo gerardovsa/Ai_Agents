@@ -18,6 +18,110 @@ import time
 pool_monitor_bp = Blueprint('pool_monitor', __name__, url_prefix='/api/pool')
 
 
+@pool_monitor_bp.route('/connections/live', methods=['GET'])
+def get_live_connections():
+    """
+    Get real-time active database connections
+    
+    GET /api/pool/connections/live
+    
+    Returns:
+        {
+            "total_connections": 15,
+            "active_queries": 3,
+            "idle_connections": 12,
+            "connections": [
+                {
+                    "pid": 12345,
+                    "user": "postgres",
+                    "database": "postgres",
+                    "state": "active",
+                    "query": "SELECT * FROM...",
+                    "wait_event": null,
+                    "backend_start": "2025-11-21T20:30:00",
+                    "query_start": "2025-11-21T20:30:15",
+                    "duration_seconds": 1.5
+                }
+            ]
+        }
+    """
+    try:
+        from shared.database_utils import get_connection
+        
+        conn = get_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        # Query pg_stat_activity for all connections
+        cursor.execute("""
+            SELECT 
+                pid,
+                usename,
+                datname,
+                state,
+                COALESCE(query, '') as query,
+                wait_event_type,
+                wait_event,
+                backend_start,
+                query_start,
+                state_change,
+                EXTRACT(EPOCH FROM (now() - query_start)) as duration_seconds,
+                client_addr,
+                application_name
+            FROM pg_stat_activity
+            WHERE pid != pg_backend_pid()
+            AND datname IS NOT NULL
+            ORDER BY query_start DESC NULLS LAST
+            LIMIT 50
+        """)
+        
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        connections = []
+        active_queries = 0
+        idle_connections = 0
+        
+        for row in rows:
+            state = row[3] or 'unknown'
+            if state == 'active':
+                active_queries += 1
+            elif state == 'idle':
+                idle_connections += 1
+            
+            # Truncate long queries
+            query = row[4] or ''
+            if len(query) > 200:
+                query = query[:200] + '...'
+            
+            connections.append({
+                'pid': row[0],
+                'user': row[1],
+                'database': row[2],
+                'state': state,
+                'query': query,
+                'wait_event_type': row[5],
+                'wait_event': row[6],
+                'backend_start': row[7].isoformat() if row[7] else None,
+                'query_start': row[8].isoformat() if row[8] else None,
+                'state_change': row[9].isoformat() if row[9] else None,
+                'duration_seconds': float(row[10]) if row[10] else 0,
+                'client_addr': str(row[11]) if row[11] else 'local',
+                'application_name': row[12] or 'unknown'
+            })
+        
+        return jsonify({
+            'total_connections': len(connections),
+            'active_queries': active_queries,
+            'idle_connections': idle_connections,
+            'connections': connections,
+            'timestamp': time.time()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @pool_monitor_bp.route('/stats', methods=['GET'])
 def get_stats():
     """

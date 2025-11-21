@@ -609,8 +609,19 @@ Object.assign(window.ThreadManager, {
 
             // Mark as configured
             agentColumn.dataset.dropZoneConfigured = 'true';
-            console.log(`✅ [Drop Zone] Agent ${agentId} configured`);
+            console.log(`✅ [Drop Zone] Agent ${agentId} configured (entire column is drop area)`);
         });
+
+        // Also setup drop zone for multi-agent-container (for new agents)
+        const multiAgentContainer = document.getElementById('multi-agent-container');
+        if (multiAgentContainer && multiAgentContainer.dataset.dropZoneConfigured !== 'true') {
+            multiAgentContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+            multiAgentContainer.dataset.dropZoneConfigured = 'true';
+            console.log('✅ [Drop Zone] Multi-agent container configured');
+        }
     },
 
     /**
@@ -620,9 +631,10 @@ Object.assign(window.ThreadManager, {
     setupPrimeDropZone() {
         console.log('[ThreadManager] Setting up Prime drop zone...');
 
-        const primeContainer = document.getElementById('prime-thread-info');
+        // Use the entire ai-chat-panel as drop zone instead of just thread-info
+        const primeContainer = document.getElementById('ai-chat-panel');
         if (!primeContainer) {
-            console.error('❌ [ThreadManager] Prime container not found');
+            console.error('❌ [ThreadManager] Prime chat panel not found');
             return;
         }
 
@@ -663,7 +675,7 @@ Object.assign(window.ThreadManager, {
         });
 
         primeContainer.dataset.dropZoneConfigured = 'true';
-        console.log('✅ [Drop Zone] Prime configured');
+        console.log('✅ [Drop Zone] Prime configured (entire panel is drop area)');
     },
 
     /**
