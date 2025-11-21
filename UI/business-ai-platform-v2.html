@@ -217,7 +217,7 @@
     <link rel="stylesheet" href="modules/agents/agent-ui.css?v=20251121">
     <script src="modules/agents/agent-column.js?v=20251122c"></script>
     <script src="modules/agents/agent-input.js?v=20251122c"></script>
-    <script src="modules/agents/agent-js.js?v=20251122c"></script>
+    <script src="modules/agents/agent-js.js?v=20251122d"></script>
     <script src="modules/agents/agent-ui.js?v=20251122c"></script>
     <script src="modules/agents/prime_ai_chat.js?v=20251122c"></script>
 
@@ -371,7 +371,7 @@
 
         .login-overlay .login-container {
             position: relative;
-            z-index: 10;
+            z-index: 100;
         }
 
         /* Auth Loading Overlay - Shown during authentication checks */
@@ -418,7 +418,7 @@
 
         .auth-loading-overlay>div:not(.circuit-gradient) {
             position: relative;
-            z-index: 10;
+            z-index: 100;
         }
 
         .auth-loading-overlay.hidden {
@@ -6006,6 +6006,7 @@
             background: var(--accent-primary);
             color: white;
             border-color: var(--accent-primary);
+            text-align: left;
         }
 
         /* ==================== TOOL USAGE MESSAGE ==================== */

@@ -2903,98 +2903,12 @@ async function sendAgentMessage(agentId) {
             throw new Error(`Container isolation violation: expected agent-${agentId}, got agent-${containerAgentId}`);
         }
 
-        // Create AI message bubble with FULL STRUCTURE (same as Prime AI)
-        const aiMessageBubble = document.createElement('div');
-        aiMessageBubble.className = 'ai-agent-' + agentId + ' ai-message assistant text-bubble';
-        aiMessageBubble.dataset.agentId = agentId;
-        aiMessageBubble.dataset.threadSlug = streamThreadSlug;
-        aiMessageBubble.dataset.streamStart = streamStartTime;
-        aiMessageBubble.dataset.expectedLocation = expectedAgentLocation;
-        aiMessageBubble.innerHTML = `
-            <div class="ai-message-header">
-                <div class="ai-message-avatar">
-                    <i class="fas ${MultiAgent.getAgentIcon(agentId)}"></i>
-                </div>
-                <button class="ai-message-toggle" title="Collapse/Expand message">
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div class="ai-message-actions">
-                    <button class="ai-message-copy-btn" title="Copy formatted text">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                    <button class="ai-message-copy-raw-btn" title="Copy raw markdown">
-                        <i class="fas fa-code"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="ai-message-bubble" data-processor-initialized="false">
-                <div class="ai-message-content"></div>
-            </div>
-        `;
-        messagesContainer.appendChild(aiMessageBubble);
-        console.log(`[Agent ${agentId}] Created full bubble structure with header, avatar, and actions`);
-
-        const bubble = aiMessageBubble.querySelector('.ai-message-bubble');
-        const contentDiv = bubble.querySelector('.ai-message-content');
+        // EXACTLY LIKE PRIME AI: Track bubbles (create them as events arrive)
+        let textBubble = null;  // Current text bubble (ATOM icon)
+        let thinkingBubble = null;  // Thinking bubble (if needed)
+        let lastEventType = null;  // Track event transitions to create new bubbles
         
-        // Setup collapse/expand functionality (same as Prime AI)
-        const toggleBtn = aiMessageBubble.querySelector('.ai-message-toggle');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                aiMessageBubble.classList.toggle('collapsed');
-            });
-        }
-        
-        // Setup copy buttons (EXACTLY like Prime AI - inline handlers)
-        const copyBtn = aiMessageBubble.querySelector('.ai-message-copy-btn');
-        const copyRawBtn = aiMessageBubble.querySelector('.ai-message-copy-raw-btn');
-        
-        if (copyBtn) {
-            copyBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const content = contentDiv.textContent;
-                navigator.clipboard.writeText(content).then(() => {
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    setTimeout(() => {
-                        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                    }, 2000);
-                });
-            });
-        }
-        
-        if (copyRawBtn) {
-            // Note: fullResponse will be populated during streaming
-            copyRawBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const rawContent = aiMessageBubble.dataset.rawMarkdown || contentDiv.textContent;
-                navigator.clipboard.writeText(rawContent).then(() => {
-                    copyRawBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    setTimeout(() => {
-                        copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
-                    }, 2000);
-                });
-            });
-        }
-
-        // Initialize TwoRuleStreamProcessor with ISOLATED context
-        let processor = null;
-        if (typeof TwoRuleStreamProcessor !== 'undefined') {
-            try {
-                processor = new TwoRuleStreamProcessor(contentDiv);
-                bubble._processor = processor;
-                bubble._agentId = agentId;
-                bubble._threadSlug = streamThreadSlug;
-                bubble._streamStart = streamStartTime;
-                bubble.dataset.processorInitialized = 'true';
-                console.log(`[Agent ${agentId}] 🔷 TwoRuleStreamProcessor initialized (isolated: thread=${streamThreadSlug}, agent=${agentId})`);
-            } catch (error) {
-                console.error(`[Agent ${agentId}] TwoRuleStreamProcessor init failed:`, error);
-                bubble.dataset.processorInitialized = 'failed';
-            }
-        }
-
-        console.log(`[Agent ${agentId}] 🔵 STREAMING FUNCTION LOADED (v20251122c)`);
+        console.log(`[Agent ${agentId}] 🔵 STREAMING FUNCTION LOADED (v20251122d)`);
         
         let fullResponse = '';
         let fullThinkingContent = '';
@@ -3024,60 +2938,457 @@ async function sendAgentMessage(agentId) {
                     try {
                         const data = JSON.parse(dataStr);
                         
-                        // DEBUG: Log all incoming events to diagnose empty response
-                        console.log(`[Agent ${agentId}] 📨 Event received:`, data.type, data);
+                        console.log(`[Agent ${agentId}] 📨 Event:`, data.type, data);
 
-                        // ISOLATION CHECK: Verify thread hasn't moved to different agent (NON-BLOCKING)
-                        // This only affects WHERE response renders, not whether user can move threads
-                        const currentThread = ThreadManager.getThreadByAgent(getAgentName(agentId));
-                        const threadStillHere = currentThread && currentThread.id === streamThreadSlug;
-                        
-                        if (!threadStillHere) {
-                            console.warn(`[Agent ${agentId}] ⚠️ Thread ${streamThreadSlug} moved during stream!`);
-                            console.warn(`[Agent ${agentId}] Continuing to render in current container (isolation preserved by bubble context)`);
-                            // CONTINUE rendering in the bubble we created (user moved thread, that's OK)
-                            // The bubble is already tagged with correct thread slug for later identification
-                        }
-
-                        // Stream ALL content through TwoRuleStreamProcessor (same as Prime)
-                        // Backend sends: {type: 'content_delta', text: '...'} OR {type: 'thinking', content: '...'}
-                        if (data.type === 'thinking' && data.content) {
-                            fullThinkingContent += data.content;
-                            // TwoRuleStreamProcessor handles thinking blocks automatically
-                            console.log(`[Agent ${agentId}] Thinking chunk: ${data.content.substring(0, 50)}...`);
-                        }
-                        
-                        if (data.type === 'content_delta' && data.text) {
-                            fullResponse += data.text;
-                            
-                            // STRICT ISOLATION: Only render if processor belongs to THIS agent+thread
-                            if (processor && bubble.dataset.processorInitialized === 'true') {
-                                // Double-check processor context matches
-                                if (bubble._agentId === agentId && bubble._threadSlug === streamThreadSlug) {
-                                    processor.processChunk(data.text);
-                                } else {
-                                    console.error(`[Agent ${agentId}] ❌ Processor context mismatch! Skipping chunk.`);
+                        // THINKING EVENT - Create THINKING BUBBLE (purple BRAIN icon)
+                        if ((data.type === 'thinking_block' || data.type === 'thinking') && (data.content || data.thinking)) {
+                            const thinkingText = data.content || data.thinking || '';
+                            if (thinkingText && thinkingText.trim().length > 0) {
+                                console.log(`[Agent ${agentId}] 💭 THINKING: ${thinkingText.substring(0, 50)}...`);
+                                
+                                // Update status
+                                if (typeof AgentStatusIndicator !== 'undefined') {
+                                    AgentStatusIndicator.update('thinking', agentId);
                                 }
-                            } else {
-                                // Fallback to basic rendering (still isolated to this bubble)
-                                contentDiv.innerHTML = marked.parse(fullResponse);
+                                
+                                // Create thinking bubble if doesn't exist
+                                if (!thinkingBubble) {
+                                    console.log(`[Agent ${agentId}] Creating thinking bubble...`);
+                                    thinkingBubble = document.createElement('div');
+                                    thinkingBubble.className = 'ai-message assistant thinking-bubble';
+                                    thinkingBubble.dataset.agentId = agentId;
+                                    thinkingBubble.dataset.threadSlug = streamThreadSlug;
+                                    
+                                    // Header with BRAIN avatar (PURPLE)
+                                    const headerDiv = document.createElement('div');
+                                    headerDiv.className = 'ai-message-header';
+                                    
+                                    const avatar = document.createElement('div');
+                                    avatar.className = 'ai-message-avatar';
+                                    avatar.style.background = '#8b5cf6'; // Purple
+                                    avatar.innerHTML = '<i class="fa-solid fa-brain" style="color: white;"></i>';
+                                    
+                                    const toggleBtn = document.createElement('button');
+                                    toggleBtn.className = 'ai-message-toggle';
+                                    toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                                    toggleBtn.title = 'Collapse/Expand thinking';
+                                    toggleBtn.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        thinkingBubble.classList.toggle('collapsed');
+                                    });
+                                    
+                                    headerDiv.appendChild(avatar);
+                                    headerDiv.appendChild(toggleBtn);
+                                    
+                                    // Copy buttons
+                                    const actionsDiv = document.createElement('div');
+                                    actionsDiv.className = 'ai-message-actions';
+                                    
+                                    const copyBtn = document.createElement('button');
+                                    copyBtn.className = 'ai-message-copy-btn';
+                                    copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                                    copyBtn.title = 'Copy thinking content';
+                                    copyBtn.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        const content = thinkingBubble.querySelector('.ai-message-content').textContent;
+                                        navigator.clipboard.writeText(content).then(() => {
+                                            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                                            setTimeout(() => {
+                                                copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                                            }, 2000);
+                                        });
+                                    });
+                                    
+                                    const copyRawBtn = document.createElement('button');
+                                    copyRawBtn.className = 'ai-message-copy-btn';
+                                    copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+                                    copyRawBtn.title = 'Copy raw thinking';
+                                    copyRawBtn.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        const content = thinkingBubble.querySelector('.ai-message-content').textContent;
+                                        navigator.clipboard.writeText(content).then(() => {
+                                            copyRawBtn.innerHTML = '<i class="fas fa-check"></i>';
+                                            setTimeout(() => {
+                                                copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+                                            }, 2000);
+                                        });
+                                    });
+                                    
+                                    actionsDiv.appendChild(copyBtn);
+                                    actionsDiv.appendChild(copyRawBtn);
+                                    headerDiv.appendChild(actionsDiv);
+                                    
+                                    // Content div
+                                    const contentDiv = document.createElement('div');
+                                    contentDiv.className = 'ai-message-content';
+                                    thinkingBubble.appendChild(headerDiv);
+                                    thinkingBubble.appendChild(contentDiv);
+                                    thinkingBubble.classList.add('collapsed'); // Start collapsed
+                                    messagesContainer.appendChild(thinkingBubble);
+                                    
+                                    thinkingBubble._fullThinkingText = '';
+                                }
+                                
+                                // Accumulate thinking text
+                                thinkingBubble._fullThinkingText = thinkingBubble._fullThinkingText || '';
+                                thinkingBubble._fullThinkingText += thinkingText;
+                                fullThinkingContent += thinkingText;
+                                
+                                // Render markdown
+                                const thinkingContent = thinkingBubble.querySelector('.ai-message-content');
+                                if (thinkingContent) {
+                                    if (window.marked) {
+                                        try {
+                                            thinkingContent.innerHTML = marked.parse(thinkingBubble._fullThinkingText, {
+                                                breaks: true,
+                                                gfm: true
+                                            });
+                                        } catch (e) {
+                                            console.error(`[Agent ${agentId}] Markdown parse error in thinking:`, e);
+                                            thinkingContent.textContent = thinkingBubble._fullThinkingText;
+                                        }
+                                    } else {
+                                        thinkingContent.textContent = thinkingBubble._fullThinkingText;
+                                    }
+                                }
+                                
+                                lastEventType = 'thinking';
                             }
-                            scrollAgentToBottom(agentId);
                         }
-
-                        if (data.type === 'tool_use') {
-                            toolsUsed.push(data);
-                            console.log(`[Agent ${agentId}] Tool used:`, data.tool_name);
+                        
+                        // TOOL USE EVENT - Create TOOL BUBBLE (yellow COG icon)
+                        else if (data.type === 'tool_use') {
+                            const toolId = data.tool_id || data.tool_use_id || data.id;
+                            console.log(`[Agent ${agentId}] ⚙️ TOOL_USE: ${data.tool_name} (${toolId})`);
+                            
+                            // Update status
                             if (typeof AgentStatusIndicator !== 'undefined') {
                                 AgentStatusIndicator.update('tool-running', agentId);
                             }
+                            
+                            // Create tool bubble
+                            const toolBubble = document.createElement('div');
+                            toolBubble.className = 'ai-message assistant tool-bubble';
+                            toolBubble.setAttribute('data-tool-id', toolId);
+                            toolBubble.dataset.agentId = agentId;
+                            toolBubble.dataset.threadSlug = streamThreadSlug;
+                            
+                            // Header with COG avatar (YELLOW)
+                            const headerDiv = document.createElement('div');
+                            headerDiv.className = 'ai-message-header';
+                            
+                            const avatar = document.createElement('div');
+                            avatar.className = 'ai-message-avatar';
+                            avatar.style.background = '#eab308'; // Yellow
+                            avatar.innerHTML = '<i class="fas fa-cog" style="color: white;"></i>';
+                            
+                            const toggleBtn = document.createElement('button');
+                            toggleBtn.className = 'ai-message-toggle';
+                            toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                            toggleBtn.title = 'Collapse/Expand tool';
+                            toggleBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                toolBubble.classList.toggle('collapsed');
+                            });
+                            
+                            headerDiv.appendChild(avatar);
+                            headerDiv.appendChild(toggleBtn);
+                            
+                            // Copy button
+                            const actionsDiv = document.createElement('div');
+                            actionsDiv.className = 'ai-message-actions';
+                            
+                            const copyBtn = document.createElement('button');
+                            copyBtn.className = 'ai-message-copy-btn';
+                            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                            copyBtn.title = 'Copy tool content';
+                            copyBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const contentDiv = toolBubble.querySelector('.ai-message-content');
+                                const content = contentDiv ? contentDiv.textContent : '';
+                                navigator.clipboard.writeText(content).then(() => {
+                                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                                    setTimeout(() => {
+                                        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                                    }, 2000);
+                                });
+                            });
+                            
+                            actionsDiv.appendChild(copyBtn);
+                            headerDiv.appendChild(actionsDiv);
+                            
+                            // Content
+                            const contentDiv = document.createElement('div');
+                            contentDiv.className = 'ai-message-content';
+                            contentDiv.innerHTML = `
+                                <div style="margin-bottom: 8px;"><strong>Tool:</strong> ${data.name || data.tool_name}</div>
+                                <pre>${JSON.stringify(data.input || data.tool_input, null, 2)}</pre>
+                            `;
+                            
+                            toolBubble.appendChild(headerDiv);
+                            toolBubble.appendChild(contentDiv);
+                            toolBubble.classList.add('collapsed'); // Start collapsed
+                            messagesContainer.appendChild(toolBubble);
+                            
+                            lastEventType = 'tool_use';
+                            toolsUsed.push({
+                                name: data.name || data.tool_name,
+                                input: data.input || data.tool_input,
+                                id: toolId
+                            });
                         }
-
-                        if (data.type === 'tool_result') {
-                            toolResults.push(data);
-                            console.log(`[Agent ${agentId}] Tool result received for:`, data.tool_name);
+                        
+                        // TOOL RESULT EVENT - Create SEPARATE tool result bubble (like Prime AI)
+                        else if (data.type === 'tool_result') {
+                            const toolId = data.tool_id || data.tool_use_id || data.id;
+                            console.log(`[Agent ${agentId}] 📊 TOOL_RESULT for ${toolId}`);
+                            
+                            // Update the original tool bubble avatar to green (complete)
+                            const toolBubble = messagesContainer.querySelector(`[data-tool-id="${toolId}"]`);
+                            if (toolBubble) {
+                                const avatar = toolBubble.querySelector('.ai-message-avatar');
+                                if (avatar) {
+                                    avatar.style.background = '#10b981'; // Green (success)
+                                }
+                            }
+                            
+                            // Create SEPARATE tool result bubble
+                            const isError = data.is_error || !data.success;
+                            const resultText = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
+                            const rawResult = data.result || '';
+                            
+                            const toolResultBubble = document.createElement('div');
+                            toolResultBubble.className = 'ai-message assistant tool-result-bubble';
+                            toolResultBubble.setAttribute('data-tool-result-id', toolId);
+                            toolResultBubble.dataset.agentId = agentId;
+                            toolResultBubble.dataset.threadSlug = streamThreadSlug;
+                            
+                            // Header with white flag icon
+                            const headerDiv = document.createElement('div');
+                            headerDiv.className = 'ai-message-header';
+                            
+                            const avatar = document.createElement('div');
+                            avatar.className = 'ai-message-avatar';
+                            avatar.style.background = isError ? '#ef4444' : '#60A5FA'; // Red for error, Blue for success
+                            avatar.innerHTML = '<i class="fas fa-flag" style="color: white; font-size: 14px;"></i>';
+                            
+                            const toggleBtn = document.createElement('button');
+                            toggleBtn.className = 'ai-message-toggle';
+                            toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                            toggleBtn.title = 'Collapse/Expand result';
+                            toggleBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                toolResultBubble.classList.toggle('collapsed');
+                            });
+                            
+                            headerDiv.appendChild(avatar);
+                            headerDiv.appendChild(toggleBtn);
+                            
+                            // Copy buttons
+                            const actionsDiv = document.createElement('div');
+                            actionsDiv.className = 'ai-message-actions';
+                            
+                            // Copy formatted button
+                            const copyBtn = document.createElement('button');
+                            copyBtn.className = 'ai-message-copy-btn';
+                            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                            copyBtn.title = 'Copy result';
+                            copyBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const content = toolResultBubble.querySelector('.ai-message-content').textContent;
+                                navigator.clipboard.writeText(content).then(() => {
+                                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                                    setTimeout(() => {
+                                        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                                    }, 2000);
+                                });
+                            });
+                            
+                            // Copy raw button
+                            const copyRawBtn = document.createElement('button');
+                            copyRawBtn.className = 'ai-message-copy-btn';
+                            copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+                            copyRawBtn.title = 'Copy raw result';
+                            copyRawBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(typeof rawResult === 'string' ? rawResult : JSON.stringify(rawResult, null, 2)).then(() => {
+                                    copyRawBtn.innerHTML = '<i class="fas fa-check"></i>';
+                                    setTimeout(() => {
+                                        copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+                                    }, 2000);
+                                });
+                            });
+                            
+                            actionsDiv.appendChild(copyBtn);
+                            actionsDiv.appendChild(copyRawBtn);
+                            headerDiv.appendChild(actionsDiv);
+                            
+                            // Content
+                            const contentDiv = document.createElement('div');
+                            contentDiv.className = 'ai-message-content';
+                            
+                            // Format result nicely
+                            let formattedResult = resultText;
+                            try {
+                                const parsed = JSON.parse(resultText);
+                                formattedResult = JSON.stringify(parsed, null, 2);
+                            } catch (e) {
+                                // Keep as-is if not JSON
+                            }
+                            
+                            contentDiv.innerHTML = `
+                                <div style="margin-bottom: 8px; color: ${isError ? '#ef4444' : '#60A5FA'};">
+                                    <strong><i class="fas ${isError ? 'fa-times-circle' : 'fa-check-circle'}"></i> Tool Result: ${data.tool_name || 'Unknown'}</strong>
+                                </div>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; max-height: 400px; overflow-y: auto;">${formattedResult}</pre>
+                            `;
+                            
+                            toolResultBubble.appendChild(headerDiv);
+                            toolResultBubble.appendChild(contentDiv);
+                            toolResultBubble.classList.add('collapsed'); // Start collapsed
+                            messagesContainer.appendChild(toolResultBubble);
+                            
                             if (typeof AgentStatusIndicator !== 'undefined') {
                                 AgentStatusIndicator.update('tool-success', agentId);
+                            }
+                            
+                            toolResults.push(data);
+                        }
+                        
+                        // CONTENT DELTA - Text streaming (ATOM icon)
+                        else if (data.type === 'content_delta' && data.text) {
+                            console.log(`[Agent ${agentId}] 📝 CONTENT_DELTA: ${data.text.substring(0, 50)}...`);
+                            
+                            // Create NEW text bubble when switching from non-text to text
+                            if (lastEventType !== 'content_delta' && lastEventType !== null) {
+                                if (textBubble) {
+                                    console.log(`[Agent ${agentId}] Creating new text bubble (switching from ${lastEventType})`);
+                                    const oldBubble = textBubble;
+                                    textBubble = null;
+                                    fullResponse = '';
+                                    // Flush old processor
+                                    if (oldBubble && oldBubble._twoRuleProcessor) {
+                                        try {
+                                            if (typeof oldBubble._twoRuleProcessor.forceFlush === 'function') {
+                                                oldBubble._twoRuleProcessor.forceFlush();
+                                            }
+                                        } catch (e) {
+                                            console.warn(`[Agent ${agentId}] Error flushing processor:`, e);
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            fullResponse += data.text;
+                            lastEventType = 'content_delta';
+                            
+                            // Create text bubble if doesn't exist
+                            if (!textBubble) {
+                                console.log(`[Agent ${agentId}] Creating text bubble...`);
+                                textBubble = document.createElement('div');
+                                textBubble.className = 'ai-message assistant text-bubble';
+                                textBubble.dataset.agentId = agentId;
+                                textBubble.dataset.threadSlug = streamThreadSlug;
+                                
+                                // Header with AGENT ICON
+                                const headerDiv = document.createElement('div');
+                                headerDiv.className = 'ai-message-header';
+                                
+                                const avatar = document.createElement('div');
+                                avatar.className = 'ai-message-avatar';
+                                avatar.innerHTML = `<i class="fas ${MultiAgent.getAgentIcon(agentId)}"></i>`;
+                                
+                                const toggleBtn = document.createElement('button');
+                                toggleBtn.className = 'ai-message-toggle';
+                                toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                                toggleBtn.title = 'Collapse/Expand message';
+                                toggleBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    textBubble.classList.toggle('collapsed');
+                                });
+                                
+                                headerDiv.appendChild(avatar);
+                                headerDiv.appendChild(toggleBtn);
+                                
+                                // Copy buttons
+                                const actionsDiv = document.createElement('div');
+                                actionsDiv.className = 'ai-message-actions';
+                                
+                                const copyBtn = document.createElement('button');
+                                copyBtn.className = 'ai-message-copy-btn';
+                                copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                                copyBtn.title = 'Copy message';
+                                copyBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    const content = textBubble.querySelector('.ai-message-content').textContent;
+                                    navigator.clipboard.writeText(content).then(() => {
+                                        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                                        setTimeout(() => {
+                                            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                                        }, 2000);
+                                    });
+                                });
+                                
+                                const copyRawBtn = document.createElement('button');
+                                copyRawBtn.className = 'ai-message-copy-btn';
+                                copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+                                copyRawBtn.title = 'Copy raw markdown';
+                                copyRawBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(fullResponse).then(() => {
+                                        copyRawBtn.innerHTML = '<i class="fas fa-check"></i>';
+                                        setTimeout(() => {
+                                            copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+                                        }, 2000);
+                                    });
+                                });
+                                
+                                actionsDiv.appendChild(copyBtn);
+                                actionsDiv.appendChild(copyRawBtn);
+                                headerDiv.appendChild(actionsDiv);
+                                
+                                textBubble.appendChild(headerDiv);
+                                
+                                // Content div
+                                const contentDiv = document.createElement('div');
+                                contentDiv.className = 'ai-message-content';
+                                textBubble.appendChild(contentDiv);
+                                
+                                messagesContainer.appendChild(textBubble);
+                                console.log(`[Agent ${agentId}] Text bubble created`);
+                                
+                                // Initialize TwoRuleStreamProcessor
+                                if (typeof TwoRuleStreamProcessor !== 'undefined') {
+                                    try {
+                                        const processor = new TwoRuleStreamProcessor(contentDiv);
+                                        textBubble._twoRuleProcessor = processor;
+                                        console.log(`[Agent ${agentId}] 🔷 TwoRuleStreamProcessor initialized`);
+                                    } catch (e) {
+                                        console.warn(`[Agent ${agentId}] TwoRuleStreamProcessor failed:`, e);
+                                    }
+                                }
+                            }
+                            
+                            // Process chunk through TwoRuleStreamProcessor
+                            const textContent = textBubble.querySelector('.ai-message-content');
+                            if (textContent) {
+                                const processor = textBubble._twoRuleProcessor;
+                                if (processor && typeof processor.processChunk === 'function') {
+                                    processor.processChunk(data.text).then(() => {
+                                        console.log(`[Agent ${agentId}] Chunk processed`);
+                                    }).catch((e) => {
+                                        console.error(`[Agent ${agentId}] Process error:`, e);
+                                        textContent.innerHTML = marked.parse(fullResponse);
+                                    });
+                                } else {
+                                    // Fallback
+                                    if (window.marked) {
+                                        textContent.innerHTML = marked.parse(fullResponse);
+                                    } else {
+                                        textContent.textContent = fullResponse;
+                                    }
+                                }
+                                textBubble.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                             }
                         }
 
@@ -3090,10 +3401,38 @@ async function sendAgentMessage(agentId) {
 
         console.log(`[Agent ${agentId}] Stream complete. Response length: ${fullResponse.length}`);
         
-        // Store raw markdown in bubble dataset for copy-raw button
-        if (aiMessageBubble) {
-            aiMessageBubble.dataset.rawMarkdown = fullResponse;
-            console.log(`[Agent ${agentId}] Stored raw markdown in bubble dataset`);
+        // Clear status indicator
+        if (typeof AgentStatusIndicator !== 'undefined') {
+            AgentStatusIndicator.clear(agentId);
+        }
+        
+        // Finalize TwoRuleStreamProcessor (render any pending visualizations)
+        if (textBubble && textBubble._twoRuleProcessor) {
+            console.log(`[Agent ${agentId}] Finalizing TwoRuleStreamProcessor...`);
+            try {
+                if (typeof textBubble._twoRuleProcessor.finalize === 'function') {
+                    await textBubble._twoRuleProcessor.finalize();
+                    console.log(`[Agent ${agentId}] ✅ Processor finalized`);
+                    
+                    // Force render if still no content visible
+                    const textContent = textBubble.querySelector('.ai-message-content');
+                    if (textContent && (!textContent.innerHTML || textContent.innerHTML.trim() === '')) {
+                        console.warn(`[Agent ${agentId}] No content visible after finalize - forcing markdown render`);
+                        if (window.marked) {
+                            textContent.innerHTML = marked.parse(fullResponse, { breaks: true, gfm: true });
+                        } else {
+                            textContent.textContent = fullResponse;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(`[Agent ${agentId}] Finalize error:`, e);
+            }
+        }
+        
+        // Store raw markdown for copy-raw button
+        if (textBubble) {
+            textBubble.dataset.rawMarkdown = fullResponse;
         }
 
         // SMART SAVE: Find thread by slug (even if user moved it during stream)
