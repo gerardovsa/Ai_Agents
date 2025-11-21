@@ -650,6 +650,16 @@ const DebugSidebar = {
             this.renderConversation();
         } else if (this.currentTab === 'htmltree') {
             this.renderHTMLTree();
+        } else if (this.currentTab === 'dbstructure') {
+            this.renderDBStructure();
+        } else if (this.currentTab === 'parsing') {
+            this.renderParsing();
+        } else if (this.currentTab === 'consolelogs') {
+            this.renderConsoleLogs();
+        } else if (this.currentTab === 'autosave') {
+            this.renderAutoSave();
+        } else if (this.currentTab === 'validation') {
+            this.renderValidation();
         }
     },
 
@@ -705,7 +715,7 @@ const DebugSidebar = {
     copyConversationToClipboard() {
         const output = document.getElementById('debug-conversation-content');
         if (!output) return;
-        
+
         const text = output.innerText;
         navigator.clipboard.writeText(text).then(() => {
             alert('Conversation data copied to clipboard!');
@@ -719,7 +729,7 @@ const DebugSidebar = {
         if (!output) return;
 
         const treeData = DebugModule.extractHTMLTree();
-        
+
         if (!treeData || treeData.error) {
             output.innerHTML = `<span style="color: #EF4444;">${treeData?.error || 'Failed to extract HTML tree'}</span>`;
             return;
@@ -739,7 +749,7 @@ const DebugSidebar = {
         };
 
         let treeText = '';
-        
+
         // Document Structure
         treeText += '<span style="color: #10B981; font-weight: bold;">📄 DOCUMENT</span>\n';
         treeText += `  Title: ${treeData.document_structure.title}\n`;
@@ -748,7 +758,7 @@ const DebugSidebar = {
         // Key Containers
         treeText += '<span style="color: #10B981; font-weight: bold;">📦 KEY CONTAINERS</span>\n';
         treeText += formatElement(treeData.key_containers.prime_chat, 'Prime Chat', 1);
-        
+
         if (treeData.key_containers.agent_columns && treeData.key_containers.agent_columns.length > 0) {
             treeText += `  <span style="color: #10B981;">Agent Columns:</span> ${treeData.key_containers.agent_columns.length}\n`;
             treeData.key_containers.agent_columns.forEach((col, idx) => {
@@ -759,7 +769,7 @@ const DebugSidebar = {
                 }
             });
         }
-        
+
         treeText += formatElement(treeData.key_containers.synergy_panel, 'Synergy Panel', 1);
         treeText += formatElement(treeData.key_containers.debug_sidebar, 'Debug Sidebar', 1);
         treeText += '\n';
@@ -780,21 +790,21 @@ const DebugSidebar = {
         treeText += `  Active Tab: <span style="color: #F59E0B;">${treeData.active_elements.active_tab || '(none)'}</span>\n`;
         treeText += `  Open Modals: ${treeData.active_elements.open_modals.length > 0 ? treeData.active_elements.open_modals.join(', ') : '(none)'}\n`;
         treeText += `  Visible Sidebars: ${treeData.active_elements.visible_sidebars.length > 0 ? treeData.active_elements.visible_sidebars.join(', ') : '(none)'}\n`;
-        
+
         output.innerHTML = `<pre style="margin: 0; font-size: 11px; line-height: 1.8; color: #d4d4d4;">${treeText}</pre>`;
     },
 
     copyHTMLTreeToClipboard() {
         const output = document.getElementById('debug-htmltree-output');
         if (!output) return;
-        
+
         const text = output.innerText;
         navigator.clipboard.writeText(text).then(() => {
             alert('HTML Tree copied to clipboard!');
         }).catch(err => {
             console.error('Failed to copy HTML tree:', err);
         });
-    },    renderThreads() {
+    }, renderThreads() {
         const container = document.getElementById('debug-threads-content');
         if (!container) return;
 
@@ -1065,6 +1075,440 @@ ${sequenceHTML}
                 </div>
             `;
         }).join('');
+    },
+
+    // ==================== NEW TEST TABS ====================
+
+    /**
+     * TEST 1: Database Structure - Check message content format
+     */
+    renderDBStructure() {
+        const output = document.getElementById('debug-dbstructure-output');
+        if (!output) return;
+
+        const currentThread = ThreadManager?.getCurrentThread();
+        if (!currentThread || !currentThread.messages || currentThread.messages.length === 0) {
+            output.innerHTML = '<span style="color: #666;">No messages in current thread</span>';
+            return;
+        }
+
+        const messages = currentThread.messages.slice(-5); // Last 5 messages
+        let report = '<div style="font-family: monospace; font-size: 11px; line-height: 1.8;">';
+
+        report += '<div style="color: #10B981; font-weight: bold; margin-bottom: 12px;">📊 MESSAGE CONTENT STRUCTURE</div>\n\n';
+
+        messages.forEach((msg, idx) => {
+            const contentType = typeof msg.content;
+            const isString = contentType === 'string';
+            const isArray = Array.isArray(msg.content);
+            const isObject = contentType === 'object' && !isArray;
+
+            let preview = '';
+            let structureIcon = '';
+            let structureColor = '';
+
+            if (isString) {
+                structureIcon = '📝';
+                structureColor = '#F59E0B';
+                preview = msg.content.substring(0, 100);
+                // Check if it looks like JSON
+                if (msg.content.trim().startsWith('[') || msg.content.trim().startsWith('{')) {
+                    structureIcon = '⚠️';
+                    structureColor = '#EF4444';
+                    preview = '⚠️ STRING CONTAINING JSON (needs parsing!)';
+                }
+            } else if (isArray) {
+                structureIcon = '✅';
+                structureColor = '#10B981';
+                preview = `Array with ${msg.content.length} blocks: [${msg.content.map(c => c.type || 'unknown').join(', ')}]`;
+            } else if (isObject) {
+                structureIcon = '📦';
+                structureColor = '#3B82F6';
+                preview = `Object with keys: ${Object.keys(msg.content).join(', ')}`;
+            }
+
+            report += `<div style="margin-bottom: 16px; padding: 12px; background: #1e1e1e; border-radius: 6px; border-left: 3px solid ${structureColor};">\n`;
+            report += `  <div style="color: ${structureColor}; font-weight: bold;">${structureIcon} Message ${idx + 1} - ${msg.role}</div>\n`;
+            report += `  <div style="color: #888; margin-top: 4px;">Type: <span style="color: ${structureColor};">${contentType}${isArray ? ' (array)' : ''}</span></div>\n`;
+            report += `  <div style="color: #ccc; margin-top: 6px; font-size: 10px; word-break: break-all;">${preview}</div>\n`;
+
+            // Show structure test
+            if (isString && (msg.content.trim().startsWith('[') || msg.content.trim().startsWith('{'))) {
+                report += `  <div style="color: #EF4444; margin-top: 8px; padding: 6px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;">\n`;
+                report += `    ❌ PROBLEM: Content is JSON string, not parsed array\n`;
+                report += `    ✅ SOLUTION: JSON.parse() needed in loadThreadsFromBackend()\n`;
+                report += `  </div>\n`;
+            } else if (isArray) {
+                report += `  <div style="color: #10B981; margin-top: 8px; padding: 6px; background: rgba(16, 185, 129, 0.1); border-radius: 4px;">\n`;
+                report += `    ✅ CORRECT: Content is properly parsed array\n`;
+                report += `  </div>\n`;
+            }
+
+            report += `</div>\n\n`;
+        });
+
+        report += '<div style="margin-top: 16px; padding: 12px; background: #2d2d2d; border-radius: 6px;">\n';
+        report += '<div style="color: #10B981; font-weight: bold; margin-bottom: 8px;">🎯 EXPECTED BEHAVIOR:</div>\n';
+        report += '<div style="color: #ccc; font-size: 10px; line-height: 1.6;">\n';
+        report += '• Database stores content as JSON string: "[{\\"type\\":\\"text\\",\\"text\\":\\"Hello\\"}]"\n';
+        report += '• Frontend MUST parse: JSON.parse(msg.content) → [{type: "text", text: "Hello"}]\n';
+        report += '• Result: content becomes array of content blocks\n';
+        report += '</div>\n';
+        report += '</div>\n';
+
+        report += '</div>';
+        output.innerHTML = report;
+    },
+
+    copyDBStructureToClipboard() {
+        const output = document.getElementById('debug-dbstructure-output');
+        if (!output) return;
+        navigator.clipboard.writeText(output.innerText).then(() => {
+            alert('DB Structure report copied to clipboard!');
+        });
+    },
+
+    /**
+     * TEST 2: Message Parsing - Test JSON.parse() behavior
+     */
+    renderParsing() {
+        const output = document.getElementById('debug-parsing-output');
+        if (!output) return;
+
+        const currentThread = ThreadManager?.getCurrentThread();
+        if (!currentThread || !currentThread.messages || currentThread.messages.length === 0) {
+            output.innerHTML = '<span style="color: #666;">No messages in current thread</span>';
+            return;
+        }
+
+        let report = '<div style="font-family: monospace; font-size: 11px; line-height: 1.8;">';
+        report += '<div style="color: #10B981; font-weight: bold; margin-bottom: 12px;">🧪 JSON PARSING TEST</div>\n\n';
+
+        const testMessage = currentThread.messages[0];
+        const rawContent = testMessage.content;
+
+        report += '<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; margin-bottom: 16px;">\n';
+        report += '<div style="color: #F59E0B; font-weight: bold;">RAW CONTENT:</div>\n';
+        report += `<div style="color: #888; margin-top: 4px;">Type: ${typeof rawContent}</div>\n`;
+        report += `<div style="color: #ccc; margin-top: 6px; font-size: 10px; word-break: break-all;">${JSON.stringify(rawContent).substring(0, 200)}...</div>\n`;
+        report += '</div>\n\n';
+
+        // Test parsing
+        let parseResult = null;
+        let parseError = null;
+
+        if (typeof rawContent === 'string') {
+            try {
+                parseResult = JSON.parse(rawContent);
+                report += '<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #10B981;">\n';
+                report += '<div style="color: #10B981; font-weight: bold;">✅ PARSE SUCCESSFUL:</div>\n';
+                report += `<div style="color: #888; margin-top: 4px;">Result Type: ${Array.isArray(parseResult) ? 'array' : typeof parseResult}</div>\n`;
+                if (Array.isArray(parseResult)) {
+                    report += `<div style="color: #888;">Array Length: ${parseResult.length}</div>\n`;
+                    report += `<div style="color: #888;">Block Types: [${parseResult.map(c => c.type || 'unknown').join(', ')}]</div>\n`;
+                }
+                report += `<div style="color: #ccc; margin-top: 6px; font-size: 10px;">${JSON.stringify(parseResult, null, 2).substring(0, 300)}...</div>\n`;
+                report += '</div>\n\n';
+            } catch (e) {
+                parseError = e.message;
+                report += '<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #EF4444;">\n';
+                report += '<div style="color: #EF4444; font-weight: bold;">❌ PARSE FAILED:</div>\n';
+                report += `<div style="color: #EF4444; margin-top: 6px;">${e.message}</div>\n`;
+                report += '</div>\n\n';
+            }
+        } else {
+            report += '<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #3B82F6;">\n';
+            report += '<div style="color: #3B82F6; font-weight: bold;">ℹ️ NO PARSING NEEDED:</div>\n';
+            report += '<div style="color: #888; margin-top: 4px;">Content is already a JavaScript object/array</div>\n';
+            report += '</div>\n\n';
+        }
+
+        // Show fix location
+        report += '<div style="padding: 12px; background: #2d2d2d; border-radius: 6px;">\n';
+        report += '<div style="color: #10B981; font-weight: bold; margin-bottom: 8px;">📍 FIX LOCATION:</div>\n';
+        report += '<div style="color: #ccc; font-size: 10px; line-height: 1.6;">\n';
+        report += '<span style="color: #F59E0B;">File:</span> modules/thread-manager/thread-manager-core.js\n';
+        report += '<span style="color: #F59E0B;">Function:</span> loadThreadsFromBackend()\n';
+        report += '<span style="color: #F59E0B;">Lines:</span> 237-262\n\n';
+        report += '<span style="color: #10B981;">Code:</span>\n';
+        report += 'const messages = (thread.messages || []).map(msg => {\n';
+        report += '  if (typeof msg.content === \'string\') {\n';
+        report += '    try {\n';
+        report += '      return { ...msg, content: JSON.parse(msg.content) };\n';
+        report += '    } catch (e) { return msg; }\n';
+        report += '  }\n';
+        report += '  return msg;\n';
+        report += '});\n';
+        report += '</div>\n';
+        report += '</div>\n';
+
+        report += '</div>';
+        output.innerHTML = report;
+    },
+
+    copyParsingToClipboard() {
+        const output = document.getElementById('debug-parsing-output');
+        if (!output) return;
+        navigator.clipboard.writeText(output.innerText).then(() => {
+            alert('Parsing test copied to clipboard!');
+        });
+    },
+
+    /**
+     * TEST 3: Console Logs - Filtered thread-related logs
+     */
+    renderConsoleLogs() {
+        const output = document.getElementById('debug-consolelogs-output');
+        if (!output) return;
+
+        const threadLogs = DebugModule.logs.filter(log =>
+            log.message.includes('Thread') ||
+            log.message.includes('saveMessages') ||
+            log.message.includes('loadThreads') ||
+            log.message.includes('[Interactions]') ||
+            log.message.includes('[AutoSave]') ||
+            log.message.includes('[MESSAGE SAVE]')
+        );
+
+        if (threadLogs.length === 0) {
+            output.innerHTML = '<span style="color: #666;">No thread-related logs captured yet</span>';
+            return;
+        }
+
+        const recentLogs = threadLogs.slice(-30);
+        const formatted = recentLogs.map(log => {
+            const time = new Date(log.time).toLocaleTimeString();
+            const levelColor = log.level === 'error' ? '#EF4444' : log.level === 'warn' ? '#F59E0B' : '#10B981';
+            return `[${time}] <span style="color: ${levelColor}">[${log.level.toUpperCase()}]</span> ${log.message}`;
+        }).join('\n\n');
+
+        output.innerHTML = `<pre style="margin: 0; font-size: 11px; line-height: 1.8;">${formatted}</pre>`;
+    },
+
+    copyConsoleLogsToClipboard() {
+        const output = document.getElementById('debug-consolelogs-output');
+        if (!output) return;
+        navigator.clipboard.writeText(output.innerText).then(() => {
+            alert('Console logs copied to clipboard!');
+        });
+    },
+
+    /**
+     * TEST 4: Auto-Save Timing - Track save intervals
+     */
+    renderAutoSave() {
+        const output = document.getElementById('debug-autosave-output');
+        if (!output) return;
+
+        const saveLogs = DebugModule.logs.filter(log =>
+            log.message.includes('[AutoSave]') ||
+            log.message.includes('saveThreadToBackend') ||
+            log.message.includes('saveMessagesToBackend')
+        );
+
+        if (saveLogs.length === 0) {
+            output.innerHTML = '<span style="color: #666;">No save operations captured yet. Wait for auto-save...</span>';
+            return;
+        }
+
+        // Calculate intervals between saves
+        const intervals = [];
+        for (let i = 1; i < saveLogs.length; i++) {
+            const prev = new Date(saveLogs[i - 1].timestamp);
+            const curr = new Date(saveLogs[i].timestamp);
+            const diffSeconds = (curr - prev) / 1000;
+            intervals.push({ time: curr.toLocaleTimeString(), interval: diffSeconds });
+        }
+
+        let report = '<div style="font-family: monospace; font-size: 11px; line-height: 1.8;">';
+        report += '<div style="color: #10B981; font-weight: bold; margin-bottom: 12px;">⏱️ AUTO-SAVE TIMING ANALYSIS</div>\n\n';
+
+        // Stats
+        const avgInterval = intervals.length > 0 ? intervals.reduce((sum, i) => sum + i.interval, 0) / intervals.length : 0;
+        const minInterval = intervals.length > 0 ? Math.min(...intervals.map(i => i.interval)) : 0;
+        const maxInterval = intervals.length > 0 ? Math.max(...intervals.map(i => i.interval)) : 0;
+
+        report += '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">\n';
+        report += `<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; text-align: center;">\n`;
+        report += `  <div style="color: #888; font-size: 10px;">AVERAGE</div>\n`;
+        report += `  <div style="color: ${avgInterval >= 55 && avgInterval <= 65 ? '#10B981' : '#EF4444'}; font-size: 18px; font-weight: bold;">${avgInterval.toFixed(1)}s</div>\n`;
+        report += `</div>\n`;
+        report += `<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; text-align: center;">\n`;
+        report += `  <div style="color: #888; font-size: 10px;">MIN</div>\n`;
+        report += `  <div style="color: #3B82F6; font-size: 18px; font-weight: bold;">${minInterval.toFixed(1)}s</div>\n`;
+        report += `</div>\n`;
+        report += `<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; text-align: center;">\n`;
+        report += `  <div style="color: #888; font-size: 10px;">MAX</div>\n`;
+        report += `  <div style="color: #F59E0B; font-size: 18px; font-weight: bold;">${maxInterval.toFixed(1)}s</div>\n`;
+        report += `</div>\n`;
+        report += '</div>\n\n';
+
+        // Recent intervals
+        report += '<div style="color: #F59E0B; font-weight: bold; margin-bottom: 8px;">RECENT SAVE INTERVALS:</div>\n';
+        intervals.slice(-10).forEach((interval, idx) => {
+            const color = interval.interval >= 55 && interval.interval <= 65 ? '#10B981' : '#EF4444';
+            const icon = interval.interval >= 55 && interval.interval <= 65 ? '✅' : '⚠️';
+            report += `<div style="padding: 6px; margin-bottom: 4px; background: #1e1e1e; border-radius: 4px;">\n`;
+            report += `  ${icon} [${interval.time}] <span style="color: ${color};">${interval.interval.toFixed(1)}s</span> since last save\n`;
+            report += `</div>\n`;
+        });
+
+        report += '\n<div style="margin-top: 16px; padding: 12px; background: #2d2d2d; border-radius: 6px;">\n';
+        report += '<div style="color: #10B981; font-weight: bold; margin-bottom: 8px;">🎯 EXPECTED BEHAVIOR:</div>\n';
+        report += '<div style="color: #ccc; font-size: 10px; line-height: 1.6;">\n';
+        report += '• Auto-save interval: 60 seconds ±5s tolerance\n';
+        report += '• NO immediate saves after each message\n';
+        report += '• Config: thread-manager-core.js line 335 (setInterval 60000ms)\n';
+        report += `• Current status: ${avgInterval >= 55 && avgInterval <= 65 ? '✅ CORRECT' : '❌ NEEDS FIX'}\n`;
+        report += '</div>\n';
+        report += '</div>\n';
+
+        report += '</div>';
+        output.innerHTML = report;
+    },
+
+    copyAutoSaveToClipboard() {
+        const output = document.getElementById('debug-autosave-output');
+        if (!output) return;
+        navigator.clipboard.writeText(output.innerText).then(() => {
+            alert('Auto-save timing copied to clipboard!');
+        });
+    },
+
+    /**
+     * TEST 5: Validation Status - Check tool_use/tool_result pairing
+     */
+    renderValidation() {
+        const output = document.getElementById('debug-validation-output');
+        if (!output) return;
+
+        const currentThread = ThreadManager?.getCurrentThread();
+        if (!currentThread || !currentThread.messages || currentThread.messages.length === 0) {
+            output.innerHTML = '<span style="color: #666;">No messages in current thread</span>';
+            return;
+        }
+
+        let report = '<div style="font-family: monospace; font-size: 11px; line-height: 1.8;">';
+        report += '<div style="color: #10B981; font-weight: bold; margin-bottom: 12px;">🔍 CONVERSATION VALIDATION</div>\n\n';
+
+        const messages = currentThread.messages;
+        let toolUseBlocks = [];
+        let toolResultBlocks = [];
+        let issues = [];
+
+        // Scan for tool blocks
+        messages.forEach((msg, msgIdx) => {
+            if (Array.isArray(msg.content)) {
+                msg.content.forEach((block, blockIdx) => {
+                    if (block.type === 'tool_use') {
+                        toolUseBlocks.push({
+                            msgIdx,
+                            blockIdx,
+                            id: block.id,
+                            name: block.name,
+                            role: msg.role
+                        });
+                    }
+                    if (block.type === 'tool_result') {
+                        toolResultBlocks.push({
+                            msgIdx,
+                            blockIdx,
+                            tool_use_id: block.tool_use_id,
+                            role: msg.role
+                        });
+                    }
+                });
+            }
+        });
+
+        // Check for orphaned tool_use blocks
+        toolUseBlocks.forEach(toolUse => {
+            const hasResult = toolResultBlocks.some(result => result.tool_use_id === toolUse.id);
+            if (!hasResult) {
+                issues.push({
+                    type: 'orphaned_tool_use',
+                    severity: 'critical',
+                    msgIdx: toolUse.msgIdx,
+                    details: `tool_use ${toolUse.id} (${toolUse.name}) has no matching tool_result`
+                });
+            }
+        });
+
+        // Check for wrong message order
+        messages.forEach((msg, idx) => {
+            if (idx > 0) {
+                const prevRole = messages[idx - 1].role;
+                const currRole = msg.role;
+                if (prevRole === currRole) {
+                    issues.push({
+                        type: 'wrong_order',
+                        severity: 'warning',
+                        msgIdx: idx,
+                        details: `Two consecutive ${currRole} messages (index ${idx - 1} and ${idx})`
+                    });
+                }
+            }
+        });
+
+        // Display stats
+        report += '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">\n';
+        report += `<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; text-align: center;">\n`;
+        report += `  <div style="color: #888; font-size: 10px;">MESSAGES</div>\n`;
+        report += `  <div style="color: #3B82F6; font-size: 18px; font-weight: bold;">${messages.length}</div>\n`;
+        report += `</div>\n`;
+        report += `<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; text-align: center;">\n`;
+        report += `  <div style="color: #888; font-size: 10px;">TOOL USE</div>\n`;
+        report += `  <div style="color: #F59E0B; font-size: 18px; font-weight: bold;">${toolUseBlocks.length}</div>\n`;
+        report += `</div>\n`;
+        report += `<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; text-align: center;">\n`;
+        report += `  <div style="color: #888; font-size: 10px;">TOOL RESULT</div>\n`;
+        report += `  <div style="color: #06B6D4; font-size: 18px; font-weight: bold;">${toolResultBlocks.length}</div>\n`;
+        report += `</div>\n`;
+        report += `<div style="padding: 12px; background: #1e1e1e; border-radius: 6px; text-align: center;">\n`;
+        report += `  <div style="color: #888; font-size: 10px;">ISSUES</div>\n`;
+        report += `  <div style="color: ${issues.length > 0 ? '#EF4444' : '#10B981'}; font-size: 18px; font-weight: bold;">${issues.length}</div>\n`;
+        report += `</div>\n`;
+        report += '</div>\n\n';
+
+        // Issues
+        if (issues.length > 0) {
+            report += '<div style="color: #EF4444; font-weight: bold; margin-bottom: 8px;">⚠️ VALIDATION ISSUES FOUND:</div>\n';
+            issues.forEach(issue => {
+                const color = issue.severity === 'critical' ? '#EF4444' : '#F59E0B';
+                report += `<div style="padding: 8px; margin-bottom: 6px; background: rgba(239, 68, 68, 0.1); border-left: 3px solid ${color}; border-radius: 4px;">\n`;
+                report += `  <div style="color: ${color}; font-weight: bold;">${issue.severity.toUpperCase()}: ${issue.type}</div>\n`;
+                report += `  <div style="color: #ccc; font-size: 10px; margin-top: 4px;">Message ${issue.msgIdx}: ${issue.details}</div>\n`;
+                report += `</div>\n`;
+            });
+
+            report += '\n<div style="margin-top: 12px; padding: 12px; background: #2d2d2d; border-radius: 6px;">\n';
+            report += '<div style="color: #EF4444; font-weight: bold; margin-bottom: 8px;">🔧 FIX LOCATION:</div>\n';
+            report += '<div style="color: #ccc; font-size: 10px; line-height: 1.6;">\n';
+            report += '<span style="color: #F59E0B;">File:</span> AI_infrastructure/core/combined_agent_worker.py\n';
+            report += '<span style="color: #F59E0B;">Function:</span> validate_conversation_history()\n';
+            report += '<span style="color: #F59E0B;">Lines:</span> 1920-1980\n\n';
+            report += '<span style="color: #10B981;">Fix:</span> ALWAYS truncate at orphaned tool_use (lines 1938-1945)\n';
+            report += 'Remove: if ai_thinking_enabled: PRESERVE logic\n';
+            report += '</div>\n';
+            report += '</div>\n';
+        } else {
+            report += '<div style="padding: 12px; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10B981; border-radius: 6px;">\n';
+            report += '<div style="color: #10B981; font-weight: bold;">✅ VALIDATION PASSED</div>\n';
+            report += '<div style="color: #ccc; font-size: 10px; margin-top: 4px;">All tool_use blocks have matching tool_result blocks</div>\n';
+            report += '<div style="color: #ccc; font-size: 10px;">Message sequence is correct (alternating user/assistant)</div>\n';
+            report += '</div>\n';
+        }
+
+        report += '</div>';
+        output.innerHTML = report;
+    },
+
+    copyValidationToClipboard() {
+        const output = document.getElementById('debug-validation-output');
+        if (!output) return;
+        navigator.clipboard.writeText(output.innerText).then(() => {
+            alert('Validation report copied to clipboard!');
+        });
     }
 };
 

@@ -61,7 +61,7 @@ class SynergyCardRenderer {
         const documents = this.parseJsonField(session.documents, []);
         const links = this.parseJsonField(session.links, []);
         const nextSteps = this.parseJsonField(session.next_steps, []);
-        
+
         // Calculate milestone counts
         let completedMilestones = 0;
         let totalMilestones = 0;
@@ -87,21 +87,21 @@ class SynergyCardRenderer {
         }
 
         // Calculate progress percentage
-        const progressPercent = totalTasks > 0 
-            ? Math.round((completedTasks / totalTasks) * 100) 
+        const progressPercent = totalTasks > 0
+            ? Math.round((completedTasks / totalTasks) * 100)
             : (totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0);
 
         // Get relative time
         const relativeTime = this.getRelativeTime(session.updated_at);
 
         // Truncate description to 100 characters
-        const description = session.description 
+        const description = session.description
             ? (session.description.length > 100 ? session.description.substring(0, 100) + '...' : session.description)
             : 'No description';
 
         // Format tags
         const tags = this.parseJsonField(session.tags, []);
-        const tagsHtml = tags.length > 0 
+        const tagsHtml = tags.length > 0
             ? tags.slice(0, 3).map(tag => `<span class="synergy-tag">${this.escapeHtml(tag)}</span>`).join('')
             : '';
 
@@ -192,14 +192,14 @@ class SynergyCardRenderer {
      */
     getRelativeTime(dateString) {
         if (!dateString) return 'Unknown';
-        
+
         const date = new Date(dateString);
         const now = new Date();
         const diffMs = now - date;
         const diffMins = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        
+
         if (diffMins < 60) return `${diffMins}m ago`;
         if (diffHours < 24) return `${diffHours}h ago`;
         if (diffDays < 30) return `${diffDays}d ago`;

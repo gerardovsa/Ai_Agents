@@ -2590,12 +2590,12 @@ def get_session_milestones(session_id):
                 'milestone_name': m_row[2],
                 'description': m_row[3],
                 'completed': m_row[4],
-                'due_date': m_row[5],
+                'due_date': m_row[5].isoformat() if m_row[5] else None,
                 'priority': m_row[6],
-                'estimated_hours': m_row[7],
-                'actual_hours': m_row[8],
-                'created_at': m_row[9],
-                'completed_at': m_row[10],
+                'estimated_hours': float(m_row[7]) if m_row[7] else None,
+                'actual_hours': float(m_row[8]) if m_row[8] else None,
+                'created_at': m_row[9].isoformat() if m_row[9] else None,
+                'completed_at': m_row[10].isoformat() if m_row[10] else None,
                 'tasks': []
             }
             
@@ -2617,8 +2617,8 @@ def get_session_milestones(session_id):
                     'blocker_reason': t_row[4],
                     'blocker_type': t_row[5],
                     'task_order': t_row[6],
-                    'created_at': t_row[7],
-                    'completed_at': t_row[8],
+                    'created_at': t_row[7].isoformat() if t_row[7] else None,
+                    'completed_at': t_row[8].isoformat() if t_row[8] else None,
                     'subtasks': []
                 }
                 
@@ -2636,8 +2636,8 @@ def get_session_milestones(session_id):
                         'task': s_row[1],
                         'completed': s_row[2],
                         'subtask_order': s_row[3],
-                        'created_at': s_row[4],
-                        'completed_at': s_row[5]
+                        'created_at': s_row[4].isoformat() if s_row[4] else None,
+                        'completed_at': s_row[5].isoformat() if s_row[5] else None
                     }
                     task['subtasks'].append(subtask)
                 

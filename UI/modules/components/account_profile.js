@@ -204,14 +204,14 @@ function toggleNotificationPanel(event) {
     if (notifBtn) {
         notifBtn.classList.toggle('active', isOpen);
     }
-    console.log('?? Notification panel toggled:', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
+    console.log('Notification panel toggled:', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
 }
 
 // Initialize right sidebar buttons
 function initRightSidebar() {
     // Prevent duplicate initialization
     if (window._rightSidebarInitialized) {
-        console.warn('?? Right sidebar already initialized, skipping...');
+        console.warn('Right sidebar already initialized, skipping...');
         return;
     }
     window._rightSidebarInitialized = true;
@@ -232,15 +232,15 @@ function initRightSidebar() {
                     wrapper.classList.remove('chat-collapsed');
                     panel.style.display = 'flex';
                     this.classList.add('active');
-                    console.log('?? AI Prime chat OPENED');
+                    console.log('AI Prime chat OPENED');
                 } else {
                     wrapper.classList.add('chat-collapsed');
                     panel.style.display = 'none';
                     this.classList.remove('active');
-                    console.log('?? AI Prime chat CLOSED');
+                    console.log('AI Prime chat CLOSED');
                 }
             } else {
-                console.warn('?? Chat panel or wrapper not found');
+                console.warn('Chat panel or wrapper not found');
             }
         });
     }
@@ -255,11 +255,11 @@ function initRightSidebar() {
             // Check if modal already exists
             const existingModal = document.getElementById('newChatModalOverlay');
             if (existingModal) {
-                console.warn('?? Modal already open, skipping...');
+                console.warn('Modal already open, skipping...');
                 return;
             }
 
-            console.log('?? New chat button clicked from right sidebar');
+            console.log('New chat button clicked from right sidebar');
             if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.showNewChatModal === 'function') {
                 ThreadManager.showNewChatModal('prime');
             } else {
@@ -286,7 +286,7 @@ function initRightSidebar() {
                 this.classList.toggle('active', isOpen);
                 console.log('? Prompt sidebar toggled:', promptSidebar.classList.contains('show') ? 'VISIBLE' : 'HIDDEN');
             } else {
-                console.warn('?? Prompt sidebar not found - may not be initialized yet');
+                console.warn('Prompt sidebar not found - may not be initialized yet');
             }
         });
     }
@@ -333,7 +333,7 @@ async function loadUserProfile() {
         }
 
         const data = await response.json();
-        console.log('?? Profile data received:', data);
+        console.log('Profile data received:', data);
 
         if (data.success) {
             const profile = data.profile;
@@ -819,7 +819,7 @@ async function loadMicrosoft365Profile() {
         }
 
         const data = await response.json();
-        console.log('?? Microsoft status data:', data);
+        console.log('Microsoft status data:', data);
 
         if (data.success && data.connected) {
             const displayName = data.display_name || 'Microsoft User';

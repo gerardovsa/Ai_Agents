@@ -466,21 +466,63 @@ window.synergyBoard = {
         const createdDate = new Date(session.created_at);
         const timeAgo = this.getTimeAgo(createdDate);
 
-        // Card HTML
+        // Calculate progress
+        const totalMilestones = session.total_milestones || 0;
+        const completedMilestones = session.completed_milestones || 0;
+        const totalTasks = session.total_tasks || 0;
+        const completedTasks = session.completed_tasks || 0;
+        const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+        // Status badge
+        const statusClass = (session.status || 'active').toLowerCase().replace(/\s+/g, '-');
+
+        // Card HTML with 4-row structure
         card.innerHTML = `
-            <div class="card-header">
-                <span class="card-priority">${priorityEmoji}</span>
-                <span class="card-id">${session.session_id.substring(0, 12)}...</span>
-                <button class="card-menu-btn" onclick="event.stopPropagation(); synergyBoard.openCardMenu('${session.session_id}')">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-            </div>
-            <div class="card-title" onclick="synergyBoard.toggleCardExpand('${session.session_id}')">
-                ${this.escapeHtml(session.title || 'Untitled Session')}
-            </div>
-            <div class="card-meta">
-                <span class="card-time">${timeAgo}</span>
-                ${session.internal_docs_count ? `<span class="card-docs-count"><i class="fas fa-file"></i> ${session.internal_docs_count}</span>` : ''}
+            <div class="synergy-session-header-new" onclick="synergyBoard.toggleCardExpand('${session.session_id}')">
+                
+                <!-- TITLE ROW -->
+                <div class="synergy-title-row">
+                    <div class="synergy-title-text">${this.escapeHtml(session.title || 'Untitled Session')}</div>
+                </div>
+
+                <!-- ROW 1: Priority + Status + Actions -->
+                <div class="synergy-row-1">
+                    <span class="priority-badge priority-${(session.priority || 'medium').toLowerCase()}">${session.priority || 'Medium'}</span>
+                    <span class="status-badge status-${statusClass}">${session.status || 'Active'}</span>
+                    
+                    <div class="synergy-actions">
+                        <button class="synergy-icon-btn" onclick="event.stopPropagation(); synergyBoard.openCardMenu('${session.session_id}')" title="Menu">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <button class="synergy-icon-btn synergy-chevron">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ROW 2: Description -->
+                <div class="synergy-row-2">
+                    <div class="synergy-description">${session.description ? (session.description.length > 100 ? this.escapeHtml(session.description.substring(0, 100)) + '...' : this.escapeHtml(session.description)) : 'No description'}</div>
+                </div>
+
+                <!-- ROW 3: Stats -->
+                <div class="synergy-row-3">
+                    ${session.due_date ? `<div class="synergy-stat"><i class="fas fa-calendar-alt"></i><span>${new Date(session.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span></div>` : ''}
+                    <div class="synergy-stat"><i class="fas fa-flag"></i><span>${completedMilestones}/${totalMilestones}</span></div>
+                    <div class="synergy-stat"><i class="fas fa-tasks"></i><span>${completedTasks}/${totalTasks}</span></div>
+                    <div class="synergy-stat"><i class="fas fa-file-alt"></i><span>${session.internal_docs_count || 0}</span></div>
+                </div>
+
+                <!-- ROW 4: Progress + Footer -->
+                <div class="synergy-row-4">
+                    <div class="synergy-progress-bar">
+                        <div class="synergy-progress-fill" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="synergy-footer">
+                        <div class="synergy-project">${this.escapeHtml(session.project_name || 'General')}</div>
+                        <div class="synergy-updated">${timeAgo}</div>
+                    </div>
+                </div>
             </div>
         `;
 

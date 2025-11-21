@@ -12632,7 +12632,7 @@
                             style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); border-bottom: 2px solid var(--border-default); padding-bottom: 0;">
                             <button class="woocommerce-subtab active" data-wc-subtab="orders"
                                 style="padding: var(--space-3) var(--space-4); background: none; border: none; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;">
-                                ?? Orders
+                                Orders
                             </button>
                             <button class="woocommerce-subtab" data-wc-subtab="products"
                                 style="padding: var(--space-3) var(--space-4); background: none; border: none; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;">
@@ -12644,7 +12644,7 @@
                             </button>
                             <button class="woocommerce-subtab" data-wc-subtab="finance"
                                 style="padding: var(--space-3) var(--space-4); background: none; border: none; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;">
-                                ?? Finance
+                                Finance
                             </button>
                             <button class="woocommerce-subtab" data-wc-subtab="reports"
                                 style="padding: var(--space-3) var(--space-4); background: none; border: none; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;">
@@ -12727,7 +12727,7 @@
                                     <button class="wc-filter-btn" data-filter="pending"
                                         onclick="wcFilterOrders('pending')"
                                         style="padding: 8px 16px; background: var(--bg-tertiary); border: none; border-radius: 6px; color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer;">
-                                        ?? Pending
+                                        Pending
                                     </button>
                                     <button class="wc-filter-btn" data-filter="processing"
                                         onclick="wcFilterOrders('processing')"
@@ -12737,7 +12737,7 @@
                                     <button class="wc-filter-btn" data-filter="completed"
                                         onclick="wcFilterOrders('completed')"
                                         style="padding: 8px 16px; background: var(--bg-tertiary); border: none; border-radius: 6px; color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer;">
-                                        ?? Completed
+                                        Completed
                                     </button>
                                     <button class="wc-filter-btn" data-filter="on-hold"
                                         onclick="wcFilterOrders('on-hold')"
@@ -13674,8 +13674,8 @@
                                     <div class="form-group">
                                         <label for="edit-priority">Priority</label>
                                         <select id="edit-priority" class="form-control">
-                                            <option value="low">?? Low</option>
-                                            <option value="medium">?? Medium</option>
+                                            <option value="low">Low</option>
+                                            <option value="medium">Medium</option>
                                             <option value="high"> High</option>
                                         </select>
                                     </div>
@@ -14902,6 +14902,26 @@
                 <i class="fas fa-sitemap"></i>
                 <span>HTML Tree</span>
             </button>
+            <button class="debug-tab" data-tab="dbstructure" onclick="DebugSidebar.switchTab('dbstructure')">
+                <i class="fas fa-database"></i>
+                <span>DB Structure</span>
+            </button>
+            <button class="debug-tab" data-tab="parsing" onclick="DebugSidebar.switchTab('parsing')">
+                <i class="fas fa-code"></i>
+                <span>Parsing Test</span>
+            </button>
+            <button class="debug-tab" data-tab="consolelogs" onclick="DebugSidebar.switchTab('consolelogs')">
+                <i class="fas fa-terminal"></i>
+                <span>Console Logs</span>
+            </button>
+            <button class="debug-tab" data-tab="autosave" onclick="DebugSidebar.switchTab('autosave')">
+                <i class="fas fa-clock"></i>
+                <span>Auto-Save</span>
+            </button>
+            <button class="debug-tab" data-tab="validation" onclick="DebugSidebar.switchTab('validation')">
+                <i class="fas fa-check-circle"></i>
+                <span>Validation</span>
+            </button>
         </div>
 
         <!-- Content Wrapper -->
@@ -15043,6 +15063,97 @@
                     </button>
                 </div>
             </div>
+
+            <!-- DB STRUCTURE TEST -->
+            <div class="debug-section" data-section="dbstructure">
+                <div class="debug-section-header">
+                    <h3><i class="fas fa-database"></i> Database Structure Test</h3>
+                    <button class="debug-export-btn" onclick="DebugSidebar.copyDBStructureToClipboard()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="debug-section-content">
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        Check if message content is stored as JSON string or parsed object
+                    </p>
+                    <div id="debug-dbstructure-output" class="debug-log-output">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- MESSAGE PARSING TEST -->
+            <div class="debug-section" data-section="parsing">
+                <div class="debug-section-header">
+                    <h3><i class="fas fa-code"></i> Message Content Parsing Test</h3>
+                    <button class="debug-export-btn" onclick="DebugSidebar.copyParsingToClipboard()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="debug-section-content">
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        Test JSON.parse() on database message content
+                    </p>
+                    <div id="debug-parsing-output" class="debug-log-output">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONSOLE LOGS FILTERED -->
+            <div class="debug-section" data-section="consolelogs">
+                <div class="debug-section-header">
+                    <h3><i class="fas fa-terminal"></i> Filtered Console Logs</h3>
+                    <button class="debug-export-btn" onclick="DebugSidebar.copyConsoleLogsToClipboard()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="debug-section-content">
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        Thread-related logs: save, load, render, interactions
+                    </p>
+                    <div id="debug-consolelogs-output" class="debug-log-output">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- AUTO-SAVE TIMING TEST -->
+            <div class="debug-section" data-section="autosave">
+                <div class="debug-section-header">
+                    <h3><i class="fas fa-clock"></i> Auto-Save Timing Test</h3>
+                    <button class="debug-export-btn" onclick="DebugSidebar.copyAutoSaveToClipboard()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="debug-section-content">
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        Track auto-save intervals and verify 60s timing
+                    </p>
+                    <div id="debug-autosave-output" class="debug-log-output">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- VALIDATION STATUS TEST -->
+            <div class="debug-section" data-section="validation">
+                <div class="debug-section-header">
+                    <h3><i class="fas fa-check-circle"></i> Conversation Validation Test</h3>
+                    <button class="debug-export-btn" onclick="DebugSidebar.copyValidationToClipboard()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="debug-section-content">
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        Check tool_use/tool_result pairing and message structure
+                    </p>
+                    <div id="debug-validation-output" class="debug-log-output">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
         </div><!-- End debug-sidebar-content -->
     </div><!-- End debug-sidebar -->
 
@@ -16101,10 +16212,10 @@
 
         // ==================== MAIN APP INITIALIZATION (Post-Auth) ====================
         window.initializeMainApp = async function () {
-            console.log('?? Business AI Platform initializing...');
-            console.log('?? VERSION: Tool-Integrated - Agents can now USE all 281 tools');
-            console.log('?? API Base URL:', API_BASE_URL);
-            console.log('?? VSA API URL:', VSA_API_BASE_URL);
+            console.log('Business AI Platform initializing...');
+            console.log('VERSION: Tool-Integrated - Agents can now USE all 281 tools');
+            console.log('API Base URL:', API_BASE_URL);
+            console.log('VSA API URL:', VSA_API_BASE_URL);
 
             // Initialize hyperlink handler for new window behavior
             initHyperlinkHandler();
@@ -16116,7 +16227,7 @@
             await checkBackendConnection();
 
             // LOAD ALL AVAILABLE TOOLS
-            console.log('?? Loading tools from backend...');
+            console.log('Loading tools from backend...');
             await ToolManager.loadTools();
 
             // INITIALIZE GOOGLE AUTH (optional - user can sign in later)
@@ -16169,7 +16280,7 @@
                 console.log('? Internal Docs Manager initialized after authentication');
             }
 
-            // ?? LAZY LOADING: Do NOT initialize Synergy board here
+            // LAZY LOADING: Do NOT initialize Synergy board here
             // It will load on-demand when user clicks Synergy dashboard or sidebar
             console.log('? [SYNERGY] Lazy loading enabled - sessions will load on first use');
 
@@ -16185,7 +16296,7 @@
 
             console.log('Platform ready with full tool integration!');
             console.log(`[CHART] Total Tools Available: ${ToolManager.availableTools.length}`);
-            console.log(`?? Platforms Connected: ${ToolManager.toolsByPlatform.size}`);
+            console.log(`Platforms Connected: ${ToolManager.toolsByPlatform.size}`);
 
             // DISPLAY VISUALIZATION ENGINE STATUS
             console.log('\n ==================== VISUALIZATION ENGINE STATUS ====================');
@@ -16212,12 +16323,12 @@
                         }, 24 * 60 * 60 * 1000);
                     })
                     .catch((error) => {
-                        console.warn('?? [Service Worker] Registration failed:', error);
+                        console.warn('[Service Worker] Registration failed:', error);
                     });
 
                 // Listen for service worker updates
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('?? [Service Worker] Updated - reloading page');
+                    console.log('[Service Worker] Updated - reloading page');
                     window.location.reload();
                 });
             });
@@ -16256,7 +16367,7 @@
 
             return new Promise((resolve) => {
                 messageChannel.port1.onmessage = (event) => {
-                    console.log('?? Service Worker Cache Info:', event.data);
+                    console.log('Service Worker Cache Info:', event.data);
                     resolve(event.data);
                 };
 
@@ -16443,7 +16554,7 @@
                         return;
                     }
 
-                    console.log(`?? [AGENT DROP] Thread ${threadId} dropped on Agent ${agentId} from ${sourceLocation}`);
+                    console.log(`[AGENT DROP] Thread ${threadId} dropped on Agent ${agentId} from ${sourceLocation}`);
 
                     // Find thread object
                     const thread = ThreadManager.threads.find(t => t.id === threadId || t.thread_slug === threadId);
@@ -16979,7 +17090,7 @@
             // Disconnect WebSocket if leaving Synergy tab
             if (AppState.currentTab === 'synergy' && tabId !== 'synergy') {
                 if (typeof SynergyRealtime !== 'undefined' && SynergyRealtime.isConnected()) {
-                    console.log('?? [SYNERGY] Disconnecting WebSocket (leaving dashboard)');
+                    console.log('[SYNERGY] Disconnecting WebSocket (leaving dashboard)');
                     SynergyRealtime.disconnect();
                 }
             }
@@ -16997,7 +17108,7 @@
 
                 // SPECIAL HANDLING: Lazy load synergy sessions when switching to synergy tab
                 if (tabId === 'synergy') {
-                    console.log('?? [SYNERGY] Dashboard tab activated - LAZY LOADING sessions...');
+                    console.log('[SYNERGY] Dashboard tab activated - LAZY LOADING sessions...');
                     // DO NOT open sidebar - only load dashboard
 
                     // Load sessions into KANBAN BOARD ONLY (lazy load on first access)
@@ -17308,7 +17419,7 @@
 
             // Unload thread from agent without viewing it
             async unloadOnly() {
-                console.log(`?? [ThreadViewChoice] Unloading thread ${this.currentThreadId} from agent`);
+                console.log(`[ThreadViewChoice] Unloading thread ${this.currentThreadId} from agent`);
 
                 try {
                     // Assign to prime and update database

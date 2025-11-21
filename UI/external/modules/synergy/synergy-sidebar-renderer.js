@@ -94,7 +94,7 @@ class SynergySidebarRenderer {
                         <button class="synergy-icon-btn" title="Pin" onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')">
                             <i class="fas fa-thumbtack"></i>
                         </button>
-                        <button class="synergy-icon-btn" title="Open Popup" onclick="event.stopPropagation(); SynergySidebar.openPopup('${session.session_id}')">
+                        <button class="synergy-icon-btn" title="Open Popup" onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}')">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                         <button class="synergy-icon-btn synergy-chevron" title="Expand/Collapse" onclick="event.stopPropagation(); SynergySidebar.toggleCardExpand('${session.session_id}')">

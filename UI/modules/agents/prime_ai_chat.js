@@ -2854,24 +2854,24 @@ function updateAIChatContext(tabId) {
 function initThemeToggle() {
     // Prevent duplicate initialization
     if (window._themeToggleInitialized) {
-        console.warn('?? Theme toggle already initialized, skipping...');
+        console.warn('Theme toggle already initialized, skipping...');
         return;
     }
 
     const toggleBtn = document.getElementById('theme-toggle-btn-sidebar');
     if (!toggleBtn) {
-        console.warn('?? Theme toggle button not found');
+        console.warn('Theme toggle button not found');
         return;
     }
 
     window._themeToggleInitialized = true;
-    console.log('?? Initializing theme toggle...');
+    console.log('Initializing theme toggle...');
 
     // Set default theme if not set
     const html = document.documentElement;
     if (!html.getAttribute('data-theme')) {
         html.setAttribute('data-theme', 'dark');
-        console.log('?? Default theme set to: dark');
+        console.log('Default theme set to: dark');
     }
 
     toggleBtn.addEventListener('click', () => {

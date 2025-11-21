@@ -229,7 +229,7 @@ AI picks correct tool immediately
 }
 
 User: "Quote for 1k cards"
-AI guesses: quantity=1000, stock_type=??? (no guidance)
+AI guesses: quantity=1000, stock_type=?(no guidance)
 AI picks: "standard" (might be wrong)
 ```
 

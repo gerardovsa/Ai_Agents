@@ -246,7 +246,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
              * Flow: assignThread() ? UPDATE DATABASE ? _cascadeThreadAssignment() ? UPDATE UI
              */
             async assignThread(threadId, location) {
-                console.log(`?? [AssignThread] START: ${threadId} ? ${location}`);
+                console.log(`[AssignThread] START: ${threadId} ? ${location}`);
 
                 try {
                     // Set pending flag to prevent realtime loop
@@ -298,7 +298,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
              * Handles: clearing old location, updating thread object, rendering new location
              */
             async _cascadeThreadAssignment(threadId, newLocation, assignment) {
-                console.log(`?? [CASCADE] Starting UI updates for thread ${threadId}`);
+                console.log(`[CASCADE] Starting UI updates for thread ${threadId}`);
 
                 const thread = this.threads.find(t => t.id === threadId);
                 if (!thread) {
@@ -315,13 +315,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                 // STEP 2: Clear OLD location UI (now that thread.location is updated)
                 if (assignment.previous_location) {
-                    console.log(`?? [CASCADE] Clearing ${assignment.previous_location}`);
+                    console.log(`[CASCADE] Clearing ${assignment.previous_location}`);
                     await this._clearLocationUI(assignment.previous_location, threadId);
                 }
 
                 // STEP 3: Handle DISPLACED thread (if any)
                 if (assignment.displaced_thread) {
-                    console.log(`?? [CASCADE] Handling displaced thread: ${assignment.displaced_thread}`);
+                    console.log(`[CASCADE] Handling displaced thread: ${assignment.displaced_thread}`);
                     const displacedThread = this.threads.find(t => t.id === assignment.displaced_thread);
                     if (displacedThread) {
                         // Displaced thread goes to Prime (backend already updated location)
@@ -429,7 +429,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
              *   - removeLinks: Array of link types to remove ['synergy', 'workflow']
              */
             async syncThreadLocationEverywhere(threadId, newLocation, options = {}) {
-                console.log(`?? [syncThreadLocationEverywhere] Syncing ${threadId} ? ${newLocation}`, options);
+                console.log(`[syncThreadLocationEverywhere] Syncing ${threadId} ? ${newLocation}`, options);
 
                 // STEP 1: Normalize location name (frontend uses 'main', backend uses 'prime')
                 const backendLocation = newLocation === 'main' ? 'prime' : newLocation;
@@ -1003,8 +1003,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
         const UserAuth = {
             token: null,
             user: null,
-            isInitialized: false, // ?? Prevent double initialization
-            mainAppInitialized: false, // ?? Prevent double main app initialization
+            isInitialized: false, // Prevent double initialization
+            mainAppInitialized: false, // Prevent double main app initialization
 
             async checkExistingSession() {
                 // Check if user is already logged in
@@ -1023,13 +1023,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             },
 
             init() {
-                // ?? PREVENT DOUBLE INITIALIZATION
+                // PREVENT DOUBLE INITIALIZATION
                 if (this.isInitialized) {
-                    console.log('?? [AUTH] Init already called, skipping duplicate initialization');
+                    console.log('[AUTH] Init already called, skipping duplicate initialization');
                     return;
                 }
                 this.isInitialized = true;
-                console.log('?? [AUTH] Initializing UserAuth...');
+                console.log('[AUTH] Initializing UserAuth...');
 
                 // Get loading overlay elements
                 const loadingOverlay = document.getElementById('authLoadingOverlay');
@@ -1056,7 +1056,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 if (devModeEnabled && !hasOAuthToken && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
                     const hasDevUser = localStorage.getItem('dev_mode_user');
                     if (!hasDevUser) {
-                        console.log('?? [DEV MODE] Dev mode enabled via ?dev=true - Auto-login as test user');
+                        console.log('[DEV MODE] Dev mode enabled via ?dev=true - Auto-login as test user');
                         this.setLoadingProgress(10, 'Loading dev environment...');
                         // Create a mock token and user for local testing
                         const mockUser = {
@@ -1083,7 +1083,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 const storedUser = localStorage.getItem('userProfile');
 
                 if (storedToken && storedUser) {
-                    console.log('?? Token found, verifying...');
+                    console.log('Token found, verifying...');
                     this.setLoadingProgress(5, 'Verifying credentials...');
 
                     this.token = storedToken;
@@ -1110,7 +1110,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         this.showLogin();
                     });
                 } else {
-                    console.log('?? No token found, showing login...');
+                    console.log('No token found, showing login...');
                     this.hideLoadingOverlay();
                     this.showLogin();
                 }
@@ -1224,7 +1224,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 platformContainer.classList.remove('active');
                 platformContainer.style.opacity = '0';
 
-                console.log('?? [AUTH] Login screen displayed');
+                console.log('[AUTH] Login screen displayed');
             },
 
             /**
@@ -1243,13 +1243,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     loadingText.textContent = text;
                 }
 
-                console.log(`?? [LOADING] ${percent}% - ${text}`);
+                console.log(`[LOADING] ${percent}% - ${text}`);
             },
 
             async showMainApp() {
-                // ?? PREVENT DOUBLE INITIALIZATION OF MAIN APP
+                // PREVENT DOUBLE INITIALIZATION OF MAIN APP
                 if (this.mainAppInitialized) {
-                    console.log('?? [AUTH] Main app already initialized, skipping duplicate call');
+                    console.log('[AUTH] Main app already initialized, skipping duplicate call');
                     return;
                 }
                 this.mainAppInitialized = true;
@@ -1280,7 +1280,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                     // PHASE 2: Load heavy libraries AFTER app is visible (25-75% progress)
                     this.setLoadingProgress(30, 'Loading additional resources...');
-                    console.log('?? [POST-AUTH] Loading heavy libraries...');
+                    console.log('[POST-AUTH] Loading heavy libraries...');
                     await this.loadPostAuthLibraries();
                     this.setLoadingProgress(75, 'Resources loaded');
 
@@ -1291,7 +1291,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                     if (this.user) {
                         console.log('? Logged in as:', this.user.username);
-                        console.log('?? Gmail accounts:', this.user.gmail_accounts?.length || 0);
+                        console.log('Gmail accounts:', this.user.gmail_accounts?.length || 0);
                     }
 
                     // PHASE 4: Final setup (90-100% progress)
@@ -1331,17 +1331,17 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
              * This improves initial page load time significantly (saves ~5MB)
              */
             async loadPostAuthLibraries() {
-                console.log('?? [POST-AUTH] Loading heavy libraries sequentially...');
+                console.log('[POST-AUTH] Loading heavy libraries sequentially...');
                 const startTime = performance.now();
 
                 try {
-                    // ?? SKIPPING TIPTAP: UMD builds don't expose proper globals, causing initialization errors
+                    // SKIPPING TIPTAP: UMD builds don't expose proper globals, causing initialization errors
                     // TipTap rich text editor will be added later using ES modules instead of UMD
-                    console.log('  ?? Skipping TipTap libraries (not currently used in UI)');
+                    console.log('  Skipping TipTap libraries (not currently used in UI)');
 
                     // STEP 4: Skip Yjs Collaboration (not implemented yet, causing 404 errors)
                     // Real-time collaboration will be added in future version
-                    console.log('  ??  Skipping Yjs collaboration libraries (not needed yet)');
+                    console.log('   Skipping Yjs collaboration libraries (not needed yet)');
 
                     // STEP 5: Handsontable (1.8MB - can load in parallel with others)
                     this.setLoadingProgress(40, 'Loading spreadsheet libraries...');
@@ -1375,7 +1375,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 return new Promise((resolve, reject) => {
                     // Check if already loaded
                     if (document.getElementById(id)) {
-                        console.log(`  ??  ${id} already loaded`);
+                        console.log(`   ${id} already loaded`);
                         resolve();
                         return;
                     }
@@ -1412,7 +1412,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                         // Check timeout
                         if (Date.now() - startTime > timeout) {
-                            console.warn(`?? Timeout waiting for ${globalPath}`);
+                            console.warn(`Timeout waiting for ${globalPath}`);
                             resolve(); // Don't reject, just continue
                             return;
                         }
@@ -1634,14 +1634,14 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             if (notifBtn) {
                 notifBtn.classList.toggle('active', isOpen);
             }
-            console.log('?? Notification panel toggled:', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
+            console.log('Notification panel toggled:', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
         }
 
         // Initialize right sidebar buttons
         function initRightSidebar() {
             // Prevent duplicate initialization
             if (window._rightSidebarInitialized) {
-                console.warn('?? Right sidebar already initialized, skipping...');
+                console.warn('Right sidebar already initialized, skipping...');
                 return;
             }
             window._rightSidebarInitialized = true;
@@ -1662,15 +1662,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             wrapper.classList.remove('chat-collapsed');
                             panel.style.display = 'flex';
                             this.classList.add('active');
-                            console.log('?? AI Prime chat OPENED');
+                            console.log('AI Prime chat OPENED');
                         } else {
                             wrapper.classList.add('chat-collapsed');
                             panel.style.display = 'none';
                             this.classList.remove('active');
-                            console.log('?? AI Prime chat CLOSED');
+                            console.log('AI Prime chat CLOSED');
                         }
                     } else {
-                        console.warn('?? Chat panel or wrapper not found');
+                        console.warn('Chat panel or wrapper not found');
                     }
                 });
             }
@@ -1685,11 +1685,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     // Check if modal already exists
                     const existingModal = document.getElementById('newChatModalOverlay');
                     if (existingModal) {
-                        console.warn('?? Modal already open, skipping...');
+                        console.warn('Modal already open, skipping...');
                         return;
                     }
 
-                    console.log('?? New chat button clicked from right sidebar');
+                    console.log('New chat button clicked from right sidebar');
                     if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.showNewChatModal === 'function') {
                         ThreadManager.showNewChatModal('prime');
                     } else {
@@ -1716,7 +1716,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         this.classList.toggle('active', isOpen);
                         console.log('? Prompt sidebar toggled:', promptSidebar.classList.contains('show') ? 'VISIBLE' : 'HIDDEN');
                     } else {
-                        console.warn('?? Prompt sidebar not found - may not be initialized yet');
+                        console.warn('Prompt sidebar not found - may not be initialized yet');
                     }
                 });
             }
@@ -1763,7 +1763,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 }
 
                 const data = await response.json();
-                console.log('?? Profile data received:', data);
+                console.log('Profile data received:', data);
 
                 if (data.success) {
                     const profile = data.profile;
@@ -2249,7 +2249,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 }
 
                 const data = await response.json();
-                console.log('?? Microsoft status data:', data);
+                console.log('Microsoft status data:', data);
 
                 if (data.success && data.connected) {
                     const displayName = data.display_name || 'Microsoft User';
@@ -6608,7 +6608,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             // Safe wrapper for methods that require initialization
             async ensureInitialized() {
                 if (!this.initialized) {
-                    console.log('?? [SYNERGY] Auto-initializing synergyBoard...');
+                    console.log('[SYNERGY] Auto-initializing synergyBoard...');
                     await this.init();
                 }
             },
@@ -6618,7 +6618,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     console.log('? [SYNERGY] Already initialized');
                     return;
                 }
-                console.log('?? Initializing Synergy Dashboard...');
+                console.log('Initializing Synergy Dashboard...');
 
                 // Initialize Supabase client for real-time updates
                 this.initializeSupabase();
@@ -6645,7 +6645,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         await SynergyRealtime.connect();
                         console.log('? [SYNERGY] Real-time WebSocket connected');
                     } catch (error) {
-                        console.error('?? [SYNERGY] Failed to connect WebSocket:', error);
+                        console.error('[SYNERGY] Failed to connect WebSocket:', error);
                     }
                 }
 
@@ -6705,7 +6705,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                     // Calculate total internal docs
                     const totalDocs = this.sessions.reduce((sum, s) => sum + (s.internal_docs_count || 0), 0);
-                    console.log(`[SYNERGY] ?? Total internal docs: ${totalDocs}`);
+                    console.log(`[SYNERGY] Total internal docs: ${totalDocs}`);
 
                 } catch (error) {
                     console.warn('[SYNERGY] API unavailable, using mock data:', error.message);
@@ -6715,11 +6715,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 }
             },
 
-            // ?? DEPRECATED: Old N+1 query pattern (kept for reference)
+            // DEPRECATED: Old N+1 query pattern (kept for reference)
             // This method was making 1 API call per session, causing 30+ concurrent connections.
             // Now using batch endpoint /api/synergy/sessions/batch instead.
             async loadInternalDocsForSessions_DEPRECATED() {
-                console.warn('[INTERNAL DOCS] ?? This method is deprecated - use batch endpoint instead');
+                console.warn('[INTERNAL DOCS] This method is deprecated - use batch endpoint instead');
                 console.log('[INTERNAL DOCS] Loading internal docs for all sessions (N+1 pattern)...');
                 const promises = this.sessions.map(async (session) => {
                     try {
@@ -8088,7 +8088,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             async refreshBoard() {
                 await this.ensureInitialized();
-                console.log('?? Refreshing board...');
+                console.log('Refreshing board...');
                 this.showSyncIndicator('syncing', 'Refreshing...');
 
                 await this.loadSessions();
@@ -8100,7 +8100,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             async createNewSession(column = 'backlog') {
                 await this.ensureInitialized();
-                console.log('?? Opening Synergy Session Card modal for new session in column:', column);
+                console.log('Opening Synergy Session Card modal for new session in column:', column);
 
                 // Create a new empty session object
                 const newSession = {
@@ -8136,7 +8136,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
             async columnMenu(column) {
                 await this.ensureInitialized();
-                console.log('?? Column menu:', column);
+                console.log('Column menu:', column);
                 // Could add: Clear column, Sort by, etc.
             },
 
@@ -8329,7 +8329,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     });
                     console.log('? Step toggled and saved:', sessionId, stepIndex);
                 } catch (error) {
-                    console.warn('?? Failed to save step toggle:', error);
+                    console.warn('Failed to save step toggle:', error);
                     // Revert UI on error
                     session.next_steps[stepIndex].completed = !isCompleted;
                     allStepCheckboxes.forEach(checkbox => {
@@ -8382,7 +8382,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     });
                     console.log('? Sub-item toggled and saved:', sessionId, stepIndex, subIndex);
                 } catch (error) {
-                    console.warn('?? Failed to save sub-item toggle:', error);
+                    console.warn('Failed to save sub-item toggle:', error);
                     step.sub_checklist[subIndex].completed = !isCompleted;
                     allSubCheckboxes.forEach(checkbox => {
                         checkbox.checked = !isCompleted;
@@ -9908,18 +9908,18 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             subscribeToRealtimeChanges() {
                 // Check if config is loaded
                 if (!window.SUPABASE_CONFIG_LOADED || !window.SUPABASE_ANON_KEY) {
-                    console.warn('?? [SYNERGY] Supabase config not loaded yet, skipping real-time subscription');
+                    console.warn('[SYNERGY] Supabase config not loaded yet, skipping real-time subscription');
                     return;
                 }
 
                 if (!this.supabaseClient) {
-                    console.warn('?? [SYNERGY] Supabase client not initialized, skipping real-time subscription');
+                    console.warn('[SYNERGY] Supabase client not initialized, skipping real-time subscription');
                     return;
                 }
 
                 // Prevent multiple simultaneous subscription attempts
                 if (this.isSubscribing) {
-                    console.log('?? [SYNERGY] Subscription already in progress, skipping...');
+                    console.log('[SYNERGY] Subscription already in progress, skipping...');
                     return;
                 }
                 this.isSubscribing = true;
@@ -9945,7 +9945,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     return;
                 }
 
-                console.log(`?? [SYNERGY] Subscribing to real-time changes (attempt ${this.realtimeRetryCount + 1}/3)...`);
+                console.log(`[SYNERGY] Subscribing to real-time changes (attempt ${this.realtimeRetryCount + 1}/3)...`);
 
                 // Remove existing channel if reconnecting
                 if (this.realtimeChannel) {
@@ -9963,12 +9963,12 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             table: 'synergy_sessions'
                         },
                         (payload) => {
-                            console.log('?? [SYNERGY] Real-time update received:', payload.eventType, payload);
+                            console.log('[SYNERGY] Real-time update received:', payload.eventType, payload);
                             this.handleRealtimeChange(payload);
                         }
                     )
                     .subscribe((status) => {
-                        console.log('?? [SYNERGY] Subscription status:', status);
+                        console.log('[SYNERGY] Subscription status:', status);
 
                         if (status === 'SUBSCRIBED') {
                             console.log('✅ [SYNERGY] Successfully subscribed to real-time changes');
@@ -9984,7 +9984,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                             // Retry with exponential backoff
                             const retryDelay = Math.min(5000 * this.realtimeRetryCount, 15000);
-                            console.warn(`?? [SYNERGY] Retrying in ${retryDelay / 1000} seconds...`);
+                            console.warn(`[SYNERGY] Retrying in ${retryDelay / 1000} seconds...`);
                             setTimeout(() => this.subscribeToRealtimeChanges(), retryDelay);
                         } else if (status === 'TIMED_OUT') {
                             this.isSubscribing = false; // Allow retry
@@ -9994,14 +9994,14 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         } else if (status === 'CLOSED') {
                             // Only reconnect if we were previously subscribed (disconnect, not initial state)
                             if (this.isSubscribed) {
-                                console.log('?? [SYNERGY] Channel closed, attempting reconnect...');
+                                console.log('[SYNERGY] Channel closed, attempting reconnect...');
                                 this.isSubscribing = false; // Allow retry
                                 this.isSubscribed = false; // Mark as disconnected
                                 this.realtimeRetryCount++;
                                 setTimeout(() => this.subscribeToRealtimeChanges(), 2000);
                             } else {
                                 // Initial CLOSED state before SUBSCRIBED - ignore it
-                                console.log('?? [SYNERGY] Initial channel state (CLOSED), waiting for SUBSCRIBED...');
+                                console.log('[SYNERGY] Initial channel state (CLOSED), waiting for SUBSCRIBED...');
                             }
                         }
                     });
@@ -10030,7 +10030,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         break;
 
                     case 'UPDATE':
-                        console.log('?? [SYNERGY] Session updated:', newRecord);
+                        console.log('[SYNERGY] Session updated:', newRecord);
 
                         // Detect what changed for better notifications
                         const changes = this.detectUpdateChanges(oldRecord, newRecord);
@@ -10054,7 +10054,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         break;
 
                     case 'DELETE':
-                        console.log('??? [SYNERGY] Session deleted:', oldRecord);
+                        console.log('?[SYNERGY] Session deleted:', oldRecord);
                         this.removeCardFromBoard(oldRecord.session_id);
                         this.updateStats();
                         this.showSyncIndicator('success', 'Card removed', 2000);
@@ -10125,7 +10125,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 // Check if card already exists (prevent duplicates)
                 const existingCard = document.querySelector(`[data-session-id="${session.session_id}"]`);
                 if (existingCard) {
-                    console.log('?? [SYNERGY] Card already exists, updating instead:', session.session_id);
+                    console.log('[SYNERGY] Card already exists, updating instead:', session.session_id);
                     this.updateExistingCard(session);
                     return;
                 }
@@ -10138,7 +10138,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 const columnContainer = document.querySelector(`[data-column="${column}"] .kanban-cards-container`);
 
                 if (!columnContainer) {
-                    console.warn('?? [SYNERGY] Column not found:', column);
+                    console.warn('[SYNERGY] Column not found:', column);
                     return;
                 }
 
@@ -10152,7 +10152,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             updateExistingCard(session) {
                 const card = document.querySelector(`[data-session-id="${session.session_id}"]`);
                 if (!card) {
-                    console.warn('?? [SYNERGY] Card not found for update, adding as new:', session.session_id);
+                    console.warn('[SYNERGY] Card not found for update, adding as new:', session.session_id);
                     this.addCardToBoard(session);
                     return;
                 }
@@ -10174,7 +10174,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         card.remove();
                         const cardHTML = this.generateCardHTML(session);
                         newColumnContainer.insertAdjacentHTML('beforeend', cardHTML);
-                        console.log('?? [SYNERGY] Card moved to new column:', session.session_id, currentColumn, '->', newColumn);
+                        console.log('[SYNERGY] Card moved to new column:', session.session_id, currentColumn, '->', newColumn);
                         return;
                     }
                 }
@@ -10206,7 +10206,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         console.log('? [SYNERGY] Card removed from board:', sessionId);
                     }, 300);
                 } else {
-                    console.warn('?? [SYNERGY] Card not found for removal:', sessionId);
+                    console.warn('[SYNERGY] Card not found for removal:', sessionId);
                 }
             },
 
@@ -10258,7 +10258,7 @@ AND tablename = 'synergy_sessions';`;
 
                 const message = `
                     <div style="text-align: left; font-family: monospace; font-size: 12px;">
-                        <h3 style="margin-top: 0;">?? Realtime Diagnostics</h3>
+                        <h3 style="margin-top: 0;">Realtime Diagnostics</h3>
                         
                         <p><strong>Current Status:</strong> ${diagnosticInfo.status}</p>
                         <p><strong>Retry Attempts:</strong> ${diagnosticInfo.retryCount}/${diagnosticInfo.maxRetries}</p>
@@ -10267,7 +10267,7 @@ AND tablename = 'synergy_sessions';`;
                         
                         <hr style="margin: 16px 0;">
                         
-                        <h4>?? Common Issues & Fixes:</h4>
+                        <h4>Common Issues & Fixes:</h4>
                         <ol style="margin: 8px 0; padding-left: 20px;">
                             <li><strong>Table not in publication</strong><br>
                                 Go to Supabase Dashboard ? Database ? Publications<br>
@@ -10281,10 +10281,10 @@ AND tablename = 'synergy_sessions';`;
                             </li>
                         </ol>
                         
-                        <h4>?? SQL Fix (Copy & Run in Supabase):</h4>
+                        <h4>SQL Fix (Copy & Run in Supabase):</h4>
                         <pre style="background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 4px; overflow-x: auto;">${sqlFix}</pre>
                         
-                        <p style="margin-top: 16px;"><strong>?? Docs:</strong> <a href="https://supabase.com/docs/guides/realtime/postgres-changes" target="_blank">Supabase Realtime Guide</a></p>
+                        <p style="margin-top: 16px;"><strong>Docs:</strong> <a href="https://supabase.com/docs/guides/realtime/postgres-changes" target="_blank">Supabase Realtime Guide</a></p>
                     </div>
                 `;
 
@@ -10292,7 +10292,7 @@ AND tablename = 'synergy_sessions';`;
             },
 
             manualRefresh() {
-                console.log('?? [SYNERGY] Manual refresh triggered');
+                console.log('[SYNERGY] Manual refresh triggered');
 
                 // Show loading indicator
                 const refreshBtn = document.getElementById('manual-refresh-btn');
@@ -10333,7 +10333,7 @@ AND tablename = 'synergy_sessions';`;
                 }
 
                 this.autoRefreshInterval = setInterval(async () => {
-                    console.log('?? [SYNERGY] Auto-refresh (15s interval)...');
+                    console.log('[SYNERGY] Auto-refresh (15s interval)...');
                     await this.smartRefresh();
                 }, 15000); // 15 seconds
 
@@ -10372,7 +10372,7 @@ AND tablename = 'synergy_sessions';`;
                         return;
                     }
 
-                    console.log(`?? [SYNERGY] Changes detected: ${changes.added.length} added, ${changes.updated.length} updated, ${changes.removed.length} removed`);
+                    console.log(`[SYNERGY] Changes detected: ${changes.added.length} added, ${changes.updated.length} updated, ${changes.removed.length} removed`);
 
                     // Apply incremental updates
                     for (const sessionId of changes.removed) {
@@ -12811,7 +12811,7 @@ AND tablename = 'synergy_sessions';`;
     <script>
         // Diagnostic function to test right sidebar buttons
         window.testRightSidebarButtons = function () {
-            console.log('%c?? RIGHT SIDEBAR BUTTONS DIAGNOSTIC TEST', 'background: #257bdd; color: white; padding: 4px 8px; font-weight: bold; font-size: 14px;');
+            console.log('%cRIGHT SIDEBAR BUTTONS DIAGNOSTIC TEST', 'background: #257bdd; color: white; padding: 4px 8px; font-weight: bold; font-size: 14px;');
             console.log('%c==================================================', 'color: #257bdd; font-weight: bold;');
 
             const tests = {
@@ -12825,7 +12825,7 @@ AND tablename = 'synergy_sessions';`;
             };
 
             // Test 1: Button Elements
-            console.log('%c\n?? TEST 1: Button Elements', 'color: #22c55e; font-weight: bold;');
+            console.log('%c\nTEST 1: Button Elements', 'color: #22c55e; font-weight: bold;');
             Object.entries(tests).forEach(([name, element]) => {
                 const exists = element !== null;
                 const visible = exists && element.offsetParent !== null;
@@ -12837,7 +12837,7 @@ AND tablename = 'synergy_sessions';`;
             });
 
             // Test 2: Event Listeners
-            console.log('%c\n?? TEST 2: Event Listeners Check', 'color: #22c55e; font-weight: bold;');
+            console.log('%c\nTEST 2: Event Listeners Check', 'color: #22c55e; font-weight: bold;');
             const listeners = {
                 'new-chat-btn': tests.newChatBtn ? getEventListeners(tests.newChatBtn) : null,
                 'quick-actions-btn': tests.quickActionsBtn ? getEventListeners(tests.quickActionsBtn) : null,
@@ -12854,7 +12854,7 @@ AND tablename = 'synergy_sessions';`;
             });
 
             // Test 3: ThreadManager
-            console.log('%c\n?? TEST 3: ThreadManager Functions', 'color: #22c55e; font-weight: bold;');
+            console.log('%c\nTEST 3: ThreadManager Functions', 'color: #22c55e; font-weight: bold;');
             if (typeof ThreadManager !== 'undefined') {
                 console.log('  ? ThreadManager exists');
                 console.log('    - showNewChatModal:', typeof ThreadManager.showNewChatModal === 'function' ? '? FUNCTION' : '? NOT A FUNCTION');
@@ -12864,7 +12864,7 @@ AND tablename = 'synergy_sessions';`;
             }
 
             // Test 4: Theme Toggle
-            console.log('%c\n?? TEST 4: Theme Toggle Function', 'color: #22c55e; font-weight: bold;');
+            console.log('%c\nTEST 4: Theme Toggle Function', 'color: #22c55e; font-weight: bold;');
             if (typeof initThemeToggle !== 'undefined') {
                 console.log('  ? initThemeToggle function exists');
             } else {
@@ -12872,7 +12872,7 @@ AND tablename = 'synergy_sessions';`;
             }
 
             // Test 5: Click Tests
-            console.log('%c\n?? TEST 5: Simulated Click Tests', 'color: #f59e0b; font-weight: bold;');
+            console.log('%c\nTEST 5: Simulated Click Tests', 'color: #f59e0b; font-weight: bold;');
             console.log('  Run these commands manually to test:');
             console.log('    testNewChatButton() - Test new chat modal');
             console.log('    testQuickActionsButton() - Test quick actions panel');
@@ -12887,7 +12887,7 @@ AND tablename = 'synergy_sessions';`;
 
         // Individual button tests
         window.testNewChatButton = function () {
-            console.log('%c?? Testing New Chat Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
+            console.log('%cTesting New Chat Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
             const btn = document.getElementById('new-chat-btn');
             if (btn) {
                 btn.click();
@@ -12901,7 +12901,7 @@ AND tablename = 'synergy_sessions';`;
         };
 
         window.testQuickActionsButton = function () {
-            console.log('%c?? Testing Quick Actions Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
+            console.log('%cTesting Quick Actions Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
             const btn = document.getElementById('quick-actions-btn');
             if (btn) {
                 btn.click();
@@ -12919,7 +12919,7 @@ AND tablename = 'synergy_sessions';`;
         };
 
         window.testThemeToggleButton = function () {
-            console.log('%c?? Testing Theme Toggle Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
+            console.log('%cTesting Theme Toggle Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
             const btn = document.getElementById('theme-toggle-btn-sidebar');
             const currentTheme = document.documentElement.getAttribute('data-theme');
             console.log('Current theme:', currentTheme);
@@ -12936,7 +12936,7 @@ AND tablename = 'synergy_sessions';`;
         };
 
         window.testThreadsButton = function () {
-            console.log('%c?? Testing Threads Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
+            console.log('%cTesting Threads Button...', 'background: #257bdd; color: white; padding: 2px 6px;');
             const btn = document.getElementById('threads-btn');
             if (btn) {
                 btn.click();
@@ -12955,5 +12955,5 @@ AND tablename = 'synergy_sessions';`;
 
         // Auto-run diagnostic on page load (after a short delay)
         setTimeout(() => {
-            console.log('%c\n?? TIP: Run testRightSidebarButtons() in console for full diagnostic', 'background: #f59e0b; color: white; padding: 4px 8px; font-style: italic;');
+            console.log('%c\nTIP: Run testRightSidebarButtons() in console for full diagnostic', 'background: #f59e0b; color: white; padding: 4px 8px; font-style: italic;');
         }, 2000);

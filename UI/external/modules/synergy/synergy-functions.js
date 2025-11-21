@@ -17,7 +17,7 @@
         const synergyBoard = {
             async toggleTileEdit(sessionId) {
                 try {
-                    console.log('?? [SYNERGY SIDEBAR] Lazy loading sessions with batch endpoint...');
+                    console.log('[SYNERGY SIDEBAR] Lazy loading sessions with batch endpoint...');
                     const startTime = performance.now();
 
                     // Use batch endpoint for optimized loading
@@ -602,7 +602,7 @@
                     console.log(`[SYNERGY SIDEBAR] Loaded ${milestones.length} milestones`);
 
                     if (milestones.length === 0) {
-                        placeholder.innerHTML = '<div style="padding: 8px; background: var(--bg-quaternary); border-radius: 6px; color: var(--text-tertiary); font-size: 11px; text-align: center;">?? No milestones yet</div>';
+                        placeholder.innerHTML = '<div style="padding: 8px; background: var(--bg-quaternary); border-radius: 6px; color: var(--text-tertiary); font-size: 11px; text-align: center;">No milestones yet</div>';
                     } else {
                         const completedCount = milestones.filter(m => m.completed).length;
                         const milestonesHTML = milestones.map((m, idx) => {
@@ -615,7 +615,7 @@
                                         ${m.completed ? '?' : '?'} <strong>M${idx + 1}:</strong> ${this.escapeHtml(m.title)}
                                     </div>
                                     <div style="font-size: 10px; color: var(--text-secondary);">
-                                        ?? ${completedTasks}/${taskCount} tasks (${progress}%)
+                                        ${completedTasks}/${taskCount} tasks (${progress}%)
                                     </div>
                                 </div>
                             `;
@@ -637,7 +637,7 @@
                     if (placeholder) {
                         placeholder.innerHTML = `
                             <div style="padding: 8px; background: rgba(220, 38, 38, 0.1); border-left: 3px solid #dc2626; border-radius: 4px; color: #dc2626; font-size: 11px;">
-                                <strong>?? Failed to load milestones</strong><br>
+                                <strong>Failed to load milestones</strong><br>
                                 <span style="font-size: 10px; opacity: 0.8;">${this.escapeHtml(error.message || 'Unknown error')}</span>
                             </div>
                         `;
@@ -1184,7 +1184,7 @@
             this.renderSessions();
         },
 
-        // ?? DEPRECATED: Old toggleSidebar method (keeping for backward compatibility)
+        // DEPRECATED: Old toggleSidebar method (keeping for backward compatibility)
         // The new method above handles lazy loading
         toggleSidebar_OLD() {
             const sidebar = document.getElementById('synergy-sidebar');

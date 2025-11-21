@@ -133,7 +133,7 @@ POST /api/threads/messages/save
     ↓
 Backend: thread_routes.py save_messages()
     ↓
-??? SOMETHING FAILS HERE ???
+?SOMETHING FAILS HERE ???
     ↓
 Messages NOT saved to messages table ❌
     ↓

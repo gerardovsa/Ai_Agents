@@ -179,7 +179,7 @@ const ThreadManager = {
      * Replaces polling API calls with real-time subscriptions
      */
     async initRealtimeSubscription() {
-        // ?? REALTIME: Watches sessions.threads.location for instant UI updates across all windows
+        // REALTIME: Watches sessions.threads.location for instant UI updates across all windows
         // When a thread moves between Prime/Agents, this triggers CASCADE updates:
         //   - Thread list badge updates
         //   - Thread info cards refresh
@@ -187,34 +187,34 @@ const ThreadManager = {
         //   - New location loads thread
         //   - Synergy dashboard updates if applicable
 
-        // ?? CURRENTLY DISABLED: Enable in Supabase Dashboard first
+        // CURRENTLY DISABLED: Enable in Supabase Dashboard first
         // Steps to enable:
         //   1. Supabase Dashboard ? Database ? Replication
         //   2. Enable replication for: sessions.threads table
         //   3. Remove the return statement below
         //   4. Refresh browser - WebSocket will connect
-        console.log('?? [ThreadManager] Realtime subscriptions disabled (enable in Supabase Dashboard ? Database ? Replication)');
+        console.log('[ThreadManager] Realtime subscriptions disabled (enable in Supabase Dashboard ? Database ? Replication)');
         this.realtimeEnabled = false;
         return;
 
         // eslint-disable-next-line no-unreachable
-        console.log('?? [ThreadManager] Initializing Realtime subscriptions...');
+        console.log('[ThreadManager] Initializing Realtime subscriptions...');
 
         // Ensure config is loaded
         if (!window.SUPABASE_CONFIG_LOADED) {
-            console.log('?? [ThreadManager] Waiting for Supabase config...');
+            console.log('[ThreadManager] Waiting for Supabase config...');
             await window.loadSupabaseConfig();
         }
 
         try {
             // Check if Supabase client exists
             if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient !== 'function') {
-                console.warn('?? [ThreadManager] Supabase client not loaded, realtime disabled');
+                console.warn('[ThreadManager] Supabase client not loaded, realtime disabled');
                 return;
             }
 
             if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
-                console.warn('?? [ThreadManager] Supabase credentials missing, realtime disabled');
+                console.warn('[ThreadManager] Supabase credentials missing, realtime disabled');
                 return;
             }
 
@@ -236,7 +236,7 @@ const ThreadManager = {
                     table: 'threads',
                     filter: `user_id=eq.${userId}`
                 }, (payload) => {
-                    console.log('?? [REALTIME] Thread location changed:', payload);
+                    console.log('[REALTIME] Thread location changed:', payload);
                     this.handleThreadLocationChange(payload);
                 })
                 .subscribe((status) => {
@@ -247,9 +247,9 @@ const ThreadManager = {
                     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
                         // Only show warning once
                         if (!window.SUPABASE_REALTIME_WARNED) {
-                            console.warn('?? [REALTIME] Subscription failed:', status);
-                            console.warn('?? [REALTIME] Running in fallback mode (no auto-sync across windows)');
-                            console.warn('?? [REALTIME] To enable: Supabase Dashboard ? Database ? Replication ? Enable for ai_infrastructure.users');
+                            console.warn('[REALTIME] Subscription failed:', status);
+                            console.warn('[REALTIME] Running in fallback mode (no auto-sync across windows)');
+                            console.warn('[REALTIME] To enable: Supabase Dashboard ? Database ? Replication ? Enable for ai_infrastructure.users');
                             window.SUPABASE_REALTIME_WARNED = true;
                         }
                         this.realtimeEnabled = false;
@@ -269,12 +269,12 @@ const ThreadManager = {
      * This is the CASCADE TRIGGER that updates ALL UI elements
      */
     handleThreadLocationChange(payload) {
-        console.log('?? [REALTIME] Thread location change detected:', payload);
+        console.log('[REALTIME] Thread location change detected:', payload);
 
         // Debounce: Ignore updates within 500ms of our own changes
         const now = Date.now();
         if (this.pendingAssignment || (now - this.lastRealtimeUpdate < 500)) {
-            console.log('?? [REALTIME] Ignoring update (debounce - this is our own change)');
+            console.log('[REALTIME] Ignoring update (debounce - this is our own change)');
             return;
         }
 
@@ -282,7 +282,7 @@ const ThreadManager = {
 
         const { new: newRecord, old: oldRecord } = payload;
         if (!newRecord) {
-            console.warn('?? [REALTIME] No new record in payload');
+            console.warn('[REALTIME] No new record in payload');
             return;
         }
 
@@ -292,11 +292,11 @@ const ThreadManager = {
 
         // Only process if location actually changed
         if (oldLocation === newLocation) {
-            console.log('?? [REALTIME] Location unchanged, skipping');
+            console.log('[REALTIME] Location unchanged, skipping');
             return;
         }
 
-        console.log(`?? [REALTIME] Thread ${threadId}: ${oldLocation} ? ${newLocation}`);
+        console.log(`[REALTIME] Thread ${threadId}: ${oldLocation} ? ${newLocation}`);
 
         try {
             // STEP 1: Update thread object in memory
@@ -2717,7 +2717,7 @@ const ThreadManager = {
             if (data.success && threads && threads.length > 0) {
                 // Debug: Check first thread for location data
                 if (threads[0]) {
-                    console.log('?? [DEBUG] First thread from backend:', {
+                    console.log('[DEBUG] First thread from backend:', {
                         id: threads[0].id,
                         location: threads[0].location,
                         agent: threads[0].agent,
@@ -2794,7 +2794,7 @@ const ThreadManager = {
      * NOW USES UNIVERSAL renderThreadInfoContainer() - No manual DOM manipulation
      */
     updatePrimeHeader(threadId) {
-        console.log('?? [updatePrimeHeader] Called with threadId:', threadId);
+        console.log('[updatePrimeHeader] Called with threadId:', threadId);
 
         const container = document.getElementById('prime-thread-info');
         if (!container) {
@@ -2811,21 +2811,21 @@ const ThreadManager = {
             const thread = this.threads.find(t => t.id === threadId);
             if (!thread) {
                 console.error(`? [updatePrimeHeader] Thread ${threadId} not found in ThreadManager.threads array`);
-                console.log('?? [updatePrimeHeader] Available thread IDs:', this.threads.map(t => t.id));
-                console.log('?? [updatePrimeHeader] Total threads:', this.threads.length);
+                console.log('[updatePrimeHeader] Available thread IDs:', this.threads.map(t => t.id));
+                console.log('[updatePrimeHeader] Total threads:', this.threads.length);
                 return;
             }
 
-            console.log('?? [updatePrimeHeader] Rendering thread info container for:', threadId);
-            console.log('?? [updatePrimeHeader] Thread data:', { id: thread.id, title: thread.title, msgCount: thread.message_count });
+            console.log('[updatePrimeHeader] Rendering thread info container for:', threadId);
+            console.log('[updatePrimeHeader] Thread data:', { id: thread.id, title: thread.title, msgCount: thread.message_count });
 
             // Inject universal thread-info card
             const html = this.renderThreadInfoContainer('prime', threadId, false);
-            console.log('?? [updatePrimeHeader] Generated HTML length:', html ? html.length : 0);
+            console.log('[updatePrimeHeader] Generated HTML length:', html ? html.length : 0);
 
             container.innerHTML = html;
             console.log('? [updatePrimeHeader] Prime header updated with universal card for thread:', threadId);
-            console.log('?? [updatePrimeHeader] Container innerHTML length:', container.innerHTML.length);
+            console.log('[updatePrimeHeader] Container innerHTML length:', container.innerHTML.length);
         }
     },
 
@@ -3017,17 +3017,17 @@ const ThreadManager = {
      * @returns {string} HTML string for thread-info container
      */
     renderThreadInfoContainer(location, threadId, compact = false) {
-        console.log(`?? [renderThreadInfoContainer] Called:`, { location, threadId, compact });
-        console.log(`?? [renderThreadInfoContainer] Total threads:`, this.threads.length);
-        console.log(`?? [renderThreadInfoContainer] Thread IDs available:`, this.threads.map(t => t.id));
+        console.log(`[renderThreadInfoContainer] Called:`, { location, threadId, compact });
+        console.log(`[renderThreadInfoContainer] Total threads:`, this.threads.length);
+        console.log(`[renderThreadInfoContainer] Thread IDs available:`, this.threads.map(t => t.id));
 
         const thread = this.threads.find(t => t.id === threadId);
-        console.log(`?? [renderThreadInfoContainer] Thread found:`, !!thread, thread ? `(title: "${thread.title}")` : '(not found)');
+        console.log(`[renderThreadInfoContainer] Thread found:`, !!thread, thread ? `(title: "${thread.title}")` : '(not found)');
 
         if (!thread) {
             // For Prime, return welcome container with tool count
             if (location === 'prime') {
-                console.log(`?? [renderThreadInfoContainer] Returning welcome container`);
+                console.log(`[renderThreadInfoContainer] Returning welcome container`);
                 return ThreadCardTemplates.welcomeContainer(594);
             }
 
@@ -3047,7 +3047,7 @@ const ThreadManager = {
                 }
             }
 
-            console.log(`?? [renderThreadInfoContainer] Returning no thread message for ${agentName}`);
+            console.log(`[renderThreadInfoContainer] Returning no thread message for ${agentName}`);
             return ThreadCardTemplates.noThreadMessage(agentName, agentIcon);
         }
 
@@ -3115,11 +3115,11 @@ const ThreadManager = {
         // Use compact template for ALL locations (Prime, Agents, History)
         // Prime will use compactCard with headerRowClean (no unload button)
         // Agents will use compactCard with headerRowWithUnload ([X] button)
-        console.log(`?? [renderThreadInfoContainer] Rendering compact card:`, { location, threadId: thread.id });
+        console.log(`[renderThreadInfoContainer] Rendering compact card:`, { location, threadId: thread.id });
 
         let html = ThreadCardTemplates.compactCard(thread, location, agent, meta, slug, synergyMeta);
 
-        console.log(`?? [renderThreadInfoContainer] Generated HTML length:`, html ? html.length : 0);
+        console.log(`[renderThreadInfoContainer] Generated HTML length:`, html ? html.length : 0);
         return html;
     },
 
@@ -5567,7 +5567,7 @@ const ThreadManager = {
         // TODO: Call backend update API when implemented
 
         const action = thread.archived ? 'archived' : 'unarchived';
-        console.log(`?? Thread ${action}:`, thread.title);
+        console.log(`Thread ${action}:`, thread.title);
 
         if (typeof showNotification === 'function') {
             showNotification(`Thread ${action}`, 'success', 2000);
@@ -5840,14 +5840,14 @@ const ThreadManager = {
     },
 
     async restoreThreadAssignments() {
-        console.log('?? [RESTORE] Starting thread restoration using thread.location field...');
-        console.log('?? [RESTORE] Total threads available:', this.threads.length);
-        console.log('?? [RESTORE] Thread IDs:', this.threads.map(t => `${t.id} (${t.location || 'no location'})`));
+        console.log('[RESTORE] Starting thread restoration using thread.location field...');
+        console.log('[RESTORE] Total threads available:', this.threads.length);
+        console.log('[RESTORE] Thread IDs:', this.threads.map(t => `${t.id} (${t.location || 'no location'})`));
 
         try {
             // Wait for MultiAgent to be ready
             if (typeof MultiAgent === 'undefined') {
-                console.warn('?? [RESTORE] MultiAgent not available yet, waiting...');
+                console.warn('[RESTORE] MultiAgent not available yet, waiting...');
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
 
@@ -5859,17 +5859,17 @@ const ThreadManager = {
                 t.location.startsWith('agent-')
             );
 
-            console.log(`?? [RESTORE] Found ${threadsInAgents.length} threads assigned to agents`);
+            console.log(`[RESTORE] Found ${threadsInAgents.length} threads assigned to agents`);
 
             if (threadsInAgents.length === 0) {
-                console.log('?? [RESTORE] No threads in agent columns to restore');
+                console.log('[RESTORE] No threads in agent columns to restore');
                 return;
             }
 
             // Log what we're restoring
             threadsInAgents.forEach(t => {
                 const msgCount = (t.messages && t.messages.length) || 0;
-                console.log(`  ?? [RESTORE] Thread "${t.title}" (ID: ${t.id}) -> ${t.location} (${msgCount} messages)`);
+                console.log(`  [RESTORE] Thread "${t.title}" (ID: ${t.id}) -> ${t.location} (${msgCount} messages)`);
             });
 
             // Restore each thread to its assigned agent column
@@ -5877,7 +5877,7 @@ const ThreadManager = {
                 const location = thread.location;
                 const agentId = parseInt(location.replace('agent-', ''));
 
-                console.log(`?? [RESTORE] Restoring thread "${thread.title}" (ID: ${thread.id}) to ${location}...`);
+                console.log(`[RESTORE] Restoring thread "${thread.title}" (ID: ${thread.id}) to ${location}...`);
 
                 try {
                     // Update thread's agent property for consistency
@@ -5886,11 +5886,11 @@ const ThreadManager = {
                     // Load into MultiAgent with full rendering
                     if (typeof MultiAgent !== 'undefined') {
                         // CRITICAL: Use loadThreadIntoAgent for full rendering with TwoRuleStreamProcessor
-                        console.log(`?? [RESTORE] Calling loadThreadIntoAgent(${agentId}, thread)`);
+                        console.log(`[RESTORE] Calling loadThreadIntoAgent(${agentId}, thread)`);
                         await MultiAgent.loadThreadIntoAgent(agentId, thread);
 
                         // Update agent header info card
-                        console.log(`?? [RESTORE] Calling updateAgentHeader(${agentId})`);
+                        console.log(`[RESTORE] Calling updateAgentHeader(${agentId})`);
                         MultiAgent.updateAgentHeader(agentId);
 
                         console.log(`? [RESTORE] Thread "${thread.title}" restored to ${location}`);

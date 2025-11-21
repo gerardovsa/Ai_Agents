@@ -655,7 +655,7 @@ initPopupDrag(popup) {
     if (editor) {
         // Rich text document - save HTML content
         const content = editor.innerHTML;
-        console.log(`?? [AUTOSAVE] Saving document ${docId} before state change...`);
+        console.log(`[AUTOSAVE] Saving document ${docId} before state change...`);
 
         try {
             await this.saveDocumentContent(docId, content, popup);
@@ -665,7 +665,7 @@ initPopupDrag(popup) {
         }
     } else if (spreadsheet) {
         // Spreadsheet - save table data
-        console.log(`?? [AUTOSAVE] Saving spreadsheet ${docId} before state change...`);
+        console.log(`[AUTOSAVE] Saving spreadsheet ${docId} before state change...`);
 
         try {
             // Extract spreadsheet data from table

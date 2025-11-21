@@ -246,7 +246,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
      * Flow: assignThread() ? UPDATE DATABASE ? _cascadeThreadAssignment() ? UPDATE UI
      */
     async assignThread(threadId, location) {
-        console.log(`?? [AssignThread] START: ${threadId} ? ${location}`);
+        console.log(`[AssignThread] START: ${threadId} ? ${location}`);
 
         try {
             // Set pending flag to prevent realtime loop
@@ -298,7 +298,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
      * Handles: clearing old location, updating thread object, rendering new location
      */
     async _cascadeThreadAssignment(threadId, newLocation, assignment) {
-        console.log(`?? [CASCADE] Starting UI updates for thread ${threadId}`);
+        console.log(`[CASCADE] Starting UI updates for thread ${threadId}`);
 
         const thread = this.threads.find(t => t.id === threadId);
         if (!thread) {
@@ -315,13 +315,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
         // STEP 2: Clear OLD location UI (now that thread.location is updated)
         if (assignment.previous_location) {
-            console.log(`?? [CASCADE] Clearing ${assignment.previous_location}`);
+            console.log(`[CASCADE] Clearing ${assignment.previous_location}`);
             await this._clearLocationUI(assignment.previous_location, threadId);
         }
 
         // STEP 3: Handle DISPLACED thread (if any)
         if (assignment.displaced_thread) {
-            console.log(`?? [CASCADE] Handling displaced thread: ${assignment.displaced_thread}`);
+            console.log(`[CASCADE] Handling displaced thread: ${assignment.displaced_thread}`);
             const displacedThread = this.threads.find(t => t.id === assignment.displaced_thread);
             if (displacedThread) {
                 // Displaced thread goes to Prime (backend already updated location)
@@ -429,7 +429,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
      *   - removeLinks: Array of link types to remove ['synergy', 'workflow']
      */
     async syncThreadLocationEverywhere(threadId, newLocation, options = {}) {
-        console.log(`?? [syncThreadLocationEverywhere] Syncing ${threadId} ? ${newLocation}`, options);
+        console.log(`[syncThreadLocationEverywhere] Syncing ${threadId} ? ${newLocation}`, options);
 
         // STEP 1: Normalize location name (frontend uses 'main', backend uses 'prime')
         const backendLocation = newLocation === 'main' ? 'prime' : newLocation;
@@ -1552,17 +1552,17 @@ refreshAllThreadInfoCards(threadId) {
  * @returns {string} HTML string for thread-info container
  */
 renderThreadInfoContainer(location, threadId, compact = false) {
-    console.log(`?? [renderThreadInfoContainer] Called:`, { location, threadId, compact });
-    console.log(`?? [renderThreadInfoContainer] Total threads:`, this.threads.length);
-    console.log(`?? [renderThreadInfoContainer] Thread IDs available:`, this.threads.map(t => t.id));
+    console.log(`[renderThreadInfoContainer] Called:`, { location, threadId, compact });
+    console.log(`[renderThreadInfoContainer] Total threads:`, this.threads.length);
+    console.log(`[renderThreadInfoContainer] Thread IDs available:`, this.threads.map(t => t.id));
 
     const thread = this.threads.find(t => t.id === threadId);
-    console.log(`?? [renderThreadInfoContainer] Thread found:`, !!thread, thread ? `(title: "${thread.title}")` : '(not found)');
+    console.log(`[renderThreadInfoContainer] Thread found:`, !!thread, thread ? `(title: "${thread.title}")` : '(not found)');
 
     if (!thread) {
         // For Prime, return welcome container with tool count
         if (location === 'prime') {
-            console.log(`?? [renderThreadInfoContainer] Returning welcome container`);
+            console.log(`[renderThreadInfoContainer] Returning welcome container`);
             return ThreadCardTemplates.welcomeContainer(594);
         }
 
@@ -1582,7 +1582,7 @@ renderThreadInfoContainer(location, threadId, compact = false) {
             }
         }
 
-        console.log(`?? [renderThreadInfoContainer] Returning no thread message for ${agentName}`);
+        console.log(`[renderThreadInfoContainer] Returning no thread message for ${agentName}`);
         return ThreadCardTemplates.noThreadMessage(agentName, agentIcon);
     }
 
@@ -1650,11 +1650,11 @@ renderThreadInfoContainer(location, threadId, compact = false) {
     // Use compact template for ALL locations (Prime, Agents, History)
     // Prime will use compactCard with headerRowClean (no unload button)
     // Agents will use compactCard with headerRowWithUnload ([X] button)
-    console.log(`?? [renderThreadInfoContainer] Rendering compact card:`, { location, threadId: thread.id });
+    console.log(`[renderThreadInfoContainer] Rendering compact card:`, { location, threadId: thread.id });
 
     let html = ThreadCardTemplates.compactCard(thread, location, agent, meta, slug, synergyMeta);
 
-    console.log(`?? [renderThreadInfoContainer] Generated HTML length:`, html ? html.length : 0);
+    console.log(`[renderThreadInfoContainer] Generated HTML length:`, html ? html.length : 0);
     return html;
 },
 

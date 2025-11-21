@@ -246,7 +246,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
      * Flow: assignThread() ? UPDATE DATABASE ? _cascadeThreadAssignment() ? UPDATE UI
      */
     async assignThread(threadId, location) {
-        console.log(`?? [AssignThread] START: ${threadId} ? ${location}`);
+        console.log(`[AssignThread] START: ${threadId} ? ${location}`);
 
         try {
             // Set pending flag to prevent realtime loop
@@ -298,7 +298,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
      * Handles: clearing old location, updating thread object, rendering new location
      */
     async _cascadeThreadAssignment(threadId, newLocation, assignment) {
-        console.log(`?? [CASCADE] Starting UI updates for thread ${threadId}`);
+        console.log(`[CASCADE] Starting UI updates for thread ${threadId}`);
 
         const thread = this.threads.find(t => t.id === threadId);
         if (!thread) {
@@ -315,13 +315,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
         // STEP 2: Clear OLD location UI (now that thread.location is updated)
         if (assignment.previous_location) {
-            console.log(`?? [CASCADE] Clearing ${assignment.previous_location}`);
+            console.log(`[CASCADE] Clearing ${assignment.previous_location}`);
             await this._clearLocationUI(assignment.previous_location, threadId);
         }
 
         // STEP 3: Handle DISPLACED thread (if any)
         if (assignment.displaced_thread) {
-            console.log(`?? [CASCADE] Handling displaced thread: ${assignment.displaced_thread}`);
+            console.log(`[CASCADE] Handling displaced thread: ${assignment.displaced_thread}`);
             const displacedThread = this.threads.find(t => t.id === assignment.displaced_thread);
             if (displacedThread) {
                 // Displaced thread goes to Prime (backend already updated location)
@@ -429,7 +429,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
      *   - removeLinks: Array of link types to remove ['synergy', 'workflow']
      */
     async syncThreadLocationEverywhere(threadId, newLocation, options = {}) {
-        console.log(`?? [syncThreadLocationEverywhere] Syncing ${threadId} ? ${newLocation}`, options);
+        console.log(`[syncThreadLocationEverywhere] Syncing ${threadId} ? ${newLocation}`, options);
 
         // STEP 1: Normalize location name (frontend uses 'main', backend uses 'prime')
         const backendLocation = newLocation === 'main' ? 'prime' : newLocation;
@@ -1003,8 +1003,8 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             const UserAuth = {
                 token: null,
                 user: null,
-                isInitialized: false, // ?? Prevent double initialization
-                mainAppInitialized: false, // ?? Prevent double main app initialization
+                isInitialized: false, // Prevent double initialization
+                mainAppInitialized: false, // Prevent double main app initialization
 
                 async checkExistingSession() {
                     // Check if user is already logged in
@@ -1023,13 +1023,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 },
 
                 init() {
-                    // ?? PREVENT DOUBLE INITIALIZATION
+                    // PREVENT DOUBLE INITIALIZATION
                     if (this.isInitialized) {
-                        console.log('?? [AUTH] Init already called, skipping duplicate initialization');
+                        console.log('[AUTH] Init already called, skipping duplicate initialization');
                         return;
                     }
                     this.isInitialized = true;
-                    console.log('?? [AUTH] Initializing UserAuth...');
+                    console.log('[AUTH] Initializing UserAuth...');
 
                     // Get loading overlay elements
                     const loadingOverlay = document.getElementById('authLoadingOverlay');
@@ -1056,7 +1056,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     if (devModeEnabled && !hasOAuthToken && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
                         const hasDevUser = localStorage.getItem('dev_mode_user');
                         if (!hasDevUser) {
-                            console.log('?? [DEV MODE] Dev mode enabled via ?dev=true - Auto-login as test user');
+                            console.log('[DEV MODE] Dev mode enabled via ?dev=true - Auto-login as test user');
                             this.setLoadingProgress(10, 'Loading dev environment...');
                             // Create a mock token and user for local testing
                             const mockUser = {
@@ -1083,7 +1083,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     const storedUser = localStorage.getItem('userProfile');
 
                     if (storedToken && storedUser) {
-                        console.log('?? Token found, verifying...');
+                        console.log('Token found, verifying...');
                         this.setLoadingProgress(5, 'Verifying credentials...');
 
                         this.token = storedToken;
@@ -1110,7 +1110,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             this.showLogin();
                         });
                     } else {
-                        console.log('?? No token found, showing login...');
+                        console.log('No token found, showing login...');
                         this.hideLoadingOverlay();
                         this.showLogin();
                     }
@@ -1224,7 +1224,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     platformContainer.classList.remove('active');
                     platformContainer.style.opacity = '0';
 
-                    console.log('?? [AUTH] Login screen displayed');
+                    console.log('[AUTH] Login screen displayed');
                 },
 
                 /**
@@ -1243,13 +1243,13 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         loadingText.textContent = text;
                     }
 
-                    console.log(`?? [LOADING] ${percent}% - ${text}`);
+                    console.log(`[LOADING] ${percent}% - ${text}`);
                 },
 
                 async showMainApp() {
-                    // ?? PREVENT DOUBLE INITIALIZATION OF MAIN APP
+                    // PREVENT DOUBLE INITIALIZATION OF MAIN APP
                     if (this.mainAppInitialized) {
-                        console.log('?? [AUTH] Main app already initialized, skipping duplicate call');
+                        console.log('[AUTH] Main app already initialized, skipping duplicate call');
                         return;
                     }
                     this.mainAppInitialized = true;
@@ -1280,7 +1280,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                         // PHASE 2: Load heavy libraries AFTER app is visible (25-75% progress)
                         this.setLoadingProgress(30, 'Loading additional resources...');
-                        console.log('?? [POST-AUTH] Loading heavy libraries...');
+                        console.log('[POST-AUTH] Loading heavy libraries...');
                         await this.loadPostAuthLibraries();
                         this.setLoadingProgress(75, 'Resources loaded');
 
@@ -1291,7 +1291,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                         if (this.user) {
                             console.log('? Logged in as:', this.user.username);
-                            console.log('?? Gmail accounts:', this.user.gmail_accounts?.length || 0);
+                            console.log('Gmail accounts:', this.user.gmail_accounts?.length || 0);
                         }
 
                         // PHASE 4: Final setup (90-100% progress)
@@ -1331,17 +1331,17 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                  * This improves initial page load time significantly (saves ~5MB)
                  */
                 async loadPostAuthLibraries() {
-                    console.log('?? [POST-AUTH] Loading heavy libraries sequentially...');
+                    console.log('[POST-AUTH] Loading heavy libraries sequentially...');
                     const startTime = performance.now();
 
                     try {
-                        // ?? SKIPPING TIPTAP: UMD builds don't expose proper globals, causing initialization errors
+                        // SKIPPING TIPTAP: UMD builds don't expose proper globals, causing initialization errors
                         // TipTap rich text editor will be added later using ES modules instead of UMD
-                        console.log('  ?? Skipping TipTap libraries (not currently used in UI)');
+                        console.log('  Skipping TipTap libraries (not currently used in UI)');
 
                         // STEP 4: Skip Yjs Collaboration (not implemented yet, causing 404 errors)
                         // Real-time collaboration will be added in future version
-                        console.log('  ??  Skipping Yjs collaboration libraries (not needed yet)');
+                        console.log('   Skipping Yjs collaboration libraries (not needed yet)');
 
                         // STEP 5: Handsontable (1.8MB - can load in parallel with others)
                         this.setLoadingProgress(40, 'Loading spreadsheet libraries...');
@@ -1375,7 +1375,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     return new Promise((resolve, reject) => {
                         // Check if already loaded
                         if (document.getElementById(id)) {
-                            console.log(`  ??  ${id} already loaded`);
+                            console.log(`   ${id} already loaded`);
                             resolve();
                             return;
                         }
@@ -1412,7 +1412,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
 
                             // Check timeout
                             if (Date.now() - startTime > timeout) {
-                                console.warn(`?? Timeout waiting for ${globalPath}`);
+                                console.warn(`Timeout waiting for ${globalPath}`);
                                 resolve(); // Don't reject, just continue
                                 return;
                             }
@@ -1634,14 +1634,14 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                 if (notifBtn) {
                     notifBtn.classList.toggle('active', isOpen);
                 }
-                console.log('?? Notification panel toggled:', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
+                console.log('Notification panel toggled:', panel.classList.contains('show') ? 'OPEN' : 'CLOSED');
             }
 
             // Initialize right sidebar buttons
             function initRightSidebar() {
                 // Prevent duplicate initialization
                 if (window._rightSidebarInitialized) {
-                    console.warn('?? Right sidebar already initialized, skipping...');
+                    console.warn('Right sidebar already initialized, skipping...');
                     return;
                 }
                 window._rightSidebarInitialized = true;
@@ -1662,15 +1662,15 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                                 wrapper.classList.remove('chat-collapsed');
                                 panel.style.display = 'flex';
                                 this.classList.add('active');
-                                console.log('?? AI Prime chat OPENED');
+                                console.log('AI Prime chat OPENED');
                             } else {
                                 wrapper.classList.add('chat-collapsed');
                                 panel.style.display = 'none';
                                 this.classList.remove('active');
-                                console.log('?? AI Prime chat CLOSED');
+                                console.log('AI Prime chat CLOSED');
                             }
                         } else {
-                            console.warn('?? Chat panel or wrapper not found');
+                            console.warn('Chat panel or wrapper not found');
                         }
                     });
                 }
@@ -1685,11 +1685,11 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                         // Check if modal already exists
                         const existingModal = document.getElementById('newChatModalOverlay');
                         if (existingModal) {
-                            console.warn('?? Modal already open, skipping...');
+                            console.warn('Modal already open, skipping...');
                             return;
                         }
 
-                        console.log('?? New chat button clicked from right sidebar');
+                        console.log('New chat button clicked from right sidebar');
                         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.showNewChatModal === 'function') {
                             ThreadManager.showNewChatModal('prime');
                         } else {
@@ -1716,7 +1716,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                             this.classList.toggle('active', isOpen);
                             console.log('? Prompt sidebar toggled:', promptSidebar.classList.contains('show') ? 'VISIBLE' : 'HIDDEN');
                         } else {
-                            console.warn('?? Prompt sidebar not found - may not be initialized yet');
+                            console.warn('Prompt sidebar not found - may not be initialized yet');
                         }
                     });
                 }
@@ -1763,7 +1763,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     }
 
                     const data = await response.json();
-                    console.log('?? Profile data received:', data);
+                    console.log('Profile data received:', data);
 
                     if (data.success) {
                         const profile = data.profile;
@@ -2249,7 +2249,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
                     }
 
                     const data = await response.json();
-                    console.log('?? Microsoft status data:', data);
+                    console.log('Microsoft status data:', data);
 
                     if (data.success && data.connected) {
                         const displayName = data.display_name || 'Microsoft User';

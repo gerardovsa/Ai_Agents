@@ -15,7 +15,7 @@ const AutomationsSidebar = {
 
         // Ensure Supabase config is loaded first
         if (!window.SUPABASE_CONFIG_LOADED) {
-            console.log('?? [AUTOMATIONS] Waiting for Supabase config...');
+            console.log('[AUTOMATIONS] Waiting for Supabase config...');
             await window.loadSupabaseConfig();
         }
 
@@ -51,7 +51,7 @@ const AutomationsSidebar = {
     },
 
     async toggleSidebar() {
-        console.log('?? [AUTOMATIONS] Toggle clicked');
+        console.log('[AUTOMATIONS] Toggle clicked');
 
         // Initialize Supabase first
         if (!this.supabaseClient) {
@@ -97,7 +97,7 @@ const AutomationsSidebar = {
 
     async loadAutomations() {
         try {
-            console.log('?? [AUTOMATIONS] Loading automations from Supabase...');
+            console.log('[AUTOMATIONS] Loading automations from Supabase...');
             const startTime = performance.now();
 
             const { data, error } = await this.supabaseClient
@@ -128,7 +128,7 @@ const AutomationsSidebar = {
             return;
         }
 
-        console.log('?? [AUTOMATIONS] Initializing Realtime subscriptions...');
+        console.log('[AUTOMATIONS] Initializing Realtime subscriptions...');
 
         // Subscribe to automation_workflows changes
         this.realtimeChannel = this.supabaseClient
@@ -138,7 +138,7 @@ const AutomationsSidebar = {
                 schema: 'public',
                 table: 'automation_workflows'
             }, (payload) => {
-                console.log('?? [REALTIME] Automation change:', payload);
+                console.log('[REALTIME] Automation change:', payload);
                 this.handleAutomationChange(payload);
             })
             .subscribe((status) => {
@@ -157,7 +157,7 @@ const AutomationsSidebar = {
                 schema: 'public',
                 table: 'workflow_executions'
             }, (payload) => {
-                console.log('?? [REALTIME] Execution change:', payload);
+                console.log('[REALTIME] Execution change:', payload);
                 this.handleExecutionChange(payload);
             })
             .subscribe((status) => {
@@ -176,14 +176,14 @@ const AutomationsSidebar = {
             this.automations.unshift(newRecord);
             showNotification(`New automation created: ${newRecord.name}`, 'success');
         } else if (eventType === 'UPDATE') {
-            console.log('?? [REALTIME] Automation updated:', newRecord.name);
+            console.log('[REALTIME] Automation updated:', newRecord.name);
             const index = this.automations.findIndex(a => a.workflow_id === newRecord.workflow_id);
             if (index !== -1) {
                 this.automations[index] = newRecord;
             }
             showNotification(`Automation updated: ${newRecord.name}`, 'info');
         } else if (eventType === 'DELETE') {
-            console.log('??? [REALTIME] Automation deleted:', oldRecord.name);
+            console.log('?[REALTIME] Automation deleted:', oldRecord.name);
             this.automations = this.automations.filter(a => a.workflow_id !== oldRecord.workflow_id);
             showNotification(`Automation deleted: ${oldRecord.name}`, 'warning');
         }
@@ -255,7 +255,7 @@ const AutomationsSidebar = {
     },
 
     setFilter(filter) {
-        console.log('?? [AUTOMATIONS] Filter changed:', filter);
+        console.log('[AUTOMATIONS] Filter changed:', filter);
         this.currentFilter = filter;
 
         // Update active state on filter chips
@@ -396,13 +396,13 @@ const AutomationsSidebar = {
     },
 
     async refreshAutomations() {
-        console.log('?? [AUTOMATIONS] Manual refresh triggered');
+        console.log('[AUTOMATIONS] Manual refresh triggered');
         await this.loadAutomations();
         showNotification('Automations refreshed', 'success');
     },
 
     openAutomation(slug) {
-        console.log('?? [AUTOMATIONS] Opening automation:', slug);
+        console.log('[AUTOMATIONS] Opening automation:', slug);
         // TODO: Navigate to automation details or workflow canvas
         showNotification(`Opening automation: ${slug}`, 'info');
         // Could open workflow canvas with this automation loaded

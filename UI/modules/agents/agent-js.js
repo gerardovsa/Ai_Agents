@@ -1093,7 +1093,7 @@ const MultiAgent = {
         // CRITICAL: Clear AppState.sessionId when thread loads into agent
         // (Thread is now in agent, NOT in Prime)
         if (typeof AppState !== 'undefined' && AppState.sessionId === thread.id) {
-            console.log(`?? [ISOLATION FIX] Clearing AppState.sessionId (thread ${thread.id} now in agent-${agentId})`);
+            console.log(`[ISOLATION FIX] Clearing AppState.sessionId (thread ${thread.id} now in agent-${agentId})`);
             AppState.sessionId = null;
             AppState.chatMessages = [];
         }
@@ -2595,7 +2595,7 @@ async function sendAgentMessage(agentId) {
     const startTime = Date.now();
 
     try {
-        // ?? CRITICAL THREAD ISOLATION FIX (Nov 19, 2025):
+        // CRITICAL THREAD ISOLATION FIX (Nov 19, 2025):
         // Get current thread for this agent FIRST
         const currentThread = ThreadManager.getThreadByAgent(getAgentName(agentId));
 
@@ -2612,7 +2612,7 @@ async function sendAgentMessage(agentId) {
 
         // Update MultiAgent.sessions to match thread (maintain sync)
         if (!MultiAgent.sessions[agentId] || MultiAgent.sessions[agentId] !== sessionId) {
-            console.log(`[Agent ${getAgentName(agentId)}] ?? Syncing session_id with thread_slug: ${sessionId}`);
+            console.log(`[Agent ${getAgentName(agentId)}] Syncing session_id with thread_slug: ${sessionId}`);
             MultiAgent.sessions[agentId] = sessionId;
         }
 
@@ -2673,7 +2673,7 @@ async function sendAgentMessage(agentId) {
                     workflow_id: workflowContext.workflowId,
                     mode: workflowContext.mode
                 }));
-                console.log(`?? [Workflow Designer] Context injected for workflow: ${workflowContext.slug}`);
+                console.log(`[Workflow Designer] Context injected for workflow: ${workflowContext.slug}`);
             }
 
             // Add files with correct key name for backend (backend expects 'files', not 'file_0', 'file_1')
@@ -2721,7 +2721,7 @@ async function sendAgentMessage(agentId) {
                     workflow_id: workflowContext.workflowId,
                     mode: workflowContext.mode
                 };
-                console.log(`?? [Workflow Designer] Context injected for workflow: ${workflowContext.slug}`);
+                console.log(`[Workflow Designer] Context injected for workflow: ${workflowContext.slug}`);
             }
 
             // Use JSON for text-only messages
