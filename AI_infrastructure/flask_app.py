@@ -120,7 +120,7 @@ from routes.google_auth_routes_V2_FIXED import google_auth_bp  # NEW: Google OAu
 from routes.microsoft_auth_routes_V2_FIXED import microsoft_auth_bp  # NEW: Microsoft OAuth V2
 from routes.account_linking_routes import account_linking_bp  # NEW: Account linking
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
-from routes.database_visualizer_routes import database_visualizer_bp  # NEW: Database visualizer module
+# from routes.database_visualizer_routes import database_visualizer_bp  # DISABLED: Needs migration to Supabase PostgreSQL
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
 from routes.scheduler_routes import scheduler_bp  # NEW: AI Automation Scheduler
 from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
@@ -268,7 +268,7 @@ app.register_blueprint(google_auth_bp)                               # NEW: Goog
 app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth V2 (/api/auth/microsoft/*)
 app.register_blueprint(account_linking_bp)                           # NEW: Account linking (/api/account/*)
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
-app.register_blueprint(database_visualizer_bp)                       # NEW: Database visualizer (5 endpoints)
+# app.register_blueprint(database_visualizer_bp)                       # DISABLED: Needs migration to Supabase PostgreSQL
 app.register_blueprint(synergy_bp)                                   # NEW: Synergy Dashboard (6 endpoints: /api/synergy/*)
 app.register_blueprint(scheduler_bp)                                 # NEW: AI Automation Scheduler (10 endpoints: /api/scheduler/*)
 app.register_blueprint(automation_bp)                                # NEW: Visual Automation Canvas (9 endpoints: /api/automation/*)

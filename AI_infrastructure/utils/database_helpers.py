@@ -1,23 +1,18 @@
 """
 Database Helpers
-Connection helpers for SQL Server and SQLite databases
+Connection helpers for Supabase PostgreSQL and SQL Server databases
 
-CONNECTION POOLING:
-This module implements thread-local connection pooling to prevent database corruption
-from concurrent access. Each worker thread maintains persistent connections that are
-reused across requests, preventing the "database disk image is malformed" errors.
+SUPABASE POSTGRESQL:
+This module uses Supabase PostgreSQL for all database operations.
+Connection pooling is handled by database_utils.py for optimal performance.
 """
 
-import sqlite3
 import threading
 import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import json
-
-# Thread-local storage for connection pool
-_local_storage = threading.local()
 
 # Make pyodbc optional - only needed for SQL Server connections
 try:
@@ -44,6 +39,9 @@ def get_sql_server_connection(server: str, database: str, timeout: int = 30):
     
     Returns:
         pyodbc.Connection
+    
+    Raises:
+        DatabaseConnectionError: If pyodbc not available or connection fails
     """
     if not PYODBC_AVAILABLE:
         raise DatabaseConnectionError(
@@ -67,160 +65,39 @@ def get_sql_server_connection(server: str, database: str, timeout: int = 30):
         raise DatabaseConnectionError(f"SQL Server connection failed: {e}")
 
 
-def get_sqlite_connection(db_path: str):
+def get_stock_database_connection():
     """
-    Get SQLite connection (legacy function - use get_pooled_sqlite_connection instead)
-    
-    Args:
-        db_path: Path to SQLite database file
+    Get connection to stock_data schema in Supabase
     
     Returns:
-        sqlite3.Connection
+        DatabaseConnection: Supabase connection to stock_data schema
     """
-    try:
-        db_file = Path(db_path)
-        if not db_file.exists():
-            raise DatabaseConnectionError(f"SQLite database not found: {db_path}")
-        
-        conn = sqlite3.connect(str(db_file))
-        conn.row_factory = sqlite3.Row  # Return rows as dicts
-        return conn
-    
-    except Exception as e:
-        raise DatabaseConnectionError(f"SQLite connection failed: {e}")
+    from shared.database_utils import get_database_connection
+    return get_database_connection('stock_data')
 
 
-@contextmanager
-def get_pooled_sqlite_connection(db_path: str, timeout: float = 30.0):
+def get_sessions_database_connection():
     """
-    Get pooled SQLite connection with thread-local storage
+    Get connection to sessions schema in Supabase
     
-    This function maintains a pool of connections per thread, preventing database
-    corruption from concurrent access. Each worker thread gets its own persistent
-    connections that are reused across thousands of requests.
-    
-    Features:
-    - Thread-local connection pool (each thread gets own connections)
-    - WAL mode enabled (Write-Ahead Logging for 10x better concurrency)
-    - Optimized PRAGMAs (64MB cache, 256MB mmap, NORMAL sync)
-    - Auto-commit/rollback on context exit
-    - Connection reuse prevents "database disk image is malformed" errors
-    
-    Args:
-        db_path: Path to SQLite database file
-        timeout: Lock timeout in seconds (default: 30s)
-    
-    Yields:
-        sqlite3.Connection: Pooled database connection
-    
-    Example:
-        with get_pooled_sqlite_connection('data/db.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users")
-            rows = cursor.fetchall()
-        # Connection automatically committed and kept in pool
-    """
-    # Initialize thread-local connection dict if needed
-    if not hasattr(_local_storage, 'connections'):
-        _local_storage.connections = {}
-    
-    # Use absolute path as cache key
-    cache_key = str(Path(db_path).resolve())
-    
-    # Reuse existing connection for this thread if available
-    if cache_key in _local_storage.connections:
-        conn = _local_storage.connections[cache_key]
-        try:
-            # Verify connection is still valid
-            conn.execute("SELECT 1")
-            try:
-                yield conn
-                conn.commit()  # Commit on successful exit
-            except Exception as e:
-                conn.rollback()  # Rollback on error
-                raise
-            return  # Exit context manager properly
-        except sqlite3.Error:
-            # Connection broken, remove from pool
-            try:
-                conn.close()
-            except:
-                pass
-            del _local_storage.connections[cache_key]
-    
-    # Create new connection with optimizations
-    db_file = Path(db_path)
-    if not db_file.exists():
-        # Create parent directories if needed
-        db_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    conn = sqlite3.connect(
-        str(db_path),
-        timeout=timeout,
-        check_same_thread=False,  # Allow connection across threads (safe with thread-local storage)
-        isolation_level=None  # Autocommit mode
-    )
-    conn.row_factory = sqlite3.Row
-    
-    # Enable WAL mode for 10x better concurrency
-    # Skip on Render - ephemeral filesystem doesn't support WAL
-    is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
-    
-    if not is_render:
-        try:
-            conn.execute('PRAGMA journal_mode=WAL')
-        except sqlite3.OperationalError:
-            # Fallback to DELETE mode if WAL fails
-            conn.execute('PRAGMA journal_mode=DELETE')
-    else:
-        conn.execute('PRAGMA journal_mode=DELETE')
-    
-    # Optimize for performance and concurrency
-    conn.execute('PRAGMA synchronous=NORMAL')  # Faster than FULL, still safe
-    conn.execute('PRAGMA cache_size=-64000')  # 64MB cache (negative = KB)
-    
-    # Skip mmap on Render - can cause issues with ephemeral filesystem
-    if not is_render:
-        conn.execute('PRAGMA mmap_size=268435456')  # 256MB memory-mapped I/O
-    
-    conn.execute('PRAGMA temp_store=MEMORY')  # Store temp tables in memory
-    
-    # Store in thread-local pool
-    _local_storage.connections[cache_key] = conn
-    
-    try:
-        yield conn
-        conn.commit()  # Commit on successful exit
-    except Exception as e:
-        conn.rollback()  # Rollback on error
-        raise
-    # Note: Connection is NOT closed - kept in pool for reuse
-
-
-def get_stock_database_path() -> str:
-    """
-    Get path to stock database (stock_data.db)
+    This is the CORRECT database for threads, user data, credentials, OAuth tokens
     
     Returns:
-        Absolute path to stock database
+        DatabaseConnection: Supabase connection to sessions schema
     """
-    # Stock database location
-    stock_db = Path(__file__).parent.parent.parent / 'Quote_Calculator' / 'stocks' / 'stock_data.db'
-    return str(stock_db)
+    from shared.database_utils import get_database_connection
+    return get_database_connection('sessions')
 
 
-def get_sessions_database_path() -> str:
+def get_ai_infrastructure_connection():
     """
-    Get path to sessions database (sessions.db)
-    
-    CORRECT DATABASE for threads, user data, credentials, OAuth tokens
+    Get connection to ai_infrastructure schema in Supabase
     
     Returns:
-        Absolute path to sessions.db
+        DatabaseConnection: Supabase connection to ai_infrastructure schema
     """
-    # Sessions database location (CORRECT for threads)
-    sessions_db = Path(__file__).parent.parent.parent / 'data' / 'sessions.db'
-    return str(sessions_db)
+    from shared.database_utils import get_database_connection
+    return get_database_connection('ai_infrastructure')
 
 
 def execute_sql_server_query(server: str, database: str, query: str, params: Optional[tuple] = None) -> List[Dict]:
@@ -235,6 +112,9 @@ def execute_sql_server_query(server: str, database: str, query: str, params: Opt
     
     Returns:
         List of dictionaries (rows)
+    
+    Raises:
+        DatabaseConnectionError: If query execution fails
     """
     conn = None
     try:
@@ -264,37 +144,35 @@ def execute_sql_server_query(server: str, database: str, query: str, params: Opt
             conn.close()
 
 
-def execute_sqlite_query(db_path: str, query: str, params: Optional[tuple] = None) -> List[Dict]:
+def execute_query(schema: str, query: str, params: Optional[tuple] = None) -> List[Dict]:
     """
-    Execute database query and return results as list of dicts (Supabase or SQLite)
-    
-    MIGRATION NOTE: This function now uses Supabase PostgreSQL instead of SQLite.
-    The db_path parameter is used to determine the schema:
-      - Contains 'sessions': uses 'sessions' schema
-      - Contains 'synergy': uses 'synergy_sessions' schema
-      - Otherwise: uses 'ai_infrastructure' schema
+    Execute Supabase PostgreSQL query and return results as list of dicts
     
     Args:
-        db_path: Path to SQLite database (legacy) or schema name identifier
-        query: SQL query (use %s placeholders, not ?)
+        schema: Schema name ('sessions', 'ai_infrastructure', 'stock_data', etc.)
+        query: SQL query (use %s or ? placeholders - auto-converted)
         params: Query parameters
     
     Returns:
         List of dictionaries (rows)
+    
+    Raises:
+        DatabaseConnectionError: If query execution fails
+    
+    Examples:
+        # Query sessions schema
+        rows = execute_query('sessions', 
+                           'SELECT * FROM threads WHERE user_id = %s', 
+                           (user_id,))
+        
+        # Query ai_infrastructure schema
+        users = execute_query('ai_infrastructure',
+                            'SELECT * FROM users WHERE email = %s',
+                            (email,))
     """
     try:
-        # Import here to avoid circular dependencies
         from shared.database_utils import get_database_connection
         
-        # Determine schema from db_path
-        if 'sessions' in str(db_path).lower():
-            schema = 'sessions'
-        elif 'synergy' in str(db_path).lower():
-            schema = 'synergy_sessions'
-        else:
-            schema = 'ai_infrastructure'
-        
-        # Use Supabase-compatible connection
         conn = get_database_connection(schema)
         cursor = conn.cursor()
         
@@ -306,7 +184,7 @@ def execute_sqlite_query(db_path: str, query: str, params: Optional[tuple] = Non
         # Fetch rows
         rows = cursor.fetchall()
         
-        # Convert to list of dicts
+        # Convert to list of dicts (RealDictCursor already returns dict-like rows)
         results = [dict(row) for row in rows] if rows else []
         
         cursor.close()
@@ -318,37 +196,35 @@ def execute_sqlite_query(db_path: str, query: str, params: Optional[tuple] = Non
         raise DatabaseConnectionError(f"Database query failed: {e}")
 
 
-def execute_sqlite_update(db_path: str, query: str, params: Optional[tuple] = None) -> int:
+def execute_update(schema: str, query: str, params: Optional[tuple] = None) -> int:
     """
-    Execute database UPDATE/INSERT/DELETE and return affected rows (Supabase or SQLite)
-    
-    MIGRATION NOTE: This function now uses Supabase PostgreSQL instead of SQLite.
-    The db_path parameter is used to determine the schema:
-      - Contains 'sessions': uses 'sessions' schema
-      - Contains 'synergy': uses 'synergy_sessions' schema
-      - Otherwise: uses 'ai_infrastructure' schema
+    Execute Supabase PostgreSQL UPDATE/INSERT/DELETE and return affected rows
     
     Args:
-        db_path: Path to SQLite database (legacy) or schema name identifier
-        query: SQL query (use %s placeholders, not ?)
+        schema: Schema name ('sessions', 'ai_infrastructure', 'stock_data', etc.)
+        query: SQL query (use %s or ? placeholders - auto-converted)
         params: Query parameters
     
     Returns:
         Number of affected rows
+    
+    Raises:
+        DatabaseConnectionError: If query execution fails
+    
+    Examples:
+        # Update sessions schema
+        rows = execute_update('sessions',
+                            'UPDATE threads SET name = %s WHERE id = %s',
+                            ('New Name', thread_id))
+        
+        # Insert into ai_infrastructure schema
+        rows = execute_update('ai_infrastructure',
+                            'INSERT INTO users (username, email) VALUES (%s, %s)',
+                            ('john', 'john@example.com'))
     """
     try:
-        # Import here to avoid circular dependencies
         from shared.database_utils import get_database_connection
         
-        # Determine schema from db_path
-        if 'sessions' in str(db_path).lower():
-            schema = 'sessions'
-        elif 'synergy' in str(db_path).lower():
-            schema = 'synergy_sessions'
-        else:
-            schema = 'ai_infrastructure'
-        
-        # Use Supabase-compatible connection
         conn = get_database_connection(schema)
         cursor = conn.cursor()
         
@@ -370,41 +246,225 @@ def execute_sqlite_update(db_path: str, query: str, params: Optional[tuple] = No
         raise DatabaseConnectionError(f"Database update failed: {e}")
 
 
-def get_sqlite_schema(db_path: str) -> Dict[str, List[Dict]]:
+# Legacy function names for backward compatibility
+def execute_sqlite_query(db_path: str, query: str, params: Optional[tuple] = None) -> List[Dict]:
     """
-    Get SQLite database schema
+    Execute database query (legacy function - maps to execute_query)
+    
+    MIGRATION NOTE: This function now uses Supabase PostgreSQL.
+    The db_path parameter is used to determine the schema:
+      - Contains 'sessions': uses 'sessions' schema
+      - Contains 'synergy': uses 'synergy_sessions' schema
+      - Contains 'stock': uses 'stock_data' schema
+      - Otherwise: uses 'ai_infrastructure' schema
     
     Args:
-        db_path: Path to SQLite database
+        db_path: Path-like string (used to infer schema name)
+        query: SQL query (use %s or ? placeholders)
+        params: Query parameters
+    
+    Returns:
+        List of dictionaries (rows)
+    
+    Note:
+        This function exists for backward compatibility.
+        New code should use execute_query(schema, query, params) instead.
+    """
+    # Determine schema from db_path
+    db_path_lower = str(db_path).lower()
+    
+    if 'sessions' in db_path_lower and 'synergy' not in db_path_lower:
+        schema = 'sessions'
+    elif 'synergy' in db_path_lower:
+        schema = 'synergy_sessions'
+    elif 'stock' in db_path_lower:
+        schema = 'stock_data'
+    elif 'kanban' in db_path_lower:
+        schema = 'kanban_analytics'
+    else:
+        schema = 'ai_infrastructure'
+    
+    return execute_query(schema, query, params)
+
+
+def execute_sqlite_update(db_path: str, query: str, params: Optional[tuple] = None) -> int:
+    """
+    Execute database UPDATE/INSERT/DELETE (legacy function - maps to execute_update)
+    
+    MIGRATION NOTE: This function now uses Supabase PostgreSQL.
+    The db_path parameter is used to determine the schema:
+      - Contains 'sessions': uses 'sessions' schema
+      - Contains 'synergy': uses 'synergy_sessions' schema
+      - Contains 'stock': uses 'stock_data' schema
+      - Otherwise: uses 'ai_infrastructure' schema
+    
+    Args:
+        db_path: Path-like string (used to infer schema name)
+        query: SQL query (use %s or ? placeholders)
+        params: Query parameters
+    
+    Returns:
+        Number of affected rows
+    
+    Note:
+        This function exists for backward compatibility.
+        New code should use execute_update(schema, query, params) instead.
+    """
+    # Determine schema from db_path
+    db_path_lower = str(db_path).lower()
+    
+    if 'sessions' in db_path_lower and 'synergy' not in db_path_lower:
+        schema = 'sessions'
+    elif 'synergy' in db_path_lower:
+        schema = 'synergy_sessions'
+    elif 'stock' in db_path_lower:
+        schema = 'stock_data'
+    elif 'kanban' in db_path_lower:
+        schema = 'kanban_analytics'
+    else:
+        schema = 'ai_infrastructure'
+    
+    return execute_update(schema, query, params)
+
+
+def get_database_schema(schema: str) -> Dict[str, List[Dict]]:
+    """
+    Get PostgreSQL database schema information
+    
+    Args:
+        schema: Schema name ('sessions', 'ai_infrastructure', etc.)
     
     Returns:
         Dictionary with table names as keys, column info as values
+    
+    Example:
+        schema_info = get_database_schema('sessions')
+        # Returns: {
+        #   'threads': [
+        #     {'name': 'id', 'type': 'integer', 'notnull': True, 'pk': True},
+        #     {'name': 'name', 'type': 'text', 'notnull': False, 'pk': False},
+        #     ...
+        #   ],
+        #   'messages': [...],
+        #   ...
+        # }
     """
-    conn = None
     try:
-        conn = get_sqlite_connection(db_path)
+        from shared.database_utils import get_database_connection
+        
+        conn = get_database_connection(schema)
         cursor = conn.cursor()
         
-        # Get table names
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-        tables = [row['name'] for row in cursor.fetchall()]
+        # Get table names from information_schema
+        cursor.execute("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = %s 
+            ORDER BY table_name
+        """, (schema,))
+        
+        tables = [row['table_name'] for row in cursor.fetchall()]
         
         # Get columns for each table
-        schema = {}
+        schema_info = {}
         for table in tables:
-            cursor.execute(f"PRAGMA table_info({table})")
+            cursor.execute("""
+                SELECT 
+                    column_name,
+                    data_type,
+                    is_nullable,
+                    column_default
+                FROM information_schema.columns
+                WHERE table_schema = %s AND table_name = %s
+                ORDER BY ordinal_position
+            """, (schema, table))
+            
             columns = []
             for row in cursor.fetchall():
                 columns.append({
-                    'name': row['name'],
-                    'type': row['type'],
-                    'notnull': bool(row['notnull']),
-                    'pk': bool(row['pk'])
+                    'name': row['column_name'],
+                    'type': row['data_type'],
+                    'notnull': row['is_nullable'] == 'NO',
+                    'pk': 'nextval' in str(row['column_default']) if row['column_default'] else False
                 })
-            schema[table] = columns
+            
+            schema_info[table] = columns
         
-        return schema
+        cursor.close()
+        conn.close()
+        
+        return schema_info
     
-    finally:
-        if conn:
-            conn.close()
+    except Exception as e:
+        raise DatabaseConnectionError(f"Failed to get schema info: {e}")
+
+
+# Legacy function name for backward compatibility
+def get_sqlite_schema(db_path: str) -> Dict[str, List[Dict]]:
+    """
+    Get database schema (legacy function - maps to get_database_schema)
+    
+    Args:
+        db_path: Path-like string (used to infer schema name)
+    
+    Returns:
+        Dictionary with table names as keys, column info as values
+    
+    Note:
+        This function exists for backward compatibility.
+        New code should use get_database_schema(schema) instead.
+    """
+    # Determine schema from db_path
+    db_path_lower = str(db_path).lower()
+    
+    if 'sessions' in db_path_lower and 'synergy' not in db_path_lower:
+        schema = 'sessions'
+    elif 'synergy' in db_path_lower:
+        schema = 'synergy_sessions'
+    elif 'stock' in db_path_lower:
+        schema = 'stock_data'
+    elif 'kanban' in db_path_lower:
+        schema = 'kanban_analytics'
+    else:
+        schema = 'ai_infrastructure'
+    
+    return get_database_schema(schema)
+
+
+if __name__ == '__main__':
+    """Test database helpers"""
+    print("=" * 60)
+    print("Database Helpers Test")
+    print("=" * 60)
+    
+    # Test Supabase connection
+    print("\n1. Testing Supabase connections:")
+    try:
+        conn = get_sessions_database_connection()
+        print("   ✓ Connected to sessions schema")
+        conn.close()
+        
+        conn = get_ai_infrastructure_connection()
+        print("   ✓ Connected to ai_infrastructure schema")
+        conn.close()
+    except Exception as e:
+        print(f"   ✗ Failed: {e}")
+    
+    # Test query execution
+    print("\n2. Testing query execution:")
+    try:
+        rows = execute_query('sessions', 'SELECT COUNT(*) as count FROM threads')
+        print(f"   ✓ Query executed: {rows[0]['count']} threads found")
+    except Exception as e:
+        print(f"   ✗ Failed: {e}")
+    
+    # Test schema introspection
+    print("\n3. Testing schema introspection:")
+    try:
+        schema_info = get_database_schema('sessions')
+        print(f"   ✓ Schema loaded: {len(schema_info)} tables found")
+        print(f"   Tables: {', '.join(schema_info.keys())}")
+    except Exception as e:
+        print(f"   ✗ Failed: {e}")
+    
+    print("\n" + "=" * 60)

@@ -205,7 +205,7 @@
    ============================================================================ */
 
 .dashboard-card {
-    background: var(--card-background);
+    background: var(--background-tertiary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
     padding: var(--space-5);

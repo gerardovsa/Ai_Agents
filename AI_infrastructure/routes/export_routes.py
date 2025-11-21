@@ -19,10 +19,7 @@ import io
 import os
 
 # Import NEW infrastructure
-from utils.database_helpers import (
-    execute_sqlite_query,
-    get_stock_database_path
-)
+from utils.database_helpers import execute_sqlite_query
 from utils.response_helpers import (
     success_response,
     error_response,
@@ -198,10 +195,11 @@ def export_query():
         if any(keyword in query_upper for keyword in write_keywords):
             return error_response("Write operations not allowed in export queries", 403)
         
-        db_path = get_stock_database_path()
+        # Stock management is disabled in AI_agents
+        return error_response("Stock database export is not available in this deployment", 503)
         
-        # Execute query
-        results = execute_sqlite_query(db_path, query, [])
+        # Execute query (disabled)
+        # results = execute_sqlite_query(db_path, query, [])
         
         if not results:
             return success_response({

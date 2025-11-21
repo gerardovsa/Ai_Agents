@@ -215,11 +215,11 @@
     <!-- Multi-agent system components extracted for modularity -->
     <!-- Note: Message renderer loaded from modules/shared/message_renderer.js above -->
     <link rel="stylesheet" href="modules/agents/agent-ui.css?v=20251121">
-    <script src="modules/agents/agent-column.js?v=20251121"></script>
-    <script src="modules/agents/agent-input.js?v=20251121"></script>
-    <script src="modules/agents/agent-js.js?v=20251121"></script>
-    <script src="modules/agents/agent-ui.js?v=20251121"></script>
-    <script src="modules/agents/prime_ai_chat.js?v=20251121"></script>
+    <script src="modules/agents/agent-column.js?v=20251122c"></script>
+    <script src="modules/agents/agent-input.js?v=20251122c"></script>
+    <script src="modules/agents/agent-js.js?v=20251122c"></script>
+    <script src="modules/agents/agent-ui.js?v=20251122c"></script>
+    <script src="modules/agents/prime_ai_chat.js?v=20251122c"></script>
 
     <!-- ==================== WOOCOMMERCE MODULE ==================== -->
     <!-- WooCommerce integration for order management and product sync -->
@@ -345,6 +345,35 @@
             transition: opacity 0.4s ease-in;
         }
 
+        .login-overlay canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .login-overlay .circuit-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center,
+                    rgba(13, 17, 23, 0.1) 0%,
+                    rgba(13, 17, 23, 0.3) 50%,
+                    rgba(13, 17, 23, 0.5) 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .login-overlay .login-container {
+            position: relative;
+            z-index: 10;
+        }
+
         /* Auth Loading Overlay - Shown during authentication checks */
         .auth-loading-overlay {
             position: fixed;
@@ -361,6 +390,35 @@
             /* Above login overlay */
             opacity: 1;
             transition: opacity 0.3s ease;
+        }
+
+        .auth-loading-overlay canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .auth-loading-overlay .circuit-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center,
+                    rgba(13, 17, 23, 0.1) 0%,
+                    rgba(13, 17, 23, 0.3) 50%,
+                    rgba(13, 17, 23, 0.5) 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .auth-loading-overlay>div:not(.circuit-gradient) {
+            position: relative;
+            z-index: 10;
         }
 
         .auth-loading-overlay.hidden {
@@ -434,7 +492,7 @@
         }
 
         .login-container {
-            background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            background: linear-gradient(145deg, rgba(22, 27, 34, 0.1) 0%, rgba(13, 17, 23, 0.1) 100%);
             border: 1px solid var(--border-default);
             border-radius: 20px;
             padding: 48px;
@@ -443,6 +501,8 @@
             box-shadow:
                 0 20px 60px rgba(0, 0, 0, 0.6),
                 0 0 1px rgba(255, 255, 255, 0.05) inset;
+            backdrop-filter: blur(70px);
+            -webkit-backdrop-filter: blur(70px);
             position: relative;
             animation: slideUp 0.5s ease;
         }
@@ -536,12 +596,12 @@
 
         .login-btn {
             padding: 14px;
-            background: var(--accent-primary);
-            border: none;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
             border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -551,9 +611,11 @@
         }
 
         .login-btn:hover {
-            background: #4a8fd9;
+            background: var(--bg-hover);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .login-btn:active {
@@ -11955,13 +12017,15 @@
     </style>
 
     <!-- Agent Status Indicator Module -->
-    <script src="modules/agent-status-indicator.js"></script>
+    <script src="modules/agent-status-indicator.js?v=20251122"></script>
 </head>
 
 <body>
     <!-- ==================== AUTH LOADING OVERLAY ==================== -->
     <!-- Shows during initial auth check and login process -->
     <div class="auth-loading-overlay" id="authLoadingOverlay">
+        <canvas id="authCircuitCanvas"></canvas>
+        <div class="circuit-gradient"></div>
         <div class="auth-spinner"></div>
         <div class="auth-loading-text" id="authLoadingText">Checking authentication...</div>
         <div class="auth-progress-bar">
@@ -11971,14 +12035,17 @@
 
     <!-- ==================== LOGIN OVERLAY ==================== -->
     <div class="login-overlay" id="loginOverlay" style="display: none;">
+        <canvas id="loginCircuitCanvas"></canvas>
+        <div class="circuit-gradient"></div>
         <div class="login-container">
             <div class="login-header">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14"
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
                     style="width:48px; height:48px; margin:0 auto 16px; display:block; fill:var(--accent-primary);">
                     <g>
                         <path
-                            d="M13.85,2.22,11.78.15a.5.5,0,0,0-.71,0l-1,1a.49.49,0,0,0,0,.7l.46.47L9,3.8,7.77,2.58a.48.48,0,0,0-.7,0l-5,5a.49.49,0,0,0,0,.7l.83.84-2.75,3.7A.51.51,0,0,0,.5,13.5H3a.5.5,0,0,0,.4-.2l1-1.3H6a.5.5,0,0,0,.5-.5V9.91l1.3-1a.5.5,0,0,0,.2-.4V6a.51.51,0,0,0-.5-.5H5.91l1-1.3a.48.48,0,0,0,0-.6L5.7,2.37,7.07,1l.46.47a.48.48,0,0,0,.7,0l1-1A.51.51,0,0,0,9.5,0H11a.5.5,0,0,0,.35-.15l2-2a.49.49,0,0,0,0-.7ZM5.5,11H4.59l1.7-2.3L7.5,9.91v.68Z" />
-                        <circle cx="11" cy="2.5" r="1" />
+                            d="M20.94 11.69c1.64 -2 2.38 -4.08 1.45 -5.69s-3.08 -2 -5.65 -1.59a0.49 0.49 0 0 1 -0.54 -0.31C15.27 1.67 13.86 0 12 0S8.73 1.67 7.8 4.1a0.49 0.49 0 0 1 -0.54 0.31C4.69 4 2.54 4.39 1.61 6s-0.19 3.67 1.45 5.69a0.48 0.48 0 0 1 0 0.62C1.42 14.33 0.68 16.39 1.61 18c0.7 1.22 2.11 1.74 3.88 1.74a11.23 11.23 0 0 0 1.77 -0.15 0.49 0.49 0 0 1 0.54 0.31c0.93 2.43 2.34 4.1 4.2 4.1s3.27 -1.67 4.2 -4.1a0.49 0.49 0 0 1 0.54 -0.31 11.23 11.23 0 0 0 1.77 0.15c1.77 0 3.18 -0.52 3.88 -1.74 0.93 -1.61 0.19 -3.67 -1.45 -5.69a0.48 0.48 0 0 1 0 -0.62ZM3.34 7c0.27 -0.47 1 -0.75 2.19 -0.75a7.89 7.89 0 0 1 1 0.07 0.5 0.5 0 0 1 0.47 0.59c-0.12 0.59 -0.22 1.19 -0.3 1.81a0.45 0.45 0 0 1 -0.19 0.33c-0.49 0.38 -1 0.77 -1.42 1.16a0.47 0.47 0 0 1 -0.38 0.12 0.49 0.49 0 0 1 -0.35 -0.19C3.33 8.76 3 7.6 3.34 7Zm3.57 10.48a0.47 0.47 0 0 1 -0.34 0.2c-1.71 0.21 -2.88 -0.07 -3.23 -0.68s0 -1.76 1 -3.14a0.49 0.49 0 0 1 0.35 -0.19 0.47 0.47 0 0 1 0.38 0.12c0.45 0.39 0.93 0.78 1.42 1.16a0.45 0.45 0 0 1 0.19 0.33c0.08 0.62 0.18 1.22 0.3 1.81a0.46 0.46 0 0 1 -0.07 0.39Zm2.88 -13C10.47 2.87 11.3 2 12 2s1.53 0.87 2.21 2.45a0.51 0.51 0 0 1 -0.31 0.68c-0.56 0.18 -1.14 0.4 -1.71 0.64a0.5 0.5 0 0 1 -0.38 0c-0.57 -0.24 -1.15 -0.46 -1.71 -0.65a0.49 0.49 0 0 1 -0.3 -0.26 0.53 0.53 0 0 1 -0.01 -0.41Zm4.42 15.1C13.53 21.13 12.7 22 12 22s-1.53 -0.87 -2.21 -2.45a0.51 0.51 0 0 1 0.31 -0.68c0.56 -0.18 1.14 -0.4 1.71 -0.64a0.5 0.5 0 0 1 0.38 0c0.57 0.24 1.15 0.46 1.71 0.64a0.5 0.5 0 0 1 0.3 0.27 0.53 0.53 0 0 1 0.01 0.41Zm1.23 -5.82a0.51 0.51 0 0 1 -0.22 0.39c-0.46 0.3 -1 0.61 -1.47 0.91s-1 0.57 -1.53 0.82a0.49 0.49 0 0 1 -0.44 0c-0.5 -0.25 -1 -0.52 -1.53 -0.82s-1 -0.61 -1.47 -0.91a0.51 0.51 0 0 1 -0.22 -0.39c0 -0.55 -0.06 -1.13 -0.06 -1.73s0 -1.18 0.06 -1.73a0.51 0.51 0 0 1 0.22 -0.39c0.46 -0.3 1 -0.61 1.47 -0.91s1 -0.57 1.53 -0.82a0.49 0.49 0 0 1 0.44 0c0.5 0.25 1 0.52 1.53 0.82s1 0.61 1.47 0.91a0.51 0.51 0 0 1 0.22 0.39c0 0.55 0.06 1.13 0.06 1.73s-0.02 1.15 -0.06 1.7ZM20.66 17c-0.35 0.6 -1.52 0.89 -3.23 0.68a0.5 0.5 0 0 1 -0.43 -0.59c0.12 -0.59 0.22 -1.19 0.3 -1.81a0.45 0.45 0 0 1 0.19 -0.33c0.49 -0.38 1 -0.77 1.42 -1.16a0.47 0.47 0 0 1 0.38 -0.12 0.49 0.49 0 0 1 0.35 0.19C20.67 15.24 21 16.4 20.66 17Zm-1 -6.86a0.49 0.49 0 0 1 -0.35 0.19 0.47 0.47 0 0 1 -0.38 -0.12c-0.45 -0.39 -0.93 -0.78 -1.42 -1.16a0.45 0.45 0 0 1 -0.19 -0.33c-0.08 -0.62 -0.18 -1.22 -0.3 -1.81a0.5 0.5 0 0 1 0.43 -0.59 7.89 7.89 0 0 1 1 -0.07c1.14 0 1.92 0.28 2.19 0.75s0.03 1.76 -1 3.14Z">
+                        </path>
+                        <path d="M10.04 12a1.96 1.91 0 1 0 3.92 0 1.96 1.91 0 1 0 -3.92 0"></path>
                     </g>
                 </svg>
                 <h1>Business AI Platform</h1>
@@ -11988,24 +12055,7 @@
             <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
                 <div class="login-error" id="loginError"></div>
 
-                <div class="form-group">
-                    <label for="username">Username or Email</label>
-                    <input type="text" id="username" name="username" required autocomplete="username"
-                        placeholder="admin or email@example.com">
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password"
-                        placeholder="Enter your password">
-                </div>
-
-                <button type="submit" class="login-btn" id="loginBtn">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
-                </button>
-
-                <div class="oauth-divider">OR</div>
-
+                <!-- OAuth Buttons First (Primary Method) -->
                 <button type="button" class="oauth-btn microsoft" onclick="signInWithMicrosoft()">
                     <i class="fab fa-microsoft"></i>
                     <span>Sign in with Microsoft 365</span>
@@ -12023,6 +12073,25 @@
                             d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" />
                     </svg>
                     <span>Sign in with Google</span>
+                </button>
+
+                <div class="oauth-divider">OR</div>
+
+                <!-- Traditional Login (Secondary Method) -->
+                <div class="form-group">
+                    <label for="username">Username or Email</label>
+                    <input type="text" id="username" name="username" required autocomplete="username"
+                        placeholder="admin or email@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password"
+                        placeholder="Enter your password">
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
                 </button>
             </form>
         </div>
@@ -16317,7 +16386,15 @@
             initChatPanel();
             initThemeToggle();
             initRightSidebar();
-            await initMultiAgent(); // WAIT for agent columns to be created before restoring threads
+
+            // Initialize multi-agent system (with defensive check)
+            if (typeof window.initMultiAgent === 'function') {
+                await window.initMultiAgent(); // WAIT for agent columns to be created before restoring threads
+            } else {
+                console.error('❌ initMultiAgent is not defined - agent-js.js may not have loaded');
+                throw new Error('initMultiAgent is not available');
+            }
+
             await loadPlatformStatus();
 
             // ? INITIALIZE THREADMANAGER (Post-Authentication)
@@ -17394,6 +17471,337 @@
     <!-- ==================== WORKFLOW SLUG INTEGRATION ==================== -->
     <link rel="stylesheet" href="external/modules/workflow-slug-integration.css">
     <script src="external/modules/workflow-slug-integration.js"></script>
+
+    <!-- ==================== CIRCUIT BOARD ANIMATION ==================== -->
+    <script>
+        // Circuit Board Animation for Login and Auth Loading overlays
+        (function () {
+            const canvases = {
+                login: document.getElementById('loginCircuitCanvas'),
+                auth: document.getElementById('authCircuitCanvas')
+            };
+
+            const contexts = {
+                login: canvases.login ? canvases.login.getContext('2d') : null,
+                auth: canvases.auth ? canvases.auth.getContext('2d') : null
+            };
+
+            // Initialize canvases
+            function initCanvas(canvas, ctx) {
+                if (!canvas || !ctx) return null;
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                return {
+                    canvas,
+                    ctx,
+                    centerX: canvas.width / 2,
+                    centerY: canvas.height / 2,
+                    particles: [],
+                    neuralNodes: []
+                };
+            }
+
+            const animations = {
+                login: initCanvas(canvases.login, contexts.login),
+                auth: initCanvas(canvases.auth, contexts.auth)
+            };
+
+            // Particle class
+            class EnergyParticle {
+                constructor(canvasData) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const { canvas, centerX, centerY } = canvasData;
+
+                    // Start from screen edges
+                    const absX = Math.abs(Math.cos(angle));
+                    const absY = Math.abs(Math.sin(angle));
+
+                    if (absX > absY) {
+                        this.x = Math.cos(angle) > 0 ? canvas.width : 0;
+                        this.y = centerY + Math.tan(angle) * (canvas.width / 2);
+                    } else {
+                        this.x = centerX + (canvas.height / 2) / Math.tan(angle);
+                        this.y = Math.sin(angle) > 0 ? canvas.height : 0;
+                    }
+
+                    this.targetX = centerX + (Math.random() - 0.5) * 380;
+                    this.targetY = centerY + (Math.random() - 0.5) * 150;
+                    this.createPath();
+
+                    this.size = 1.5 + Math.random();
+                    const colors = [
+                        { r: 88, g: 166, b: 255 },   // Blue
+                        { r: 255, g: 255, b: 255 },  // White
+                        { r: 255, g: 159, b: 64 }    // Orange
+                    ];
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                    this.trail = [];
+                    this.maxTrailLength = 30 + Math.floor(Math.random() * 30);
+                    this.pathIndex = 0;
+
+                    // Alternate speed every 10 seconds (20s full cycle)
+                    const time = Date.now() / 1000;
+                    const speedCycle = Math.floor(time / 10) % 2;
+                    this.speed = speedCycle === 0 ? (8 + Math.random() * 6) : (1 + Math.random() * 2); // Fast 8-14, slow 1-3
+                }
+
+                createPath() {
+                    this.path = [{ x: this.x, y: this.y }];
+
+                    // Simple 2-3 waypoint path with right angles
+                    const waypoints = Math.random() > 0.5 ? 2 : 3;
+                    let currentX = this.x;
+                    let currentY = this.y;
+
+                    for (let i = 0; i < waypoints; i++) {
+                        const progress = (i + 1) / (waypoints + 1);
+                        if (i % 2 === 0) {
+                            currentX = this.x + (this.targetX - this.x) * progress;
+                            this.path.push({ x: currentX, y: currentY });
+                        } else {
+                            currentY = this.y + (this.targetY - this.y) * progress;
+                            this.path.push({ x: currentX, y: currentY });
+                        }
+                    }
+
+                    this.path.push({ x: this.targetX, y: this.targetY });
+                }
+
+                update() {
+                    this.trail.push({ x: this.x, y: this.y });
+                    if (this.trail.length > this.maxTrailLength) this.trail.shift();
+
+                    if (this.pathIndex >= this.path.length - 1) return false;
+
+                    const target = this.path[this.pathIndex + 1];
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < this.speed) {
+                        this.pathIndex++;
+                        if (this.pathIndex >= this.path.length - 1) return false;
+                    } else {
+                        this.x += (dx / dist) * this.speed;
+                        this.y += (dy / dist) * this.speed;
+                    }
+
+                    return true;
+                }
+
+                draw(ctx) {
+                    // Trail
+                    if (this.trail.length > 1) {
+                        for (let i = 0; i < this.trail.length - 1; i++) {
+                            const alpha = (i / this.trail.length) * 0.8;
+                            ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(this.trail[i].x, this.trail[i].y);
+                            ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
+                            ctx.stroke();
+                        }
+                    }
+
+                    // Glow
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+                    gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.4)`);
+                    gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`);
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Core
+                    ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1)`;
+                    ctx.shadowBlur = 6;
+                    ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.8)`;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // Neural node class (background layer)
+            class NeuralNode {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                    this.pulse = Math.random() * Math.PI * 2;
+                    this.connections = [];
+                }
+
+                update() {
+                    this.pulse += 0.02;
+                }
+
+                draw(ctx) {
+                    // Opacity synced with particle speed - 20 second full cycle
+                    const time = Date.now() / 1000;
+                    const fullCycle = 20; // Match particle speed alternation (10s fast + 10s slow)
+                    const cycleProgress = (time % fullCycle) / fullCycle;
+
+                    // Network brightest when particles reach max speed (every 20 seconds)
+                    let flashBoost = 0;
+                    if (cycleProgress < 0.45) {
+                        // First 9 seconds: Slow ramp up to peak brightness
+                        flashBoost = (cycleProgress / 0.45) * 0.6;
+                    } else if (cycleProgress < 0.5) {
+                        // Stay at peak for 1 second (particles at max speed)
+                        flashBoost = 0.6;
+                    } else if (cycleProgress < 0.7) {
+                        // Next 4 seconds: Fade down as particles slow
+                        flashBoost = ((0.7 - cycleProgress) / 0.2) * 0.6;
+                    }
+                    // 14-20s: Stay dim during slow particle phase
+
+                    const baseAlpha = (Math.sin(this.pulse) * 0.5 + 0.5) * 0.45;
+                    const alpha = Math.min(1, baseAlpha + flashBoost);
+
+                    // Connections - static blue lines with opacity flash
+                    this.connections.forEach(node => {
+                        const distance = Math.sqrt((node.x - this.x) ** 2 + (node.y - this.y) ** 2);
+                        const connectionAlpha = Math.max(0, (1 - distance / 400) * alpha * 0.3);
+
+                        ctx.strokeStyle = `rgba(88, 166, 255, ${connectionAlpha})`;
+                        ctx.lineWidth = 0.3;
+
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y);
+                        ctx.lineTo(node.x, node.y);
+                        ctx.stroke();
+                    });
+
+                    // Node - subtle glow with opacity flash
+                    const nodeSize = 2;
+                    const nodeAlpha = Math.min(0.8, alpha * 0.4);
+                    ctx.fillStyle = `rgba(88, 166, 255, ${nodeAlpha})`;
+
+                    if (this.pulseIntensity > 0.2) {
+                        ctx.shadowBlur = 10 * this.pulseIntensity;
+                        ctx.shadowColor = `rgba(88, 166, 255, ${this.pulseIntensity * 0.6})`;
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, nodeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // Create neural networks
+            function createNeuralNetwork(animData) {
+                if (!animData) return;
+                const { canvas, neuralNodes, centerX, centerY } = animData;
+                neuralNodes.length = 0;
+
+                for (let x = 120; x < canvas.width; x += 120) {
+                    for (let y = 100; y < canvas.height; y += 100) {
+                        const offsetX = (Math.random() - 0.5) * 40;
+                        const offsetY = (Math.random() - 0.5) * 40;
+                        neuralNodes.push(new NeuralNode(x + offsetX, y + offsetY, centerX, centerY));
+                    }
+                }
+
+                // Connect nearby nodes
+                neuralNodes.forEach(node => {
+                    neuralNodes.forEach(other => {
+                        if (node !== other) {
+                            const dist = Math.sqrt((other.x - node.x) ** 2 + (other.y - node.y) ** 2);
+                            if (dist < 350 && Math.random() > 0.7) {
+                                node.connections.push(other);
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Initialize both animations
+            if (animations.login) {
+                animations.login.currentPulseRadius = 0;
+                createNeuralNetwork(animations.login);
+                for (let i = 0; i < 50; i++) {
+                    animations.login.particles.push(new EnergyParticle(animations.login));
+                }
+            }
+            if (animations.auth) {
+                animations.auth.currentPulseRadius = 0;
+                createNeuralNetwork(animations.auth);
+                for (let i = 0; i < 50; i++) {
+                    animations.auth.particles.push(new EnergyParticle(animations.auth));
+                }
+            }
+
+            // Central hub drawing
+            function drawCentralHub(ctx, centerX, centerY) {
+                // Static center core only
+                ctx.fillStyle = 'rgba(88, 166, 255, 0.3)';
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = 'rgba(88, 166, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            // Animation loop
+            function animate() {
+                ['login', 'auth'].forEach(type => {
+                    const animData = animations[type];
+                    if (!animData || !animData.ctx) return;
+
+                    const { ctx, canvas, centerX, centerY, particles, neuralNodes } = animData;
+                    const maxRadius = Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Draw central hub and get current pulse radius
+                    const pulseRadius = drawCentralHub(ctx, centerX, centerY);
+
+                    // Neural network layer - update with pulse radius
+                    neuralNodes.forEach(node => {
+                        node.update(pulseRadius, maxRadius);
+                        node.draw(ctx);
+                    });
+
+                    // Update particles
+                    for (let i = particles.length - 1; i >= 0; i--) {
+                        const alive = particles[i].update();
+                        if (!alive) {
+                            particles.splice(i, 1);
+                        } else {
+                            particles[i].draw(ctx);
+                        }
+                    }
+
+                    // Spawn new particles
+                    if (particles.length < 50 && Math.random() > 0.5) {
+                        particles.push(new EnergyParticle(animData));
+                    }
+                });
+
+                requestAnimationFrame(animate);
+            }
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                ['login', 'auth'].forEach(type => {
+                    const animData = animations[type];
+                    if (!animData) return;
+
+                    animData.canvas.width = window.innerWidth;
+                    animData.canvas.height = window.innerHeight;
+                    animData.centerX = animData.canvas.width / 2;
+                    animData.centerY = animData.canvas.height / 2;
+
+                    createNeuralNetwork(animData);
+                });
+            });
+
+            // Start animation
+            animate();
+        })();
+    </script>
 
 </body>
 

@@ -1944,8 +1944,9 @@ function createAgentColumn(agentId) {
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         
-                        <div class="agent-title-wrapper">
-                            <h2><i class="fas ${MultiAgent.getAgentIcon(agentId)}"></i> ${agentName}</h2>
+                        <div class="agent-title-wrapper" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <i class="fas ${MultiAgent.getAgentIcon(agentId)}" style="font-size: 1.2em; color: var(--accent-primary, #667eea);"></i>
+                            <h2 style="margin: 0;">${agentName}</h2>
                         </div>
                         
                         <div class="agent-header-controls">
@@ -2664,30 +2665,43 @@ async function sendAgentMessage(agentId) {
     const attachedFiles = window.agentAttachedFiles && window.agentAttachedFiles[agentId] ? window.agentAttachedFiles[agentId] : [];
     const hasFiles = attachedFiles.length > 0;
 
-    // Add user message (with file indicator if files present)
-    let displayMessage = message;
-    if (hasFiles) {
-        const fileList = attachedFiles.map(f => f.name).join(', ');
-        displayMessage = `${message} <br><br><em>[ATTACH] Attached files: ${fileList}</em>`;
-    }
-    await addAgentMessage(agentId, 'user', displayMessage);
-
-    // Clear input and files
+    // Clear input FIRST (before async operations)
+    const messageToSend = message; // Capture before clearing
     input.value = '';
     input.style.height = 'auto';
     clearAgentAttachedFiles(agentId);
 
-    // Save user message to thread
+    // Get thread for this agent
     const agentName = getAgentName(agentId);
     let currentThread = ThreadManager.getThreadByAgent(agentName);
     if (!currentThread) {
         // Create new thread for this agent
         const threadId = ThreadManager.createThread();
         currentThread = ThreadManager.threads.find(t => t.id === threadId);
-        currentThread.agent = agentName;
+        currentThread.location = agentName;
         currentThread.title = `${agentName} Chat`;
-        // Note: Thread saved via backend API, no manual save needed
     }
+
+    // CRITICAL: Use UnifiedMessageRenderer (same as Prime AI) for proper rendering + storage
+    let displayMessage = messageToSend;
+    if (hasFiles) {
+        const fileList = attachedFiles.map(f => f.name).join(', ');
+        displayMessage = `${messageToSend}\n\n*[Attached files: ${fileList}]*`;
+    }
+    
+    const userMessageDiv = UnifiedMessageRenderer.render(
+        `#agent-messages-${agentId}`,
+        'user',
+        displayMessage,
+        { 
+            threadId: currentThread.id,
+            syncToBackend: false  // Will sync after AI response
+        }
+    );
+    console.log(`[Agent ${agentId}] User message rendered with UnifiedMessageRenderer`);
+    scrollAgentToBottom(agentId);
+
+    // Thread already retrieved above (after UnifiedMessageRenderer call)
 
     // Update status (text badge + icon animation)
     updateAgentStatus(agentId, 'thinking', 'Thinking...');
@@ -2889,22 +2903,79 @@ async function sendAgentMessage(agentId) {
             throw new Error(`Container isolation violation: expected agent-${agentId}, got agent-${containerAgentId}`);
         }
 
-        // Create AI message bubble with STRICT isolation markers
+        // Create AI message bubble with FULL STRUCTURE (same as Prime AI)
         const aiMessageBubble = document.createElement('div');
-        aiMessageBubble.className = 'ai-agent-' + agentId + ' agent-message assistant';
+        aiMessageBubble.className = 'ai-agent-' + agentId + ' ai-message assistant text-bubble';
         aiMessageBubble.dataset.agentId = agentId;
         aiMessageBubble.dataset.threadSlug = streamThreadSlug;
         aiMessageBubble.dataset.streamStart = streamStartTime;
         aiMessageBubble.dataset.expectedLocation = expectedAgentLocation;
         aiMessageBubble.innerHTML = `
-            <div class="agent-message-bubble" data-processor-initialized="false">
+            <div class="ai-message-header">
+                <div class="ai-message-avatar">
+                    <i class="fas ${MultiAgent.getAgentIcon(agentId)}"></i>
+                </div>
+                <button class="ai-message-toggle" title="Collapse/Expand message">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="ai-message-actions">
+                    <button class="ai-message-copy-btn" title="Copy formatted text">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="ai-message-copy-raw-btn" title="Copy raw markdown">
+                        <i class="fas fa-code"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="ai-message-bubble" data-processor-initialized="false">
                 <div class="ai-message-content"></div>
             </div>
         `;
         messagesContainer.appendChild(aiMessageBubble);
+        console.log(`[Agent ${agentId}] Created full bubble structure with header, avatar, and actions`);
 
-        const bubble = aiMessageBubble.querySelector('.agent-message-bubble');
+        const bubble = aiMessageBubble.querySelector('.ai-message-bubble');
         const contentDiv = bubble.querySelector('.ai-message-content');
+        
+        // Setup collapse/expand functionality (same as Prime AI)
+        const toggleBtn = aiMessageBubble.querySelector('.ai-message-toggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                aiMessageBubble.classList.toggle('collapsed');
+            });
+        }
+        
+        // Setup copy buttons (EXACTLY like Prime AI - inline handlers)
+        const copyBtn = aiMessageBubble.querySelector('.ai-message-copy-btn');
+        const copyRawBtn = aiMessageBubble.querySelector('.ai-message-copy-raw-btn');
+        
+        if (copyBtn) {
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const content = contentDiv.textContent;
+                navigator.clipboard.writeText(content).then(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                    }, 2000);
+                });
+            });
+        }
+        
+        if (copyRawBtn) {
+            // Note: fullResponse will be populated during streaming
+            copyRawBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const rawContent = aiMessageBubble.dataset.rawMarkdown || contentDiv.textContent;
+                navigator.clipboard.writeText(rawContent).then(() => {
+                    copyRawBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => {
+                        copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+                    }, 2000);
+                });
+            });
+        }
 
         // Initialize TwoRuleStreamProcessor with ISOLATED context
         let processor = null;
@@ -2923,6 +2994,8 @@ async function sendAgentMessage(agentId) {
             }
         }
 
+        console.log(`[Agent ${agentId}] 🔵 STREAMING FUNCTION LOADED (v20251122c)`);
+        
         let fullResponse = '';
         let fullThinkingContent = '';
         let toolsUsed = [];
@@ -2950,6 +3023,9 @@ async function sendAgentMessage(agentId) {
 
                     try {
                         const data = JSON.parse(dataStr);
+                        
+                        // DEBUG: Log all incoming events to diagnose empty response
+                        console.log(`[Agent ${agentId}] 📨 Event received:`, data.type, data);
 
                         // ISOLATION CHECK: Verify thread hasn't moved to different agent (NON-BLOCKING)
                         // This only affects WHERE response renders, not whether user can move threads
@@ -2964,41 +3040,27 @@ async function sendAgentMessage(agentId) {
                         }
 
                         // Stream ALL content through TwoRuleStreamProcessor (same as Prime)
-                        // Backend sends: {type: 'content_block_delta', delta_type: 'text_delta'/'thinking_delta', text/thinking: '...'}
-                        if (data.type === 'content_block_delta') {
-                            if (data.delta_type === 'thinking_delta' && data.thinking) {
-                                fullThinkingContent += data.thinking;
-                                // TwoRuleStreamProcessor handles thinking blocks automatically
-                                console.log(`[Agent ${agentId}] Thinking chunk: ${data.thinking.substring(0, 50)}...`);
-                            }
-                            
-                            if (data.delta_type === 'text_delta' && data.text) {
-                                fullResponse += data.text;
-                                
-                                // STRICT ISOLATION: Only render if processor belongs to THIS agent+thread
-                                if (processor && bubble.dataset.processorInitialized === 'true') {
-                                    // Double-check processor context matches
-                                    if (bubble._agentId === agentId && bubble._threadSlug === streamThreadSlug) {
-                                        processor.processChunk(data.text);
-                                    } else {
-                                        console.error(`[Agent ${agentId}] ❌ Processor context mismatch! Skipping chunk.`);
-                                    }
-                                } else {
-                                    // Fallback to basic rendering (still isolated to this bubble)
-                                    contentDiv.innerHTML = marked.parse(fullResponse);
-                                }
-                                scrollAgentToBottom(agentId);
-                            }
-                        }
-                        
-                        // Legacy support for old format (if backend still sends it)
+                        // Backend sends: {type: 'content_delta', text: '...'} OR {type: 'thinking', content: '...'}
                         if (data.type === 'thinking' && data.content) {
                             fullThinkingContent += data.content;
+                            // TwoRuleStreamProcessor handles thinking blocks automatically
+                            console.log(`[Agent ${agentId}] Thinking chunk: ${data.content.substring(0, 50)}...`);
                         }
-                        if ((data.type === 'content' || data.type === 'text') && data.content) {
-                            fullResponse += data.content;
+                        
+                        if (data.type === 'content_delta' && data.text) {
+                            fullResponse += data.text;
+                            
+                            // STRICT ISOLATION: Only render if processor belongs to THIS agent+thread
                             if (processor && bubble.dataset.processorInitialized === 'true') {
-                                processor.processChunk(data.content);
+                                // Double-check processor context matches
+                                if (bubble._agentId === agentId && bubble._threadSlug === streamThreadSlug) {
+                                    processor.processChunk(data.text);
+                                } else {
+                                    console.error(`[Agent ${agentId}] ❌ Processor context mismatch! Skipping chunk.`);
+                                }
+                            } else {
+                                // Fallback to basic rendering (still isolated to this bubble)
+                                contentDiv.innerHTML = marked.parse(fullResponse);
                             }
                             scrollAgentToBottom(agentId);
                         }
@@ -3027,6 +3089,12 @@ async function sendAgentMessage(agentId) {
         }
 
         console.log(`[Agent ${agentId}] Stream complete. Response length: ${fullResponse.length}`);
+        
+        // Store raw markdown in bubble dataset for copy-raw button
+        if (aiMessageBubble) {
+            aiMessageBubble.dataset.rawMarkdown = fullResponse;
+            console.log(`[Agent ${agentId}] Stored raw markdown in bubble dataset`);
+        }
 
         // SMART SAVE: Find thread by slug (even if user moved it during stream)
         const agentName = getAgentName(agentId);
@@ -3123,8 +3191,28 @@ async function sendAgentMessage(agentId) {
                 console.log(`[Agent ${agentId}] Updated quick-nav badge`);
             }
 
-            // Save messages to backend after multi-agent completes
-            ThreadManager.updateCurrentThread(threadForSaving.messages);
+            // CRITICAL: Save thread to backend (sync MessageStore → Backend)
+            console.log(`[Agent ${agentId}] Saving thread to backend...`);
+            try {
+                // Get all messages from MessageStore for this thread
+                const allMessages = window.MessageStore.getMessages(threadForSaving.id);
+                
+                // Update thread object with messages
+                threadForSaving.messages = allMessages;
+                threadForSaving.message_count = allMessages.length;
+                threadForSaving.updated = new Date().toISOString();
+                
+                // Save to backend via ThreadManager
+                const saveSuccess = await ThreadManager.saveThreadToBackend(threadForSaving);
+                
+                if (saveSuccess) {
+                    console.log(`[Agent ${agentId}] ✅ Thread saved to backend: ${allMessages.length} messages`);
+                } else {
+                    console.warn(`[Agent ${agentId}] ⚠️ Failed to save thread to backend`);
+                }
+            } catch (saveError) {
+                console.error(`[Agent ${agentId}] ❌ Error saving thread:`, saveError);
+            }
         }
 
     } catch (error) {
@@ -3852,3 +3940,12 @@ document.addEventListener('click', (e) => {
         });
     }
 });
+
+// ==================== EXPOSE TO GLOBAL SCOPE ====================
+// Required for main app initialization
+if (typeof initMultiAgent !== 'undefined') {
+    window.initMultiAgent = initMultiAgent;
+    console.log('✅ [AGENT-JS] initMultiAgent exported to window scope');
+} else {
+    console.error('❌ [AGENT-JS] initMultiAgent function not found!');
+}

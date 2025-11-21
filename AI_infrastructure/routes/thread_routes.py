@@ -16,9 +16,7 @@ from utils.response_helpers import (
     success_response, error_response, list_response,
     deleted_response, updated_response
 )
-from utils.database_helpers import (
-    get_sessions_database_path, DatabaseConnectionError
-)
+from utils.database_helpers import DatabaseConnectionError
 
 # Create blueprint
 thread_bp = Blueprint('threads', __name__, url_prefix='/api/threads')
@@ -375,8 +373,6 @@ def update_thread_metadata_fields():
             return error_response('thread_slug required', 400)
         
         # Build UPDATE query for metadata fields only
-        db_path = get_sessions_database_path()
-        
         update_query = """
             UPDATE sessions.threads SET
                 workflow_slug = %s,
@@ -661,8 +657,7 @@ def save_thread():
         if not conversation:
             return error_response("Thread has no messages to save", 400)
         
-        # Save to SQLite
-        db_path = get_sessions_database_path()
+        # Save to Supabase
         
         # Create threads table if not exists (UPDATED SCHEMA with new metadata fields)
         create_table_query = """
@@ -776,8 +771,6 @@ def load_thread(thread_id):
     Returns thread with full conversation history
     """
     try:
-        db_path = get_sessions_database_path()
-        
         query = """
             SELECT 
                 thread_id,
@@ -1058,8 +1051,6 @@ def get_thread_stats():
         
         # Count saved threads from SQLite
         try:
-            db_path = get_sessions_database_path()
-            
             count_query = """
                 SELECT COUNT(*) as count
                 FROM sessions.saved_threads
@@ -1121,8 +1112,7 @@ def autosave_thread():
         
         # Auto-save every 5 messages
         if message_count % 5 == 0:
-            # Save to SQLite
-            db_path = get_sessions_database_path()
+            # Save to Supabase
             
             # Ensure table exists (PostgreSQL)
             conn = get_database_connection('sessions')
@@ -1202,8 +1192,6 @@ def mark_thread_read(thread_id):
     Updates last_read timestamp for thread
     """
     try:
-        db_path = get_sessions_database_path()
-        
         # PostgreSQL connection
         conn = get_database_connection('sessions')
         cursor = conn.cursor()

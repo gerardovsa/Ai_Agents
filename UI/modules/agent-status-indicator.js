@@ -73,8 +73,8 @@ const AgentStatusIndicator = {
         // Clear Prime
         this._updatePrimeIcon(null);
 
-        // Clear all agent icons
-        const agentIcons = document.querySelectorAll('.agent-header h2 i');
+        // Clear all agent icons (try both new and old structure)
+        const agentIcons = document.querySelectorAll('.agent-title-wrapper i, .agent-header h2 i');
         agentIcons.forEach(icon => {
             icon.classList.remove(...this.ALL_STATUS_CLASSES);
         });
@@ -111,14 +111,19 @@ const AgentStatusIndicator = {
      */
     _updateAgentIcon(status, agentId) {
         // Try multiple selector strategies to find the agent icon
-        let agentIcon = document.querySelector(`#agent-${agentId} .agent-header h2 i`);
+        let agentIcon = document.querySelector(`#agent-${agentId} .agent-title-wrapper i`);
 
         if (!agentIcon) {
             // Fallback: try finding by data attribute
             const agentColumn = document.querySelector(`.agent-column[data-agent-id="${agentId}"]`);
             if (agentColumn) {
-                agentIcon = agentColumn.querySelector('.agent-header h2 i');
+                agentIcon = agentColumn.querySelector('.agent-title-wrapper i');
             }
+        }
+        
+        if (!agentIcon) {
+            // Fallback: old structure (h2 i)
+            agentIcon = document.querySelector(`#agent-${agentId} .agent-header h2 i`);
         }
 
         if (!agentIcon) {
@@ -149,12 +154,16 @@ const AgentStatusIndicator = {
         if (agentId === null) {
             icon = document.querySelector('.ai-chat-title .ai-icon');
         } else {
-            icon = document.querySelector(`#agent-${agentId} .agent-header h2 i`);
+            icon = document.querySelector(`#agent-${agentId} .agent-title-wrapper i`);
             if (!icon) {
                 const agentColumn = document.querySelector(`.agent-column[data-agent-id="${agentId}"]`);
                 if (agentColumn) {
-                    icon = agentColumn.querySelector('.agent-header h2 i');
+                    icon = agentColumn.querySelector('.agent-title-wrapper i');
                 }
+            }
+            if (!icon) {
+                // Fallback: old structure
+                icon = document.querySelector(`#agent-${agentId} .agent-header h2 i`);
             }
         }
 

@@ -135,7 +135,9 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
         validated_blocks.append(block)
     
     if not validated_blocks:
-        return []
+        # CRITICAL FIX (Nov 22, 2025): Always return tuple of (content, tool_results)
+        # When all blocks are invalid, return empty lists for both
+        return [], []
     
     # STEP 2: Check if there are any thinking blocks
     has_thinking = any(

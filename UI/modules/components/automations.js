@@ -97,28 +97,49 @@ const AutomationsSidebar = {
 
     async loadAutomations() {
         try {
-            console.log('[AUTOMATIONS] Loading automations from Supabase...');
+            console.log('[AUTOMATIONS] Loading automations from API...');
             const startTime = performance.now();
 
-            const { data, error } = await this.supabaseClient
-                .from('automation_workflows')
-                .select('*')
-                .order('updated_at', { ascending: false });
+            // Use backend API instead of direct Supabase
+            const response = await fetch('/api/automation/list', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+                }
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                console.warn('[AUTOMATIONS] API not available - showing empty state');
+                this.automations = [];
+                this.automationsLoaded = true;
+                this.renderAutomations();
+                return;
+            }
 
-            this.automations = data || [];
+            const data = await response.json();
+            
+            if (!data.success) {
+                console.error('[AUTOMATIONS] API error:', data.error);
+                this.automations = [];
+                this.automationsLoaded = true;
+                this.renderAutomations();
+                return;
+            }
+
+            // Backend returns 'workflows' array with UI-compatible format
+            this.automations = data.workflows || [];
             this.automationsLoaded = true;
 
             const endTime = performance.now();
             const loadTime = (endTime - startTime).toFixed(0);
-            console.log(`? [AUTOMATIONS] Loaded ${this.automations.length} automations in ${loadTime}ms`);
+            console.log(`[AUTOMATIONS] Loaded ${this.automations.length} automations in ${loadTime}ms`);
 
             this.updateStats();
             this.renderAutomations();
         } catch (error) {
-            console.error('? [AUTOMATIONS] Failed to load:', error);
-            showNotification('Failed to load automations', 'error');
+            console.error('[AUTOMATIONS] Failed to load:', error);
+            this.automations = [];
+            this.automationsLoaded = true;
+            this.renderAutomations();
         }
     },
 
@@ -401,12 +422,53 @@ const AutomationsSidebar = {
         showNotification('Automations refreshed', 'success');
     },
 
-    openAutomation(slug) {
-        console.log('[AUTOMATIONS] Opening automation:', slug);
-        // TODO: Navigate to automation details or workflow canvas
-        showNotification(`Opening automation: ${slug}`, 'info');
-        // Could open workflow canvas with this automation loaded
-        // Or open a detail modal
+    async openAutomation(slug) {
+        try {
+            console.log('[AUTOMATIONS] Opening workflow:', slug);
+            
+            // Fetch workflow details from backend API
+            const response = await fetch(`/api/automation/${slug}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch workflow: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load workflow');
+            }
+
+            const workflow = data.automation || data.workflow;
+
+            // Check if automation canvas exists
+            if (typeof automationCanvas !== 'undefined' && automationCanvas) {
+                // Switch to automation workflows tab
+                const automationTab = document.querySelector('[data-module-id="automation-workflows"]');
+                if (automationTab) {
+                    automationTab.click();
+                }
+
+                // Load workflow into canvas
+                setTimeout(() => {
+                    if (automationCanvas.loadWorkflowFromList) {
+                        automationCanvas.loadWorkflowFromList(workflow);
+                    } else {
+                        console.warn('[AUTOMATIONS] Canvas loadWorkflowFromList not available');
+                    }
+                }, 100);
+            } else {
+                console.error('[AUTOMATIONS] Automation canvas not initialized');
+                showNotification('Automation canvas module not loaded. Please refresh the page.', 'error');
+            }
+        } catch (error) {
+            console.error('[AUTOMATIONS] Failed to open workflow:', error);
+            showNotification(`Failed to open workflow: ${error.message}`, 'error');
+        }
     },
 
     escapeHtml(text) {

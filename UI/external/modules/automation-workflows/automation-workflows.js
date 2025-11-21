@@ -1278,6 +1278,80 @@ class AutomationCanvas {
         }
     }
 
+    async loadWorkflowFromList(workflow) {
+        /**
+         * Load workflow from list data (used when clicking from sidebar)
+         * @param {object} workflow - Workflow object with shapes and connections
+         */
+        try {
+            console.log('[AUTOMATION CANVAS] Loading workflow onto canvas:', workflow.slug);
+            
+            // Clear canvas first
+            this.clearCanvas();
+            
+            // Set workflow metadata
+            this.workflowSlug = workflow.slug;
+            this.workflowTitle = workflow.name || workflow.title;
+            this.workflowCategory = workflow.category;
+            this.workflowDescription = workflow.description;
+            this.currentWorkflow = workflow;
+            
+            // Extract shapes and connections from various possible locations
+            const shapes = workflow.shapes || 
+                          workflow.workflow_json?.shapes || 
+                          workflow.ui_json?.shapes || 
+                          [];
+            const connections = workflow.connections || 
+                               workflow.workflow_json?.connections || 
+                               workflow.ui_json?.connections || 
+                               [];
+            
+            console.log(`  Shapes: ${shapes.length}, Connections: ${connections.length}`);
+            
+            // Load shapes
+            shapes.forEach(shape => {
+                const shapeData = {
+                    id: shape.id,
+                    type: shape.type || 'rectangle',
+                    x: shape.x || shape.position?.x || 100,
+                    y: shape.y || shape.position?.y || 100,
+                    width: shape.width || shape.size?.width || 150,
+                    height: shape.height || shape.size?.height || 80,
+                    text: shape.text || shape.label || '',
+                    color: shape.color || this.getDefaultColorForType(shape.type || 'rectangle')
+                };
+                
+                this.shapes.push(shapeData);
+            });
+            
+            // Load connections
+            connections.forEach(conn => {
+                this.connections.push({
+                    id: conn.id || `conn_${Date.now()}_${Math.random()}`,
+                    from: conn.from,
+                    to: conn.to
+                });
+            });
+            
+            // Render everything
+            this.renderAllShapes();
+            this.renderConnections();
+            
+            // Update UI
+            this.updateWorkflowNameDisplay();
+            
+            // Close modal if open
+            this.hideLoadWorkflowDialog();
+            
+            console.log('[AUTOMATION CANVAS] Workflow loaded successfully');
+            this.showToast(`Loaded workflow: ${this.workflowTitle}`, 'success');
+            
+        } catch (error) {
+            console.error('[AUTOMATION CANVAS] Failed to load workflow:', error);
+            this.showToast(`Failed to load workflow: ${error.message}`, 'error');
+        }
+    }
+
     async loadWorkflowBySlug(slug) {
         /**
          * Load workflow by slug (used when opening from thread context)
@@ -1290,8 +1364,8 @@ class AutomationCanvas {
             const workflow = this.workflows.find(w => w.slug === slug);
 
             if (workflow) {
-                // Use existing loadWorkflow method
-                await this.loadWorkflow(workflow.id || slug);
+                // Use new loadWorkflowFromList method
+                await this.loadWorkflowFromList(workflow);
                 return;
             }
 
@@ -2403,6 +2477,33 @@ class AutomationCanvas {
             console.error('Error loading workflow:', error);
             this.showToast(`Error loading workflow: ${error.message}`, 'error');
         }
+    }
+
+    getDefaultColorForType(type) {
+        /**
+         * Get default color for shape type
+         * @param {string} type - Shape type (hexagon, rectangle, diamond, circle)
+         * @returns {string} - Color hex code
+         */
+        const colors = {
+            'hexagon': '#10B981',    // Green (trigger)
+            'rectangle': '#3B82F6',  // Blue (action)
+            'diamond': '#F59E0B',    // Orange (decision)
+            'circle': '#EF4444'      // Red (end)
+        };
+        return colors[type] || '#6B7280';  // Gray default
+    }
+
+    escapeHtml(text) {
+        /**
+         * Escape HTML to prevent XSS
+         * @param {string} text - Text to escape
+         * @returns {string} - Escaped HTML
+         */
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
