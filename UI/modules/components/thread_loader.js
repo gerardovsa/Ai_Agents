@@ -64,7 +64,8 @@ const ThreadLoader = {
     },
 
     /**
-     * Save thread metadata to backend
+     * Save thread metadata AND messages to backend
+     * UPDATED: Uses proper sessions.threads + sessions.messages schema
      */
     async saveThreadToBackend(thread) {
         try {
@@ -74,29 +75,39 @@ const ThreadLoader = {
                 return true;
             }
 
-            // Determine thread location
-            let location = thread.location || 'prime';
+            const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
+            const location = thread.location || 'prime';
 
-            const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/save`, {
+            // STEP 1: Ensure thread exists in sessions.threads table using UPSERT
+            const upsertResponse = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/upsert`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    user_id: (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1,
                     thread_id: thread.id,
-                    name: thread.title || thread.name || 'Untitled Thread',
-                    messages: thread.messages || [],
-                    agent: thread.agent || 'main',
+                    user_id: userId,
+                    title: thread.title || thread.name || 'Untitled Thread',
                     location: location,
-                    archived: thread.archived || false
+                    tags: thread.tags || [],
+                    synergy_card_id: thread.synergy_card_id
                 })
             });
 
-            const data = await response.json();
-            if (data.success) {
-                console.log(`[ThreadLoader] Thread saved: ${thread.id} (location: ${location})`);
+            const upsertData = await upsertResponse.json();
+            if (!upsertData.success) {
+                console.error('[ThreadLoader] Failed to upsert thread:', upsertData.error);
+                return false;
+            }
+
+            console.log(`[ThreadLoader] Thread ${thread.id} upserted to database`);
+
+            // STEP 2: Save messages to sessions.messages table
+            const saveResult = await this.saveMessagesToBackend(thread);
+
+            if (saveResult) {
+                console.log(`[ThreadLoader] Thread saved: ${thread.id} (${thread.messages.length} messages, location: ${location})`);
                 return true;
             } else {
-                console.error('[ThreadLoader] Failed to save thread:', data.error);
+                console.error('[ThreadLoader] Failed to save messages');
                 return false;
             }
         } catch (error) {

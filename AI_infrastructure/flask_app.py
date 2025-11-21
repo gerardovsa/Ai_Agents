@@ -407,21 +407,30 @@ def ws_synergy_connect(auth=None):
         from flask import request as flask_request
         
         client_id = flask_request.sid
+        
+        # Check if client_id is valid
+        if not client_id:
+            log_error(logger, "[WS] Connection attempt with invalid client_id")
+            return False  # Reject connection
+        
         connected_clients[client_id] = {
             'rooms': set(),
             'connected_at': datetime.now().isoformat()
         }
         
-        print(f'[WS] Client connected to /ws/synergy: {client_id}')
+        log_config(logger, f'[WS] Client connected to /ws/synergy: {client_id}')
         emit('connected', {
             'status': 'connected',
             'client_id': client_id,
             'timestamp': datetime.now().isoformat()
         })
+        return True  # Accept connection
+        
     except Exception as e:
-        print(f'[WS ERROR] Connection failed: {e}')
+        log_error(logger, f'[WS ERROR] Connection failed: {e}')
         import traceback
         traceback.print_exc()
+        return False  # Reject connection on error
 
 @socketio.on('disconnect', namespace='/ws/synergy')
 def ws_synergy_disconnect(sid=None):
@@ -439,13 +448,19 @@ def ws_synergy_disconnect(sid=None):
         
         # Use passed sid parameter (Flask-SocketIO provides this)
         # Fallback to flask_request.sid for backward compatibility
-        client_id = sid or flask_request.sid
+        client_id = sid or getattr(flask_request, 'sid', None)
+        
+        # If no client_id could be determined, log and return early
+        if not client_id:
+            log_warning(logger, "Disconnect event with no identifiable client_id")
+            return
         
         if client_id in connected_clients:
             del connected_clients[client_id]
             log_config(logger, f"Client disconnected from /ws/synergy: {client_id}")
         else:
-            log_warning(logger, f"Client disconnect event for unknown client: {client_id}")
+            # This is normal - client might disconnect before full connection
+            log_config(logger, f"Disconnect event for untracked client: {client_id}")
     
     except Exception as e:
         # Prevent exceptions from breaking WebSocket connection handling

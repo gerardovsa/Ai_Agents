@@ -77,9 +77,10 @@ class ThreadManager:
         self.db_path = db_path
     
     def _get_connection(self):
-        """Get database connection"""
-        conn = get_database_connection()
-        conn.row_factory = sqlite3.Row  # Enable dictionary-like access
+        """Get database connection to sessions database"""
+        conn = get_database_connection('sessions')  # CRITICAL FIX: Use 'sessions' database, not default 'ai_infrastructure'
+        if hasattr(conn, 'row_factory'):  # SQLite only
+            conn.row_factory = sqlite3.Row  # Enable dictionary-like access
         return conn
     
     def _generate_slug(self, text: str) -> str:
@@ -104,8 +105,9 @@ class ThreadManager:
         from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
         db_path = get_ai_infrastructure_db_path()
         
-        conn = get_database_connection()
-        conn.row_factory = sqlite3.Row
+        conn = get_database_connection('ai_infrastructure')  # Workspaces are in ai_infrastructure.db
+        if hasattr(conn, 'row_factory'):
+            conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
         try:
@@ -388,8 +390,39 @@ class ThreadManager:
             """, (thread_slug,))
             
             thread_row = cursor.fetchone()
+            
+            # AUTO-CREATE THREAD if it doesn't exist (FIX: Backend should create threads, not frontend)
             if not thread_row:
-                raise ValueError(f"Thread '{thread_slug}' not found in sessions.db")
+                print(f"⚠️ [ThreadManager] Thread '{thread_slug}' not found, auto-creating...")
+                
+                # Create thread in database
+                timestamp = datetime.now().isoformat()
+                
+                cursor.execute("""
+                    INSERT INTO threads (
+                        thread_slug, workspace_id, name, user_id, 
+                        created_at, updated_at, metadata
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    thread_slug,
+                    1,  # Default workspace
+                    f"Chat {thread_slug[-8:]}",  # Default name from thread ID
+                    user_id or 1,  # Use provided user_id or default to 1
+                    timestamp,
+                    timestamp,
+                    json.dumps({})
+                ))
+                
+                conn.commit()
+                
+                # Fetch the newly created thread
+                cursor.execute("""
+                    SELECT id, thread_slug, name, workspace_id FROM threads
+                    WHERE thread_slug = %s
+                """, (thread_slug,))
+                
+                thread_row = cursor.fetchone()
+                print(f"✅ [ThreadManager] Thread '{thread_slug}' created (ID: {thread_row[0]})")
             
             thread_id = thread_row[0]
             workspace_id = thread_row[3]  # Get workspace_id from thread (INTEGER)

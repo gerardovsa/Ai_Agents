@@ -2585,17 +2585,17 @@ def get_session_milestones(session_id):
         milestones = []
         for m_row in cursor.fetchall():
             milestone = {
-                'milestone_id': m_row[0],
-                'milestone_number': m_row[1],
-                'milestone_name': m_row[2],
-                'description': m_row[3],
-                'completed': m_row[4],
-                'due_date': m_row[5].isoformat() if m_row[5] else None,
-                'priority': m_row[6],
-                'estimated_hours': float(m_row[7]) if m_row[7] else None,
-                'actual_hours': float(m_row[8]) if m_row[8] else None,
-                'created_at': m_row[9].isoformat() if m_row[9] else None,
-                'completed_at': m_row[10].isoformat() if m_row[10] else None,
+                'milestone_id': m_row['milestone_id'],
+                'milestone_number': m_row['milestone_number'],
+                'milestone_name': m_row['milestone_name'],
+                'description': m_row['description'],
+                'completed': m_row['completed'],
+                'due_date': m_row['due_date'].isoformat() if m_row['due_date'] else None,
+                'priority': m_row['priority'],
+                'estimated_hours': float(m_row['estimated_hours']) if m_row['estimated_hours'] else None,
+                'actual_hours': float(m_row['actual_hours']) if m_row['actual_hours'] else None,
+                'created_at': m_row['created_at'].isoformat() if m_row['created_at'] else None,
+                'completed_at': m_row['completed_at'].isoformat() if m_row['completed_at'] else None,
                 'tasks': []
             }
             
@@ -2610,15 +2610,15 @@ def get_session_milestones(session_id):
             
             for t_row in cursor.fetchall():
                 task = {
-                    'task_id': t_row[0],
-                    'task': t_row[1],
-                    'completed': t_row[2],
-                    'blocked': t_row[3],
-                    'blocker_reason': t_row[4],
-                    'blocker_type': t_row[5],
-                    'task_order': t_row[6],
-                    'created_at': t_row[7].isoformat() if t_row[7] else None,
-                    'completed_at': t_row[8].isoformat() if t_row[8] else None,
+                    'task_id': t_row['task_id'],
+                    'task': t_row['task'],
+                    'completed': t_row['completed'],
+                    'blocked': t_row['blocked'],
+                    'blocker_reason': t_row['blocker_reason'],
+                    'blocker_type': t_row['blocker_type'],
+                    'task_order': t_row['task_order'],
+                    'created_at': t_row['created_at'].isoformat() if t_row['created_at'] else None,
+                    'completed_at': t_row['completed_at'].isoformat() if t_row['completed_at'] else None,
                     'subtasks': []
                 }
                 
@@ -2632,12 +2632,12 @@ def get_session_milestones(session_id):
                 
                 for s_row in cursor.fetchall():
                     subtask = {
-                        'subtask_id': s_row[0],
-                        'task': s_row[1],
-                        'completed': s_row[2],
-                        'subtask_order': s_row[3],
-                        'created_at': s_row[4].isoformat() if s_row[4] else None,
-                        'completed_at': s_row[5].isoformat() if s_row[5] else None
+                        'subtask_id': s_row['subtask_id'],
+                        'task': s_row['task'],
+                        'completed': s_row['completed'],
+                        'subtask_order': s_row['subtask_order'],
+                        'created_at': s_row['created_at'].isoformat() if s_row['created_at'] else None,
+                        'completed_at': s_row['completed_at'].isoformat() if s_row['completed_at'] else None
                     }
                     task['subtasks'].append(subtask)
                 
@@ -2669,13 +2669,24 @@ def get_session_milestones(session_id):
         })
     
     except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to get milestones for {session_id}: {type(e).__name__}: {e}")
+        print(f"\n{'='*80}")
+        print(f"[MILESTONE ERROR] Failed to get milestones for {session_id}")
+        print(f"Exception Type: {type(e).__name__}")
+        print(f"Exception Message: {repr(e)}")
+        print(f"Exception String: '{str(e)}'")
+        print(f"Exception Args: {e.args}")
+        print(f"{'='*80}\n")
         import traceback
         traceback.print_exc()
         
-        # Ensure we return a proper error message
+        # Ensure we return a proper error message with detailed info
         error_msg = str(e) if str(e) else f"{type(e).__name__} occurred"
-        return jsonify({'success': False, 'error': error_msg}), 500
+        return jsonify({
+            'success': False, 
+            'error': error_msg,
+            'error_type': type(e).__name__,
+            'error_details': repr(e)
+        }), 500
 
 
 @synergy_bp.route('/task/<task_id>/block', methods=['PATCH'])

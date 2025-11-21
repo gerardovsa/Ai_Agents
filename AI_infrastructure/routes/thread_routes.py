@@ -139,6 +139,89 @@ def create_thread():
         return error_response(f'Failed to create thread: {str(e)}', 500)
 
 
+@thread_bp.route('/upsert', methods=['POST'])
+def upsert_thread():
+    """
+    Create or update thread in sessions.threads table
+    UPSERT pattern - creates if doesn't exist, updates if exists
+    
+    Body params:
+        thread_id (str, required): Thread slug/ID from frontend
+        user_id (int, required): User ID
+        title (str, optional): Thread title
+        location (str, optional): Thread location/agent
+        tags (list, optional): Thread tags
+        synergy_card_id (str, optional): Linked Synergy card
+    
+    Returns:
+        {"success": true, "thread_id": "..."}
+    """
+    try:
+        data = request.get_json() or {}
+        thread_id = str(data.get('thread_id'))
+        user_id = data.get('user_id')
+        title = data.get('title', 'Untitled Thread')
+        location = data.get('location', 'prime')
+        tags = data.get('tags', [])
+        synergy_card_id = data.get('synergy_card_id')
+        
+        if not thread_id or not user_id:
+            return error_response('thread_id and user_id required', 400)
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # UPSERT: Insert or update on conflict
+        upsert_query = """
+            INSERT INTO sessions.threads (
+                thread_slug, workspace_id, name, user_id, created_at, updated_at,
+                metadata, location, tags, synergy_card_id
+            ) VALUES (
+                %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, %s, %s, %s, %s
+            )
+            ON CONFLICT (thread_slug) DO UPDATE SET
+                name = EXCLUDED.name,
+                location = EXCLUDED.location,
+                tags = EXCLUDED.tags,
+                synergy_card_id = EXCLUDED.synergy_card_id,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING id
+        """
+        
+        cursor.execute(
+            upsert_query,
+            (
+                thread_id,
+                1,  # workspace_id
+                title,
+                user_id,
+                json.dumps({}),  # metadata
+                location,
+                json.dumps(tags),
+                synergy_card_id
+            )
+        )
+        
+        result = cursor.fetchone()
+        internal_id = result[0] if isinstance(result, tuple) else result['id']
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ [THREAD UPSERT] Thread {thread_id} (DB ID: {internal_id}) created/updated")
+        
+        return success_response({
+            'thread_id': thread_id,
+            'internal_id': internal_id
+        }, message='Thread saved successfully')
+        
+    except Exception as e:
+        print(f"❌ [THREAD UPSERT ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Failed to upsert thread: {str(e)}', 500)
+
+
 # ============================================================
 # THREAD LISTING & SEARCH
 # ============================================================

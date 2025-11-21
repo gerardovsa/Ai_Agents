@@ -571,19 +571,27 @@ async function sendChatMessage() {
         console.log(`✅ [THREAD] Generated new thread_slug for Prime: ${currentThreadId}`);
     }
 
-    // CRITICAL: Add user message to conversation history BEFORE sending request
-    // PHASE 2: Use MessageStore instead of AppState.chatMessages
-    const messagesBefore = window.MessageStore.getMessages(currentThreadId).length;
-    await window.MessageStore.addMessage(currentThreadId, {
-        role: 'user',
-        content: message
-    }, {
-        checkDuplicates: true,
-        silent: false
-    });
-    const messagesAfter = window.MessageStore.getMessages(currentThreadId).length;
-    const wasAdded = messagesAfter > messagesBefore;
-    console.log(`✅ [MessageStore] User message ${wasAdded ? 'added' : 'duplicate prevented'} (${messagesBefore} → ${messagesAfter})`);
+    // CRITICAL: Add user message to UI (UnifiedMessageRenderer will add to MessageStore automatically)
+    // UnifiedMessageRenderer.render() handles MessageStore.addMessage() with deduplication
+    // No need to manually add here - let the renderer handle it
+    const userMessageDiv = UnifiedMessageRenderer.render(
+        '#ai-chat-messages',
+        'user',
+        message,
+        {
+            isThinking: false,
+            scrollToBottom: autoScrollEnabled,
+            threadId: currentThreadId,
+            syncToBackend: false  // Don't sync yet - backend will save when processing
+        }
+    );
+
+    if (!userMessageDiv) {
+        console.error('[Prime] Failed to render user message');
+        return;
+    }
+
+    console.log(`✅ [MessageStore] User message added via UnifiedMessageRenderer`);
 
     // Use same thread_slug for BOTH endpoints (session_id and thread_slug must match)
     const sessionId = currentThreadId;  // Thread slug for isolation

@@ -2101,7 +2101,7 @@ function renderEnhancedMarkdown(text) {
     // Minimal safe fallback: escape and preserve newlines via pre-wrap
     if (!htmlOutput) {
         const div = document.createElement('div');
-        div.textContent = (text '').toString();
+        div.textContent = (text || '').toString();
         htmlOutput = `<div class="markdown-fallback" style="white-space: pre-wrap;">${div.innerHTML}</div>`;
     }
 
