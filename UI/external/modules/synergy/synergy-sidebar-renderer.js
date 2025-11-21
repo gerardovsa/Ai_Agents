@@ -33,8 +33,8 @@ class SynergySidebarRenderer {
         if (isPinned) item.classList.add('pinned');
         if (isExpanded) item.classList.add('expanded');
 
-        // Render collapsed card
-        item.innerHTML = this.renderCollapsedCard(session);
+        // Render simple list item (like sync list)
+        item.innerHTML = this.renderSimpleListItem(session);
 
         // If expanded, load and render full content
         if (isExpanded) {
@@ -42,6 +42,85 @@ class SynergySidebarRenderer {
         }
 
         return item;
+    }
+
+    /**
+     * Render simple list item (matches sync list styling)
+     * Clicking expands inline instead of navigating
+     */
+    renderSimpleListItem(session) {
+        const priority = session.priority || 'medium';
+        const status = session.status || 'active';
+        const title = session.title || 'Untitled';
+        const desc = session.description || 'No description';
+        const tags = Array.isArray(session.tags) ? session.tags :
+            (typeof session.tags === 'string' ? JSON.parse(session.tags || '[]') : []);
+        const lastActive = session.last_active ? new Date(session.last_active).toLocaleDateString() : 'Never';
+
+        // Status color mapping
+        const statusColor = status === 'active' ? 'var(--accent-success)' : 'var(--text-muted)';
+
+        // Calculate counts from session data
+        const counts = this.calculateSessionCounts(session);
+
+        return `
+            <div class="synergy-session-header" onclick="SynergySidebar.toggleCardExpand('${session.session_id}')" style="cursor: pointer;">
+                <span class="synergy-session-title">${this.escapeHtml(title)}</span>
+                <span class="synergy-session-priority priority-${priority}">${priority}</span>
+            </div>
+            <div class="synergy-session-desc">${this.escapeHtml(desc)}</div>
+            <div class="synergy-session-meta">
+                <span><i class="fas fa-circle" style="color: ${statusColor}; font-size: 8px;"></i> ${status}</span>
+                <span><i class="fas fa-clock"></i> ${lastActive}</span>
+                ${counts.milestones > 0 ? `<span title="${counts.milestones} milestone(s)"><i class="fas fa-flag"></i> ${counts.milestones}</span>` : ''}
+                ${counts.totalTasks > 0 ? `<span title="${counts.tasksDone}/${counts.totalTasks} tasks completed"><i class="fas fa-tasks"></i> ${counts.tasksDone}/${counts.totalTasks}</span>` : ''}
+                ${counts.totalSubtasks > 0 ? `<span title="${counts.subtasksDone}/${counts.totalSubtasks} subtasks completed"><i class="fas fa-list-check"></i> ${counts.subtasksDone}/${counts.totalSubtasks}</span>` : ''}
+                ${counts.docs > 0 ? `<span title="${counts.docs} document(s)"><i class="fas fa-file-alt"></i> ${counts.docs}</span>` : ''}
+                ${counts.links > 0 ? `<span title="${counts.links} link(s)"><i class="fas fa-link"></i> ${counts.links}</span>` : ''}
+                ${tags.length > 0 ? `<span title="${tags.join(', ')}"><i class="fas fa-tags"></i> ${tags.slice(0, 2).map(t => this.escapeHtml(t)).join(', ')}${tags.length > 2 ? '...' : ''}</span>` : ''}
+            </div>
+            <div class="synergy-card-expanded-content" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                <div class="loading-placeholder">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <div class="loading-text">Loading session details...</div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Calculate counts from session data
+     * Returns: { milestones, totalTasks, tasksDone, totalSubtasks, subtasksDone, docs, links }
+     */
+    calculateSessionCounts(session) {
+        const counts = {
+            milestones: session.milestone_count || 0,
+            totalTasks: session.task_count || 0,
+            tasksDone: session.tasks_done || 0,
+            totalSubtasks: session.subtask_count || 0,
+            subtasksDone: session.subtasks_done || 0,
+            docs: 0,
+            links: 0
+        };
+
+        // Count documents (both internal_docs and documents array)
+        if (session.internal_docs_count) {
+            counts.docs += session.internal_docs_count;
+        }
+        if (session.documents) {
+            const docs = Array.isArray(session.documents) ? session.documents :
+                (typeof session.documents === 'string' ? JSON.parse(session.documents || '[]') : []);
+            counts.docs += docs.length;
+        }
+
+        // Count links
+        if (session.links) {
+            const links = Array.isArray(session.links) ? session.links :
+                (typeof session.links === 'string' ? JSON.parse(session.links || '[]') : []);
+            counts.links = links.length;
+        }
+
+        return counts;
     }
 
     /**
@@ -120,7 +199,7 @@ class SynergySidebarRenderer {
         try {
             console.log(`[SYNERGY SIDEBAR] Loading full data for: ${sessionId}`);
 
-            const contentArea = itemElement.querySelector('.synergy-card-content');
+            const contentArea = itemElement.querySelector('.synergy-card-expanded-content');
             if (!contentArea) {
                 console.error('[SYNERGY SIDEBAR] Content area not found');
                 return;

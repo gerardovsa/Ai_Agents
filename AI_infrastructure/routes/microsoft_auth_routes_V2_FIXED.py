@@ -49,6 +49,14 @@ logger = logging.getLogger(__name__)
 
 microsoft_auth_bp = Blueprint('microsoft_auth', __name__, url_prefix='/api/auth/microsoft')
 
+# Initialize database tables (oauth_tokens, oauth_states) on module load
+# This ensures tables exist before any routes are called
+try:
+    # Will be defined below
+    pass  # init_db() called after function definition
+except Exception as e:
+    logger.error(f"Failed to initialize Microsoft OAuth tables: {e}")
+
 # Load credentials from .env.master (local dev) or OS environment (Render)
 _ENV_MASTER_PATH = Path(__file__).parent.parent.parent / '.env.master'
 if _ENV_MASTER_PATH.exists():
@@ -103,47 +111,116 @@ def get_db_connection():
     return conn
 
 def init_db():
-    """Initialize database with oauth_tokens table"""
+    """Initialize database with oauth_tokens table (SQLite & PostgreSQL compatible)"""
     try:
+        from shared.database_utils import is_using_supabase
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Create oauth_tokens table with 24 columns
+        # Detect database type for syntax compatibility
+        using_postgres = is_using_supabase()
+        
+        if using_postgres:
+            # PostgreSQL syntax (SERIAL for auto-increment, BOOLEAN for flags)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS oauth_tokens (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    platform TEXT NOT NULL,
+                    access_token TEXT NOT NULL,
+                    refresh_token TEXT,
+                    token_type TEXT DEFAULT 'Bearer',
+                    expires_at TIMESTAMP,
+                    scope TEXT,
+                    is_valid BOOLEAN DEFAULT true,
+                    is_active BOOLEAN DEFAULT true,
+                    auto_refresh_enabled BOOLEAN DEFAULT true,
+                    last_refreshed_at TIMESTAMP,
+                    error_count INTEGER DEFAULT 0,
+                    last_error TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    email TEXT,
+                    profile_name TEXT,
+                    profile_picture_url TEXT,
+                    profile_data TEXT,
+                    granted_scopes TEXT,
+                    auth_method TEXT DEFAULT 'oauth2',
+                    metadata TEXT,
+                    UNIQUE(user_id, platform)
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS oauth_states (
+                    id SERIAL PRIMARY KEY,
+                    state TEXT NOT NULL UNIQUE,
+                    platform TEXT NOT NULL,
+                    return_url TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP NOT NULL
+                )
+            ''')
+        else:
+            # SQLite syntax (AUTOINCREMENT, INTEGER for booleans)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS oauth_tokens (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    platform TEXT NOT NULL,
+                    access_token TEXT NOT NULL,
+                    refresh_token TEXT,
+                    token_type TEXT DEFAULT 'Bearer',
+                    expires_at TIMESTAMP,
+                    scope TEXT,
+                    is_valid INTEGER DEFAULT 1,
+                    is_active INTEGER DEFAULT 1,
+                    auto_refresh_enabled INTEGER DEFAULT 1,
+                    last_refreshed_at TIMESTAMP,
+                    error_count INTEGER DEFAULT 0,
+                    last_error TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    email TEXT,
+                    profile_name TEXT,
+                    profile_picture_url TEXT,
+                    profile_data TEXT,
+                    granted_scopes TEXT,
+                    auth_method TEXT DEFAULT 'oauth2',
+                    metadata TEXT,
+                    UNIQUE(user_id, platform),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS oauth_states (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    state TEXT NOT NULL UNIQUE,
+                    platform TEXT NOT NULL,
+                    return_url TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP NOT NULL
+                )
+            ''')
+        
+        # Create index for fast state lookup (same syntax for both)
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS oauth_tokens (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                platform TEXT NOT NULL,
-                access_token TEXT NOT NULL,
-                refresh_token TEXT,
-                token_type TEXT DEFAULT 'Bearer',
-                expires_at TIMESTAMP,
-                scope TEXT,
-                is_valid INTEGER DEFAULT 1,
-                is_active INTEGER DEFAULT 1,
-                auto_refresh_enabled INTEGER DEFAULT 1,
-                last_refreshed_at TIMESTAMP,
-                error_count INTEGER DEFAULT 0,
-                last_error TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                email TEXT,
-                profile_name TEXT,
-                profile_picture_url TEXT,
-                profile_data TEXT,
-                granted_scopes TEXT,
-                auth_method TEXT DEFAULT 'oauth2',
-                metadata TEXT,
-                UNIQUE(user_id, platform),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
+            CREATE INDEX IF NOT EXISTS idx_oauth_states_state 
+            ON oauth_states(state, platform, expires_at)
         ''')
         
         conn.commit()
         conn.close()
-        logger.info("Database tables initialized (oauth_tokens)")
+        logger.info(f"Database tables initialized (oauth_tokens, oauth_states) - {'PostgreSQL' if using_postgres else 'SQLite'}")
     except Exception as e:
         logger.error(f" Error initializing database: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
+# Initialize tables on module load
+init_db()
 
 def get_user_by_email(email: str):
     """Get user by email from database"""
@@ -244,36 +321,12 @@ def generate_jwt_token(payload: dict):
             cursor = conn.cursor()
             expires_at = (datetime.utcnow() + timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
             
-            # PostgreSQL (Supabase): Use DEFAULT for id column or generate with sequence
-            # SQLite: id is AUTOINCREMENT (handled automatically)
-            if is_using_supabase():
-                # For PostgreSQL, try to use DEFAULT or generate id manually
-                # Check if sequence exists, otherwise use MAX(id) + 1
-                try:
-                    cursor.execute('SELECT MAX(id) FROM sessions.user_sessions')
-                    result = cursor.fetchone()
-                    max_id = result['max'] if isinstance(result, dict) else result[0]
-                    next_id = (max_id or 0) + 1
-                    
-                    insert_sql = '''
-                        INSERT INTO sessions.user_sessions (id, user_id, token, expires_at)
-                        VALUES (%s, %s, %s, %s)
-                    '''
-                    insert_sql, insert_params = convert_sql_placeholders(insert_sql, (next_id, payload['user_id'], token, expires_at))
-                except:
-                    # Fallback: try without id (in case DEFAULT works)
-                    insert_sql = '''
-                        INSERT INTO sessions.user_sessions (user_id, token, expires_at)
-                        VALUES (%s, %s, %s)
-                    '''
-                    insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
-            else:
-                # SQLite: Don't insert id (AUTOINCREMENT handles it)
-                insert_sql = '''
-                    INSERT INTO sessions.user_sessions (user_id, token, expires_at)
-                    VALUES (%s, %s, %s)
-                '''
-                insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
+            # Use ai_infrastructure.user_sessions with SERIAL id (auto-increment)
+            insert_sql = '''
+                INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
+                VALUES (%s, %s, %s)
+            '''
+            insert_sql, insert_params = convert_sql_placeholders(insert_sql, (payload['user_id'], token, expires_at))
             
             cursor.execute(insert_sql, insert_params)
             conn.commit()
@@ -317,7 +370,39 @@ def microsoft_login():
         
         # Generate state for CSRF protection
         state = secrets.token_urlsafe(32)
-        session['microsoft_oauth_state'] = state
+        
+        # Store state in database (not Flask session - for cloud/multi-instance compatibility)
+        try:
+            from shared.database_utils import convert_sql_placeholders, is_using_supabase
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Store with 5 minute expiry (database-agnostic SQL)
+            if is_using_supabase():
+                # PostgreSQL: CURRENT_TIMESTAMP and INTERVAL
+                sql = """
+                    INSERT INTO oauth_states (state, platform, created_at, expires_at)
+                    VALUES (%s, 'microsoft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '5 minutes')
+                """
+                sql, params = convert_sql_placeholders(sql, (state,))
+            else:
+                # SQLite: datetime('now')
+                sql = """
+                    INSERT INTO oauth_states (state, platform, created_at, expires_at)
+                    VALUES (?, 'microsoft', datetime('now'), datetime('now', '+5 minutes'))
+                """
+                params = (state,)
+            
+            cursor.execute(sql, params)
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.warning(f"Failed to store OAuth state in database: {e}")
+            import traceback
+            logger.warning(traceback.format_exc())
+            # Fallback to Flask session
+            session['microsoft_oauth_state'] = state
         
         # Get redirect URI from environment variable (CRITICAL: Use HTTPS for Render)
         # request.url_root returns http:// on Render (internal), but Azure needs https://
@@ -332,7 +417,31 @@ def microsoft_login():
         
         # Store original redirect for after login
         return_url = request.args.get('return_url', '/')
-        session['microsoft_return_url'] = return_url
+        # Also store return_url in database
+        try:
+            from shared.database_utils import convert_sql_placeholders, is_using_supabase
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            if is_using_supabase():
+                sql, params = convert_sql_placeholders(
+                    "UPDATE oauth_states SET return_url = %s WHERE state = %s",
+                    (return_url, state)
+                )
+            else:
+                sql = "UPDATE oauth_states SET return_url = ? WHERE state = ?"
+                params = (return_url, state)
+            
+            cursor.execute(sql, params)
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.warning(f"Failed to store return_url: {e}")
+            import traceback
+            logger.warning(traceback.format_exc())
+            # Fallback to Flask session
+            session['microsoft_return_url'] = return_url
         
         # Check if force_consent is requested (for re-authentication)
         force_consent = request.args.get('force_consent', 'false').lower() == 'true'
@@ -375,10 +484,64 @@ def microsoft_callback():
         # STEP 1: Verify state for CSRF protection
         # ====================================================================
         state = request.args.get('state')
-        stored_state = session.get('microsoft_oauth_state')
         
-        if not state or state != stored_state:
-            logger.error(" Invalid OAuth state (CSRF protection)")
+        # Check database first (cloud-compatible), then fallback to Flask session
+        stored_state = None
+        return_url = '/'
+        try:
+            from shared.database_utils import convert_sql_placeholders, is_using_supabase
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Use database-agnostic SQL
+            if is_using_supabase():
+                # PostgreSQL: CURRENT_TIMESTAMP
+                sql = """
+                    SELECT state, return_url, expires_at FROM oauth_states 
+                    WHERE state = %s AND platform = 'microsoft'
+                    AND expires_at > CURRENT_TIMESTAMP
+                """
+                sql, params = convert_sql_placeholders(sql, (state,))
+            else:
+                # SQLite: datetime('now')
+                sql = """
+                    SELECT state, return_url, expires_at FROM oauth_states 
+                    WHERE state = ? AND platform = 'microsoft'
+                    AND expires_at > datetime('now')
+                """
+                params = (state,)
+            
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            
+            if row:
+                stored_state = row[0] if not isinstance(row, dict) else row['state']
+                return_url = (row[1] if not isinstance(row, dict) else row['return_url']) or '/'
+                
+                # Delete used state (database-agnostic)
+                if is_using_supabase():
+                    delete_sql, delete_params = convert_sql_placeholders(
+                        "DELETE FROM oauth_states WHERE state = %s", (state,)
+                    )
+                else:
+                    delete_sql = "DELETE FROM oauth_states WHERE state = ?"
+                    delete_params = (state,)
+                    
+                cursor.execute(delete_sql, delete_params)
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.warning(f"Failed to retrieve OAuth state from database: {e}")
+            import traceback
+            logger.warning(traceback.format_exc())
+            # Fallback to Flask session
+            stored_state = session.get('microsoft_oauth_state')
+            return_url = session.get('microsoft_return_url', '/')
+        
+        if not state or not stored_state or state != stored_state:
+            logger.error(f"Invalid OAuth state (CSRF protection) - state={state}, stored={stored_state}")
             return jsonify({
                 'success': False,
                 'error': 'Invalid state parameter'

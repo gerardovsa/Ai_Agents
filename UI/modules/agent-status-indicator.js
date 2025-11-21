@@ -112,7 +112,7 @@ const AgentStatusIndicator = {
     _updateAgentIcon(status, agentId) {
         // Try multiple selector strategies to find the agent icon
         let agentIcon = document.querySelector(`#agent-${agentId} .agent-header h2 i`);
-        
+
         if (!agentIcon) {
             // Fallback: try finding by data attribute
             const agentColumn = document.querySelector(`.agent-column[data-agent-id="${agentId}"]`);
@@ -145,7 +145,7 @@ const AgentStatusIndicator = {
      */
     getStatus(agentId = null) {
         let icon;
-        
+
         if (agentId === null) {
             icon = document.querySelector('.ai-chat-title .ai-icon');
         } else {
@@ -175,7 +175,7 @@ const AgentStatusIndicator = {
      */
     init() {
         console.log('[STATUS] AgentStatusIndicator module initialized');
-        
+
         // Verify Prime icon exists
         const primeIcon = document.querySelector('.ai-chat-title .ai-icon');
         if (primeIcon) {

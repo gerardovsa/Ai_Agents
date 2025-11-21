@@ -106,48 +106,58 @@ def get_db_connection():
     return conn
 
 def init_db():
-    """Initialize database tables if they don't exist"""
+    """Initialize database tables if they don't exist (SQLite & PostgreSQL compatible)"""
+    from shared.database_utils import is_using_supabase
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Users table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            email TEXT UNIQUE,
-            password_hash TEXT,
-            role TEXT DEFAULT 'user',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+    # Detect database type for syntax compatibility
+    using_postgres = is_using_supabase()
     
-    # NEW: oauth_tokens table (24 columns - consolidated schema)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS oauth_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            platform TEXT NOT NULL,
-            access_token TEXT NOT NULL,
-            refresh_token TEXT,
-            token_type TEXT DEFAULT 'Bearer',
-            expires_at TIMESTAMP,
-            scopes TEXT,
-            is_valid INTEGER DEFAULT 1,
-            is_active INTEGER DEFAULT 1,
-            auto_refresh_enabled INTEGER DEFAULT 1,
-            last_refreshed_at TIMESTAMP,
-            error_count INTEGER DEFAULT 0,
-            last_error TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            email TEXT,
-            profile_name TEXT,
-            profile_picture_url TEXT,
-            profile_data TEXT,
-            granted_scopes TEXT,
-            auth_method TEXT DEFAULT 'oauth2',
-            metadata TEXT,
+    if using_postgres:
+        # PostgreSQL syntax (handled by Microsoft OAuth route - skip duplicate creation)
+        # Tables already created by microsoft_auth_routes_V2_FIXED.py
+        pass
+    else:
+        # SQLite syntax - create tables for local development
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                email TEXT UNIQUE,
+                password_hash TEXT,
+                role TEXT DEFAULT 'user',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # oauth_tokens table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS oauth_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                platform TEXT NOT NULL,
+                access_token TEXT NOT NULL,
+                refresh_token TEXT,
+                token_type TEXT DEFAULT 'Bearer',
+                expires_at TIMESTAMP,
+                scopes TEXT,
+                is_valid INTEGER DEFAULT 1,
+                is_active INTEGER DEFAULT 1,
+                auto_refresh_enabled INTEGER DEFAULT 1,
+                last_refreshed_at TIMESTAMP,
+                error_count INTEGER DEFAULT 0,
+                last_error TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                email TEXT,
+                profile_name TEXT,
+                profile_picture_url TEXT,
+                profile_data TEXT,
+                granted_scopes TEXT,
+                auth_method TEXT DEFAULT 'oauth2',
+                metadata TEXT,
             UNIQUE(user_id, platform),
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
@@ -263,22 +273,32 @@ def generate_jwt_token(user_data):
     secret_key = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
     token = jwt.encode(payload, secret_key, algorithm='HS256')
     
-    # Store token in user_sessions table
+    # Store token in user_sessions table (with database-agnostic SQL)
     try:
+        from shared.database_utils import convert_sql_placeholders, is_using_supabase
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         expires_at = (datetime.utcnow() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
         
-        cursor.execute('''
-            INSERT INTO sessions.user_sessions (user_id, token, expires_at)
+        # Use ai_infrastructure.user_sessions with SERIAL id (auto-increment)
+        sql = '''
+            INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
             VALUES (%s, %s, %s)
-        ''', (user_data.get('id'), token, expires_at))
+        '''
+        sql, params = convert_sql_placeholders(sql, (user_data.get('id'), token, expires_at))
         
+        cursor.execute(sql, params)
         conn.commit()
         conn.close()
-        print(f'JWT token created for user {user_data.get("id")}')
+        print(f'✅ [JWT] Token created and stored for user {user_data.get("id")}')
+        print(f'   Table: ai_infrastructure.user_sessions')
+        print(f'   Token length: {len(token)}')
+        print(f'   Expires: {expires_at}')
     except Exception as e:
-        print(f'⚠️  Could not store JWT in sessions: {e}')
+        print(f'❌ [JWT] Could not store JWT in sessions: {e}')
+        import traceback
+        traceback.print_exc()
     
     return token
 
@@ -350,7 +370,39 @@ def google_login():
     # ====================================================================
     # Generate CSRF protection state
     state = secrets.token_urlsafe(32)
-    session['google_oauth_state'] = state
+    
+    # Store state in database (not Flask session - for cloud/multi-instance compatibility)
+    try:
+        from shared.database_utils import convert_sql_placeholders, is_using_supabase
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Store with 5 minute expiry (database-agnostic SQL)
+        if is_using_supabase():
+            # PostgreSQL: CURRENT_TIMESTAMP and INTERVAL
+            sql = """
+                INSERT INTO oauth_states (state, platform, created_at, expires_at)
+                VALUES (%s, 'google', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '5 minutes')
+            """
+            sql, params = convert_sql_placeholders(sql, (state,))
+        else:
+            # SQLite: datetime('now')
+            sql = """
+                INSERT INTO oauth_states (state, platform, created_at, expires_at)
+                VALUES (?, 'google', datetime('now'), datetime('now', '+5 minutes'))
+            """
+            params = (state,)
+        
+        cursor.execute(sql, params)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f'⚠️ Failed to store OAuth state in database: {e}')
+        import traceback
+        traceback.print_exc()
+        # Fallback to Flask session
+        session['google_oauth_state'] = state
     
     # Check if force_consent is requested (for re-authentication)
     force_consent = request.args.get('force_consent', 'false').lower() == 'true'
@@ -395,17 +447,67 @@ def google_callback():
     """
     print('🔷 [GOOGLE OAUTH] Callback received')
     
-    # Verify CSRF state
+    # Verify CSRF state - check database first (cloud-compatible), then fallback to Flask session
     state = request.args.get('state')
-    stored_state = session.get('google_oauth_state')
+    stored_state = None
+    
+    try:
+        from shared.database_utils import convert_sql_placeholders, is_using_supabase
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Use database-agnostic SQL
+        if is_using_supabase():
+            # PostgreSQL: CURRENT_TIMESTAMP
+            sql = """
+                SELECT state, expires_at FROM oauth_states 
+                WHERE state = %s AND platform = 'google'
+                AND expires_at > CURRENT_TIMESTAMP
+            """
+            sql, params = convert_sql_placeholders(sql, (state,))
+        else:
+            # SQLite: datetime('now')
+            sql = """
+                SELECT state, expires_at FROM oauth_states 
+                WHERE state = ? AND platform = 'google'
+                AND expires_at > datetime('now')
+            """
+            params = (state,)
+        
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        if row:
+            stored_state = row[0] if not isinstance(row, dict) else row['state']
+            
+            # Delete used state (database-agnostic)
+            if is_using_supabase():
+                delete_sql, delete_params = convert_sql_placeholders(
+                    "DELETE FROM oauth_states WHERE state = %s", (state,)
+                )
+            else:
+                delete_sql = "DELETE FROM oauth_states WHERE state = ?"
+                delete_params = (state,)
+                
+            cursor.execute(delete_sql, delete_params)
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f'⚠️ Failed to retrieve OAuth state from database: {e}')
+        import traceback
+        traceback.print_exc()
+        # Fallback to Flask session
+        stored_state = session.get('google_oauth_state')
     
     # Build frontend URL based on environment
     frontend_url = request.url_root.rstrip('/')
     if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
         frontend_url = frontend_url.replace('http://', 'https://')
     
-    if not state or state != stored_state:
-        print(' [GOOGLE OAUTH] Invalid state - CSRF check failed')
+    if not state or not stored_state or state != stored_state:
+        print(f' [GOOGLE OAUTH] Invalid state - CSRF check failed (state={state}, stored={stored_state})')
         return redirect(f'{frontend_url}/?error=invalid_state')
     
     # Get authorization code

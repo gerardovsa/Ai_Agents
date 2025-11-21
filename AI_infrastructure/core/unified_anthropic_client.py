@@ -189,7 +189,7 @@ Available tools include SQL queries, stock lookups, invoice processing, and quot
     
     def _get_data_agent_prompt(self) -> str:
         """System prompt for Data Agent Chat"""
-        return """You are a Data Analysis AI Assistant specializing in business intelligence for a printing company.
+        return """You are a AI Assistant specializing in business intelligence for a printing company.
 
 Your role is to analyze production data, client trends, job history, and business metrics.
 

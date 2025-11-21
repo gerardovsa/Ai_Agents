@@ -493,6 +493,70 @@ def get_sessions_with_internal_docs():
                     session['internal_docs'] = docs_by_session[sess_id]
                     session['internal_docs_count'] = len(docs_by_session[sess_id])
         
+        # Step 3: Batch load milestone, task, and subtask counts
+        if session_ids:
+            try:
+                placeholders = ','.join('%s' for _ in session_ids)
+                
+                # Get milestone counts
+                cursor.execute(f"""
+                    SELECT session_id, COUNT(*) as count
+                    FROM synergy_sessions.milestones
+                    WHERE session_id IN ({placeholders})
+                    GROUP BY session_id
+                """, session_ids)
+                milestone_counts = {row['session_id']: row['count'] for row in cursor.fetchall()}
+                
+                # Get task counts (total only - status column doesn't exist yet)
+                cursor.execute(f"""
+                    SELECT 
+                        m.session_id,
+                        COUNT(t.task_id) as total_tasks
+                    FROM synergy_sessions.milestones m
+                    LEFT JOIN synergy_sessions.tasks t ON m.milestone_id = t.milestone_id
+                    WHERE m.session_id IN ({placeholders})
+                    GROUP BY m.session_id
+                """, session_ids)
+                task_stats = {row['session_id']: {
+                    'total': row['total_tasks'] or 0,
+                    'done': 0  # Status tracking not implemented yet
+                } for row in cursor.fetchall()}
+                
+                # Get subtask counts (total only - status column doesn't exist yet)
+                cursor.execute(f"""
+                    SELECT 
+                        m.session_id,
+                        COUNT(st.subtask_id) as total_subtasks
+                    FROM synergy_sessions.milestones m
+                    LEFT JOIN synergy_sessions.tasks t ON m.milestone_id = t.milestone_id
+                    LEFT JOIN synergy_sessions.subtasks st ON t.task_id = st.task_id
+                    WHERE m.session_id IN ({placeholders})
+                    GROUP BY m.session_id
+                """, session_ids)
+                subtask_stats = {row['session_id']: {
+                    'total': row['total_subtasks'] or 0,
+                    'done': 0  # Status tracking not implemented yet
+                } for row in cursor.fetchall()}
+                
+                # Attach counts to sessions
+                for session in sessions:
+                    sess_id = session['session_id']
+                    session['milestone_count'] = milestone_counts.get(sess_id, 0)
+                    session['task_count'] = task_stats.get(sess_id, {}).get('total', 0)
+                    session['tasks_done'] = task_stats.get(sess_id, {}).get('done', 0)
+                    session['subtask_count'] = subtask_stats.get(sess_id, {}).get('total', 0)
+                    session['subtasks_done'] = subtask_stats.get(sess_id, {}).get('done', 0)
+                    
+            except Exception as e:
+                # If counting fails, log and continue without counts
+                print(f'[SYNERGY BATCH] Failed to load counts: {str(e)}')
+                for session in sessions:
+                    session['milestone_count'] = 0
+                    session['task_count'] = 0
+                    session['tasks_done'] = 0
+                    session['subtask_count'] = 0
+                    session['subtasks_done'] = 0
+        
         conn.close()
         
         return jsonify({
@@ -2587,7 +2651,12 @@ def get_session_milestones(session_id):
             
             total_items = total_tasks + total_subtasks
             completed_items = completed_tasks + completed_subtasks
-            milestone['progress_percentage'] = round((completed_items / total_items * 100), 1) if total_items > 0 else 0
+            
+            # Safe division with explicit zero check
+            if total_items > 0:
+                milestone['progress_percentage'] = round((completed_items / total_items * 100), 1)
+            else:
+                milestone['progress_percentage'] = 0
             
             milestones.append(milestone)
         
@@ -2600,10 +2669,13 @@ def get_session_milestones(session_id):
         })
     
     except Exception as e:
-        print(f"[MILESTONE ERROR] Failed to get milestones: {e}")
+        print(f"[MILESTONE ERROR] Failed to get milestones for {session_id}: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        
+        # Ensure we return a proper error message
+        error_msg = str(e) if str(e) else f"{type(e).__name__} occurred"
+        return jsonify({'success': False, 'error': error_msg}), 500
 
 
 @synergy_bp.route('/task/<task_id>/block', methods=['PATCH'])

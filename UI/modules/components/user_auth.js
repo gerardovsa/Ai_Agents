@@ -449,4 +449,4 @@ const UserAuth = {
 
 //  CRITICAL: Make UserAuth globally accessible for ThreadManager and other modules
 window.UserAuth = UserAuth;
-console.log('[INIT] UserAuth attached to window object');
+console.log('✅ [UserAuth] Module loaded and exposed globally');

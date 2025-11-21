@@ -85,6 +85,7 @@ const ThreadManager = {
     locationFilter: 'all',
     activeTagFilter: null,
     dateRangeFilter: { range: 'all', startDate: null },
+    sortOrder: 'updated', // 'updated' (recent activity) or 'created' (chronological)
     realtimeChannel: null,
     realtimeEnabled: false,
     lastRealtimeUpdate: 0,
@@ -115,6 +116,14 @@ const ThreadManager = {
             // ✅ ENHANCED: Initialize tooltips and menu handlers
             this.initTooltips();
             this.initMenuHandlers();
+
+            // ✅ NEW: Initialize thread selectors for agents and Prime
+            setTimeout(() => {
+                if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.refreshAllAgentThreadInfos === 'function') {
+                    AgentColumn.refreshAllAgentThreadInfos();
+                    console.log('✅ [ThreadManager] Thread selectors initialized');
+                }
+            }, 500);
 
             console.log('✅ [ThreadManager] Initialization complete');
             console.log(`📊 [ThreadManager] Loaded ${this.threads.length} threads`);
@@ -240,6 +249,14 @@ const ThreadManager = {
 
                 this.threadsLoaded = true;
                 console.log('✅ [ThreadManager] Threads loaded:', this.threads.length);
+
+                // Refresh thread selectors after threads are loaded
+                setTimeout(() => {
+                    if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.refreshAllAgentThreadInfos === 'function') {
+                        AgentColumn.refreshAllAgentThreadInfos();
+                    }
+                }, 100);
+
                 return true;
             } else {
                 console.warn('⚠️ [ThreadManager] No threads from backend');
@@ -329,6 +346,7 @@ const ThreadManager = {
     filterByLocation(...args) { return window.ThreadManagerFilters.filterByLocation.call(this, ...args); },
     filterByTag(...args) { return window.ThreadManagerFilters.filterByTag.call(this, ...args); },
     filterByDateRange(...args) { return window.ThreadManagerFilters.filterByDateRange.call(this, ...args); },
+    setSortOrder(...args) { return window.ThreadManagerFilters.setSortOrder.call(this, ...args); },
     getDateLabel(...args) { return window.ThreadManagerFilters.getDateLabel.call(this, ...args); },
 
     // Helper methods

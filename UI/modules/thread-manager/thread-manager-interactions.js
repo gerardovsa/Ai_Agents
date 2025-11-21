@@ -358,11 +358,16 @@ Object.assign(window.ThreadManager, {
 
         console.log(`🔵 [Drag] Started dragging thread: "${threadId}" (length: ${threadId?.length})`);
 
-        // Set thread data in multiple formats for compatibility
-        event.dataTransfer.setData('threadId', threadId);  // Primary format
-        event.dataTransfer.setData('text/plain', threadId); // Fallback format
-        event.dataTransfer.setData('sourceLocation', threadElement.dataset.currentLocation || 'prime');
+        // Set thread data using custom MIME types (NOT text/plain to avoid browser including visible text)
+        event.dataTransfer.setData('application/x-thread-id', threadId);  // Primary format
+        event.dataTransfer.setData('application/x-source-location', threadElement.dataset.currentLocation || 'prime');
         event.dataTransfer.effectAllowed = 'move';
+
+        // Prevent browser from including text content by clearing selection
+        if (window.getSelection) {
+            window.getSelection().removeAllRanges();
+        }
+
         threadElement.classList.add('dragging');
     },
 
@@ -372,7 +377,7 @@ Object.assign(window.ThreadManager, {
         if (threadElement) {
             threadElement.classList.remove('dragging');
         }
-        
+
         // Clear drag-over from ALL possible drop zones
         document.querySelectorAll('.drag-over').forEach(element => {
             element.classList.remove('drag-over');
@@ -408,15 +413,15 @@ Object.assign(window.ThreadManager, {
         const dropZone = event.currentTarget;
         dropZone.classList.remove('drag-over');
 
-        // Get thread ID from primary or fallback format
-        let threadId = event.dataTransfer.getData('threadId') || event.dataTransfer.getData('text/plain');
-        const sourceLocation = event.dataTransfer.getData('sourceLocation');
-        
+        // Get thread ID from custom MIME types (NOT text/plain which includes visible text)
+        let threadId = event.dataTransfer.getData('application/x-thread-id');
+        const sourceLocation = event.dataTransfer.getData('application/x-source-location');
+
         if (!threadId) {
             console.warn('⚠️ [Interactions] No thread ID in drop event');
             return;
         }
-        
+
         console.log(`📍 [Drop] Thread ${threadId} from ${sourceLocation || 'unknown'} → ${targetLocation}`);
 
         // Remove any whitespace, newlines, or carriage returns
@@ -543,7 +548,7 @@ Object.assign(window.ThreadManager, {
                 e.preventDefault();
                 agentColumn.classList.remove('drag-over');
 
-                const threadId = e.dataTransfer.getData('threadId') || e.dataTransfer.getData('text/plain');
+                const threadId = e.dataTransfer.getData('application/x-thread-id');
                 if (!threadId) return;
 
                 console.log(`📍 [Drop] Thread ${threadId} dropped on agent-${agentId}`);
@@ -565,7 +570,7 @@ Object.assign(window.ThreadManager, {
     setupPrimeDropZone() {
         console.log('[ThreadManager] Setting up Prime drop zone...');
 
-        const primeContainer = document.getElementById('thread-info-prime');
+        const primeContainer = document.getElementById('prime-thread-info');
         if (!primeContainer) {
             console.error('❌ [ThreadManager] Prime container not found');
             return;
@@ -598,7 +603,7 @@ Object.assign(window.ThreadManager, {
             e.preventDefault();
             primeContainer.classList.remove('drag-over');
 
-            const threadId = e.dataTransfer.getData('threadId') || e.dataTransfer.getData('text/plain');
+            const threadId = e.dataTransfer.getData('application/x-thread-id');
             if (!threadId) return;
 
             console.log(`📍 [Drop] Thread ${threadId} dropped on Prime`);

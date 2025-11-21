@@ -264,8 +264,42 @@ def validate_user_content(content: List[Dict], messages: List[Dict]) -> List[Dic
     # If no assistant message found or no tool_use blocks, tool_results are orphaned
     if not found_assistant or not expected_tool_use_ids:
         print(f"[Combined Worker] ⚠️ Found {len(tool_result_blocks)} tool_result blocks but no prior tool_use blocks")
-        # Remove ALL tool_result blocks
-        return [b for b in content if b.get('type') != 'tool_result']
+        print(f"[Combined Worker] 🔧 Converting orphaned tool_result blocks to text blocks (preserving context)")
+        
+        # CRITICAL FIX (Nov 21, 2025): Don't remove tool_result blocks - convert to text
+        # This happens when threads are dragged between agents and tool_results appear as user messages
+        validated_blocks = []
+        for block in content:
+            if not isinstance(block, dict):
+                validated_blocks.append(block)
+                continue
+            
+            if block.get('type') == 'tool_result':
+                # Convert tool_result to text block
+                tool_use_id = block.get('tool_use_id', 'unknown_id')
+                result_content = block.get('content', '')
+                
+                # If content is a list of blocks, extract text
+                if isinstance(result_content, list):
+                    text_parts = []
+                    for c in result_content:
+                        if isinstance(c, dict) and c.get('type') == 'text':
+                            text_parts.append(c.get('text', ''))
+                        elif isinstance(c, str):
+                            text_parts.append(c)
+                    result_content = '\n'.join(text_parts)
+                
+                # Create text block with tool context
+                text_block = {
+                    'type': 'text',
+                    'text': f"[Previous Tool Result - ID: {tool_use_id}]\n{result_content}"
+                }
+                validated_blocks.append(text_block)
+                print(f"[Combined Worker]   → Converted tool_result (ID: {tool_use_id}) to text block")
+            else:
+                validated_blocks.append(block)
+        
+        return validated_blocks
     
     # Validate each tool_result has a matching tool_use
     validated_blocks = []
@@ -433,7 +467,31 @@ def validate_conversation_history(conversation_history: List[Dict]) -> List[Dict
         if messages and messages[-1].get('role') == message['role']:
             print(f"[Combined Worker] ⚠️ Duplicate {message['role']} message at index {idx}")
             
-            # Merge content blocks
+            # CRITICAL FIX (Nov 21, 2025): NEVER merge assistant messages with tool_use blocks
+            # Anthropic requires tool_use to be LAST blocks in assistant message
+            if message['role'] == 'assistant':
+                prev_content = messages[-1].get('content', [])
+                has_tool_use = any(
+                    isinstance(b, dict) and b.get('type') == 'tool_use' 
+                    for b in prev_content
+                )
+                
+                current_content = message.get('content', [])
+                current_has_tool_use = any(
+                    isinstance(b, dict) and b.get('type') == 'tool_use'
+                    for b in current_content
+                )
+                
+                # If EITHER message has tool_use blocks, DON'T merge
+                if has_tool_use or current_has_tool_use:
+                    print(f"[Combined Worker] 🚫 Cannot merge assistant messages - tool_use blocks present")
+                    print(f"  → Previous message has tool_use: {has_tool_use}")
+                    print(f"  → Current message has tool_use: {current_has_tool_use}")
+                    # Don't merge - keep as separate messages by skipping to append
+                    messages.append(message)
+                    continue
+            
+            # Merge content blocks (safe for text-only messages)
             if isinstance(messages[-1].get('content'), list) and isinstance(message.get('content'), list):
                 print(f"[Combined Worker] 🔧 Merging {len(message['content'])} blocks into previous message")
                 messages[-1]['content'].extend(message['content'])
@@ -1858,7 +1916,9 @@ def execute_streaming_request(
         messages = conversation_history.copy()
         
         # CRITICAL FIX: Validate that every tool_use has a corresponding tool_result
-        # This prevents the "tool_use ids were found without tool_result blocks" API error
+        # UPDATED (Nov 21, 2025): When thinking is enabled, DON'T remove assistant messages
+        # Instead, preserve them to maintain thinking block structure required by Anthropic API
+        # This prevents the "messages.5.content.0.type: Expected `thinking` or `redacted_thinking`" error
         for idx, msg in enumerate(messages):
             if msg.get('role') == 'assistant':
                 content = msg.get('content', [])
@@ -1875,24 +1935,44 @@ def execute_streaming_request(
                                 
                                 missing_ids = set(tool_use_ids) - set(tool_result_ids)
                                 if missing_ids:
-                                    print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use blocks without matching tool_result:")
-                                    print(f"{log_prefix}   tool_use IDs: {tool_use_ids}")
-                                    print(f"{log_prefix}   tool_result IDs: {tool_result_ids}")
-                                    print(f"{log_prefix}   Missing: {list(missing_ids)}")
-                                    print(f"{log_prefix} 🔧 FIXING: Removing assistant+user messages to maintain valid state")
-                                    # Remove both messages to maintain valid conversation state
+                                    if ai_thinking_enabled:
+                                        # THINKING ENABLED: Preserve messages to maintain thinking block structure
+                                        print(f"{log_prefix} ⚠️ WARNING: Assistant message {idx} has tool_use blocks without matching tool_result:")
+                                        print(f"{log_prefix}   tool_use IDs: {tool_use_ids}")
+                                        print(f"{log_prefix}   tool_result IDs: {tool_result_ids}")
+                                        print(f"{log_prefix}   Missing: {list(missing_ids)}")
+                                        print(f"{log_prefix} ✅ PRESERVING: Messages kept intact (thinking enabled)")
+                                    else:
+                                        # THINKING DISABLED: Safe to remove messages
+                                        print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use blocks without matching tool_result:")
+                                        print(f"{log_prefix}   tool_use IDs: {tool_use_ids}")
+                                        print(f"{log_prefix}   tool_result IDs: {tool_result_ids}")
+                                        print(f"{log_prefix}   Missing: {list(missing_ids)}")
+                                        print(f"{log_prefix} 🔧 FIXING: Removing assistant+user messages to maintain valid state")
+                                        messages = messages[:idx]
+                                        break
+                            else:
+                                if ai_thinking_enabled:
+                                    # THINKING ENABLED: Preserve messages
+                                    print(f"{log_prefix} ⚠️ WARNING: Assistant message {idx} has tool_use but next message is {next_msg.get('role')}, not user!")
+                                    print(f"{log_prefix} ✅ PRESERVING: Message kept intact (thinking enabled)")
+                                else:
+                                    # THINKING DISABLED: Safe to remove
+                                    print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use but next message is {next_msg.get('role')}, not user!")
+                                    print(f"{log_prefix} 🔧 FIXING: Removing assistant message to prevent API error")
                                     messages = messages[:idx]
                                     break
+                        else:
+                            if ai_thinking_enabled:
+                                # THINKING ENABLED: Preserve messages
+                                print(f"{log_prefix} ⚠️ WARNING: Assistant message {idx} has tool_use but no following message!")
+                                print(f"{log_prefix} ✅ PRESERVING: Message kept intact (thinking enabled)")
                             else:
-                                print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use but next message is {next_msg.get('role')}, not user!")
+                                # THINKING DISABLED: Safe to remove
+                                print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use but no following message!")
                                 print(f"{log_prefix} 🔧 FIXING: Removing assistant message to prevent API error")
                                 messages = messages[:idx]
                                 break
-                        else:
-                            print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use but no following message!")
-                            print(f"{log_prefix} 🔧 FIXING: Removing assistant message to prevent API error")
-                            messages = messages[:idx]
-                            break
         
         # Add user prompt (only on round 1)
         if user_prompt and current_round == 1:

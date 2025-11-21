@@ -110,10 +110,14 @@ Object.assign(window.ThreadManager, {
         thread.updated = new Date().toISOString();
         console.log(`✅ [CASCADE] Updated thread object: location=${newLocation}`);
 
-        // STEP 2: Clear OLD location UI (now that thread.location is updated)
-        if (assignment.previous_location) {
-            console.log(`🧹 [CASCADE] Clearing ${assignment.previous_location}`);
+        // STEP 2: Clear OLD location UI (only if location ACTUALLY CHANGED)
+        // CRITICAL FIX (Nov 21): Don't clear if previous_location === newLocation
+        // This prevents threads from being cleared when re-assigned to same location
+        if (assignment.previous_location && assignment.previous_location !== newLocation) {
+            console.log(`🧹 [CASCADE] Clearing ${assignment.previous_location} (moved to ${newLocation})`);
             await this._clearLocationUI(assignment.previous_location, threadId);
+        } else if (assignment.previous_location === newLocation) {
+            console.log(`✅ [CASCADE] Thread ${threadId} staying at ${newLocation}, skipping clear`);
         }
 
         // STEP 3: Handle DISPLACED thread (if any)
@@ -218,6 +222,7 @@ Object.assign(window.ThreadManager, {
      */
     async restoreThreadAssignments() {
         console.log('🔄 [Assignment] Restoring thread assignments from backend...');
+        console.log('📊 [Assignment] Current threads:', this.threads.length);
 
         try {
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
@@ -241,6 +246,13 @@ Object.assign(window.ThreadManager, {
                 assignments = data;
             } else if (data && Array.isArray(data.assignments)) {
                 assignments = data.assignments;
+            } else if (data && data.assignments && typeof data.assignments === 'object') {
+                // Handle {assignments: {"agent-1": "session_id"}} format from backend
+                console.log('[Assignment] Converting object-based assignments to array');
+                assignments = Object.entries(data.assignments).map(([location, session_id]) => ({
+                    session_id,
+                    location
+                }));
             } else if (data && typeof data === 'object') {
                 console.warn('[Assignment] Unexpected response format:', data);
                 assignments = [];
@@ -257,25 +269,42 @@ Object.assign(window.ThreadManager, {
                 }
             }
 
-            // Load threads into their assigned locations
-            for (const assignment of assignments) {
-                const thread = this.threads.find(t => t.id === assignment.session_id);
-                if (!thread) continue;
+            // Wait for MultiAgent to be ready, then load threads
+            const loadThreadsIntoAgents = async () => {
+                // Check if MultiAgent is ready
+                if (typeof MultiAgent === 'undefined' || !MultiAgent.loadThreadIntoAgent) {
+                    console.log('⏳ [Assignment] Waiting for MultiAgent to initialize...');
+                    setTimeout(loadThreadsIntoAgents, 500);
+                    return;
+                }
 
-                if (assignment.location && assignment.location.startsWith('agent-')) {
-                    const agentId = parseInt(assignment.location.replace('agent-', ''));
+                console.log('✅ [Assignment] MultiAgent ready, loading threads into agents...');
 
-                    if (typeof MultiAgent !== 'undefined' && MultiAgent.loadThreadIntoAgent) {
-                        await MultiAgent.loadThreadIntoAgent(agentId, thread);
-                        console.log(`✅ [Assignment] Loaded thread "${thread.title}" into agent-${agentId}`);
-                    }
-                } else if (assignment.location === 'prime' && assignment.session_id === this.currentThreadId) {
-                    // Load into Prime if it's the current thread
-                    if (typeof this.loadThreadInPrime === 'function') {
-                        await this.loadThreadInPrime(assignment.session_id);
+                // Load threads into their assigned locations
+                for (const assignment of assignments) {
+                    const thread = this.threads.find(t => t.id === assignment.session_id);
+                    if (!thread) continue;
+
+                    if (assignment.location && assignment.location.startsWith('agent-')) {
+                        const agentId = parseInt(assignment.location.replace('agent-', ''));
+
+                        try {
+                            await MultiAgent.loadThreadIntoAgent(agentId, thread);
+                            console.log(`✅ [Assignment] Loaded thread "${thread.title}" into agent-${agentId}`);
+                        } catch (error) {
+                            console.error(`❌ [Assignment] Failed to load thread into agent-${agentId}:`, error);
+                        }
+                    } else if (assignment.location === 'prime' && assignment.session_id === this.currentThreadId) {
+                        // Load into Prime if it's the current thread
+                        if (typeof this.loadThreadInPrime === 'function') {
+                            await this.loadThreadInPrime(assignment.session_id);
+                        }
                     }
                 }
-            }
+            };
+
+            // Start loading threads (async, don't wait)
+            loadThreadsIntoAgents();
 
             return assignments;
         } catch (error) {
@@ -516,3 +545,15 @@ Object.assign(window.ThreadManager, {
 });
 
 console.log('✅ ThreadManager-Assignment module loaded');
+console.log('🔍 [Assignment] restoreThreadAssignments exists?', typeof window.ThreadManager.restoreThreadAssignments === 'function');
+
+// Add window command for manual testing
+window.manualRestoreThreads = async function () {
+    console.log('🔄 [Manual] Starting manual thread restoration...');
+    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.restoreThreadAssignments === 'function') {
+        await ThreadManager.restoreThreadAssignments();
+        console.log('✅ [Manual] Thread restoration complete!');
+    } else {
+        console.error('❌ [Manual] ThreadManager.restoreThreadAssignments not available');
+    }
+};

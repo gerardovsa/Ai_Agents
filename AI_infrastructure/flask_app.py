@@ -56,7 +56,9 @@ log_config(logger, f"OPENAI_API_KEY: {'SET' if os.getenv('OPENAI_API_KEY') else 
 log_config(logger, f"DEEPSEEK_API_KEY_1: {'SET' if os.getenv('DEEPSEEK_API_KEY_1') else 'NOT SET'}")
 log_config(logger, f"MICROSOFT_CLIENT_ID: {'SET' if os.getenv('MICROSOFT_CLIENT_ID') else 'NOT SET'}")
 log_config(logger, f"MICROSOFT_CLIENT_SECRET: {'SET' if os.getenv('MICROSOFT_CLIENT_SECRET') else 'NOT SET'}")
+log_config(logger, f"USE_SUPABASE: {os.getenv('USE_SUPABASE', 'NOT SET')}")
 log_config(logger, f"SUPABASE_URL: {'SET' if os.getenv('SUPABASE_URL') else 'NOT SET'}")
+log_config(logger, f"SUPABASE_DB_URL: {'SET' if os.getenv('SUPABASE_DB_URL') else 'NOT SET'}")
 log_config(logger, f"SUPABASE_KEY: {'SET' if os.getenv('SUPABASE_KEY') else 'NOT SET'}")
 
 # Stock Management - ENABLED (Supabase + local fallback)
@@ -92,7 +94,8 @@ class Config:
         DB_CONFIG_PATH = DATA_DIR / 'database-config.json'
         SESSION_DB_PATH = DATA_DIR / 'sessions.db'
         
-        # Session configuration
+        # Session configuration - OAuth state stored in database (oauth_states table)
+        # Default Flask sessions for temporary data only
         SESSION_TYPE = 'filesystem'
         PERMANENT_SESSION_LIFETIME = 86400  # 24 hours
         
@@ -151,6 +154,10 @@ from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool m
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Note: OAuth state tokens are stored in database (oauth_states table) instead of Flask sessions
+# This ensures cloud compatibility on Render (multi-instance, ephemeral filesystem)
+log_config(logger, "OAuth uses database-backed state storage (cloud-compatible)")
 
 # Ensure /data directory exists on Render (persistent disk mount)
 if os.getenv('RENDER') == 'true':
@@ -249,7 +256,7 @@ except Exception as e:
     log_error(logger, f"Failed to initialize automation tables: {e}")
 
 # Register blueprints - Working In_House_SQL implementation
-app.register_blueprint(agent_bp)                                     # Working agent routes with async support
+app.register_blueprint(agent_bp, url_prefix='/api/agent')           # Working agent routes with async support
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
 app.register_blueprint(thread_sharing_bp)                            # NEW: Thread sharing (6 endpoints: share, accept, revoke, list)
 app.register_blueprint(message_ops_bp)                               # NEW: Message operations - fork, clone, copy, delete (5 endpoints)

@@ -36,26 +36,14 @@ window.synergyBoard = {
         }
         console.log('🚀 Initializing Synergy Dashboard...');
 
-        // Initialize Supabase client for real-time updates
-        this.initializeSupabase();
-
         // Load sessions from API
         await this.loadSessions();
 
-        // Initialize drag and drop
-        this.initializeDragula();
-
-        // Render all cards
+        // Render cards to the board
         this.renderAllCards();
-
-        // Update stats
         this.updateStats();
 
-        // Subscribe to real-time database changes (replaces polling)
-        // Auto-refresh polling will only start if real-time subscription fails after 3 retries
-        this.subscribeToRealtimeChanges();
-
-        // Initialize WebSocket for real-time updates (legacy - keep for backwards compatibility)
+        // Initialize WebSocket for real-time updates
         if (typeof SynergyRealtime !== 'undefined') {
             try {
                 await SynergyRealtime.connect();
@@ -66,7 +54,7 @@ window.synergyBoard = {
         }
 
         this.initialized = true;
-        console.log('✅ Synergy Dashboard initialized with Supabase real-time updates');
+        console.log('✅ Synergy Dashboard initialized - Board rendered with real-time updates');
     },
 
     // Escape text for use in JavaScript strings (onclick handlers)
@@ -78,6 +66,14 @@ window.synergyBoard = {
             .replace(/"/g, '\\"')     // Escape double quotes
             .replace(/\n/g, '\\n')    // Escape newlines
             .replace(/\r/g, '\\r');   // Escape carriage returns
+    },
+
+    // Escape text for use in HTML (prevents XSS)
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     /**
@@ -378,6 +374,168 @@ window.synergyBoard = {
                 threadsContent.innerHTML = threadsHTML;
             }
         }
+    },
+
+    /**
+     * Refresh the entire board - reload sessions and re-render
+     */
+    async refreshBoard() {
+        await this.ensureInitialized();
+        console.log('🔄 Refreshing board...');
+
+        await this.loadSessions();
+        this.renderAllCards();
+        this.updateStats();
+
+        console.log('✅ Board refreshed');
+    },
+
+    /**
+     * Render all cards on the board
+     */
+    renderAllCards() {
+        console.log(`[SYNERGY] Rendering ${this.sessions.length} cards...`);
+
+        // Save expanded states before clearing
+        const expandedCards = new Set();
+        document.querySelectorAll('.kanban-card[data-expanded="true"]').forEach(card => {
+            expandedCards.add(card.dataset.sessionId);
+        });
+
+        // Clear all kanban columns
+        ['backlog', 'in_progress', 'review', 'done'].forEach(column => {
+            const container = document.getElementById(`${column}-cards`);
+            if (container) {
+                container.innerHTML = '';
+            }
+        });
+
+        // Render each session
+        this.sessions.forEach(session => {
+            this.renderCard(session);
+        });
+
+        // Restore expanded states
+        expandedCards.forEach(sessionId => {
+            const card = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
+            if (card) {
+                card.dataset.expanded = 'true';
+            }
+        });
+
+        console.log(`✅ [SYNERGY] Rendered ${this.sessions.length} cards`);
+    },
+
+    /**
+     * Render a single session card to its kanban column
+     */
+    renderCard(session) {
+        // Map database column names to HTML container IDs
+        const columnMapping = {
+            'in-progress': 'in_progress',
+            'in_progress': 'in_progress',
+            'backlog': 'backlog',
+            'review': 'review',
+            'done': 'done'
+        };
+
+        const dbColumn = session.kanban_column || 'backlog';
+        const htmlColumn = columnMapping[dbColumn] || dbColumn;
+        const container = document.getElementById(`${htmlColumn}-cards`);
+
+        if (!container) {
+            console.warn(`[SYNERGY] Container not found for column: ${dbColumn} (mapped to ${htmlColumn})`);
+            return;
+        }
+
+        // Create card element
+        const card = document.createElement('div');
+        card.className = 'kanban-card';
+        card.dataset.sessionId = session.session_id;
+        card.dataset.column = htmlColumn;
+
+        // Priority emoji
+        const priorityEmoji = {
+            'critical': '🔴',
+            'high': '🟠',
+            'medium': '🟡',
+            'low': '🟢'
+        }[session.priority || 'medium'];
+
+        // Time ago
+        const createdDate = new Date(session.created_at);
+        const timeAgo = this.getTimeAgo(createdDate);
+
+        // Card HTML
+        card.innerHTML = `
+            <div class="card-header">
+                <span class="card-priority">${priorityEmoji}</span>
+                <span class="card-id">${session.session_id.substring(0, 12)}...</span>
+                <button class="card-menu-btn" onclick="event.stopPropagation(); synergyBoard.openCardMenu('${session.session_id}')">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
+            <div class="card-title" onclick="synergyBoard.toggleCardExpand('${session.session_id}')">
+                ${this.escapeHtml(session.title || 'Untitled Session')}
+            </div>
+            <div class="card-meta">
+                <span class="card-time">${timeAgo}</span>
+                ${session.internal_docs_count ? `<span class="card-docs-count"><i class="fas fa-file"></i> ${session.internal_docs_count}</span>` : ''}
+            </div>
+        `;
+
+        container.appendChild(card);
+    },
+
+    /**
+     * Update column statistics
+     */
+    updateStats() {
+        ['backlog', 'in_progress', 'review', 'done'].forEach(column => {
+            const container = document.getElementById(`${column}-cards`);
+            const countBadge = document.querySelector(`[data-column="${column}"] .column-count`);
+
+            if (container && countBadge) {
+                const count = container.children.length;
+                countBadge.textContent = count;
+            }
+        });
+    },
+
+    /**
+     * Format time ago string
+     */
+    getTimeAgo(date) {
+        const seconds = Math.floor((new Date() - date) / 1000);
+
+        if (seconds < 60) return 'just now';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+        if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+        return date.toLocaleDateString();
+    },
+
+    /**
+     * Toggle card expansion (show/hide details)
+     */
+    toggleCardExpand(sessionId) {
+        const card = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
+        if (!card) return;
+
+        const isExpanded = card.dataset.expanded === 'true';
+        card.dataset.expanded = (!isExpanded).toString();
+        card.classList.toggle('expanded', !isExpanded);
+
+        console.log(`[SYNERGY] ${isExpanded ? 'Collapsed' : 'Expanded'} card: ${sessionId}`);
+    },
+
+    /**
+     * Open card menu (edit, delete, etc.)
+     */
+    openCardMenu(sessionId) {
+        console.log('[SYNERGY] Opening card menu for:', sessionId);
+        // TODO: Implement context menu
+        alert(`Card menu for ${sessionId}\n\nOptions:\n- Edit\n- Delete\n- Move to column\n- Archive`);
     }
 };
 

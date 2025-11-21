@@ -147,6 +147,7 @@
 
     <!-- ==================== SYNERGY MODULE (Nov 2025) ==================== -->
     <!-- Synergy session management with milestone-based task hierarchy -->
+    <script src="external/modules/synergy/synergy-board-init.js"></script>
     <script src="external/modules/synergy/synergy-functions.js"></script>
     <script src="external/modules/synergy/synergy-sidebar-renderer.js"></script>
     <script src="external/modules/synergy/synergy-card-renderer.js"></script>
@@ -4313,6 +4314,64 @@
             border-color: var(--accent-hover, #79c0ff);
         }
 
+        /* ==================== THREAD SORT TOGGLE ==================== */
+        .thread-sort-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: var(--space-2);
+        }
+
+        .thread-sort-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .thread-sort-buttons {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-primary);
+            padding: 3px;
+            border-radius: 6px;
+        }
+
+        .thread-sort-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .thread-sort-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .thread-sort-btn.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .thread-sort-btn i {
+            font-size: 11px;
+        }
+
         /* ==================== THREAD VIEW TABS (Active/Archived) ==================== */
         .thread-view-tabs {
             display: flex;
@@ -5656,6 +5715,18 @@
 
         .thread-item.dragging {
             cursor: grabbing;
+        }
+
+        /* Thread card dragging styles (Added Nov 21, 2025) */
+        .agent-thread-card {
+            cursor: grab;
+        }
+
+        .agent-thread-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            transform: scale(0.98);
+            transition: opacity 0.2s, transform 0.2s;
         }
 
         .ai-message {
@@ -7850,6 +7921,8 @@
             gap: var(--space-2);
             flex: 1;
         }
+
+
 
         .agent-header h2 {
             font-size: 20px;
@@ -13791,10 +13864,13 @@
                     <!-- Row 2: Thread title and info -->
                     <div id="prime-thread-info">
                         <!-- Thread info card injected by ThreadManager.renderThreadInfoContainer('prime', threadId) -->
-                        <div class="agent-no-thread" id="prime-no-thread">
-                            <i class="fas fa-info-circle"></i>
-                            <span>No thread assigned</span>
+                        <div class="no-thread-message clickable" id="prime-no-thread"
+                            onclick="AgentColumn.showPrimeThreadSelector()" style="cursor: pointer !important;">
+                            <i class="fas fa-inbox"></i>
+                            <span>Click to select a thread</span>
+                            <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
                         </div>
+                        <div class="thread-selector-dropdown" id="thread-selector-prime" style="display: none;"></div>
                     </div>
                 </div>
 
@@ -13853,6 +13929,27 @@
                             <i class="fas fa-search thread-search-icon"></i>
                             <input type="text" class="thread-search-input" id="thread-search"
                                 placeholder="Search threads..." oninput="ThreadManager.filterThreads(this.value)">
+                        </div>
+
+                        <!-- Sort Toggle -->
+                        <div class="thread-sort-toggle">
+                            <span class="thread-sort-label">
+                                <i class="fas fa-sort"></i>
+                                Sort:
+                            </span>
+                            <div class="thread-sort-buttons">
+                                <button class="thread-sort-btn active"
+                                    onclick="ThreadManager.setSortOrder('updated', event)" data-sort="updated"
+                                    title="Sort by most recently active threads">
+                                    <i class="fas fa-clock-rotate-left"></i>
+                                    Recent Activity
+                                </button>
+                                <button class="thread-sort-btn" onclick="ThreadManager.setSortOrder('created', event)"
+                                    data-sort="created" title="Sort by thread creation date (oldest first)">
+                                    <i class="fas fa-calendar-plus"></i>
+                                    Creation Date
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Filter Chips (Agent/Tag Filters) -->
@@ -16059,6 +16156,9 @@
             // SETUP WORKFLOW SLUG DROP ZONES (Added Jan 2025)
             setupWorkflowSlugDropZones();
 
+            // INITIALIZE THREAD CARD DRAGGING (Added Nov 21, 2025)
+            initializeThreadCardDragging();
+
             // START REAL-TIME TIME UPDATES (Added Nov 8, 2025)
             startRealtimeUpdates();
 
@@ -16252,7 +16352,7 @@
                     e.preventDefault();
                     primeChatArea.classList.remove('drag-over');
 
-                    const threadId = e.dataTransfer.getData('text/plain');
+                    const threadId = e.dataTransfer.getData('application/x-thread-id');
                     if (threadId) {
                         // Hide welcome container when thread is dropped
                         const welcomeContainer = document.getElementById('prime-welcome-container');
@@ -16293,7 +16393,7 @@
                     e.preventDefault();
                     primeThreadInfo.classList.remove('drag-over');
 
-                    const threadId = e.dataTransfer.getData('text/plain');
+                    const threadId = e.dataTransfer.getData('application/x-thread-id');
                     if (threadId) {
                         // Hide welcome container when thread is dropped
                         const welcomeContainer = document.getElementById('prime-welcome-container');
@@ -16336,8 +16436,8 @@
                     e.preventDefault();
                     agentColumn.classList.remove('drag-over');
 
-                    const threadId = e.dataTransfer.getData('threadId') || e.dataTransfer.getData('text/plain');
-                    const sourceLocation = e.dataTransfer.getData('sourceLocation');
+                    const threadId = e.dataTransfer.getData('application/x-thread-id');
+                    const sourceLocation = e.dataTransfer.getData('application/x-source-location');
 
                     if (!threadId) {
                         console.warn('[AGENT DROP] No threadId in drop event');
@@ -16353,10 +16453,8 @@
                         return;
                     }
 
-                    // Clear source location (if moving, not linking)
-                    if (sourceLocation && sourceLocation !== `agent-${agentId}`) {
-                        ThreadManager.clearThreadInfoAtLocation(sourceLocation);
-                    }
+                    // NOTE: assignThread() handles clearing source location automatically
+                    // No need to manually clear - the cascade system in assignThread handles it
 
                     // Assign thread to agent (updates database + UI)
                     await ThreadManager.assignThread(threadId, `agent-${agentId}`);
@@ -16419,6 +16517,78 @@
             });
 
             console.log('[WORKFLOW-DROP] Workflow slug drop zones configured successfully');
+        }
+
+        // ==================== THREAD CARD DRAGGING INITIALIZATION (Added Nov 21, 2025) ====================
+        function initializeThreadCardDragging() {
+            console.log('[DRAG-THREAD-CARD] Initializing thread card dragging...');
+
+            // Use event delegation for dynamically loaded thread cards
+            document.addEventListener('mousedown', (e) => {
+                const threadCard = e.target.closest('.agent-thread-card');
+                if (!threadCard) return;
+
+                // Don't start drag if clicking on interactive elements
+                const isInteractive = e.target.closest('button, input, textarea, select, a, .thread-copy-menu, .thread-item-actions, .thread-id-badge, .thread-copy-btn');
+                if (isInteractive) {
+                    // Ensure card is not draggable when clicking buttons
+                    threadCard.removeAttribute('draggable');
+                    return;
+                }
+
+                // Make card draggable only when clicking on non-interactive areas
+                threadCard.setAttribute('draggable', 'true');
+            });
+
+            // Remove draggable on mouseup if drag didn't start
+            document.addEventListener('mouseup', (e) => {
+                const threadCard = e.target.closest('.agent-thread-card');
+                if (threadCard && !threadCard.classList.contains('dragging')) {
+                    // Remove draggable if we didn't start dragging
+                    setTimeout(() => {
+                        if (!threadCard.classList.contains('dragging')) {
+                            threadCard.removeAttribute('draggable');
+                        }
+                    }, 50);
+                }
+            });
+
+            // Handle drag start
+            document.addEventListener('dragstart', (e) => {
+                const threadCard = e.target.closest('.agent-thread-card');
+                if (!threadCard) return;
+
+                const threadId = threadCard.dataset.threadId;
+                const location = threadCard.dataset.location;
+
+                if (!threadId) {
+                    console.warn('[DRAG-THREAD-CARD] No threadId found on card');
+                    e.preventDefault();
+                    return;
+                }
+
+                // Set drag data
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('application/x-thread-id', threadId);
+                e.dataTransfer.setData('application/x-source-location', location || 'unknown');
+
+                // Add visual feedback
+                threadCard.classList.add('dragging');
+                console.log(`[DRAG-THREAD-CARD] Started dragging thread ${threadId} from ${location}`);
+            });
+
+            // Handle drag end
+            document.addEventListener('dragend', (e) => {
+                const threadCard = e.target.closest('.agent-thread-card');
+                if (!threadCard) return;
+
+                // Remove draggable attribute and visual feedback
+                threadCard.removeAttribute('draggable');
+                threadCard.classList.remove('dragging');
+                console.log('[DRAG-THREAD-CARD] Drag ended');
+            });
+
+            console.log('[DRAG-THREAD-CARD] Thread card dragging initialized successfully');
         }
 
         // ==================== REAL-TIME TIME UPDATES (Added Nov 8, 2025) ====================

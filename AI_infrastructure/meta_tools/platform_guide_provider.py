@@ -1,4 +1,3 @@
-"""
 Platform Guide Provider - Provide detailed platform documentation
 Part of V4 Modular Architecture - Meta-Tools
 

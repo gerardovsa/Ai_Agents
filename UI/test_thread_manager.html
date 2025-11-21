@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +14,11 @@
             background: #1e1e1e;
             color: #d4d4d4;
         }
-        h1 { color: #4ec9b0; }
+
+        h1 {
+            color: #4ec9b0;
+        }
+
         .test-section {
             background: #252526;
             padding: 20px;
@@ -21,32 +26,41 @@
             border-radius: 8px;
             border-left: 4px solid #007acc;
         }
+
         .test-item {
             display: flex;
             align-items: center;
             padding: 8px 0;
             border-bottom: 1px solid #3e3e42;
         }
-        .test-item:last-child { border-bottom: none; }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
         .test-name {
             flex: 1;
             font-family: 'Courier New', monospace;
             font-size: 14px;
         }
+
         .test-result {
             padding: 4px 12px;
             border-radius: 4px;
             font-weight: bold;
             font-size: 12px;
         }
+
         .pass {
             background: #1e8e3e;
             color: white;
         }
+
         .fail {
             background: #f14c4c;
             color: white;
         }
+
         .summary {
             background: #264f78;
             padding: 20px;
@@ -54,10 +68,24 @@
             margin-top: 30px;
             text-align: center;
         }
-        .summary h2 { margin: 0 0 10px 0; }
-        .count { font-size: 24px; font-weight: bold; }
-        .pass-count { color: #4ec9b0; }
-        .fail-count { color: #f48771; }
+
+        .summary h2 {
+            margin: 0 0 10px 0;
+        }
+
+        .count {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .pass-count {
+            color: #4ec9b0;
+        }
+
+        .fail-count {
+            color: #f48771;
+        }
+
         pre {
             background: #1e1e1e;
             padding: 12px;
@@ -68,6 +96,7 @@
         }
     </style>
 </head>
+
 <body>
     <h1>🧪 ThreadManager Smoke Test</h1>
     <p>Testing thread_manager.js file integrity and critical methods...</p>
@@ -76,7 +105,7 @@
     <div id="summary" class="summary" style="display:none;">
         <h2>Test Summary</h2>
         <div class="count">
-            <span class="pass-count" id="pass-count">0</span> passed / 
+            <span class="pass-count" id="pass-count">0</span> passed /
             <span class="fail-count" id="fail-count">0</span> failed
         </div>
     </div>
@@ -88,7 +117,7 @@
             user: { id: 1, user_id: 1 },
             token: 'test_token_123'
         };
-        
+
         // Mock API_BASE_URL
         window.API_BASE_URL = 'http://localhost:5001';
     </script>
@@ -217,33 +246,33 @@
 
         function renderResults() {
             const container = document.getElementById('test-results');
-            
+
             tests.forEach(test => {
                 const section = document.createElement('div');
                 section.className = 'test-section';
-                
+
                 const item = document.createElement('div');
                 item.className = 'test-item';
-                
+
                 const name = document.createElement('div');
                 name.className = 'test-name';
                 name.textContent = test.name;
-                
+
                 const result = document.createElement('div');
                 result.className = `test-result ${test.pass ? 'pass' : 'fail'}`;
                 result.textContent = test.pass ? '✓ PASS' : '✗ FAIL';
-                
+
                 item.appendChild(name);
                 item.appendChild(result);
                 section.appendChild(item);
-                
+
                 if (test.error) {
                     const error = document.createElement('pre');
                     error.textContent = `Error: ${test.error}`;
                     error.style.color = '#f48771';
                     section.appendChild(error);
                 }
-                
+
                 container.appendChild(section);
             });
 
@@ -256,7 +285,7 @@
             console.log(`\n${'='.repeat(60)}`);
             console.log(`SMOKE TEST RESULTS: ${passCount}/${tests.length} passed`);
             console.log(`${'='.repeat(60)}`);
-            
+
             if (failCount === 0) {
                 console.log('%c✓ ALL TESTS PASSED!', 'background: #1e8e3e; color: white; padding: 8px; font-weight: bold;');
             } else {
@@ -268,4 +297,5 @@
         }
     </script>
 </body>
+
 </html>

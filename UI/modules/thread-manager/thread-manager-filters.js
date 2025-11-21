@@ -97,6 +97,23 @@ window.ThreadManagerFilters = {
     },
 
     /**
+     * Set sort order (updated/created)
+     */
+    setSortOrder(order, event) {
+        console.log(`🔄 [Filters] Setting sort order: ${order}`);
+        this.sortOrder = order;
+
+        // Update active button
+        document.querySelectorAll('.thread-sort-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sort === order);
+        });
+
+        if (typeof this.renderThreadList === 'function') {
+            this.renderThreadList();
+        }
+    },
+
+    /**
      * Filter by tag
      */
     filterByTag(tag) {

@@ -246,7 +246,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
      * Flow: assignThread() ? UPDATE DATABASE ? _cascadeThreadAssignment() ? UPDATE UI
      */
     async assignThread(threadId, location) {
-        console.log(`?? [assignThread] START: ${threadId} ? ${location}`);
+        console.log(`?? [AssignThread] START: ${threadId} ? ${location}`);
 
         try {
             // Set pending flag to prevent realtime loop
@@ -1007,167 +1007,660 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
             const synergyPriority = synergyMeta ? (synergyMeta.priority || '') : (thread.synergy_priority || '');
 
             return `
-                                                <div class="thread-item ${thread.id === this.currentThreadId ? 'active' : ''}"
-                                                    draggable="true"
-                                                    data-thread-id="${thread.id}"
-                                                    data-synergy-id="${thread.synergy_card_id || ''}"
-                                                    data-current-location="${currentLocation || 'prime'}"
-                                                    ondragstart="ThreadManager.handleDragStart(event)"
-                                                    ondragend="ThreadManager.handleDragEnd(event)"
-                                                    ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${currentLocation || 'prime'}')">
-                                                    
-                                                    <!-- ROW 1: Agent Badge (LHS) + Action Buttons (RHS) -->
-                                                    <div class="thread-item-header">
-                                                        <div class="thread-item-agent-badge ${agentClass}">
-                                                            <i class="fas ${agentIcon}"></i> ${agentLabel}
-                                                        </div>
-                                                        <div class="thread-item-actions">
-                                                            ${currentLocation && currentLocation.startsWith('agent-') ? `
-                                                            <button class="thread-action-btn unload"
-                                                                onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
-                                                                title="Unload thread from agent (move to Prime)">
-                                                                <i class="fas fa-sign-out-alt"></i>
-                                                            </button>
-                                                            ` : ''}
-                                                            <button class="thread-action-btn rename"
-                                                                onclick="event.stopPropagation(); ThreadManager.startRename('${thread.id}')"
-                                                                title="Rename thread">
-                                                                <i class="fas fa-pen"></i>
-                                                            </button>
-                                                            <button class="thread-action-btn edit"
-                                                                onclick="event.stopPropagation(); ThreadManager.editThread('${thread.id}')"
-                                                                title="Edit thread">
-                                                                <i class="fas fa-edit"></i>
-                                                            </button>
-                                                            <button class="thread-action-btn fork"
-                                                                onclick="event.stopPropagation(); ThreadManager.forkThread('${thread.id}')"
-                                                                title="Fork thread (branch from current point)">
-                                                                <i class="fas fa-code-branch"></i>
-                                                            </button>
-                                                            <button class="thread-action-btn clone"
-                                                                onclick="event.stopPropagation(); ThreadManager.cloneThread('${thread.id}')"
-                                                                title="Clone thread (duplicate all messages)">
-                                                                <i class="fas fa-clone"></i>
-                                                            </button>
-                                                            <button class="thread-action-btn archive"
-                                                                onclick="event.stopPropagation(); ThreadManager.archiveThread('${thread.id}')"
-                                                                title="Archive thread">
-                                                                <i class="fas fa-archive"></i>
-                                                            </button>
-                                                            <button class="thread-action-btn delete"
-                                                                onclick="event.stopPropagation(); ThreadManager.deleteThread('${thread.id}')"
-                                                                title="Delete thread">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <!-- ROW 2: Title (Full Width) -->
-                                                    <div class="thread-item-title-row">
-                                                        <span class="thread-item-title" id="thread-title-${thread.id}" title="${threadTitle}">${truncatedTitle}</span>
-                                                    </div>
-                                                    
-                                                    <!-- ROW 3: Meta Info + Thread Slug -->
-                                                    <div class="thread-item-meta" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                                                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                                            <span class="thread-meta-item" title="Message count">
-                                                                <i class="fas fa-comments"></i> ${thread.message_count || thread.messages?.length || 0} msgs
-                                                            </span>
-                                                            <span class="thread-meta-item" title="Last updated">
-                                                                <i class="fas fa-calendar"></i> ${dateStr}
-                                                            </span>
-                                                            <span class="thread-meta-item" title="Time">
-                                                                <i class="fas fa-clock"></i> ${timeStr}
-                                                            </span>
-                                                        </div>
-                                                        <button class="thread-id-badge"
-                                                            onclick="event.stopPropagation(); ThreadManager.copyThreadId('${thread.id}')"
-                                                            title="Copy thread slug: ${thread.id}">
-                                                            <i class="fas fa-hashtag"></i> ${thread.id}
-                                                        </button>
-                                                    </div>
-                                                    
-                                                    <!-- ROW 4: Synergy Session (if present) -->
-                                                    ${thread.synergy_card_id ? `
-                                                        <div class="thread-item-synergy" data-synergy-id="${thread.synergy_card_id}">
-                                                            <button class="synergy-badge"
-                                                                onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${thread.synergy_card_id}', '${(synergyDisplay || '').replace(/'/g, "\\'")}')"
-                                                                data-tooltip-title="${(synergyMeta && synergyMeta.title) ? (synergyMeta.title.replace(/\"/g, '&quot;')) : ''}"
-                                                                data-tooltip-desc="${(synergyMeta && synergyMeta.description) ? (synergyMeta.description.replace(/\"/g, '&quot;')) : ''}"
-                                                                data-tooltip-users="${(synergyMeta && Array.isArray(synergyMeta.assignees)) ? (synergyMeta.assignees.join(', ').replace(/\"/g, '&quot;')) : ''}"
-                                                                data-tooltip-updated="${(synergyMeta && synergyMeta.last_active) ? (new Date(synergyMeta.last_active).toLocaleString()) : ''}">
-                                                                <i class="fas fa-link"></i>
-                                                                <span class="synergy-badge-title">${synergyDisplay}</span>
-                                                                ${synergyPriority ? `<span class="synergy-badge-priority">${synergyPriority}</span>` : ''}
-                                                            </button>
-                                                            <button class="thread-synergy-unlink" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
-                                                                <i class="fas fa-unlink"></i>
-                                                            </button>
-                                                        </div>
-                                                    ` : `
-                                                        <div class="thread-item-synergy thread-item-synergy-unlinked">
-                                                            <button class="synergy-create-link" onclick="event.stopPropagation(); ThreadManager.openSynergySyncModal('${thread.id}')" title="Link thread to Synergy session">
-                                                                <i class="fas fa-link"></i> Synergy Sync
-                                                            </button>
-                                                        </div>
-                                                    `}
-                                                    
-                                                    <!-- ROW 5: Tags + Add Tag Button -->
-                                                    <div class="thread-tags-row" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                                        ${thread.tags ? thread.tags.map(tag => `
-                                                            <span class="thread-tag-pill">
-                                                                <i class="fas fa-tag"></i> ${tag}
-                                                                <button onclick="event.stopPropagation(); ThreadManager.removeTag('${thread.id}', '${tag}')" 
-                                                                        class="tag-remove-btn" 
-                                                                        title="Remove tag">&times;</button>
-                                                            </span>
-                                                        `).join('') : ''}
-                                                        <button class="add-tag-btn" 
-                                                                onclick="event.stopPropagation(); ThreadManager.showAddTagModal('thread-history', '${thread.id}')" 
-                                                                title="Add tags to this thread">
-                                                            <i class="fas fa-plus"></i> Tag
-                                                        </button>
-                                                    </div>
+                    <div class="thread-item ${thread.id === this.currentThreadId ? 'active' : ''}"
+                        draggable="true"
+                        data-thread-id="${thread.id}"
+                        data-synergy-id="${thread.synergy_card_id || ''}"
+                        data-current-location="${currentLocation || 'prime'}"
+                        ondragstart="ThreadManager.handleDragStart(event)"
+                        ondragend="ThreadManager.handleDragEnd(event)"
+                        ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${currentLocation || 'prime'}')">
+                        
+                        <!-- ROW 1: Agent Badge (LHS) + Action Buttons (RHS) -->
+                        <div class="thread-item-header">
+                            <div class="thread-item-agent-badge ${agentClass}">
+                                <i class="fas ${agentIcon}"></i> ${agentLabel}
+                            </div>
+                            <div class="thread-item-actions">
+                                ${currentLocation && currentLocation.startsWith('agent-') ? `
+                                <button class="thread-action-btn unload"
+                                    onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
+                                    title="Unload thread from agent (move to Prime)">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </button>
+                                ` : ''}
+                                <button class="thread-action-btn rename"
+                                    onclick="event.stopPropagation(); ThreadManager.startRename('${thread.id}')"
+                                    title="Rename thread">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button class="thread-action-btn edit"
+                                    onclick="event.stopPropagation(); ThreadManager.editThread('${thread.id}')"
+                                    title="Edit thread">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="thread-action-btn fork"
+                                    onclick="event.stopPropagation(); ThreadManager.forkThread('${thread.id}')"
+                                    title="Fork thread (branch from current point)">
+                                    <i class="fas fa-code-branch"></i>
+                                </button>
+                                <button class="thread-action-btn clone"
+                                    onclick="event.stopPropagation(); ThreadManager.cloneThread('${thread.id}')"
+                                    title="Clone thread (duplicate all messages)">
+                                    <i class="fas fa-clone"></i>
+                                </button>
+                                <button class="thread-action-btn archive"
+                                    onclick="event.stopPropagation(); ThreadManager.archiveThread('${thread.id}')"
+                                    title="Archive thread">
+                                    <i class="fas fa-archive"></i>
+                                </button>
+                                <button class="thread-action-btn delete"
+                                    onclick="event.stopPropagation(); ThreadManager.deleteThread('${thread.id}')"
+                                    title="Delete thread">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- ROW 2: Title (Full Width) -->
+                        <div class="thread-item-title-row">
+                            <span class="thread-item-title" id="thread-title-${thread.id}" title="${threadTitle}">${truncatedTitle}</span>
+                        </div>
+                        
+                        <!-- ROW 3: Meta Info + Thread Slug -->
+                        <div class="thread-item-meta" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                <span class="thread-meta-item" title="Message count">
+                                    <i class="fas fa-comments"></i> ${thread.message_count || thread.messages?.length || 0} msgs
+                                </span>
+                                <span class="thread-meta-item" title="Last updated">
+                                    <i class="fas fa-calendar"></i> ${dateStr}
+                                </span>
+                                <span class="thread-meta-item" title="Time">
+                                    <i class="fas fa-clock"></i> ${timeStr}
+                                </span>
+                            </div>
+                            <button class="thread-id-badge"
+                                onclick="event.stopPropagation(); ThreadManager.copyThreadId('${thread.id}')"
+                                title="Copy thread slug: ${thread.id}">
+                                <i class="fas fa-hashtag"></i> ${thread.id}
+                            </button>
+                        </div>
+                        
+                        <!-- ROW 4: Synergy Session (if present) -->
+                        ${thread.synergy_card_id ? `
+                            <div class="thread-item-synergy" data-synergy-id="${thread.synergy_card_id}">
+                                <button class="synergy-badge"
+                                    onclick="event.stopPropagation(); ThreadManager.copySynergyInfo('${thread.synergy_card_id}', '${(synergyDisplay || '').replace(/'/g, "\\'")}')"
+                                    data-tooltip-title="${(synergyMeta && synergyMeta.title) ? (synergyMeta.title.replace(/\"/g, '&quot;')) : ''}"
+                                    data-tooltip-desc="${(synergyMeta && synergyMeta.description) ? (synergyMeta.description.replace(/\"/g, '&quot;')) : ''}"
+                                    data-tooltip-users="${(synergyMeta && Array.isArray(synergyMeta.assignees)) ? (synergyMeta.assignees.join(', ').replace(/\"/g, '&quot;')) : ''}"
+                                    data-tooltip-updated="${(synergyMeta && synergyMeta.last_active) ? (new Date(synergyMeta.last_active).toLocaleString()) : ''}">
+                                    <i class="fas fa-link"></i>
+                                    <span class="synergy-badge-title">${synergyDisplay}</span>
+                                    ${synergyPriority ? `<span class="synergy-badge-priority">${synergyPriority}</span>` : ''}
+                                </button>
+                                <button class="thread-synergy-unlink" title="Unlink Synergy session" onclick="event.stopPropagation(); ThreadManager.unlinkSynergy('${thread.id}', '${thread.synergy_card_id}')">
+                                    <i class="fas fa-unlink"></i>
+                                </button>
+                            </div>
+                        ` : `
+                            <div class="thread-item-synergy thread-item-synergy-unlinked">
+                                <button class="synergy-create-link" onclick="event.stopPropagation(); ThreadManager.openSynergySyncModal('${thread.id}')" title="Link thread to Synergy session">
+                                    <i class="fas fa-link"></i> Synergy Sync
+                                </button>
+                            </div>
+                        `}
+                        
+                        <!-- ROW 5: Tags + Add Tag Button -->
+                        <div class="thread-tags-row" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            ${thread.tags ? thread.tags.map(tag => `
+                                <span class="thread-tag-pill">
+                                    <i class="fas fa-tag"></i> ${tag}
+                                    <button onclick="event.stopPropagation(); ThreadManager.removeTag('${thread.id}', '${tag}')" 
+                                            class="tag-remove-btn" 
+                                            title="Remove tag">&times;</button>
+                                </span>
+                            `).join('') : ''}
+                            <button class="add-tag-btn" 
+                                    onclick="event.stopPropagation(); ThreadManager.showAddTagModal('thread-history', '${thread.id}')" 
+                                    title="Add tags to this thread">
+                                <i class="fas fa-plus"></i> Tag
+                            </button>
+                        </div>
 
-                                                    <!-- ROW 6: Assignment Warning & Options (Expandable - only for agent-assigned threads) -->
-                                                    ${currentLocation && currentLocation.startsWith('agent-') ? `
-                                                    <div class="thread-item-assignment-warning">
-                                                        <div class="thread-assignment-notice">
-                                                            <i class="fas fa-info-circle"></i>
-                                                            <span>This thread is assigned to <strong>${agentLabel}</strong>. Choose an action:</span>
-                                                        </div>
-                                                        <div class="thread-assignment-options">
-                                                            <button class="thread-assignment-option-btn prime"
-                                                                    onclick="event.stopPropagation(); ThreadManager.handleThreadAssignmentOption('${thread.id}', 'move-to-prime')">
-                                                                <i class="fa-solid fa-atom"></i>
-                                                                <div class="option-details">
-                                                                    <div class="option-title">Move to Prime & View</div>
-                                                                    <div class="option-subtitle">Unload from agent and open in main chat</div>
-                                                                </div>
-                                                            </button>
-                                                            <button class="thread-assignment-option-btn agent"
-                                                                    onclick="event.stopPropagation(); ThreadManager.handleThreadAssignmentOption('${thread.id}', 'view-in-agent')">
-                                                                <i class="fas fa-columns"></i>
-                                                                <div class="option-details">
-                                                                    <div class="option-title">View in Agent Dashboard</div>
-                                                                    <div class="option-subtitle">Open Multi-Agent NATO Columns</div>
-                                                                </div>
-                                                            </button>
-                                                            <button class="thread-assignment-option-btn unload"
-                                                                    onclick="event.stopPropagation(); ThreadManager.handleThreadAssignmentOption('${thread.id}', 'unload-only')">
-                                                                <i class="fas fa-sign-out-alt"></i>
-                                                                <div class="option-details">
-                                                                    <div class="option-title">Unload from Agent Only</div>
-                                                                    <div class="option-subtitle">Move to Prime without opening</div>
-                                                                </div>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    ` : ''}
-                                                </div>
+                        <!-- ROW 6: Assignment Warning & Options (Expandable - only for agent-assigned threads) -->
+                        ${currentLocation && currentLocation.startsWith('agent-') ? `
+                        <div class="thread-item-assignment-warning">
+                            <div class="thread-assignment-notice">
+                                <i class="fas fa-info-circle"></i>
+                                <span>This thread is assigned to <strong>${agentLabel}</strong>. Choose an action:</span>
+                            </div>
+                            <div class="thread-assignment-options">
+                                <button class="thread-assignment-option-btn prime"
+                                        onclick="event.stopPropagation(); ThreadManager.handleThreadAssignmentOption('${thread.id}', 'move-to-prime')">
+                                    <i class="fa-solid fa-atom"></i>
+                                    <div class="option-details">
+                                        <div class="option-title">Move to Prime & View</div>
+                                        <div class="option-subtitle">Unload from agent and open in main chat</div>
+                                    </div>
+                                </button>
+                                <button class="thread-assignment-option-btn agent"
+                                        onclick="event.stopPropagation(); ThreadManager.handleThreadAssignmentOption('${thread.id}', 'view-in-agent')">
+                                    <i class="fas fa-columns"></i>
+                                    <div class="option-details">
+                                        <div class="option-title">View in Agent Dashboard</div>
+                                        <div class="option-subtitle">Open Multi-Agent NATO Columns</div>
+                                    </div>
+                                </button>
+                                <button class="thread-assignment-option-btn unload"
+                                        onclick="event.stopPropagation(); ThreadManager.handleThreadAssignmentOption('${thread.id}', 'unload-only')">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <div class="option-details">
+                                        <div class="option-title">Unload from Agent Only</div>
+                                        <div class="option-subtitle">Move to Prime without opening</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
                 `}).join('');
     }
 };
+
+// ==================== EXPOSE THREADMANAGER GLOBALLY ====================
+window.ThreadManager = ThreadManager;
+console.log('✅ ThreadManager exposed to window.ThreadManager');
+
+// ✅ FIX: ThreadManager.init() moved to initializeMainApp() (after authentication)
+// This ensures UserAuth.token is set before calling /api/auth/profile
+// Previously initialized on page load, causing 401 errors for real users
+
+// ==================== SYNERGY DASHBOARD JAVASCRIPT ====================
+// ✅ FULLY MODULARIZED - November 20, 2025
+threadToLocation[threadId] = location;
+        });
+
+// Filter threads based on current filter
+const filteredThreads = this.threads.filter(thread => {
+    const isArchived = thread.archived || false;
+
+    // 1. Active/Archived filter
+    if (this.currentFilter === 'archived' ? !isArchived : isArchived) {
+        return false;
+    }
+
+    // 2. Search query (date, title, or ID)
+    if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        const titleMatch = thread.title.toLowerCase().includes(query);
+        const idMatch = thread.id.includes(query);
+
+        // Try parsing as date (various formats)
+        let dateMatch = false;
+        if (thread.updated) {
+            const threadDate = new Date(thread.updated);
+            const dateStr = threadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toLowerCase();
+            const dateStr2 = threadDate.toISOString().split('T')[0]; // YYYY-MM-DD
+            dateMatch = dateStr.includes(query) || dateStr2.includes(query);
+        }
+
+        if (!titleMatch && !idMatch && !dateMatch) {
+            return false;
+        }
+    }
+
+    // 3. Location filter (all/prime/all-agents/agent-1/agent-2/agent-3)
+    if (this.locationFilter && this.locationFilter !== 'all') {
+        const threadLocation = thread.location || 'prime';
+
+        if (this.locationFilter === 'prime' && threadLocation !== 'prime') {
+            return false;
+        } else if (this.locationFilter === 'all-agents' && threadLocation === 'prime') {
+            return false;
+        } else if (this.locationFilter.startsWith('agent-') && threadLocation !== this.locationFilter) {
+            return false;
+        }
+    }
+
+    // 4. Tag filter (synergy/automation)
+    if (this.activeTagFilter) {
+        if (this.activeTagFilter === 'synergy' && !thread.synergy_card_id) {
+            return false;
+        }
+        if (this.activeTagFilter === 'automation' && !thread.automation_workflow_id) {
+            return false;
+        }
+    }
+
+    // 5. Date range filter
+    if (this.dateRangeFilter && this.dateRangeFilter.startDate && thread.updated) {
+        const threadDate = new Date(thread.updated);
+        if (threadDate < this.dateRangeFilter.startDate) {
+            return false;
+        }
+    }
+
+    return true;
+});
+
+if (filteredThreads.length === 0) {
+    listContainer.innerHTML = `<div style="padding: var(--space-4); text-align: center; color: var(--text-secondary);">
+                ${this.currentFilter === 'archived' ? 'No archived threads' : 'No active threads'}
+            </div>`;
+    return;
+}
+
+// Sort threads by date (newest first)
+filteredThreads.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+
+// Group threads by date
+const groupedThreads = [];
+let currentDateGroup = null;
+
+filteredThreads.forEach(thread => {
+    const threadDate = new Date(thread.updated);
+    const dateLabel = this.getDateLabel(threadDate);
+
+    if (currentDateGroup !== dateLabel) {
+        groupedThreads.push({ type: 'separator', label: dateLabel });
+        currentDateGroup = dateLabel;
+    }
+    groupedThreads.push({ type: 'thread', data: thread });
+});
+
+// Render grouped threads with separators (SIMPLIFIED - FULL VERSION TOO LARGE)
+listContainer.innerHTML = groupedThreads.map(item => {
+    if (item.type === 'separator') {
+        return `<div class="thread-date-separator"><span>${item.label}</span></div>`;
+    }
+
+    const thread = item.data;
+    const date = new Date(thread.updated);
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const currentLocation = threadToLocation[thread.id] || 'prime';
+
+    let agentLabel = 'Prime';
+    let agentIcon = 'fa-star';
+    let agentClass = 'main';
+
+    if (currentLocation && currentLocation !== 'prime') {
+        const match = currentLocation.match(/agent-(\d+)/);
+        if (match) {
+            const agentId = parseInt(match[1]);
+            agentLabel = (typeof MultiAgent !== 'undefined' && MultiAgent.getAgentName) ?
+                MultiAgent.getAgentName(agentId) : `Agent-${agentId}`;
+            agentIcon = (typeof MultiAgent !== 'undefined' && MultiAgent.getAgentIcon) ?
+                MultiAgent.getAgentIcon(agentId) : 'fa-atom';
+            agentClass = 'agent';
+        }
+    }
+
+    const threadTitle = thread.title || 'Untitled';
+    const truncatedTitle = threadTitle.length > 35 ? threadTitle.substring(0, 32) + '...' : threadTitle;
+
+    return `
+                <div class="thread-item ${thread.id === this.currentThreadId ? 'active' : ''}"
+                    draggable="true"
+                    data-thread-id="${thread.id}"
+                    data-current-location="${currentLocation}"
+                    ondragstart="ThreadManager.handleDragStart(event)"
+                    ondragend="ThreadManager.handleDragEnd(event)"
+                    ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${currentLocation}')">
+                    
+                    <div class="thread-item-header">
+                        <div class="thread-item-agent-badge ${agentClass}">
+                            <i class="fas ${agentIcon}"></i> ${agentLabel}
+                        </div>
+                        <div class="thread-item-actions">
+                            <button class="thread-action-btn" onclick="event.stopPropagation(); ThreadManager.loadThread('${thread.id}')" title="Load thread">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="thread-item-title-row">
+                        <span class="thread-item-title" title="${threadTitle}">${truncatedTitle}</span>
+                    </div>
+                    
+                    <div class="thread-item-meta">
+                        <span class="thread-meta-item"><i class="fas fa-comments"></i> ${thread.message_count || 0} msgs</span>
+                        <span class="thread-meta-item"><i class="fas fa-calendar"></i> ${dateStr}</span>
+                        <span class="thread-meta-item"><i class="fas fa-clock"></i> ${timeStr}</span>
+                    </div>
+                </div>
+            `;
+}).join('');
+    },
+
+// Helper method for date labels
+getDateLabel(date) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const threadDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (threadDay.getTime() === today.getTime()) {
+        return 'Today';
+    } else if (threadDay.getTime() === yesterday.getTime()) {
+        return 'Yesterday';
+    } else if (threadDay > new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)) {
+        return 'This Week';
+    } else {
+        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+},
+
+// Drag and drop handlers (stubs - implement if needed)
+handleDragStart(event) {
+    const threadId = event.currentTarget.dataset.threadId;
+    event.dataTransfer.setData('text/plain', threadId);
+    event.currentTarget.classList.add('dragging');
+},
+
+handleDragEnd(event) {
+    event.currentTarget.classList.remove('dragging');
+},
+
+handleThreadDoubleClick(threadId, location) {
+    console.log(`[ThreadManager] Double-clicked thread ${threadId} in ${location}`);
+    this.loadThread(threadId);
+},
+
+// Set filter (active/archived)
+setFilter(filter, event) {
+    console.log(`[ThreadManager] setFilter(${filter})`);
+    this.currentFilter = filter;
+
+    // Update active tab
+    if (event) {
+        document.querySelectorAll('.thread-view-tab').forEach(tab => tab.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    this.renderThreadList();
+},
+
+// Filter by location
+filterByLocation(location) {
+    console.log(`[ThreadManager] filterByLocation(${location})`);
+    this.locationFilter = location;
+
+    // Update active chip
+    document.querySelectorAll('.thread-filter-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.filter === location);
+    });
+
+    this.renderThreadList();
+},
+
+// Filter by tag
+filterByTag(tag) {
+    console.log(`[ThreadManager] filterByTag(${tag})`);
+    this.activeTagFilter = tag;
+
+    // Update active chip
+    document.querySelectorAll('.thread-filter-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.filter === tag);
+    });
+
+    this.renderThreadList();
+},
+
+// Filter threads by search query
+filterThreads(query) {
+    console.log(`[ThreadManager] filterThreads(${query})`);
+    this.searchQuery = query;
+    this.renderThreadList();
+},
+
+// Filter by date range
+filterByDateRange(range) {
+    console.log(`[ThreadManager] filterByDateRange(${range})`);
+    this.dateRangeFilter.range = range;
+
+    if (range !== 'all') {
+        const now = new Date();
+        let startDate = new Date();
+
+        switch (range) {
+            case 'today':
+                startDate.setHours(0, 0, 0, 0);
+                break;
+            case 'yesterday':
+                startDate.setDate(now.getDate() - 1);
+                startDate.setHours(0, 0, 0, 0);
+                break;
+            case '3days':
+                startDate.setDate(now.getDate() - 3);
+                break;
+            case 'week':
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case 'month':
+                startDate.setMonth(now.getMonth() - 1);
+                break;
+        }
+
+        this.dateRangeFilter.startDate = startDate;
+    } else {
+        this.dateRangeFilter.startDate = null;
+    }
+
+    this.renderThreadList();
+},
+
+    // Load thread into Prime panel
+    async loadThread(threadId) {
+    console.log(`[ThreadManager] loadThread(${threadId})`);
+
+    try {
+        const thread = this.threads.find(t => t.id === threadId);
+        if (!thread) {
+            console.error(`[ThreadManager] Thread ${threadId} not found`);
+            return;
+        }
+
+        // Close thread menu
+        this.closeThreadMenu();
+
+        // Check if thread is in an agent
+        if (thread.location && thread.location !== 'prime') {
+            console.log(`[ThreadManager] Thread is in ${thread.location}, showing view choice modal`);
+            // Show modal asking where to view
+            if (typeof ThreadViewChoice !== 'undefined') {
+                ThreadViewChoice.show(threadId, thread.location);
+            }
+            return;
+        }
+
+        // Load thread in Prime
+        if (typeof AppState !== 'undefined') {
+            AppState.sessionId = threadId;
+            AppState.chatMessages = thread.messages || [];
+        }
+
+        // Hide welcome, show messages
+        const welcomeContainer = document.getElementById('prime-welcome-container');
+        if (welcomeContainer) welcomeContainer.style.display = 'none';
+
+        const messagesContainer = document.getElementById('ai-chat-messages');
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+            // Render messages
+            thread.messages?.forEach(msg => {
+                const msgEl = document.createElement('div');
+                msgEl.className = `ai-message ${msg.role}`;
+                msgEl.innerHTML = `
+                        <div class="ai-message-content">${msg.content}</div>
+                    `;
+                messagesContainer.appendChild(msgEl);
+            });
+        }
+
+        // Update thread info card
+        this.refreshAllThreadInfoCards(threadId);
+
+        console.log(`[ThreadManager] Loaded thread ${threadId} in Prime`);
+    } catch (error) {
+        console.error('[ThreadManager] Failed to load thread:', error);
+    }
+},
+
+// Refresh all thread info cards
+refreshAllThreadInfoCards(threadId) {
+    console.log(`[ThreadManager] refreshAllThreadInfoCards(${threadId})`);
+
+    const thread = this.threads.find(t => t.id === threadId);
+    if (!thread) return;
+
+    // Update Prime thread info
+    const primeThreadInfo = document.getElementById('thread-info-prime');
+    if (primeThreadInfo && thread.location === 'prime') {
+        primeThreadInfo.innerHTML = this.renderThreadInfoContainer('prime', threadId, false);
+    }
+
+    // Update agent thread info cards
+    for (let i = 1; i <= 5; i++) {
+        const agentThreadInfo = document.getElementById(`thread-info-${i}`);
+        if (agentThreadInfo && thread.location === `agent-${i}`) {
+            agentThreadInfo.innerHTML = this.renderThreadInfoContainer(`agent-${i}`, threadId, true);
+        }
+    }
+},
+
+
+
+
+
+
+// ============================================================
+// UNIVERSAL THREAD INFO CONTAINER RENDERER (REFACTORED - Phase 2)
+// ============================================================
+/**
+ * Render Unified Thread Info Container (for Prime, Agents, and Synergy cards)
+ * This replaces the old inconsistent thread-info displays with a unified structure
+ * 
+ * REFACTORED: Now uses ThreadCardTemplates module for HTML generation
+ * 
+ * @param {string} location - 'prime', 'agent-1', 'agent-2', 'synergy', etc.
+ * @param {string} threadId - Thread ID
+ * @param {boolean} compact - If true, use compact styling for agents/synergy
+ * @returns {string} HTML string for thread-info container
+ */
+renderThreadInfoContainer(location, threadId, compact = false) {
+    console.log(`?? [renderThreadInfoContainer] Called:`, { location, threadId, compact });
+    console.log(`?? [renderThreadInfoContainer] Total threads:`, this.threads.length);
+    console.log(`?? [renderThreadInfoContainer] Thread IDs available:`, this.threads.map(t => t.id));
+
+    const thread = this.threads.find(t => t.id === threadId);
+    console.log(`?? [renderThreadInfoContainer] Thread found:`, !!thread, thread ? `(title: "${thread.title}")` : '(not found)');
+
+    if (!thread) {
+        // For Prime, return welcome container with tool count
+        if (location === 'prime') {
+            console.log(`?? [renderThreadInfoContainer] Returning welcome container`);
+            return ThreadCardTemplates.welcomeContainer(594);
+        }
+
+        // For agents/synergy, determine agent name and icon
+        let agentName = 'Agent';
+        let agentIcon = 'fa-robot';
+
+        if (location === 'synergy') {
+            agentName = 'Synergy';
+            agentIcon = 'fa-users';
+        } else {
+            const match = location.match(/agent-(\d+)/);
+            if (match && typeof MultiAgent !== 'undefined') {
+                const agentId = parseInt(match[1]);
+                agentName = MultiAgent.getAgentName(agentId);
+                agentIcon = MultiAgent.getAgentIcon(agentId);
+            }
+        }
+
+        console.log(`?? [renderThreadInfoContainer] Returning no thread message for ${agentName}`);
+        return ThreadCardTemplates.noThreadMessage(agentName, agentIcon);
+    }
+
+    // Prepare agent metadata
+    const agent = {
+        name: 'Prime',
+        icon: 'fa-star',
+        class: 'main'
+    };
+
+    // Determine agent from location or thread.agent property
+    if (location === 'synergy' && thread.agent) {
+        const match = thread.agent.toString().match(/agent-(\d+)/);
+        if (match) {
+            const agentId = parseInt(match[1]);
+            agent.name = MultiAgent ? MultiAgent.getAgentName(agentId) : `Agent-${agentId}`;
+            agent.icon = MultiAgent ? MultiAgent.getAgentIcon(agentId) : 'fa-atom';
+            agent.class = 'agent';
+        }
+    } else if (location !== 'prime' && location !== 'synergy') {
+        const match = location.match(/agent-(\d+)/);
+        if (match && typeof MultiAgent !== 'undefined') {
+            const agentId = parseInt(match[1]);
+            agent.name = MultiAgent.getAgentName(agentId);
+            agent.icon = MultiAgent.getAgentIcon(agentId);
+            agent.class = 'agent';
+        }
+    }
+
+    // Prepare display metadata
+    const updatedDate = new Date(thread.updated || thread.created);
+    const meta = {
+        msgCount: thread.message_count || (thread.messages && thread.messages.length) || 0,
+        dateStr: updatedDate.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+        }),
+        timeStr: updatedDate.toLocaleTimeString('en-US', {
+            hour: 'numeric', minute: '2-digit'
+        })
+    };
+
+    // Shortened thread slug for display
+    const slug = thread.id;
+
+    // Fetch Synergy metadata from global cache
+    let synergyMeta = null;
+    if (thread.synergy_card_id) {
+        if (!window._synergySessionCache) window._synergySessionCache = {};
+        synergyMeta = window._synergySessionCache[thread.synergy_card_id];
+
+        // REALTIME: Don't fetch synergy data here - causes infinite loop!
+        // Synergy Board already has realtime subscription (line 40410)
+        // If synergy metadata needed, it should be populated when linking
+        // DO NOT FETCH HERE - causes repeated API calls
+        if (!synergyMeta) {
+            // Use placeholder data - synergy board will update via realtime
+            synergyMeta = {
+                title: thread.synergy_card_id || 'Synergy Session',
+                description: 'Loading...',
+                priority: 'medium'
+            };
+        }
+    }
+
+    // Use compact template for ALL locations (Prime, Agents, History)
+    // Prime will use compactCard with headerRowClean (no unload button)
+    // Agents will use compactCard with headerRowWithUnload ([X] button)
+    console.log(`?? [renderThreadInfoContainer] Rendering compact card:`, { location, threadId: thread.id });
+
+    let html = ThreadCardTemplates.compactCard(thread, location, agent, meta, slug, synergyMeta);
+
+    console.log(`?? [renderThreadInfoContainer] Generated HTML length:`, html ? html.length : 0);
+    return html;
+},
+
+
+
+
 
 // ==================== EXPOSE THREADMANAGER GLOBALLY ====================
 window.ThreadManager = ThreadManager;

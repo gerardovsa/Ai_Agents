@@ -345,25 +345,27 @@ const MultiAgent = {
         }
     },
 
-    // Build agent quick-nav bar
+    // Build agent quick-nav bar (backend-driven)
     buildQuickNav(maxAgentId, assignments) {
         const navContainer = document.querySelector('.agent-quick-nav-container');
         if (!navContainer) {
-            console.warn('[MultiAgent] Quick nav container not found');
+            console.warn('⚠️ [Multi-Agent] Quick nav container not found');
             return;
         }
 
         navContainer.innerHTML = '';
 
+        // Create badges ONLY for agents that exist (1 to maxAgentId)
         for (let i = 1; i <= maxAgentId; i++) {
             const agentName = this.getAgentName(i);
             const agentIcon = this.getAgentIcon(i);
-            const threadInfo = this.loadedThreads[i];
+            const location = `agent-${i}`;
+            const threadInfo = assignments[location];
 
-            // Get actual message count from thread data
+            // Get actual message count from ThreadManager (if available)
             let messageCount = 0;
-            if (threadInfo?.threadId && typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
-                const thread = ThreadManager.threads.find(t => t.id === threadInfo.threadId);
+            if (threadInfo && typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
+                const thread = ThreadManager.threads.find(t => t.id === threadInfo);
                 if (thread) {
                     messageCount = thread.messages?.length || thread.message_count || 0;
                 }
@@ -374,12 +376,29 @@ const MultiAgent = {
             badge.id = `quick-nav-badge-${i}`;
             badge.dataset.agentId = i;
 
-            // Highlight if has thread or messages
-            if (threadInfo || messageCount > 0) {
+            // Highlight if agent has thread assignment
+            if (threadInfo) {
                 badge.classList.add('has-thread');
 
+                // Get full thread info for tooltip
+                let fullThreadInfo = null;
+                if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
+                    const thread = ThreadManager.threads.find(t => t.id === threadInfo);
+                    if (thread) {
+                        fullThreadInfo = {
+                            threadId: thread.id,
+                            threadTitle: thread.title,
+                            messageCount: messageCount,
+                            synergyCardId: thread.synergy_card_id || null,
+                            synergySessionName: thread.synergy_card_name || null,
+                            workflowId: thread.workflow_id || null,
+                            automationId: thread.automation_id || null
+                        };
+                    }
+                }
+
                 // Add tooltip data
-                this.addBadgeTooltipData(badge, i, threadInfo, messageCount);
+                this.addBadgeTooltipData(badge, i, fullThreadInfo, messageCount);
             }
 
             badge.innerHTML = `
@@ -392,7 +411,7 @@ const MultiAgent = {
             navContainer.appendChild(badge);
         }
 
-        console.log(`[Command Center] Quick nav built with ${maxAgentId} agent badges`);
+        console.log(`✅ [Command Center] Quick nav built with ${maxAgentId} agent badges (from backend assignments)`);
     },            // Add badge for new agent
     addQuickNavBadge(agentId) {
         const navContainer = document.querySelector('.agent-quick-nav-container');
@@ -960,8 +979,14 @@ const MultiAgent = {
         }
     },
 
-    // Save multi-agent state to localStorage
+    // Save multi-agent state to localStorage [DISABLED - Backend is source of truth]
     saveState() {
+        // DO NOT save to localStorage - backend database is authoritative source
+        // All agent/thread assignments are stored in database via ThreadManager
+        console.log('⚠️ [Multi-Agent] localStorage saving disabled - backend is source of truth');
+        return;
+
+        /* OLD CODE - DISABLED:
         try {
             const state = {
                 nextAgentId: this.nextAgentId,
@@ -969,14 +994,30 @@ const MultiAgent = {
                 sessions: this.sessions
             };
             localStorage.setItem('multi_agent_state', JSON.stringify(state));
-            console.log(' Multi-agent state saved');
+            console.log('💾 Multi-agent state saved');
         } catch (error) {
-            console.error(' Failed to save multi-agent state:', error);
+            console.error('❌ Failed to save multi-agent state:', error);
         }
+        */
     },
 
-    // Load multi-agent state from localStorage
+    // Load multi-agent state from localStorage [DISABLED - Backend is source of truth]
     loadState() {
+        // DO NOT load from localStorage - backend database is authoritative source
+        // Agent count and assignments are calculated from actual backend thread assignments
+        console.log('⚠️ [Multi-Agent] localStorage loading disabled - using backend only');
+
+        // Clear any stale localStorage data
+        try {
+            localStorage.removeItem('multi_agent_state');
+            console.log('🗑️ [Multi-Agent] Cleared stale localStorage');
+        } catch (error) {
+            console.error('❌ Failed to clear localStorage:', error);
+        }
+
+        return;
+
+        /* OLD CODE - DISABLED:
         try {
             const saved = localStorage.getItem('multi_agent_state');
             if (saved) {
@@ -987,8 +1028,9 @@ const MultiAgent = {
                 console.log('[DATA] Multi-agent state loaded');
             }
         } catch (error) {
-            console.error(' Failed to load multi-agent state:', error);
+            console.error('❌ Failed to load multi-agent state:', error);
         }
+        */
     },
 
     // Load thread into agent
@@ -1495,40 +1537,42 @@ const MultiAgent = {
 };
 
 async function initMultiAgent() {
-    console.log('[Multi-Agent] Initializing NATO AI Columns...');
+    console.log('🚀 [Multi-Agent] Initializing NATO AI Columns...');
 
-    // Load saved state
+    // Clear any stale localStorage data (backend is source of truth)
     MultiAgent.loadState();
 
     const container = document.getElementById('multi-agent-container');
     if (!container) {
-        console.error('[Multi-Agent] Container not found');
+        console.error('❌ [Multi-Agent] Container not found');
         return;
     }
 
-    // [NEW] STEP 1: Fetch thread assignments FIRST (before creating columns)
-    // ? LAZY LOADING: Only get assignments metadata, not full thread list
+    // STEP 1: Fetch thread assignments from backend (authoritative source)
     let assignments = {};
     if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.getThreadAssignments === 'function') {
         assignments = await ThreadManager.getThreadAssignments();
-        console.log('?? [Multi-Agent] Fetched thread assignments (lazy loading enabled)');
+        console.log('✅ [Multi-Agent] Fetched thread assignments from backend:', assignments);
+    } else {
+        console.warn('⚠️ [Multi-Agent] ThreadManager.getThreadAssignments not available');
     }
 
-    // [NEW] STEP 2: Calculate highest agent ID needed
+    // STEP 2: Calculate agent count from ACTUAL backend assignments
     const agentIdsWithThreads = Object.keys(assignments)
         .filter(loc => loc.startsWith('agent-'))
         .map(loc => parseInt(loc.replace('agent-', '')))
         .filter(id => !isNaN(id));
 
-    const maxAgentId = Math.max(
-        3,  // Minimum 3 agents (Alpha, Bravo, Charlie)
-        ...agentIdsWithThreads,
-        0  // Fallback if no agent assignments
-    );
+    // Calculate max agent ID (minimum 3, or highest assigned + 1)
+    const maxAssignedAgent = agentIdsWithThreads.length > 0 ? Math.max(...agentIdsWithThreads) : 0;
+    const maxAgentId = Math.max(maxAssignedAgent + 1, 3);  // Always create at least 3 agents
 
-    console.log(`[Multi - Agent] Creating ${maxAgentId} agents(assigned agents: [${agentIdsWithThreads.join(', ')}])`);
+    // Update nextAgentId based on actual usage (not localStorage)
+    MultiAgent.nextAgentId = maxAgentId + 1;
 
-    // [NEW] STEP 3: Create ALL agents from 1 to maxAgentId
+    console.log(`📊 [Multi-Agent] Creating ${maxAgentId} agents (assigned agents: [${agentIdsWithThreads.sort().join(', ')}])`);
+
+    // STEP 3: Create ALL agents from 1 to maxAgentId
     for (let i = 1; i <= maxAgentId; i++) {
         createAgentColumn(i);
 
@@ -1548,8 +1592,9 @@ async function initMultiAgent() {
         console.log(`[OK][Multi-Agent] ${MultiAgent.getAgentName(i)} is EXPANDED (has thread: ${!!hasThread})`);
     }
 
-    // Build agent quick-nav bar
+    // Build agent quick-nav bar (using actual agent count from backend)
     MultiAgent.buildQuickNav(maxAgentId, assignments);
+    console.log(`✅ [Command Center] Quick nav built with ${maxAgentId} agent badges (from backend assignments)`);
 
     // Update stats
     MultiAgent.updateDashboardStats();
@@ -1658,6 +1703,11 @@ async function initMultiAgent() {
             }
         }
     });
+
+    // Log final initialization status
+    const assignedCount = agentIdsWithThreads.length;
+    const collapsedCount = maxAgentId - assignedCount;
+    console.log(`✅ [Multi-Agent] Initialized with ${maxAgentId} NATO agents (${assignedCount} with threads, ${collapsedCount} empty) - Backend is source of truth`);
 
     // Add the "Add Agent" bar
     createAddAgentBar();
@@ -2715,7 +2765,7 @@ async function sendAgentMessage(agentId) {
         // HANDLE STREAMING RESPONSE (SAME AS PRIME!)
         console.log(`[Agent ${agentId}] Receiving streamed response...`);
 
-        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        // messagesContainer already declared earlier in this function (line ~2570)
         if (!messagesContainer) {
             console.error(`[Agent ${agentId}] Could not find messages container!`);
             throw new Error('Messages container not found');

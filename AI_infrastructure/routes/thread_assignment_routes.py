@@ -200,6 +200,8 @@ def get_thread_assignments():
     Get thread assignments for user
     Only returns agent columns (Prime is implicit)
     
+    READS FROM: sessions.threads.location (single source of truth)
+    
     Query params:
         user_id: User ID (default: 1)
     
@@ -220,46 +222,41 @@ def get_thread_assignments():
         conn.isolation_level = None  # Autocommit mode
         cursor = conn.cursor()
         
+        # NEW: Read from sessions.threads.location (single source of truth)
         cursor.execute("""
-            SELECT metadata FROM ai_infrastructure.users WHERE id = %s
+            SELECT thread_slug, location 
+            FROM sessions.threads 
+            WHERE user_id = %s 
+              AND location IS NOT NULL 
+              AND location != 'prime'
+            ORDER BY updated_at DESC
         """, [user_id])
         
-        row = cursor.fetchone()
+        rows = cursor.fetchall()
         
-        if not row:
-            logger.info(f"No metadata found for user {user_id}")
+        if not rows:
+            logger.info(f"No thread assignments found for user {user_id}")
             return jsonify({
                 'success': True,
                 'assignments': {}
             })
         
-        # Get metadata value (PostgreSQL returns tuple)
-        metadata_value = row[0] if row else None
-        
-        if not metadata_value:
-            logger.info(f"Empty metadata for user {user_id}")
-            return jsonify({
-                'success': True,
-                'assignments': {}
-            })
-        
-        # Parse metadata JSON
-        try:
-            metadata = json.loads(metadata_value)
-            assignments = metadata.get('thread_assignments', {})
+        # Build assignments dict: {"agent-1": "thread_slug", "agent-2": "thread_slug", ...}
+        assignments = {}
+        for row in rows:
+            thread_slug = str(row[0])  # Convert to string
+            location = row[1]
             
-            logger.info(f"Loaded {len(assignments)} thread assignments for user {user_id}")
-            
-            return jsonify({
-                'success': True,
-                'assignments': assignments
-            })
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON in metadata: {e}")
-            return jsonify({
-                'success': True,
-                'assignments': {}
-            })
+            # Only include agent locations (not 'prime', 'stock_ai', etc.)
+            if location and location.startswith('agent-'):
+                assignments[location] = thread_slug
+        
+        logger.info(f"Loaded {len(assignments)} thread assignments from sessions.threads for user {user_id}")
+        
+        return jsonify({
+            'success': True,
+            'assignments': assignments
+        })
         
     except Exception as e:
         logger.error(f"Error getting thread assignments: {e}")

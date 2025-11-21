@@ -135,8 +135,15 @@ window.ThreadManagerUI = {
             return;
         }
 
-        // Sort by date (newest first)
-        filteredThreads.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+        // Sort by date based on sortOrder setting
+        const sortOrder = this.sortOrder || 'updated';
+        if (sortOrder === 'created') {
+            // Sort by creation date (oldest first for chronological)
+            filteredThreads.sort((a, b) => new Date(a.created) - new Date(b.created));
+        } else {
+            // Sort by updated date (newest first for recent activity)
+            filteredThreads.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+        }
 
         // Group by date
         const groupedThreads = [];
@@ -144,7 +151,8 @@ window.ThreadManagerUI = {
         let currentDateGroup = null;
 
         filteredThreads.forEach(thread => {
-            const threadDate = new Date(thread.updated);
+            const dateField = sortOrder === 'created' ? thread.created : thread.updated;
+            const threadDate = new Date(dateField);
             const dateLabel = window.ThreadManagerUI.getDateLabel(threadDate);
 
             if (currentDateGroup !== dateLabel) {

@@ -56,7 +56,8 @@ class SynergySidebarController {
         try {
             console.log('[SYNERGY SIDEBAR] Loading sessions...');
 
-            const response = await fetch(`${this.API_BASE_URL}/api/synergy/sessions`);
+            // Use /sessions/batch endpoint to get sessions with counts
+            const response = await fetch(`${this.API_BASE_URL}/api/synergy/sessions/batch`);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -228,9 +229,18 @@ class SynergySidebarController {
         if (item) {
             item.classList.toggle('expanded', !isExpanded);
 
-            // If expanding, load full data
-            if (!isExpanded && this.renderer) {
-                await this.renderer.loadAndRenderFullCard(sessionId, item);
+            const expandedContent = item.querySelector('.synergy-card-expanded-content');
+            if (expandedContent) {
+                if (!isExpanded) {
+                    // Expanding - show content and load data
+                    expandedContent.style.display = 'block';
+                    if (this.renderer) {
+                        await this.renderer.loadAndRenderFullCard(sessionId, item);
+                    }
+                } else {
+                    // Collapsing - hide content
+                    expandedContent.style.display = 'none';
+                }
             }
         }
 

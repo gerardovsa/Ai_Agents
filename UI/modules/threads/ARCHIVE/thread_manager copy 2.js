@@ -246,7 +246,7 @@ Return ONLY the greeting text, no quotes or extra formatting.`;
      * Flow: assignThread() ? UPDATE DATABASE ? _cascadeThreadAssignment() ? UPDATE UI
      */
     async assignThread(threadId, location) {
-        console.log(`?? [assignThread] START: ${threadId} ? ${location}`);
+        console.log(`?? [AssignThread] START: ${threadId} ? ${location}`);
 
         try {
             // Set pending flag to prevent realtime loop

@@ -435,7 +435,7 @@ class UserAuthManager:
             with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO sessions.user_sessions (user_id, token, expires_at)
+                    INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
                     VALUES (%s, %s, %s)
                 ''', (user_data.get('id'), token, token_payload['exp']))
                 conn.commit()
@@ -516,7 +516,7 @@ class UserAuthManager:
             
             # Store session
             cursor.execute('''
-                INSERT INTO sessions.user_sessions (user_id, token, expires_at)
+                INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
                 VALUES (%s, %s, %s)
             ''', (user_id, token, exp_time.strftime('%Y-%m-%d %H:%M:%S')))
             
@@ -604,13 +604,13 @@ class UserAuthManager:
             try:
                 
                 # First check total sessions in database
-                cursor.execute('SELECT COUNT(*) FROM sessions.user_sessions')
+                cursor.execute('SELECT COUNT(*) FROM ai_infrastructure.user_sessions')
                 result = cursor.fetchone()
                 total_sessions = result['count'] if isinstance(result, dict) else result[0]
                 print(f"   Total sessions in DB: {total_sessions}")
                 
                 cursor.execute('''
-                    SELECT user_id, expires_at FROM sessions.user_sessions
+                    SELECT user_id, expires_at FROM ai_infrastructure.user_sessions
                     WHERE token = %s
                 ''', (token,))
                 
@@ -618,7 +618,7 @@ class UserAuthManager:
                 if not result:
                     print(f"    Token NOT found in database")
                     print(f"   Checking sessions for user_id={payload.get('user_id')}...")
-                    cursor.execute('SELECT COUNT(*) FROM sessions.user_sessions WHERE user_id = %s', (payload.get('user_id'),))
+                    cursor.execute('SELECT COUNT(*) FROM ai_infrastructure.user_sessions WHERE user_id = %s', (payload.get('user_id'),))
                     count_result = cursor.fetchone()
                     user_sessions = count_result['count'] if isinstance(count_result, dict) else count_result[0]
                     print(f"   User has {user_sessions} session(s) in DB")
@@ -1454,7 +1454,7 @@ def require_auth(f):
         with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO sessions.user_sessions (user_id, token, expires_at)
+                INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
                 VALUES (%s, %s, %s)
             ''', (user_id, token, expiry.isoformat()))
             conn.commit()
@@ -1480,7 +1480,7 @@ def require_auth(f):
             with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT user_id FROM sessions.user_sessions
+                    SELECT user_id FROM ai_infrastructure.user_sessions
                     WHERE token = %s AND expires_at > CURRENT_TIMESTAMP
                 ''', (token,))
                 

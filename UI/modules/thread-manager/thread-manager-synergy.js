@@ -164,12 +164,14 @@ window.ThreadManagerSynergy = {
             return;
         }
 
-        // Fetch all Synergy sessions
+        // Fetch all Synergy sessions with counts
         let synergySessions = [];
         try {
-            let resp = await fetch(`${this.apiBaseUrl}/api/synergy/list`);
+            // Use /sessions/batch endpoint to get sessions with milestone/task/doc counts
+            let resp = await fetch(`${this.apiBaseUrl}/api/synergy/sessions/batch`);
             if (!resp.ok) {
-                resp = await fetch(`${this.apiBaseUrl}/api/synergy`);
+                // Fallback to basic sessions endpoint
+                resp = await fetch(`${this.apiBaseUrl}/api/synergy/sessions`);
             }
 
             const data = await resp.json();
@@ -311,6 +313,23 @@ window.ThreadManagerSynergy = {
                 (typeof session.tags === 'string' ? JSON.parse(session.tags || '[]') : []);
             const lastActive = session.last_active ? new Date(session.last_active).toLocaleDateString() : 'Never';
 
+            // Calculate counts
+            const milestones = session.milestone_count || 0;
+            const totalTasks = session.task_count || 0;
+            const tasksDone = session.tasks_done || 0;
+            const totalSubtasks = session.subtask_count || 0;
+            const subtasksDone = session.subtasks_done || 0;
+            
+            // Count docs and links
+            let docsCount = session.internal_docs_count || 0;
+            if (session.documents) {
+                const docs = Array.isArray(session.documents) ? session.documents :
+                    (typeof session.documents === 'string' ? JSON.parse(session.documents || '[]') : []);
+                docsCount += docs.length;
+            }
+            const linksCount = session.links ? (Array.isArray(session.links) ? session.links.length : 
+                (typeof session.links === 'string' ? JSON.parse(session.links || '[]').length : 0)) : 0;
+
             return `
                 <div class="synergy-session-item" 
                      data-session-id="${session.session_id}" 
@@ -327,7 +346,12 @@ window.ThreadManagerSynergy = {
                     <div class="synergy-session-meta">
                         <span><i class="fas fa-circle" style="color: ${status === 'active' ? 'var(--accent-success)' : 'var(--text-muted)'}; font-size: 8px;"></i> ${status}</span>
                         <span><i class="fas fa-clock"></i> ${lastActive}</span>
-                        ${tags.length > 0 ? `<span><i class="fas fa-tags"></i> ${tags.slice(0, 2).join(', ')}${tags.length > 2 ? '...' : ''}</span>` : ''}
+                        ${milestones > 0 ? `<span title="${milestones} milestone(s)"><i class="fas fa-flag"></i> ${milestones}</span>` : ''}
+                        ${totalTasks > 0 ? `<span title="${tasksDone}/${totalTasks} tasks completed"><i class="fas fa-tasks"></i> ${tasksDone}/${totalTasks}</span>` : ''}
+                        ${totalSubtasks > 0 ? `<span title="${subtasksDone}/${totalSubtasks} subtasks completed"><i class="fas fa-list-check"></i> ${subtasksDone}/${totalSubtasks}</span>` : ''}
+                        ${docsCount > 0 ? `<span title="${docsCount} document(s)"><i class="fas fa-file-alt"></i> ${docsCount}</span>` : ''}
+                        ${linksCount > 0 ? `<span title="${linksCount} link(s)"><i class="fas fa-link"></i> ${linksCount}</span>` : ''}
+                        ${tags.length > 0 ? `<span title="${tags.join(', ')}"><i class="fas fa-tags"></i> ${tags.slice(0, 2).join(', ')}${tags.length > 2 ? '...' : ''}</span>` : ''}
                     </div>
                 </div>
             `;

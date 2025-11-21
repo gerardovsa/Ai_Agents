@@ -357,4 +357,4 @@ const DeviceLockManager = {
 };
 
 window.DeviceLockManager = DeviceLockManager;
-console.log('DeviceLockManager module loaded');
+console.log('✅ [DeviceLockManager] Module loaded and exposed globally');

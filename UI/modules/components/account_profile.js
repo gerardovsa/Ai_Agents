@@ -891,9 +891,12 @@ function showAccountSettings() {
 
     // Close dropdown after clicking
     const userDropdown = document.querySelector('.user-dropdown-menu');
+    const userProfileBtn = document.querySelector('.user-profile-btn');
     if (userDropdown) {
         userDropdown.classList.remove('active');
-        document.querySelector('.user-profile-btn').classList.remove('active');
+    }
+    if (userProfileBtn) {
+        userProfileBtn.classList.remove('active');
     }
 }
 
