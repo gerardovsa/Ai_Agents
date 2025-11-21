@@ -242,12 +242,29 @@ const ThreadManager = {
                         console.log(`   📍 Thread ${idx + 1}: "${threadTitle}" (${threadId}) → location="${location}"`);
                     }
 
+                    // Parse message content if it's a JSON string (from database)
+                    const messages = (thread.messages || []).map(msg => {
+                        // If content is a string, try to parse it as JSON
+                        if (typeof msg.content === 'string') {
+                            try {
+                                return {
+                                    ...msg,
+                                    content: JSON.parse(msg.content)
+                                };
+                            } catch (e) {
+                                console.warn(`⚠️ [ThreadManager] Failed to parse content for message in thread ${threadId}:`, e);
+                                return msg; // Return as-is if parsing fails
+                            }
+                        }
+                        return msg; // Already an object/array
+                    });
+
                     return {
                         id: threadId,
                         thread_id: thread.thread_id,
                         title: threadTitle,
                         name: threadTitle,
-                        messages: thread.messages || [],
+                        messages: messages,
                         message_count: thread.message_count || 0,
                         created: thread.created || thread.created_at || new Date().toISOString(),
                         updated: thread.updated || thread.updated_at || new Date().toISOString(),

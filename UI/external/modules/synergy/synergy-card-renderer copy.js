@@ -47,7 +47,7 @@ class SynergyCardRenderer {
     }
 
     /**
-     * Create session list item with NEW 4-ROW header structure and collapsed card
+     * Create session list item with header and collapsed card
      */
     createSessionItem(session, expandedSessions = new Set(), pinnedSessions = new Set()) {
         const item = document.createElement('div');
@@ -59,151 +59,51 @@ class SynergyCardRenderer {
 
         const isPinned = pinnedSessions.has(session.session_id);
         const documents = this.parseJsonField(session.documents, []);
-        const links = this.parseJsonField(session.links, []);
         const nextSteps = this.parseJsonField(session.next_steps, []);
-        
-        // Calculate milestone counts
-        let completedMilestones = 0;
-        let totalMilestones = 0;
-        if (session.uses_milestones && session.milestones) {
-            totalMilestones = session.milestones.length;
-            completedMilestones = session.milestones.filter(m => m.completed).length;
-        } else {
-            // Legacy: use next_steps as fallback
-            totalMilestones = nextSteps.length;
-            completedMilestones = nextSteps.filter(s => s && s.completed).length;
-        }
-
-        // Calculate task counts (from all milestones)
-        let completedTasks = 0;
-        let totalTasks = 0;
-        if (session.uses_milestones && session.milestones) {
-            session.milestones.forEach(milestone => {
-                if (milestone.tasks) {
-                    totalTasks += milestone.tasks.length;
-                    completedTasks += milestone.tasks.filter(t => t.completed).length;
-                }
-            });
-        }
-
-        // Calculate progress percentage
-        const progressPercent = totalTasks > 0 
-            ? Math.round((completedTasks / totalTasks) * 100) 
-            : (totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0);
-
-        // Get relative time
-        const relativeTime = this.getRelativeTime(session.updated_at);
-
-        // Truncate description to 100 characters
-        const description = session.description 
-            ? (session.description.length > 100 ? session.description.substring(0, 100) + '...' : session.description)
-            : 'No description';
-
-        // Format tags
-        const tags = this.parseJsonField(session.tags, []);
-        const tagsHtml = tags.length > 0 
-            ? tags.slice(0, 3).map(tag => `<span class="synergy-tag">${this.escapeHtml(tag)}</span>`).join('')
-            : '';
 
         item.innerHTML = `
-            <div class="synergy-session-header-new" onclick="SynergySidebar.toggleExpand(event, '${session.session_id}')">
-                
-                <!-- TITLE ROW (separate line) -->
-                <div class="synergy-title-row">
-                    <div class="synergy-title-text">${this.escapeHtml(session.title)}</div>
+            <div class="synergy-item-header" onclick="SynergySidebar.toggleExpand(event, '${session.session_id}')">
+                <div class="synergy-item-chevron">
+                    <i class="fas fa-chevron-right"></i>
                 </div>
-
-                <!-- ROW 1: Priority Badge + Status Badge + Actions -->
-                <div class="synergy-row-1">
-                    <span class="priority-badge priority-${session.priority.toLowerCase()}">${session.priority}</span>
-                    <span class="status-badge status-${session.status.toLowerCase().replace(/\s+/g, '-')}">${session.status}</span>
-                    
-                    <div class="synergy-actions">
-                        <button class="synergy-icon-btn ${isPinned ? 'pinned' : ''}" 
-                            onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')" 
-                            title="${isPinned ? 'Unpin' : 'Pin'} session">
-                            <i class="fas fa-thumbtack"></i>
-                        </button>
-                        <button class="synergy-icon-btn" 
-                            onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}'); return false;" 
-                            title="Pop out">
-                            <i class="fas fa-external-link-alt"></i>
-                        </button>
-                        <button class="synergy-icon-btn synergy-chevron">
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
+                <div class="synergy-item-info">
+                    <div class="synergy-item-title">${this.escapeHtml(session.title)}</div>
+                    <div class="synergy-item-meta">
+                        <span class="card-status" style="background: var(--bg-quaternary); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                            ${session.status}
+                        </span>
+                        <span class="card-time" style="opacity: 0.7; font-size: 10px;">
+                            <i class="fas fa-clock"></i> ${new Date(session.updated_at).toLocaleDateString()}
+                        </span>
+                        <span class="card-meta" style="color: ${this.priorityColors[session.priority]}; font-weight: 600; font-size: 10px; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-circle" style="font-size: 6px;"></i> ${session.priority}
+                        </span>
+                        <span class="card-stats" style="display: flex; gap: 8px; font-size: 10px; opacity: 0.8;">
+                            <span><i class="fas fa-comments"></i> ${session.message_count || 0}</span>
+                            <span><i class="fas fa-file"></i> ${documents.length}</span>
+                            <span><i class="fas fa-tasks"></i> ${nextSteps.filter(s => s && s.completed).length}/${nextSteps.length}</span>
+                        </span>
                     </div>
                 </div>
-
-                <!-- ROW 2: Description -->
-                <div class="synergy-row-2">
-                    <div class="synergy-description">${this.escapeHtml(description)}</div>
-                </div>
-
-                <!-- ROW 3: Metadata Stats -->
-                <div class="synergy-row-3">
-                    ${session.due_date ? `
-                    <div class="synergy-stat">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>${new Date(session.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    </div>
-                    ` : ''}
-                    <div class="synergy-stat">
-                        <i class="fas fa-flag"></i>
-                        <span>${completedMilestones}/${totalMilestones}</span>
-                    </div>
-                    <div class="synergy-stat">
-                        <i class="fas fa-tasks"></i>
-                        <span>${completedTasks}/${totalTasks}</span>
-                    </div>
-                    <div class="synergy-stat">
-                        <i class="fas fa-file-alt"></i>
-                        <span>${documents.length}</span>
-                    </div>
-                    <div class="synergy-stat">
-                        <i class="fas fa-link"></i>
-                        <span>${links.length}</span>
-                    </div>
-                </div>
-
-                <!-- ROW 4: Progress Bar + Footer -->
-                <div class="synergy-row-4">
-                    <div class="synergy-progress-bar">
-                        <div class="synergy-progress-fill" style="width: ${progressPercent}%"></div>
-                    </div>
-                    <div class="synergy-footer">
-                        <div class="synergy-project">${this.escapeHtml(session.project_name || 'General')}</div>
-                        <div class="synergy-tags">${tagsHtml}</div>
-                        <div class="synergy-updated">${relativeTime}</div>
-                    </div>
+                <div class="synergy-item-actions">
+                    <button class="synergy-item-btn pin ${isPinned ? 'pinned' : ''}" 
+                        onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')" 
+                        title="${isPinned ? 'Unpin' : 'Pin'} session">
+                        <i class="fas fa-thumbtack"></i>
+                    </button>
+                    <button class="synergy-item-btn popout" 
+                        onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}'); return false;" 
+                        title="Pop out">
+                        <i class="fas fa-external-link-alt"></i>
+                    </button>
                 </div>
             </div>
-            
             <div class="synergy-card-collapsed">
                 ${this.renderCollapsedCard(session)}
             </div>
         `;
 
         return item;
-    }
-
-    /**
-     * Format timestamp to relative time (e.g., "2h ago", "3d ago")
-     */
-    getRelativeTime(dateString) {
-        if (!dateString) return 'Unknown';
-        
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 30) return `${diffDays}d ago`;
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
     /**

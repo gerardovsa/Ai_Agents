@@ -1935,44 +1935,27 @@ def execute_streaming_request(
                                 
                                 missing_ids = set(tool_use_ids) - set(tool_result_ids)
                                 if missing_ids:
-                                    if ai_thinking_enabled:
-                                        # THINKING ENABLED: Preserve messages to maintain thinking block structure
-                                        print(f"{log_prefix} ⚠️ WARNING: Assistant message {idx} has tool_use blocks without matching tool_result:")
-                                        print(f"{log_prefix}   tool_use IDs: {tool_use_ids}")
-                                        print(f"{log_prefix}   tool_result IDs: {tool_result_ids}")
-                                        print(f"{log_prefix}   Missing: {list(missing_ids)}")
-                                        print(f"{log_prefix} ✅ PRESERVING: Messages kept intact (thinking enabled)")
-                                    else:
-                                        # THINKING DISABLED: Safe to remove messages
-                                        print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use blocks without matching tool_result:")
-                                        print(f"{log_prefix}   tool_use IDs: {tool_use_ids}")
-                                        print(f"{log_prefix}   tool_result IDs: {tool_result_ids}")
-                                        print(f"{log_prefix}   Missing: {list(missing_ids)}")
-                                        print(f"{log_prefix} 🔧 FIXING: Removing assistant+user messages to maintain valid state")
-                                        messages = messages[:idx]
-                                        break
-                            else:
-                                if ai_thinking_enabled:
-                                    # THINKING ENABLED: Preserve messages
-                                    print(f"{log_prefix} ⚠️ WARNING: Assistant message {idx} has tool_use but next message is {next_msg.get('role')}, not user!")
-                                    print(f"{log_prefix} ✅ PRESERVING: Message kept intact (thinking enabled)")
-                                else:
-                                    # THINKING DISABLED: Safe to remove
-                                    print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use but next message is {next_msg.get('role')}, not user!")
-                                    print(f"{log_prefix} 🔧 FIXING: Removing assistant message to prevent API error")
+                                    # CRITICAL FIX (Nov 21, 2025): ALWAYS remove orphaned tool_use blocks
+                                    # Orphaned tool_use ALWAYS causes 400 errors - must fix regardless of thinking mode
+                                    print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use blocks without matching tool_result:")
+                                    print(f"{log_prefix}   tool_use IDs: {tool_use_ids}")
+                                    print(f"{log_prefix}   tool_result IDs: {tool_result_ids}")
+                                    print(f"{log_prefix}   Missing: {list(missing_ids)}")
+                                    print(f"{log_prefix} 🔧 FIXING: Truncating conversation at message {idx} (thinking_enabled={ai_thinking_enabled})")
                                     messages = messages[:idx]
                                     break
-                        else:
-                            if ai_thinking_enabled:
-                                # THINKING ENABLED: Preserve messages
-                                print(f"{log_prefix} ⚠️ WARNING: Assistant message {idx} has tool_use but no following message!")
-                                print(f"{log_prefix} ✅ PRESERVING: Message kept intact (thinking enabled)")
                             else:
-                                # THINKING DISABLED: Safe to remove
-                                print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use but no following message!")
-                                print(f"{log_prefix} 🔧 FIXING: Removing assistant message to prevent API error")
+                                # CRITICAL FIX (Nov 21, 2025): ALWAYS fix incorrect message order
+                                print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use but next message is {next_msg.get('role')}, not user!")
+                                print(f"{log_prefix} 🔧 FIXING: Truncating conversation at message {idx} (thinking_enabled={ai_thinking_enabled})")
                                 messages = messages[:idx]
                                 break
+                        else:
+                            # CRITICAL FIX (Nov 21, 2025): ALWAYS fix missing tool_result message
+                            print(f"{log_prefix} ❌ ERROR: Assistant message {idx} has tool_use but no following message!")
+                            print(f"{log_prefix} 🔧 FIXING: Truncating conversation at message {idx} (thinking_enabled={ai_thinking_enabled})")
+                            messages = messages[:idx]
+                            break
         
         # Add user prompt (only on round 1)
         if user_prompt and current_round == 1:

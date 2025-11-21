@@ -126,14 +126,14 @@ Object.assign(window.ThreadManager, {
             console.log(`📋 [Interactions] Rendering ${thread.messages.length} messages...`);
             let renderedCount = 0;
             let skippedCount = 0;
-            
+
             thread.messages.forEach((msg, idx) => {
                 // Only render user and assistant messages
                 // Skip: tool_use, tool_result (internal API mechanics)
                 if (msg.role === 'user' || msg.role === 'assistant') {
                     // Check if message has actual text content
                     const hasTextContent = checkMessageHasTextContent(msg.content);
-                    
+
                     if (hasTextContent && typeof addChatMessage === 'function') {
                         addChatMessage(msg.role, msg.content);
                         renderedCount++;
@@ -146,10 +146,10 @@ Object.assign(window.ThreadManager, {
                     skippedCount++;
                 }
             });
-            
+
             console.log(`✅ [Interactions] Rendered ${renderedCount} messages, skipped ${skippedCount}`);
         }
-        
+
         /**
          * Check if message content has actual text to display
          * @param {string|object|array} content - Message content
@@ -159,15 +159,15 @@ Object.assign(window.ThreadManager, {
             if (typeof content === 'string' && content.trim()) {
                 return true;
             }
-            
+
             if (Array.isArray(content)) {
                 // Check if any block has text or thinking
-                return content.some(block => 
+                return content.some(block =>
                     (block.type === 'text' && block.text && block.text.trim()) ||
                     (block.type === 'thinking' && block.thinking)
                 );
             }
-            
+
             if (content && typeof content === 'object') {
                 if (content.type === 'text' && content.text && content.text.trim()) {
                     return true;
@@ -176,7 +176,7 @@ Object.assign(window.ThreadManager, {
                     return true;
                 }
             }
-            
+
             return false;
         }
 
