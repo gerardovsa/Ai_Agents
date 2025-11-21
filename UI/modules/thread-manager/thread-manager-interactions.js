@@ -302,21 +302,16 @@ Object.assign(window.ThreadManager, {
     async handleThreadDoubleClick(threadId, currentLocation) {
         console.log(`🖱️ [Interactions] Double-clicked thread ${threadId} at ${currentLocation}`);
 
-        // Check if this is from thread menu (thread-history location)
-        if (currentLocation === 'thread-history' || currentLocation === 'prime' || !currentLocation) {
-            // Load in Prime and close thread menu
-            await this.loadThreadInPrime(threadId);
-            this.closeThreadMenu();
-            if (typeof showNotification === 'function') {
-                showNotification('Thread opened in Prime', 'success');
-            }
-        } else if (currentLocation && currentLocation.startsWith('agent-')) {
-            // From agent column - show assignment options
-            const agentId = parseInt(currentLocation.replace('agent-', ''));
-            const threadItem = document.querySelector(`[data-thread-id="${threadId}"]`);
+        // Double-click ALWAYS loads in Prime (even from agents)
+        // This is the primary way to load threads when thread history covers Prime drop zone
+        await this.loadThreadInPrime(threadId);
+        this.closeThreadMenu();
 
-            if (threadItem && typeof this.showThreadAssignmentOptions === 'function') {
-                this.showThreadAssignmentOptions(threadId, agentId, threadItem);
+        if (typeof showNotification === 'function') {
+            if (currentLocation === 'prime') {
+                showNotification('Thread refreshed in Prime', 'success');
+            } else {
+                showNotification('Thread loaded in Prime', 'success');
             }
         }
     },
@@ -460,6 +455,15 @@ Object.assign(window.ThreadManager, {
         event.preventDefault();
         event.stopPropagation();
 
+        // Validate drop target - only allow drops in Prime or agent columns
+        const validDropZone = event.target.closest('.agent-column, #ai-chat-panel');
+        if (!validDropZone) {
+            console.log('🚫 [Drop] Dropped outside valid zones (e.g., thread history) - no action');
+            // Clear all drag-over states
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            return;
+        }
+
         const dropZone = event.currentTarget;
         dropZone.classList.remove('drag-over');
 
@@ -487,6 +491,15 @@ Object.assign(window.ThreadManager, {
         }
 
         console.log(`📍 [Interactions] Thread "${threadId}" (length: ${threadId.length}) dropped on ${targetLocation}`);
+
+        // Check if dropping in same location - no action needed
+        if (sourceLocation === targetLocation) {
+            console.log('🔄 [Drop] Same location - no change needed');
+            if (typeof showNotification === 'function') {
+                showNotification('Thread already in this location', 'info');
+            }
+            return;
+        }
 
         if (targetLocation === 'prime') {
             await this.assignThread(threadId, 'prime');
@@ -584,12 +597,9 @@ Object.assign(window.ThreadManager, {
             });
 
             agentColumn.addEventListener('dragleave', (e) => {
-                // Check if mouse actually left the column boundaries
-                const rect = agentColumn.getBoundingClientRect();
-                const x = e.clientX;
-                const y = e.clientY;
-
-                if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+                // Only remove highlight if actually leaving container (not entering child element)
+                // relatedTarget is where the mouse is going
+                if (!agentColumn.contains(e.relatedTarget)) {
                     agentColumn.classList.remove('drag-over');
                 }
             });
@@ -652,11 +662,8 @@ Object.assign(window.ThreadManager, {
         });
 
         primeContainer.addEventListener('dragleave', (e) => {
-            const rect = primeContainer.getBoundingClientRect();
-            const x = e.clientX;
-            const y = e.clientY;
-
-            if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+            // Only remove highlight if actually leaving container (not entering child element)
+            if (!primeContainer.contains(e.relatedTarget)) {
                 primeContainer.classList.remove('drag-over');
             }
         });
@@ -811,6 +818,160 @@ Object.assign(window.ThreadManager, {
         }).catch(err => {
             console.error('❌ [Interactions] Failed to copy:', err);
         });
+    },
+
+    /**
+     * Toggle copy menu dropdown
+     */
+    toggleCopyMenu(threadId) {
+        const menu = document.getElementById(`copy-menu-${threadId}`);
+        if (menu) {
+            const isVisible = menu.style.display === 'block';
+            // Close all other copy menus first
+            document.querySelectorAll('.copy-dropdown-menu').forEach(m => {
+                m.style.display = 'none';
+            });
+            menu.style.display = isVisible ? 'none' : 'block';
+        }
+    },
+
+    /**
+     * Copy full thread conversation with formatting
+     * Formats the entire conversation for pasting into documents
+     */
+    async copyThreadConversation(threadId) {
+        const thread = this.threads.find(t => t.id === threadId);
+        if (!thread) {
+            console.error('❌ [Interactions] Thread not found:', threadId);
+            if (typeof showNotification === 'function') {
+                showNotification('Thread not found', 'error');
+            }
+            return;
+        }
+
+        // Fetch full messages if not loaded
+        if (!thread.messages || thread.messages.length === 0) {
+            console.log('📥 [Interactions] Fetching messages for thread:', threadId);
+            const messages = await this.loadMessagesForThread(threadId);
+            if (messages && messages.length > 0) {
+                thread.messages = messages;
+            } else {
+                console.warn('⚠️ [Interactions] No messages found for thread');
+                if (typeof showNotification === 'function') {
+                    showNotification('No messages to copy', 'warning');
+                }
+                return;
+            }
+        }
+
+        // Format the conversation
+        let formattedText = '';
+        formattedText += `THREAD: ${thread.title || 'Untitled'}\n`;
+        formattedText += `ID: ${thread.id}\n`;
+        formattedText += `DATE: ${new Date(thread.created_at || Date.now()).toLocaleString()}\n`;
+        formattedText += `MESSAGES: ${thread.messages.length}\n`;
+        formattedText += `${'='.repeat(80)}\n\n`;
+
+        thread.messages.forEach((msg, index) => {
+            if (msg.role === 'user') {
+                formattedText += this._formatUserMessage(msg, index + 1);
+            } else if (msg.role === 'assistant') {
+                formattedText += this._formatAssistantMessage(msg, index + 1);
+            }
+        });
+
+        // Copy to clipboard
+        try {
+            await navigator.clipboard.writeText(formattedText);
+            console.log('✅ [Interactions] Copied full conversation:', threadId);
+            if (typeof showNotification === 'function') {
+                showNotification('Full conversation copied to clipboard', 'success', 2000);
+            }
+            // Close the menu
+            this.toggleCopyMenu(threadId);
+        } catch (err) {
+            console.error('❌ [Interactions] Failed to copy conversation:', err);
+            if (typeof showNotification === 'function') {
+                showNotification('Failed to copy conversation', 'error');
+            }
+        }
+    },
+
+    /**
+     * Format user message for copying
+     * @private
+     */
+    _formatUserMessage(msg, index) {
+        let output = `[${index}] USER MESSAGE:\n`;
+        output += `${'-'.repeat(80)}\n`;
+
+        if (typeof msg.content === 'string') {
+            output += msg.content + '\n';
+        } else if (Array.isArray(msg.content)) {
+            msg.content.forEach(block => {
+                if (block.type === 'text' && block.text) {
+                    output += block.text + '\n';
+                } else if (block.type === 'tool_result') {
+                    output += `[TOOL RESULT: ${block.tool_use_id || 'unknown'}]\n`;
+                    output += JSON.stringify(block.content, null, 2) + '\n';
+                }
+            });
+        }
+
+        output += '\n';
+        return output;
+    },
+
+    /**
+     * Format assistant message for copying
+     * @private
+     */
+    _formatAssistantMessage(msg, index) {
+        let output = `[${index}] AI RESPONSE:\n`;
+        output += `${'-'.repeat(80)}\n`;
+
+        if (typeof msg.content === 'string') {
+            output += msg.content + '\n';
+        } else if (Array.isArray(msg.content)) {
+            // Separate by block type
+            const textBlocks = msg.content.filter(b => b.type === 'text');
+            const thinkingBlocks = msg.content.filter(b => b.type === 'thinking');
+            const toolUseBlocks = msg.content.filter(b => b.type === 'tool_use');
+
+            // Show thinking first (if any)
+            if (thinkingBlocks.length > 0) {
+                output += `\n[AI THINKING]:\n`;
+                thinkingBlocks.forEach(block => {
+                    output += block.thinking + '\n';
+                });
+                output += '\n';
+            }
+
+            // Show text content
+            if (textBlocks.length > 0) {
+                output += `[AI TEXT]:\n`;
+                textBlocks.forEach(block => {
+                    output += (block.text || block.content || '') + '\n';
+                });
+                output += '\n';
+            }
+
+            // Show tool usage
+            if (toolUseBlocks.length > 0) {
+                output += `[AI TOOL USE]:\n`;
+                toolUseBlocks.forEach(block => {
+                    output += `Tool: ${block.name}\n`;
+                    output += `ID: ${block.id}\n`;
+                    if (block.input) {
+                        output += `Input: ${JSON.stringify(block.input, null, 2)}\n`;
+                    }
+                    output += '\n';
+                });
+            }
+        }
+
+        output += '\n';
+        return output;
     },
 
 

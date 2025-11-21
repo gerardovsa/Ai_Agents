@@ -1486,6 +1486,27 @@ def save_messages():
                 print(f"[MESSAGE SAVE] Skipping invalid message: {msg}")
                 continue
             
+            # CRITICAL FIX (Nov 21, 2025): Skip empty/whitespace-only messages
+            # Check if message has real content (not just whitespace)
+            has_real_content = False
+            if isinstance(content, str):
+                has_real_content = content.strip() != ''
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        if block.get('type') == 'text':
+                            text_content = block.get('text', '').strip()
+                            if text_content:
+                                has_real_content = True
+                                break
+                        elif block.get('type') in ('thinking', 'tool_use', 'tool_result', 'image'):
+                            has_real_content = True
+                            break
+            
+            if not has_real_content:
+                print(f"[MESSAGE SAVE] Skipping empty/whitespace-only message: {role}")
+                continue
+            
             try:
                 # Serialize content to JSON if it's a dict/list (Anthropic format)
                 content_str = json.dumps(content) if isinstance(content, (dict, list)) else content

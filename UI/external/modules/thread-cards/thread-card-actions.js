@@ -207,6 +207,19 @@ window.ThreadCardActions = {
     },
 
     /**
+     * Copy Full Thread Conversation
+     * 
+     * @param {string} threadId - Thread slug
+     */
+    copyThreadConversation(threadId) {
+        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.copyThreadConversation === 'function') {
+            ThreadManager.copyThreadConversation(threadId);
+        } else {
+            console.warn('[ThreadCardActions] ThreadManager.copyThreadConversation not available');
+        }
+    },
+
+    /**
      * Copy Thread ID (slug) to clipboard
      * 
      * @param {string} threadId - Thread slug

@@ -319,6 +319,12 @@ async function loadUserProfile() {
     console.log(' Token available:', !!UserAuth.token);
     console.log(' User data:', UserAuth.user);
 
+    // Guard: Skip if profile already loaded and token hasn't changed
+    if (UserAuth.user && UserAuth.user.user_id && UserAuth.token === UserAuth._lastTokenUsed) {
+        console.log('✅ Profile already loaded, skipping duplicate call');
+        return UserAuth.user;
+    }
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
             headers: {
@@ -329,6 +335,11 @@ async function loadUserProfile() {
         console.log(' Profile API response status:', response.status);
 
         if (!response.ok) {
+            // Handle 401 gracefully - use cached profile if available
+            if (response.status === 401 && UserAuth.user && UserAuth.user.user_id) {
+                console.warn('[WARN] Token expired (401), using cached profile');
+                return UserAuth.user;
+            }
             throw new Error(`Failed to load profile: ${response.status} ${response.statusText}`);
         }
 
@@ -348,6 +359,7 @@ async function loadUserProfile() {
             if (profile.id && !profile.user_id) profile.user_id = profile.id;
 
             UserAuth.user = profile;
+            UserAuth._lastTokenUsed = UserAuth.token; // Track token to prevent duplicate calls
             window.currentUserId = profile.id || profile.user_id; // Initialize global user ID for settings save
             localStorage.setItem('userProfile', JSON.stringify(profile));
 

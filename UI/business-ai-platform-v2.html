@@ -5687,7 +5687,17 @@
             /* Allow flex shrinking */
         }
 
-        /* Drag and Drop Visual Feedback (Updated Nov 21, 2025 - Full panel drop zones) */
+        /* Drag and Drop Visual Feedback (Updated Nov 21, 2025 - Smooth transitions) */
+
+        /* Base state - smooth transitions for all drop zones */
+        .ai-chat-panel,
+        .agent-column {
+            transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Hover state with smooth fade in */
         .ai-chat-panel.drag-over,
         .ai-chat-messages.drag-over,
         .agent-chat-messages.drag-over,
@@ -5698,7 +5708,7 @@
             animation: pulse-drag 1s infinite;
         }
 
-        /* Full panel drop overlay for Prime */
+        /* Full panel drop overlay for Prime - with fade in animation */
         .ai-chat-panel.drag-over::before {
             content: '📥 Drop thread here to load in Prime';
             position: absolute;
@@ -5715,6 +5725,22 @@
             pointer-events: none;
             z-index: 1000;
             white-space: nowrap;
+            animation: fadeInGlow 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        /* Smooth fade in and glow animation */
+        @keyframes fadeInGlow {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.95);
+                filter: blur(4px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+                filter: blur(0);
+            }
         }
 
         @keyframes pulse-drag {
@@ -7895,6 +7921,9 @@
             background: rgba(88, 166, 255, 0.1);
             border: 3px solid var(--accent-primary);
             box-shadow: inset 0 0 20px rgba(88, 166, 255, 0.2);
+            transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .agent-column.drag-over::after {
@@ -7914,6 +7943,7 @@
             z-index: 100;
             white-space: nowrap;
             text-align: center;
+            animation: fadeInGlow 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .agent-header {
@@ -11130,8 +11160,8 @@
 
         .card-title {
             font-weight: 600;
-            color: #111827;
             margin-bottom: 6px;
+            color: var(--text-primary);
         }
 
         .card-meta {

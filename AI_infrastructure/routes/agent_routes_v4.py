@@ -580,23 +580,32 @@ def start_agent(agent_id):
         # thread_slug is globally unique identifier from database
         state = agent_state_manager.get_or_create_state(agent_id, thread_slug)
         
-        # CRITICAL FIX: Always UPDATE state with conversation_history from frontend
-        # THEN add the current user message (which isn't in conversation_history yet)
+        # CRITICAL FIX (Nov 21, 2025): Frontend sends COMPLETE conversation_history INCLUDING current user message
+        # DO NOT add user message again - it's already in conversation_history!
+        # This was causing duplicate user messages (frontend adds to MessageStore, then sends full history)
         if conversation_history:
             state['conversation'] = conversation_history
-            print(f"[START] Updated state with conversation_history from frontend - {len(conversation_history)} messages")
+            print(f"[START] Updated state with conversation_history from frontend - {len(conversation_history)} messages (INCLUDES current user message)")
         else:
-            # Start fresh conversation if no history
-            state['conversation'] = []
-            print(f"[START] No conversation_history from frontend - starting fresh")
+            # Only if NO history provided (rare case), add the current message
+            state['conversation'] = [{'role': 'user', 'content': prompt}]
+            print(f"[START] No conversation_history - starting with current user message only")
         
-        # ALWAYS add the current user message (it's not in conversation_history yet)
-        user_message = {'role': 'user', 'content': prompt}
-        state['conversation'].append(user_message)
-        print(f"[START] Added current user message to conversation - {len(state['conversation'])} messages total")
+        # REMOVED: Don't add user message again - frontend already includes it in conversation_history
+        # OLD CODE (CAUSED DUPLICATION):
+        # user_message = {'role': 'user', 'content': prompt}
+        # state['conversation'].append(user_message)
+        print(f"[START] Conversation total: {len(state['conversation'])} messages")
         print(f"[START] State key: {agent_id}_{thread_slug} (using thread_slug for isolation)")
         print(f"[START] Full state dict keys: {list(state.keys())}")
         print(f"[START] Conversation in state: {len(state.get('conversation', []))} messages")
+        
+        # CRITICAL FIX: Verify state was actually saved
+        verify_state = agent_state_manager.get_or_create_state(agent_id, thread_slug)
+        print(f"[START] ✅ VERIFICATION: State retrieval test - conversation length: {len(verify_state.get('conversation', []))}")
+        if len(verify_state.get('conversation', [])) == 0:
+            print(f"[START] ❌ CRITICAL ERROR: Message not in state after add! State manager issue!")
+            return error_response("Failed to save message to state", 500)
         
         print(f"[START] Getting agent resources...")
         lock = agent_state_manager.get_lock(agent_id, thread_slug)

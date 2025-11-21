@@ -818,7 +818,16 @@ def microsoft_callback():
         if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
             frontend_url = frontend_url.replace('http://', 'https://')
         
-        return redirect(f"{frontend_url}{return_url}?token={jwt_token}")
+        # IMPORTANT: For local development, explicitly use HTTP to prevent browser HTTPS upgrades
+        # The OAuth callback succeeded, but browser may try to upgrade redirect to HTTPS
+        # Force HTTP scheme for localhost/127.0.0.1
+        if 'localhost' in request.host or '127.0.0.1' in request.host:
+            frontend_url = frontend_url.replace('https://', 'http://')
+        
+        redirect_url = f"{frontend_url}{return_url}?token={jwt_token}"
+        logger.info(f"🔷 Final redirect URL: {redirect_url}")
+        
+        return redirect(redirect_url)
         
     except Exception as e:
         logger.error(f" Microsoft callback failed: {e}", exc_info=True)

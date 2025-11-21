@@ -87,8 +87,9 @@ const UnifiedMessageRenderer = (function () {
 
         // Render content based on role and options
         if (isThinking) {
-            // Show thinking animation
-            contentDiv.innerHTML = '<div class="ai-thinking-dots"><span></span><span></span><span></span></div>';
+            // Skip rendering thinking animation (doesn't display properly)
+            // Content will be replaced when actual response arrives
+            contentDiv.innerHTML = '';
         } else if (role === 'assistant' || role === 'ai') {
             // Render AI response with visualization engine or markdown
             renderAssistantContent(contentDiv, content);

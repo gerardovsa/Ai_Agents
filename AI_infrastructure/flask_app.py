@@ -1423,6 +1423,21 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 
+@app.errorhandler(400)
+def bad_request(error):
+    """
+    Handle 400 Bad Request errors, including SSL/TLS handshake attempts
+    
+    Common cause: Browser trying to connect via HTTPS to HTTP-only server
+    Solution: Ensure all redirects use http:// for localhost
+    """
+    error_msg = str(error)
+    if 'Bad request version' in error_msg or 'SSL' in error_msg.upper():
+        log_warning(logger, "SSL/TLS handshake attempt detected on HTTP-only server")
+        log_warning(logger, "If this happens after OAuth, check redirect URLs use http:// for localhost")
+    return jsonify({'error': 'Bad request'}), 400
+
+
 # ============================================================================
 # SERVE UI (STATIC FILES)
 # ============================================================================

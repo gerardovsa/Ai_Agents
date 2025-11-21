@@ -537,10 +537,10 @@ class SynergySidebarRenderer {
                     border-radius: 8px;
                     margin-bottom: 12px;
                 ">
-                    <div style="color: white; font-weight: 700; font-size: 14px;">
+                    <div style="color: white; font-weight: 400; font-size: 14px;">
                         <i class="fas fa-tasks"></i> Project Milestones
                     </div>
-                    <div style="color: white; font-size: 13px; font-weight: 600;">
+                    <div style="color: white; font-size: 13px; font-weight: 400;">
                         ${completedCount}/${totalCount} Complete (${progress}%)
                     </div>
                 </div>
@@ -592,12 +592,12 @@ class SynergySidebarRenderer {
                                 color: white;
                                 padding: 4px 10px;
                                 border-radius: 6px;
-                                font-size: 11px;
-                                font-weight: 700;
+                                font-size: 12px;
+                                font-weight: 400;
                             ">M${milestoneNum}</span>
                             <span style="font-size: 18px;">${isCompleted ? '✅' : '⭕'}</span>
-                            <span style="font-weight: 700; font-size: 15px; color: var(--text-primary);">
-                                ${this.escapeHtml(milestone.title)}
+                            <span style="font-weight: 400; font-size: 15px; color: var(--text-primary);">
+                                ${this.escapeHtml(milestone.milestone_name || 'Untitled Milestone')}
                             </span>
                         </div>
                         ${milestone.description ? `
@@ -624,10 +624,10 @@ class SynergySidebarRenderer {
                     margin-bottom: 16px;
                 ">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+                        <span style="font-size: 12px; font-weight: 400; color: var(--text-secondary);">
                             <i class="fas fa-list-check"></i> Task Progress
                         </span>
-                        <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">
+                        <span style="font-size: 12px; font-weight: 400; color: var(--text-primary);">
                             ${completedTasks}/${tasks.length} (${taskProgress}%)
                         </span>
                     </div>
@@ -697,8 +697,8 @@ class SynergySidebarRenderer {
                                 color: white;
                                 padding: 2px 8px;
                                 border-radius: 4px;
-                                font-size: 10px;
-                                font-weight: 700;
+                                font-size: 12px;
+                                font-weight: 400;
                             ">T${milestoneNum}.${taskNum}</span>
                             ${isBlocked ? `
                                 <span style="
@@ -706,20 +706,15 @@ class SynergySidebarRenderer {
                                     color: white;
                                     padding: 2px 8px;
                                     border-radius: 4px;
-                                    font-size: 10px;
-                                    font-weight: 700;
+                                    font-size: 12px;
+                                    font-weight: 400;
                                 ">🚫 BLOCKED</span>
                             ` : ''}
                             <span style="font-size: 14px;">${isCompleted ? '✅' : '⭕'}</span>
-                            <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">
-                                ${this.escapeHtml(task.title)}
+                            <span style="font-weight: 400; font-size: 13px; color: var(--text-primary);">
+                                ${this.escapeHtml(task.task || 'Untitled Task')}
                             </span>
                         </div>
-                        ${task.description ? `
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-left: 45px;">
-                                ${this.escapeHtml(task.description)}
-                            </div>
-                        ` : ''}
                         ${isBlocked && task.blocked_reason ? `
                             <div style="
                                 margin-left: 45px;
@@ -797,7 +792,7 @@ class SynergySidebarRenderer {
                         color: var(--text-primary);
                         ${isCompleted ? 'text-decoration: line-through; opacity: 0.7;' : ''}
                     ">
-                        ${this.escapeHtml(subtask.title)}
+                        ${this.escapeHtml(subtask.task || 'Untitled Subtask')}
                     </span>
                 </label>
             </div>

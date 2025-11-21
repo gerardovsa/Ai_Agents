@@ -354,93 +354,7 @@ const AgentColumn = (function () {
      * Using async version at line 821+ with thread loading logic
      */
 
-    /**
-     * Show thread selector dropdown
-     * @param {number} agentId - Agent ID
-     */
-    function showThreadSelector(agentId) {
-        const dropdown = document.getElementById(`thread-selector-${agentId}`);
-        if (!dropdown) return;
-
-        // Close any other open dropdowns
-        document.querySelectorAll('.thread-selector-dropdown').forEach(d => {
-            if (d.id !== `thread-selector-${agentId}`) {
-                d.style.display = 'none';
-            }
-        });
-
-        // Toggle dropdown
-        const isVisible = dropdown.style.display === 'block';
-        dropdown.style.display = isVisible ? 'none' : 'block';
-
-        if (!isVisible) {
-            // Load threads from ThreadManager
-            if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
-                const threads = ThreadManager.threads.filter(t => !t.location || t.location === 'prime');
-
-                if (threads.length === 0) {
-                    dropdown.innerHTML = `
-                        <div class="thread-selector-empty">
-                            <i class="fas fa-inbox"></i>
-                            <p>No available threads</p>
-                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}); AgentColumn.hideThreadSelector(${agentId});">
-                                <i class="fas fa-plus"></i> Create New Thread
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    const threadItems = threads.map(thread => {
-                        const date = new Date(thread.updated || thread.created);
-                        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-                        return `
-                            <div class="thread-selector-item" onclick="AgentColumn.loadThreadIntoAgent(${agentId}, '${thread.id}')">
-                                <div class="thread-item-icon">
-                                    <i class="fas fa-comments"></i>
-                                </div>
-                                <div class="thread-item-content">
-                                    <div class="thread-item-title">${thread.title || 'Untitled Thread'}</div>
-                                    <div class="thread-item-meta">
-                                        <span><i class="fas fa-message"></i> ${thread.message_count || 0}</span>
-                                        <span>${dateStr} ${timeStr}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-
-                    dropdown.innerHTML = `
-                        <div class="thread-selector-header">
-                            <span>Select a Thread</span>
-                            <button class="btn-close-dropdown" onclick="AgentColumn.hideThreadSelector(${agentId})">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="thread-selector-list">
-                            ${threadItems}
-                        </div>
-                        <div class="thread-selector-footer">
-                            <button class="btn-create-thread" onclick="AgentColumn.newThread(${agentId}); AgentColumn.hideThreadSelector(${agentId});">
-                                <i class="fas fa-plus"></i> Create New Thread
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        // Close dropdown when clicking outside
-        setTimeout(() => {
-            document.addEventListener('click', function closeDropdown(e) {
-                if (!e.target.closest(`#thread-selector-${agentId}`) &&
-                    !e.target.closest('.no-thread-message')) {
-                    dropdown.style.display = 'none';
-                    document.removeEventListener('click', closeDropdown);
-                }
-            });
-        }, 100);
-    }
+    // DEPRECATED showThreadSelector function removed - using async version below
 
     /**
      * Hide thread selector dropdown
@@ -634,15 +548,17 @@ const AgentColumn = (function () {
         }
 
         // Close dropdown when clicking outside
+        // CRITICAL: setTimeout prevents same click that opened from closing it
         setTimeout(() => {
-            document.addEventListener('click', function closeDropdown(e) {
+            const closeDropdown = (e) => {
                 if (!e.target.closest('#thread-selector-prime') &&
                     !e.target.closest('#prime-no-thread')) {
                     dropdown.style.display = 'none';
                     document.removeEventListener('click', closeDropdown);
                 }
-            });
-        }, 100);
+            };
+            document.addEventListener('click', closeDropdown);
+        }, 200);
     }
 
     /**
@@ -746,6 +662,7 @@ const AgentColumn = (function () {
      */
     async function showThreadSelector(agentId) {
         console.log(`🔷 [AgentColumn] showThreadSelector called for agent-${agentId}`);
+        console.log(`   Stack trace:`, new Error().stack.split('\n').slice(1, 4).join('\n'));
 
         const dropdown = document.getElementById(`thread-selector-${agentId}`);
         if (!dropdown) {
@@ -765,22 +682,29 @@ const AgentColumn = (function () {
 
         // Toggle dropdown
         const isVisible = dropdown.style.display === 'block';
-        dropdown.style.display = isVisible ? 'none' : 'block';
-        console.log(`🔷 [AgentColumn] Dropdown display set to: ${dropdown.style.display}`);
+        const newDisplay = isVisible ? 'none' : 'block';
+        dropdown.style.display = newDisplay;
+        console.log(`🔷 [AgentColumn] Dropdown toggled: ${isVisible ? 'visible → hidden' : 'hidden → visible'} (display: ${newDisplay})`);
 
-        if (!isVisible) {
+        if (newDisplay === 'block') {
             // Ensure threads are loaded first
+            console.log(`📋 [AgentColumn] Loading threads for dropdown...`);
             if (typeof ThreadManager !== 'undefined') {
+                console.log(`   ThreadManager.threads:`, ThreadManager.threads?.length || 0, 'total threads');
                 if (!ThreadManager.threads || ThreadManager.threads.length === 0) {
                     console.log('🔄 [AgentColumn] Threads not loaded, loading now...');
                     dropdown.innerHTML = '<div class="thread-selector-loading"><i class="fas fa-spinner fa-spin"></i> Loading threads...</div>';
                     await ThreadManager.loadThreadsForUser();
+                    console.log(`   After load:`, ThreadManager.threads?.length || 0, 'threads');
                 }
             }
 
             // Load threads from ThreadManager
             if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
-                const threads = ThreadManager.threads.filter(t => !t.location || t.location === 'prime');
+                const allThreads = ThreadManager.threads;
+                console.log(`   All threads:`, allThreads.map(t => `${t.id} (${t.location || 'prime'})`));
+                const threads = allThreads.filter(t => !t.location || t.location === 'prime');
+                console.log(`   Filtered threads (prime only):`, threads.length);
 
                 if (threads.length === 0) {
                     dropdown.innerHTML = `

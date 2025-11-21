@@ -8,7 +8,7 @@
  * 
  * EXPORTS:
  * - ThreadCardTemplates.welcomeContainer(toolCount) - Prime welcome screen (no thread loaded)
- * - ThreadCardTemplates.noThreadMessage(agentName, agentIcon) - No-thread message for agents/synergy
+ * - ThreadCardTemplates.noThreadMessage(agentName, agentIcon, agentId) - No-thread message (clickable selector for agents)
  * - ThreadCardTemplates.compactCard(thread, location, agent, meta, slug) - Compact card (agents, synergy, sidebar)
  * - ThreadCardTemplates.fullCard(thread, location, agent, meta, slug) - Full card (Prime panel)
  * - ThreadCardTemplates.headerRow(thread, location, agent, compact) - Row 1: Title, agent badge, actions
@@ -79,15 +79,31 @@ window.ThreadCardTemplates = {
      * @param {string} agentIcon - FontAwesome icon class (e.g., "fa-robot", "fa-users")
      * @returns {string} HTML string for no-thread message
      */
-    noThreadMessage(agentName, agentIcon) {
-        return `
-            <div class="ai-chat-header-info" style="padding: 20px; text-align: center; color: #666;">
-                <i class="fas ${agentIcon}" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
-                <div style="font-size: 16px; font-weight: 500;">
-                    No thread loaded in ${agentName}
+    noThreadMessage(agentName, agentIcon, agentId = null) {
+        // For agent columns, return clickable thread selector (matching unloadThreadFromAgent HTML)
+        if (agentId !== null && agentId !== undefined) {
+            // For agent columns: clickable selector dropdown with proper agentId
+            return `
+                <div class="thread-info-wrapper">
+                    <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
+                        <i class="fas fa-inbox"></i> 
+                        <span>Click to select a thread</span>
+                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                    </div>
+                    <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            // For Prime/Synergy: static empty state message
+            return `
+                <div class="ai-chat-header-info" style="padding: 20px; text-align: center; color: #666;">
+                    <i class="fas ${agentIcon}" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
+                    <div style="font-size: 16px; font-weight: 500;">
+                        No thread loaded in ${agentName}
+                    </div>
+                </div>
+            `;
+        }
     },
 
     /**
@@ -640,21 +656,10 @@ window.ThreadCardTemplates = {
         return `
             <div class="thread-copy-dropdown" style="position: relative;">
                 <button class="thread-copy-btn"
-                    onclick="event.stopPropagation(); ThreadManager.toggleCopyMenu('${thread.id}')"
-                    title="Copy thread conversation">
+                    onclick="event.stopPropagation(); ThreadManager.copyThreadConversation('${thread.id}')"
+                    title="Copy full thread conversation">
                     <i class="fas fa-file-alt"></i>
                 </button>
-                <div class="thread-copy-menu" id="copy-menu-${thread.id}" style="display: none;">
-                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'simple')">
-                        <i class="fas fa-align-left"></i> Simple
-                    </button>
-                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'detailed')">
-                        <i class="fas fa-list-ul"></i> Detailed
-                    </button>
-                    <button onclick="event.stopPropagation(); ThreadManager.copyThreadContent('${thread.id}', 'json')">
-                        <i class="fas fa-code"></i> JSON
-                    </button>
-                </div>
             </div>
         `;
     },

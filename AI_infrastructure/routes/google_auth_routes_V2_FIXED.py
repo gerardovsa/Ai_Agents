@@ -355,6 +355,9 @@ def google_login():
                     frontend_url = request.url_root.rstrip('/')
                     if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
                         frontend_url = frontend_url.replace('http://', 'https://')
+                    # Force HTTP for localhost to prevent browser HTTPS upgrade
+                    if 'localhost' in request.host or '127.0.0.1' in request.host:
+                        frontend_url = frontend_url.replace('https://', 'http://')
                     return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=already_connected')
                 
                 # If token expired but we have refresh_token, auto-refresh
@@ -505,6 +508,8 @@ def google_callback():
     frontend_url = request.url_root.rstrip('/')
     if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
         frontend_url = frontend_url.replace('http://', 'https://')
+    if 'localhost' in request.host or '127.0.0.1' in request.host:
+        frontend_url = frontend_url.replace('https://', 'http://')
     
     if not state or not stored_state or state != stored_state:
         print(f' [GOOGLE OAUTH] Invalid state - CSRF check failed (state={state}, stored={stored_state})')
@@ -594,6 +599,8 @@ def google_callback():
                 frontend_url = request.url_root.rstrip('/')
                 if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
                     frontend_url = frontend_url.replace('http://', 'https://')
+                if 'localhost' in request.host or '127.0.0.1' in request.host:
+                    frontend_url = frontend_url.replace('https://', 'http://')
                 return redirect(f'{frontend_url}/?error=user_creation_failed&message={str(e)}')
         
         # ====================================================================
@@ -738,6 +745,10 @@ def google_callback():
         if 'onrender.com' in request.host:
             frontend_url = frontend_url.replace('http://', 'https://')
         
+        # Force HTTP for localhost to prevent browser HTTPS upgrade
+        if 'localhost' in request.host or '127.0.0.1' in request.host:
+            frontend_url = frontend_url.replace('https://', 'http://')
+        
         return redirect(f'{frontend_url}/?token={jwt_token}&platform=google&status=connected')
         
     except requests.exceptions.HTTPError as e:
@@ -747,6 +758,8 @@ def google_callback():
         frontend_url = request.url_root.rstrip('/')
         if 'onrender.com' in request.host:
             frontend_url = frontend_url.replace('http://', 'https://')
+        if 'localhost' in request.host or '127.0.0.1' in request.host:
+            frontend_url = frontend_url.replace('https://', 'http://')
         
         return redirect(f'{frontend_url}/?error=http_error')
     
@@ -758,6 +771,8 @@ def google_callback():
         frontend_url = request.url_root.rstrip('/')
         if 'onrender.com' in request.host:
             frontend_url = frontend_url.replace('http://', 'https://')
+        if 'localhost' in request.host or '127.0.0.1' in request.host:
+            frontend_url = frontend_url.replace('https://', 'http://')
         
         return redirect(f'{frontend_url}/?error=oauth_failed')
 

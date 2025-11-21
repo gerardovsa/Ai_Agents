@@ -163,6 +163,14 @@ window.SynergyRealtime = {
         if (error.message === 'timeout') {
             console.warn('[REALTIME] Connection timeout - Server may be starting (Render cold start). Retrying...');
             this._showConnectionStatus('connecting', 'Server starting, please wait...');
+        } else if (error.message && error.message.includes('Invalid frame header')) {
+            console.warn('[REALTIME] WebSocket handshake failed - Server may not be running or Socket.IO not initialized');
+            this._showConnectionStatus('disconnected', 'Backend not responding. Synergy will work in offline mode.');
+            // Stop trying to reconnect after 3 attempts for this specific error
+            if (this.reconnectAttempts >= 3) {
+                console.warn('[REALTIME] Stopping reconnection attempts - working in offline mode');
+                this.maxReconnectAttempts = this.reconnectAttempts; // Stop further attempts
+            }
         } else {
             this._showConnectionStatus('error');
         }

@@ -410,6 +410,7 @@ window.ThreadManagerUI = {
         if (typeof ThreadCardTemplates !== 'undefined') {
             let agentName = 'Prime';
             let agentIcon = 'fa-star';
+            let agentId = null;
 
             if (location === 'synergy') {
                 agentName = 'Synergy';
@@ -417,13 +418,13 @@ window.ThreadManagerUI = {
             } else if (location !== 'prime') {
                 const match = location.match(/agent-(\d+)/);
                 if (match && typeof MultiAgent !== 'undefined') {
-                    const agentId = parseInt(match[1]);
+                    agentId = parseInt(match[1]);
                     agentName = MultiAgent.getAgentName(agentId);
                     agentIcon = MultiAgent.getAgentIcon(agentId);
                 }
             }
 
-            return ThreadCardTemplates.noThreadMessage(agentName, agentIcon);
+            return ThreadCardTemplates.noThreadMessage(agentName, agentIcon, agentId);
         }
 
         // Fallback (if ThreadCardTemplates not loaded)

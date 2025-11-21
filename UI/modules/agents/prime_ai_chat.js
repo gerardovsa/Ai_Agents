@@ -545,13 +545,7 @@ async function sendChatMessage() {
         // Don't return - try to send the message
     }
 
-    // Add user message to UI
-    if (hasFiles) {
-        const fileList = window.chatAttachedFiles.map(f => f.name).join(', ');
-        addChatMessage('user', `${message}\n\n[ATTACH] Attached: ${fileList}`);
-    } else {
-        addChatMessage('user', message);
-    }
+    // Clear input immediately
     input.value = '';
 
     // Reset textarea height after clearing
@@ -571,13 +565,20 @@ async function sendChatMessage() {
         console.log(`✅ [THREAD] Generated new thread_slug for Prime: ${currentThreadId}`);
     }
 
+    // Build message content with file attachments if present
+    let messageContent = message;
+    if (hasFiles) {
+        const fileList = window.chatAttachedFiles.map(f => f.name).join(', ');
+        messageContent = `${message}\n\n[ATTACH] Attached: ${fileList}`;
+    }
+
     // CRITICAL: Add user message to UI (UnifiedMessageRenderer will add to MessageStore automatically)
     // UnifiedMessageRenderer.render() handles MessageStore.addMessage() with deduplication
-    // No need to manually add here - let the renderer handle it
+    // No duplicate addChatMessage() call needed - UnifiedMessageRenderer handles everything
     const userMessageDiv = UnifiedMessageRenderer.render(
         '#ai-chat-messages',
         'user',
-        message,
+        messageContent,
         {
             isThinking: false,
             scrollToBottom: autoScrollEnabled,
@@ -596,8 +597,7 @@ async function sendChatMessage() {
     // Use same thread_slug for BOTH endpoints (session_id and thread_slug must match)
     const sessionId = currentThreadId;  // Thread slug for isolation
 
-    // Show thinking indicator
-    addChatMessage('assistant', '<div class="ai-thinking-dots"><span></span><span></span><span></span></div>', true);
+    // Update status indicator (no visual thinking dots)
     if (typeof AgentStatusIndicator !== 'undefined') {
         AgentStatusIndicator.update('thinking', null);  // null = Prime AI
     }

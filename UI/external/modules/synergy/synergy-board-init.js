@@ -605,27 +605,49 @@ window.synergyBoard = {
                     const data = await response.json();
                     const milestones = data.milestones || [];
 
-                    // Render milestones
+                    console.log(`[SYNERGY] Loaded ${milestones.length} milestones for ${sessionId}`);
+                    if (milestones.length > 0) {
+                        console.log('[SYNERGY] First milestone data:', {
+                            milestone_id: milestones[0].milestone_id,
+                            milestone_number: milestones[0].milestone_number,
+                            milestone_name: milestones[0].milestone_name,
+                            description: milestones[0].description,
+                            tasks_count: milestones[0].tasks ? milestones[0].tasks.length : 0
+                        });
+                    }
+
+                    // Render milestones with proper structure
                     if (milestones.length === 0) {
                         expandedContent.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary);">No milestones yet</div>';
                     } else {
-                        expandedContent.innerHTML = milestones.map(m => `
-                            <div class="milestone-card" style="padding: 12px; margin: 8px 0; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid ${m.completed ? 'var(--accent-success)' : 'var(--accent-primary)'};">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div style="font-weight: 600; color: var(--text-primary);">
-                                        <i class="fas ${m.completed ? 'fa-check-circle' : 'fa-circle'}" style="color: ${m.completed ? 'var(--accent-success)' : 'var(--text-tertiary)'}; margin-right: 8px;"></i>
-                                        ${this.escapeHtml(m.milestone_name)}
+                        expandedContent.innerHTML = milestones.map(m => {
+                            const completedTasks = m.tasks ? m.tasks.filter(t => t.completed).length : 0;
+                            const totalTasks = m.tasks ? m.tasks.length : 0;
+                            const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                            const milestoneName = m.milestone_name || 'Untitled Milestone';
+                            const milestoneDesc = m.description || '';
+
+                            console.log(`[SYNERGY] Rendering M${m.milestone_number}: "${milestoneName}"`);
+
+                            return `
+                                <div class="milestone-compact ${m.completed ? 'completed' : ''} ${m.blocked ? 'blocked' : ''}">
+                                    <div class="milestone-header-compact">
+                                        <div class="milestone-badge">M${m.milestone_number || '?'}</div>
+                                        <div class="milestone-name-compact">${this.escapeHtml(milestoneName)}</div>
+                                        ${totalTasks > 0 ? `<div class="milestone-progress-compact">${progress}%</div>` : ''}
+                                        ${m.due_date ? `<div class="milestone-due-date"><i class="fas fa-calendar"></i> ${new Date(m.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
                                     </div>
-                                    ${m.due_date ? `<div style="font-size: 12px; color: var(--text-secondary);">${new Date(m.due_date).toLocaleDateString()}</div>` : ''}
+                                    ${milestoneDesc ? `<div class="milestone-description-compact">${this.escapeHtml(milestoneDesc)}</div>` : ''}
+                                    ${totalTasks > 0 ? `
+                                        <div class="milestone-stats-compact">
+                                            <span><i class="fas fa-tasks"></i> ${completedTasks}/${totalTasks} tasks</span>
+                                            ${m.estimated_hours ? `<span><i class="fas fa-clock"></i> ${m.estimated_hours}h estimated</span>` : ''}
+                                        </div>
+                                    ` : ''}
                                 </div>
-                                ${m.description ? `<div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">${this.escapeHtml(m.description)}</div>` : ''}
-                                ${m.tasks && m.tasks.length > 0 ? `
-                                    <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">
-                                        <i class="fas fa-tasks"></i> ${m.tasks.filter(t => t.completed).length}/${m.tasks.length} tasks completed
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `).join('');
+                            `;
+                        }).join('');
                     }
                 } catch (error) {
                     expandedContent.innerHTML = `
@@ -645,6 +667,90 @@ window.synergyBoard = {
         console.log('[SYNERGY] Opening card menu for:', sessionId);
         // TODO: Implement context menu
         alert(`Card menu for ${sessionId}\n\nOptions:\n- Edit\n- Delete\n- Move to column\n- Archive`);
+    },
+
+    /**
+     * Pop out card in modal window (same as expanded content)
+     */
+    async popOutCard(sessionId) {
+        console.log('[SYNERGY] Opening session in popup:', sessionId);
+
+        try {
+            // Fetch session data and milestones
+            const sessionResponse = await fetch(`http://localhost:5001/api/synergy/sessions/${sessionId}`);
+            if (!sessionResponse.ok) {
+                throw new Error(`Failed to load session: ${sessionResponse.status}`);
+            }
+            const sessionData = await sessionResponse.json();
+            const session = sessionData.session || {};
+
+            const milestonesResponse = await fetch(`http://localhost:5001/api/synergy/${sessionId}/milestones`);
+            if (!milestonesResponse.ok) {
+                throw new Error(`Failed to load milestones: ${milestonesResponse.status}`);
+            }
+            const milestonesData = await milestonesResponse.json();
+            const milestones = milestonesData.milestones || [];
+
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.className = 'synergy-popup-overlay';
+            modal.innerHTML = `
+                <div class="synergy-popup-modal">
+                    <div class="synergy-popup-header">
+                        <div>
+                            <h2 style="margin: 0; font-size: 20px; color: var(--text-primary);">${this.escapeHtml(session.title || 'Untitled Session')}</h2>
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                                Session ID: ${sessionId}
+                            </div>
+                        </div>
+                        <button class="synergy-popup-close" onclick="this.closest('.synergy-popup-overlay').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="synergy-popup-body">
+                        ${milestones.length === 0 ?
+                    '<div style="padding: 32px; text-align: center; color: var(--text-secondary);">No milestones yet</div>' :
+                    milestones.map(m => {
+                        const completedTasks = m.tasks ? m.tasks.filter(t => t.completed).length : 0;
+                        const totalTasks = m.tasks ? m.tasks.length : 0;
+                        const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                        return `
+                                    <div class="milestone-compact ${m.completed ? 'completed' : ''} ${m.blocked ? 'blocked' : ''}">
+                                        <div class="milestone-header-compact">
+                                            <div class="milestone-badge">M${m.milestone_number || '?'}</div>
+                                            <div class="milestone-name-compact">${this.escapeHtml(m.milestone_name || 'Untitled Milestone')}</div>
+                                            ${totalTasks > 0 ? `<div class="milestone-progress-compact">${progress}%</div>` : ''}
+                                            ${m.due_date ? `<div class="milestone-due-date"><i class="fas fa-calendar"></i> ${new Date(m.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
+                                        </div>
+                                        ${m.description ? `<div class="milestone-description-compact">${this.escapeHtml(m.description)}</div>` : ''}
+                                        ${totalTasks > 0 ? `
+                                            <div class="milestone-stats-compact">
+                                                <span><i class="fas fa-tasks"></i> ${completedTasks}/${totalTasks} tasks</span>
+                                                ${m.estimated_hours ? `<span><i class="fas fa-clock"></i> ${m.estimated_hours}h estimated</span>` : ''}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                    }).join('')
+                }
+                    </div>
+                </div>
+            `;
+
+            // Close on overlay click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            document.body.appendChild(modal);
+
+        } catch (error) {
+            console.error('[SYNERGY] Error opening popup:', error);
+            alert(`Failed to open session: ${error.message}`);
+        }
     }
 };
 

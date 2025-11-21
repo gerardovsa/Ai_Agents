@@ -446,6 +446,24 @@ def validate_conversation_history(conversation_history: List[Dict]) -> List[Dict
                 print(f"[Combined Worker] ⚠️ Skipping message {idx} - all blocks invalid")
                 continue
             
+            # CRITICAL FIX (Nov 21, 2025): Skip empty/whitespace-only assistant messages
+            # These are often placeholder messages from streaming that got saved incorrectly
+            has_real_content = False
+            for block in message['content']:
+                if isinstance(block, dict):
+                    if block.get('type') == 'text':
+                        text_content = block.get('text', '').strip()
+                        if text_content:
+                            has_real_content = True
+                            break
+                    elif block.get('type') in ('thinking', 'tool_use', 'image'):
+                        has_real_content = True
+                        break
+            
+            if not has_real_content:
+                print(f"[Combined Worker] 🚫 Skipping message {idx} - assistant message has no real content (only whitespace)")
+                continue
+            
             # CRITICAL FIX: If we extracted tool_result blocks, insert them as a user message AFTER this assistant
             if extracted_tool_results:
                 print(f"[Combined Worker] 🔧 Inserting {len(extracted_tool_results)} extracted tool_result blocks as user message")
