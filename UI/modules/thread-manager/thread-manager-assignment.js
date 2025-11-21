@@ -157,6 +157,7 @@ Object.assign(window.ThreadManager, {
         }
 
         console.log(`✅ [CASCADE] Complete for thread ${threadId}`);
+        this.cascadeInProgress = false;  // Allow UI refreshes
     },
 
     /**
@@ -221,11 +222,15 @@ Object.assign(window.ThreadManager, {
      * Called during app initialization to sync UI with database state
      */
     async restoreThreadAssignments() {
-        console.log('🔄 [Assignment] Restoring thread assignments from backend...');
-        console.log('📊 [Assignment] Current threads:', this.threads.length);
+        console.log('\n🔄 [Assignment] ========== RESTORING THREAD ASSIGNMENTS ==========');
+        console.log('📊 [Assignment] Current threads in memory:', this.threads.length);
+        console.log('📍 [Assignment] Current locations:', this.threads.map(t => `${t.id}→${t.location}`));
 
         try {
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
+            console.log('👤 [Assignment] User ID:', userId);
+            console.log('🌐 [Assignment] Fetching from:', `${this.apiBaseUrl}/api/thread-assignments/list?user_id=${userId}`);
+
             const response = await fetch(`${this.apiBaseUrl}/api/thread-assignments/list?user_id=${userId}`, {
                 method: 'GET',
                 headers: {
@@ -235,10 +240,12 @@ Object.assign(window.ThreadManager, {
             });
 
             if (!response.ok) {
+                console.error('❌ [Assignment] API error:', response.status, response.statusText);
                 throw new Error(`Failed to fetch assignments: ${response.statusText}`);
             }
 
             const data = await response.json();
+            console.log('📦 [Assignment] API response:', data);
 
             // Handle different response formats
             let assignments = [];
@@ -259,15 +266,23 @@ Object.assign(window.ThreadManager, {
             }
 
             console.log(`✅ [Assignment] Restored ${assignments.length} thread assignments`);
+            console.log('📋 [Assignment] Assignments:', assignments);
 
             // Update local thread objects with assignment data
+            let updatedCount = 0;
             for (const assignment of assignments) {
                 const thread = this.threads.find(t => t.id === assignment.session_id);
                 if (thread) {
+                    const oldLocation = thread.location;
                     thread.location = assignment.location;
                     thread.agent = assignment.location === 'prime' ? null : assignment.location;
+                    console.log(`   🔄 Updated thread ${thread.id}: "${thread.title}" | ${oldLocation} → ${assignment.location}`);
+                    updatedCount++;
+                } else {
+                    console.warn(`   ⚠️ Assignment for ${assignment.session_id} but thread not found in memory`);
                 }
             }
+            console.log(`✅ [Assignment] Updated ${updatedCount}/${assignments.length} threads with locations`);
 
             // Wait for MultiAgent to be ready, then load threads
             const loadThreadsIntoAgents = async () => {
@@ -281,12 +296,23 @@ Object.assign(window.ThreadManager, {
                 console.log('✅ [Assignment] MultiAgent ready, loading threads into agents...');
 
                 // Load threads into their assigned locations
+                const threadsToLoad = assignments.map(a => this.threads.find(t => t.id === a.session_id)).filter(Boolean);
+                console.log(`\n📍 [Assignment] ========== LOADING THREADS INTO AGENTS ==========`);
+                console.log(`📍 [Assignment] ${threadsToLoad.length} threads need to be loaded`);
+                threadsToLoad.forEach(t => {
+                    console.log(`   🎯 ${t.id}: "${t.title}" → ${t.location}`);
+                });
+
                 for (const assignment of assignments) {
                     const thread = this.threads.find(t => t.id === assignment.session_id);
-                    if (!thread) continue;
+                    if (!thread) {
+                        console.warn(`⚠️ [Assignment] Thread ${assignment.session_id} not found for loading`);
+                        continue;
+                    }
 
                     if (assignment.location && assignment.location.startsWith('agent-')) {
                         const agentId = parseInt(assignment.location.replace('agent-', ''));
+                        console.log(`🔄 [Assignment] Loading "${thread.title}" (${thread.id}) into agent-${agentId}...`);
 
                         try {
                             await MultiAgent.loadThreadIntoAgent(agentId, thread);

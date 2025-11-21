@@ -12,10 +12,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "folder_path": {
             "type": "string",
             "description": "Folder path (root if not specified)",
@@ -27,12 +23,9 @@
             "default": 100
           }
         },
-        "required": [
-          "user_id"
-        ]
+        "required": []
       },
       "example": {
-        "user_id": "user123",
         "folder_path": "Documents/Projects",
         "max_results": 50
       }
@@ -46,10 +39,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "file_path": {
             "type": "string",
             "description": "Local file path to upload"
@@ -69,13 +58,10 @@
             "default": true
           }
         },
-        "required": [
-          "user_id",
-          "file_path"
+        "required": ["file_path"
         ]
       },
       "example": {
-        "user_id": "user123",
         "file_path": "/path/to/document.pdf",
         "destination_folder": "Work/Reports",
         "file_name": "Q4_Report.pdf"
@@ -90,10 +76,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "file_id": {
             "type": "string",
             "description": "OneDrive file ID"
@@ -103,14 +85,11 @@
             "description": "Local path to save file"
           }
         },
-        "required": [
-          "user_id",
-          "file_id",
+        "required": ["file_id",
           "local_path"
         ]
       },
       "example": {
-        "user_id": "user123",
         "file_id": "01ABCDEF123456789",
         "local_path": "/downloads/document.pdf"
       }
@@ -124,22 +103,15 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID"
           }
         },
-        "required": [
-          "user_id",
-          "item_id"
+        "required": ["item_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789"
       }
     },
@@ -152,10 +124,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "folder_name": {
             "type": "string",
             "description": "Name of the new folder"
@@ -166,13 +134,10 @@
             "default": "root"
           }
         },
-        "required": [
-          "user_id",
-          "folder_name"
+        "required": ["folder_name"
         ]
       },
       "example": {
-        "user_id": "user123",
         "folder_name": "2025 Projects",
         "parent_folder": "Work"
       }
@@ -186,22 +151,15 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID to delete"
           }
         },
-        "required": [
-          "user_id",
-          "item_id"
+        "required": ["item_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789"
       }
     },
@@ -214,10 +172,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID to move"
@@ -231,14 +185,11 @@
             "description": "Optional: New name for the item"
           }
         },
-        "required": [
-          "user_id",
-          "item_id",
+        "required": ["item_id",
           "destination_folder_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789",
         "destination_folder_id": "01GHIJKL987654321"
       }
@@ -252,10 +203,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID to copy"
@@ -269,14 +216,11 @@
             "description": "Optional: New name for the copy"
           }
         },
-        "required": [
-          "user_id",
-          "item_id",
+        "required": ["item_id",
           "destination_folder_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789",
         "destination_folder_id": "01GHIJKL987654321",
         "new_name": "document_copy.pdf"
@@ -291,10 +235,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID to rename"
@@ -304,14 +244,11 @@
             "description": "New name for the item"
           }
         },
-        "required": [
-          "user_id",
-          "item_id",
+        "required": ["item_id",
           "new_name"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789",
         "new_name": "Updated_Report_2025.pdf"
       }
@@ -325,10 +262,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "query": {
             "type": "string",
             "description": "Search query"
@@ -339,13 +272,10 @@
             "default": 50
           }
         },
-        "required": [
-          "user_id",
-          "query"
+        "required": ["query"
         ]
       },
       "example": {
-        "user_id": "user123",
         "query": "project report 2025",
         "max_results": 25
       }
@@ -359,10 +289,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID to share"
@@ -382,13 +308,10 @@
             "description": "Optional: Expiration date (ISO 8601)"
           }
         },
-        "required": [
-          "user_id",
-          "item_id"
+        "required": ["item_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789",
         "link_type": "view",
         "scope": "organization",
@@ -404,10 +327,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID to share"
@@ -426,14 +345,11 @@
             "description": "Optional message to recipients"
           }
         },
-        "required": [
-          "user_id",
-          "item_id",
+        "required": ["item_id",
           "recipients"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789",
         "recipients": [
           "john@company.com",
@@ -452,22 +368,15 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID"
           }
         },
-        "required": [
-          "user_id",
-          "item_id"
+        "required": ["item_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789"
       }
     },
@@ -480,10 +389,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "item_id": {
             "type": "string",
             "description": "File or folder ID"
@@ -493,14 +398,11 @@
             "description": "Permission ID to revoke"
           }
         },
-        "required": [
-          "user_id",
-          "item_id",
+        "required": ["item_id",
           "permission_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "item_id": "01ABCDEF123456789",
         "permission_id": "aTowIy5mfG1lbWJlcnNoaXB8"
       }
@@ -514,22 +416,15 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "file_id": {
             "type": "string",
             "description": "File ID"
           }
         },
-        "required": [
-          "user_id",
-          "file_id"
+        "required": ["file_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "file_id": "01ABCDEF123456789"
       }
     },
@@ -542,10 +437,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "file_id": {
             "type": "string",
             "description": "File ID"
@@ -555,14 +446,11 @@
             "description": "Version ID to restore"
           }
         },
-        "required": [
-          "user_id",
-          "file_id",
+        "required": ["file_id",
           "version_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "file_id": "01ABCDEF123456789",
         "version_id": "2.0"
       }
@@ -576,10 +464,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "file_id": {
             "type": "string",
             "description": "File ID"
@@ -590,13 +474,10 @@
             "default": "medium"
           }
         },
-        "required": [
-          "user_id",
-          "file_id"
+        "required": ["file_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "file_id": "01ABCDEF123456789",
         "size": "large"
       }
@@ -610,10 +491,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "source_folder": {
             "type": "string",
             "description": "Folder to organize (root if not specified)",
@@ -657,12 +534,9 @@
             "default": true
           }
         },
-        "required": [
-          "user_id"
-        ]
+        "required": []
       },
       "example": {
-        "user_id": "user123",
         "source_folder": "root",
         "type_mapping": {
           "Work Documents": [
@@ -689,10 +563,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "folder_id": {
             "type": "string",
             "description": "Folder ID to backup"
@@ -708,13 +578,10 @@
             "default": true
           }
         },
-        "required": [
-          "user_id",
-          "folder_id"
+        "required": ["folder_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "folder_id": "01ABCDEF123456789",
         "backup_location": "Backups/Projects",
         "include_timestamp": true
@@ -729,10 +596,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "folder_id": {
             "type": "string",
             "description": "Folder to scan for duplicates"
@@ -748,13 +611,10 @@
             "default": false
           }
         },
-        "required": [
-          "user_id",
-          "folder_id"
+        "required": ["folder_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "folder_id": "01ABCDEF123456789",
         "comparison_method": "name",
         "auto_delete": false
@@ -769,10 +629,6 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "source_folder_id": {
             "type": "string",
             "description": "Source folder ID"
@@ -792,14 +648,11 @@
             "default": false
           }
         },
-        "required": [
-          "user_id",
-          "source_folder_id",
+        "required": ["source_folder_id",
           "destination_folder_id"
         ]
       },
       "example": {
-        "user_id": "user123",
         "source_folder_id": "01ABCDEF123456789",
         "destination_folder_id": "01GHIJKL987654321",
         "sync_mode": "one_way"
@@ -814,17 +667,10 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          }
-        },
-        "required": [
-          "user_id"
-        ]
+          },
+        "required": []
       },
       "example": {
-        "user_id": "user123"
       }
     },
     {
@@ -836,22 +682,15 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID for authentication"
-          },
           "max_results": {
             "type": "integer",
             "description": "Maximum number of files to return",
             "default": 20
           }
         },
-        "required": [
-          "user_id"
-        ]
+        "required": []
       },
       "example": {
-        "user_id": "user123",
         "max_results": 10
       }
     }

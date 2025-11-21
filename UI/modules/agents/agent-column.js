@@ -677,6 +677,12 @@ const AgentColumn = (function () {
      * Call this after page load to update any existing agents
      */
     function refreshAllAgentThreadInfos() {
+        // Don't refresh during CASCADE operations - it interferes with UI updates
+        if (window.ThreadManager && window.ThreadManager.cascadeInProgress) {
+            console.log('⏸️ [AgentColumn] Skipping refresh - CASCADE in progress');
+            return;
+        }
+
         console.log('🔄 [AgentColumn] Refreshing thread selectors for all agents and Prime...');
 
         // Update Prime first

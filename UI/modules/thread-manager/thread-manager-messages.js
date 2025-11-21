@@ -164,9 +164,8 @@ Object.assign(window.ThreadManager, {
             this.syncAppState(thread.id);
         }
 
-        // Save to backend (async)
-        this.saveMessagesToBackend(thread);
-        this.saveThreadToBackend(thread);
+        // Note: Save is handled by auto-save (every 60s) to prevent excessive DB writes
+        // Immediate saves removed to fix message duplication issues
 
         // Refresh UI
         if (typeof this.renderThreadList === 'function') {

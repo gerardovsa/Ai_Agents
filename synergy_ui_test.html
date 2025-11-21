@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -113,7 +114,7 @@
             background: var(--bg-secondary);
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             border: 1px solid var(--border-default);
         }
 
@@ -139,7 +140,7 @@
 
         .sidebar-item:hover {
             background: var(--bg-hover);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
             border-left-color: var(--accent-primary);
         }
 
@@ -183,20 +184,31 @@
         .priority-badge {
             padding: 4px 10px;
             border-radius: 12px;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             white-space: nowrap;
         }
 
-        .priority-high { background: var(--accent-error); color: white; }
-        .priority-medium { background: var(--accent-warning); color: var(--bg-primary); }
-        .priority-low { background: var(--accent-success); color: white; }
+        .priority-high {
+            background: var(--accent-error);
+            color: white;
+        }
+
+        .priority-medium {
+            background: var(--accent-warning);
+            color: var(--bg-primary);
+        }
+
+        .priority-low {
+            background: var(--accent-success);
+            color: white;
+        }
 
         .badge {
             padding: 4px 10px;
             border-radius: 12px;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -314,7 +326,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
             gap: var(--space-2);
         }
@@ -338,7 +350,7 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-default);
             border-radius: 12px;
-            font-size: 10px;
+            font-size: 12px;
             color: var(--text-secondary);
         }
 
@@ -427,6 +439,7 @@
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -531,7 +544,7 @@
             color: var(--accent-primary);
             padding: 4px 8px;
             border-radius: 6px;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
         }
 
@@ -553,7 +566,7 @@
         }
 
         .milestone-progress-compact {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--accent-primary);
         }
 
@@ -562,7 +575,7 @@
         }
 
         .milestone-stats-compact {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
             display: flex;
             gap: 12px;
@@ -573,7 +586,7 @@
             align-items: center;
             gap: 6px;
             margin-bottom: 4px;
-            font-size: 11px;
+            font-size: 12px;
             padding-left: 12px;
             border-left: 2px solid var(--bg-primary);
         }
@@ -595,7 +608,7 @@
             color: white;
             padding: 3px 8px;
             border-radius: 12px;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -629,22 +642,27 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1><i class="fa-solid fa-hexagon-nodes-bolt"></i> Synergy UI Components - Complete System</h1>
-        
-        <div style="background: var(--accent-primary); color: white; padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 600;">
+
+        <div
+            style="background: var(--accent-primary); color: white; padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 600;">
             🎨 4-Row Collapsed Structure | Kanban Expanded | Popup Modal View
         </div>
 
         <!-- USAGE GUIDE -->
-        <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-default); margin-bottom: 30px;">
+        <div
+            style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-default); margin-bottom: 30px;">
             <h2 style="color: var(--accent-primary); margin-bottom: 15px; font-size: 20px;">
                 <i class="fas fa-map"></i> Structure Overview
             </h2>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; font-size: 13px;">
-                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-primary);">
-                    <strong style="color: var(--accent-primary); display: block; margin-bottom: 8px;">📋 Collapsed View</strong>
+                <div
+                    style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-primary);">
+                    <strong style="color: var(--accent-primary); display: block; margin-bottom: 8px;">📋 Collapsed
+                        View</strong>
                     <div style="color: var(--text-secondary); line-height: 1.6;">
                         • Used in sidebar<br>
                         • Used in kanban card<br>
@@ -652,8 +670,10 @@
                         • 4-row compact structure
                     </div>
                 </div>
-                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-success);">
-                    <strong style="color: var(--accent-success); display: block; margin-bottom: 8px;">📊 Kanban Expanded</strong>
+                <div
+                    style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-success);">
+                    <strong style="color: var(--accent-success); display: block; margin-bottom: 8px;">📊 Kanban
+                        Expanded</strong>
                     <div style="color: var(--text-secondary); line-height: 1.6;">
                         • Full milestone hierarchy<br>
                         • Documents & links<br>
@@ -661,8 +681,10 @@
                         • Inline editing
                     </div>
                 </div>
-                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-warning);">
-                    <strong style="color: var(--accent-warning); display: block; margin-bottom: 8px;">🪟 Popup Modal</strong>
+                <div
+                    style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-warning);">
+                    <strong style="color: var(--accent-warning); display: block; margin-bottom: 8px;">🪟 Popup
+                        Modal</strong>
                     <div style="color: var(--text-secondary); line-height: 1.6;">
                         • Full-screen overlay<br>
                         • Complete session view<br>
@@ -699,7 +721,8 @@
                                 <button class="sidebar-icon-btn" title="Open Popup" onclick="alert('Popup clicked')">
                                     <i class="fas fa-external-link-alt"></i>
                                 </button>
-                                <button class="sidebar-icon-btn chevron collapsed" title="Expand/Collapse" onclick="this.closest('.sidebar-item').classList.toggle('expanded'); this.closest('.sidebar-item').classList.toggle('collapsed'); this.classList.toggle('expanded'); this.classList.toggle('collapsed');">
+                                <button class="sidebar-icon-btn chevron collapsed" title="Expand/Collapse"
+                                    onclick="this.closest('.sidebar-item').classList.toggle('expanded'); this.closest('.sidebar-item').classList.toggle('collapsed'); this.classList.toggle('expanded'); this.classList.toggle('collapsed');">
                                     <i class="fas fa-chevron-down"></i>
                                     <i class="fas fa-chevron-up"></i>
                                 </button>
@@ -709,7 +732,9 @@
                         <!-- ROW 2: Description (truncated to ~100 chars) -->
                         <div class="sidebar-row-2">
                             <div class="sidebar-description">
-                                Complete overhaul of the customer-facing e-commerce platform with modern design system, improved UX, and performance optimization including frontend redesign and backend API updates.
+                                Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                                improved UX, and performance optimization including frontend redesign and backend API
+                                updates.
                             </div>
                         </div>
 
@@ -780,7 +805,8 @@
                                 <button class="sidebar-icon-btn" title="Open Popup" onclick="alert('Popup clicked')">
                                     <i class="fas fa-external-link-alt"></i>
                                 </button>
-                                <button class="sidebar-icon-btn chevron expanded" title="Expand/Collapse" onclick="this.closest('.sidebar-item').classList.toggle('expanded'); this.closest('.sidebar-item').classList.toggle('collapsed'); this.classList.toggle('expanded'); this.classList.toggle('collapsed');">
+                                <button class="sidebar-icon-btn chevron expanded" title="Expand/Collapse"
+                                    onclick="this.closest('.sidebar-item').classList.toggle('expanded'); this.closest('.sidebar-item').classList.toggle('collapsed'); this.classList.toggle('expanded'); this.classList.toggle('collapsed');">
                                     <i class="fas fa-chevron-down"></i>
                                     <i class="fas fa-chevron-up"></i>
                                 </button>
@@ -790,7 +816,9 @@
                         <!-- ROW 2: Description (truncated) -->
                         <div class="sidebar-row-2">
                             <div class="sidebar-description">
-                                Complete overhaul of the customer-facing e-commerce platform with modern design system, improved UX, and performance optimization including frontend redesign and backend API updates.
+                                Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                                improved UX, and performance optimization including frontend redesign and backend API
+                                updates.
                             </div>
                         </div>
 
@@ -840,7 +868,8 @@
 
                     <!-- EXPANDED BODY: Milestones -->
                     <div class="sidebar-body">
-                        <div style="font-size: 12px; font-weight: 600; color: var(--accent-primary); margin-bottom: 12px;">
+                        <div
+                            style="font-size: 14px; font-weight: 600; color: var(--accent-primary); margin-bottom: 12px;">
                             <i class="fas fa-flag-checkered"></i> Milestones
                         </div>
 
@@ -959,14 +988,17 @@
                         </div>
                         <div class="sidebar-row-2" style="margin-top: var(--space-3);">
                             <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                                Complete overhaul of the customer-facing e-commerce platform with modern design system, improved UX, and performance optimization including frontend redesign, backend API updates, and comprehensive testing infrastructure.
+                                Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                                improved UX, and performance optimization including frontend redesign, backend API
+                                updates, and comprehensive testing infrastructure.
                             </div>
                         </div>
                     </div>
 
                     <div class="kanban-expanded-body">
                         <!-- Same milestone structure as expanded sidebar -->
-                        <div style="font-size: 14px; font-weight: 600; color: var(--accent-primary); margin-bottom: 16px;">
+                        <div
+                            style="font-size: 14px; font-weight: 600; color: var(--accent-primary); margin-bottom: 16px;">
                             <i class="fas fa-flag-checkered"></i> Milestones (3/5 complete)
                         </div>
 
@@ -1032,14 +1064,16 @@
         <div class="grid" style="grid-template-columns: 1fr;">
             <div class="component-wrapper">
                 <div class="component-title">D. Full Popup Modal (Click button to preview)</div>
-                <button onclick="document.getElementById('popup-demo').style.display='flex'" style="padding: 12px 24px; background: var(--accent-primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 20px auto; display: block;">
+                <button onclick="document.getElementById('popup-demo').style.display='flex'"
+                    style="padding: 12px 24px; background: var(--accent-primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 20px auto; display: block;">
                     <i class="fas fa-external-link-alt"></i> Open Popup Modal Demo
                 </button>
             </div>
         </div>
 
         <!-- POPUP MODAL (HIDDEN BY DEFAULT) -->
-        <div id="popup-demo" class="popup-overlay" style="display: none;" onclick="if(event.target === this) this.style.display='none'">
+        <div id="popup-demo" class="popup-overlay" style="display: none;"
+            onclick="if(event.target === this) this.style.display='none'">
             <div class="popup-modal" onclick="event.stopPropagation()">
                 <div class="popup-header">
                     <div style="flex: 1;">
@@ -1055,7 +1089,8 @@
                             </div>
                         </div>
                     </div>
-                    <button class="popup-close-btn" onclick="document.getElementById('popup-demo').style.display='none'">
+                    <button class="popup-close-btn"
+                        onclick="document.getElementById('popup-demo').style.display='none'">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -1067,7 +1102,9 @@
                             <i class="fas fa-align-left"></i> Description
                         </h3>
                         <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
-                            Complete overhaul of the customer-facing e-commerce platform with modern design system, improved UX, and performance optimization including frontend redesign, backend API updates, and comprehensive testing infrastructure.
+                            Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                            improved UX, and performance optimization including frontend redesign, backend API updates,
+                            and comprehensive testing infrastructure.
                         </p>
                     </div>
 
@@ -1166,7 +1203,8 @@
                 </div>
 
                 <div class="popup-footer">
-                    <button class="popup-btn popup-btn-secondary" onclick="document.getElementById('popup-demo').style.display='none'">
+                    <button class="popup-btn popup-btn-secondary"
+                        onclick="document.getElementById('popup-demo').style.display='none'">
                         <i class="fas fa-times"></i> Close
                     </button>
                     <button class="popup-btn popup-btn-primary">
@@ -1193,4 +1231,5 @@
         });
     </script>
 </body>
+
 </html>

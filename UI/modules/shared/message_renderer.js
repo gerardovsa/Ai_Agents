@@ -290,16 +290,35 @@ const UnifiedMessageRenderer = (function () {
 
         if (Array.isArray(content)) {
             // Array of content blocks (Claude API format)
-            return content
+            // Extract text from text blocks, skip thinking/tool_use blocks
+            const textBlocks = content
                 .filter(block => block && block.type === 'text')
-                .map(block => block.text || '')
-                .join('\n\n');
+                .map(block => block.text || '');
+
+            if (textBlocks.length > 0) {
+                return textBlocks.join('\n\n');
+            }
+
+            // If no text blocks, check for thinking blocks (Extended Thinking)
+            const thinkingBlocks = content
+                .filter(block => block && (block.type === 'thinking' || block.type === 'redacted_thinking'))
+                .map(block => `🧠 Thinking: ${block.thinking || '[Thinking process]'}`);
+
+            if (thinkingBlocks.length > 0) {
+                return thinkingBlocks.join('\n\n');
+            }
+
+            // If no text or thinking, return empty (tool_use messages shouldn't be rendered)
+            return '';
         }
 
         if (content && typeof content === 'object') {
             // Single content block object
             if (content.type === 'text' && content.text) {
                 return content.text;
+            }
+            if (content.type === 'thinking' && content.thinking) {
+                return `🧠 Thinking: ${content.thinking}`;
             }
             if (content.text) {
                 return content.text;

@@ -161,6 +161,10 @@ def list_threads():
         
         limit = int(request.args.get('limit', 50))
         
+        print(f"\n🔍 [THREAD API] /api/threads/list called")
+        print(f"📊 [THREAD API] Parameters: user_id={user_id}, limit={limit}")
+        print(f"🗄️ [THREAD API] Database: {'Supabase' if is_using_supabase() else 'SQLite'}")
+        
         # Get database connection (auto-detects SQLite vs Supabase)
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
@@ -208,6 +212,15 @@ def list_threads():
         cursor.execute(query, (user_id, limit))
         rows = cursor.fetchall()
         
+        print(f"✅ [THREAD API] Query returned {len(rows)} rows")
+        
+        # Log location distribution
+        location_counts = {}
+        for row in rows:
+            loc = row['location'] or 'prime'
+            location_counts[loc] = location_counts.get(loc, 0) + 1
+        print(f"📍 [THREAD API] Location distribution: {location_counts}")
+        
         threads = []
         for row in rows:
             # Rows returned as dicts (RealDictCursor for Supabase, Row for SQLite)
@@ -241,6 +254,12 @@ def list_threads():
         
         cursor.close()
         conn.close()
+        
+        print(f"📤 [THREAD API] Returning {len(threads)} threads")
+        for thread in threads[:5]:  # Log first 5 threads
+            print(f"   🧵 {thread['id']}: '{thread['title']}' → location={thread['location']}")
+        if len(threads) > 5:
+            print(f"   ... and {len(threads) - 5} more threads")
         
         return success_response({
             'threads': threads,

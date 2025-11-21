@@ -16139,12 +16139,11 @@
             // ? INITIALIZE THREADMANAGER (Post-Authentication)
             // Must happen AFTER login so UserAuth.token is available for /api/auth/profile
             if (typeof ThreadManager !== 'undefined') {
-                // ThreadManager.init() removed - module loader handles initialization automatically
                 console.log('✅ ThreadManager loaded via module system');
 
-                // Restore thread assignments in Multi-Agent after threads loaded
-                await ThreadManager.restoreThreadAssignments();
-                console.log('? Thread assignments restored');
+                // Initialize ThreadManager - this loads threads from backend AND restores assignments
+                await ThreadManager.init();
+                console.log('? ThreadManager initialized (threads loaded + assignments restored)');
             }
 
             // DISPLAY TOOL STATISTICS

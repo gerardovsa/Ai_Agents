@@ -90,7 +90,7 @@ class MicrosoftOneDriveTools:
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
     
-    def onedrive_list_files(self, user_id: str, folder_path: str = None, max_results: int = 100, **kwargs) -> Dict:
+    def onedrive_list_files(self, folder_path: str = None, max_results: int = 100, **kwargs) -> Dict:
         """List files in OneDrive folder"""
         
         if folder_path:
@@ -119,7 +119,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_upload_file(self, user_id: str, local_file_path: str, 
+    def onedrive_upload_file(self, local_file_path: str, 
                             onedrive_folder: str = None, new_name: str = None, **kwargs) -> Dict:
         """Upload file to OneDrive"""
         
@@ -182,7 +182,7 @@ class MicrosoftOneDriveTools:
                 'error': 'Large file upload (>4MB) requires upload session - not yet implemented'
             }
     
-    def onedrive_download_file(self, user_id: str, item_id: str, save_path: str, **kwargs) -> Dict:
+    def onedrive_download_file(self, item_id: str, save_path: str, **kwargs) -> Dict:
         """Download file from OneDrive"""
         
         # Get download URL
@@ -214,7 +214,7 @@ class MicrosoftOneDriveTools:
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def onedrive_get_file_info(self, user_id: str, item_id: str, **kwargs) -> Dict:
+    def onedrive_get_file_info(self, item_id: str, **kwargs) -> Dict:
         """Get detailed information about a file or folder"""
         result = self._make_request('GET', f'/me/drive/items/{item_id}', **kwargs)
         
@@ -237,7 +237,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_create_folder(self, user_id: str, folder_name: str, parent_path: str = None, **kwargs) -> Dict:
+    def onedrive_create_folder(self, folder_name: str, parent_path: str = None, **kwargs) -> Dict:
         """Create a new folder in OneDrive"""
         
         folder_data = {
@@ -275,7 +275,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_delete_item(self, user_id: str, item_id: str, **kwargs) -> Dict:
+    def onedrive_delete_item(self, item_id: str, **kwargs) -> Dict:
         """Delete a file or folder"""
         result = self._make_request('DELETE', f'/me/drive/items/{item_id}', **kwargs)
         
@@ -286,7 +286,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_move_item(self, user_id: str, item_id: str, destination_folder_id: str,
+    def onedrive_move_item(self, item_id: str, destination_folder_id: str,
                           new_name: str = None, **kwargs) -> Dict:
         """Move or rename a file/folder"""
         
@@ -309,7 +309,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_copy_item(self, user_id: str, item_id: str, destination_folder_id: str,
+    def onedrive_copy_item(self, item_id: str, destination_folder_id: str,
                           new_name: str = None, **kwargs) -> Dict:
         """Copy a file or folder"""
         
@@ -332,7 +332,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_rename_item(self, user_id: str, item_id: str, new_name: str, **kwargs) -> Dict:
+    def onedrive_rename_item(self, item_id: str, new_name: str, **kwargs) -> Dict:
         """Rename a file or folder"""
         
         rename_data = {'name': new_name}
@@ -346,7 +346,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_search_files(self, user_id: str, query: str, folder_path: str = None,
+    def onedrive_search_files(self, query: str, folder_path: str = None,
                              max_results: int = 50, **kwargs) -> Dict:
         """Search for files in OneDrive"""
         
@@ -374,7 +374,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_get_file_versions(self, user_id: str, item_id: str, **kwargs) -> Dict:
+    def onedrive_get_file_versions(self, item_id: str, **kwargs) -> Dict:
         """Get version history of a file"""
         result = self._make_request('GET', f'/me/drive/items/{item_id}/versions', **kwargs)
         
@@ -392,7 +392,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_restore_version(self, user_id: str, item_id: str, version_id: str, **kwargs) -> Dict:
+    def onedrive_restore_version(self, item_id: str, version_id: str, **kwargs) -> Dict:
         """Restore a previous version of a file"""
         result = self._make_request('POST', f'/me/drive/items/{item_id}/versions/{version_id}/restoreVersion', **kwargs)
         
@@ -403,7 +403,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_get_thumbnail(self, user_id: str, item_id: str, size: str = 'medium', **kwargs) -> Dict:
+    def onedrive_get_thumbnail(self, item_id: str, size: str = 'medium', **kwargs) -> Dict:
         """Get thumbnail image for a file"""
         result = self._make_request('GET', f'/me/drive/items/{item_id}/thumbnails', **kwargs)
         
@@ -419,7 +419,7 @@ class MicrosoftOneDriveTools:
             return {'success': False, 'error': 'No thumbnails available'}
         return result
     
-    def onedrive_create_share_link(self, user_id: str, item_id: str, 
+    def onedrive_create_share_link(self, item_id: str, 
                                    link_type: str = 'view', scope: str = 'anonymous', **kwargs) -> Dict:
         """Create a sharing link for a file or folder"""
         
@@ -440,7 +440,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_share_with_users(self, user_id: str, item_id: str, recipients: List[str],
+    def onedrive_share_with_users(self, item_id: str, recipients: List[str],
                                  message: str = None, role: str = 'read', **kwargs) -> Dict:
         """Share file/folder with specific users"""
         
@@ -465,7 +465,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_get_permissions(self, user_id: str, item_id: str, **kwargs) -> Dict:
+    def onedrive_get_permissions(self, item_id: str, **kwargs) -> Dict:
         """Get sharing permissions for a file/folder"""
         result = self._make_request('GET', f'/me/drive/items/{item_id}/permissions', **kwargs)
         
@@ -483,7 +483,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_revoke_permission(self, user_id: str, item_id: str, permission_id: str, **kwargs) -> Dict:
+    def onedrive_revoke_permission(self, item_id: str, permission_id: str, **kwargs) -> Dict:
         """Revoke sharing permission"""
         result = self._make_request('DELETE', f'/me/drive/items/{item_id}/permissions/{permission_id}', **kwargs)
         
@@ -494,7 +494,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_get_storage_info(self, user_id: str, **kwargs) -> Dict:
+    def onedrive_get_storage_info(self, **kwargs) -> Dict:
         """Get OneDrive storage quota information"""
         result = self._make_request('GET', '/me/drive', **kwargs)
         
@@ -517,7 +517,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_get_recent_files(self, user_id: str, max_results: int = 20, **kwargs) -> Dict:
+    def onedrive_get_recent_files(self, max_results: int = 20, **kwargs) -> Dict:
         """Get recently accessed files"""
         params = {'$top': min(max_results, 100)}
         result = self._make_request('GET', '/me/drive/recent', params=params, **kwargs)
@@ -537,7 +537,7 @@ class MicrosoftOneDriveTools:
             }
         return result
     
-    def onedrive_smart_organize_by_type(self, user_id: str, source_folder: str = None, **kwargs) -> Dict:
+    def onedrive_smart_organize_by_type(self, source_folder: str = None, **kwargs) -> Dict:
         """Automatically organize files by type into folders"""
         
         # Get files from source folder
@@ -588,7 +588,7 @@ class MicrosoftOneDriveTools:
         
         return results
     
-    def onedrive_smart_backup_folder(self, user_id: str, folder_path: str, **kwargs) -> Dict:
+    def onedrive_smart_backup_folder(self, folder_path: str, **kwargs) -> Dict:
         """Create timestamped backup of entire folder"""
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -623,7 +623,7 @@ class MicrosoftOneDriveTools:
         
         return copy_result
     
-    def onedrive_smart_cleanup_duplicates(self, user_id: str, folder_path: str = None,
+    def onedrive_smart_cleanup_duplicates(self, folder_path: str = None,
                                          strategy: str = 'keep_newest', **kwargs) -> Dict:
         """Find and remove duplicate files"""
         
@@ -671,7 +671,7 @@ class MicrosoftOneDriveTools:
         
         return results
     
-    def onedrive_smart_sync_folders(self, user_id: str, source_folder: str, 
+    def onedrive_smart_sync_folders(self, source_folder: str, 
                                    destination_folder: str, sync_mode: str = 'one_way', **kwargs) -> Dict:
         """Synchronize two folders"""
         

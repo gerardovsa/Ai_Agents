@@ -83,8 +83,13 @@ def _get_query_library(**kwargs) -> Optional[QueryLibrary]:
         db_connector = kwargs.get('db_connector')
         
         if not db_connector:
-            # Create database connection
-            config_path = root_dir / "config" / "database-config.json"
+            # Create database connection - works both locally and on Render.com
+            if os.environ.get('RENDER') == 'true':
+                # Render deployment: Use /app root
+                config_path = Path('/app/config/database-config.json')
+            else:
+                # Local development: Use root_dir
+                config_path = root_dir / "config" / "database-config.json"
             
             if not config_path.exists():
                 print(f"⚠️  [Query Library] Config not found: {config_path}")

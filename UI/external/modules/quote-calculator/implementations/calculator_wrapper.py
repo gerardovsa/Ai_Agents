@@ -106,8 +106,13 @@ def _get_calculator():
     """Get calculator instance"""
     _ensure_calculator()
     
-    # Get database config path
-    config_path = root_dir / "config" / "database-config.json"
+    # Get database config path - works both locally and on Render.com
+    if os.environ.get('RENDER') == 'true':
+        # Render deployment: Use /app root
+        config_path = Path('/app/config/database-config.json')
+    else:
+        # Local development: Use root_dir
+        config_path = root_dir / "config" / "database-config.json"
     
     if not config_path.exists():
         # Fallback to default G_Folder path

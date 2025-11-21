@@ -141,7 +141,7 @@ window.ThreadManagerWorkflows = {
         try {
             const response = await fetch('/api/automation/list', {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${UserAuth.token || ''}`
                 }
             });
 

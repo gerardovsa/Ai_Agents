@@ -90,6 +90,7 @@ const ThreadManager = {
     realtimeEnabled: false,
     lastRealtimeUpdate: 0,
     pendingAssignment: false,
+    cascadeInProgress: false,  // Prevent UI refreshes during CASCADE
     apiBaseUrl: window.API_BASE_URL || 'http://localhost:5001',
 
     // ==================== INITIALIZATION ====================
@@ -192,7 +193,7 @@ const ThreadManager = {
                         UserAuth.user.id = backendUserId;
                         UserAuth.user.user_id = backendUserId;
                         window.currentUserId = backendUserId;
-                        localStorage.setItem('userProfile', JSON.stringify(data.profile));
+                        // localStorage removed - backend is source of truth
                         console.log('✅ [ThreadManager] User data updated from backend');
                     } else {
                         console.log('✅ [ThreadManager] User ID verified');
@@ -214,19 +215,32 @@ const ThreadManager = {
             }
 
             console.log(`📥 [ThreadManager] Loading threads for user_id: ${userId}`);
+            console.log(`🌐 [ThreadManager] API URL: ${this.apiBaseUrl}/api/threads/list?user_id=${userId}`);
 
             const response = await fetch(`${this.apiBaseUrl}/api/threads/list?user_id=${userId}`);
+            console.log(`📡 [ThreadManager] Response status: ${response.status} ${response.statusText}`);
+
             const data = await response.json();
+            console.log(`📦 [ThreadManager] API response keys:`, Object.keys(data));
+            console.log(`📦 [ThreadManager] Raw response:`, data);
 
             const threads = data.threads || (data.data && data.data.threads) || [];
+            console.log(`🔢 [ThreadManager] Extracted ${threads.length} threads from response`);
 
             if (data.success && threads.length > 0) {
-                this.threads = threads.map(thread => {
+                console.log(`🔄 [ThreadManager] Processing ${threads.length} threads...`);
+
+                this.threads = threads.map((thread, idx) => {
                     const location = thread.location || thread.agent || 'prime';
                     const threadTitle = thread.name || thread.title || 'Untitled Thread';
 
                     // Sanitize thread ID to remove any whitespace/newlines
                     const threadId = this.sanitizeThreadId(thread.id || thread.thread_slug);
+
+                    // Log location for first 5 threads
+                    if (idx < 5) {
+                        console.log(`   📍 Thread ${idx + 1}: "${threadTitle}" (${threadId}) → location="${location}"`);
+                    }
 
                     return {
                         id: threadId,
@@ -248,14 +262,21 @@ const ThreadManager = {
                 });
 
                 this.threadsLoaded = true;
-                console.log('✅ [ThreadManager] Threads loaded:', this.threads.length);
 
-                // Refresh thread selectors after threads are loaded
-                setTimeout(() => {
-                    if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.refreshAllAgentThreadInfos === 'function') {
-                        AgentColumn.refreshAllAgentThreadInfos();
-                    }
-                }, 100);
+                // Calculate location distribution
+                const locationCounts = {};
+                this.threads.forEach(t => {
+                    const loc = t.location || 'prime';
+                    locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+                });
+
+                console.log('✅ [ThreadManager] Threads loaded:', this.threads.length);
+                console.log('📊 [ThreadManager] Location distribution:', locationCounts);
+                console.log('📋 [ThreadManager] All thread locations:', this.threads.map(t => `${t.id}: ${t.location}`));
+
+                // REMOVED: refreshAllAgentThreadInfos() call - it interferes with CASCADE pattern
+                // CASCADE handles UI updates properly, this was resetting agent UIs prematurely
+                // Only call on initial load (in init()), not on every reload
 
                 return true;
             } else {
@@ -294,17 +315,18 @@ const ThreadManager = {
             clearInterval(this.autoSaveInterval);
         }
 
-        // Auto-save every 30 seconds
+        // Auto-save every 60 seconds (reduced from 30s to prevent excessive DB writes)
         this.autoSaveInterval = setInterval(() => {
             if (this.currentThreadId) {
                 const thread = this.threads.find(t => t.id === this.currentThreadId);
                 if (thread && thread.messages && thread.messages.length > 0) {
+                    console.log(`💾 [AutoSave] Saving thread ${thread.id} (${thread.messages.length} messages)`);
                     this.saveThreadToBackend(thread);
                 }
             }
-        }, 30000);
+        }, 60000);
 
-        console.log('✅ [ThreadManager] Auto-save enabled (30s interval)');
+        console.log('✅ [ThreadManager] Auto-save enabled (60s interval)');
     },
 
     stopAutoSave() {

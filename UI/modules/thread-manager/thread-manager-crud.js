@@ -170,7 +170,7 @@ Object.assign(window.ThreadManager, {
                             method: 'DELETE',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+                                'Authorization': `Bearer ${UserAuth.token || ''}`
                             }
                         });
 

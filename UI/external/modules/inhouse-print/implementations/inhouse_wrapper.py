@@ -69,10 +69,19 @@ def _get_agent() -> ToolUseAgent:
         raise ImportError("ToolUseAgent could not be imported - check backend path and dependencies")
     
     if _agent_instance is None:
-        # Path to database-config.json (go up to AI_agents root)
-        # From: UI/external/modules/inhouse-print/implementations/inhouse_wrapper.py
-        # To: config/database-config.json (6 levels up: implementations → inhouse-print → modules → external → UI → AI_agents)
-        config_path = Path(__file__).parent.parent.parent.parent.parent.parent / 'config' / 'database-config.json'
+        # Path to database-config.json - works both locally and on Render.com
+        # On Render: /app/config/database-config.json
+        # Locally: C:\Users\gpoli\GIT\AI_agents\config\database-config.json
+        
+        # Check if running on Render.com (Docker container)
+        if os.environ.get('RENDER') == 'true':
+            # Render deployment: Use /app root
+            config_path = Path('/app/config/database-config.json')
+        else:
+            # Local development: Navigate up from wrapper file
+            # From: UI/external/modules/inhouse-print/implementations/inhouse_wrapper.py
+            # To: config/database-config.json (6 levels up)
+            config_path = Path(__file__).parent.parent.parent.parent.parent.parent / 'config' / 'database-config.json'
         
         if not config_path.exists():
             raise FileNotFoundError(f"Database config not found: {config_path}")
