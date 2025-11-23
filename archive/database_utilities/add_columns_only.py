@@ -4,6 +4,7 @@ NO MIGRATION - just add columns
 """
 import sqlite3
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 root_dir = Path(__file__).parent
 db_path = root_dir / 'data' / 'synergy_sessions.db'

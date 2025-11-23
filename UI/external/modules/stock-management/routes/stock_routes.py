@@ -3,6 +3,7 @@ FILE: UI/external/modules/stock-management/routes/stock_routes.py
 PURPOSE: Flask Blueprint for stock-management module routes
 DESCRIPTION: Converted from app.add_url_rule() pattern to Flask Blueprint
 for auto-discovery by module_blueprint_loader.py
+from shared.database_utils import convert_sql_placeholders
 
 EXPORTS:
 - stock_bp - Flask Blueprint with 7 stock management endpoints

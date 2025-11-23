@@ -1,6 +1,7 @@
 import sqlite3
 from pathlib import Path
 import json
+from shared.database_utils import convert_sql_placeholders
 
 # Check threads in sessions.db
 print('\n=== THREADS FOR USER 14 (sessions.db) ===')
@@ -37,7 +38,9 @@ for thread in threads:
     print(f'  Synergy: {thread["synergy_card_id"] if thread["synergy_card_id"] else "None"}')
     
     # Get message count
-    cursor.execute('SELECT COUNT(*) FROM messages WHERE thread_id = ?', (thread["id"],))
+    sql, params = convert_sql_placeholders('SELECT COUNT(*) FROM messages WHERE thread_id = ?', (thread["id"],))
+
+    cursor.execute(sql, params)
     msg_count = cursor.fetchone()[0]
     print(f'  Messages: {msg_count}')
     print('---')

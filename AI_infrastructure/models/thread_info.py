@@ -3,6 +3,7 @@ Universal Thread Info Structure - Single Source of Truth
 Date: November 17, 2025
 Purpose: Standardized thread data structure used across all APIs and UI components
 """
+from shared.database_utils import convert_sql_placeholders
 
 from typing import Optional, List, Dict, Any
 from datetime import datetime

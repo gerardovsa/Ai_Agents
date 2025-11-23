@@ -68,6 +68,19 @@ const ThreadLoader = {
      * UPDATED: Uses proper sessions.threads + sessions.messages schema
      */
     async saveThreadToBackend(thread) {
+        // ⚠️ DEPRECATED (Nov 22, 2025): Backend auto-saves messages after stream
+        // This method now only logs - does NOT save to prevent phantom threads
+        console.warn('[ThreadLoader] ⚠️ saveThreadToBackend is DEPRECATED');
+        console.warn('[ThreadLoader] Backend auto-saves after stream completion');
+        
+        if (thread && thread.messages) {
+            console.log(`[ThreadLoader] Thread ${thread.id} has ${thread.messages.length} messages (already in database)`);
+        }
+        
+        // Return success to avoid breaking code
+        return true;
+        
+        /* DEPRECATED: All save logic removed to prevent phantom threads
         try {
             // Don't try to save empty threads
             if (!thread.messages || thread.messages.length === 0) {
@@ -114,12 +127,27 @@ const ThreadLoader = {
             console.error('[ThreadLoader] Save error:', error);
             return false;
         }
+        */
     },
 
     /**
      * Save messages to backend
+     * ⚠️ DEPRECATED: Backend auto-saves messages after stream completion
+     * Frontend should NEVER save messages - backend is single source of truth
      */
     async saveMessagesToBackend(thread) {
+        console.warn(`[ThreadLoader] ⚠️ saveMessagesToBackend is DEPRECATED`);
+        console.warn(`[ThreadLoader] Backend auto-saves messages after stream completion`);
+        console.warn(`[ThreadLoader] Frontend should NEVER save messages`);
+        
+        if (thread && thread.messages) {
+            console.log(`[ThreadLoader] Thread ${thread.id} has ${thread.messages.length} messages (already in database)`);
+        }
+        
+        // Return success to avoid breaking code that calls this
+        return true;
+        
+        /* DEPRECATED CODE - Backend now handles message saving
         try {
             if (!thread || !thread.id) {
                 console.error('[ThreadLoader] No thread provided');
@@ -186,25 +214,43 @@ const ThreadLoader = {
             console.error('[ThreadLoader] Error saving messages:', error);
             return false;
         }
+        */
     },
 
     /**
-     * Get thread location from backend
+     * Get thread location from Supabase
      */
     async getThreadLocation(threadId) {
         try {
-            const response = await fetch(`/api/thread-assignments/location/${threadId}?user_id=${window.appUserId || 1}`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
-                    console.log(`[ThreadLoader] Thread ${threadId} location:`, data.location || 'Prime/unassigned');
-                    return data.location;
-                } else {
-                    console.warn(`[ThreadLoader] API returned success:false for thread ${threadId}`);
+            // Initialize Supabase client if not exists
+            if (!window.SUPABASE_CLIENT) {
+                if (typeof window.supabase === 'undefined') {
+                    console.warn('[ThreadLoader] Supabase not available');
                     return null;
                 }
+                window.SUPABASE_CLIENT = window.supabase.createClient(
+                    window.SUPABASE_URL,
+                    window.SUPABASE_ANON_KEY
+                );
+            }
+
+            const userId = window.appUserId || 1;
+
+            // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
+            const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/thread-assignments/location/${threadId}?user_id=${userId}`);
+
+            if (!response.ok) {
+                console.warn(`[ThreadLoader] API error for thread ${threadId}:`, response.statusText);
+                return null;
+            }
+
+            const result = await response.json();
+            if (result.success && result.location) {
+                console.log(`[ThreadLoader] Thread ${threadId} location:`, result.location || 'Prime/unassigned');
+                return result.location;
             } else {
-                console.warn(`[ThreadLoader] Failed to get location for thread ${threadId}: ${response.status}`);
+                console.warn(`[ThreadLoader] No data found for thread ${threadId}`);
                 return null;
             }
         } catch (err) {

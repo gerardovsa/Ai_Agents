@@ -1,5 +1,6 @@
 """
 Advanced Multi-Agent Coordination Tools
+from shared.database_utils import convert_sql_placeholders
 
 Provides tools for:
 1. assign_and_activate_agent_with_slugs - Combo tool for multi-slug assignment with UI automation
@@ -90,7 +91,7 @@ def get_thread_by_location(location: str, user_id: int) -> Optional[Dict[str, An
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT thread_id, thread_slug, title, location, 
                workflow_slug, workflow_title,
                internal_doc_slug, internal_doc_title,
@@ -100,6 +101,9 @@ def get_thread_by_location(location: str, user_id: int) -> Optional[Dict[str, An
         ORDER BY updated_at DESC
         LIMIT 1
     """, (location, user_id))
+
+    
+    cursor.execute(sql, params)
     
     row = cursor.fetchone()
     conn.close()
@@ -201,7 +205,7 @@ def assign_and_activate_agent_with_slugs(
             thread_id = str(uuid.uuid4())
             thread_slug = f"thread-{uuid.uuid4().hex[:8]}"
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO threads (
                     thread_id, thread_slug, title, location, user_id,
                     workflow_slug, workflow_title,
@@ -357,7 +361,9 @@ def request_update_from_thread(
             target_thread_id = target_thread['thread_id']
         except AgentCoordinationError:
             # Assume it's already a thread_id
-            cursor.execute("SELECT thread_id FROM threads WHERE thread_id = ?", (target_thread_id,))
+            sql, params = convert_sql_placeholders("SELECT thread_id FROM threads WHERE thread_id = ?", (target_thread_id,))
+
+            cursor.execute(sql, params)
             if not cursor.fetchone():
                 return {
                     'success': False,
@@ -430,7 +436,7 @@ def request_update_from_thread(
                 cursor.execute("""
                     SELECT status, response_message, responded_at
                     FROM cross_thread_requests
-                    WHERE request_id = ?
+                    WHERE request_id = %s
                 """, (request_id,))
                 
                 row = cursor.fetchone()
@@ -494,12 +500,14 @@ def respond_to_cross_thread_request(
     
     try:
         # Get request details
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT request_id, source_thread_id, target_thread_id,
                    request_message, status
             FROM cross_thread_requests
             WHERE request_id = ? AND user_id = ?
         """, (request_id, user_id))
+
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         if not row:
@@ -518,11 +526,13 @@ def respond_to_cross_thread_request(
         
         # Update request with response
         responded_at = datetime.now().isoformat()
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             UPDATE cross_thread_requests
             SET status = ?, response_message = ?, responded_at = ?
             WHERE request_id = ?
         """, ('completed', response_message, responded_at, request_id))
+
+        cursor.execute(sql, params)
         
         # Insert response message into source thread
         message_id = str(uuid.uuid4())

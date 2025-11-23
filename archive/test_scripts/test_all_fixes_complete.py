@@ -4,6 +4,7 @@ Tests both collapsed card and expanded popup views
 """
 import sqlite3
 import json
+from shared.database_utils import convert_sql_placeholders
 
 db_path = 'C:\\Users\\gpoli\\GIT\\AI_agents\\data\\synergy_sessions.db'
 conn = sqlite3.connect(db_path)

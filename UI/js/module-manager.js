@@ -17,18 +17,58 @@ class ModuleManager {
 
     /**
      * Initialize manager (called after DOM is ready)
+     * ✅ Enhanced with retry logic to handle race conditions
      */
-    initialize() {
-        this.sidebar = document.querySelector('.sidebar');
-        this.mainContent = document.querySelector('.main-content');
+    async initialize() {
+        console.log('🔧 [MODULE MANAGER] Initializing...');
 
-        if (!this.sidebar || !this.mainContent) {
-            console.error(' Required DOM elements not found (sidebar, main-content)');
-            return false;
+        // ✅ CRITICAL FIX: Wait for DOM elements with retry logic
+        let retries = 0;
+        const maxRetries = 25; // 25 retries = 5 seconds
+
+        while (retries < maxRetries) {
+            this.sidebar = document.querySelector('.sidebar');
+            this.mainContent = document.querySelector('.main-content');
+
+            if (this.sidebar && this.mainContent) {
+                // ✅ Check if visible (not display: none)
+                const sidebarVisible = this.sidebar.offsetParent !== null;
+                const mainContentVisible = this.mainContent.offsetParent !== null;
+
+                if (sidebarVisible && mainContentVisible) {
+                    console.log('✅ [MODULE MANAGER] DOM elements found and visible');
+                    console.log('   Sidebar:', this.sidebar);
+                    console.log('   Main content:', this.mainContent);
+                    return true;
+                } else {
+                    if (retries % 5 === 0) { // Log every 1 second
+                        console.log(`⏳ [MODULE MANAGER] Elements exist but hidden (retry ${retries + 1}/${maxRetries})`);
+                        console.log('   Sidebar visible:', sidebarVisible);
+                        console.log('   Main content visible:', mainContentVisible);
+                    }
+                }
+            } else {
+                if (retries % 5 === 0) { // Log every 1 second
+                    console.log(`⏳ [MODULE MANAGER] Waiting for DOM elements (retry ${retries + 1}/${maxRetries})`);
+                    console.log('   Sidebar found:', !!this.sidebar);
+                    console.log('   Main content found:', !!this.mainContent);
+                }
+            }
+
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
 
-        console.log('ModuleManager ready');
-        return true;
+        console.error('❌ [MODULE MANAGER] Required DOM elements not found after retries');
+        console.log('   Final state:');
+        console.log('     Sidebar found:', !!this.sidebar);
+        console.log('     Main content found:', !!this.mainContent);
+        console.log('   Available DOM elements:');
+        console.log('     .sidebar count:', document.querySelectorAll('.sidebar').length);
+        console.log('     .main-content count:', document.querySelectorAll('.main-content').length);
+        console.log('     #main-app count:', document.querySelectorAll('#main-app').length);
+        
+        return false;
     }
 
     /**
@@ -44,6 +84,13 @@ class ModuleManager {
      */
     registerModule(moduleConfig) {
         console.log(`📦 Registering module: ${moduleConfig.name}`);
+
+        // ✅ CRITICAL CHECK: Ensure ModuleManager is initialized
+        if (!this.sidebar || !this.mainContent) {
+            console.error(`❌ Cannot register module ${moduleConfig.name} - ModuleManager not initialized!`);
+            console.error(`   Sidebar: ${!!this.sidebar}, Main Content: ${!!this.mainContent}`);
+            throw new Error(`ModuleManager.initialize() must be called before registering modules`);
+        }
 
         // Validate module config
         if (!this.validateModule(moduleConfig)) {

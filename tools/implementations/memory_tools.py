@@ -40,7 +40,7 @@ from typing import Dict, Any, List, Optional
 
 # Add AI_infrastructure to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'AI_infrastructure'))
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 
 
 def get_db_connection():
@@ -97,11 +97,13 @@ def read_user_memories(
         cursor = conn.cursor()
         
         # Get memories JSON from database
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT ai_memories
             FROM user_preferences
             WHERE user_id = ?
         """, (user_id,))
+
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         conn.close()
@@ -214,11 +216,13 @@ def add_user_memory(
         cursor = conn.cursor()
         
         # Get existing memories
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT ai_memories
             FROM user_preferences
             WHERE user_id = ?
         """, (user_id,))
+
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         
@@ -231,7 +235,7 @@ def add_user_memory(
         memories.append(new_memory)
         
         # Update database
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             UPDATE user_preferences
             SET ai_memories = ?,
                 memory_updated_at = CURRENT_TIMESTAMP
@@ -243,7 +247,7 @@ def add_user_memory(
             cursor.execute("""
                 INSERT INTO user_preferences
                 (user_id, ai_memories, memory_updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
             """, (user_id, json.dumps(memories)))
         
         conn.commit()
@@ -304,11 +308,13 @@ def update_user_memory(
         cursor = conn.cursor()
         
         # Get existing memories
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT ai_memories
             FROM user_preferences
             WHERE user_id = ?
         """, (user_id,))
+
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         
@@ -339,7 +345,7 @@ def update_user_memory(
             }
         
         # Update database
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             UPDATE user_preferences
             SET ai_memories = ?,
                 memory_updated_at = CURRENT_TIMESTAMP
@@ -400,6 +406,8 @@ def delete_user_memory(
             FROM user_preferences
             WHERE user_id = ?
         """, (user_id,))
+
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         

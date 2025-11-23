@@ -1,4 +1,5 @@
 """Final cleanup - keep only real user conversation"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path

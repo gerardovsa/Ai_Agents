@@ -675,79 +675,63 @@ class MyToolImplementation:
 
 ## 🗄️ Database Architecture (CRITICAL - MUST FOLLOW)
 
-### ✅ CORRECT Database Locations
+### ✅ SUPABASE POSTGRESQL - ONLY DATABASE USED
 
-**ALL database files MUST be in the `data/` folder:**
+**🚨 CRITICAL: WE USE ONLY SUPABASE POSTGRESQL - NO SQLITE! 🚨**
 
-```python
-# CORRECT PATTERN (ALWAYS USE THIS):
-from pathlib import Path
-root_dir = Path(__file__).parent.parent.parent  # Go up to AI_agents root
-db_path = root_dir / 'data' / 'ai_infrastructure.db'
-conn = sqlite3.connect(str(db_path))
-```
+**ALL data is stored in Supabase PostgreSQL:**
+- User data, OAuth tokens, credentials → `ai_infrastructure` schema
+- Threads, messages, conversations → `sessions` schema  
+- Synergy sessions → `synergy_sessions` schema
+- Stock data → `stock_data` schema
+- Analytics → `kanban_analytics` schema
 
-**Official Database Locations:**
+### Database Connection Pattern
 
-| Database | Location | Purpose |
-|----------|----------|---------|
-| `ai_infrastructure.db` | `data/ai_infrastructure.db` | User data, OAuth tokens, credentials |
-| `sessions.db` | `data/sessions.db` | Flask sessions, JWT tokens |
-| `synergy_sessions.db` | `data/synergy_sessions.db` | Synergy feature data |
-
-**Full Paths:**
-- ✅ `C:\Users\gpoli\GIT\AI_agents\data\ai_infrastructure.db` - CORRECT
-- ❌ `C:\Users\gpoli\GIT\AI_agents\AI_infrastructure\ai_infrastructure.db` - WRONG (old location)
-
-### ❌ NEVER Use These Paths:
+**ALWAYS use the connection pool utilities from `shared/database_utils.py`:**
 
 ```python
-# WRONG - Don't use AI_infrastructure/ folder for databases
-db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ai_infrastructure.db')
+from shared.database_utils import get_database_connection
 
-# WRONG - Don't use relative paths
-db_path = '../ai_infrastructure.db'
-
-# WRONG - Don't hardcode absolute paths
-db_path = 'C:\\Users\\gpoli\\GIT\\AI_agents\\AI_infrastructure\\ai_infrastructure.db'
-```
-
-### Database Connection Template
-
-**When creating any new route or module that needs database access:**
-
-```python
 def get_db_connection():
     """
-    Get database connection to ai_infrastructure.db in data/ folder
+    Get connection to Supabase PostgreSQL using connection pool
     
-    CRITICAL: Always use data/ai_infrastructure.db (CORRECT LOCATION)
-    Do NOT use AI_infrastructure/ai_infrastructure.db (WRONG - old location)
+    🚨 CRITICAL: NEVER use sqlite3! Always use Supabase PostgreSQL!
     """
-    import sqlite3
-    from pathlib import Path
-    
-    root_dir = Path(__file__).parent.parent.parent  # Up to AI_agents root
-    db_path = root_dir / 'data' / 'ai_infrastructure.db'
-    
-    # Optional: Debug log to verify correct path
-    print(f'🔷 [DB CONNECTION] Using: {db_path}')
-    
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-    return conn
+    return get_database_connection('ai_infrastructure')  # or 'sessions', 'stock_data', etc.
 ```
 
-### Quick Verification
+**Available connection helpers:**
+- `get_database_connection(db_name)` - Generic connection (use db_name: 'ai_infrastructure', 'sessions', 'stock_data', etc.)
+- `get_ai_db_connection()` - Shortcut for ai_infrastructure schema
+- `get_sessions_db_connection()` - Shortcut for sessions schema
+- `get_synergy_db_connection()` - Shortcut for synergy_sessions schema
+- `get_stock_db_connection()` - Shortcut for stock_data schema
 
-**To verify you're using the correct path:**
+### PostgreSQL Query Syntax
+
+**Use PostgreSQL syntax (NOT SQLite):**
 
 ```python
-# This should print: C:\Users\gpoli\GIT\AI_agents\data\ai_infrastructure.db
-from pathlib import Path
-root_dir = Path(__file__).parent.parent.parent
-print(root_dir / 'data' / 'ai_infrastructure.db')
+# ✅ CORRECT - PostgreSQL with %s placeholders
+cursor.execute("""
+    SELECT * FROM sessions.threads 
+    WHERE user_id = %s AND thread_slug = %s
+""", (user_id, thread_slug))
+
+# ❌ WRONG - SQLite syntax (DO NOT USE!)
+cursor.execute("""
+    SELECT * FROM threads 
+    WHERE user_id = ? AND thread_slug = ?
+""", (user_id, thread_slug))
 ```
+
+**PostgreSQL features to use:**
+- Schema prefixes: `sessions.threads`, `ai_infrastructure.users`
+- JSON columns: `metadata::jsonb`, `json_extract_path()`
+- Arrays: `ARRAY[]`, `ANY(array_column)`
+- Type casting: `::text`, `::integer`, `::jsonb`
 
 **See `DATABASE_PATH_FIX_COMPLETE.md` for full documentation.**
 
@@ -1482,9 +1466,9 @@ print(creds)  # Should show access_token
 ##  Critical Performance Notes
 
 - **Tool Loading**: 564 tools load in ~2-3 seconds via registry
-- **Credential Injection**: Credentials fetched from SQLite on-demand (not at init)
+- **Credential Injection**: Credentials fetched from Supabase PostgreSQL on-demand (not at init)
 - **API Key Rotation**: Uses round-robin across multiple keys via `get_api_key_enhanced()`
-- **Database**: SQLite for user data (`ai_infrastructure.db`) and sessions (`sessions.db`)
+- **Database**: Supabase PostgreSQL for ALL data (ai_infrastructure, sessions, synergy_sessions, stock_data schemas)
 
 ## 📚 Documentation Structure
 

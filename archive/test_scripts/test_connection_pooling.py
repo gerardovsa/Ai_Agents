@@ -1,6 +1,7 @@
 """
 Test Connection Pooling and Threading
 ======================================
+from shared.database_utils import convert_sql_placeholders
 
 This script verifies:
 1. Connection pooling is working (connections are reused)

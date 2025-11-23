@@ -1,5 +1,6 @@
 """
 Database Setup Script - Workspace Schema
+from shared.database_utils import convert_sql_placeholders
 
 Creates/updates database schema for multi-user workspace system.
 
@@ -54,10 +55,13 @@ class WorkspaceSchemaSetup:
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT name FROM sqlite_master 
             WHERE type='table' AND name=?
         """, (table,))
+
+        
+        cursor.execute(sql, params)
         
         exists = cursor.fetchone() is not None
         conn.close()

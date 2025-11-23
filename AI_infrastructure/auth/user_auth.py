@@ -455,6 +455,7 @@ class UserAuthManager:
         Returns:
             Dict with token and user info
         """
+        conn = None
         try:
             conn = self._get_db_connection()
             cursor = conn.cursor()
@@ -469,14 +470,12 @@ class UserAuthManager:
             row = cursor.fetchone()
             
             if not row:
-                conn.close()
                 return {'success': False, 'error': 'Invalid credentials'}
             
             user_id, username, email, password_hash, role, primary_gmail = row
             
             # Verify password
             if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
-                conn.close()
                 return {'success': False, 'error': 'Invalid credentials'}
             
             # Get user's workspaces
@@ -526,7 +525,6 @@ class UserAuthManager:
             ''', (user_id,))
             
             conn.commit()
-            conn.close()
             
             print(f"User logged in: {username}")
             
@@ -546,9 +544,13 @@ class UserAuthManager:
                 
         except Exception as e:
             print(f" Login error: {e}")
-            if 'conn' in locals():
-                conn.close()
             return {'success': False, 'error': str(e)}
+        
+        finally:
+            # CRITICAL: Always close connection
+            if conn:
+                conn.close()
+                print(f" [POOL] Connection returned to pool (login)")
     
     def verify_token(self, token: str) -> Optional[Dict]:
         """
@@ -589,6 +591,7 @@ class UserAuthManager:
             print("="*60 + "\n")
             return None
         
+        conn = None  # CRITICAL FIX: Initialize to track connection state
         try:
             print(f"\n📊 STAGE 2.1: JWT Signature Validation")
             payload = jwt.decode(token, self.jwt_secret, algorithms=['HS256'])
@@ -601,79 +604,79 @@ class UserAuthManager:
             # Check if token exists in sessions and hasn't expired
             conn = self._get_db_connection()
             cursor = conn.cursor()
-            try:
-                
-                # First check total sessions in database
-                cursor.execute('SELECT COUNT(*) FROM ai_infrastructure.user_sessions')
-                result = cursor.fetchone()
-                total_sessions = result['count'] if isinstance(result, dict) else result[0]
-                print(f"   Total sessions in DB: {total_sessions}")
-                
-                cursor.execute('''
-                    SELECT user_id, expires_at FROM ai_infrastructure.user_sessions
-                    WHERE token = %s
-                ''', (token,))
-                
-                result = cursor.fetchone()
-                if not result:
-                    print(f"    Token NOT found in database")
-                    print(f"   Checking sessions for user_id={payload.get('user_id')}...")
-                    cursor.execute('SELECT COUNT(*) FROM ai_infrastructure.user_sessions WHERE user_id = %s', (payload.get('user_id'),))
-                    count_result = cursor.fetchone()
-                    user_sessions = count_result['count'] if isinstance(count_result, dict) else count_result[0]
-                    print(f"   User has {user_sessions} session(s) in DB")
-                    print("\n STAGE 2 FAILED: Token not in database")
-                    print("="*60 + "\n")
-                    return None
-                
-                print(f"   Token found in database")
-                # Handle both dict (PostgreSQL) and tuple (SQLite) results
-                user_id = result['user_id'] if isinstance(result, dict) else result[0]
-                expires_at = result['expires_at'] if isinstance(result, dict) else result[1]
-                print(f"   User ID from DB: {user_id}")
-                print(f"   Expires at: {expires_at}")
-                
-                print(f"\n📊 STAGE 2.3: Expiry Check")
-                # Check expiry manually - use database-agnostic SQL
-                from AI_infrastructure.shared.database_utils import is_using_supabase
-                from datetime import datetime
-                
-                if is_using_supabase():
-                    cursor.execute("SELECT NOW() as current_time")
-                else:
-                    cursor.execute("SELECT CURRENT_TIMESTAMP as current_time")
-                
-                time_result = cursor.fetchone()
-                current_time = time_result['current_time'] if isinstance(time_result, dict) else time_result[0]
-                
-                # Convert to comparable datetime objects
-                if isinstance(current_time, str):
-                    current_time = datetime.fromisoformat(current_time.replace('Z', '+00:00'))
-                if isinstance(expires_at, str):
-                    expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
-                
-                # Remove timezone info for comparison if needed
-                if current_time.tzinfo is not None and expires_at.tzinfo is None:
-                    current_time = current_time.replace(tzinfo=None)
-                elif current_time.tzinfo is None and expires_at.tzinfo is not None:
-                    expires_at = expires_at.replace(tzinfo=None)
-                
-                print(f"   Current time: {current_time}")
-                print(f"   Token expires: {expires_at}")
-                
-                if expires_at <= current_time:
-                    print(f"    Token EXPIRED: {expires_at} <= {current_time}")
-                    print("\n STAGE 2 FAILED: Token expired")
-                    print("="*60 + "\n")
-                    return None
-                
-                print(f"   Token is valid (not expired)")
-                
-                print(f"\nSTAGE 2 COMPLETE: Token verified successfully")
+            
+            # First check total sessions in database
+            cursor.execute('SELECT COUNT(*) FROM ai_infrastructure.user_sessions')
+            result = cursor.fetchone()
+            total_sessions = result['count'] if isinstance(result, dict) else result[0]
+            print(f"   Total sessions in DB: {total_sessions}")
+            
+            cursor.execute('''
+                SELECT user_id, expires_at FROM ai_infrastructure.user_sessions
+                WHERE token = %s
+            ''', (token,))
+            
+            result = cursor.fetchone()
+            if not result:
+                print(f"    Token NOT found in database")
+                print(f"   Checking sessions for user_id={payload.get('user_id')}...")
+                cursor.execute('SELECT COUNT(*) FROM ai_infrastructure.user_sessions WHERE user_id = %s', (payload.get('user_id'),))
+                count_result = cursor.fetchone()
+                user_sessions = count_result['count'] if isinstance(count_result, dict) else count_result[0]
+                print(f"   User has {user_sessions} session(s) in DB")
+                print("\n STAGE 2 FAILED: Token not in database")
                 print("="*60 + "\n")
-                return payload
-            finally:
-                conn.close()
+                # ✅ Connection will be closed in finally block
+                return None
+            
+            print(f"   Token found in database")
+            # Handle both dict (PostgreSQL) and tuple (SQLite) results
+            user_id = result['user_id'] if isinstance(result, dict) else result[0]
+            expires_at = result['expires_at'] if isinstance(result, dict) else result[1]
+            print(f"   User ID from DB: {user_id}")
+            print(f"   Expires at: {expires_at}")
+            
+            print(f"\n📊 STAGE 2.3: Expiry Check")
+            # Check expiry manually - use database-agnostic SQL
+            from AI_infrastructure.shared.database_utils import is_using_supabase
+            from datetime import datetime
+            
+            if is_using_supabase():
+                cursor.execute("SELECT NOW() as current_time")
+            else:
+                cursor.execute("SELECT CURRENT_TIMESTAMP as current_time")
+            
+            time_result = cursor.fetchone()
+            current_time = time_result['current_time'] if isinstance(time_result, dict) else time_result[0]
+            
+            # Convert to comparable datetime objects
+            if isinstance(current_time, str):
+                current_time = datetime.fromisoformat(current_time.replace('Z', '+00:00'))
+            if isinstance(expires_at, str):
+                expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+            
+            # Remove timezone info for comparison if needed
+            if current_time.tzinfo is not None and expires_at.tzinfo is None:
+                current_time = current_time.replace(tzinfo=None)
+            elif current_time.tzinfo is None and expires_at.tzinfo is not None:
+                expires_at = expires_at.replace(tzinfo=None)
+            
+            print(f"   Current time: {current_time}")
+            print(f"   Token expires: {expires_at}")
+            
+            if expires_at <= current_time:
+                print(f"    Token EXPIRED: {expires_at} <= {current_time}")
+                print("\n STAGE 2 FAILED: Token expired")
+                print("="*60 + "\n")
+                # ✅ Connection will be closed in finally block
+                return None
+            
+            print(f"   Token is valid (not expired)")
+            
+            print(f"\nSTAGE 2 COMPLETE: Token verified successfully")
+            print("="*60 + "\n")
+            # ✅ Connection will be closed in finally block
+            return payload
             
         except jwt.ExpiredSignatureError:
             print(f"\n STAGE 2 FAILED: Token expired (JWT signature)")
@@ -689,6 +692,17 @@ class UserAuthManager:
             traceback.print_exc()
             print("="*60 + "\n")
             return None
+        finally:
+            # CRITICAL FIX: Always close connection if it was opened and not yet closed
+            # Note: We close manually before early returns (lines 629, 670, 676)
+            # This is a safety net in case of exceptions before those returns
+            if conn is not None:
+                try:
+                    # Check if connection is still open before closing
+                    if not conn.closed:
+                        conn.close()
+                except Exception:
+                    pass  # Silently ignore close errors (e.g., already closed)
     
     def link_gmail_account(self, user_id: int, gmail_address: str, display_name: str = None,
                           access_token: str = None, refresh_token: str = None,

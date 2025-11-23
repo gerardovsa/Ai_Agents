@@ -1,6 +1,7 @@
 """
 Shopify E-Commerce API Routes - Shopify Dashboard Module
 ========================================================================
+from shared.database_utils import convert_sql_placeholders
 
 This module provides Flask API endpoints for the Shopify E-Commerce module.
 Uses SQLite database (stock_data.db) with Shopify webhook data.
@@ -186,7 +187,7 @@ def shopify_metrics():
             })
         
         # Get metrics
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT 
                 COUNT(*) as total_orders,
                 SUM(COALESCE(total_price, 0)) as total_revenue,
@@ -194,16 +195,20 @@ def shopify_metrics():
             FROM shopify_orders
             WHERE DATE(created_at) BETWEEN ? AND ?
         """, (start_date, end_date))
+
+        cursor.execute(sql, params)
         
         metrics = cursor.fetchone()
         
         # Orders today
         today = datetime.now().strftime('%Y-%m-%d')
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT COUNT(*) as orders_today
             FROM shopify_orders
             WHERE DATE(created_at) = ?
         """, (today,))
+
+        cursor.execute(sql, params)
         
         today_data = cursor.fetchone()
         conn.close()
@@ -325,7 +330,7 @@ def shopify_orders_chart():
                 'data': []
             })
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT 
                 DATE(created_at) as order_date,
                 COUNT(*) as order_count
@@ -334,6 +339,9 @@ def shopify_orders_chart():
             GROUP BY DATE(created_at)
             ORDER BY order_date ASC
         """, (start_date, end_date))
+
+        
+        cursor.execute(sql, params)
         
         results = cursor.fetchall()
         conn.close()
@@ -378,7 +386,7 @@ def shopify_revenue_chart():
                 'data': []
             })
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT 
                 li.title,
                 SUM(li.price * li.quantity) as total_revenue
@@ -389,6 +397,9 @@ def shopify_revenue_chart():
             ORDER BY total_revenue DESC
             LIMIT 10
         """, (start_date, end_date))
+
+        
+        cursor.execute(sql, params)
         
         results = cursor.fetchall()
         conn.close()
@@ -432,7 +443,7 @@ def shopify_customer_segments():
                 'segments': []
             })
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             WITH CustomerOrders AS (
                 SELECT 
                     email,
@@ -453,6 +464,9 @@ def shopify_customer_segments():
             FROM CustomerOrders
             GROUP BY segment
         """, (start_date, end_date))
+
+        
+        cursor.execute(sql, params)
         
         segments = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -492,7 +506,7 @@ def shopify_top_customers():
                 'customers': []
             })
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT 
                 customer_name,
                 email,
@@ -506,6 +520,9 @@ def shopify_top_customers():
             ORDER BY total_spent DESC
             LIMIT 20
         """, (start_date, end_date))
+
+        
+        cursor.execute(sql, params)
         
         customers = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -545,7 +562,7 @@ def shopify_top_products():
                 'products': []
             })
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT 
                 li.title,
                 li.variant_title,
@@ -558,6 +575,9 @@ def shopify_top_products():
             ORDER BY total_quantity DESC
             LIMIT 15
         """, (start_date, end_date))
+
+        
+        cursor.execute(sql, params)
         
         products = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -596,7 +616,7 @@ def shopify_product_catalog():
                 'products': []
             })
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT 
                 product_id,
                 variant_id,
@@ -610,6 +630,9 @@ def shopify_product_catalog():
             ORDER BY total_quantity DESC
             LIMIT ?
         """, (limit,))
+
+        
+        cursor.execute(sql, params)
         
         products = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -648,7 +671,7 @@ def shopify_webhook_log():
                 'events': []
             })
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT 
                 id,
                 topic,
@@ -661,6 +684,9 @@ def shopify_webhook_log():
             ORDER BY received_at DESC
             LIMIT ?
         """, (limit,))
+
+        
+        cursor.execute(sql, params)
         
         events = [dict(row) for row in cursor.fetchall()]
         conn.close()

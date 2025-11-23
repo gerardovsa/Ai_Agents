@@ -1,6 +1,7 @@
 """
 Setup Master Account
 ====================
+from shared.database_utils import convert_sql_placeholders
 
 Quick script to register gerardo@vetsuccessacademy.com as master/admin account
 This account automatically sees ALL Gmail accounts from .env.master
@@ -31,7 +32,9 @@ def setup_master_account():
     
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE email = ?", ('gerardo@vetsuccessacademy.com',))
+        sql, params = convert_sql_placeholders("SELECT username FROM users WHERE email = ?", ('gerardo@vetsuccessacademy.com',))
+
+        cursor.execute(sql, params)
         existing = cursor.fetchone()
         
         if existing:
@@ -39,18 +42,22 @@ def setup_master_account():
             print(f"   Email: gerardo@vetsuccessacademy.com")
             
             # Show linked Gmail accounts
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 SELECT u.id FROM users u WHERE u.email = ?
             ''', ('gerardo@vetsuccessacademy.com',))
+
+            cursor.execute(sql, params)
             user_row = cursor.fetchone()
             
             if user_row:
                 user_id = user_row[0]
-                cursor.execute('''
+                sql, params = convert_sql_placeholders('''
                     SELECT gmail_address, display_name, is_primary 
                     FROM user_gmail_accounts 
                     WHERE user_id = ?
                 ''', (user_id,))
+
+                cursor.execute(sql, params)
                 accounts = cursor.fetchall()
                 
                 print(f"\n📧 Linked Gmail Accounts ({len(accounts)}):")

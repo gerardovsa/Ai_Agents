@@ -1,6 +1,7 @@
 """
 Check ALL messages in sessions.db regardless of thread
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -19,7 +20,7 @@ cursor = conn.cursor()
 
 # 1. Check ALL messages (any thread)
 print("1. ALL MESSAGES IN DATABASE:")
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, thread_id, session_id, role, 
            substr(content, 1, 80) as content_preview,
            created_at
@@ -61,6 +62,8 @@ for thread in threads:
         FROM messages
         WHERE thread_id = ? OR session_id = ?
     """, (thread['id'], thread['thread_slug']))
+
+cursor.execute(sql, params)
     count = cursor.fetchone()['count']
     print(f"     Messages: {count}")
 

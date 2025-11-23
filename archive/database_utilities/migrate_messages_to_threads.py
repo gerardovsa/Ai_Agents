@@ -1,6 +1,7 @@
 """
 MIGRATION SCRIPT: Link Messages to Threads
 ===========================================
+from shared.database_utils import convert_sql_placeholders
 
 Purpose: Link existing messages to their corresponding threads
 - Updates messages.thread_id to reference threads.id
@@ -37,7 +38,7 @@ def analyze_data(conn):
     print("="*60)
     
     # Threads without messages
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         SELECT COUNT(*) FROM threads t
         LEFT JOIN messages m ON t.id = m.thread_id
         WHERE m.id IS NULL AND t.user_id = 14
@@ -118,6 +119,8 @@ def migrate_messages(conn):
                 ) < 300
                 LIMIT 50
             ''', (timestamp_ms // 1000,))
+
+    cursor.execute(sql, params)
             msg_ids = [row[0] for row in cursor.fetchall()]
             
             if msg_ids:
@@ -137,7 +140,7 @@ def migrate_messages(conn):
     
     # Strategy 3: User ID + recent messages for new threads
     print("\n🔍 Strategy 3: Recent messages for new threads")
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         SELECT id, thread_slug, created_at, name, user_id
         FROM threads
         WHERE user_id = 14
@@ -166,6 +169,8 @@ def migrate_messages(conn):
                 ORDER BY created_at ASC
                 LIMIT 10
             ''', (user_id, thread_ts // 1000))
+
+    cursor.execute(sql, params)
             
             orphan_msgs = cursor.fetchall()
             if orphan_msgs:

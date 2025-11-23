@@ -3,6 +3,7 @@ Trace where messages are stored and identify why they're not persisting
 """
 import sqlite3
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 print("\n" + "="*80)
 print("MESSAGE STORAGE DIAGNOSTIC")
@@ -135,7 +136,9 @@ for thread in threads:
     print(f"  Internal ID: {thread['id']} (for messages FK)")
     
     # Check if lookup would work
-    cursor.execute("SELECT id FROM threads WHERE thread_slug = ?", (thread['thread_slug'],))
+    sql, params = convert_sql_placeholders("SELECT id FROM threads WHERE thread_slug = ?", (thread['thread_slug'],))
+
+    cursor.execute(sql, params)
     result = cursor.fetchone()
     if result:
         print(f"  ✅ Lookup works: thread_slug → id = {result['id']}")

@@ -1,5 +1,6 @@
 """
 Add Email AI Synergy Session Planner prompts to database
+from shared.database_utils import convert_sql_placeholders
 
 Creates comprehensive set of prompts for email coordination,
 accounts payable, customer support, and team management.
@@ -515,7 +516,7 @@ print("="*80)
 inserted_count = 0
 for prompt in prompts:
     try:
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO prompt_library 
             (user_id, name, category, type, description, prompt_text, tags, visibility, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -531,6 +532,8 @@ for prompt in prompts:
             now,
             now
         ))
+
+        cursor.execute(sql, params)
         inserted_count += 1
         print(f"✅ Added: {prompt['name']} ({prompt['type']})")
     except Exception as e:

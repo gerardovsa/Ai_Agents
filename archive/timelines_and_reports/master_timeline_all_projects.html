@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,41 +11,41 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: #333;
             padding: 20px;
         }
-        
+
         .container {
             max-width: 100%;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             overflow: hidden;
         }
-        
+
         .header {
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             color: white;
             padding: 30px;
             text-align: center;
         }
-        
+
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
             font-weight: 300;
         }
-        
+
         .header .subtitle {
             font-size: 1.2em;
             opacity: 0.9;
         }
-        
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -52,35 +53,35 @@
             padding: 30px;
             background: #f8f9fa;
         }
-        
+
         .stat-card {
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
-        
+
         .stat-card .value {
             font-size: 2.5em;
             font-weight: bold;
             color: #2c3e50;
             margin-bottom: 5px;
         }
-        
+
         .stat-card .label {
             font-size: 0.9em;
             color: #7f8c8d;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        
+
         .timeline-container {
             padding: 30px;
             display: flex;
             gap: 20px;
         }
-        
+
         .sidebar {
             width: 250px;
             flex-shrink: 0;
@@ -89,22 +90,22 @@
             border-right: 2px solid #ecf0f1;
             padding-right: 20px;
         }
-        
+
         .project-group {
             margin-bottom: 20px;
         }
-        
+
         .group-title {
             font-weight: bold;
             color: #2c3e50;
-            padding: 10px 0;
+            padding: 10px;
             border-bottom: 2px solid #3498db;
             margin-bottom: 10px;
             font-size: 0.9em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
+
         .project-item {
             padding: 8px 0;
             font-size: 0.85em;
@@ -113,7 +114,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .project-color {
             width: 12px;
             height: 12px;
@@ -121,14 +122,14 @@
             margin-right: 8px;
             display: inline-block;
         }
-        
+
         .timeline {
             flex: 1;
             overflow-x: auto;
             overflow-y: auto;
             max-height: 600px;
         }
-        
+
         .timeline-header {
             display: flex;
             margin-bottom: 10px;
@@ -142,28 +143,28 @@
             padding-bottom: 10px;
             border-bottom: 2px solid #ecf0f1;
         }
-        
+
         .date-column {
             width: 120px;
             flex-shrink: 0;
         }
-        
+
         .bars-column {
             flex: 1;
             min-width: 800px;
         }
-        
+
         .timeline-row {
             display: flex;
             margin-bottom: 2px;
             align-items: center;
             height: 30px;
         }
-        
+
         .timeline-row:hover {
             background: #f8f9fa;
         }
-        
+
         .date-label {
             width: 120px;
             flex-shrink: 0;
@@ -171,19 +172,19 @@
             color: #555;
             padding-right: 10px;
         }
-        
+
         .date-label .day {
             color: #999;
             font-size: 0.8em;
         }
-        
+
         .bars-container {
             flex: 1;
             display: flex;
             gap: 2px;
             min-width: 800px;
         }
-        
+
         .project-bar {
             height: 24px;
             border-radius: 4px;
@@ -191,12 +192,12 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        
+
         .project-bar:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-        
+
         .project-bar .tooltip {
             position: absolute;
             bottom: 100%;
@@ -214,36 +215,36 @@
             z-index: 1000;
             margin-bottom: 5px;
         }
-        
+
         .project-bar:hover .tooltip {
             opacity: 1;
         }
-        
+
         .legend {
             padding: 20px 30px;
             background: #f8f9fa;
             border-top: 2px solid #ecf0f1;
         }
-        
+
         .legend-title {
             font-weight: bold;
             color: #2c3e50;
             margin-bottom: 15px;
             font-size: 1.1em;
         }
-        
+
         .legend-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 10px;
         }
-        
+
         .legend-item {
             display: flex;
             align-items: center;
             font-size: 0.85em;
         }
-        
+
         .legend-color {
             width: 16px;
             height: 16px;
@@ -252,13 +253,14 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
             <h1>Master Project Timeline</h1>
             <div class="subtitle">Complete Work History: July 22 - November 8, 2025</div>
         </div>
-        
+
         <div class="stats">
             <div class="stat-card">
                 <div class="value">193</div>
@@ -277,7 +279,7 @@
                 <div class="label">Project Groups</div>
             </div>
         </div>
-        
+
         <div class="timeline-container">
             <div class="sidebar">
                 <div class="project-group">
@@ -362,11 +364,13 @@
                 <div class="project-group">
                     <div class="group-title">MustCare Suite</div>
                     <div class="project-item">
-                        <span><span class="project-color" style="background: #1abc9c"></span>MustCare ValorAISynergySuite</span>
+                        <span><span class="project-color" style="background: #1abc9c"></span>MustCare
+                            ValorAISynergySuite</span>
                         <span style="color: #999;">2,423</span>
                     </div>
                     <div class="project-item">
-                        <span><span class="project-color" style="background: #1abc9c"></span>MustCare_V2_Anthropic</span>
+                        <span><span class="project-color"
+                                style="background: #1abc9c"></span>MustCare_V2_Anthropic</span>
                         <span style="color: #999;">2,375</span>
                     </div>
                     <div class="project-item">
@@ -400,7 +404,8 @@
                 <div class="project-group">
                     <div class="group-title">VALOR AI</div>
                     <div class="project-item">
-                        <span><span class="project-color" style="background: #f39c12"></span>VALOR_AI_SIDEBAR_DOWNLOADER</span>
+                        <span><span class="project-color"
+                                style="background: #f39c12"></span>VALOR_AI_SIDEBAR_DOWNLOADER</span>
                         <span style="color: #999;">365</span>
                     </div>
                     <div class="project-item">
@@ -408,16 +413,18 @@
                         <span style="color: #999;">53</span>
                     </div>
                     <div class="project-item">
-                        <span><span class="project-color" style="background: #f39c12"></span>VSA_Valor_AI_V4_Release</span>
+                        <span><span class="project-color"
+                                style="background: #f39c12"></span>VSA_Valor_AI_V4_Release</span>
                         <span style="color: #999;">71</span>
                     </div>
                     <div class="project-item">
-                        <span><span class="project-color" style="background: #f39c12"></span>Valor Extension Back Ups</span>
+                        <span><span class="project-color" style="background: #f39c12"></span>Valor Extension Back
+                            Ups</span>
                         <span style="color: #999;">50</span>
                     </div>
                 </div>
             </div>
-            
+
             <div class="timeline">
                 <div class="timeline-header">
                     <div class="date-column">Date</div>
@@ -1613,7 +1620,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="legend">
             <div class="legend-title">Project Groups</div>
             <div class="legend-grid">
@@ -1652,15 +1659,16 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         // Synchronize scrolling
         const sidebar = document.querySelector('.sidebar');
         const timeline = document.querySelector('.timeline');
-        
+
         timeline.addEventListener('scroll', () => {
             sidebar.scrollTop = timeline.scrollTop;
         });
     </script>
 </body>
+
 </html>

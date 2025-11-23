@@ -1,5 +1,6 @@
 """
 Migration: Fix threads.workspace_id Column Type
+from shared.database_utils import convert_sql_placeholders
 
 Changes threads.workspace_id from TEXT to INTEGER for proper foreign key support.
 
@@ -56,7 +57,7 @@ def migrate_threads_workspace_id():
     print(f"  Found {thread_count} threads to migrate")
     
     # Get current threads data
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT id, thread_slug, user_id, title, created_at, updated_at, 
                archived, tags, synergy_card_id, metadata, workspace_id,
                name, location, parent_thread_id, branch_point_message_id,
@@ -121,6 +122,8 @@ def migrate_threads_workspace_id():
             thread['branch_point_message_id'], thread['branch_name'],
             thread['agent_id'], thread['message_count']
         ))
+
+    cursor.execute(sql, params)
     
     print(f"  ✓ Copied {len(threads_backup)} threads")
     

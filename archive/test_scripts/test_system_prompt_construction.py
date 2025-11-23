@@ -1,5 +1,6 @@
 """
 Test System Prompt Construction - Export Complete System Prompt
+from shared.database_utils import convert_sql_placeholders
 
 This script simulates the complete system prompt construction flow to verify:
 1. Base tool usage instructions loaded from .md file
@@ -33,7 +34,7 @@ def get_user_preferences_from_db(user_id: int):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT 
             nickname, auth_platform,
             communication_style, detail_level, 
@@ -42,6 +43,9 @@ def get_user_preferences_from_db(user_id: int):
         FROM user_preferences
         WHERE user_id = ?
     """, (user_id,))
+
+    
+    cursor.execute(sql, params)
     
     row = cursor.fetchone()
     conn.close()

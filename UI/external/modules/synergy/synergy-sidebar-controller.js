@@ -213,7 +213,8 @@ class SynergySidebarController {
     }
 
     /**
-     * Toggle card expand/collapse
+     * Toggle card expand/collapse (SIDEBAR ONLY)
+     * Only affects cards in sidebar context
      */
     async toggleCardExpand(sessionId) {
         const isExpanded = this.expandedSessions.has(sessionId);
@@ -224,22 +225,26 @@ class SynergySidebarController {
             this.expandedSessions.add(sessionId);
         }
 
-        // Update DOM
-        const item = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
+        // Update DOM - ONLY SIDEBAR CONTEXT
+        const item = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"][data-context="sidebar"]`);
         if (item) {
             item.classList.toggle('expanded', !isExpanded);
 
             const expandedContent = item.querySelector('.synergy-card-expanded-content');
+            const chevron = item.querySelector('.synergy-chevron i');
+            
             if (expandedContent) {
                 if (!isExpanded) {
                     // Expanding - show content and load data
                     expandedContent.style.display = 'block';
+                    if (chevron) chevron.className = 'fas fa-chevron-up';
                     if (this.renderer) {
                         await this.renderer.loadAndRenderFullCard(sessionId, item);
                     }
                 } else {
                     // Collapsing - hide content
                     expandedContent.style.display = 'none';
+                    if (chevron) chevron.className = 'fas fa-chevron-down';
                 }
             }
         }

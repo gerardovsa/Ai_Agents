@@ -1,5 +1,6 @@
 """
 Generate Slugs Script - Populate slug columns for existing data
+from shared.database_utils import convert_sql_placeholders
 
 Generates unique slugs for workspaces and threads that don't have them yet.
 
@@ -59,7 +60,7 @@ class SlugGenerationScript:
         cursor = conn.cursor()
         
         # Get workspaces without slugs
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT id, name FROM workspaces 
             WHERE slug IS NULL OR slug = ''
         """)
@@ -90,6 +91,8 @@ class SlugGenerationScript:
                     cursor.execute("""
                         UPDATE workspaces SET slug = ? WHERE id = ?
                     """, (slug, workspace_id))
+
+        cursor.execute(sql, params)
                     print(f"    Generated: Workspace {workspace_id}: '{name}' -> '{slug}'")
                 
                 generated += 1
@@ -118,7 +121,7 @@ class SlugGenerationScript:
         cursor = conn.cursor()
         
         # Get threads without slugs
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT id, workspace_id, title FROM threads 
             WHERE slug IS NULL OR slug = ''
         """)
@@ -150,6 +153,8 @@ class SlugGenerationScript:
                     cursor.execute("""
                         UPDATE threads SET slug = ? WHERE id = ?
                     """, (slug, thread_id))
+
+        cursor.execute(sql, params)
                     print(f"    Generated: Thread {thread_id}: '{title}' -> '{slug}'")
                 
                 generated += 1

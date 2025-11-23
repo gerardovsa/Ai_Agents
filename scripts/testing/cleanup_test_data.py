@@ -1,5 +1,6 @@
 """
 Cleanup Test Data - Remove test workspaces and related records
+from shared.database_utils import convert_sql_placeholders
 
 Removes test workspaces that conflict with test suite expectations.
 """

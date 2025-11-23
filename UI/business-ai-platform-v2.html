@@ -111,6 +111,12 @@
     <link rel="stylesheet" href="modules/prompt-library/prompt-library.css">
     <script src="modules/prompt-library/prompt-library.js"></script>
 
+    <!-- ==================== SETTINGS SIDEBAR MODULE ==================== -->
+    <!-- Error recovery control system with toggles and statistics -->
+    <!-- v2: Dynamic HTML loading, toast notifications, hover tooltips -->
+    <link rel="stylesheet" href="modules/settings-sidebar/settings-sidebar.css">
+    <script src="modules/settings-sidebar/settings-sidebar-v2.js"></script>
+
     <!-- ==================== AUTOMATION WORKFLOWS MODULE ==================== -->
     <!-- Visual automation canvas with drag-and-drop flow builder -->
     <link rel="stylesheet" href="external/modules/automation-workflows/automation-workflows.css">
@@ -119,7 +125,7 @@
     <!-- ==================== DEBUG MODULE ==================== -->
     <!-- Advanced debugging tools for thread persistence and message tracking -->
     <link rel="stylesheet" href="external/modules/debug-module/debug-module.css">
-    <script src="external/modules/debug-module/debug-module.js" defer></script>
+    <script src="external/modules/debug-module/debug-module.js"></script>
 
     <!-- ==================== THREAD CARD STYLES MODULE ==================== -->
     <!-- Unified thread card styling for Prime, Agents, Synergy (Phase 1: CSS Extraction) -->
@@ -169,13 +175,17 @@
     <!-- Additional thread system components -->
     <script src="modules/components/device_lock_manager.js"></script>
     <script src="modules/components/message_store.js"></script>
-    <script src="modules/components/thread_loader.js"></script>
+    <script src="modules/components/thread_loader.js?v=20251122q"></script>
     <script src="modules/components/account_profile.js"></script>
     <script src="modules/components/automations.js"></script>
 
+    <!-- ==================== MODULE SYSTEM (Added Nov 22, 2025) ==================== -->
+    <script src="js/module-manager.js"></script>
+    <script src="js/module-loader.js"></script>
+
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
     <!-- ThreadManager Core - Load FIRST (creates base object) -->
-    <script src="modules/thread-manager/thread-manager-core.js"></script>
+    <script src="modules/thread-manager/thread-manager-core.js?v=20251122p"></script>
 
     <!-- ThreadManager Modules - Load after core in dependency order -->
     <script src="modules/thread-manager/thread-manager-welcome.js"></script>
@@ -186,7 +196,7 @@
     <script src="modules/thread-manager/thread-manager-interactions.js"></script>
     <script src="modules/thread-manager/thread-manager-filters.js"></script>
 
-    <!-- ⭐ NEW MODULES -->
+    <!-- ? NEW MODULES -->
     <script src="modules/thread-manager/thread-manager-sync.js"></script>
     <script src="modules/thread-manager/thread-manager-synergy.js"></script>
     <script src="modules/thread-manager/thread-manager-workflows.js"></script>
@@ -195,15 +205,15 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof UserAuth !== 'undefined' && UserAuth.token) {
-                console.log('🚀 Initializing ThreadManager...');
+                console.log('?? Initializing ThreadManager...');
                 try {
                     await ThreadManager.init();
-                    console.log('✅ ThreadManager initialized successfully');
+                    console.log('? ThreadManager initialized successfully');
                 } catch (error) {
-                    console.error('❌ ThreadManager initialization failed:', error);
+                    console.error('? ThreadManager initialization failed:', error);
                 }
             } else {
-                console.warn('⚠️ Waiting for authentication before initializing ThreadManager');
+                console.warn('?? Waiting for authentication before initializing ThreadManager');
                 document.addEventListener('authComplete', async () => {
                     await ThreadManager.init();
                 });
@@ -215,11 +225,12 @@
     <!-- Multi-agent system components extracted for modularity -->
     <!-- Note: Message renderer loaded from modules/shared/message_renderer.js above -->
     <link rel="stylesheet" href="modules/agents/agent-ui.css?v=20251121">
-    <script src="modules/agents/agent-column.js?v=20251122c"></script>
-    <script src="modules/agents/agent-input.js?v=20251122c"></script>
-    <script src="modules/agents/agent-js.js?v=20251122d"></script>
-    <script src="modules/agents/agent-ui.js?v=20251122c"></script>
-    <script src="modules/agents/prime_ai_chat.js?v=20251122c"></script>
+    <script src="modules/agents/error_recovery_manager.js?v=20251122k"></script>
+    <script src="modules/agents/agent-column.js?v=20251122k"></script>
+    <script src="modules/agents/agent-input.js?v=20251122k"></script>
+    <script src="modules/agents/agent-js.js?v=20251122r"></script>
+    <script src="modules/agents/agent-ui.js?v=20251122k"></script>
+    <script src="modules/agents/prime_ai_chat.js?v=20251122k"></script>
 
     <!-- ==================== WOOCOMMERCE MODULE ==================== -->
     <!-- WooCommerce integration for order management and product sync -->
@@ -362,9 +373,9 @@
             width: 100%;
             height: 100%;
             background: radial-gradient(ellipse at center,
-                    rgba(13, 17, 23, 0.1) 0%,
-                    rgba(13, 17, 23, 0.3) 50%,
-                    rgba(13, 17, 23, 0.5) 100%);
+                    rgba(13, 17, 23, 0.0) 0%,
+                    rgba(13, 17, 23, 0.1) 50%,
+                    rgba(13, 17, 23, 0.25) 100%);
             z-index: 2;
             pointer-events: none;
         }
@@ -392,6 +403,50 @@
             transition: opacity 0.3s ease;
         }
 
+        /* Auth Container - Centered container with loading elements */
+        .auth-container {
+            background: linear-gradient(145deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.95) 100%);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 20px;
+            padding: 48px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            animation: authSlideUp 0.5s ease;
+            position: relative;
+            z-index: 100;
+        }
+
+        @keyframes authSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-header h1 {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .auth-header p {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
         .auth-loading-overlay canvas {
             position: fixed;
             top: 0;
@@ -409,9 +464,9 @@
             width: 100%;
             height: 100%;
             background: radial-gradient(ellipse at center,
-                    rgba(13, 17, 23, 0.1) 0%,
-                    rgba(13, 17, 23, 0.3) 50%,
-                    rgba(13, 17, 23, 0.5) 100%);
+                    rgba(13, 17, 23, 0.0) 0%,
+                    rgba(13, 17, 23, 0.1) 50%,
+                    rgba(13, 17, 23, 0.25) 100%);
             z-index: 2;
             pointer-events: none;
         }
@@ -430,9 +485,10 @@
         .auth-spinner {
             width: 60px;
             height: 60px;
-            border: 4px solid var(--border-default);
-            border-top: 4px solid var(--accent-primary);
+            border: 4px solid rgba(48, 54, 61, 0.8);
+            border-top: 4px solid #58a6ff;
             border-radius: 50%;
+            margin: 0 auto 24px;
             animation: spin 1s linear infinite;
         }
 
@@ -448,19 +504,18 @@
 
         /* Loading Text */
         .auth-loading-text {
-            margin-top: var(--space-4);
-            color: var(--text-secondary);
+            text-align: center;
+            color: #58a6ff;
             font-size: 14px;
-            font-weight: 500;
+            margin-bottom: 24px;
         }
 
         /* Progress Bar */
         .auth-progress-bar {
-            width: 300px;
+            width: 100%;
             height: 4px;
-            background: var(--bg-tertiary);
+            background: rgba(48, 54, 61, 0.5);
             border-radius: 2px;
-            margin-top: var(--space-3);
             overflow: hidden;
         }
 
@@ -1089,19 +1144,18 @@
         }
 
         .right-sidebar-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 44px;
             height: 44px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-default);
             border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             color: var(--text-secondary);
             font-size: 18px;
-            position: relative;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .right-sidebar-btn:hover {
@@ -1298,9 +1352,9 @@
 
         .main-content {
             grid-column: 1;
-            overflow-y: auto;
             padding: var(--space-2);
             background: var(--bg-primary);
+            overflow-y: auto;
         }
 
         /* Remove padding and scroll when automation tab is active */
@@ -1377,18 +1431,15 @@
 
         /* ==================== AI CHAT PANEL ==================== */
         .ai-chat-panel {
-            grid-column: 2;
-            background: var(--bg-secondary);
-            border-left: 1px solid var(--border-default);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            transition: opacity 0.3s ease, width 0.3s ease, transform 0.3s ease;
-            position: relative;
+            grid-column: 2;
             min-width: 300px;
             max-width: 800px;
-            width: auto;
-            /* Let grid control the width */
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-default);
+            overflow: hidden;
+            transition: opacity 0.3s ease, width 0.3s ease, transform 0.3s ease;
         }
 
         .chat-collapsed .ai-chat-panel {
@@ -4183,39 +4234,41 @@
             transform: translateX(2px);
         }
 
-        /* Thread History Menu - RIGHT SIDEBAR DROPDOWN STYLE (Synergy-inspired) */
+        /* Thread History Menu - INDEPENDENT SIDEBAR (NOT CHILD OF PRIME) */
         .thread-menu-overlay {
             position: fixed;
-            top: 60px;
-            /* Start below the header/hamburger button */
+            top: 0;
+            /* Start from top - independent of AI Prime */
             right: -480px;
-            /* Hidden off-screen initially (increased from 350px to match Synergy) */
+            /* Hidden off-screen initially */
             width: 480px;
-            /* Width (matches Synergy sidebar) */
-            height: calc(100vh - 60px);
-            /* Full height minus header */
+            /* Full width sidebar */
+            height: 100vh;
+            /* Full viewport height - independent */
             padding: 0;
             background: var(--bg-secondary);
             border-left: 1px solid var(--border-default);
             border-radius: 0;
-            /* Remove border-radius for cleaner edge */
             z-index: 9999;
-            /* Below right sidebar (10000) */
+            /* High z-index - independent layer */
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
             box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
         }
 
         .thread-menu-overlay.active {
-            right: 60px !important;
-            /* Start after the 60px right sidebar */
-            top: 60px;
-            /* Slide in from right */
+            right: 0 !important;
+            /* Slide to right edge - independent of other elements */
             display: flex !important;
             visibility: visible;
             transform: translateX(0);
+        }
+
+        .thread-menu-overlay.collapsed {
+            width: 60px;
+            /* Collapsed width - show only icons */
         }
 
         /* Quick Actions Panel */
@@ -4317,12 +4370,14 @@
             display: flex;
             flex-direction: column;
             gap: var(--space-3);
+            flex-shrink: 0;
         }
 
         .thread-menu-header-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: var(--space-2);
         }
 
         .thread-menu-title {
@@ -4332,16 +4387,68 @@
             font-size: 16px;
             font-weight: 600;
             color: var(--text-primary);
+            flex: 1;
+            min-width: 0;
         }
 
         .thread-menu-title i {
             color: var(--accent-primary);
             font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .thread-menu-title span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .thread-menu-header-actions {
             display: flex;
-            gap: var(--space-1);
+            align-items: center;
+            gap: var(--space-2);
+            flex-shrink: 0;
+        }
+
+        .thread-menu-agent-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: var(--accent-primary, #238636);
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .thread-menu-agent-badge i {
+            font-size: 11px;
+            color: white;
+        }
+
+        .thread-menu-collapse-btn {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .thread-menu-collapse-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
         }
 
         .thread-menu-icon-btn {
@@ -4374,6 +4481,36 @@
         .thread-menu-icon-btn.new-thread:hover {
             background: var(--accent-hover, #79c0ff);
             border-color: var(--accent-hover, #79c0ff);
+        }
+
+        /* Collapsed state - hide text, show only icons */
+        .thread-menu-overlay.collapsed .thread-menu-title span,
+        .thread-menu-overlay.collapsed .thread-menu-agent-badge,
+        .thread-menu-overlay.collapsed .thread-menu-actions-row,
+        .thread-menu-overlay.collapsed .thread-view-tabs,
+        .thread-menu-overlay.collapsed .thread-search-bar,
+        .thread-menu-overlay.collapsed .thread-sort-toggle,
+        .thread-menu-overlay.collapsed .thread-item-title,
+        .thread-menu-overlay.collapsed .thread-item-meta,
+        .thread-menu-overlay.collapsed .thread-item-badges {
+            display: none !important;
+        }
+
+        .thread-menu-overlay.collapsed .thread-menu-header {
+            padding: var(--space-2);
+        }
+
+        .thread-menu-overlay.collapsed .thread-menu-header-top {
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .thread-menu-overlay.collapsed .thread-menu-title {
+            justify-content: center;
+        }
+
+        .thread-menu-overlay.collapsed .thread-list {
+            padding: var(--space-1);
         }
 
         /* ==================== THREAD SORT TOGGLE ==================== */
@@ -5738,15 +5875,13 @@
         }
 
         .ai-chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: var(--space-4);
-            /* No bottom padding needed - input naturally takes space */
             display: flex;
             flex-direction: column;
+            flex: 1;
             gap: var(--space-4);
+            padding: var(--space-4);
+            overflow-y: auto;
             min-height: 0;
-            /* Allow flex shrinking */
         }
 
         /* Drag and Drop Visual Feedback (Updated Nov 21, 2025 - Smooth transitions) */
@@ -5772,7 +5907,7 @@
 
         /* Full panel drop overlay for Prime - with fade in animation */
         .ai-chat-panel.drag-over::before {
-            content: '📥 Drop thread here to load in Prime';
+            content: '?? Drop thread here to load in Prime';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -7151,25 +7286,43 @@
             box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
         }
 
-        /* Chevron indicator (STATE 1, 2, 3) */
+        /* Chevron indicator (STATE 1, 2, 3) - Stacked double chevrons */
         .ai-chat-input-container::after {
-            content: '??';
+            content: '\f077\A\f077';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            white-space: pre;
+            line-height: 0.5;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 12px;
+            font-size: 10px;
             color: rgba(139, 148, 158, 0.5);
             transition: all 0.3s ease;
             pointer-events: none;
             opacity: 1;
         }
 
-        /* STATE 3: Bar hover - glow chevrons */
+        /* STATE 3: Bar hover - animate chevrons upward with glow */
         .ai-chat-input-container:not(.expanded):hover::after {
             color: var(--accent-primary);
             text-shadow: 0 0 8px rgba(88, 166, 255, 0.8);
-            transform: translate(-50%, -50%) scale(1.2);
+            transform: translate(-50%, -60%) scale(1.2);
+            animation: chevron-bounce-up 0.6s ease-in-out infinite;
+        }
+
+        /* Chevron bounce animation - moves upward */
+        @keyframes chevron-bounce-up {
+
+            0%,
+            100% {
+                transform: translate(-50%, -60%) scale(1.2);
+            }
+
+            50% {
+                transform: translate(-50%, -70%) scale(1.2);
+            }
         }
 
         /* STATE 4: Hide chevrons when expanded */
@@ -7968,6 +8121,7 @@
             height: 100%;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
+            padding-top: 5px;
         }
 
         /* Wide column state (1.5x width) */
@@ -7990,7 +8144,7 @@
         }
 
         .agent-column.drag-over::after {
-            content: '📥 Drop thread here to load in this agent';
+            content: '?? Drop thread here to load in this agent';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -8010,7 +8164,8 @@
         }
 
         .agent-header {
-            padding: var(--space-4);
+            padding: 10px;
+            padding-top: 5px;
             border-bottom: 1px solid var(--border-default);
             display: flex;
             flex-direction: column;
@@ -8023,9 +8178,9 @@
         }
 
         .agent-header-top {
-            display: flex;
+            display: grid;
+            grid-template-columns: 40px 1fr 88px;
             align-items: center;
-            justify-content: space-between;
             width: 100%;
             gap: var(--space-3);
         }
@@ -8033,8 +8188,8 @@
         .agent-title-wrapper {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: var(--space-2);
-            flex: 1;
         }
 
 
@@ -8166,7 +8321,7 @@
             border: 1px solid var(--border-default, #30363d);
             border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
             z-index: 99999 !important;
             pointer-events: auto !important;
@@ -8192,7 +8347,7 @@
             padding: 12px 16px;
             border-bottom: 1px solid var(--border-default, #30363d);
             font-weight: 600;
-            font-size: 13px;
+            font-size: 15px;
             color: var(--text-primary);
         }
 
@@ -8215,66 +8370,140 @@
         }
 
         .thread-selector-list {
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
+            padding: 10px;
         }
 
         .thread-selector-item {
             display: flex;
-            align-items: center;
-            gap: 12px;
+            flex-direction: column;
             padding: 12px 16px;
+            margin: 10px 0;
             cursor: pointer;
-            border-bottom: 1px solid var(--border-muted, #21262d);
             transition: all 0.15s ease;
+            background: var(--bg-tertiary, #161b22);
+            border-radius: 8px;
+            gap: 8px;
+        }
+
+        .thread-selector-item:first-child {
+            margin-top: 0;
         }
 
         .thread-selector-item:last-child {
-            border-bottom: none;
+            margin-bottom: 0;
         }
 
         .thread-selector-item:hover {
-            background: var(--bg-tertiary, #161b22);
+            background: var(--bg-hover, #21262d);
+            border-left: 3px solid var(--accent-primary, #58a6ff);
+            padding-left: 13px;
+        }
+
+        .thread-item-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            width: 100%;
         }
 
         .thread-item-icon {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--bg-tertiary, #161b22);
-            border-radius: 6px;
-            color: var(--accent-primary, #58a6ff);
+            background: var(--accent-primary, #238636);
+            border-radius: 8px;
+            color: white;
+            font-size: 18px;
             flex-shrink: 0;
         }
 
         .thread-item-content {
             flex: 1;
             min-width: 0;
+            width: 100%;
         }
 
         .thread-item-title {
-            font-size: 13px;
-            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 16px;
+            font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .thread-item-title>span {
+            flex: 1;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            min-width: 0;
         }
 
         .thread-item-meta {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 11px;
-            color: var(--text-tertiary);
+            font-size: 12px;
+            color: var(--text-muted, #9ca3af);
+            flex-wrap: wrap;
         }
 
         .thread-item-meta i {
-            font-size: 10px;
+            font-size: 11px;
             margin-right: 4px;
+            opacity: 0.7;
+        }
+
+        .thread-item-badges {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .thread-item-agent-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            background: var(--accent-primary, #238636);
+            color: white;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .thread-item-agent-badge i {
+            font-size: 10px;
+            margin-right: 0;
+            opacity: 1;
+        }
+
+        .thread-item-id {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: var(--bg-secondary, #0d1117);
+            border: 1px solid var(--border-default, #30363d);
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: 'Courier New', monospace;
+            color: var(--text-muted, #9ca3af);
+        }
+
+        .thread-item-id i {
+            font-size: 9px;
+            margin-right: 0;
         }
 
         .thread-selector-footer {
@@ -8543,11 +8772,9 @@
         .agent-header-controls {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
             gap: 4px;
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            z-index: 100;
+            position: relative;
         }
 
         .agent-header .collapse-btn {
@@ -12027,10 +12254,16 @@
     <div class="auth-loading-overlay" id="authLoadingOverlay">
         <canvas id="authCircuitCanvas"></canvas>
         <div class="circuit-gradient"></div>
-        <div class="auth-spinner"></div>
-        <div class="auth-loading-text" id="authLoadingText">Checking authentication...</div>
-        <div class="auth-progress-bar">
-            <div class="auth-progress-fill" id="authProgressFill"></div>
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="auth-spinner"></div>
+                <h1>Business AI Platform</h1>
+                <p>Initializing ...</p>
+            </div>
+            <div class="auth-loading-text" id="authLoadingText">Routing neural pathways...</div>
+            <div class="auth-progress-bar">
+                <div class="auth-progress-fill" id="authProgressFill"></div>
+            </div>
         </div>
     </div>
 
@@ -12172,7 +12405,8 @@
 
             <div class="sidebar-divider"></div>
 
-            <button class="sidebar-icon-btn" data-action="settings" title="Settings">
+            <button class="sidebar-icon-btn" data-action="settings" title="Settings"
+                onclick="window.openSettingsSidebar()">
                 <i class="fas fa-cog"></i>
             </button>
         </div>
@@ -12758,7 +12992,7 @@
                             </button>
                             <button class="woocommerce-subtab" data-wc-subtab="products"
                                 style="padding: var(--space-3) var(--space-4); background: none; border: none; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;">
-                                ?� Products
+                                ?? Products
                             </button>
                             <button class="woocommerce-subtab" data-wc-subtab="customers"
                                 style="padding: var(--space-3) var(--space-4); background: none; border: none; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;">
@@ -12774,7 +13008,7 @@
                             </button>
                             <button class="woocommerce-subtab" data-wc-subtab="settings"
                                 style="padding: var(--space-3) var(--space-4); background: none; border: none; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;">
-                                ⚙️ Settings
+                                ?? Settings
                             </button>
                         </div>
 
@@ -12864,7 +13098,7 @@
                                     <button class="wc-filter-btn" data-filter="on-hold"
                                         onclick="wcFilterOrders('on-hold')"
                                         style="padding: 8px 16px; background: var(--bg-tertiary); border: none; border-radius: 6px; color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer;">
-                                        ⚪ On Hold
+                                        ? On Hold
                                     </button>
                                     <button class="wc-filter-btn" data-filter="cancelled"
                                         onclick="wcFilterOrders('cancelled')"
@@ -12936,7 +13170,7 @@
                                     style="min-height: 400px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
                                     <div style="text-align: center;">
                                         <div style="font-size: 48px; margin-bottom: var(--space-3); opacity: 0.5;">
-                                            ?�
+                                            ??
                                         </div>
                                         <p style="margin-bottom: var(--space-4);">Load products from your WooCommerce
                                             store</p>
@@ -13200,7 +13434,7 @@
                                     style="min-height: 400px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
                                     <div style="text-align: center;">
                                         <div style="font-size: 48px; margin-bottom: var(--space-3); opacity: 0.5;">
-                                            ⚙️
+                                            ??
                                         </div>
                                         <p style="margin-bottom: var(--space-4);">Load store settings from your
                                             WooCommerce store</p>
@@ -13996,9 +14230,9 @@
                     </div>
                 </div>
 
-                <!-- Thread History Menu -->
+                <!-- Thread History Menu - INDEPENDENT SIDEBAR -->
                 <div class="thread-menu-overlay" id="thread-menu">
-                    <!-- Header with Title and Actions -->
+                    <!-- Header with Title, Agent Tag, and Collapse Button -->
                     <div class="thread-menu-header">
                         <div class="thread-menu-header-top">
                             <div class="thread-menu-title">
@@ -14006,30 +14240,46 @@
                                 <span>Thread History</span>
                             </div>
                             <div class="thread-menu-header-actions">
-                                <button class="right-sidebar-btn" onclick="ThreadManager.showNewChatModal('prime')"
-                                    title="Create New Thread">
-                                    <!-- Streamline chat-bubble-square-add icon -->
-                                    <svg class="icon icon-message-plus" xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 14 14" aria-hidden="true" focusable="false"
-                                        style="width:1.25em; height:1.25em; vertical-align:middle; fill:currentColor;">
-                                        <g>
-                                            <path
-                                                d="M11.5,0H2.5A2.5,2.5,0,0,0,0,2.5v6A2.5,2.5,0,0,0,2.5,11h.25a.75.75,0,0,1,.75.75v1.69a.56.56,0,0,0,.95.4l2.69-2.69a.74.74,0,0,1,.53-.22H11.5A2.5,2.5,0,0,0,14,8.5v-6A2.5,2.5,0,0,0,11.5,0Z" />
-                                            <path
-                                                d="M7,3.5a.5.5,0,0,1,.5.5V5.5H9a.5.5,0,0,1,0,1H7.5V8a.5.5,0,0,1-1,0V6.5H5a.5.5,0,0,1,0-1H6.5V4A.5.5,0,0,1,7,3.5Z"
-                                                style="fill:#fff" />
-                                        </g>
-                                    </svg>
-                                </button>
-                                <button class="thread-menu-icon-btn" onclick="ThreadManager.refreshThreads()"
-                                    title="Refresh threads">
-                                    <i class="fas fa-sync"></i>
-                                </button>
-                                <button class="thread-menu-icon-btn" onclick="ThreadManager.closeThreadMenu()"
-                                    title="Close sidebar">
-                                    <i class="fas fa-times"></i>
+                                <!-- Agent Badge (Right side of header) -->
+                                <div class="thread-menu-agent-badge" id="thread-menu-agent-badge"
+                                    style="display: none;">
+                                    <i class="fas fa-star" id="thread-menu-agent-icon"></i>
+                                    <span id="thread-menu-agent-name">Prime</span>
+                                </div>
+                                <!-- Expand/Collapse Chevron -->
+                                <button class="thread-menu-collapse-btn"
+                                    onclick="ThreadManager.toggleThreadMenuCollapse()" title="Collapse sidebar"
+                                    id="thread-menu-collapse-btn">
+                                    <i class="fas fa-chevron-right"></i>
                                 </button>
                             </div>
+                        </div>
+
+                        <!-- Action Buttons Row (below title) -->
+                        <div class="thread-menu-actions-row" style="display: flex; gap: 8px; align-items: center;">
+                            <button class="right-sidebar-btn" onclick="ThreadManager.showNewChatModal('prime')"
+                                title="Create New Thread" style="flex: 1;">
+                                <!-- Streamline chat-bubble-square-add icon -->
+                                <svg class="icon icon-message-plus" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 14 14" aria-hidden="true" focusable="false"
+                                    style="width:1.25em; height:1.25em; vertical-align:middle; fill:currentColor;">
+                                    <g>
+                                        <path
+                                            d="M11.5,0H2.5A2.5,2.5,0,0,0,0,2.5v6A2.5,2.5,0,0,0,2.5,11h.25a.75.75,0,0,1,.75.75v1.69a.56.56,0,0,0,.95.4l2.69-2.69a.74.74,0,0,1,.53-.22H11.5A2.5,2.5,0,0,0,14,8.5v-6A2.5,2.5,0,0,0,11.5,0Z" />
+                                        <path
+                                            d="M7,3.5a.5.5,0,0,1,.5.5V5.5H9a.5.5,0,0,1,0,1H7.5V8a.5.5,0,0,1-1,0V6.5H5a.5.5,0,0,1,0-1H6.5V4A.5.5,0,0,1,7,3.5Z"
+                                            style="fill:#fff" />
+                                    </g>
+                                </svg>
+                            </button>
+                            <button class="thread-menu-icon-btn" onclick="ThreadManager.refreshThreads()"
+                                title="Refresh threads">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                            <button class="thread-menu-icon-btn" onclick="ThreadManager.closeThreadMenu()"
+                                title="Close sidebar">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
 
                         <!-- View Tabs (Active/Archived) -->
@@ -14471,6 +14721,290 @@
 
         <div class="automations-content" id="automations-content">
             <!-- Automation items will be inserted here dynamically -->
+        </div>
+    </div>
+
+    <!-- ==================== SETTINGS SIDEBAR MODULE ==================== -->
+    <!-- Settings sidebar HTML loaded dynamically from modules/settings-sidebar/settings-sidebar.html -->
+    <div id="settings-sidebar-container">
+        <!-- Settings Sidebar HTML (matches prompt-sidebar structure) -->
+        <div id="settings-sidebar" class="prompt-sidebar">
+            <div class="prompt-sidebar-header">
+                <div class="prompt-sidebar-title">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </div>
+                <button class="synergy-icon-btn" onclick="window.closeSettingsSidebar()" title="Close sidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- TABS -->
+            <div class="prompt-sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="recovery" onclick="window.switchSettingsTab('recovery')">
+                    <i class="fas fa-sync-alt"></i> Error Recovery
+                </button>
+                <button class="sidebar-tab" data-tab="display" onclick="window.switchSettingsTab('display')">
+                    <i class="fas fa-palette"></i> Display
+                </button>
+                <button class="sidebar-tab" data-tab="advanced" onclick="window.switchSettingsTab('advanced')">
+                    <i class="fas fa-sliders-h"></i> Advanced
+                </button>
+            </div>
+
+            <div class="prompt-sidebar-body">
+                <!-- TAB 1: ERROR RECOVERY SETTINGS -->
+                <div id="recovery-settings-tab" class="sidebar-tab-content active">
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Automatic Error Recovery</span>
+                        </div>
+
+                        <!-- Master Toggle -->
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">
+                                    <i class="fas fa-power-off"></i>
+                                    Enable Auto-Recovery
+                                </div>
+                                <div class="setting-description">
+                                    Master switch for automatic error recovery
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-auto-recovery-enabled" checked
+                                    onchange="window.saveRecoverySettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Recovery Types -->
+                        <div id="recovery-options" class="settings-subsection">
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <div class="setting-label">Tool Mismatch</div>
+                                    <div class="setting-description">Retry when AI uses wrong tool format</div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-recovery-tool-mismatch" checked
+                                        onchange="window.saveRecoverySettings()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <div class="setting-label">Invalid Structure</div>
+                                    <div class="setting-description">Retry when response format is invalid</div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-recovery-invalid-structure" checked
+                                        onchange="window.saveRecoverySettings()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <div class="setting-label">Context Length</div>
+                                    <div class="setting-description">Retry with smaller context on overflow</div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-recovery-context-length" checked
+                                        onchange="window.saveRecoverySettings()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <div class="setting-label">Rate Limit</div>
+                                    <div class="setting-description">Retry after rate limit errors</div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-recovery-rate-limit" checked
+                                        onchange="window.saveRecoverySettings()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <div class="setting-label">Network Errors</div>
+                                    <div class="setting-description">Retry on connection failures</div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="setting-recovery-network" checked
+                                        onchange="window.saveRecoverySettings()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Max Retries -->
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">
+                                    <i class="fas fa-redo"></i>
+                                    Max Retry Attempts
+                                </div>
+                                <div class="setting-description">Maximum number of recovery attempts (1-5)</div>
+                            </div>
+                            <input type="number" id="setting-max-retries" min="1" max="5" value="3"
+                                onchange="window.saveRecoverySettings()" class="setting-number-input">
+                        </div>
+
+                        <!-- Notifications -->
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">
+                                    <i class="fas fa-bell"></i>
+                                    Show Notifications
+                                </div>
+                                <div class="setting-description">Display recovery attempt notifications</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-show-recovery-notifications" checked
+                                    onchange="window.saveRecoverySettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Detailed Logging -->
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">
+                                    <i class="fas fa-bug"></i>
+                                    Detailed Logging
+                                </div>
+                                <div class="setting-description">Log detailed recovery information</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-detailed-logging" checked
+                                    onchange="window.saveRecoverySettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Statistics Panel -->
+                        <div class="settings-stats-panel">
+                            <div class="stats-header">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Recovery Statistics</span>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-label">Total Recoveries</div>
+                                    <div class="stat-value" id="stat-total-recoveries">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Successful</div>
+                                    <div class="stat-value stat-success" id="stat-successful-recoveries">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Failed</div>
+                                    <div class="stat-value stat-failure" id="stat-failed-recoveries">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Success Rate</div>
+                                    <div class="stat-value" id="stat-success-rate">0%</div>
+                                </div>
+                            </div>
+                            <button class="stats-reset-btn" onclick="window.resetRecoveryStats()">
+                                <i class="fas fa-trash"></i>
+                                Reset Statistics
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: DISPLAY PREFERENCES -->
+                <div id="display-settings-tab" class="sidebar-tab-content">
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <i class="fas fa-eye"></i>
+                            <span>Display Preferences</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Show Thinking Process</div>
+                                <div class="setting-description">Display AI's internal reasoning steps</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-show-thinking" checked
+                                    onchange="window.saveDisplaySettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Show Tool Details</div>
+                                <div class="setting-description">Display detailed tool execution info</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-show-tool-details" checked
+                                    onchange="window.saveDisplaySettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Auto-scroll</div>
+                                <div class="setting-description">Automatically scroll to latest message</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-auto-scroll" checked
+                                    onchange="window.saveDisplaySettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ADVANCED SETTINGS -->
+                <div id="advanced-settings-tab" class="sidebar-tab-content">
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <i class="fas fa-cogs"></i>
+                            <span>Advanced Configuration</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Debug Mode</div>
+                                <div class="setting-description">Enable verbose debug logging</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-debug-mode" onchange="window.saveAdvancedSettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Cache Responses</div>
+                                <div class="setting-description">Cache API responses for faster reload</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-cache-responses" checked
+                                    onchange="window.saveAdvancedSettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="prompt-sidebar-footer">
+                <button class="sidebar-footer-btn" onclick="window.resetAllSettings()">
+                    <i class="fas fa-undo"></i>
+                    Reset All Settings
+                </button>
+            </div>
         </div>
     </div>
 
@@ -15005,9 +15539,15 @@
                 <i class="fas fa-bug"></i>
                 <span>Debug Console</span>
             </div>
-            <button class="debug-close-btn" onclick="DebugSidebar.toggleSidebar()">
-                <i class="fas fa-times"></i>
-            </button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="debug-expand-btn" onclick="DebugSidebar.toggleExpand()">
+                    <i class="fas fa-expand-alt"></i>
+                    <span id="debug-expand-text">Expand</span>
+                </button>
+                <button class="debug-close-btn" onclick="DebugSidebar.toggleSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Tabs -->
@@ -15047,6 +15587,10 @@
             <button class="debug-tab" data-tab="poolmonitor" onclick="DebugSidebar.switchTab('poolmonitor')">
                 <i class="fas fa-database"></i>
                 <span>Pool Monitor</span>
+            </button>
+            <button class="debug-tab" data-tab="cssextract" onclick="DebugSidebar.switchTab('cssextract')">
+                <i class="fas fa-palette"></i>
+                <span>CSS Extract</span>
             </button>
         </div>
 
@@ -15297,6 +15841,109 @@
                 </div>
             </div>
 
+            <!-- CSS Extract Section -->
+            <div class="debug-section" data-section="cssextract">
+                <div class="debug-section-header">
+                    <h3><i class="fas fa-palette"></i> CSS Extractor</h3>
+                    <button class="debug-export-btn" onclick="CSSExtractor.exportCSS()">
+                        <i class="fas fa-download"></i> Export CSS
+                    </button>
+                </div>
+                <div class="debug-section-content">
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        Extract computed CSS styles from rendered elements. Select elements below to see their styles.
+                    </p>
+
+                    <!-- Controls Row 1 -->
+                    <div style="margin-bottom: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="debug-btn debug-btn-primary" onclick="CSSExtractor.startInspector()">
+                            <i class="fas fa-crosshairs"></i> Enable Inspector
+                        </button>
+                        <button class="debug-btn debug-btn-primary" onclick="CSSExtractor.rescanDOM()">
+                            <i class="fas fa-sync"></i> Rescan DOM
+                        </button>
+                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.selectAllVisible()">
+                            <i class="fas fa-check-square"></i> Select All Visible
+                        </button>
+                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.deselectAll()">
+                            <i class="fas fa-square"></i> Deselect All
+                        </button>
+                        <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.copyToClipboard()">
+                            <i class="fas fa-copy"></i> Copy CSS
+                        </button>
+                        <button class="debug-btn debug-btn-danger" onclick="CSSExtractor.clearSelection()">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+
+                    <!-- Controls Row 2: Dynamic Elements Monitoring -->
+                    <div
+                        style="margin-bottom: 16px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <i class="fas fa-magic" style="color: #3B82F6;"></i>
+                            <span style="font-weight: bold; color: var(--text-primary);">Dynamic Elements Monitor</span>
+                            <span style="color: var(--text-secondary); font-size: 11px;">Track script-generated
+                                elements</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <button class="debug-btn debug-btn-secondary"
+                                onclick="CSSExtractor.startDynamicMonitoring()">
+                                <i class="fas fa-eye"></i> Monitor Dynamic Elements
+                            </button>
+                            <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.selectAllDynamic()">
+                                <i class="fas fa-plus-square"></i> Select All Dynamic (<span
+                                    id="dynamic-elements-count">0</span>)
+                            </button>
+                            <button class="debug-btn debug-btn-secondary" onclick="CSSExtractor.clearDynamicLog()">
+                                <i class="fas fa-eraser"></i> Clear Log
+                            </button>
+                            <span style="color: var(--text-secondary); font-size: 10px; margin-left: auto;">
+                                ?? Start monitoring, then trigger UI actions (send message, open modal, etc.)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Two-column layout -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: calc(100vh - 400px);">
+                        <!-- Left: HTML Tree with checkboxes -->
+                        <div
+                            style="display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
+                            <div
+                                style="background: var(--surface-secondary); padding: 8px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-primary);">
+                                <i class="fas fa-sitemap"></i> HTML Elements
+                            </div>
+                            <div id="css-element-tree"
+                                style="flex: 1; overflow-y: auto; padding: 8px; background: var(--surface-primary); font-family: 'Courier New', monospace; font-size: 11px;">
+                                <div style="color: #888; padding: 20px; text-align: center;">
+                                    <div style="margin-bottom: 12px;"><i class="fas fa-info-circle"
+                                            style="font-size: 24px; color: #3B82F6;"></i></div>
+                                    <div style="margin-bottom: 8px; font-weight: bold;">CSS Extractor Ready</div>
+                                    <div style="font-size: 10px; line-height: 1.6;">
+                                        1. Click "Rescan DOM" to load current page structure<br>
+                                        2. Or use "Enable Inspector" to click elements directly<br>
+                                        3. Select elements to extract their CSS
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Extracted CSS -->
+                        <div
+                            style="display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
+                            <div
+                                style="background: var(--surface-secondary); padding: 8px; border-bottom: 1px solid var(--border-color); font-weight: bold; color: var(--text-primary);">
+                                <i class="fas fa-code"></i> Computed CSS (<span id="css-selected-count">0</span>
+                                elements)
+                            </div>
+                            <div id="css-extracted-output"
+                                style="flex: 1; overflow-y: auto; padding: 12px; background: var(--surface-primary); font-family: 'Courier New', monospace; font-size: 11px; white-space: pre-wrap;">
+                                /* Select elements to see their CSS here */
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div><!-- End debug-sidebar-content -->
     </div><!-- End debug-sidebar -->
 
@@ -15415,7 +16062,7 @@
                     window.SUPABASE_URL = config.url;
                     window.SUPABASE_ANON_KEY = config.anonKey;
                     window.SUPABASE_CONFIG_LOADED = true;
-                    console.log('✅ [SUPABASE] Config loaded:', window.SUPABASE_URL);
+                    console.log('? [SUPABASE] Config loaded:', window.SUPABASE_URL);
 
                     // Initialize Supabase client
                     if (typeof supabase !== 'undefined' && supabase.createClient) {
@@ -15425,19 +16072,19 @@
                         );
                         window.supabaseClient = window.SUPABASE_CLIENT; // Alias for compatibility
                         window.SUPABASE_REALTIME_ENABLED = true;
-                        console.log('✅ [SUPABASE] Client initialized - Realtime enabled');
+                        console.log('? [SUPABASE] Client initialized - Realtime enabled');
                     } else {
-                        console.error('❌ [SUPABASE] supabase.createClient not available');
+                        console.error('? [SUPABASE] supabase.createClient not available');
                         return false;
                     }
 
                     return true;
                 } else {
-                    console.error('❌ [SUPABASE] Failed to load config:', response.status);
+                    console.error('? [SUPABASE] Failed to load config:', response.status);
                     return false;
                 }
             } catch (error) {
-                console.error('❌ [SUPABASE] Error loading config:', error);
+                console.error('? [SUPABASE] Error loading config:', error);
                 return false;
             }
         };
@@ -16051,10 +16698,10 @@
 - Online Status: ${context.browser.onLine ? 'Online' : 'Offline'}`;
 
                 if (context.geolocation?.available) {
-                    formatted += `\n- Location: ${context.geolocation.latitude.toFixed(4)}, ${context.geolocation.longitude.toFixed(4)} (�${Math.round(context.geolocation.accuracy)}m)`;
+                    formatted += `\n- Location: ${context.geolocation.latitude.toFixed(4)}, ${context.geolocation.longitude.toFixed(4)} (?${Math.round(context.geolocation.accuracy)}m)`;
 
                     if (context.weather?.available) {
-                        formatted += `\n- Weather: ${context.weather.weatherDescription}, ${context.weather.temperature}�C, Wind ${context.weather.windspeed} km/h`;
+                        formatted += `\n- Weather: ${context.weather.weatherDescription}, ${context.weather.temperature}?C, Wind ${context.weather.windspeed} km/h`;
                     }
                 } else {
                     formatted += `\n- Location: ${context.locale.city} (from timezone)`;
@@ -16389,10 +17036,15 @@
             initRightSidebar();
 
             // Initialize multi-agent system (with defensive check)
+            console.log('?? [INIT] Checking for initMultiAgent...', typeof window.initMultiAgent);
+            console.log('?? [INIT] window.MultiAgent exists?', typeof window.MultiAgent !== 'undefined');
+
             if (typeof window.initMultiAgent === 'function') {
+                console.log('? [INIT] initMultiAgent found, initializing...');
                 await window.initMultiAgent(); // WAIT for agent columns to be created before restoring threads
             } else {
-                console.error('❌ initMultiAgent is not defined - agent-js.js may not have loaded');
+                console.error('? [INIT] initMultiAgent is not defined - agent-js.js may not have loaded');
+                console.error('? [INIT] Available window properties:', Object.keys(window).filter(k => k.includes('Multi') || k.includes('Agent')));
                 throw new Error('initMultiAgent is not available');
             }
 
@@ -16401,7 +17053,7 @@
             // ? INITIALIZE THREADMANAGER (Post-Authentication)
             // Must happen AFTER login so UserAuth.token is available for /api/auth/profile
             if (typeof ThreadManager !== 'undefined') {
-                console.log('✅ ThreadManager loaded via module system');
+                console.log('? ThreadManager loaded via module system');
 
                 // Initialize ThreadManager - this loads threads from backend AND restores assignments
                 await ThreadManager.init();
@@ -16440,9 +17092,9 @@
                 typeof ThreadManagerWelcome !== 'undefined' &&
                 ThreadManager.initWelcomeMessage) {
                 ThreadManager.initWelcomeMessage('prime');
-                console.log('✨ Welcome message initialized with quick tip');
+                console.log('? Welcome message initialized with quick tip');
             } else if (typeof ThreadManager !== 'undefined') {
-                console.warn('⚠️ ThreadManagerWelcome not loaded yet - skipping welcome message');
+                console.warn('?? ThreadManagerWelcome not loaded yet - skipping welcome message');
             }
 
             console.log('Platform ready with full tool integration!');
@@ -16455,7 +17107,7 @@
             console.log(` Global Visualization State: ${window.sidebarVisualizationState ? 'INITIALIZED' : ' NOT INITIALIZED'}`);
             console.log(`[CHART] Mermaid: ${typeof mermaid !== 'undefined' ? 'Available' : '[WARN] Not loaded'}`);
             console.log(` Plotly: ${typeof Plotly !== 'undefined' ? 'Available' : '[WARN] Not loaded'}`);
-            console.log(`?� Markdown Renderer: ${typeof marked !== 'undefined' ? 'Available' : '[WARN] Basic fallback'}`);
+            console.log(`?? Markdown Renderer: ${typeof marked !== 'undefined' ? 'Available' : '[WARN] Basic fallback'}`);
             console.log('[MAIN APP] Platform ready with full tool integration!\n');
         };
 
@@ -16540,7 +17192,7 @@
                 console.log('[CLOCK] Header datetime updates started');
             }
 
-            // ✅ Wait for UserAuth to be available (with timeout)
+            // ? Wait for UserAuth to be available (with timeout)
             let attempts = 0;
             const maxAttempts = 50; // 5 seconds (50 * 100ms)
 
@@ -16551,7 +17203,7 @@
             }
 
             if (typeof UserAuth === 'undefined') {
-                console.error('❌ [AUTH ERROR] UserAuth is not defined after 5 seconds!');
+                console.error('? [AUTH ERROR] UserAuth is not defined after 5 seconds!');
                 console.error('   user_auth.js may not be loaded correctly.');
                 console.error('   Check browser console for script loading errors.');
                 // Show login screen as fallback
@@ -16560,7 +17212,7 @@
                 return;
             }
 
-            console.log('✅ [AUTH] UserAuth is now available');
+            console.log('? [AUTH] UserAuth is now available');
 
             try {
                 // Check if user is already logged in
@@ -16569,21 +17221,25 @@
                 if (isAuthenticated) {
                     console.log('[AUTH] Session found - Loading main app...');
                     await UserAuth.showMainApp();
+
+                    // ✅ FIXED (Nov 23, 2025): Module initialization handled by UserAuth.showMainApp()
+                    // No need to call initializeModuleSystem() here - it's already called inside showMainApp()
+                    console.log('[AUTH] Main app loaded (modules initialized by UserAuth)')
                 } else {
                     console.log('[AUTH] No active session - Showing login screen');
                     // Login screen is already visible by default
                 }
 
-                // ✅ Initialize account profile after UserAuth is ready
+                // ? Initialize account profile after UserAuth is ready
                 if (typeof window.initializeAccountProfile === 'function') {
                     console.log('[AUTH] Initializing account profile...');
                     await window.initializeAccountProfile();
                 } else {
-                    console.warn('⚠️ [AUTH] initializeAccountProfile not available');
+                    console.warn('?? [AUTH] initializeAccountProfile not available');
                 }
 
             } catch (error) {
-                console.error('❌ [AUTH ERROR] Failed during authentication check:', error);
+                console.error('? [AUTH ERROR] Failed during authentication check:', error);
                 // Show login screen as fallback
                 const loginOverlay = document.getElementById('loginOverlay');
                 if (loginOverlay) loginOverlay.style.display = 'flex';
@@ -17133,21 +17789,20 @@
                     let retryCount = 0;
                     const maxRetries = 50; // Max 5 seconds (50 * 100ms)
 
-                    const initSynergyBoard = () => {
+                    const initSynergyBoard = async () => {
                         if (typeof window.synergyBoard !== 'undefined' && window.synergyBoard) {
-                            console.log('✅ [SYNERGY] synergyBoard loaded after', retryCount * 100, 'ms');
-                            window.synergyBoard.ensureInitialized()
-                                .then(() => {
-                                    console.log('✅ [SYNERGY] Board initialized and sessions loaded');
+                            console.log('✅ [SYNERGY] synergyBoard available immediately');
+                            try {
+                                await window.synergyBoard.ensureInitialized();
+                                console.log('✅ [SYNERGY] Board initialized and sessions loaded');
+                                window.synergyBoard.refreshBoard();
+                            } catch (err) {
+                                console.error('❌ [SYNERGY] Error initializing board:', err);
+                                // Try refreshBoard anyway
+                                if (typeof window.synergyBoard.refreshBoard === 'function') {
                                     window.synergyBoard.refreshBoard();
-                                })
-                                .catch(err => {
-                                    console.error('❌ [SYNERGY] Error initializing board:', err);
-                                    // Try refreshBoard anyway
-                                    if (typeof window.synergyBoard.refreshBoard === 'function') {
-                                        window.synergyBoard.refreshBoard();
-                                    }
-                                });
+                                }
+                            }
                         } else if (retryCount < maxRetries) {
                             retryCount++;
                             if (retryCount === 1 || retryCount % 10 === 0) {
@@ -17161,6 +17816,47 @@
                     };
 
                     initSynergyBoard();
+                }
+
+                // SPECIAL HANDLING: Initialize Automation Canvas when automation tab is activated
+                if (tabId === 'automation') {
+                    console.log('[AUTOMATION] Tab activated - checking canvas initialization...');
+
+                    // Ensure canvas wrapper is visible
+                    const canvasWrapper = document.getElementById('automation-canvas-wrapper');
+                    if (canvasWrapper) {
+                        canvasWrapper.style.display = 'block';
+                        console.log('[AUTOMATION] Canvas wrapper set to visible');
+                    }
+
+                    // Initialize if not already done
+                    if (typeof window.automationCanvas === 'undefined' || !window.automationCanvas) {
+                        console.log('[AUTOMATION] Canvas not initialized, attempting lazy init...');
+                        if (typeof window.initializeAutomationCanvas === 'function') {
+                            window.initializeAutomationCanvas();
+                        } else {
+                            console.warn('[AUTOMATION] initializeAutomationCanvas function not found - canvas may not be ready yet');
+                        }
+                    } else {
+                        console.log('[AUTOMATION] Canvas already initialized');
+
+                        // ✅ FIX: Always verify and re-attach event listeners when tab becomes active
+                        console.log('[AUTOMATION] ⚡ Verifying event listeners...');
+                        if (typeof window.automationCanvas.verifyEventListeners === 'function') {
+                            const result = window.automationCanvas.verifyEventListeners();
+                            console.log(`[AUTOMATION] ✅ Event listeners ready (${result.attached} attached, ${result.missing} missing)`);
+                        } else {
+                            console.warn('[AUTOMATION] ⚠️ verifyEventListeners() not found - using fallback');
+                            if (typeof window.automationCanvas.setupEventListeners === 'function') {
+                                window.automationCanvas.setupEventListeners();
+                            }
+                        }
+
+                        // Refresh display if already initialized
+                        if (typeof window.automationCanvas.renderWorkflowList === 'function') {
+                            window.automationCanvas.renderWorkflowList();
+                        }
+                    }
                 }
 
                 // LAZY LOADING: Initialize module if not yet loaded
@@ -17392,7 +18088,7 @@
                 modal.classList.remove('active');
                 this.currentThreadId = null;
                 this.currentAgentId = null;
-                console.log('✖️ [ThreadViewChoice] Modal closed');
+                console.log('?? [ThreadViewChoice] Modal closed');
             },
 
             // View thread in AI Prime panel
@@ -17498,16 +18194,88 @@
                     centerX: canvas.width / 2,
                     centerY: canvas.height / 2,
                     particles: [],
+                    startTime: Date.now(), // Track animation start for fade-in
+                    movementX: 0, // Grid horizontal drift
+                    movementY: 0, // Grid vertical drift
+                    currentCycle: 0, // Track 20s cycles
+                    lastCycleTime: Date.now(), // Last cycle reset
                     neuralNodes: []
                 };
             }
+
+            // Global animation start time - start immediately (Nov 22, 2025)
+            let animationStartTime = Date.now();
 
             const animations = {
                 login: initCanvas(canvases.login, contexts.login),
                 auth: initCanvas(canvases.auth, contexts.auth)
             };
 
-            // Particle class
+            // MASTER SPEED CONTROLLER - All animations follow this
+            function getGlobalSpeedPhase() {
+                const time = (Date.now() - animationStartTime) / 1000;
+                const cycleTime = time % 22; // 22s full cycle (20s + 2s fade window)
+
+                let speedMultiplier, brightness;
+
+                // Speed: 0-13s ramp to 1.5, then accelerate to 4x by 18-19s
+                if (cycleTime < 13) {
+                    // 0-13s: Ramp up from 0.3 to 1.5
+                    speedMultiplier = 0.3 + (cycleTime / 13) * 1.2;
+                } else if (cycleTime < 14) {
+                    // 13-14s: Speed up to 2.0
+                    speedMultiplier = 2.0;
+                } else if (cycleTime < 15) {
+                    // 14-15s: Speed up to 2.5
+                    speedMultiplier = 2.5;
+                } else if (cycleTime < 16) {
+                    // 15-16s: Speed up to 3.0
+                    speedMultiplier = 3.0;
+                } else if (cycleTime < 17) {
+                    // 16-17s: Speed up to 4.5
+                    speedMultiplier = 4.5;
+                } else if (cycleTime < 18) {
+                    // 17-18s: Speed up to 5.5
+                    speedMultiplier = 5.5;
+                } else if (cycleTime < 20) {
+                    // 18-20s: Maximum speed 6.0x (HYPER-SPEED instant lines!)
+                    speedMultiplier = 6.0;
+                } else if (cycleTime < 21.5) {
+                    // 20-21.5s: Stay at 6.0 speed (hyper-fast clearout)
+                    speedMultiplier = 6.0;
+                } else {
+                    // 21.5-22s: Drop to 0 (complete stop before restart)
+                    speedMultiplier = 0;
+                }
+
+                // Brightness: 0 from 0-4s, ramp to max at 17s, pause at 19-21s (2s for particles to clear), fade 21-22s
+                if (cycleTime < 4) {
+                    // 0-4s: No brightness
+                    brightness = 0;
+                } else if (cycleTime < 17) {
+                    // 4-17s: Ramp from 0 to 1.0 (13 seconds)
+                    brightness = (cycleTime - 4) / 13;
+                } else if (cycleTime < 20) {
+                    // 17-20s: Stay at max brightness during speed peak
+                    brightness = 1.0;
+                } else if (cycleTime < 22) {
+                    // 20-22s: Production pause (2 seconds) - fade while particles clear
+                    brightness = 1.0 - ((cycleTime - 20) / 2);
+                } else {
+                    // After 22s: Should not reach (cycle resets)
+                    brightness = 0;
+                }
+
+                // Connection count grows with brightness (0-17 connections)
+                const maxConnections = Math.floor(brightness * 17);
+
+                return {
+                    cycleTime,
+                    speedMultiplier, // 0.1 to 1.0
+                    brightness, // 0.0 to 1.0
+                    maxConnections // 0 to 17
+                };
+            }            // Particle class
             class EnergyParticle {
                 constructor(canvasData) {
                     const angle = Math.random() * Math.PI * 2;
@@ -17539,11 +18307,7 @@
                     this.trail = [];
                     this.maxTrailLength = 30 + Math.floor(Math.random() * 30);
                     this.pathIndex = 0;
-
-                    // Alternate speed every 10 seconds (20s full cycle)
-                    const time = Date.now() / 1000;
-                    const speedCycle = Math.floor(time / 10) % 2;
-                    this.speed = speedCycle === 0 ? (8 + Math.random() * 6) : (1 + Math.random() * 2); // Fast 8-14, slow 1-3
+                    this.baseSpeed = 10 + Math.random() * 4; // Base speed 10-14
                 }
 
                 createPath() {
@@ -17568,23 +18332,26 @@
                     this.path.push({ x: this.targetX, y: this.targetY });
                 }
 
-                update() {
+                update(speedMultiplier, canCreateNew = true) {
                     this.trail.push({ x: this.x, y: this.y });
                     if (this.trail.length > this.maxTrailLength) this.trail.shift();
 
-                    if (this.pathIndex >= this.path.length - 1) return false;
+                    if (this.pathIndex >= this.path.length - 1) return !canCreateNew;
 
                     const target = this.path[this.pathIndex + 1];
                     const dx = target.x - this.x;
                     const dy = target.y - this.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
-                    if (dist < this.speed) {
+                    // Speed controlled by global phase
+                    const currentSpeed = this.baseSpeed * speedMultiplier;
+
+                    if (dist < currentSpeed) {
                         this.pathIndex++;
                         if (this.pathIndex >= this.path.length - 1) return false;
                     } else {
-                        this.x += (dx / dist) * this.speed;
-                        this.y += (dy / dist) * this.speed;
+                        this.x += (dx / dist) * currentSpeed;
+                        this.y += (dy / dist) * currentSpeed;
                     }
 
                     return true;
@@ -17631,42 +18398,49 @@
                     this.y = y;
                     this.pulse = Math.random() * Math.PI * 2;
                     this.connections = [];
+                    this.potentialConnections = [];
                 }
 
-                update() {
-                    this.pulse += 0.02;
-                }
+                update(maxConnections) {
+                    this.pulse += 0.05;
 
-                draw(ctx) {
-                    // Opacity synced with particle speed - 20 second full cycle
-                    const time = Date.now() / 1000;
-                    const fullCycle = 20; // Match particle speed alternation (10s fast + 10s slow)
-                    const cycleProgress = (time % fullCycle) / fullCycle;
+                    // Build connections based on speed phase
+                    const targetConnections = Math.min(maxConnections, this.potentialConnections.length);
 
-                    // Network brightest when particles reach max speed (every 20 seconds)
-                    let flashBoost = 0;
-                    if (cycleProgress < 0.45) {
-                        // First 9 seconds: Slow ramp up to peak brightness
-                        flashBoost = (cycleProgress / 0.45) * 0.6;
-                    } else if (cycleProgress < 0.5) {
-                        // Stay at peak for 1 second (particles at max speed)
-                        flashBoost = 0.6;
-                    } else if (cycleProgress < 0.7) {
-                        // Next 4 seconds: Fade down as particles slow
-                        flashBoost = ((0.7 - cycleProgress) / 0.2) * 0.6;
+                    // Add connections up to target
+                    while (this.connections.length < targetConnections) {
+                        const nextConnection = this.potentialConnections[this.connections.length];
+                        if (nextConnection && !this.connections.includes(nextConnection)) {
+                            this.connections.push(nextConnection);
+                        } else {
+                            break;
+                        }
                     }
-                    // 14-20s: Stay dim during slow particle phase
 
-                    const baseAlpha = (Math.sin(this.pulse) * 0.5 + 0.5) * 0.45;
-                    const alpha = Math.min(1, baseAlpha + flashBoost);
+                    // Remove excess connections if speed decreased
+                    if (this.connections.length > targetConnections) {
+                        this.connections.length = targetConnections;
+                    }
+                }
 
-                    // Connections - static blue lines with opacity flash
+                draw(ctx, startTime, brightness) {
+                    // Fast fade-in: 0-1s for dots, 1-2s for lines
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const dotFadeIn = Math.min(1, elapsed / 0.8);
+                    const lineFadeIn = Math.max(0, Math.min(1, (elapsed - 0.8) / 1.2));
+
+                    // Use global brightness from speed phase
+                    const basePulse = (Math.sin(this.pulse) * 0.3 + 0.7); // Subtle pulse 0.4-1.0
+                    const alpha = basePulse * brightness; // Controlled by speed phase
+
+                    // Connections - only brightness changes, thin lines
                     this.connections.forEach(node => {
                         const distance = Math.sqrt((node.x - this.x) ** 2 + (node.y - this.y) ** 2);
-                        const connectionAlpha = Math.max(0, (1 - distance / 400) * alpha * 0.3);
+                        const distanceFade = Math.max(0, 1 - distance / 400);
+                        const connectionAlpha = distanceFade * alpha * 0.5 * lineFadeIn;
 
                         ctx.strokeStyle = `rgba(88, 166, 255, ${connectionAlpha})`;
-                        ctx.lineWidth = 0.3;
+                        ctx.lineWidth = 0.4; // Keep thin, only brightness changes
 
                         ctx.beginPath();
                         ctx.moveTo(this.x, this.y);
@@ -17674,15 +18448,15 @@
                         ctx.stroke();
                     });
 
-                    // Node - subtle glow with opacity flash
-                    const nodeSize = 2;
-                    const nodeAlpha = Math.min(0.8, alpha * 0.4);
+                    // Node - small size, only brightness changes
+                    const nodeSize = 1.2; // Small fixed size
+                    const nodeAlpha = Math.min(1, alpha * 0.7 * dotFadeIn);
                     ctx.fillStyle = `rgba(88, 166, 255, ${nodeAlpha})`;
 
-                    if (this.pulseIntensity > 0.2) {
-                        ctx.shadowBlur = 10 * this.pulseIntensity;
-                        ctx.shadowColor = `rgba(88, 166, 255, ${this.pulseIntensity * 0.6})`;
-                    }
+                    // Glow controlled by brightness only
+                    const glowSize = 8 * brightness; // 0-8px glow based on brightness
+                    ctx.shadowBlur = glowSize;
+                    ctx.shadowColor = `rgba(88, 166, 255, ${nodeAlpha * 0.6})`;
 
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, nodeSize, 0, Math.PI * 2);
@@ -17692,26 +18466,53 @@
             }
 
             // Create neural networks
-            function createNeuralNetwork(animData) {
+            function createNeuralNetwork(animData, regeneratePercent = 0) {
                 if (!animData) return;
-                const { canvas, neuralNodes, centerX, centerY } = animData;
-                neuralNodes.length = 0;
+                const { canvas, neuralNodes } = animData;
 
-                for (let x = 120; x < canvas.width; x += 120) {
-                    for (let y = 100; y < canvas.height; y += 100) {
-                        const offsetX = (Math.random() - 0.5) * 40;
-                        const offsetY = (Math.random() - 0.5) * 40;
-                        neuralNodes.push(new NeuralNode(x + offsetX, y + offsetY, centerX, centerY));
+                // If regenerating, remove random 20% of nodes
+                if (regeneratePercent > 0 && neuralNodes.length > 0) {
+                    const removeCount = Math.floor(neuralNodes.length * regeneratePercent);
+                    for (let i = 0; i < removeCount; i++) {
+                        const randomIndex = Math.floor(Math.random() * neuralNodes.length);
+                        neuralNodes.splice(randomIndex, 1);
                     }
                 }
 
-                // Connect nearby nodes
+                const targetCount = neuralNodes.length;
+
+                // Add new nodes
+                if (regeneratePercent === 0) {
+                    // Initial creation
+                    for (let x = 180; x < canvas.width; x += 180) {
+                        for (let y = 150; y < canvas.height; y += 150) {
+                            if (Math.random() < 0.3) continue;
+
+                            const offsetX = (Math.random() - 0.5) * 120;
+                            const offsetY = (Math.random() - 0.5) * 120;
+                            neuralNodes.push(new NeuralNode(x + offsetX, y + offsetY));
+                        }
+                    }
+                } else {
+                    // Add replacement nodes
+                    const nodesToAdd = Math.floor(targetCount * regeneratePercent / (1 - regeneratePercent));
+                    for (let i = 0; i < nodesToAdd; i++) {
+                        const x = Math.random() * canvas.width;
+                        const y = Math.random() * canvas.height;
+                        neuralNodes.push(new NeuralNode(x, y));
+                    }
+                }
+
+                // Setup potential connections for all nodes
                 neuralNodes.forEach(node => {
+                    node.potentialConnections = [];
+                    node.connections = []; // Reset connections
+
                     neuralNodes.forEach(other => {
                         if (node !== other) {
                             const dist = Math.sqrt((other.x - node.x) ** 2 + (other.y - node.y) ** 2);
-                            if (dist < 350 && Math.random() > 0.7) {
-                                node.connections.push(other);
+                            if (dist < 320) {
+                                node.potentialConnections.push(other);
                             }
                         }
                     });
@@ -17748,26 +18549,39 @@
 
             // Animation loop
             function animate() {
+                const speedPhase = getGlobalSpeedPhase(); // MASTER CONTROLLER
+
                 ['login', 'auth'].forEach(type => {
                     const animData = animations[type];
                     if (!animData || !animData.ctx) return;
 
-                    const { ctx, canvas, centerX, centerY, particles, neuralNodes } = animData;
-                    const maxRadius = Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2;
+                    const { ctx, canvas, centerX, centerY, particles, neuralNodes, startTime } = animData;
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    // Draw central hub and get current pulse radius
-                    const pulseRadius = drawCentralHub(ctx, centerX, centerY);
+                    // Check for cycle reset (22s cycle with 2s fade window) - use synced time
+                    const currentCycle = Math.floor(((Date.now() - animationStartTime) / 1000) / 22);
+                    if (animData.currentCycle !== currentCycle) {
+                        console.log(`[Circuit] Cycle ${currentCycle} - regenerating 20% nodes`);
+                        createNeuralNetwork(animData, 0.2);
+                        animData.currentCycle = currentCycle;
+                    }
 
-                    // Neural network layer - update with pulse radius
+                    // Draw central hub
+                    drawCentralHub(ctx, centerX, centerY);
+
+                    // Neural network layer - driven by speed phase
                     neuralNodes.forEach(node => {
-                        node.update(pulseRadius, maxRadius);
-                        node.draw(ctx);
+                        node.update(speedPhase.maxConnections);
+                        node.draw(ctx, startTime, speedPhase.brightness);
                     });
 
-                    // Update particles
+                    // Check if we're in production pause (20-22s) - use same cycleTime as speedPhase
+                    const cycleTime = speedPhase.cycleTime;
+                    const inProductionPause = (cycleTime >= 20 && cycleTime < 22);
+
+                    // Update particles with speed multiplier
                     for (let i = particles.length - 1; i >= 0; i--) {
-                        const alive = particles[i].update();
+                        const alive = particles[i].update(speedPhase.speedMultiplier, !inProductionPause);
                         if (!alive) {
                             particles.splice(i, 1);
                         } else {
@@ -17775,10 +18589,52 @@
                         }
                     }
 
-                    // Spawn new particles
-                    if (particles.length < 50 && Math.random() > 0.5) {
+                    // Scale max particles with speed (more particles as speed increases)
+                    let maxParticles = 50; // Base
+                    let spawnChance = 0.5; // Base 50%
+
+                    if (cycleTime >= 18) {
+                        maxParticles = 100; // Peak - double particles
+                        spawnChance = 0.1; // 90% spawn rate
+                    } else if (cycleTime >= 16) {
+                        // 16-18s: Ramp from 60 to 100 particles
+                        maxParticles = 60 + Math.floor((cycleTime - 16) / 2 * 40);
+                        spawnChance = 0.3; // 70% spawn rate
+                    } else if (cycleTime >= 12) {
+                        // 12-16s: Ramp from 50 to 60 particles
+                        maxParticles = 50 + Math.floor((cycleTime - 12) / 4 * 10);
+                        spawnChance = 0.5; // 50% spawn rate
+                    }
+
+                    if (!inProductionPause && particles.length < maxParticles && Math.random() > spawnChance) {
                         particles.push(new EnergyParticle(animData));
                     }
+
+                    // DEBUG DISPLAY - Bottom right corner
+                    ctx.save();
+                    ctx.font = '12px monospace';
+                    ctx.fillStyle = 'rgba(88, 166, 255, 0.9)';
+                    ctx.textAlign = 'right';
+                    const padding = 15;
+                    const lineHeight = 16;
+                    let y = canvas.height - padding;
+
+                    const debugLines = [
+                        `Lines: ${particles.length}/${maxParticles}`,
+                        `Spawn: ${Math.round((1 - spawnChance) * 100)}%`,
+                        `Production: ${inProductionPause ? 'STOPPED' : 'ACTIVE'}`,
+                        `Connections: ${speedPhase.maxConnections}/17`,
+                        `Brightness: ${(speedPhase.brightness * 100).toFixed(0)}%`,
+                        `Speed: ${speedPhase.speedMultiplier.toFixed(1)}x`,
+                        `Time: ${cycleTime.toFixed(1)}s / 22s`
+                    ];
+
+                    debugLines.reverse().forEach(line => {
+                        ctx.fillText(line, canvas.width - padding, y);
+                        y -= lineHeight;
+                    });
+
+                    ctx.restore();
                 });
 
                 requestAnimationFrame(animate);

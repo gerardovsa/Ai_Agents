@@ -1,5 +1,6 @@
 """
 Add Production Log System to Kanban Analytics
+from shared.database_utils import convert_sql_placeholders
 
 Creates comprehensive production log table with:
 - Automatic stage transition logging
@@ -52,7 +53,7 @@ def create_production_log_table():
         conn.commit()
         
         # Verify table was created
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT name FROM sqlite_master 
             WHERE type='table' AND name='production_log'
         """)
@@ -143,12 +144,14 @@ def populate_historical_stage_transitions():
                 AND log_date = ?
                 AND to_stage_id = ?
             """, (ticket_id, transition_date, to_stage_id))
+
+        cursor.execute(sql, params)
             
             if cursor.fetchone()[0] > 0:
                 continue  # Skip if already exists
             
             # Insert into production log
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO production_log (
                     ticket_id,
                     log_date,
@@ -297,6 +300,8 @@ def create_test_entries():
             WHERE ticket_id = ?
             ORDER BY log_date DESC, log_time DESC
         """, (ticket_id,))
+
+            cursor.execute(sql, params)
         
         print(f"\nProduction log for Ticket {ticket_id}:")
         print("Date       | Time     | Init | Type                 | Entry")

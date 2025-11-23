@@ -12,7 +12,7 @@ Handles all thread lifecycle operations including:
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 import sqlite3
 import secrets
 import string
@@ -146,7 +146,7 @@ class ThreadManager:
             
             # Insert thread
             now = datetime.utcnow().isoformat()
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO threads (
                     thread_slug, name, description, workspace_id, user_id,
                     agent_id, status, visibility, created_at, updated_at
@@ -164,6 +164,8 @@ class ThreadManager:
                 now,
                 now
             ))
+
+            cursor.execute(sql, params)
             
             thread_id = cursor.lastrowid
             conn.commit()
@@ -235,11 +237,13 @@ class ThreadManager:
         message_count = cursor.fetchone()[0]
         
         # Get last message time
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT created_at FROM messages 
             WHERE thread_id = %s 
             ORDER BY id DESC LIMIT 1
         """, (row['id'],))
+
+        cursor.execute(sql, params)
         last_msg = cursor.fetchone()
         last_message_at = last_msg[0] if last_msg else None
         
@@ -381,11 +385,13 @@ class ThreadManager:
             else:
                 # Soft delete
                 now = datetime.utcnow().isoformat()
-                cursor.execute("""
+                sql, params = convert_sql_placeholders("""
                     UPDATE threads 
                     SET status = %s, deleted_at = %s, updated_at = %s
                     WHERE id = %s
                 """, (ThreadStatus.DELETED.value, now, now, thread_id))
+
+                cursor.execute(sql, params)
             
             conn.commit()
             conn.close()
@@ -428,11 +434,13 @@ class ThreadManager:
         
         try:
             now = datetime.utcnow().isoformat()
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE threads 
                 SET status = %s, archived_at = NULL, deleted_at = NULL, updated_at = %s
                 WHERE id = %s
             """, (ThreadStatus.ACTIVE.value, now, thread_id))
+
+            cursor.execute(sql, params)
             
             conn.commit()
             conn.close()
@@ -549,7 +557,7 @@ class ThreadManager:
         
         try:
             now = datetime.utcnow().isoformat()
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO thread_shares (
                     thread_id, user_id, permission, shared_by, message, created_at
                 )
@@ -562,6 +570,8 @@ class ThreadManager:
                 share_data.message,
                 now
             ))
+
+            cursor.execute(sql, params)
             
             share_id = cursor.lastrowid
             conn.commit()
@@ -626,10 +636,12 @@ class ThreadManager:
         # TODO: Implement workspace membership check
         
         # Check explicit share
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT permission FROM thread_shares 
             WHERE thread_id = %s AND user_id = %s AND revoked_at IS NULL
         """, (thread_id, user_id))
+
+        cursor.execute(sql, params)
         
         share_row = cursor.fetchone()
         conn.close()

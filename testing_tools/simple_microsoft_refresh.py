@@ -2,6 +2,7 @@
 Simple Microsoft Token Refresh (Direct SQL + Requests)
 No dependency on UserAuthManager - uses direct HTTP requests
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import requests
@@ -83,12 +84,14 @@ def main():
     # Get expired Microsoft tokens
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         SELECT id, user_id, account_name, account_identifier, expires_at, refresh_token
         FROM oauth_tokens
         WHERE platform = ?
         ORDER BY user_id
     ''', ('microsoft',))
+
+    cursor.execute(sql, params)
     
     tokens = cursor.fetchall()
     
@@ -139,7 +142,7 @@ def main():
             new_expires_at = (datetime.now() + timedelta(seconds=result['expires_in'])).strftime('%Y-%m-%d %H:%M:%S')
             
             # Update database
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 UPDATE oauth_tokens
                 SET access_token = ?,
                     refresh_token = ?,
@@ -157,6 +160,8 @@ def main():
                 new_expires_at,
                 token_id
             ))
+
+            cursor.execute(sql, params)
             
             conn.commit()
             
@@ -167,13 +172,15 @@ def main():
             print(f"  ❌ Refresh failed: {result['error'][:100]}...")
             
             # Update error in database
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 UPDATE oauth_tokens
                 SET refresh_attempts = refresh_attempts + 1,
                     last_refresh_error = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             ''', (result['error'][:500], token_id))
+
+            cursor.execute(sql, params)
             
             conn.commit()
             failed += 1

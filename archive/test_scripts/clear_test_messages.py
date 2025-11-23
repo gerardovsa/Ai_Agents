@@ -1,4 +1,5 @@
 """Clear the old test messages from database"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -29,7 +30,9 @@ thread_slug = thread['thread_slug']
 print(f"\n📍 Thread: {thread_slug} (ID: {thread_id})")
 
 # Show current messages
-cursor.execute("SELECT id, role, content FROM messages WHERE thread_id = ? ORDER BY created_at", (thread_id,))
+sql, params = convert_sql_placeholders("SELECT id, role, content FROM messages WHERE thread_id = ? ORDER BY created_at", (thread_id,))
+
+cursor.execute(sql, params)
 messages = cursor.fetchall()
 
 print(f"\n📊 Current messages ({len(messages)}):")
@@ -62,7 +65,9 @@ if test_message_ids:
         print(f"\n✅ Deleted {len(test_message_ids)} test messages")
         
         # Show remaining messages
-        cursor.execute("SELECT id, role, content FROM messages WHERE thread_id = ? ORDER BY created_at", (thread_id,))
+        sql, params = convert_sql_placeholders("SELECT id, role, content FROM messages WHERE thread_id = ? ORDER BY created_at", (thread_id,))
+
+        cursor.execute(sql, params)
         remaining = cursor.fetchall()
         
         print(f"\n📊 Remaining messages ({len(remaining)}):")

@@ -1,5 +1,6 @@
 """
 Complete User Management System Test
+from shared.database_utils import convert_sql_placeholders
 
 Tests all phases of the user hierarchy implementation:
 - Phase 1: Database schema (COMPLETE)

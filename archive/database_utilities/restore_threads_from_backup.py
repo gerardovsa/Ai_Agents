@@ -1,5 +1,6 @@
 """
 Restore threads and messages from backup to current sessions.db
+from shared.database_utils import convert_sql_placeholders
 
 This script safely copies:
 1. Threads from backup

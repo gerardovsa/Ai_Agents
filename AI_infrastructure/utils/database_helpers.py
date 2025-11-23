@@ -72,7 +72,7 @@ def get_stock_database_connection():
     Returns:
         DatabaseConnection: Supabase connection to stock_data schema
     """
-    from shared.database_utils import get_database_connection
+    from shared.database_utils import get_database_connection, convert_sql_placeholders
     return get_database_connection('stock_data')
 
 
@@ -85,7 +85,7 @@ def get_sessions_database_connection():
     Returns:
         DatabaseConnection: Supabase connection to sessions schema
     """
-    from shared.database_utils import get_database_connection
+    from shared.database_utils import get_database_connection, convert_sql_placeholders
     return get_database_connection('sessions')
 
 
@@ -96,7 +96,7 @@ def get_ai_infrastructure_connection():
     Returns:
         DatabaseConnection: Supabase connection to ai_infrastructure schema
     """
-    from shared.database_utils import get_database_connection
+    from shared.database_utils import get_database_connection, convert_sql_placeholders
     return get_database_connection('ai_infrastructure')
 
 
@@ -171,7 +171,7 @@ def execute_query(schema: str, query: str, params: Optional[tuple] = None) -> Li
                             (email,))
     """
     try:
-        from shared.database_utils import get_database_connection
+        from shared.database_utils import get_database_connection, convert_sql_placeholders
         
         conn = get_database_connection(schema)
         cursor = conn.cursor()
@@ -223,7 +223,7 @@ def execute_update(schema: str, query: str, params: Optional[tuple] = None) -> i
                             ('john', 'john@example.com'))
     """
     try:
-        from shared.database_utils import get_database_connection
+        from shared.database_utils import get_database_connection, convert_sql_placeholders
         
         conn = get_database_connection(schema)
         cursor = conn.cursor()
@@ -350,25 +350,27 @@ def get_database_schema(schema: str) -> Dict[str, List[Dict]]:
         # }
     """
     try:
-        from shared.database_utils import get_database_connection
+        from shared.database_utils import get_database_connection, convert_sql_placeholders
         
         conn = get_database_connection(schema)
         cursor = conn.cursor()
         
         # Get table names from information_schema
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT table_name 
             FROM information_schema.tables 
             WHERE table_schema = %s 
             ORDER BY table_name
         """, (schema,))
+
+        cursor.execute(sql, params)
         
         tables = [row['table_name'] for row in cursor.fetchall()]
         
         # Get columns for each table
         schema_info = {}
         for table in tables:
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT 
                     column_name,
                     data_type,
@@ -378,6 +380,8 @@ def get_database_schema(schema: str) -> Dict[str, List[Dict]]:
                 WHERE table_schema = %s AND table_name = %s
                 ORDER BY ordinal_position
             """, (schema, table))
+
+            cursor.execute(sql, params)
             
             columns = []
             for row in cursor.fetchall():

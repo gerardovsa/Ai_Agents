@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime
+from shared.database_utils import convert_sql_placeholders
 
 # Create default user in sessions.db
 conn = sqlite3.connect('data/sessions.db')

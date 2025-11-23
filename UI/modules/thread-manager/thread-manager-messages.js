@@ -130,19 +130,25 @@ Object.assign(window.ThreadManager, {
 
     /**
      * Update current thread with new messages
+     * ⚠️ DATABASE AS SOURCE OF TRUTH (Nov 22, 2025):
+     * - MESSAGES: Backend auto-saves after stream completion (frontend NEVER saves messages)
+     * - METADATA: This method saves thread metadata (title, updated) to backend
+     * - MESSAGE_COUNT: Calculated automatically by backend from sessions.messages table
      */
-    updateCurrentThread(messages) {
+    async updateCurrentThread(messages) {
         const thread = this.getCurrentThread();
         if (!thread) {
             console.warn('⚠️ [Messages] No current thread to update');
             return;
         }
 
+        // ✅ NEW: Accept messages from backend (database is source of truth)
         thread.messages = messages;
         thread.updated = new Date().toISOString();
         thread.message_count = messages.length;
 
         // Update title from first user message if still untitled
+        let titleUpdated = false;
         if (messages.length > 0 && (!thread.title || thread.title === 'Untitled Thread' || thread.title.startsWith('thread_'))) {
             const firstUserMsg = messages.find(m => m.role === 'user');
             if (firstUserMsg) {
@@ -150,6 +156,32 @@ Object.assign(window.ThreadManager, {
                     firstUserMsg.content :
                     firstUserMsg.content[0]?.text || '';
                 thread.title = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+                titleUpdated = true;
+            }
+        }
+
+        // 🔧 FIX #1: Save thread metadata to backend (title persists across refreshes)
+        // Note: message_count is calculated by backend automatically via COUNT(m.id)
+        if (titleUpdated) {
+            try {
+                const apiBaseUrl = window.API_BASE_URL || 'http://localhost:5001';
+                const response = await fetch(`${apiBaseUrl}/api/threads/${thread.id}/update`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: thread.title
+                        // updated_at is set automatically by backend (NOW())
+                        // message_count is calculated by backend from sessions.messages
+                    })
+                });
+                
+                if (!response.ok) {
+                    console.error('❌ [ThreadManager] Failed to save thread metadata:', await response.text());
+                } else {
+                    console.log(`✅ [ThreadManager] Thread metadata saved: ${thread.title}`);
+                }
+            } catch (error) {
+                console.error('❌ [ThreadManager] Error saving thread metadata:', error);
             }
         }
 
@@ -164,15 +196,15 @@ Object.assign(window.ThreadManager, {
             this.syncAppState(thread.id);
         }
 
-        // Note: Save is handled by auto-save (every 60s) to prevent excessive DB writes
-        // Immediate saves removed to fix message duplication issues
+        // ✅ NOTE: Backend auto-saves MESSAGES after stream completion
+        // Frontend does NOT save MESSAGES - this prevents duplicate messages
+        // Messages are already in database via backend's auto-save
+        console.log(`✅ [Messages] Current thread updated from backend: ${thread.id} (${messages.length} messages)`);
 
         // Refresh UI
         if (typeof this.renderThreadList === 'function') {
             this.renderThreadList();
         }
-
-        console.log(`✅ [Messages] Current thread updated: ${thread.id} (${messages.length} messages)`);
     },
 
     /**

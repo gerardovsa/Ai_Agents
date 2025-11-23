@@ -12,7 +12,7 @@ Handles all message-related operations including:
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 import sqlite3
 import json
 from typing import List, Optional, Dict, Any
@@ -111,11 +111,13 @@ class MessageManager:
         
         try:
             # Verify thread exists and get status
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT id, status, workspace_id, user_id 
                 FROM threads 
                 WHERE id = %s
             """, (message_data.thread_id,))
+
+            cursor.execute(sql, params)
             
             thread_row = cursor.fetchone()
             
@@ -140,13 +142,15 @@ class MessageManager:
                 normalized_content = self._normalize_content(message_data.content)
                 
                 # Check last 20 messages for duplicates
-                cursor.execute("""
+                sql, params = convert_sql_placeholders("""
                     SELECT id, content, role, created_at 
                     FROM messages 
                     WHERE thread_id = %s 
                     ORDER BY created_at DESC 
                     LIMIT 20
                 """, (message_data.thread_id,))
+
+                cursor.execute(sql, params)
                 
                 recent_messages = cursor.fetchall()
                 
@@ -167,11 +171,13 @@ class MessageManager:
                         return existing_message
             
             # Check message limit
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT COUNT(*) as count 
                 FROM messages 
                 WHERE thread_id = %s
             """, (message_data.thread_id,))
+
+            cursor.execute(sql, params)
             
             message_count = cursor.fetchone()['count']
             
@@ -187,7 +193,7 @@ class MessageManager:
             # Insert message
             now = datetime.utcnow().isoformat()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO messages (
                     thread_id, workspace_id, user_id, role, content,
                     prompt, include, tool_calls, tokens_used, response_time_ms,
@@ -217,6 +223,9 @@ class MessageManager:
                 SET updated_at = %s
                 WHERE id = %s
             """, (now, message_data.thread_id))
+
+            
+            cursor.execute(sql, params)
             
             conn.commit()
             
@@ -561,15 +570,19 @@ class MessageManager:
         cursor = conn.cursor()
         
         if role:
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT COUNT(*) FROM messages 
                 WHERE thread_id = %s AND role = %s
             """, (thread_id, role.value))
+
+            cursor.execute(sql, params)
         else:
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT COUNT(*) FROM messages 
                 WHERE thread_id = %s
             """, (thread_id,))
+
+            cursor.execute(sql, params)
         
         count = cursor.fetchone()[0]
         conn.close()
@@ -598,12 +611,15 @@ class MessageManager:
         
         search_pattern = f"%{search_term}%"
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT * FROM messages 
             WHERE thread_id = %s AND content LIKE %s
             ORDER BY id DESC
             LIMIT %s
         """, (thread_id, search_pattern, limit))
+
+        
+        cursor.execute(sql, params)
         
         rows = cursor.fetchall()
         conn.close()
@@ -628,12 +644,15 @@ class MessageManager:
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT * FROM messages 
             WHERE thread_id = %s
             ORDER BY id DESC
             LIMIT 1
         """, (thread_id,))
+
+        
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         conn.close()

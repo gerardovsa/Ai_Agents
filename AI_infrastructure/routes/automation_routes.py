@@ -764,19 +764,19 @@ def get_automation(automation_id):
             'connections': ui_json.get('connections', []) if isinstance(ui_json, dict) else [],
             'execution_json': execution_json,
             
-            # Legacy fields (keep for backward compatibility)
+            # Legacy fields (keep for backward compatibility) - use .get() to avoid KeyError
             'visual_flow_json': row.get('visual_flow_json'),
             'execution_prompt': row.get('execution_prompt'),
-            'tools_sequence': json.loads(row['tools_sequence']) if row.get('tools_sequence') else [],
+            'tools_sequence': json.loads(row.get('tools_sequence', '[]')) if row.get('tools_sequence') else [],
             'schedule_cron': row.get('schedule_cron'),
             'schedule_datetime': row.get('schedule_datetime'),
             'timezone': row.get('timezone'),
             'is_active': bool(row.get('is_active', True)),
             'is_scheduled': bool(row.get('is_scheduled', False)),
-            'scheduler_task_id': row['scheduler_task_id'],
-            'parent_automation_id': row['parent_automation_id'],
-            'created_at': row['created_at'],
-            'updated_at': row['updated_at']
+            'scheduler_task_id': row.get('scheduler_task_id'),
+            'parent_automation_id': row.get('parent_automation_id'),
+            'created_at': str(row.get('created_at')) if row.get('created_at') else None,
+            'updated_at': str(row.get('updated_at')) if row.get('updated_at') else None
         }
         
         return jsonify({

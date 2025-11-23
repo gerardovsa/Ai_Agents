@@ -1,4 +1,5 @@
 """Check thread 1762593367878 details"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -20,10 +21,12 @@ cursor = conn.cursor()
 # Check in threads table
 print("\n1. THREADS TABLE:")
 print("-" * 80)
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT * FROM threads 
     WHERE id = ? OR id = ? OR id = ?
 """, (1762593367878, '1762593367878', 'prime_1762593367878'))
+
+cursor.execute(sql, params)
 
 thread = cursor.fetchone()
 if thread:
@@ -44,10 +47,12 @@ else:
 # Check in saved_threads table
 print("\n2. SAVED_THREADS TABLE:")
 print("-" * 80)
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT * FROM saved_threads 
     WHERE thread_id = ? OR thread_id = ? OR thread_id = ?
 """, (1762593367878, '1762593367878', 'prime_1762593367878'))
+
+cursor.execute(sql, params)
 
 saved_thread = cursor.fetchone()
 if saved_thread:
@@ -74,13 +79,15 @@ else:
 # Check messages linked to this thread
 print("\n3. MESSAGES TABLE:")
 print("-" * 80)
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, thread_id, role, content, created_at 
     FROM messages 
     WHERE thread_id = ? OR thread_id = ? OR thread_id = ?
     ORDER BY created_at DESC
     LIMIT 10
 """, (1762593367878, '1762593367878', 'prime_1762593367878'))
+
+cursor.execute(sql, params)
 
 messages = cursor.fetchall()
 if messages:

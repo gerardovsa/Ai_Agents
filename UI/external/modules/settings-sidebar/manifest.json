@@ -1,0 +1,51 @@
+{
+    "id": "settings-sidebar",
+    "name": "Settings",
+    "version": "2.0.0",
+    "icon": "fas fa-cog",
+    "color": "#8b5cf6",
+    "description": "Application settings, error recovery configuration, and system preferences",
+    "scriptPath": "external/modules/settings-sidebar/settings-sidebar.js",
+    "stylePath": "external/modules/settings-sidebar/settings-sidebar.css",
+    "tabs": [
+        {
+            "id": "recovery",
+            "name": "Error Recovery",
+            "icon": "fas fa-life-ring",
+            "description": "Configure automatic error recovery and view recovery statistics",
+            "default": true
+        },
+        {
+            "id": "tracking",
+            "name": "Error Tracking",
+            "icon": "fas fa-chart-line",
+            "description": "View detailed error logs, recovery timeline, and effectiveness metrics",
+            "default": false
+        },
+        {
+            "id": "display",
+            "name": "Display",
+            "icon": "fas fa-eye",
+            "description": "UI display preferences and visual settings",
+            "default": false
+        },
+        {
+            "id": "advanced",
+            "name": "Advanced",
+            "icon": "fas fa-sliders-h",
+            "description": "Advanced configuration and developer options",
+            "default": false
+        }
+    ],
+    "features": {
+        "errorRecovery": true,
+        "errorTracking": true,
+        "statistics": true,
+        "timeline": true,
+        "effectiveness": true
+    },
+    "storage": {
+        "type": "localStorage",
+        "key": "aiAgentSettings"
+    }
+}

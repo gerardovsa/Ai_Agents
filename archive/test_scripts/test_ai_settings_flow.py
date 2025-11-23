@@ -1,5 +1,6 @@
 """
 Test AI Settings Flow End-to-End
+from shared.database_utils import convert_sql_placeholders
 
 This script tests:
 1. Database schema has AI settings columns
@@ -60,7 +61,7 @@ test_settings = {
 }
 
 try:
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         UPDATE user_preferences
         SET ai_model = ?,
             ai_temperature = ?,
@@ -79,6 +80,8 @@ try:
         test_settings['ai_thinking_budget'],
         test_settings['ai_streaming_enabled']
     ))
+
+    cursor.execute(sql, params)
     conn.commit()
     print("   ✅ Settings saved successfully")
     print("✅ Test 2 PASSED: Save AI Settings\n")

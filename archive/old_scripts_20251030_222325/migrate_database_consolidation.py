@@ -9,6 +9,7 @@ Simplifies database structure:
 import sqlite3
 import json
 from datetime import datetime
+from shared.database_utils import convert_sql_placeholders
 
 DB_PATH = 'AI_infrastructure/ai_infrastructure.db'
 
@@ -59,7 +60,7 @@ def migrate_database():
         print("\n🔐 Step 2: Setting OAuth flags from credentials...")
         
         # Google OAuth
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             UPDATE users 
             SET has_google_oauth = 1 
             WHERE id IN (
@@ -139,6 +140,8 @@ def migrate_database():
                 AND credential_key = 'access_token' 
                 AND is_active = 1
             """, (user_id, platform))
+
+        cursor.execute(sql, params)
             
             access_row = cursor.fetchone()
             if not access_row:
@@ -147,23 +150,27 @@ def migrate_database():
             access_token = access_row['credential_value']
             
             # Get refresh token (optional)
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT credential_value 
                 FROM user_platform_credentials 
                 WHERE user_id = ? AND platform = ? 
                 AND credential_key = 'refresh_token' 
                 AND is_active = 1
             """, (user_id, platform))
+
+            cursor.execute(sql, params)
             
             refresh_row = cursor.fetchone()
             refresh_token = refresh_row['credential_value'] if refresh_row else None
             
             # Insert into new table
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT OR REPLACE INTO oauth_tokens 
                 (user_id, platform, access_token, refresh_token, created_at, updated_at, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (user_id, platform, access_token, refresh_token, created_at, updated_at, metadata))
+
+            cursor.execute(sql, params)
             
             migrated_count += 1
             print(f"  Migrated: user_id={user_id}, platform={platform}")
@@ -181,22 +188,28 @@ def migrate_database():
             "user_management", "ai_chat", "kanban"
         ])
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             UPDATE users 
             SET allowed_dashboards = ?
             WHERE role = 'admin'
         """, (admin_dashboards,))
+
+        
+        cursor.execute(sql, params)
         admin_count = cursor.rowcount
         print(f"  Updated {admin_count} admin users with full dashboard access")
         
         # Regular users get basic dashboards
         user_dashboards = json.dumps(["main", "analytics", "ai_chat"])
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             UPDATE users 
             SET allowed_dashboards = ?
             WHERE role = 'user' OR role IS NULL
         """, (user_dashboards,))
+
+        
+        cursor.execute(sql, params)
         user_count = cursor.rowcount
         print(f"  Updated {user_count} regular users with basic dashboard access")
         

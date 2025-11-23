@@ -1,6 +1,7 @@
 """
 Migrate Synergy Sessions - Next Steps Field Format
 ===================================================
+from shared.database_utils import convert_sql_placeholders
 
 Converts next_steps field from simple string arrays to rich object arrays
 with completion tracking capabilities.

@@ -1,6 +1,7 @@
 """
 Check what users and credentials exist in the database
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -25,11 +26,13 @@ for user_id, username, email, role, created_at in users:
     print(f"   Created: {created_at}")
     
     # Check platform credentials
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT platform, credential_type, credential_key, is_active
         FROM user_platform_credentials
         WHERE user_id = ?
     """, (user_id,))
+
+    cursor.execute(sql, params)
     
     creds = cursor.fetchall()
     if creds:

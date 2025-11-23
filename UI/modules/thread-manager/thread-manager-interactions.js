@@ -302,16 +302,24 @@ Object.assign(window.ThreadManager, {
     async handleThreadDoubleClick(threadId, currentLocation) {
         console.log(`🖱️ [Interactions] Double-clicked thread ${threadId} at ${currentLocation}`);
 
+        // Find the thread
+        const thread = this.threads.find(t => t.id === threadId);
+        if (!thread) {
+            console.error('❌ [Interactions] Thread not found for double-click:', threadId);
+            return;
+        }
+
         // Double-click ALWAYS loads in Prime (even from agents)
         // This is the primary way to load threads when thread history covers Prime drop zone
+        console.log(`📖 [Interactions] Loading thread "${thread.title}" in Prime via double-click`);
         await this.loadThreadInPrime(threadId);
         this.closeThreadMenu();
 
         if (typeof showNotification === 'function') {
-            if (currentLocation === 'prime') {
+            if (currentLocation === 'prime' || currentLocation === 'prime-loaded') {
                 showNotification('Thread refreshed in Prime', 'success');
             } else {
-                showNotification('Thread loaded in Prime', 'success');
+                showNotification(`Thread "${thread.title}" loaded in Prime`, 'success');
             }
         }
     },
@@ -502,10 +510,29 @@ Object.assign(window.ThreadManager, {
         }
 
         if (targetLocation === 'prime') {
+            console.log(`🎯 [Drop] Loading thread ${threadId} in Prime`);
+            
+            // Find the thread
+            const thread = this.threads.find(t => t.id === threadId);
+            if (!thread) {
+                console.error('❌ [Drop] Thread not found:', threadId);
+                if (typeof showNotification === 'function') {
+                    showNotification('Thread not found', 'error');
+                }
+                return;
+            }
+            
+            // Assign to prime location
             await this.assignThread(threadId, 'prime');
-            await this.switchThread(threadId, true);
+            
+            // Load in Prime using loadThreadInPrime (not switchThread)
+            await this.loadThreadInPrime(threadId);
+            
+            // Close thread menu
+            this.closeThreadMenu();
+            
             if (typeof showNotification === 'function') {
-                showNotification('Thread moved to Prime AI', 'success');
+                showNotification(`Thread "${thread.title}" loaded in Prime`, 'success');
             }
         } else if (targetLocation.startsWith('agent-')) {
             const agentId = parseInt(targetLocation.replace('agent-', ''));
@@ -698,6 +725,37 @@ Object.assign(window.ThreadManager, {
         if (threadsBtn) {
             threadsBtn.classList.remove('active');
         }
+    },
+
+    /**
+     * Toggle thread menu collapse state
+     */
+    toggleThreadMenuCollapse() {
+        const menu = document.getElementById('thread-menu');
+        const collapseBtn = document.getElementById('thread-menu-collapse-btn');
+        
+        if (!menu || !collapseBtn) {
+            console.error('❌ [Interactions] Thread menu or collapse button not found');
+            return;
+        }
+
+        const isCollapsed = menu.classList.toggle('collapsed');
+        
+        // Update chevron icon direction
+        const icon = collapseBtn.querySelector('i');
+        if (icon) {
+            if (isCollapsed) {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+                collapseBtn.title = 'Expand sidebar';
+            } else {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+                collapseBtn.title = 'Collapse sidebar';
+            }
+        }
+
+        console.log(`📐 [Interactions] Thread menu ${isCollapsed ? 'collapsed' : 'expanded'}`);
     },
 
     /**

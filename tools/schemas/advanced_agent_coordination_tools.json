@@ -4,7 +4,7 @@
     "tools": [
         {
             "name": "assign_and_activate_agent_with_slugs",
-            "description": "ALL-IN-ONE COMBO TOOL: Assign multiple resource slugs to an agent thread, send instructions, and optionally trigger agent activation with automatic UI updates. Creates new thread if agent is empty or updates existing thread. Returns UI commands for automatic tab switching, agent column opening, and thread info display. Use this to distribute work across agents with complete coordination.",
+            "description": "ALL-IN-ONE COMBO TOOL: Assign work to one of 26 AI agent threads (Alpha/Bravo/.../Zulu) with automatic UI updates. WHEN TO USE: Large projects with multiple independent components that can be parallelized (e.g., frontend + backend + database work). Each agent can work independently with linked resources (workflows, docs, synergy). DO NOT USE for simple single-task requests or direct user conversation. PROGRESSIVE LEARNING: First time? Read 'Progressive Learning Guide' section below for complete workflow patterns, UI command system explanation, and best practices. RETURNS: Thread details + ui_commands array (frontend automatically processes these to switch tabs, open agent columns, display thread info). Creates new thread if agent empty, updates existing thread if occupied.",
             "platform": "advanced_agent_coordination",
             "parameters": {
                 "type": "object",
@@ -201,7 +201,102 @@
                         "open_ui": true
                     }
                 }
-            ]
+            ],
+            "progressive_learning_guide": {
+                "overview": "The 26-agent system allows you to distribute complex projects across parallel AI threads. Each agent (Alpha through Zulu) can work independently on different aspects of a project.",
+                "agent_identifiers": {
+                    "nato_names": "Alpha, Bravo, Charlie, Delta, Echo, Foxtrot, Golf, Hotel, India, Juliet, Kilo, Lima, Mike, November, Oscar, Papa, Quebec, Romeo, Sierra, Tango, Uniform, Victor, Whiskey, X-ray, Yankee, Zulu",
+                    "locations": "agent-1, agent-2, ..., agent-26",
+                    "numbers": "1, 2, 3, ..., 26",
+                    "all_equivalent": "All three formats work identically: 'Alpha' = 'agent-1' = '1'"
+                },
+                "when_to_use": {
+                    "use_cases": [
+                        "Large project with multiple independent components (frontend + backend + database)",
+                        "Work that can be parallelized across agents",
+                        "Need to link resources (workflows, internal docs, synergy sessions) to specific agents",
+                        "Multi-phase projects where each agent handles a distinct workstream",
+                        "Team coordination scenarios with clear work distribution"
+                    ],
+                    "do_not_use": [
+                        "Simple single-task requests (just do the work directly)",
+                        "Direct conversation with user (no work distribution needed)",
+                        "Quick one-off operations",
+                        "When user wants immediate response, not project planning"
+                    ]
+                },
+                "ui_command_system": {
+                    "explanation": "When open_ui=true, this tool returns a ui_commands array that the frontend automatically processes. You don't need to do anything with these commands - just return them in your response and the UI will update automatically.",
+                    "command_types": [
+                        {
+                            "command": "switch_tab",
+                            "purpose": "Switches to Multi-Agent dashboard tab",
+                            "parameters": {
+                                "tab_name": "multi-agent"
+                            }
+                        },
+                        {
+                            "command": "open_agent_column",
+                            "purpose": "Opens and highlights the agent's column",
+                            "parameters": {
+                                "agent_number": 1,
+                                "agent_name": "Alpha",
+                                "highlight": true
+                            }
+                        },
+                        {
+                            "command": "show_thread_info",
+                            "purpose": "Displays thread details with resource badges",
+                            "parameters": {
+                                "thread_id": "...",
+                                "badges": {
+                                    "workflow": "...",
+                                    "internal_doc": "...",
+                                    "synergy": true
+                                }
+                            }
+                        },
+                        {
+                            "command": "trigger_agent_request",
+                            "purpose": "Triggers AI processing in the agent thread",
+                            "parameters": {
+                                "thread_id": "...",
+                                "message_id": "..."
+                            }
+                        }
+                    ],
+                    "user_experience": "User immediately sees: (1) Tab switches to Multi-Agent view, (2) Agent column opens and highlights, (3) Thread info card displays with resource badges, (4) Optional: AI processing starts automatically"
+                },
+                "workflow_pattern": {
+                    "step_1": "User requests complex project with multiple components",
+                    "step_2": "You identify work that can be distributed (e.g., 'Frontend team needs UI, Backend team needs API, Database team needs schema')",
+                    "step_3": "Call assign_and_activate_agent_with_slugs for each agent (Alpha=Frontend, Bravo=Backend, Charlie=Database)",
+                    "step_4": "Link relevant resources using slugs parameter (workflows, docs, synergy sessions)",
+                    "step_5": "Set auto_trigger=false to let user review before starting, or true to start immediately",
+                    "step_6": "Tool returns ui_commands - frontend automatically updates UI",
+                    "step_7": "Tell user what you assigned: 'Assigned Frontend work to Alpha, Backend to Bravo, Database to Charlie. Multi-Agent dashboard is now open showing all three agents.'"
+                },
+                "resource_linking": {
+                    "workflow_slug": "Link visual automation workflows to agent thread (e.g., 'react-build-process')",
+                    "internal_doc_slug": "Link internal documentation to agent thread (e.g., 'api-architecture-guide')",
+                    "synergy_session_id": "Link Synergy project cards to agent thread for visual tracking",
+                    "all_optional": "You can assign work without any slugs - they just provide extra context and links for the agent"
+                },
+                "best_practices": [
+                    "Use descriptive thread_title that clearly states the work (e.g., 'E-Commerce Frontend Development')",
+                    "Write detailed instructions - the agent will see these as the starting message",
+                    "Link workflows/docs when available - helps agent understand context",
+                    "Set auto_trigger=false initially so user can review assignments before work starts",
+                    "Use open_ui=true (default) to provide immediate visual feedback",
+                    "Tell user what you assigned: mention agent names and their responsibilities"
+                ],
+                "common_patterns": {
+                    "three_tier_architecture": "Alpha=Frontend (React/Vue), Bravo=Backend (API/Business Logic), Charlie=Database (Schema/Queries)",
+                    "feature_development": "Alpha=UI Components, Bravo=API Endpoints, Charlie=Testing",
+                    "content_creation": "Alpha=Writing, Bravo=Design, Charlie=Review",
+                    "data_pipeline": "Alpha=Extract, Bravo=Transform, Charlie=Load"
+                }
+            }
         },
         {
             "name": "request_update_from_thread",

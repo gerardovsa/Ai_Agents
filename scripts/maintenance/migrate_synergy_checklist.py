@@ -1,6 +1,7 @@
 """
 Migrate Synergy Sessions - Checklist Field Normalization
 ==========================================================
+from shared.database_utils import convert_sql_placeholders
 
 Normalizes checklist field to ensure:
 1. Field name is 'task' (not 'text' or 'item')

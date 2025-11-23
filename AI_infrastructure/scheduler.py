@@ -510,7 +510,7 @@ class AutomationScheduler:
         
         for key, value in updates.items():
             if key not in ['task_id', 'created_at']:
-                update_fields.append(f"{key} = ?")
+                update_fields.append(f"{key} = %s")
                 values.append(value)
         
         if not update_fields:

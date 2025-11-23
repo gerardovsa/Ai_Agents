@@ -2,6 +2,7 @@
 Test Synergy UI Fixes - Verify all pathways and connections
 Tests backend endpoints and data flow for all 11 UI fixes
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import json
@@ -61,7 +62,7 @@ print(f"\n2. DATA STRUCTURE TEST - Field Name Variations")
 print("-" * 80)
 
 # Get sample session data
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT 
         session_id,
         title,
@@ -116,14 +117,18 @@ if not sessions:
     """, (test_session_id, test_data['title'], test_data['documents'], test_data['links'], 
           test_data['next_steps'], test_data['checklist'], test_data['notes'], 
           test_data['thread_ids'], test_data['recent_activity']))
+
+cursor.execute(sql, params)
     conn_synergy.commit()
     print(f"   Created test session: {test_session_id}")
     
     # Re-fetch
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT session_id, title, documents, links, next_steps, checklist, notes, thread_ids, recent_activity
         FROM synergy_sessions WHERE session_id = ?
     """, (test_session_id,))
+
+    cursor.execute(sql, params)
     sessions = cursor.fetchall()
 
 print(f"\n   Testing {len(sessions)} session(s):")

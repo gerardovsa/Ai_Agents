@@ -2,6 +2,7 @@
 Device Lock Feature - Comprehensive Test Suite
 Tests all device lock functionality before deployment
 """
+from shared.database_utils import convert_sql_placeholders
 
 import requests
 import json
@@ -85,11 +86,13 @@ if not thread_id:
     db_path = Path(__file__).parent / 'data' / 'sessions.db'
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         INSERT INTO threads (thread_slug, name, user_id, created_at, updated_at, location)
         VALUES (?, ?, ?, ?, ?, ?)
     """, (
-        f"test-{int(time.time())}",
+        f"test-{int(time.time())
+
+    cursor.execute(sql, params)}",
         "Device Lock Test Thread",
         TEST_USER_ID,
         datetime.now().isoformat(),

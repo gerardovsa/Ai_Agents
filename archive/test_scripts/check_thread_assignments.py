@@ -1,6 +1,7 @@
 """Check thread assignments for specific threads"""
 import sqlite3
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 # Database paths
 infrastructure_db = Path(__file__).parent / 'data' / 'ai_infrastructure.db'
@@ -41,11 +42,13 @@ print('REQUESTED THREADS:')
 print('-'*60 + '\n')
 
 for thread_id in threads_to_check:
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         SELECT thread_slug, user_id, name, location, created_at, updated_at
         FROM threads 
         WHERE thread_slug = ?
     ''', (thread_id,))
+
+    cursor.execute(sql, params)
     
     result = cursor.fetchone()
     

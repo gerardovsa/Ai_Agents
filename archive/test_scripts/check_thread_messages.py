@@ -3,6 +3,7 @@ Check thread and message counts in sessions.db
 """
 import sqlite3
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 # Database path
 db_path = Path(__file__).parent / 'data' / 'sessions.db'
@@ -22,7 +23,7 @@ print("=" * 80)
 print("THREADS TABLE")
 print("=" * 80)
 
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, thread_slug, name, location, created_at, updated_at
     FROM threads
     ORDER BY created_at DESC
@@ -47,6 +48,9 @@ for thread in threads:
         FROM messages 
         WHERE thread_id = ?
     """, (thread['id'],))
+
+
+cursor.execute(sql, params)
     msg_count = cursor.fetchone()['count']
     print(f"  📊 Messages: {msg_count}")
     print()

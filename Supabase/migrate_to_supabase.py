@@ -2,6 +2,7 @@
 """
 SQLite to Supabase (PostgreSQL) Migration Tool
 Migrates all data from local SQLite databases to Supabase
+from shared.database_utils import convert_sql_placeholders
 
 Features:
 - Automatic schema conversion (SQLite -> PostgreSQL)

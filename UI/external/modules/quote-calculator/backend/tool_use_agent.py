@@ -1,6 +1,7 @@
 """
 TOOL USE API IMPLEMENTATION - Official Anthropic API
 =====================================================
+from shared.database_utils import convert_sql_placeholders
 
 This implements the OFFICIAL Anthropic Tool Use API with:
 - Client tools (execute_sql, calculate_quote, get_calculator_requirements)
@@ -1741,7 +1742,9 @@ Use this for:
                     cursor = conn.cursor()
                     
                     # Verify stock exists
-                    cursor.execute("SELECT stock_id FROM unified_stocks WHERE stock_id = ?", (stock_id,))
+                    sql, params = convert_sql_placeholders("SELECT stock_id FROM unified_stocks WHERE stock_id = ?", (stock_id,))
+
+                    cursor.execute(sql, params)
                     if not cursor.fetchone():
                         conn.close()
                         return {
@@ -1832,7 +1835,9 @@ Use this for:
                     cursor = conn.cursor()
                     
                     # Verify job ticket exists
-                    cursor.execute("SELECT ticket_id FROM extracted_jobs WHERE ticket_id = ?", (ticket_id,))
+                    sql, params = convert_sql_placeholders("SELECT ticket_id FROM extracted_jobs WHERE ticket_id = ?", (ticket_id,))
+
+                    cursor.execute(sql, params)
                     if not cursor.fetchone():
                         conn.close()
                         return {

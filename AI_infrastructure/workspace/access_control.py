@@ -296,7 +296,7 @@ class AccessControl:
             SELECT DISTINCT w.id FROM workspaces w
             LEFT JOIN workspace_users wu ON w.id = wu.workspace_id
             WHERE w.owner_id = %s 
-               OR (wu.user_id = ? AND wu.removed_at IS NULL)
+               OR (wu.user_id = %s AND wu.removed_at IS NULL)
         """, (user_id, user_id))
         
         rows = cursor.fetchall()

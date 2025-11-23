@@ -1,5 +1,6 @@
 """
 CLEAR ALL DATA from sessions.db database
+from shared.database_utils import convert_sql_placeholders
 
 This will:
 1. Delete ALL threads
@@ -80,7 +81,9 @@ cursor.execute("SELECT id, username, metadata FROM users")
 users = cursor.fetchall()
 for user in users:
     if user['metadata']:
-        cursor.execute("UPDATE users SET metadata = '{}' WHERE id = ?", (user['id'],))
+        sql, params = convert_sql_placeholders("UPDATE users SET metadata = '{}' WHERE id = ?", (user['id'],))
+
+        cursor.execute(sql, params)
         print(f"  ✓ Cleared metadata for user {user['username']} (id={user['id']})")
 
 # 6. Reset sqlite_sequence (auto-increment counters)

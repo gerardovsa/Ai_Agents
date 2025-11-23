@@ -3,6 +3,18 @@ Kanban Board Routes - Integrated with AI Infrastructure
 =========================================================
 Consolidated Kanban board management on port 5001
 
+⚠️ CRITICAL DATABASE PATTERN (FIXED NOV 25, 2024):
+   convert_sql_placeholders() ONLY converts ? to %s - it does NOT execute queries!
+   
+   ❌ WRONG (Bug fixed in this file - lines 166, 368):
+       sql, params = convert_sql_placeholders('INSERT ...', (...))
+       conn.commit()  # Commits EMPTY transaction - no data written!
+   
+   ✅ CORRECT:
+       sql, params = convert_sql_placeholders('INSERT ...', (...))
+       cursor.execute(sql, params)  # Actually run the query!
+       conn.commit()  # Commits the executed query
+
 Features:
 - Session CRUD operations
 - Kanban column management
@@ -37,7 +49,7 @@ kanban_bp = Blueprint('kanban', __name__, url_prefix='/api/kanban')
 
 # Import database path helpers
 from pathlib import Path
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -163,7 +175,7 @@ def create_session():
         conn = get_synergy_db()
         cursor = conn.cursor()
         
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO sessions.sessions 
             (session_id, title, description, priority, status, kanban_column, 
              tags, project_name, created_at, updated_at)
@@ -171,6 +183,7 @@ def create_session():
         ''', (session_id, title, description, priority, status, kanban_column,
               tags, project_name, datetime.now().isoformat(), datetime.now().isoformat()))
         
+        cursor.execute(sql, params)  # Actually execute the INSERT query
         conn.commit()
         conn.close()
         
@@ -212,6 +225,9 @@ def get_session(session_id):
             SELECT * FROM kanban_task_links 
             WHERE kanban_session_id = %s
         ''', (session_id,))
+
+        
+        cursor.execute(sql, params)
         agent_link = cursor.fetchone()
         ai_conn.close()
         
@@ -362,7 +378,7 @@ def assign_agent(session_id):
         sync_direction = data.get('sync_direction', 'bidirectional')
         auto_sync = data.get('auto_sync_enabled', True)
         
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO kanban_task_links 
             (agent_id, agent_name, kanban_session_id, kanban_title, kanban_status,
              kanban_column, sync_direction, auto_sync_enabled, agent_work_status,
@@ -378,6 +394,7 @@ def assign_agent(session_id):
               session['kanban_column'], sync_direction, auto_sync,
               datetime.now().isoformat(), datetime.now().isoformat()))
         
+        cursor.execute(sql, params)  # Actually execute the INSERT query
         ai_conn.commit()
         link_id = cursor.lastrowid
         ai_conn.close()
@@ -407,6 +424,9 @@ def get_agent_status(session_id):
             SELECT * FROM kanban_task_links 
             WHERE kanban_session_id = %s
         ''', (session_id,))
+
+        
+        cursor.execute(sql, params)
         agent_link = cursor.fetchone()
         ai_conn.close()
         
@@ -449,10 +469,12 @@ def sync_from_agent(session_id):
         # Get agent link
         ai_conn = get_ai_db()
         cursor = ai_conn.cursor()
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT * FROM kanban_task_links 
             WHERE kanban_session_id = %s
         ''', (session_id,))
+
+        cursor.execute(sql, params)
         agent_link = cursor.fetchone()
         
         if not agent_link:

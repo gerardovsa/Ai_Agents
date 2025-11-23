@@ -510,17 +510,30 @@ const AgentColumn = (function () {
                         const date = new Date(thread.updated || thread.created);
                         const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const slug = thread.id.substring(0, 8);
 
                         return `
                             <div class="thread-selector-item" onclick="AgentColumn.loadThreadIntoPrime('${thread.id}')">
-                                <div class="thread-item-icon">
-                                    <i class="fas fa-comments"></i>
+                                <div class="thread-item-header">
+                                    <div class="thread-item-content">
+                                        <div class="thread-item-title">
+                                            <span>${thread.title || 'Untitled Thread'}</span>
+                                            <div class="thread-item-agent-badge" style="background: #238636;">
+                                                <i class="fas fa-star"></i>
+                                                <span>Prime</span>
+                                            </div>
+                                        </div>
+                                        <div class="thread-item-meta">
+                                            <span><i class="fas fa-message"></i> ${thread.message_count || 0} messages</span>
+                                            <span><i class="fas fa-calendar"></i> ${dateStr}</span>
+                                            <span><i class="fas fa-clock"></i> ${timeStr}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="thread-item-content">
-                                    <div class="thread-item-title">${thread.title || 'Untitled Thread'}</div>
-                                    <div class="thread-item-meta">
-                                        <span><i class="fas fa-message"></i> ${thread.message_count || 0}</span>
-                                        <span>${dateStr} ${timeStr}</span>
+                                <div class="thread-item-badges">
+                                    <div class="thread-item-id">
+                                        <i class="fas fa-hashtag"></i>
+                                        <span>${slug}</span>
                                     </div>
                                 </div>
                             </div>
@@ -555,10 +568,11 @@ const AgentColumn = (function () {
                     !e.target.closest('#prime-no-thread')) {
                     dropdown.style.display = 'none';
                     document.removeEventListener('click', closeDropdown);
+                    console.log(`🔷 [AgentColumn] Prime dropdown closed (clicked outside)`);
                 }
             };
             document.addEventListener('click', closeDropdown);
-        }, 200);
+        }, 300); // Increased from 200ms to 300ms
     }
 
     /**
@@ -610,18 +624,19 @@ const AgentColumn = (function () {
         if (primeContainer) {
             const hasThread = primeContainer.querySelector('.thread-info-card:not(.empty)');
             if (!hasThread) {
-                // Prime with no thread: Show welcome message OR thread selector
-                // Check if there's an existing welcome container
-                const hasWelcome = primeContainer.querySelector('.ai-chat-header-info');
-                if (!hasWelcome) {
-                    // Show welcome container with "Start New Chat" button
+                // Prime with no thread: Show thread selector (not welcome message)
+                // Check if there's an existing thread selector
+                const hasSelector = primeContainer.querySelector('.no-thread-message');
+                if (!hasSelector) {
+                    // Show thread selector using ThreadCardTemplates.noThreadMessage()
                     if (typeof ThreadCardTemplates !== 'undefined') {
-                        primeContainer.innerHTML = ThreadCardTemplates.welcomeContainer(594);
+                        // Use noThreadMessage() for Prime (same as agents)
+                        primeContainer.innerHTML = ThreadCardTemplates.noThreadMessage('Prime', 'fa-star', null);
                     } else {
-                        // Fallback to thread selector
+                        // Fallback to thread selector (no inline onclick - event delegation handles it)
                         primeContainer.innerHTML = `
                             <div class="thread-info-wrapper">
-                                <div class="no-thread-message clickable" id="prime-no-thread" onclick="AgentColumn.showPrimeThreadSelector()" style="cursor: pointer !important;">
+                                <div class="no-thread-message clickable" id="prime-no-thread" style="cursor: pointer !important;">
                                     <i class="fas fa-inbox"></i>
                                     <span>Click to select a thread</span>
                                     <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
@@ -721,17 +736,50 @@ const AgentColumn = (function () {
                         const date = new Date(thread.updated || thread.created);
                         const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const slug = thread.id.substring(0, 8);
+                        
+                        // Determine agent info based on thread location
+                        let agentName = 'Prime';
+                        let agentIcon = 'fa-star';
+                        let agentColor = '#238636';
+                        
+                        const location = thread.location || 'prime';
+                        if (location === 'synergy') {
+                            agentName = 'Synergy';
+                            agentIcon = 'fa-users';
+                            agentColor = '#8B5CF6';
+                        } else if (location.startsWith('agent-')) {
+                            const match = location.match(/agent-(\d+)/);
+                            if (match && typeof MultiAgent !== 'undefined') {
+                                const aid = parseInt(match[1]);
+                                agentName = MultiAgent.getAgentName(aid);
+                                agentIcon = MultiAgent.getAgentIcon(aid);
+                                agentColor = '#3B82F6';
+                            }
+                        }
 
                         return `
                             <div class="thread-selector-item" onclick="AgentColumn.loadThreadIntoAgent(${agentId}, '${thread.id}')">
-                                <div class="thread-item-icon">
-                                    <i class="fas fa-comments"></i>
+                                <div class="thread-item-header">
+                                    <div class="thread-item-content">
+                                        <div class="thread-item-title">
+                                            <span>${thread.title || 'Untitled Thread'}</span>
+                                            <div class="thread-item-agent-badge" style="background: ${agentColor};">
+                                                <i class="fas ${agentIcon}"></i>
+                                                <span>${agentName}</span>
+                                            </div>
+                                        </div>
+                                        <div class="thread-item-meta">
+                                            <span><i class="fas fa-message"></i> ${thread.message_count || 0} messages</span>
+                                            <span><i class="fas fa-calendar"></i> ${dateStr}</span>
+                                            <span><i class="fas fa-clock"></i> ${timeStr}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="thread-item-content">
-                                    <div class="thread-item-title">${thread.title || 'Untitled Thread'}</div>
-                                    <div class="thread-item-meta">
-                                        <span><i class="fas fa-message"></i> ${thread.message_count || 0}</span>
-                                        <span>${dateStr} ${timeStr}</span>
+                                <div class="thread-item-badges">
+                                    <div class="thread-item-id">
+                                        <i class="fas fa-hashtag"></i>
+                                        <span>${slug}</span>
                                     </div>
                                 </div>
                             </div>
@@ -758,16 +806,17 @@ const AgentColumn = (function () {
             }
         }
 
-        // Close dropdown when clicking outside
+        // Close dropdown when clicking outside (delay to avoid catching opening click)
         setTimeout(() => {
             document.addEventListener('click', function closeDropdown(e) {
                 if (!e.target.closest(`#thread-selector-${agentId}`) &&
                     !e.target.closest('.no-thread-message')) {
                     dropdown.style.display = 'none';
                     document.removeEventListener('click', closeDropdown);
+                    console.log(`🔷 [AgentColumn] Dropdown closed (clicked outside)`);
                 }
             });
-        }, 100);
+        }, 300);
     }
 
     /**
@@ -893,6 +942,9 @@ if (typeof document !== 'undefined') {
     document.addEventListener('click', (e) => {
         const noThreadMsg = e.target.closest('.no-thread-message.clickable');
         if (noThreadMsg) {
+            // CRITICAL: Stop propagation to prevent dropdown from closing immediately
+            e.stopPropagation();
+            
             // Check if it's Prime
             if (noThreadMsg.id === 'prime-no-thread') {
                 AgentColumn.showPrimeThreadSelector();

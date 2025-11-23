@@ -221,6 +221,78 @@ def upsert_thread():
 
 
 # ============================================================
+# THREAD PRIME-LOADED MARKER
+# ============================================================
+
+@thread_bp.route('/mark-prime-loaded', methods=['POST'])
+def mark_thread_as_prime_loaded():
+    """
+    Mark a thread as 'prime-loaded' (single thread to load on Prime startup)
+    Automatically unmarks any existing prime-loaded thread first
+    
+    Body params:
+        thread_id (str, required): Thread slug to mark as prime-loaded
+        user_id (int, required): User ID (security check)
+    
+    Returns:
+        {"success": true, "message": "Thread marked as prime-loaded"}
+    """
+    try:
+        data = request.get_json() or {}
+        thread_id = data.get('thread_id')
+        user_id = data.get('user_id')
+        
+        if not thread_id or not user_id:
+            return error_response('thread_id and user_id required', 400)
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Step 1: Unmark all existing prime-loaded threads for this user
+        sql, params = convert_sql_placeholders("""
+            UPDATE sessions.threads
+            SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = %s AND location = 'prime-loaded'
+        """, (user_id,))
+
+        cursor.execute(sql, params)
+        
+        unmarked_count = cursor.rowcount
+        print(f"🔄 [PRIME-LOADED] Unmarked {unmarked_count} existing prime-loaded threads for user {user_id}")
+        
+        # Step 2: Mark the new thread as prime-loaded
+        sql, params = convert_sql_placeholders("""
+            UPDATE sessions.threads
+            SET location = 'prime-loaded', updated_at = CURRENT_TIMESTAMP
+            WHERE thread_slug = %s AND user_id = %s
+            RETURNING id
+        """, (thread_id, user_id))
+
+        cursor.execute(sql, params)
+        
+        result = cursor.fetchone()
+        if not result:
+            conn.close()
+            return error_response(f'Thread {thread_id} not found for user {user_id}', 404)
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ [PRIME-LOADED] Thread {thread_id} marked as prime-loaded for user {user_id}")
+        
+        return success_response({
+            'thread_id': thread_id,
+            'message': 'Thread will load on Prime startup'
+        }, message='Thread marked as prime-loaded')
+        
+    except Exception as e:
+        print(f"❌ [PRIME-LOADED ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Failed to mark thread: {str(e)}', 500)
+
+
+# ============================================================
 # THREAD LISTING & SEARCH
 # ============================================================
 
@@ -1668,10 +1740,12 @@ def delete_assignment(location):
         # Ensure user row exists
         cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", (user_id,))
         if not cursor.fetchone():
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO ai_infrastructure.users (id, username, email, metadata)
                 VALUES (%s, %s, %s, %s)
             """, (user_id, f'user_{user_id}', f'user_{user_id}@example.com', '{}'))
+
+            cursor.execute(sql, params)
             print(f'[DELETE ASSIGNMENT] Created user row for user {user_id}')
         
         # Get current metadata

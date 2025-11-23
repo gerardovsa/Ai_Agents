@@ -172,9 +172,15 @@ class SynergyCardRenderer {
                         <div class="synergy-progress-fill" style="width: ${progressPercent}%"></div>
                     </div>
                     <div class="synergy-footer">
-                        <div class="synergy-project">${this.escapeHtml(session.project_name || 'General')}</div>
-                        <div class="synergy-tags">${tagsHtml}</div>
-                        <div class="synergy-updated">${relativeTime}</div>
+                        <div class="synergy-footer-row-1">
+                            <div class="synergy-project">${this.escapeHtml(session.project_name || 'General')}</div>
+                            <div class="synergy-updated">${relativeTime}</div>
+                        </div>
+                        ${tagsHtml ? `
+                            <div class="synergy-footer-row-2">
+                                <div class="synergy-tags">${tagsHtml}</div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>

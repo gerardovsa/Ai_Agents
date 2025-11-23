@@ -1,6 +1,7 @@
 """
 Fix Microsoft Authentication - Complete System Fix
 ==================================================
+from shared.database_utils import convert_sql_placeholders
 
 This script fixes ALL Microsoft authentication issues:
 1. Migrates old 'microsoft365' tokens to 'microsoft' platform name
@@ -35,7 +36,7 @@ def backup_tokens():
     cursor = conn.cursor()
     
     # Create backup table
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         CREATE TABLE IF NOT EXISTS oauth_tokens_backup_jan2025 AS
         SELECT * FROM oauth_tokens WHERE 0
     """)
@@ -85,22 +86,28 @@ def migrate_microsoft365_to_microsoft():
             SELECT id FROM oauth_tokens
             WHERE user_id = ? AND platform = 'microsoft'
         """, (token['user_id'],))
+
+    cursor.execute(sql, params)
         
         has_microsoft = cursor.fetchone()
         
         if has_microsoft:
             # User has both - delete the old microsoft365 one
             print(f"   🗑️  User {token['user_id']} has 'microsoft' token - deleting old 'microsoft365' token {token['id']}")
-            cursor.execute("DELETE FROM oauth_tokens WHERE id = ?", (token['id'],))
+            sql, params = convert_sql_placeholders("DELETE FROM oauth_tokens WHERE id = ?", (token['id'],))
+
+            cursor.execute(sql, params)
         else:
             # Migrate the token to 'microsoft'
             print(f"   ✅ Migrating token {token['id']} (user {token['user_id']}) to 'microsoft' platform")
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE oauth_tokens
                 SET platform = 'microsoft',
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (token['id'],))
+
+            cursor.execute(sql, params)
     
     conn.commit()
     conn.close()
@@ -118,7 +125,7 @@ def fix_missing_expiry():
     cursor = conn.cursor()
     
     # Find Microsoft tokens without expiry
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT id, user_id, created_at
         FROM oauth_tokens
         WHERE platform = 'microsoft' AND expires_at IS NULL
@@ -199,6 +206,8 @@ def fix_missing_metadata():
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (account_identifier, account_name, token['id']))
+
+    cursor.execute(sql, params)
             
             print(f"   ✅ Updated token {token['id']} metadata")
     
@@ -221,20 +230,24 @@ def update_user_flags():
     
     for user in users:
         # Check if user has Microsoft token
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT COUNT(*) as count
             FROM oauth_tokens
             WHERE user_id = ? AND platform = 'microsoft' AND is_active = 1
         """, (user['id'],))
+
+        cursor.execute(sql, params)
         
         has_token = cursor.fetchone()['count'] > 0
         
         # Update user flag
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             UPDATE users
             SET has_microsoft_oauth = ?
             WHERE id = ?
         """, (1 if has_token else 0, user['id']))
+
+        cursor.execute(sql, params)
         
         status = "✅ HAS" if has_token else "❌ NO"
         print(f"   {status} Microsoft OAuth: User {user['id']} ({user['username']})")

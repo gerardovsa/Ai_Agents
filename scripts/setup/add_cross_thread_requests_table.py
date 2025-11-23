@@ -1,5 +1,6 @@
 """
 Database Migration: Add cross_thread_requests Table
+from shared.database_utils import convert_sql_placeholders
 
 Creates the cross_thread_requests table for tracking cross-thread communication
 between agents. Enables AI to request updates from other threads and track responses.
@@ -46,7 +47,7 @@ def add_cross_thread_requests_table():
     
     try:
         # Check if table already exists
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT name FROM sqlite_master 
             WHERE type='table' AND name='cross_thread_requests'
         """)
@@ -151,18 +152,24 @@ def verify_migration():
             "Test request message", "status_update", "medium", "pending",
             "2025-11-16T12:00:00", 1
         ))
+
+        cursor.execute(sql, params)
         
         # Test select
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT * FROM cross_thread_requests WHERE request_id = ?
         """, (test_request_id,))
+
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         if row:
             print("Test insert successful!")
             
             # Clean up test data
-            cursor.execute("DELETE FROM cross_thread_requests WHERE request_id = ?", (test_request_id,))
+            sql, params = convert_sql_placeholders("DELETE FROM cross_thread_requests WHERE request_id = ?", (test_request_id,))
+
+            cursor.execute(sql, params)
             conn.commit()
             print("Test data cleaned up.")
             print("\nMigration verification PASSED!")

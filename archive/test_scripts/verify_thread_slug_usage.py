@@ -3,6 +3,7 @@ Verify that thread_slug is being used correctly throughout the codebase
 """
 import sqlite3
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 def check_database_schema():
     """Check that database tables are using thread_slug correctly"""

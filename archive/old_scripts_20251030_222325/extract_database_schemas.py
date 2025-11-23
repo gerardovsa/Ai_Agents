@@ -2,6 +2,7 @@
 Extract complete database schemas from all AI_agents databases
 Creates comprehensive JSON and SQL documentation
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import json

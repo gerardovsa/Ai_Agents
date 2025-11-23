@@ -3,6 +3,7 @@ Inspect the 5 migrated sessions that have "Unknown format" documents
 """
 import sqlite3
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 root_dir = Path(__file__).parent
 db_path = root_dir / 'data' / 'synergy_sessions.db'
@@ -23,7 +24,9 @@ migrated_ids = [
 print("\n=== INSPECTING MIGRATED SESSIONS ===\n")
 
 for session_id in migrated_ids:
-    cursor.execute('SELECT * FROM synergy_sessions WHERE session_id = ?', (session_id,))
+    sql, params = convert_sql_placeholders('SELECT * FROM synergy_sessions WHERE session_id = ?', (session_id,))
+
+    cursor.execute(sql, params)
     session = cursor.fetchone()
     
     if not session:

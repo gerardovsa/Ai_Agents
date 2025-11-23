@@ -1,5 +1,6 @@
 """
 Test Thread Sharing System
+from shared.database_utils import convert_sql_placeholders
 
 Tests all 6 API endpoints end-to-end.
 
@@ -77,11 +78,13 @@ try:
     if thread_count == 0:
         print("  WARNING: No threads in database")
         print("  Creating test thread...")
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             INSERT INTO threads (
                 thread_slug, user_id, title, status, created_at, updated_at
             ) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
         """, ('test-sharing-thread', 1, 'Test Sharing Thread', 'active'))
+
+        cursor.execute(sql, params)
         conn.commit()
         print(f"  Created test thread: test-sharing-thread")
     
@@ -132,7 +135,9 @@ try:
     owner_id = thread['user_id']
     
     # Get another user to share with
-    cursor.execute("SELECT id FROM users WHERE id != ? LIMIT 1", (owner_id,))
+    sql, params = convert_sql_placeholders("SELECT id FROM users WHERE id != ? LIMIT 1", (owner_id,))
+
+    cursor.execute(sql, params)
     other_user = cursor.fetchone()
     
     if not other_user:
@@ -161,10 +166,13 @@ try:
         conn = sqlite3.connect(str(db_path))
         cursor = conn.cursor()
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT COUNT(*) FROM thread_users
             WHERE thread_id = ? AND user_id = ? AND removed_at IS NULL
         """, (thread['id'], shared_with_user_id))
+
+        
+        cursor.execute(sql, params)
         
         count = cursor.fetchone()[0]
         conn.close()

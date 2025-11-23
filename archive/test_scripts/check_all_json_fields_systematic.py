@@ -5,6 +5,7 @@ Check EVERY JSON field vs HTML rendering for BOTH sessions
 import sqlite3
 import json
 import re
+from shared.database_utils import convert_sql_placeholders
 
 db_path = 'C:\\Users\\gpoli\\GIT\\AI_agents\\data\\synergy_sessions.db'
 conn = sqlite3.connect(db_path)
@@ -21,12 +22,14 @@ print("COMPREHENSIVE JSON FIELD vs HTML FIELD CHECK")
 print("=" * 120)
 
 for session_id in sessions:
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT session_id, title, documents, tags, next_steps, links, assignees, 
                checklist, thread_ids, assigned_agents, platforms_involved, recent_activity
         FROM synergy_sessions 
         WHERE session_id = ?
     """, (session_id,))
+
+    cursor.execute(sql, params)
     
     row = cursor.fetchone()
     if not row:

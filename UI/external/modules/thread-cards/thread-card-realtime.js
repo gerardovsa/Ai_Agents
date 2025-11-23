@@ -385,28 +385,22 @@ window.ThreadCardRealtime = {
      * @param {string} threadId - Thread slug to refresh
      */
     async manualRefresh(threadId) {
-        const supabaseClient = window.supabaseClient || window.SUPABASE_CLIENT;
-        if (!supabaseClient) {
-            console.warn('[ThreadCardRealtime] Supabase client not available');
-            return;
-        }
-
         try {
             console.log(`[ThreadCardRealtime] Manual refresh for ${threadId}`);
 
-            const { data, error } = await supabaseClient
-                .from('threads')
-                .select('*')
-                .eq('thread_slug', threadId)
-                .single();
+            // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
+            const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
+            const userId = (window.UserAuth?.user?.id || window.UserAuth?.user?.user_id) || 1;
+            const response = await fetch(`${apiUrl}/api/threads/get?thread_slug=${threadId}&user_id=${userId}`);
 
-            if (error) {
-                console.error('[ThreadCardRealtime] Manual refresh error:', error);
+            if (!response.ok) {
+                console.error('[ThreadCardRealtime] Manual refresh error:', response.statusText);
                 return;
             }
 
-            if (data) {
-                this._applyThreadUpdate(data);
+            const result = await response.json();
+            if (result.success && result.thread) {
+                this._applyThreadUpdate(result.thread);
             }
 
         } catch (error) {

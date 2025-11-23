@@ -30,6 +30,7 @@ class SynergySidebarRenderer {
         const item = document.createElement('div');
         item.className = 'synergy-session-item';
         item.setAttribute('data-session-id', session.session_id);
+        item.setAttribute('data-context', 'sidebar');
         if (isPinned) item.classList.add('pinned');
         if (isExpanded) item.classList.add('expanded');
 
@@ -123,15 +124,19 @@ class SynergySidebarRenderer {
                         <div class="synergy-progress-fill" style="width: ${progress}%"></div>
                     </div>
                     <div class="synergy-footer">
-                        <span class="synergy-project">${this.escapeHtml(projectName)}</span>
+                        <div class="synergy-footer-row-1">
+                            <span class="synergy-project">${this.escapeHtml(projectName)}</span>
+                            <div class="synergy-updated">
+                                <i class="fas fa-clock"></i> ${this.getRelativeTime(session.updated_at || session.last_active)}
+                            </div>
+                        </div>
                         ${tags.length > 0 ? `
-                            <div class="synergy-tags">
-                                ${tags.slice(0, 3).map(tag => `<span class="synergy-tag">${this.escapeHtml(tag)}</span>`).join('')}
+                            <div class="synergy-footer-row-2">
+                                <div class="synergy-tags">
+                                    ${tags.slice(0, 3).map(tag => `<span class="synergy-tag">${this.escapeHtml(tag)}</span>`).join('')}
+                                </div>
                             </div>
                         ` : ''}
-                        <div class="synergy-updated">
-                            <i class="fas fa-clock"></i> ${this.getRelativeTime(session.updated_at || session.last_active)}
-                        </div>
                     </div>
                 </div>
             </div>
@@ -312,7 +317,7 @@ class SynergySidebarRenderer {
             if (contentArea) {
                 contentArea.innerHTML = `
                     <div style="
-                        padding: 16px;
+                        padding: 10px 10px;
                         background: rgba(220, 38, 38, 0.1);
                         border: 2px solid #dc2626;
                         border-radius: 8px;
@@ -384,7 +389,7 @@ class SynergySidebarRenderer {
         return `
             <div class="synergy-edit-toolbar" style="
                 display: none;
-                padding: 12px 16px;
+                padding: 10px;
                 background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
                 color: white;
                 margin-bottom: 16px;
@@ -467,7 +472,7 @@ class SynergySidebarRenderer {
 
         return `
             <div style="
-                padding: 16px;
+                padding: 10px;
                 background: var(--bg-quaternary);
                 border-radius: 8px;
                 margin-bottom: 16px;
@@ -502,7 +507,7 @@ class SynergySidebarRenderer {
     renderDescriptionSection(description) {
         return `
             <div style="
-                padding: 16px;
+                padding: 10px;
                 background: var(--bg-tertiary);
                 border-left: 4px solid var(--accent-primary);
                 border-radius: 4px;
@@ -532,7 +537,7 @@ class SynergySidebarRenderer {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 12px 16px;
+                    padding: 10px;
                     background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
                     border-radius: 8px;
                     margin-bottom: 12px;
@@ -571,7 +576,7 @@ class SynergySidebarRenderer {
             <div style="
                 border: 2px solid ${borderColor};
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
                 margin-bottom: 16px;
                 background: ${bgColor};
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -620,7 +625,7 @@ class SynergySidebarRenderer {
                 <div style="
                     background: var(--bg-quaternary);
                     border-radius: 8px;
-                    padding: 12px;
+                    padding: 10px;
                     margin-bottom: 16px;
                 ">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
@@ -648,7 +653,7 @@ class SynergySidebarRenderer {
 
                 <!-- Tasks List -->
                 ${tasks.length > 0 ? `
-                    <div style="margin-left: 20px;">
+                    <div style="margin-left: 10px;">
                         ${tasks.map((task, tIdx) => this.renderTask(task, milestoneNum, tIdx + 1, sessionId)).join('')}
                     </div>
                 ` : `
@@ -680,26 +685,24 @@ class SynergySidebarRenderer {
         const taskColor = isBlocked ? '#ef4444' : (isCompleted ? '#22c55e' : '#6b7280');
 
         let html = `
-            <div style="
+            <div class="synergy-task-item-wrapper" style="
                 border-left: 3px solid ${taskColor};
-                padding: 12px;
-                padding-left: 16px;
+                padding: 10px;
                 margin-bottom: 12px;
                 background: var(--bg-quaternary);
                 border-radius: 4px;
             ">
                 <!-- Task Header -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                    <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                            <span style="
-                                background: ${taskColor};
-                                color: white;
-                                padding: 2px 8px;
-                                border-radius: 4px;
-                                font-size: 12px;
-                                font-weight: 400;
-                            ">T${milestoneNum}.${taskNum}</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 10px;">
+                    <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
+                        <span style="
+                            background: ${taskColor};
+                            color: white;
+                            padding: 2px 8px;
+                            border-radius: 4px;
+                            font-size: 12px;
+                            font-weight: 400;
+                        ">T${milestoneNum}.${taskNum}</span>
                             ${isBlocked ? `
                                 <span style="
                                     background: #ef4444;
@@ -710,27 +713,12 @@ class SynergySidebarRenderer {
                                     font-weight: 400;
                                 ">🚫 BLOCKED</span>
                             ` : ''}
-                            <span style="font-size: 14px;">${isCompleted ? '✅' : '⭕'}</span>
-                            <span style="font-weight: 400; font-size: 13px; color: var(--text-primary);">
-                                ${this.escapeHtml(task.task || 'Untitled Task')}
-                            </span>
-                        </div>
-                        ${isBlocked && task.blocked_reason ? `
-                            <div style="
-                                margin-left: 45px;
-                                margin-top: 6px;
-                                padding: 6px 10px;
-                                background: rgba(239, 68, 68, 0.1);
-                                border-left: 3px solid #ef4444;
-                                border-radius: 4px;
-                                font-size: 11px;
-                                color: #ef4444;
-                            ">
-                                <strong>Blocked:</strong> ${this.escapeHtml(task.blocked_reason)}
-                            </div>
-                        ` : ''}
+                        <span style="font-size: 14px;">${isCompleted ? '✅' : '⭕'}</span>
+                        <span style="font-weight: 400; font-size: 13px; color: var(--text-primary);">
+                            ${this.escapeHtml(task.task || 'Untitled Task')}
+                        </span>
                     </div>
-                    <label style="cursor: pointer;">
+                    <label style="cursor: pointer; flex-shrink: 0;">
                         <input type="checkbox"
                             ${isCompleted ? 'checked' : ''}
                             ${isBlocked ? 'disabled' : ''}
@@ -740,10 +728,23 @@ class SynergySidebarRenderer {
                             style="width: 18px; height: 18px; cursor: ${isBlocked ? 'not-allowed' : 'pointer'};">
                     </label>
                 </div>
+                ${isBlocked && task.blocked_reason ? `
+                    <div style="
+                        margin: 0 10px 8px 10px;
+                        padding: 6px 10px;
+                        background: rgba(239, 68, 68, 0.1);
+                        border-left: 3px solid #ef4444;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        color: #ef4444;
+                    ">
+                        <strong>Blocked:</strong> ${this.escapeHtml(task.blocked_reason)}
+                    </div>
+                ` : ''}
 
                 <!-- Subtasks -->
                 ${subtasks.length > 0 ? `
-                    <div style="margin-left: 20px; margin-top: 8px;">
+                    <div style="padding: 0 10px; margin-top: 8px;">
                         <div style="font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 6px;">
                             Subtasks (${completedSubtasks}/${subtasks.length})
                         </div>
@@ -809,7 +810,7 @@ class SynergySidebarRenderer {
 
         let html = `
             <div style="
-                padding: 16px;
+                padding: 10px;
                 background: var(--bg-tertiary);
                 border-radius: 8px;
                 margin-bottom: 16px;
@@ -883,7 +884,7 @@ class SynergySidebarRenderer {
 
         let html = `
             <div style="
-                padding: 16px;
+                padding: 10px;
                 background: var(--bg-tertiary);
                 border-radius: 8px;
                 margin-bottom: 16px;

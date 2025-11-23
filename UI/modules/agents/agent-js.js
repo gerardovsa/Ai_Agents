@@ -1,4 +1,35 @@
 
+// ==================== PROCESSING INDICATOR ====================
+/**
+ * Create a processing/typing indicator that shows until first message bubble appears
+ * Used for both streaming responses and thread loading
+ */
+function createProcessingIndicator(agentId) {
+    const indicator = document.createElement('div');
+    indicator.className = 'processing-indicator';
+    indicator.id = `processing-indicator-${agentId}`;
+    indicator.innerHTML = `
+        <div class="processing-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <span class="processing-text">Processing...</span>
+    `;
+    return indicator;
+}
+
+/**
+ * Remove processing indicator for an agent
+ */
+function removeProcessingIndicator(agentId) {
+    const indicator = document.getElementById(`processing-indicator-${agentId}`);
+    if (indicator) {
+        indicator.remove();
+        console.log(`[Agent ${agentId}] Processing indicator removed`);
+    }
+}
+
 // ==================== MULTI-AGENT NATO COLUMNS ====================
 const MultiAgent = {
     nextAgentId: 4,
@@ -217,6 +248,7 @@ const MultiAgent = {
 
     // Set loaded thread for agent
     setLoadedThread(agentId, threadId, threadTitle, messageCount = 0, metadata = {}) {
+        console.log(`📌 [setLoadedThread] Agent ${agentId}: thread ${threadId}, title "${threadTitle}"`);
         this.loadedThreads[agentId] = {
             threadId,
             threadTitle,
@@ -227,7 +259,19 @@ const MultiAgent = {
             workflowId: metadata.workflowId || null,
             automationId: metadata.automationId || null
         };
+        
+        // Update header immediately
         this.updateAgentHeader(agentId);
+        
+        // If ThreadManager not ready yet (during startup), retry after delay
+        if (typeof ThreadManager === 'undefined' || typeof ThreadManager.renderThreadInfoContainer !== 'function') {
+            console.log(`⏳ [setLoadedThread] ThreadManager not ready, will retry in 500ms`);
+            setTimeout(() => {
+                console.log(`🔄 [setLoadedThread] Retrying header update for agent ${agentId}`);
+                this.updateAgentHeader(agentId);
+            }, 500);
+        }
+        
         this.saveState();
     },
 
@@ -766,11 +810,62 @@ const MultiAgent = {
 
         if (storedMessages && storedMessages.length > 0) {
             storedMessages.forEach((msg, index) => {
-                if (msg.role === 'user') {
+                // CRITICAL FIX: Check content structure FIRST (not role)
+                const isStructuredContent = Array.isArray(msg.content) && 
+                                           msg.content.length > 0 && 
+                                           msg.content[0]?.type && 
+                                           ['thinking', 'tool_use', 'tool_result', 'text'].includes(msg.content[0].type);
+
+                if (isStructuredContent) {
+                    // Structured content (thinking, tool_use, tool_result) - use structured rendering
+                    console.log(`[RENDER PRIME] Structured content detected: ${msg.content.map(b => b.type).join(', ')}`);
+                    
+                    // Use TwoRuleStreamProcessor for structured content in Prime
+                    msg.content.forEach(block => {
+                        if (block.type === 'thinking' || block.type === 'tool_use' || block.type === 'tool_result') {
+                            // Create bubble for each structured block
+                            const messageDiv = document.createElement('div');
+                            messageDiv.className = `ai-message assistant ${block.type === 'thinking' ? 'thinking-bubble' : 'tool-bubble'} collapsed`;
+                            
+                            messageDiv.innerHTML = `
+                                <div class="ai-message-header">
+                                    <div class="ai-message-avatar">
+                                        <i class="fa-solid ${block.type === 'thinking' ? 'fa-atom' : 'fa-cog'}"></i>
+                                    </div>
+                                    <button class="ai-message-toggle">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <div class="ai-message-content"></div>
+                            `;
+                            primeMessages.appendChild(messageDiv);
+                            
+                            const bubble = messageDiv.querySelector('.ai-message-content');
+                            const content = block.content || JSON.stringify(block.input || block);
+                            
+                            if (typeof TwoRuleStreamProcessor !== 'undefined') {
+                                const processor = new TwoRuleStreamProcessor(bubble);
+                                processor.processChunk(content);
+                            } else {
+                                bubble.textContent = content;
+                            }
+                        } else if (block.type === 'text') {
+                            // Regular text block - render normally
+                            if (typeof addChatMessage === 'function') {
+                                addChatMessage('assistant', block.text);
+                            }
+                        }
+                    });
+
+                } else if (msg.role === 'user') {
                     // User messages render normally
                     if (typeof addChatMessage === 'function') {
-                        addChatMessage('user', msg.content);
+                        const content = typeof msg.content === 'string' ? msg.content : 
+                                       (Array.isArray(msg.content) ? msg.content.map(b => b.text || '').join('\n') : 
+                                       JSON.stringify(msg.content));
+                        addChatMessage('user', content);
                     }
+
                 } else if (msg.role === 'assistant') {
                     // AI messages need processor rendering
                     const messageDiv = document.createElement('div');
@@ -1166,6 +1261,16 @@ const MultiAgent = {
         };
         this.setLoadedThread(agentId, thread.id, thread.title, messageCount, metadata);
 
+        // CRITICAL: Update thread.message_count in ThreadManager.threads array
+        // This ensures renderThreadInfoContainer shows correct count
+        if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
+            const threadInArray = ThreadManager.threads.find(t => t.id === thread.id);
+            if (threadInArray) {
+                threadInArray.message_count = messageCount;
+                console.log(`[LOAD] Updated thread.message_count in ThreadManager.threads: ${messageCount}`);
+            }
+        }
+
         // CRITICAL: Clear AppState.sessionId when thread loads into agent
         // (Thread is now in agent, NOT in Prime)
         if (typeof AppState !== 'undefined' && AppState.sessionId === thread.id) {
@@ -1176,12 +1281,23 @@ const MultiAgent = {
 
         // Update thread-info container with unified structure
         const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
-        if (threadInfoContainer && typeof ThreadManager !== 'undefined') {
-            threadInfoContainer.innerHTML = ThreadManager.renderThreadInfoContainer(
-                `agent-${agentId}`,
-                thread.id,
-                true  // compact mode
-            );
+        if (threadInfoContainer) {
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                console.log(`[LOAD] Rendering thread info card for agent-${agentId}, thread ${thread.id}`);
+                const cardHtml = ThreadManager.renderThreadInfoContainer(
+                    `agent-${agentId}`,
+                    thread.id,
+                    true  // compact mode
+                );
+                threadInfoContainer.innerHTML = cardHtml;
+                console.log(`✅ [LOAD] Thread info card rendered (${cardHtml.length} chars)`);
+            } else {
+                console.error(`❌ [LOAD] ThreadManager.renderThreadInfoContainer not available!`);
+                console.log('   ThreadManager exists?', typeof ThreadManager !== 'undefined');
+                console.log('   renderThreadInfoContainer exists?', typeof ThreadManager?.renderThreadInfoContainer);
+            }
+        } else {
+            console.error(`❌ [LOAD] thread-info-${agentId} container not found in DOM!`);
         }
 
         // CRITICAL: Always sync session_id with thread.id when loading thread
@@ -1227,41 +1343,58 @@ const MultiAgent = {
         if (!storedMessages || storedMessages.length === 0) {
             if (thread.message_count > 0) {
                 console.log(`[LOAD] Fetching ${thread.message_count} messages for thread ${thread.id} from backend...`);
+                
+                // Show processing indicator while loading messages
+                const processingIndicator = createProcessingIndicator(agentId);
+                messagesDiv.appendChild(processingIndicator);
+                
                 if (typeof ThreadManager !== 'undefined' && ThreadManager.loadMessagesForThread) {
                     ThreadManager.loadMessagesForThread(thread.id).then(() => {
                         // Re-fetch from MessageStore after backend load
                         const loadedMessages = window.MessageStore.getMessages(thread.id);
                         if (loadedMessages && loadedMessages.length > 0) {
                             console.log(`[LOAD] Rendering ${loadedMessages.length} messages...`);
+                            
+                            // Remove processing indicator before rendering messages
+                            removeProcessingIndicator(agentId);
+                            
                             loadedMessages.forEach((msg, index) => {
-                                if (msg.role === 'user') {
-                                    let content;
-                                    if (typeof msg.content === 'string') {
-                                        content = msg.content;
-                                    } else if (Array.isArray(msg.content)) {
-                                        content = msg.content
-                                            .filter(block => block.type === 'text')
-                                            .map(block => block.text || '')
-                                            .join('\n') || msg.content[0]?.text || JSON.stringify(msg.content);
-                                    } else if (typeof msg.content === 'object' && msg.content !== null) {
-                                        content = msg.content.text || msg.content.content || JSON.stringify(msg.content);
-                                    } else {
-                                        content = String(msg.content);
-                                    }
-
-                                    console.log(`[USER MESSAGE ASYNC] Content extracted: "${content.substring(0, 100)}..."`);
-                                    addAgentMessage(agentId, 'user', content);
-                                } else if (msg.role === 'assistant') {
-                                    // Check if structured content
-                                    if (Array.isArray(msg.content) && msg.content.length > 0 && msg.content[0].type) {
-                                        console.log(`[RENDER] Using structured rendering for ${msg.content.length} blocks`);
-                                        renderStructuredAgentMessage(agentId, msg.content);
-                                    } else {
+                                // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
+                                console.log(`[LOAD] Rendering message ${index + 1}/${loadedMessages.length} (${msg.role})`);
+                                
+                                if (typeof UnifiedMessageRenderer !== 'undefined') {
+                                    // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
+                                    UnifiedMessageRenderer.render(
+                                        messagesDiv,
+                                        msg.role,
+                                        msg.content,
+                                        {
+                                            threadId: thread.id,
+                                            syncToBackend: false,
+                                            scrollToBottom: false  // Manual scroll at end
+                                        }
+                                    );
+                                } else {
+                                    console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
+                                    // Fallback: manual rendering (old pathway)
+                                    if (msg.role === 'user') {
+                                        let content;
+                                        if (typeof msg.content === 'string') {
+                                            content = msg.content;
+                                        } else if (Array.isArray(msg.content)) {
+                                            content = msg.content
+                                                .filter(block => !block.type || block.type === 'text')
+                                                .map(block => block.text || block.content || '')
+                                                .join('\n') || msg.content[0]?.text || JSON.stringify(msg.content);
+                                        } else {
+                                            content = String(msg.content);
+                                        }
+                                        addAgentMessage(agentId, 'user', content);
+                                    } else if (msg.role === 'assistant') {
                                         const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
                                         addAgentMessage(agentId, 'ai', content);
                                     }
                                 }
-                                console.log(`[OK] Message ${index + 1}/${loadedMessages.length} (${msg.role}) rendered`);
                             });
                             messagesContainer.scrollTop = messagesContainer.scrollHeight;
                             console.log(`[OK] All ${loadedMessages.length} messages rendered for agent-${agentId}`);
@@ -1279,48 +1412,42 @@ const MultiAgent = {
             // Load thread messages from MessageStore with proper rendering
             console.log(`[LOAD] Rendering ${storedMessages.length} messages from MessageStore...`);
             storedMessages.forEach((msg, index) => {
-                console.log(`[DEBUG] Message ${index + 1} structure:`, {
-                    role: msg.role,
-                    contentType: typeof msg.content,
-                    isArray: Array.isArray(msg.content),
-                    content: Array.isArray(msg.content) ? `Array[${msg.content.length}]` : (typeof msg.content === 'string' ? msg.content.substring(0, 100) : msg.content)
-                });
-
-                if (msg.role === 'user') {
-                    // User messages are always simple text
-                    let content;
-                    if (typeof msg.content === 'string') {
-                        content = msg.content;
-                    } else if (Array.isArray(msg.content)) {
-                        // If content is array, extract text blocks
-                        content = msg.content
-                            .filter(block => block.type === 'text')
-                            .map(block => block.text || '')
-                            .join('\n') || msg.content[0]?.text || JSON.stringify(msg.content);
-                    } else if (typeof msg.content === 'object' && msg.content !== null) {
-                        // If content is object, try to extract text property
-                        content = msg.content.text || msg.content.content || JSON.stringify(msg.content);
-                    } else {
-                        content = String(msg.content);
-                    }
-
-                    console.log(`[USER MESSAGE] Content extracted: "${content.substring(0, 100)}..."`);
-                    addAgentMessage(agentId, 'user', content);
-
-                } else if (msg.role === 'assistant') {
-                    // Check if assistant message has structured content (array of blocks)
-                    if (Array.isArray(msg.content) && msg.content.length > 0 && msg.content[0].type) {
-                        // Structured content - render with proper bubble structure
-                        console.log(`[RENDER] Using structured rendering for ${msg.content.length} blocks`);
-                        renderStructuredAgentMessage(agentId, msg.content);
-                    } else {
-                        // Simple text content - use addAgentMessage
+                // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
+                console.log(`[LOAD] Rendering message ${index + 1}/${storedMessages.length} (${msg.role})`);
+                
+                if (typeof UnifiedMessageRenderer !== 'undefined') {
+                    // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
+                    UnifiedMessageRenderer.render(
+                        messagesDiv,
+                        msg.role,
+                        msg.content,
+                        {
+                            threadId: thread.id,
+                            syncToBackend: false,
+                            scrollToBottom: false  // Manual scroll at end
+                        }
+                    );
+                } else {
+                    console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
+                    // Fallback: manual rendering (old pathway)
+                    if (msg.role === 'user') {
+                        let content;
+                        if (typeof msg.content === 'string') {
+                            content = msg.content;
+                        } else if (Array.isArray(msg.content)) {
+                            content = msg.content
+                                .filter(block => !block.type || block.type === 'text')
+                                .map(block => block.text || block.content || '')
+                                .join('\n') || msg.content[0]?.text || JSON.stringify(msg.content);
+                        } else {
+                            content = String(msg.content);
+                        }
+                        addAgentMessage(agentId, 'user', content);
+                    } else if (msg.role === 'assistant') {
                         const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
                         addAgentMessage(agentId, 'ai', content);
                     }
                 }
-
-                console.log(`[OK] Message ${index + 1}/${storedMessages.length} (${msg.role}) rendered`);
             });
             console.log(`[OK] All ${storedMessages.length} messages rendered for agent-${agentId}`);
         }
@@ -1939,17 +2066,17 @@ function createAgentColumn(agentId) {
 
                 <div class="agent-header">
                     <!-- Header Top Row: [Collapse] [Agent Title] [Width Toggle] [Hamburger] -->
-                    <div class="agent-header-top">
-                        <button class="collapse-btn" onclick="event.stopPropagation(); MultiAgent.collapseColumn(${agentId})" title="Collapse column">
+                    <div class="agent-header-top" style="position: relative; display: flex; align-items: center; justify-content: center; padding: 0 12px;">
+                        <button class="collapse-btn" onclick="event.stopPropagation(); MultiAgent.collapseColumn(${agentId})" title="Collapse column" style="position: absolute; left: 12px; z-index: 10;">
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         
-                        <div class="agent-title-wrapper" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <div class="agent-title-wrapper" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                             <i class="fas ${MultiAgent.getAgentIcon(agentId)}" style="font-size: 1.2em; color: var(--accent-primary, #667eea);"></i>
                             <h2 style="margin: 0;">${agentName}</h2>
                         </div>
                         
-                        <div class="agent-header-controls">
+                        <div class="agent-header-controls" style="position: absolute; right: 12px; z-index: 10; display: flex; gap: 8px;">
                             <button class="width-toggle-btn" onclick="event.stopPropagation(); MultiAgent.toggleColumnWidth(${agentId})" title="Toggle column width">
                                 <i class="fas fa-chevron-right" id="width-icon-${agentId}"></i>
                             </button>
@@ -2487,15 +2614,22 @@ function filterContentForAPI(content) {
 
 /**
  * Build properly formatted conversation history for Anthropic API
- * CRITICAL: Anthropic requires tool_use (assistant) and tool_result (user) in SEPARATE messages
+ * PATTERN: Based on AnythingLLM's #prepareMessages method
+ * 
+ * CRITICAL FIXES:
+ * 1. Converts tool_result from assistant messages to user messages
+ * 2. Adds default text to assistant messages with tool_use but no text
+ * 3. Ensures proper message alternation (assistant → user → assistant)
+ * 4. Ensures first message is from user
+ * 5. Merges consecutive messages from same role
  * 
  * Input format (saved in DB):
- *   assistant: [thinking, tool_use, tool_use, tool_result, tool_result, text]
+ *   assistant: [thinking, tool_use]
+ *   user: [tool_result]  ← Already separate in DB!
+ *   assistant: [thinking, text]
  * 
  * Output format (for Anthropic API):
- *   assistant: [tool_use, tool_use]
- *   user: [tool_result, tool_result]
- *   assistant: [text]
+ *   Same structure, but validated and cleaned
  */
 function buildConversationHistoryForAPI(messages) {
     console.log(`[BUILD API HISTORY] Processing ${messages.length} messages for Anthropic API...`);
@@ -2503,29 +2637,35 @@ function buildConversationHistoryForAPI(messages) {
 
     messages.forEach((msg, index) => {
         if (msg.role === 'user') {
-            // User messages: keep as-is (simple text)
-            // 🔧 FIX: Deduplicate array content blocks (prevents "hello" + "hello" duplication)
+            // User messages: keep as-is, but normalize content
             let userContent;
             if (typeof msg.content === 'string') {
                 userContent = msg.content;
             } else if (Array.isArray(msg.content)) {
-                // Extract text blocks and deduplicate
-                const textBlocks = msg.content.filter(b => b.type === 'text');
-                const uniqueTexts = [];
-                const seenTexts = new Set();
+                // Check if this is a tool_result message (array of tool_result blocks)
+                const toolResultBlocks = msg.content.filter(b => b.type === 'tool_result');
+                if (toolResultBlocks.length > 0) {
+                    // This is a tool_result message - keep as array
+                    userContent = toolResultBlocks;
+                } else {
+                    // This is a text message - extract and deduplicate text
+                    const textBlocks = msg.content.filter(b => b.type === 'text');
+                    const uniqueTexts = [];
+                    const seenTexts = new Set();
 
-                textBlocks.forEach(block => {
-                    const text = block.text || block.content || '';
-                    if (text && !seenTexts.has(text)) {
-                        seenTexts.add(text);
-                        uniqueTexts.push(text);
+                    textBlocks.forEach(block => {
+                        const text = block.text || block.content || '';
+                        if (text && !seenTexts.has(text)) {
+                            seenTexts.add(text);
+                            uniqueTexts.push(text);
+                        }
+                    });
+
+                    userContent = uniqueTexts.join('\n') || JSON.stringify(msg.content);
+
+                    if (textBlocks.length > uniqueTexts.length) {
+                        console.warn(`[DEDUP] User message had ${textBlocks.length} text blocks, deduplicated to ${uniqueTexts.length}`);
                     }
-                });
-
-                userContent = uniqueTexts.join('\n') || JSON.stringify(msg.content);
-
-                if (textBlocks.length > uniqueTexts.length) {
-                    console.warn(`[DEDUP] User message had ${textBlocks.length} text blocks, deduplicated to ${uniqueTexts.length}`);
                 }
             } else {
                 userContent = String(msg.content);
@@ -2536,42 +2676,64 @@ function buildConversationHistoryForAPI(messages) {
                 content: userContent
             });
         } else if (msg.role === 'assistant') {
-            // Assistant messages: may need to split into multiple messages
+            // Assistant messages: validate and normalize
             if (typeof msg.content === 'string') {
                 // Simple text - keep as-is
                 result.push({ role: 'assistant', content: msg.content });
             } else if (Array.isArray(msg.content)) {
-                // Structured content - split by type
+                // Structured content - validate and order properly
+                const thinkingBlocks = msg.content.filter(b => b.type === 'thinking');
                 const toolUseBlocks = msg.content.filter(b => b.type === 'tool_use');
-                const toolResultBlocks = msg.content.filter(b => b.type === 'tool_result');
                 const textBlocks = msg.content.filter(b => b.type === 'text');
 
-                // 1. Assistant message with tool_use blocks (if any)
+                // Filter out empty text blocks (Anthropic requirement)
+                const nonEmptyTextBlocks = textBlocks.filter(block => {
+                    const text = block.text || block.content || '';
+                    return text.trim().length > 0;
+                });
+
+                // Build assistant content array: [thinking, tool_use, text]
+                const assistantContent = [];
+                
+                // 1. Add thinking blocks first
+                if (thinkingBlocks.length > 0) {
+                    thinkingBlocks.forEach(block => {
+                        const preservedBlock = {
+                            type: block.type,
+                            thinking: block.thinking || block.content || ''
+                        };
+                        if (block.signature) {
+                            preservedBlock.signature = block.signature;
+                        }
+                        assistantContent.push(preservedBlock);
+                    });
+                }
+                
+                // 2. Add tool_use blocks
                 if (toolUseBlocks.length > 0) {
+                    assistantContent.push(...toolUseBlocks);
+                }
+                
+                // 3. Add text blocks (only non-empty)
+                if (nonEmptyTextBlocks.length > 0) {
+                    assistantContent.push(...nonEmptyTextBlocks);
+                }
+
+                // ANYTHINGLLM PATTERN: If assistant has tool_use but no text, add default text
+                if (toolUseBlocks.length > 0 && nonEmptyTextBlocks.length === 0) {
+                    assistantContent.push({
+                        type: 'text',
+                        text: "I'll use a tool to help answer this question."
+                    });
+                    console.log(`[FIX] Added default text to assistant message with tool_use`);
+                }
+                
+                // Push assistant message if it has content
+                if (assistantContent.length > 0) {
                     result.push({
                         role: 'assistant',
-                        content: toolUseBlocks
+                        content: assistantContent
                     });
-                }
-
-                // 2. User message with tool_result blocks (if any)
-                // CRITICAL: tool_result must be in USER message, not assistant!
-                if (toolResultBlocks.length > 0) {
-                    result.push({
-                        role: 'user',
-                        content: toolResultBlocks
-                    });
-                }
-
-                // 3. Assistant message with text blocks (if any)
-                if (textBlocks.length > 0) {
-                    const textContent = textBlocks.map(b => b.text || b.content || '').join('\n');
-                    if (textContent.trim()) {
-                        result.push({
-                            role: 'assistant',
-                            content: textContent
-                        });
-                    }
                 }
             } else {
                 // Unknown format - keep as-is
@@ -2580,9 +2742,37 @@ function buildConversationHistoryForAPI(messages) {
         }
     });
 
-    console.log(`[BUILD API HISTORY] Result: ${result.length} messages (split tool_use/tool_result properly)`);
-    console.log(`[BUILD API HISTORY] Message roles:`, result.map((m, i) => `${i}: ${m.role} (${Array.isArray(m.content) ? m.content.map(b => b.type).join(',') : 'text'})`).join(' | '));
-    return result;
+    // ANYTHINGLLM PATTERN: Ensure first message is from user
+    if (result.length > 0 && result[0].role !== 'user') {
+        console.warn(`[FIX] First message was ${result[0].role}, removing it (Anthropic requires first message to be from user)`);
+        result.shift();
+    }
+
+    // ANYTHINGLLM PATTERN: Merge consecutive messages from same role
+    const merged = [];
+    result.forEach(msg => {
+        const lastMsg = merged[merged.length - 1];
+        if (lastMsg && lastMsg.role === msg.role) {
+            // Merge with previous message of same role
+            console.log(`[FIX] Merging consecutive ${msg.role} messages`);
+            if (Array.isArray(lastMsg.content) && Array.isArray(msg.content)) {
+                lastMsg.content.push(...msg.content);
+            } else if (typeof lastMsg.content === 'string' && typeof msg.content === 'string') {
+                lastMsg.content += '\n' + msg.content;
+            } else {
+                // Mixed types - convert both to arrays
+                const lastContent = Array.isArray(lastMsg.content) ? lastMsg.content : [{ type: 'text', text: lastMsg.content }];
+                const msgContent = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
+                lastMsg.content = [...lastContent, ...msgContent];
+            }
+        } else {
+            merged.push(msg);
+        }
+    });
+
+    console.log(`[BUILD API HISTORY] Result: ${merged.length} messages (${result.length - merged.length} merged)`);
+    console.log(`[BUILD API HISTORY] Message roles:`, merged.map((m, i) => `${i}: ${m.role}${Array.isArray(m.content) ? '(' + m.content.map(b => b.type).join(',') + ')' : '(text)'}`).join(' | '));
+    return merged;
 }
 
 // CRITICAL: Expose buildConversationHistoryForAPI globally for prime_ai_chat.js and other modules
@@ -2656,17 +2846,14 @@ function handleAgentKeypress(event, agentId) {
 async function sendAgentMessage(agentId) {
     const input = document.getElementById(`input-${agentId}`);
     const sendBtn = document.getElementById(`send-${agentId}`);
-    const statusBadge = document.getElementById(`status-${agentId}`);
     const message = input.value.trim();
 
     if (!message) return;
 
-    // Check for attached files
     const attachedFiles = window.agentAttachedFiles && window.agentAttachedFiles[agentId] ? window.agentAttachedFiles[agentId] : [];
     const hasFiles = attachedFiles.length > 0;
 
-    // Clear input FIRST (before async operations)
-    const messageToSend = message; // Capture before clearing
+    const messageToSend = message;
     input.value = '';
     input.style.height = 'auto';
     clearAgentAttachedFiles(agentId);
@@ -2675,14 +2862,13 @@ async function sendAgentMessage(agentId) {
     const agentName = getAgentName(agentId);
     let currentThread = ThreadManager.getThreadByAgent(agentName);
     if (!currentThread) {
-        // Create new thread for this agent
         const threadId = ThreadManager.createThread();
         currentThread = ThreadManager.threads.find(t => t.id === threadId);
         currentThread.location = agentName;
         currentThread.title = `${agentName} Chat`;
     }
 
-    // CRITICAL: Use UnifiedMessageRenderer (same as Prime AI) for proper rendering + storage
+    // Render user message
     let displayMessage = messageToSend;
     if (hasFiles) {
         const fileList = attachedFiles.map(f => f.name).join(', ');
@@ -2695,95 +2881,67 @@ async function sendAgentMessage(agentId) {
         displayMessage,
         { 
             threadId: currentThread.id,
-            syncToBackend: false  // Will sync after AI response
+            syncToBackend: false
         }
     );
-    console.log(`[Agent ${agentId}] User message rendered with UnifiedMessageRenderer`);
+    console.log(`[Agent ${agentId}] User message rendered`);
     scrollAgentToBottom(agentId);
 
-    // Thread already retrieved above (after UnifiedMessageRenderer call)
-
-    // Update status (text badge + icon animation)
     updateAgentStatus(agentId, 'thinking', 'Thinking...');
     if (typeof AgentStatusIndicator !== 'undefined') {
         AgentStatusIndicator.update('thinking', agentId);
     }
     sendBtn.disabled = true;
 
+    // Show processing indicator (will be removed when first bubble appears)
+    const processingIndicator = createProcessingIndicator(agentId);
+    const messagesContainerForIndicator = document.getElementById(`agent-messages-${agentId}`);
+    if (messagesContainerForIndicator) {
+        messagesContainerForIndicator.appendChild(processingIndicator);
+    }
+
     const startTime = Date.now();
+    let requestBody = null; // Declare here for error logging
+    
+    // ✅ FIX: Declare threadSlug outside try block so it's accessible in catch
+    const threadSlug = currentThread.id;
+    const sessionId = threadSlug;
 
     try {
-        // CRITICAL THREAD ISOLATION FIX (Nov 19, 2025):
-        // Get current thread for this agent FIRST
-        const currentThread = ThreadManager.getThreadByAgent(getAgentName(agentId));
+        // ============================================
+        // ✅ DATABASE AS SOURCE OF TRUTH
+        // ============================================
 
-        if (!currentThread) {
-            console.error(`[sendAgentMessage] No thread loaded for agent ${agentId}`);
-            updateAgentStatus(agentId, 'error', 'No thread loaded');
-            sendBtn.disabled = false;
-            return;
-        }
-
-        // CRITICAL FIX: Use thread.id (which is thread_slug) as BOTH session_id and thread_slug
-        const threadSlug = currentThread.id;
-        const sessionId = threadSlug;  // ? FORCE SYNC!
-
-        // Update MultiAgent.sessions to match thread (maintain sync)
         if (!MultiAgent.sessions[agentId] || MultiAgent.sessions[agentId] !== sessionId) {
             console.log(`[Agent ${getAgentName(agentId)}] Syncing session_id with thread_slug: ${sessionId}`);
             MultiAgent.sessions[agentId] = sessionId;
         }
 
-        // Create AI message bubble for streaming
-        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
-        const aiMessageDiv = document.createElement('div');
-        aiMessageDiv.className = 'agent-message ai';
-        aiMessageDiv.innerHTML = `
-            <div class="agent-message-bubble" id="ai-bubble-${agentId}">
-                <div class="typing-indicator">
-                    <span></span><span></span><span></span>
-                </div>
-            </div>
-            `;
-        messagesContainer.appendChild(aiMessageDiv);
-        scrollAgentToBottom(agentId);
+        // ❌ REMOVED: Don't build conversation history
+        // const storedMessages = window.MessageStore.getMessages(currentThread.id);
+        // const conversationHistory = buildConversationHistoryForAPI(storedMessages);
+        
+        // ✅ NEW: Backend will load from database
+        console.log(`📦 [DATABASE] Backend will load conversation from database for Agent ${agentId}`);
 
-        // ENHANCED: Include tool support for agents
-        console.log(`[Agent ${getAgentName(agentId)}] Sending message with tool support...`);
-        console.log(`[Agent ${getAgentName(agentId)}] ${ToolManager.availableTools.length} tools available`);
-        if (hasFiles) {
-            console.log(`[Agent ${getAgentName(agentId)}] [ATTACH] Files attached: ${attachedFiles.length}`);
-        }
-
-        // Build conversation history - READ FROM MESSAGESTORE (centralized storage)
-        const storedMessages = currentThread ? window.MessageStore.getMessages(currentThread.id) : [];
-        const conversationHistory = buildConversationHistoryForAPI(storedMessages);
-        console.log(`📦 [MessageStore] Retrieved ${storedMessages.length} messages for Agent ${getAgentName(agentId)}`);
-
-        console.log(`[Agent ${getAgentName(agentId)}] Thread loaded:`, currentThread ? currentThread.title : 'New thread');
         console.log(`[Agent ${getAgentName(agentId)}] Thread slug: ${threadSlug}`);
-        console.log(`[Agent ${getAgentName(agentId)}] Session ID: ${sessionId} (${sessionId === threadSlug ? '? SYNCED' : '? MISMATCH!'})`);
-        console.log(`[Agent ${getAgentName(agentId)}] History: ${conversationHistory.length} messages (properly formatted for Anthropic API)`);
+        console.log(`[Agent ${getAgentName(agentId)}] Session ID: ${sessionId}`);
 
-        // Prepare request based on whether files are attached
         let response;
 
         if (hasFiles) {
-            // Check if workflow designer mode is active for this agent
             const workflowContext = window.agentWorkflowContext && window.agentWorkflowContext[agentId];
 
-            // Use FormData for file uploads
             const formData = new FormData();
             formData.append('message', message);
             formData.append('session_id', sessionId);
-            formData.append('thread_slug', threadSlug);  // ? CRITICAL: Add thread_slug
+            formData.append('thread_slug', threadSlug);
             formData.append('agent_name', getAgentName(agentId));
-            formData.append('conversation_history', JSON.stringify(conversationHistory));
-            formData.append('thread_id', currentThread ? currentThread.id : '');
+            // ❌ REMOVED: formData.append('conversation_history', JSON.stringify(conversationHistory));
+            formData.append('thread_id', currentThread.id);
             formData.append('tools_enabled', 'true');
             formData.append('available_tools', ToolManager.availableTools.length);
 
-            // Inject workflow designer context if active
             if (workflowContext) {
                 formData.append('workflow_designer', JSON.stringify({
                     active: true,
@@ -2791,15 +2949,11 @@ async function sendAgentMessage(agentId) {
                     workflow_id: workflowContext.workflowId,
                     mode: workflowContext.mode
                 }));
-                console.log(`[Workflow Designer] Context injected for workflow: ${workflowContext.slug}`);
             }
 
-            // Add files with correct key name for backend (backend expects 'files', not 'file_0', 'file_1')
             attachedFiles.forEach((file) => {
-                formData.append('files', file);  // [OK] Correct: All files under 'files' key
+                formData.append('files', file);
             });
-
-            console.log(`[Agent ${agentId}] FormData prepared with ${attachedFiles.length} files`);
 
             response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/agent/agent/${agentId}/start`, {
                 method: 'POST',
@@ -2809,18 +2963,16 @@ async function sendAgentMessage(agentId) {
                 body: formData
             });
         } else {
-            // Check if workflow designer mode is active for this agent
             const workflowContext = window.agentWorkflowContext && window.agentWorkflowContext[agentId];
 
-            // Build request payload
-            const payload = {
+            // ✅ SIMPLIFIED REQUEST: No conversation_history
+            requestBody = {
                 message: message,
                 session_id: sessionId,
-                thread_slug: threadSlug,  // ? CRITICAL: Add thread_slug
+                thread_slug: threadSlug,
                 agent_name: getAgentName(agentId),
-                conversation_history: conversationHistory,
-                thread_id: currentThread ? currentThread.id : null,
-                // Enable tool use for agents
+                // ❌ REMOVED: conversation_history: conversationHistory,
+                thread_id: currentThread.id,
                 tools_enabled: true,
                 available_tools: ToolManager.availableTools.length,
                 google_auth: AuthManager.isAuthenticated ? AuthManager.getAccessToken() : null,
@@ -2831,25 +2983,22 @@ async function sendAgentMessage(agentId) {
                 }
             };
 
-            // Inject workflow designer context if active
             if (workflowContext) {
-                payload.workflow_designer = {
+                requestBody.workflow_designer = {
                     active: true,
                     workflow_slug: workflowContext.slug,
                     workflow_id: workflowContext.workflowId,
                     mode: workflowContext.mode
                 };
-                console.log(`[Workflow Designer] Context injected for workflow: ${workflowContext.slug}`);
             }
 
-            // Use JSON for text-only messages
             response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/agent/agent/${agentId}/start`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(requestBody)
             });
         }
 
@@ -2859,6 +3008,33 @@ async function sendAgentMessage(agentId) {
 
         const startData = await response.json();
         console.log(`[Agent ${agentId}] Agent started:`, startData);
+
+        // ✅ NEW: Accept backend's conversation
+        if (startData.conversation && Array.isArray(startData.conversation)) {
+            console.log(`✅ [Agent ${agentId}] Backend returned ${startData.conversation.length} messages (authoritative)`);
+            console.log(`📥 [Agent ${agentId}] Syncing frontend state with backend conversation`);
+            
+            // Update MessageStore with backend's conversation
+            if (window.MessageStore) {
+                window.MessageStore.clearThread(currentThread.id);
+                
+                for (const msg of startData.conversation) {
+                    await window.MessageStore.addMessage(currentThread.id, msg, {
+                        checkDuplicates: false,
+                        silent: true
+                    });
+                }
+                console.log(`✅ [Agent ${agentId}] MessageStore synced from backend`);
+            }
+            
+            // Update AppState
+            if (!AppState.agentThreads) AppState.agentThreads = {};
+            AppState.agentThreads[agentId] = {
+                id: currentThread.id,
+                messages: startData.conversation,
+                message_count: startData.conversation.length
+            };
+        }
 
         // Step 2: Connect to SSE stream (SAME AS PRIME!)
         console.log(`[Agent ${agentId}] Connecting to SSE stream...`);
@@ -2871,9 +3047,6 @@ async function sendAgentMessage(agentId) {
         if (!streamResponse.ok) {
             throw new Error(`Stream error! status: ${streamResponse.status}`);
         }
-
-        // Remove typing indicator bubble
-        aiMessageDiv.remove();
 
         updateAgentStatus(agentId, 'working', 'Responding...');
         if (typeof AgentStatusIndicator !== 'undefined') {
@@ -2890,7 +3063,8 @@ async function sendAgentMessage(agentId) {
         // HANDLE STREAMING RESPONSE - Use shared TwoRule pathway
         console.log(`[Agent ${agentId}] Receiving streamed response...`);
 
-        // messagesContainer already declared earlier in this function (line ~2570)
+        // ✅ FIX: Declare messagesContainer (it was missing!)
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
         if (!messagesContainer) {
             console.error(`[Agent ${agentId}] Could not find messages container!`);
             throw new Error('Messages container not found');
@@ -2909,6 +3083,11 @@ async function sendAgentMessage(agentId) {
         let lastEventType = null;  // Track event transitions to create new bubbles
         
         console.log(`[Agent ${agentId}] 🔵 STREAMING FUNCTION LOADED (v20251122d)`);
+        
+        // ISOLATION FIX: Thread-specific error tracking (prevents one agent breaking others)
+        let threadErrorCount = 0;
+        const maxThreadErrors = 10;  // Allow some parse errors before stopping THIS agent only
+        let threadFailed = false;
         
         let fullResponse = '';
         let fullThinkingContent = '';
@@ -2940,8 +3119,42 @@ async function sendAgentMessage(agentId) {
                         
                         console.log(`[Agent ${agentId}] 📨 Event:`, data.type, data);
 
+                        // CONVERSATION_SYNC EVENT - Receive backend's authoritative conversation (Nov 22, 2025 FIX)
+                        // Backend sends complete conversation_history BEFORE 'complete' event
+                        // This prevents duplicate saves and ensures complete block structure
+                        if (data.type === 'conversation_sync') {
+                            console.log(`[Agent ${agentId}] 📥 [SYNC] Received conversation_sync: ${data.message_count} messages`);
+                            
+                            if (data.conversation_history && Array.isArray(data.conversation_history)) {
+                                // Get current thread from AppState
+                                const thread = AppState.agentThreads && AppState.agentThreads[agentId];
+                                
+                                if (thread) {
+                                    // Update thread with backend's authoritative conversation
+                                    thread.messages = data.conversation_history;
+                                    thread.message_count = data.message_count;
+                                    
+                                    console.log(`[Agent ${agentId}] ✅ [SYNC] Thread.messages updated with ${data.message_count} messages from backend`);
+                                    
+                                    // Sync to MessageStore (FROM backend's data, not creating new)
+                                    for (const msg of data.conversation_history) {
+                                        await window.MessageStore.addMessage(thread.id, msg, {
+                                            checkDuplicates: true,
+                                            silent: true
+                                        });
+                                    }
+                                    
+                                    console.log(`[Agent ${agentId}] ✅ [SYNC] MessageStore synced from backend's conversation`);
+                                } else {
+                                    console.warn(`[Agent ${agentId}] ⚠️ [SYNC] Thread not found in AppState.agentThreads`);
+                                }
+                            } else {
+                                console.warn(`[Agent ${agentId}] ⚠️ [SYNC] Invalid conversation_history in conversation_sync event`);
+                            }
+                        }
+
                         // THINKING EVENT - Create THINKING BUBBLE (purple BRAIN icon)
-                        if ((data.type === 'thinking_block' || data.type === 'thinking') && (data.content || data.thinking)) {
+                        else if ((data.type === 'thinking_block' || data.type === 'thinking') && (data.content || data.thinking)) {
                             const thinkingText = data.content || data.thinking || '';
                             if (thinkingText && thinkingText.trim().length > 0) {
                                 console.log(`[Agent ${agentId}] 💭 THINKING: ${thinkingText.substring(0, 50)}...`);
@@ -2951,13 +3164,18 @@ async function sendAgentMessage(agentId) {
                                     AgentStatusIndicator.update('thinking', agentId);
                                 }
                                 
-                                // Create thinking bubble if doesn't exist
+                                // Create thinking bubble if doesn't exist - USING PRIME STRUCTURE
                                 if (!thinkingBubble) {
-                                    console.log(`[Agent ${agentId}] Creating thinking bubble...`);
+                                    console.log(`[Agent ${agentId}] Creating thinking bubble with Prime structure...`);
+                                    
+                                    // Remove processing indicator when first bubble appears
+                                    removeProcessingIndicator(agentId);
+                                    
                                     thinkingBubble = document.createElement('div');
-                                    thinkingBubble.className = 'ai-message assistant thinking-bubble';
+                                    thinkingBubble.className = 'ai-message assistant';  // ✅ Same as Prime (no extra classes)
                                     thinkingBubble.dataset.agentId = agentId;
                                     thinkingBubble.dataset.threadSlug = streamThreadSlug;
+                                    thinkingBubble.setAttribute('data-raw-content', '');  // ✅ Same as Prime
                                     
                                     // Header with BRAIN avatar (PURPLE)
                                     const headerDiv = document.createElement('div');
@@ -3034,6 +3252,9 @@ async function sendAgentMessage(agentId) {
                                 thinkingBubble._fullThinkingText += thinkingText;
                                 fullThinkingContent += thinkingText;
                                 
+                                // ✅ UPDATE RAW CONTENT ATTRIBUTE (SAME AS PRIME)
+                                thinkingBubble.setAttribute('data-raw-content', thinkingBubble._fullThinkingText);
+                                
                                 // Render markdown
                                 const thinkingContent = thinkingBubble.querySelector('.ai-message-content');
                                 if (thinkingContent) {
@@ -3066,12 +3287,16 @@ async function sendAgentMessage(agentId) {
                                 AgentStatusIndicator.update('tool-running', agentId);
                             }
                             
-                            // Create tool bubble
+                            // Remove processing indicator when first bubble appears
+                            removeProcessingIndicator(agentId);
+                            
+                            // Create tool bubble - USING PRIME STRUCTURE
                             const toolBubble = document.createElement('div');
-                            toolBubble.className = 'ai-message assistant tool-bubble';
+                            toolBubble.className = 'ai-message tool';  // ✅ Same as Prime (use 'tool' role)
                             toolBubble.setAttribute('data-tool-id', toolId);
                             toolBubble.dataset.agentId = agentId;
                             toolBubble.dataset.threadSlug = streamThreadSlug;
+                            toolBubble.setAttribute('data-raw-content', '');  // ✅ Same as Prime
                             
                             // Header with COG avatar (YELLOW)
                             const headerDiv = document.createElement('div');
@@ -3152,16 +3377,20 @@ async function sendAgentMessage(agentId) {
                                 }
                             }
                             
+                            // Remove processing indicator when first bubble appears
+                            removeProcessingIndicator(agentId);
+                            
                             // Create SEPARATE tool result bubble
                             const isError = data.is_error || !data.success;
                             const resultText = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
                             const rawResult = data.result || '';
                             
                             const toolResultBubble = document.createElement('div');
-                            toolResultBubble.className = 'ai-message assistant tool-result-bubble';
+                            toolResultBubble.className = 'ai-message tool';  // ✅ Same as Prime (use 'tool' role)
                             toolResultBubble.setAttribute('data-tool-result-id', toolId);
                             toolResultBubble.dataset.agentId = agentId;
                             toolResultBubble.dataset.threadSlug = streamThreadSlug;
+                            toolResultBubble.setAttribute('data-raw-content', resultText);  // ✅ Same as Prime
                             
                             // Header with white flag icon
                             const headerDiv = document.createElement('div');
@@ -3282,24 +3511,34 @@ async function sendAgentMessage(agentId) {
                             fullResponse += data.text;
                             lastEventType = 'content_delta';
                             
-                            // Create text bubble if doesn't exist
+                            // ✅ UPDATE RAW CONTENT ATTRIBUTE (SAME AS PRIME)
+                            if (textBubble) {
+                                textBubble.setAttribute('data-raw-content', fullResponse);
+                            }
+                            
+                            // Create text bubble if doesn't exist - USING PRIME STRUCTURE
                             if (!textBubble) {
-                                console.log(`[Agent ${agentId}] Creating text bubble...`);
+                                console.log(`[Agent ${agentId}] Creating text bubble with Prime structure...`);
+                                
+                                // Remove processing indicator when first bubble appears
+                                removeProcessingIndicator(agentId);
+                                
                                 textBubble = document.createElement('div');
-                                textBubble.className = 'ai-message assistant text-bubble';
+                                textBubble.className = 'ai-message assistant';  // ✅ Same as Prime
                                 textBubble.dataset.agentId = agentId;
                                 textBubble.dataset.threadSlug = streamThreadSlug;
+                                textBubble.setAttribute('data-raw-content', '');  // ✅ Same as Prime
                                 
-                                // Header with AGENT ICON
+                                // Header with ATOM ICON (SAME AS PRIME)
                                 const headerDiv = document.createElement('div');
-                                headerDiv.className = 'ai-message-header';
+                                headerDiv.className = 'ai-message-header';  // ✅ Same as Prime
                                 
                                 const avatar = document.createElement('div');
-                                avatar.className = 'ai-message-avatar';
-                                avatar.innerHTML = `<i class="fas ${MultiAgent.getAgentIcon(agentId)}"></i>`;
+                                avatar.className = 'ai-message-avatar';  // ✅ Same as Prime
+                                avatar.innerHTML = '<i class="fa-solid fa-atom"></i>';  // ✅ Same as Prime
                                 
                                 const toggleBtn = document.createElement('button');
-                                toggleBtn.className = 'ai-message-toggle';
+                                toggleBtn.className = 'ai-message-toggle';  // ✅ Same as Prime
                                 toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
                                 toggleBtn.title = 'Collapse/Expand message';
                                 toggleBtn.addEventListener('click', (e) => {
@@ -3310,14 +3549,14 @@ async function sendAgentMessage(agentId) {
                                 headerDiv.appendChild(avatar);
                                 headerDiv.appendChild(toggleBtn);
                                 
-                                // Copy buttons
+                                // Copy buttons (SAME AS PRIME)
                                 const actionsDiv = document.createElement('div');
-                                actionsDiv.className = 'ai-message-actions';
+                                actionsDiv.className = 'ai-message-actions';  // ✅ Same as Prime
                                 
                                 const copyBtn = document.createElement('button');
-                                copyBtn.className = 'ai-message-copy-btn';
+                                copyBtn.className = 'ai-message-copy-btn';  // ✅ Same as Prime
                                 copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                                copyBtn.title = 'Copy message';
+                                copyBtn.title = 'Copy rendered text';
                                 copyBtn.addEventListener('click', (e) => {
                                     e.stopPropagation();
                                     const content = textBubble.querySelector('.ai-message-content').textContent;
@@ -3329,13 +3568,15 @@ async function sendAgentMessage(agentId) {
                                     });
                                 });
                                 
+                                // ✅ RAW COPY BUTTON (SAME AS PRIME) - uses data-raw-content attribute
                                 const copyRawBtn = document.createElement('button');
                                 copyRawBtn.className = 'ai-message-copy-btn';
                                 copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
-                                copyRawBtn.title = 'Copy raw markdown';
+                                copyRawBtn.title = 'Copy raw content';
                                 copyRawBtn.addEventListener('click', (e) => {
                                     e.stopPropagation();
-                                    navigator.clipboard.writeText(fullResponse).then(() => {
+                                    const rawContent = textBubble.getAttribute('data-raw-content') || fullResponse;
+                                    navigator.clipboard.writeText(rawContent).then(() => {
                                         copyRawBtn.innerHTML = '<i class="fas fa-check"></i>';
                                         setTimeout(() => {
                                             copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
@@ -3393,10 +3634,31 @@ async function sendAgentMessage(agentId) {
                         }
 
                     } catch (e) {
-                        console.error(`[Agent ${agentId}] Parse error:`, e);
+                        // ISOLATION FIX: Only increment error count for THIS agent
+                        threadErrorCount++;
+                        console.error(`[Agent ${agentId}] SSE parse error (${threadErrorCount}/${maxThreadErrors}):`, e);
+                        
+                        // If too many errors in THIS agent, stop THIS agent only
+                        if (threadErrorCount >= maxThreadErrors) {
+                            threadFailed = true;
+                            console.error(`[Agent ${agentId}] Thread failed after ${maxThreadErrors} errors - stopping THIS agent only`);
+                            break;  // Exit line loop
+                        }
+                        // Otherwise continue - don't let one bad event break the whole stream
                     }
                 }
+                
+                // If thread failed, break outer message loop too
+                if (threadFailed) {
+                    console.error(`[Agent ${agentId}] Exiting stream reader for failed thread`);
+                    break;
+                }
             }
+        }
+
+        // Thread-specific cleanup
+        if (threadFailed) {
+            addAgentMessage(agentId, 'ai', ` Thread error: Too many parse errors. Please try again.`);
         }
 
         console.log(`[Agent ${agentId}] Stream complete. Response length: ${fullResponse.length}`);
@@ -3499,21 +3761,14 @@ async function sendAgentMessage(agentId) {
                 });
             }
 
-            // Add AI message to MessageStore (centralized storage)
-            await window.MessageStore.addMessage(threadForSaving.id, {
-                role: 'assistant',
-                content: fullContent.length > 0 ? fullContent : fullResponse,
-                timestamp: new Date().toISOString(),
-                response_time: responseTime,
-                thinking: fullThinkingContent,
-                tools_used: toolsUsed.length
-            }, {
-                checkDuplicates: true,
-                syncToBackend: false
-            });
-            console.log(`📦 [MessageStore] Assistant response saved to thread ${threadForSaving.id}`);
-
-            console.log(`[Agent ${agentId}] Saved to thread: ${threadForSaving.title} (${toolsUsed.length} tools used, thinking: ${fullThinkingContent ? 'yes' : 'no'})`);
+            // ========================================================================
+            // CRITICAL FIX (Nov 22, 2025): DO NOT create message independently!
+            // Backend already sent complete conversation via 'conversation_sync' event
+            // MessageStore was synced from backend's authoritative conversation_history
+            // Creating message here would race with backend's data → corruption
+            // ========================================================================
+            console.log(`[Agent ${agentId}] ✅ [SYNC] Message already synced via conversation_sync event`);
+            console.log(`[Agent ${agentId}] 📊 Stream summary: ${toolsUsed.length} tools, thinking: ${fullThinkingContent ? 'yes' : 'no'}, text length: ${fullResponse.length}`);
 
             // Update thread timestamp to NOW (actual last activity)
             threadForSaving.updated = new Date().toISOString();
@@ -3530,32 +3785,109 @@ async function sendAgentMessage(agentId) {
                 console.log(`[Agent ${agentId}] Updated quick-nav badge`);
             }
 
-            // CRITICAL: Save thread to backend (sync MessageStore → Backend)
+            // CRITICAL: Save thread to backend using backend's synced conversation
+            // Use thread.messages (synced from conversation_sync) instead of MessageStore.getMessages()
+            // This ensures we save backend's authoritative data, not frontend-accumulated data
             console.log(`[Agent ${agentId}] Saving thread to backend...`);
             try {
-                // Get all messages from MessageStore for this thread
-                const allMessages = window.MessageStore.getMessages(threadForSaving.id);
+                // FIXED: Use ThreadManager.getThreadByAgent() instead of AppState lookup
+                const thread = ThreadManager.getThreadByAgent(agentName);
                 
-                // Update thread object with messages
-                threadForSaving.messages = allMessages;
-                threadForSaving.message_count = allMessages.length;
-                threadForSaving.updated = new Date().toISOString();
-                
-                // Save to backend via ThreadManager
-                const saveSuccess = await ThreadManager.saveThreadToBackend(threadForSaving);
-                
-                if (saveSuccess) {
-                    console.log(`[Agent ${agentId}] ✅ Thread saved to backend: ${allMessages.length} messages`);
+                if (thread && thread.messages) {
+                    // Use backend's conversation (from conversation_sync event)
+                    threadForSaving.messages = thread.messages;
+                    threadForSaving.message_count = thread.messages.length;
+                    threadForSaving.updated = new Date().toISOString();
+                    
+                    console.log(`[Agent ${agentId}] 📤 [SAVE] Backend's conversation: ${thread.messages.length} messages`);
+                    
+                    // ✅ BACKEND AUTO-SAVE: Backend saves messages after stream completion
+                    // Frontend should NOT save - backend already persisted to sessions.messages
+                    console.log(`[Agent ${agentId}] ✅ [SAVE] Messages already saved by backend (auto-save after stream)`);
+                    console.log(`[Agent ${agentId}] ℹ️ [SAVE] Frontend does not save - backend is single source of truth`);
                 } else {
-                    console.warn(`[Agent ${agentId}] ⚠️ Failed to save thread to backend`);
+                    console.error(`[Agent ${agentId}] ❌ [SAVE] Thread or messages not found via ThreadManager - cannot save`);
                 }
             } catch (saveError) {
-                console.error(`[Agent ${agentId}] ❌ Error saving thread:`, saveError);
+                console.error(`[Agent ${agentId}] ❌ [SAVE] Error saving thread:`, saveError);
             }
         }
 
     } catch (error) {
         console.error(`[Agent ${agentId}] Error:`, error);
+
+        // CRITICAL: Attempt auto-recovery with ErrorRecoveryManager FIRST
+        if (window.ErrorRecoveryManager && error.message) {
+            const errorMsg = error.message.toLowerCase();
+            const isRecoverable = errorMsg.includes('invalid_request_error') ||
+                                 errorMsg.includes('tool_use_id') ||
+                                 errorMsg.includes('first block must be') ||
+                                 errorMsg.includes('thinking') ||
+                                 errorMsg.includes('rate limit') ||
+                                 errorMsg.includes('context_length') ||
+                                 errorMsg.includes('prompt is too long') ||
+                                 errorMsg.includes('overloaded');
+
+            // DETAILED LOGGING FOR ERROR RECOVERY DEBUGGING
+            console.group(`🔴 ERROR RECOVERY SYSTEM TRIGGERED - Agent ${agentId}`);
+            console.log('📍 Location: Agent Chat System');
+            console.log('🤖 Agent ID:', agentId);
+            console.log('⚠️ Error Object:', error);
+            console.log('📝 Error Message:', error.message);
+            console.log('🔍 Error Type:', error.name);
+            console.log('🎯 Is Recoverable:', isRecoverable);
+            console.log('📦 Request Payload:', requestBody);
+            console.log('🧵 Thread Slug:', threadSlug);
+            console.log('⏰ Timestamp:', new Date().toISOString());
+            console.groupEnd();
+
+            if (isRecoverable) {
+                // Check if auto-recovery is enabled in settings
+                const recoveryEnabled = typeof window.isErrorRecoveryEnabled === 'function' 
+                    ? window.isErrorRecoveryEnabled(errorType) 
+                    : true;
+                
+                if (!recoveryEnabled) {
+                    console.log(`[Agent ${agentId}] ⛔ Auto-recovery disabled in settings - skipping recovery`);
+                    throw error; // Rethrow to show error normally
+                }
+                
+                console.log(`[Agent ${agentId}] Attempting auto-recovery...`);
+                
+                try {
+                    // Create recovery manager
+                    const recoveryManager = new ErrorRecoveryManager(
+                        `agent-${agentId}`,
+                        threadForSaving.id,
+                        agentId
+                    );
+
+                    // Attempt recovery with original request payload
+                    const recoveryResponse = await recoveryManager.handleError(error, requestBody);
+
+                    // If recovery succeeded
+                    if (recoveryResponse) {
+                        console.log(`[Agent ${agentId}] Auto-recovery successful!`);
+                        
+                        // Show recovery log
+                        const recoveryLog = recoveryManager.exportRecoveryLog();
+                        console.log(`=== RECOVERY LOG (Agent ${agentId}) ===\\n` + recoveryLog);
+                        
+                        // Show success notification
+                        if (typeof showNotification === 'function') {
+                            showNotification(`Agent ${getAgentName(agentId)}: Auto-recovery successful`, 'success');
+                        }
+                        
+                        // Exit - recovery handled resubmission
+                        return;
+                    }
+                } catch (recoveryError) {
+                    console.error(`[Agent ${agentId}] Auto-recovery failed:`, recoveryError);
+                    // Fall through to normal error handling
+                }
+            }
+        }
+
         addAgentMessage(agentId, 'ai', ` Error: ${error.message}`);
         updateAgentStatus(agentId, 'error', 'Error');
         if (typeof AgentStatusIndicator !== 'undefined') {
@@ -3646,12 +3978,14 @@ function handleAgentStreamEvent(agentId, data, bubble) {
  * Render loaded assistant message with structured content (thinking, tool_use, tool_result, text blocks)
  * This recreates the bubble structure as if it was streamed live
  */
-function renderStructuredAgentMessage(agentId, messageContent) {
+function renderStructuredAgentMessage(agentId, messageContent, threadId = null) {
     const container = document.getElementById(`agent-messages-${agentId}`);
     if (!container) {
         console.error(`Container agent-messages-${agentId} not found`);
         return;
     }
+    
+    const threadSlug = threadId || 'unknown';
 
     console.log(`[Render Structured] Agent ${agentId}, ${messageContent.length} blocks`);
 
@@ -3661,6 +3995,8 @@ function renderStructuredAgentMessage(agentId, messageContent) {
             // Create thinking bubble
             const thinkingBubble = document.createElement('div');
             thinkingBubble.className = 'ai-message assistant thinking-bubble collapsed';
+            thinkingBubble.dataset.agentId = agentId;
+            thinkingBubble.dataset.threadSlug = threadSlug;
 
             const headerDiv = document.createElement('div');
             headerDiv.className = 'ai-message-header';
@@ -3728,6 +4064,8 @@ function renderStructuredAgentMessage(agentId, messageContent) {
             const toolBubble = document.createElement('div');
             toolBubble.className = 'ai-message assistant tool-bubble collapsed tool-status-complete';
             toolBubble.setAttribute('data-tool-id', toolId);
+            toolBubble.dataset.agentId = agentId;
+            toolBubble.dataset.threadSlug = threadSlug;
 
             const headerDiv = document.createElement('div');
             headerDiv.className = 'ai-message-header';
@@ -3792,50 +4130,130 @@ function renderStructuredAgentMessage(agentId, messageContent) {
             console.log(`[OK] Rendered tool_use bubble: ${toolName}`);
 
         } else if (block.type === 'tool_result') {
-            // Find corresponding tool bubble and add result
+            // Create SEPARATE tool result bubble (matching Prime AI and streaming behavior)
             const toolId = block.tool_use_id;
             const isError = block.is_error || false;
             const resultContent = block.content || '';
 
+            // Update original tool bubble avatar to green (complete)
             const toolBubble = container.querySelector(`[data-tool-id="${toolId}"]`);
             if (toolBubble) {
-                // Update status class
                 toolBubble.classList.remove('tool-status-running', 'tool-status-complete', 'tool-status-error');
                 toolBubble.classList.add(isError ? 'tool-status-error' : 'tool-status-complete');
-
-                // Add result section
-                const contentDiv = toolBubble.querySelector('.ai-message-content');
-                const resultDiv = document.createElement('details');
-                resultDiv.className = 'tool-result-details';
-                resultDiv.setAttribute('open', '');
-
-                const summary = document.createElement('summary');
-                summary.innerHTML = `<strong>${isError ? 'Error' : 'Result'}</strong>`;
-                resultDiv.appendChild(summary);
-
-                const resultText = document.createElement('pre');
-                resultText.style.cssText = 'margin-top: 8px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 6px; overflow-x: auto; font-size: 12px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word;';
-                resultText.textContent = resultContent;
-                resultDiv.appendChild(resultText);
-
-                contentDiv.appendChild(resultDiv);
-
-                console.log(`[OK] Added tool_result to bubble ${toolId} (${isError ? 'ERROR' : 'SUCCESS'})`);
-            } else {
-                console.warn(`[WARN] Tool bubble ${toolId} not found for result`);
+                const avatar = toolBubble.querySelector('.ai-message-avatar');
+                if (avatar) {
+                    avatar.style.background = isError ? '#ef4444' : '#10b981'; // Red or Green
+                }
             }
 
+            // Create SEPARATE tool-result-bubble
+            const toolResultBubble = document.createElement('div');
+            toolResultBubble.className = 'ai-message assistant tool-result-bubble collapsed';
+            toolResultBubble.setAttribute('data-tool-result-id', toolId);
+            toolResultBubble.dataset.agentId = agentId;
+            toolResultBubble.dataset.threadSlug = threadSlug;
+
+            // Header with white flag icon
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'ai-message-header';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'ai-message-avatar';
+            avatar.style.background = isError ? '#ef4444' : '#60A5FA'; // Red for error, Blue for success
+            avatar.innerHTML = '<i class="fas fa-flag" style="color: white; font-size: 14px;"></i>';
+
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'ai-message-toggle';
+            toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            toggleBtn.title = 'Collapse/Expand result';
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toolResultBubble.classList.toggle('collapsed');
+            });
+
+            headerDiv.appendChild(avatar);
+            headerDiv.appendChild(toggleBtn);
+
+            // Copy buttons
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'ai-message-actions';
+
+            // Copy formatted button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'ai-message-copy-btn';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            copyBtn.title = 'Copy result';
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const content = toolResultBubble.querySelector('.ai-message-content').textContent;
+                navigator.clipboard.writeText(content).then(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000);
+                });
+            });
+
+            // Copy raw button
+            const copyRawBtn = document.createElement('button');
+            copyRawBtn.className = 'ai-message-copy-btn';
+            copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+            copyRawBtn.title = 'Copy raw result';
+            copyRawBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(resultContent).then(() => {
+                    copyRawBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => { copyRawBtn.innerHTML = '<i class="fas fa-code"></i>'; }, 2000);
+                });
+            });
+
+            actionsDiv.appendChild(copyBtn);
+            actionsDiv.appendChild(copyRawBtn);
+            headerDiv.appendChild(actionsDiv);
+
+            // Content
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ai-message-content';
+
+            // Format result nicely
+            let formattedResult = resultContent;
+            try {
+                const parsed = JSON.parse(resultContent);
+                formattedResult = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                // Keep as-is if not JSON
+            }
+
+            const toolName = toolBubble ? toolBubble.querySelector('.ai-message-content')?.textContent.match(/Tool:\s*(.+)/)?.[1] : 'Unknown';
+
+            contentDiv.innerHTML = `
+                <div style="margin-bottom: 8px; color: ${isError ? '#ef4444' : '#60A5FA'};">
+                    <strong><i class="fas ${isError ? 'fa-times-circle' : 'fa-check-circle'}"></i> Tool Result: ${toolName}</strong>
+                </div>
+                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; max-height: 400px; overflow-y: auto;">${formattedResult}</pre>
+            `;
+
+            toolResultBubble.appendChild(headerDiv);
+            toolResultBubble.appendChild(contentDiv);
+            container.appendChild(toolResultBubble);
+
+            console.log(`[OK] Rendered SEPARATE tool-result-bubble for ${toolId} (${isError ? 'ERROR' : 'SUCCESS'})`);
+
         } else if (block.type === 'text') {
-            // Create text bubble
+            // Create text bubble (matching streaming behavior)
             const textBubble = document.createElement('div');
-            textBubble.className = 'ai-message assistant';
+            textBubble.className = 'ai-message assistant text-bubble';
+            textBubble.dataset.agentId = agentId;
+            textBubble.dataset.threadSlug = threadSlug;
+
+            // Extract text content
+            const textContent = block.text || block.content || '';
+            textBubble.dataset.rawMarkdown = textContent;
 
             const headerDiv = document.createElement('div');
             headerDiv.className = 'ai-message-header';
 
             const avatar = document.createElement('div');
             avatar.className = 'ai-message-avatar';
-            avatar.innerHTML = '<i class="fa-solid fa-atom"></i>';
+            avatar.innerHTML = `<i class="fas ${MultiAgent.getAgentIcon(agentId)}"></i>`;
 
             const toggleBtn = document.createElement('button');
             toggleBtn.className = 'ai-message-toggle';
@@ -3852,10 +4270,11 @@ function renderStructuredAgentMessage(agentId, messageContent) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'ai-message-actions';
 
+            // Copy formatted button
             const copyBtn = document.createElement('button');
             copyBtn.className = 'ai-message-copy-btn';
             copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            copyBtn.title = 'Copy';
+            copyBtn.title = 'Copy message';
             copyBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const content = textBubble.querySelector('.ai-message-content').textContent;
@@ -3865,12 +4284,25 @@ function renderStructuredAgentMessage(agentId, messageContent) {
                 });
             });
 
+            // Copy raw markdown button
+            const copyRawBtn = document.createElement('button');
+            copyRawBtn.className = 'ai-message-copy-btn';
+            copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
+            copyRawBtn.title = 'Copy raw markdown';
+            copyRawBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(textContent).then(() => {
+                    copyRawBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => { copyRawBtn.innerHTML = '<i class="fas fa-code"></i>'; }, 2000);
+                });
+            });
+
             actionsDiv.appendChild(copyBtn);
+            actionsDiv.appendChild(copyRawBtn);
             headerDiv.appendChild(actionsDiv);
 
             const contentDiv = document.createElement('div');
             contentDiv.className = 'ai-message-content';
-            const textContent = block.text || block.content || '';
             if (window.marked) {
                 try {
                     contentDiv.innerHTML = marked.parse(textContent, { breaks: true, gfm: true });
@@ -4282,9 +4714,7 @@ document.addEventListener('click', (e) => {
 
 // ==================== EXPOSE TO GLOBAL SCOPE ====================
 // Required for main app initialization
-if (typeof initMultiAgent !== 'undefined') {
-    window.initMultiAgent = initMultiAgent;
-    console.log('✅ [AGENT-JS] initMultiAgent exported to window scope');
-} else {
-    console.error('❌ [AGENT-JS] initMultiAgent function not found!');
-}
+window.initMultiAgent = initMultiAgent;
+window.MultiAgent = MultiAgent;
+console.log('✅ [AGENT-JS] Module loaded successfully - initMultiAgent and MultiAgent exported to window scope');
+console.log(`✅ [AGENT-JS] File size: ${document.currentScript?.src || 'unknown'} - ready for initialization`);

@@ -1,5 +1,6 @@
 """
 Add Business Hours Tracking to Kanban Analytics
+from shared.database_utils import convert_sql_placeholders
 
 Adds two new columns to stage_transitions:
 - business_hours: Time in business hours only (Mon-Fri 8am-6pm)

@@ -163,7 +163,11 @@ const ThreadManager = {
         // Modules that extend ThreadManager directly via Object.assign
         // (Assignment, CRUD, Messages, Interactions)
         // These don't have separate globals - they add methods to window.ThreadManager
-        const directExtensions = ['assignThread', 'createThread', 'saveMessagesToBackend', 'toggleThreadMenu'];
+                // Setup drag/drop zones for agent columns and Prime (called after agents load)
+        const directExtensions = [
+            'assignThread', 'createThread', 'saveMessagesToBackend', 'toggleThreadMenu', 
+            'setupPrimeDropZone', 'handleThreadDoubleClick', 'handleDragStart', 'handleDragEnd', 'handleDrop'
+        ];
         const missingMethods = directExtensions.filter(method => typeof this[method] !== 'function');
 
         if (missingMethods.length > 0) {
@@ -315,7 +319,16 @@ const ThreadManager = {
             return;
         }
 
-        // Find first thread that belongs in Prime
+        // PRIORITY 1: Check for prime-loaded thread (explicit startup thread)
+        const primeLoadedThread = this.threads.find(t => t.location === 'prime-loaded');
+        
+        if (primeLoadedThread) {
+            console.log(`🎯 [ThreadManager] Auto-loading PRIME-LOADED thread: ${primeLoadedThread.title}`);
+            await this.loadThreadInPrime(primeLoadedThread.id);
+            return;
+        }
+
+        // PRIORITY 2: Find first thread that belongs in Prime (fallback)
         const primeThread = this.threads.find(t => !t.location || t.location === 'prime');
 
         if (primeThread) {
@@ -328,6 +341,12 @@ const ThreadManager = {
     },
 
     startAutoSave() {
+        // ⚠️ AUTO-SAVE DISABLED (Nov 22, 2025)
+        // Backend now auto-saves messages after stream completion
+        // Frontend auto-save was causing phantom threads via UPSERT
+        console.log('ℹ️ [ThreadManager] Auto-save disabled - backend handles saves');
+        
+        /* DEPRECATED: Frontend auto-save removed
         if (this.autoSaveInterval) {
             clearInterval(this.autoSaveInterval);
         }
@@ -344,6 +363,7 @@ const ThreadManager = {
         }, 60000);
 
         console.log('✅ [ThreadManager] Auto-save enabled (60s interval)');
+        */
     },
 
     stopAutoSave() {

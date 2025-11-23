@@ -2,6 +2,7 @@
 Microsoft OAuth 2.0 Authentication Routes
 Handles Microsoft 365 authentication via Azure AD
 """
+from shared.database_utils import convert_sql_placeholders
 
 from flask import Blueprint, request, jsonify, session, redirect
 from datetime import datetime, timedelta
@@ -158,16 +159,18 @@ def microsoft_callback():
         cursor = conn.cursor()
         
         # Check if credentials exist
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT id FROM user_platform_credentials
             WHERE user_id = ? AND platform = ?
         ''', (user_id, 'microsoft'))
+
+        cursor.execute(sql, params)
         
         existing = cursor.fetchone()
         
         if existing:
             # Update existing credentials
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 UPDATE user_platform_credentials
                 SET access_token = ?,
                     refresh_token = ?,
@@ -254,6 +257,8 @@ def refresh_microsoft_token():
         FROM user_platform_credentials
         WHERE user_id = ? AND platform = ?
     ''', (user_id, 'microsoft'))
+
+            cursor.execute(sql, params)
     
     result = cursor.fetchone()
     conn.close()
@@ -292,7 +297,7 @@ def refresh_microsoft_token():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             UPDATE user_platform_credentials
             SET access_token = ?,
                 refresh_token = ?,
@@ -354,6 +359,9 @@ def microsoft_auth_status():
         FROM user_platform_credentials
         WHERE user_id = ? AND platform = ?
     ''', (user_id, 'microsoft'))
+
+        
+        cursor.execute(sql, params)
     
     result = cursor.fetchone()
     conn.close()
@@ -399,10 +407,13 @@ def revoke_microsoft_auth():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         DELETE FROM user_platform_credentials
         WHERE user_id = ? AND platform = ?
     ''', (user_id, 'microsoft'))
+
+    
+    cursor.execute(sql, params)
     
     deleted_count = cursor.rowcount
     conn.commit()
@@ -427,11 +438,14 @@ def get_microsoft_access_token(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         SELECT access_token, refresh_token, token_expiry
         FROM user_platform_credentials
         WHERE user_id = ? AND platform = ?
     ''', (user_id, 'microsoft'))
+
+    
+    cursor.execute(sql, params)
     
     result = cursor.fetchone()
     conn.close()

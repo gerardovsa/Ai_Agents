@@ -1,6 +1,7 @@
 """
 Stock Management API Routes - SQLite Stock Database
 ========================================================================
+from shared.database_utils import convert_sql_placeholders
 
 This module provides Flask API endpoints for the Stock Management module.
 Uses SQLite database (stock_data.db) with AI-extracted job data.

@@ -1,6 +1,7 @@
 """
 Stock Database Tools - Read/Write operations for AI agents
 ===========================================================
+from shared.database_utils import convert_sql_placeholders
 
 Provides tool functions for AI agents to interact with stock databases:
 - Read operations: Query stock levels, schemas, transactions
@@ -374,7 +375,9 @@ class StockDatabaseTools:
             cursor = conn.cursor()
             
             # Get current level
-            cursor.execute("SELECT CurrentStockLevel FROM StockLevels WHERE StockID = ?", (stock_id,))
+            sql, params = convert_sql_placeholders("SELECT CurrentStockLevel FROM StockLevels WHERE StockID = ?", (stock_id,))
+
+            cursor.execute(sql, params)
             row = cursor.fetchone()
             
             if not row:
@@ -388,42 +391,53 @@ class StockDatabaseTools:
             quantity_change = new_level - old_level
             
             # Update stock level
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE StockLevels 
                 SET CurrentStockLevel = ?,
                     LastUpdated = CURRENT_TIMESTAMP
                 WHERE StockID = ?
             """, (new_level, stock_id))
+
+            cursor.execute(sql, params)
             
             # Create transaction record
             transaction_type = "ADJUSTMENT" if quantity_change >= 0 else "CONSUMPTION"
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO StockTransactions 
                 (StockID, TransactionType, QuantityChange, TransactionDate, Reason, Reference)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
             """, (stock_id, transaction_type, quantity_change, reason, reference))
+
+            
+            cursor.execute(sql, params)
             
             transaction_id = cursor.lastrowid
             
             # Check if reorder alert needed
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT CriticalLevel, ReorderPoint 
                 FROM StockLevels 
                 WHERE StockID = ?
             """, (stock_id,))
+
+            cursor.execute(sql, params)
             critical, reorder = cursor.fetchone()
             
             if new_level <= (critical or 500):
-                cursor.execute("""
+                sql, params = convert_sql_placeholders("""
                     INSERT INTO ReorderAlerts (StockID, AlertLevel, CurrentLevel, ReorderPoint, IsAcknowledged)
                     VALUES (?, 'CRITICAL', ?, ?, 0)
                 """, (stock_id, new_level, critical))
+
+                cursor.execute(sql, params)
             elif new_level <= (reorder or 1000):
-                cursor.execute("""
+                sql, params = convert_sql_placeholders("""
                     INSERT INTO ReorderAlerts (StockID, AlertLevel, CurrentLevel, ReorderPoint, IsAcknowledged)
                     VALUES (?, 'WARNING', ?, ?, 0)
                 """, (stock_id, new_level, reorder))
+
+                cursor.execute(sql, params)
             
             conn.commit()
             conn.close()
@@ -465,11 +479,14 @@ class StockDatabaseTools:
             conn = self._connect_temp()
             cursor = conn.cursor()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO StockTransactions 
                 (StockID, TransactionType, QuantityChange, TransactionDate, Reason, Reference)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
             """, (stock_id, transaction_type, quantity_change, reason, reference))
+
+            
+            cursor.execute(sql, params)
             
             transaction_id = cursor.lastrowid
             
@@ -505,13 +522,16 @@ class StockDatabaseTools:
             conn = self._connect_temp()
             cursor = conn.cursor()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE ReorderAlerts 
                 SET IsAcknowledged = 1,
                     AcknowledgedDate = CURRENT_TIMESTAMP,
                     AcknowledgedBy = ?
                 WHERE AlertID = ?
             """, (resolution_notes or 'System', alert_id))
+
+            
+            cursor.execute(sql, params)
             
             if cursor.rowcount == 0:
                 conn.close()

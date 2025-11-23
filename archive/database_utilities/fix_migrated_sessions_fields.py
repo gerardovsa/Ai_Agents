@@ -4,6 +4,7 @@ Fix the 5 migrated sessions - convert title to name in documents/links
 import sqlite3
 import json
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 root_dir = Path(__file__).parent
 db_path = root_dir / 'data' / 'synergy_sessions.db'
@@ -25,7 +26,9 @@ print("\n=== FIXING MIGRATED SESSIONS ===\n")
 fixed_count = 0
 
 for session_id in migrated_ids:
-    cursor.execute('SELECT documents, links FROM synergy_sessions WHERE session_id = ?', (session_id,))
+    sql, params = convert_sql_placeholders('SELECT documents, links FROM synergy_sessions WHERE session_id = ?', (session_id,))
+
+    cursor.execute(sql, params)
     row = cursor.fetchone()
     
     if not row:

@@ -4,6 +4,7 @@ Sync Synergy Thread Links (One-Time Operation)
 Syncs thread_ids in synergy_sessions to match synergy_card_id in threads.
 Safe operation - only updates synergy_sessions, never touches threads table.
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import json

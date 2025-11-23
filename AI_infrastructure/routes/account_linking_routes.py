@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import database utility with auto-detection
 from shared.database_utils import (
+    convert_sql_placeholders,
     get_ai_infrastructure_connection, 
     is_using_supabase,
     adapt_sql_for_database
@@ -169,7 +170,7 @@ def get_link_status():
             return jsonify({'success': False, 'error': 'User not found'}), 404
         
         # Get linked accounts
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT 
                 u.email,
                 upc.platform,
@@ -182,16 +183,20 @@ def get_link_status():
             AND ual.link_status = 'confirmed'
             GROUP BY u.email
         ''', (user_id,))
+
+        cursor.execute(sql, params)
         linked_accounts = [dict(row) for row in cursor.fetchall()]
         
         # Get pending link requests
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT target_email, created_at, status
             FROM ai_infrastructure.account_link_requests
             WHERE user_id = %s
             AND status = 'pending'
             AND expires_at > CURRENT_TIMESTAMP
         ''', (user_id,))
+
+        cursor.execute(sql, params)
         pending_links = [dict(row) for row in cursor.fetchall()]
         
         conn.close()
@@ -296,20 +301,24 @@ def confirm_link():
             return jsonify({'success': False, 'error': 'Invalid link token'}), 400
         
         # Check if already linked
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT id FROM ai_infrastructure.user_account_links
             WHERE primary_user_id = %s AND linked_user_id = %s
         ''', (primary_user_id, secondary_user_id))
+
+        cursor.execute(sql, params)
         
         if cursor.fetchone():
             return jsonify({'success': False, 'error': 'Accounts already linked'}), 400
         
         # Create link
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO ai_infrastructure.user_account_links 
             (primary_user_id, linked_user_id, linked_email, link_type, link_status, link_token, confirmed_at)
             VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         ''', (primary_user_id, secondary_user_id, secondary_email, 'oauth', 'confirmed', link_token))
+
+        cursor.execute(sql, params)
         
         # Mark secondary account as non-primary
         cursor.execute('UPDATE ai_infrastructure.users SET is_primary = 0 WHERE id = %s', (secondary_user_id,))
@@ -374,10 +383,12 @@ def unlink_account():
         linked_user_id = linked_user['id']
         
         # Delete link
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             DELETE FROM ai_infrastructure.user_account_links
             WHERE primary_user_id = %s AND linked_user_id = %s
         ''', (user_id, linked_user_id))
+
+        cursor.execute(sql, params)
         
         if cursor.rowcount == 0:
             return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -442,11 +453,13 @@ def set_primary_email():
         new_primary_id = new_primary_user['id']
         
         # Verify they're linked
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT id FROM ai_infrastructure.user_account_links
             WHERE (primary_user_id = %s AND linked_user_id = %s)
             OR (primary_user_id = %s AND linked_user_id = %s)
         ''', (user_id, new_primary_id, new_primary_id, user_id))
+
+        cursor.execute(sql, params)
         
         if not cursor.fetchone():
             return jsonify({'success': False, 'error': 'Accounts not linked'}), 400
@@ -456,11 +469,13 @@ def set_primary_email():
         cursor.execute('UPDATE ai_infrastructure.users SET is_primary = 1 WHERE id = %s', (new_primary_id,))
         
         # Update all links to point to new primary
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             UPDATE ai_infrastructure.user_account_links
             SET primary_user_id = %s, linked_user_id = %s
             WHERE primary_user_id = %s AND linked_user_id = %s
         ''', (new_primary_id, user_id, user_id, new_primary_id))
+
+        cursor.execute(sql, params)
         
         # Migrate data to new primary
         migrate_user_data(cursor, user_id, new_primary_id)
@@ -495,9 +510,11 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
     try:
         # Migrate chat threads (if table exists)
         try:
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 UPDATE sessions.threads SET user_id = %s WHERE user_id = %s
             ''', (to_user_id, from_user_id))
+
+            cursor.execute(sql, params)
             logger.info(f"📦 Migrated {cursor.rowcount} threads")
         except sqlite3.OperationalError:
             logger.warning("⚠️ Threads table doesn't exist")
@@ -506,9 +523,11 @@ def migrate_user_data(cursor, from_user_id, to_user_id):
         # We don't migrate these, we keep them separate so user can use either provider
         
         # Migrate user sessions
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             UPDATE ai_infrastructure.user_sessions SET user_id = %s WHERE user_id = %s
         ''', (to_user_id, from_user_id))
+
+        cursor.execute(sql, params)
         logger.info(f"🔑 Migrated {cursor.rowcount} sessions")
         
         logger.info(f" Data migration from user {from_user_id} to {to_user_id} complete")
@@ -562,12 +581,14 @@ def get_primary_user_id(user_id):
             return user_id
         
         # User is secondary, find primary
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT primary_user_id FROM ai_infrastructure.user_account_links
             WHERE linked_user_id = %s
             AND link_status = 'confirmed'
             LIMIT 1
         ''', (user_id,))
+
+        cursor.execute(sql, params)
         
         link = cursor.fetchone()
         conn.close()

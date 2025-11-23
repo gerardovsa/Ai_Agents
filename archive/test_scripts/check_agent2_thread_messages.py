@@ -2,6 +2,7 @@
 Check messages in the agent-2 assigned thread
 Thread ID: 1762411564661
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -50,11 +51,13 @@ print(f"\n2. THREAD DETAILS (sessions.db) - Thread ID: {thread_id}:")
 print("-" * 80)
 
 # Check threads table
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, thread_slug, name, user_id, location, created_at, updated_at
     FROM threads
     WHERE id = ? OR thread_slug = ?
 """, (thread_id, thread_id))
+
+cursor.execute(sql, params)
 
 thread_row = cursor.fetchone()
 
@@ -101,7 +104,7 @@ if message_count_total == 0:
     # Let's check what threads DO have messages
     print("\n4. THREADS WITH MESSAGES (for comparison):")
     print("-" * 80)
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT thread_id, COUNT(*) as msg_count
         FROM messages
         WHERE thread_id IS NOT NULL
@@ -113,7 +116,9 @@ if message_count_total == 0:
     threads_with_msgs = cursor.fetchall()
     if threads_with_msgs:
         for row in threads_with_msgs:
-            cursor.execute("SELECT name FROM threads WHERE id = ?", (row[0],))
+            sql, params = convert_sql_placeholders("SELECT name FROM threads WHERE id = ?", (row[0],))
+
+            cursor.execute(sql, params)
             thread_name = cursor.fetchone()
             name = thread_name[0] if thread_name else "Unknown"
             print(f"  Thread ID {row[0]} ({name}): {row[1]} messages")
@@ -142,14 +147,18 @@ else:
             ORDER BY created_at DESC
             LIMIT 5
         """, (thread_internal_id,))
+
+    cursor.execute(sql, params)
     else:
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT id, role, content, created_at
             FROM messages
             WHERE session_id = ?
             ORDER BY created_at DESC
             LIMIT 5
         """, (thread_id,))
+
+        cursor.execute(sql, params)
     
     messages = cursor.fetchall()
     
@@ -160,12 +169,14 @@ else:
 # Check saved_threads table too
 print(f"\n6. SAVED_THREADS TABLE:")
 print("-" * 80)
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT thread_id, thread_name, message_count, saved_at
     FROM saved_threads
     WHERE thread_id LIKE '%' || ? || '%'
     ORDER BY saved_at DESC
 """, (thread_id,))
+
+cursor.execute(sql, params)
 
 saved = cursor.fetchall()
 if saved:

@@ -3,6 +3,7 @@ OAuth Database Requirements Analysis
 Extracts ALL table and column requirements from Google and Microsoft OAuth code
 Compares with actual database schema to find missing columns
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import re

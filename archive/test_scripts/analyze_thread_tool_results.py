@@ -1,6 +1,7 @@
 """
 Check if tool_result content is in saved messages
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import json
@@ -9,7 +10,7 @@ conn = sqlite3.connect('data/sessions.db')
 cursor = conn.cursor()
 
 # Get most recent thread with many messages
-cursor.execute('''
+sql, params = convert_sql_placeholders('''
     SELECT thread_id, COUNT(*) as msg_count 
     FROM messages 
     GROUP BY thread_id 
@@ -21,7 +22,9 @@ threads = cursor.fetchall()
 
 print("Recent threads:")
 for thread_id, count in threads:
-    cursor.execute('SELECT SUM(LENGTH(content)) FROM messages WHERE thread_id = ?', (thread_id,))
+    sql, params = convert_sql_placeholders('SELECT SUM(LENGTH(content)) FROM messages WHERE thread_id = ?', (thread_id,))
+
+    cursor.execute(sql, params)
     total_chars = cursor.fetchone()[0]
     print(f"  Thread {thread_id}: {count} messages, {total_chars:,} chars (~{total_chars//4:,} tokens)")
 
@@ -48,6 +51,8 @@ if biggest_thread:
         WHERE thread_id = ?
         ORDER BY id
     ''', (thread_id,))
+
+cursor.execute(sql, params)
     
     messages = cursor.fetchall()
     

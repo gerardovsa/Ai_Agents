@@ -4,6 +4,7 @@ Audit synergy_sessions database for data inconsistencies
 import sqlite3
 import json
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 root_dir = Path(__file__).parent
 db_path = root_dir / 'data' / 'synergy_sessions.db'
@@ -126,7 +127,9 @@ conn.row_factory = sqlite3.Row
 cursor = conn.cursor()
 
 session_id = 'sess_20251101_1410_michael_e-commerce_store_setup'
-cursor.execute('SELECT * FROM synergy_sessions WHERE session_id = ?', (session_id,))
+sql, params = convert_sql_placeholders('SELECT * FROM synergy_sessions WHERE session_id = ?', (session_id,))
+
+cursor.execute(sql, params)
 session = cursor.fetchone()
 
 if session:

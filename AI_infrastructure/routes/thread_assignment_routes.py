@@ -31,7 +31,7 @@ LAST MODIFIED: 2025-11-20 - Removed SQLite, fixed PostgreSQL type casting
 
 from flask import Blueprint, request, jsonify
 from pathlib import Path
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, get_sessions_connection
 import json
 import logging
 
@@ -41,20 +41,13 @@ thread_assignment_bp = Blueprint('thread_assignments', __name__)
 
 
 def get_db_connection():
-    """Get connection to Supabase PostgreSQL"""
-    import psycopg2
-    import os
+    """Get connection to Supabase PostgreSQL (using connection pool)
     
-    # Get Supabase connection string from environment
-    connection_string = os.getenv('SUPABASE_DB_URL')
-    
-    if not connection_string:
-        # Fallback for local development
-        connection_string = "postgresql://postgres.xnpbpowppyugjvhnmnfk:Tswizzle132$@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
-    
-    print('[Thread Assignments] Connecting to Supabase PostgreSQL...')
-    
-    return psycopg2.connect(connection_string)
+    ✅ CRITICAL: ALL data stored in Supabase PostgreSQL, NOT SQLite!
+    This prevents bypassing the pool and leaking connections.
+    """
+    print('[Thread Assignments] Connecting to Supabase PostgreSQL sessions schema...')
+    return get_sessions_connection()
 
 
 def enforce_thread_assignment_rules(user_id, session_id, location):
@@ -80,7 +73,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
     conn = None
     try:
         conn = get_db_connection()
-        conn.isolation_level = None  # Autocommit mode to prevent locks
+        # ✅ FIXED: Don't modify isolation_level with pooled connections
+        # Use explicit commit() instead of autocommit mode
         cursor = conn.cursor()
         
         # CRITICAL FIX: Ensure user row exists before UPDATE
@@ -96,8 +90,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
         row = cursor.fetchone()
         
-        # Parse metadata (PostgreSQL returns tuple)
-        metadata_value = row[0] if row else None
+        # Parse metadata (PostgreSQL with pooling returns dict-like object)
+        metadata_value = row['metadata'] if row else None
         if metadata_value:
             try:
                 metadata = json.loads(metadata_value)
@@ -136,6 +130,12 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             conn.commit()
             
             logger.info(f"✅ Thread {session_id} moved to Prime in both metadata and sessions.threads (removed from {previous_location})")
+            
+            # CRITICAL FIX: Close connection before returning to prevent leak
+            if conn:
+                conn.close()
+                conn = None  # Prevent double-close in finally
+            
             return {
                 'previous_location': previous_location,
                 'displaced_thread': None
@@ -217,12 +217,14 @@ def get_thread_assignments():
     conn = None
     try:
         user_id = request.args.get('user_id', 1, type=int)
+        logger.info(f"📥 [Assignment] GET request for user_id: {user_id}")
         
         conn = get_db_connection()
-        conn.isolation_level = None  # Autocommit mode
         cursor = conn.cursor()
         
-        # NEW: Read from sessions.threads.location (single source of truth)
+        # Read from sessions.threads.location (single source of truth in Supabase)
+        # PostgreSQL uses %s for parameters
+        logger.info(f"🔍 [Assignment] Executing query for user {user_id}")
         cursor.execute("""
             SELECT thread_slug, location 
             FROM sessions.threads 
@@ -230,9 +232,10 @@ def get_thread_assignments():
               AND location IS NOT NULL 
               AND location != 'prime'
             ORDER BY updated_at DESC
-        """, [user_id])
+        """, (user_id,))
         
         rows = cursor.fetchall()
+        logger.info(f"📊 [Assignment] Query returned {len(rows) if rows else 0} rows")
         
         if not rows:
             logger.info(f"No thread assignments found for user {user_id}")
@@ -244,8 +247,9 @@ def get_thread_assignments():
         # Build assignments dict: {"agent-1": "thread_slug", "agent-2": "thread_slug", ...}
         assignments = {}
         for row in rows:
-            thread_slug = str(row[0])  # Convert to string
-            location = row[1]
+            # row is a RealDictRow (dictionary), not a tuple
+            thread_slug = str(row['thread_slug'])  # Use dict key access
+            location = row['location']
             
             # Only include agent locations (not 'prime', 'stock_ai', etc.)
             if location and location.startswith('agent-'):
@@ -259,7 +263,12 @@ def get_thread_assignments():
         })
         
     except Exception as e:
-        logger.error(f"Error getting thread assignments: {e}")
+        logger.error(f"❌ [Assignment] Error getting thread assignments")
+        logger.error(f"   Error type: {type(e).__name__}")
+        logger.error(f"   Error message: {str(e)}")
+        logger.error(f"   Error repr: {repr(e)}")
+        import traceback
+        logger.error(f"   Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -303,7 +312,8 @@ def save_thread_assignments():
         }
         
         conn = get_db_connection()
-        conn.isolation_level = None  # Autocommit mode
+        # ✅ FIXED: Don't modify isolation_level with pooled connections
+        # Use explicit commit() instead of autocommit mode
         cursor = conn.cursor()
         
         # CRITICAL FIX: Ensure user row exists before UPDATE
@@ -418,7 +428,9 @@ def assign_thread():
         })
         
     except Exception as e:
+        import traceback
         logger.error(f"❌ Error assigning thread: {e}")
+        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e)

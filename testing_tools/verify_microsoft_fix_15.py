@@ -2,6 +2,7 @@
 Verify Fix #15: Microsoft Platform Migration
 Quick verification that Microsoft authentication is working
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -28,7 +29,9 @@ def main():
         print(f"  {platform}: {count} tokens")
     
     # Verify no microsoft365 tokens exist
-    cursor.execute('SELECT COUNT(*) FROM oauth_tokens WHERE platform = ?', ('microsoft365',))
+    sql, params = convert_sql_placeholders('SELECT COUNT(*) FROM oauth_tokens WHERE platform = ?', ('microsoft365',))
+
+    cursor.execute(sql, params)
     old_count = cursor.fetchone()[0]
     
     if old_count == 0:
@@ -37,11 +40,13 @@ def main():
         print(f"\n⚠️ WARNING: {old_count} 'microsoft365' tokens still exist!")
     
     # Check Microsoft tokens
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         SELECT user_id, account_name, account_identifier, expires_at, is_valid, refresh_token
         FROM oauth_tokens 
         WHERE platform = ?
     ''', ('microsoft',))
+
+    cursor.execute(sql, params)
     
     tokens = cursor.fetchall()
     

@@ -2,6 +2,7 @@
 Create Comprehensive Synergy Card Example
 Shows all available features and sections
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sys
 import os

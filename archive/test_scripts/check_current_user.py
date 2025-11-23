@@ -1,4 +1,5 @@
 """Check current user and their OAuth tokens"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -14,7 +15,7 @@ conn = sqlite3.connect(str(db_path))
 cursor = conn.cursor()
 
 # Get all users
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, username, email, role, is_active
     FROM users
     ORDER BY id
@@ -36,6 +37,8 @@ for user in users:
         FROM oauth_tokens
         WHERE user_id = ?
     """, (user_id,))
+
+cursor.execute(sql, params)
     
     tokens = cursor.fetchall()
     
@@ -61,7 +64,9 @@ sessions = cursor.fetchall()
 if sessions:
     print("\nActive sessions:")
     for user_id, count in sessions:
-        cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+        sql, params = convert_sql_placeholders("SELECT username FROM users WHERE id = ?", (user_id,))
+
+        cursor.execute(sql, params)
         username = cursor.fetchone()
         print(f"  User {user_id} ({username[0] if username else 'Unknown'}): {count} session(s)")
 else:

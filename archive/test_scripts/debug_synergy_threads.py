@@ -3,6 +3,7 @@ Debug Synergy Thread Integration Issues
 """
 import sqlite3
 import json
+from shared.database_utils import convert_sql_placeholders
 
 print("\n" + "="*80)
 print("SYNERGY THREAD INTEGRATION DEBUG")
@@ -15,7 +16,7 @@ conn = sqlite3.connect('data/synergy_sessions.db')
 conn.row_factory = sqlite3.Row
 cursor = conn.cursor()
 
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT session_id, title, thread_ids 
     FROM synergy_sessions 
     WHERE thread_ids IS NOT NULL AND thread_ids != '[]'
@@ -53,6 +54,9 @@ if synergy_sessions:
             FROM threads 
             WHERE id = ? OR thread_slug = ?
         """, (thread_id, thread_id))
+
+
+cursor.execute(sql, params)
         
         thread = cursor.fetchone()
         if thread:
@@ -79,11 +83,13 @@ if synergy_sessions:
     test_thread_ids = json.loads(synergy_sessions[0]['thread_ids'])
     
     for thread_id in test_thread_ids[:3]:
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT thread_id, agent_id, agent_name 
             FROM thread_assignments 
             WHERE thread_id = ?
         """, (thread_id,))
+
+        cursor.execute(sql, params)
         
         assignment = cursor.fetchone()
         if assignment:

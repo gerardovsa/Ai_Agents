@@ -1,6 +1,7 @@
 """
 Diagnose Supabase Schema Issues
 ================================
+from shared.database_utils import convert_sql_placeholders
 
 Scans all route files for SQL queries and checks if tables/columns exist in Supabase
 

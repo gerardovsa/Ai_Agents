@@ -1,6 +1,7 @@
 """Emergency fix for /api/threads/details endpoint"""
 import sqlite3
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 # Check what the endpoint should return
 root = Path(__file__).parent

@@ -1,5 +1,6 @@
 """
 Fix phantom thread assignments in sessions.db
+from shared.database_utils import convert_sql_placeholders
 
 This script:
 1. Shows current threads in sessions table
@@ -94,8 +95,9 @@ else:
         deleted = 0
         for assignment in assignments:
             if assignment['session_id'] not in thread_session_ids:
-                cursor.execute("DELETE FROM thread_assignments WHERE agent_id = ? AND session_id = ?",
-                             (assignment['agent_id'], assignment['session_id']))
+                sql, params = convert_sql_placeholders("DELETE FROM thread_assignments WHERE agent_id = ? AND session_id = ?", (assignment['agent_id'], assignment['session_id']))
+
+                cursor.execute(sql, params)
                 deleted += 1
         conn.commit()
         print(f"\n[OK] Deleted {deleted} phantom assignments")

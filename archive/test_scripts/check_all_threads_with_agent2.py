@@ -1,6 +1,7 @@
 """
 Check what threads exist and which one might be assigned to agent-2
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -16,7 +17,7 @@ conn = sqlite3.connect(sessions_db)
 cursor = conn.cursor()
 
 # Get all threads
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, thread_slug, name, user_id, location, created_at
     FROM threads
     ORDER BY id DESC
@@ -30,7 +31,9 @@ print("-" * 80)
 
 for row in threads:
     # Count messages for this thread
-    cursor.execute("SELECT COUNT(*) FROM messages WHERE thread_id = ?", (row[0],))
+    sql, params = convert_sql_placeholders("SELECT COUNT(*) FROM messages WHERE thread_id = ?", (row[0],))
+
+    cursor.execute(sql, params)
     msg_count = cursor.fetchone()[0]
     
     print(f"\nThread ID: {row[0]}")
@@ -109,6 +112,8 @@ if assignments:
             SELECT id, name FROM threads 
             WHERE id = ? OR thread_slug = ?
         """, (row[2], row[2]))
+
+cursor.execute(sql, params)
         
         thread_match = cursor.fetchone()
         if thread_match:

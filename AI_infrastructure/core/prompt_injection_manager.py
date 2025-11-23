@@ -1,5 +1,6 @@
 """
 Prompt Injection Manager - Dynamic prompt library system
+from shared.database_utils import convert_sql_placeholders
 
 Allows users to inject custom prompts from a library into the system prompt.
 Supports:
@@ -58,7 +59,7 @@ class PromptInjectionManager:
         cursor = conn.cursor()
         
         # Table for prompt library (replaces user_custom_prompts)
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             CREATE TABLE IF NOT EXISTS prompt_library (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
@@ -439,6 +440,8 @@ Consider usability, accessibility, and user satisfaction."""
             WHERE user_id = %s AND name = %s
             ORDER BY updated_at DESC LIMIT 1
         """, (user_id, prompt_name))
+
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         conn.close()
@@ -525,10 +528,13 @@ Consider usability, accessibility, and user satisfaction."""
         # Convert is_quick_action to type field
         prompt_type = 'quick_action' if is_quick_action else 'full_prompt'
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             INSERT INTO prompt_library (user_id, name, prompt_text, category, type, visibility)
             VALUES (%s, %s, %s, %s, %s, 'private')
         """, (user_id, name, prompt_text, category or 'custom', prompt_type))
+
+        
+        cursor.execute(sql, params)
         
         prompt_id = cursor.lastrowid
         conn.commit()
@@ -548,7 +554,7 @@ Consider usability, accessibility, and user satisfaction."""
         conn = get_database_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             INSERT INTO user_prompt_preferences 
             (user_id, preference_name, quick_actions, library_prompts, custom_prompt)
             VALUES (%s, %s, %s, %s, %s)
@@ -577,6 +583,9 @@ Consider usability, accessibility, and user satisfaction."""
             WHERE user_id = %s AND preference_name = %s
             ORDER BY created_at DESC LIMIT 1
         """, (user_id, preference_name))
+
+        
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         conn.close()
@@ -619,12 +628,15 @@ Consider usability, accessibility, and user satisfaction."""
         conn = get_database_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT id, name, category, type, created_at
             FROM prompt_library
             WHERE user_id = %s
             ORDER BY created_at DESC
         """, (user_id,))
+
+        
+        cursor.execute(sql, params)
         
         prompts = []
         for row in cursor.fetchall():

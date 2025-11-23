@@ -5,6 +5,7 @@ RESTful API for bidirectional sync between Kanban board and:
 - Google Tasks
 - Microsoft To Do  
 - Google Calendar (for reminders/recurrence)
+from shared.database_utils import convert_sql_placeholders
 
 Features:
 - Create/update/delete sync across platforms
@@ -79,7 +80,9 @@ def sync_to_google_tasks():
         # Get Kanban card
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+        sql, params = convert_sql_placeholders('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
@@ -112,7 +115,7 @@ def sync_to_google_tasks():
         google_task_id = task_data.get('id')
         
         # Store sync metadata
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO task_sync_metadata 
             (session_id, platform, platform_task_id, sync_status, last_synced_at)
             VALUES (?, 'google_tasks', ?, 'synced', ?)
@@ -178,7 +181,9 @@ def sync_to_microsoft_todo():
         # Get Kanban card
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+        sql, params = convert_sql_placeholders('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
@@ -276,7 +281,9 @@ def sync_to_google_calendar():
         # Get Kanban card
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+        sql, params = convert_sql_placeholders('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
@@ -417,7 +424,9 @@ def bidirectional_sync(session_id):
         # Get Kanban card
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+        sql, params = convert_sql_placeholders('SELECT * FROM sessions WHERE session_id = ?', (session_id,))
+
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         
         if not row:
@@ -579,6 +588,8 @@ def get_sync_status(session_id):
             FROM task_sync_metadata
             WHERE session_id = ?
         ''', (session_id,))
+
+        cursor.execute(sql, params)
         
         rows = cursor.fetchall()
         conn.close()

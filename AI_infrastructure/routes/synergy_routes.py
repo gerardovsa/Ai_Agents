@@ -3,6 +3,18 @@ Synergy Dashboard Routes
 =========================
 REST API endpoints for Synergy Dashboard Kanban board.
 
+⚠️ CRITICAL: convert_sql_placeholders() DOES NOT EXECUTE QUERIES!
+   After calling convert_sql_placeholders(), you MUST call cursor.execute()
+   
+   ❌ WRONG:
+       sql, params = convert_sql_placeholders('SELECT ...', (id,))
+       for row in cursor.fetchall():  # Returns empty - query never executed!
+   
+   ✅ CORRECT:
+       sql, params = convert_sql_placeholders('SELECT ...', (id,))
+       cursor.execute(sql, params)  # Actually run the query!
+       for row in cursor.fetchall():  # Now returns data
+
 Endpoints:
     GET    /api/synergy/list           - List all sessions
     POST   /api/synergy/create         - Create new session
@@ -214,7 +226,7 @@ def init_database():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         CREATE TABLE IF NOT EXISTS synergy_sessions (
             session_id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
@@ -790,7 +802,8 @@ def get_session(session_id):
             cursor.execute('''
                 SELECT milestone_id, milestone_number, milestone_name, description,
                        completed, due_date, priority, estimated_hours, actual_hours,
-                       created_at, completed_at
+                       created_at, completed_at, milestone_order, depends_on_milestone_id,
+                       blocked, blocker_reason, blocked_since, updated_at, documents, links
                 FROM synergy_sessions.milestones 
                 WHERE session_id = %s
                 ORDER BY milestone_number
@@ -810,17 +823,28 @@ def get_session(session_id):
                     'actual_hours': m_row[8],
                     'created_at': m_row[9],
                     'completed_at': m_row[10],
+                    'milestone_order': m_row[11],
+                    'depends_on_milestone_id': m_row[12],
+                    'blocked': m_row[13],
+                    'blocker_reason': m_row[14],
+                    'blocked_since': m_row[15],
+                    'updated_at': m_row[16],
+                    'documents': m_row[17],
+                    'links': m_row[18],
                     'tasks': []
                 }
                 
                 # Get tasks for this milestone
-                cursor.execute('''
+                sql, params = convert_sql_placeholders('''
                     SELECT task_id, task, completed, blocked, blocker_reason, 
-                           blocker_type, task_order, created_at, completed_at, blocked_since
+                           blocker_type, task_order, created_at, completed_at, blocked_since,
+                           estimated_hours, actual_hours, assigned_to, updated_at, priority
                     FROM synergy_sessions.tasks 
                     WHERE milestone_id = %s
                     ORDER BY task_order
                 ''', (milestone['milestone_id'],))
+                
+                cursor.execute(sql, params)
                 
                 for t_row in cursor.fetchall():
                     task = {
@@ -834,16 +858,24 @@ def get_session(session_id):
                         'created_at': t_row[7],
                         'completed_at': t_row[8],
                         'blocked_since': t_row[9],
+                        'estimated_hours': t_row[10],
+                        'actual_hours': t_row[11],
+                        'assigned_to': t_row[12],
+                        'updated_at': t_row[13],
+                        'priority': t_row[14],
                         'subtasks': []
                     }
                     
                     # Get subtasks for this task
-                    cursor.execute('''
-                        SELECT subtask_id, task, completed, subtask_order, created_at, completed_at
+                    sql, params = convert_sql_placeholders('''
+                        SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
+                               estimated_hours, actual_hours, updated_at, priority
                         FROM synergy_sessions.subtasks 
                         WHERE task_id = %s
                         ORDER BY subtask_order
                     ''', (task['task_id'],))
+                    
+                    cursor.execute(sql, params)
                     
                     for s_row in cursor.fetchall():
                         subtask = {
@@ -852,7 +884,11 @@ def get_session(session_id):
                             'completed': s_row[2],
                             'subtask_order': s_row[3],
                             'created_at': s_row[4],
-                            'completed_at': s_row[5]
+                            'completed_at': s_row[5],
+                            'estimated_hours': s_row[6],
+                            'actual_hours': s_row[7],
+                            'updated_at': s_row[8],
+                            'priority': s_row[9]
                         }
                         task['subtasks'].append(subtask)
                     
@@ -1024,7 +1060,7 @@ def update_column(session_id):
                 'details': f"Moved to {new_column}"
             })
             
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 UPDATE synergy_sessions.synergy_sessions 
                 SET kanban_column = %s, recent_activity = %s, last_active = %s
                 WHERE session_id = %s
@@ -1226,7 +1262,7 @@ def update_multiple_positions():
             session_id = card.get('session_id')
             position = card.get('position')
             if session_id and position is not None:
-                cursor.execute('''
+                sql, params = convert_sql_placeholders('''
                     UPDATE synergy_sessions.synergy_sessions 
                     SET column_position = %s
                     WHERE session_id = %s
@@ -1287,7 +1323,7 @@ def unlink_thread_from_synergy(session_id):
             thread_ids.remove(thread_id)
             
             # UPDATE synergy_sessions.synergy_sessions
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 UPDATE synergy_sessions.synergy_sessions 
                 SET thread_ids = %s, last_active = %s
                 WHERE session_id = %s
@@ -1621,13 +1657,16 @@ def list_internal_docs(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT doc_id, title, format, doc_type, created_at, updated_at, created_by, version, linked_to_ai,
                    slug, share_url, description, tags
             FROM synergy_sessions.synergy_internal_docs
             WHERE session_id = %s
             ORDER BY created_at DESC
         ''', (session_id,))
+
+        
+        cursor.execute(sql, params)
         
         rows = cursor.fetchall()
         conn.close()
@@ -1686,7 +1725,7 @@ def link_doc_to_ai(doc_id):
         cursor = conn.cursor()
         
         # Update document to link to AI
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             UPDATE synergy_sessions.synergy_internal_docs
             SET linked_to_ai = 1, session_id = %s
             WHERE doc_id = %s
@@ -1734,11 +1773,14 @@ def export_internal_doc(doc_id, format):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT doc_id, title, content, content_json, doc_type
             FROM synergy_sessions.synergy_internal_docs
             WHERE doc_id = %s
         """, (doc_id,))
+
+        
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         conn.close()
@@ -1925,7 +1967,7 @@ def create_milestone():
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         # Get next milestone number
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT COALESCE(MAX(milestone_number), 0) + 1 
             FROM synergy_sessions.milestones 
             WHERE session_id = %s
@@ -1936,7 +1978,7 @@ def create_milestone():
         milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         # Insert milestone
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.milestones (
                 milestone_id, session_id, milestone_number, milestone_name,
                 description, completed, due_date, priority, estimated_hours,
@@ -2060,7 +2102,7 @@ def create_milestone_task(milestone_id):
         task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         # Insert task
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.tasks (
                 task_id, milestone_id, task, completed, task_order, created_at
             ) VALUES (%s, %s, %s, %s, %s, %s)
@@ -2135,7 +2177,7 @@ def create_task_subtask(task_id):
         subtask_id = f"sub_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         # Insert subtask
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.subtasks (
                 subtask_id, task_id, task, completed, subtask_order, created_at
             ) VALUES (%s, %s, %s, %s, %s, %s)
@@ -2196,7 +2238,7 @@ def complete_subtask(subtask_id):
         milestone_id = row[1]
         
         # Update subtask
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             UPDATE synergy_sessions.subtasks 
             SET completed = %s, completed_at = %s
             WHERE subtask_id = %s
@@ -2215,7 +2257,7 @@ def complete_subtask(subtask_id):
             
             if remaining_subtasks == 0:
                 # All subtasks done - auto-complete task
-                cursor.execute('''
+                sql, params = convert_sql_placeholders('''
                     UPDATE synergy_sessions.tasks 
                     SET completed = TRUE, completed_at = %s
                     WHERE task_id = %s
@@ -2231,7 +2273,7 @@ def complete_subtask(subtask_id):
                 
                 if remaining_tasks == 0:
                     # All tasks done - auto-complete milestone
-                    cursor.execute('''
+                    sql, params = convert_sql_placeholders('''
                         UPDATE synergy_sessions.milestones 
                         SET completed = TRUE, completed_at = %s
                         WHERE milestone_id = %s
@@ -2292,7 +2334,7 @@ def complete_task(task_id):
         milestone_id = row[0]
         
         # Update task
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             UPDATE synergy_sessions.tasks 
             SET completed = %s, completed_at = %s
             WHERE task_id = %s
@@ -2319,7 +2361,7 @@ def complete_task(task_id):
             
             if remaining_tasks == 0:
                 # All tasks done - auto-complete milestone
-                cursor.execute('''
+                sql, params = convert_sql_placeholders('''
                     UPDATE synergy_sessions.milestones 
                     SET completed = TRUE, completed_at = %s
                     WHERE milestone_id = %s
@@ -2461,7 +2503,7 @@ def get_milestone_progress(milestone_id):
         completed = row[2]
         
         # Get task statistics
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT 
                 COUNT(*) as total_tasks,
                 SUM(CASE WHEN completed THEN 1 ELSE 0 END) as completed_tasks,
@@ -2475,7 +2517,7 @@ def get_milestone_progress(milestone_id):
         blocked_tasks_count = task_stats[2]
         
         # Get subtask statistics
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT 
                 COUNT(*) as total_subtasks,
                 SUM(CASE WHEN s.completed THEN 1 ELSE 0 END) as completed_subtasks
@@ -2493,7 +2535,7 @@ def get_milestone_progress(milestone_id):
         progress_percentage = round((completed_items / total_items * 100), 1) if total_items > 0 else 0
         
         # Get remaining tasks
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT task FROM synergy_sessions.tasks 
             WHERE milestone_id = %s AND NOT completed
             ORDER BY task_order
@@ -2501,7 +2543,7 @@ def get_milestone_progress(milestone_id):
         remaining_tasks = [row[0] for row in cursor.fetchall()]
         
         # Get blocked tasks
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT task, blocker_reason, blocker_type
             FROM synergy_sessions.tasks 
             WHERE milestone_id = %s AND blocked
@@ -2573,17 +2615,22 @@ def get_session_milestones(session_id):
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         # Get all milestones
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT milestone_id, milestone_number, milestone_name, description,
                    completed, due_date, priority, estimated_hours, actual_hours,
-                   created_at, completed_at
+                   created_at, completed_at, milestone_order, depends_on_milestone_id,
+                   blocked, blocker_reason, blocked_since, updated_at, documents, links
             FROM synergy_sessions.milestones 
             WHERE session_id = %s
             ORDER BY milestone_number
         ''', (session_id,))
         
+        cursor.execute(sql, params)
+        
+        rows = cursor.fetchall()
+        
         milestones = []
-        for m_row in cursor.fetchall():
+        for m_row in rows:
             milestone = {
                 'milestone_id': m_row['milestone_id'],
                 'milestone_number': m_row['milestone_number'],
@@ -2596,17 +2643,28 @@ def get_session_milestones(session_id):
                 'actual_hours': float(m_row['actual_hours']) if m_row['actual_hours'] else None,
                 'created_at': m_row['created_at'].isoformat() if m_row['created_at'] else None,
                 'completed_at': m_row['completed_at'].isoformat() if m_row['completed_at'] else None,
+                'milestone_order': m_row['milestone_order'],
+                'depends_on_milestone_id': m_row['depends_on_milestone_id'],
+                'blocked': m_row['blocked'],
+                'blocker_reason': m_row['blocker_reason'],
+                'blocked_since': m_row['blocked_since'].isoformat() if m_row['blocked_since'] else None,
+                'updated_at': m_row['updated_at'].isoformat() if m_row['updated_at'] else None,
+                'documents': m_row['documents'],
+                'links': m_row['links'],
                 'tasks': []
             }
             
             # Get tasks for this milestone
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 SELECT task_id, task, completed, blocked, blocker_reason, 
-                       blocker_type, task_order, created_at, completed_at
+                       blocker_type, task_order, created_at, completed_at,
+                       blocked_since, estimated_hours, actual_hours, assigned_to, updated_at, priority
                 FROM synergy_sessions.tasks 
                 WHERE milestone_id = %s
                 ORDER BY task_order
             ''', (milestone['milestone_id'],))
+            
+            cursor.execute(sql, params)
             
             for t_row in cursor.fetchall():
                 task = {
@@ -2619,16 +2677,25 @@ def get_session_milestones(session_id):
                     'task_order': t_row['task_order'],
                     'created_at': t_row['created_at'].isoformat() if t_row['created_at'] else None,
                     'completed_at': t_row['completed_at'].isoformat() if t_row['completed_at'] else None,
+                    'blocked_since': t_row['blocked_since'].isoformat() if t_row['blocked_since'] else None,
+                    'estimated_hours': float(t_row['estimated_hours']) if t_row['estimated_hours'] else None,
+                    'actual_hours': float(t_row['actual_hours']) if t_row['actual_hours'] else None,
+                    'assigned_to': t_row['assigned_to'],
+                    'updated_at': t_row['updated_at'].isoformat() if t_row['updated_at'] else None,
+                    'priority': t_row['priority'],
                     'subtasks': []
                 }
                 
                 # Get subtasks for this task
-                cursor.execute('''
-                    SELECT subtask_id, task, completed, subtask_order, created_at, completed_at
+                sql, params = convert_sql_placeholders('''
+                    SELECT subtask_id, task, completed, subtask_order, created_at, completed_at,
+                           estimated_hours, actual_hours, updated_at, priority
                     FROM synergy_sessions.subtasks 
                     WHERE task_id = %s
                     ORDER BY subtask_order
                 ''', (task['task_id'],))
+                
+                cursor.execute(sql, params)
                 
                 for s_row in cursor.fetchall():
                     subtask = {
@@ -2637,7 +2704,11 @@ def get_session_milestones(session_id):
                         'completed': s_row['completed'],
                         'subtask_order': s_row['subtask_order'],
                         'created_at': s_row['created_at'].isoformat() if s_row['created_at'] else None,
-                        'completed_at': s_row['completed_at'].isoformat() if s_row['completed_at'] else None
+                        'completed_at': s_row['completed_at'].isoformat() if s_row['completed_at'] else None,
+                        'estimated_hours': float(s_row['estimated_hours']) if s_row['estimated_hours'] else None,
+                        'actual_hours': float(s_row['actual_hours']) if s_row['actual_hours'] else None,
+                        'updated_at': s_row['updated_at'].isoformat() if s_row['updated_at'] else None,
+                        'priority': s_row['priority']
                     }
                     task['subtasks'].append(subtask)
                 
@@ -2722,7 +2793,7 @@ def block_task(task_id):
             return jsonify({'success': False, 'error': 'Task not found'}), 404
         
         # Update task
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             UPDATE synergy_sessions.tasks 
             SET blocked = %s, blocker_reason = %s, blocker_type = %s, blocked_since = %s
             WHERE task_id = %s

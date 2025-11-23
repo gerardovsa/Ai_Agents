@@ -1,6 +1,7 @@
 """
 Explain the difference between thread id and thread_slug
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path

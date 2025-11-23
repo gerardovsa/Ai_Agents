@@ -10,6 +10,7 @@ Checks for:
 """
 import re
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 def scan_file(file_path):
     """Scan a single file for SQL operation issues"""

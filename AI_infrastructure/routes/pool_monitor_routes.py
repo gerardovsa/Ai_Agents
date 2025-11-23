@@ -12,7 +12,7 @@ ENDPOINTS:
 """
 
 from flask import Blueprint, jsonify, render_template_string
-from shared.database_utils import get_pool_stats, _connection_pools, _pool_lock
+from shared.database_utils import get_pool_stats, _connection_pools, _pool_lock, convert_sql_placeholders
 import time
 
 pool_monitor_bp = Blueprint('pool_monitor', __name__, url_prefix='/api/pool')

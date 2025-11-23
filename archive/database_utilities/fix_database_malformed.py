@@ -1,6 +1,7 @@
 """
 Fix "database disk image is malformed" Error
 ============================================
+from shared.database_utils import convert_sql_placeholders
 
 This error occurs when:
 1. Multiple processes access DB simultaneously

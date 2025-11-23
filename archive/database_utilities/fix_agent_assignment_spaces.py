@@ -1,5 +1,6 @@
 """
 Fix Agent Assignment Trailing Spaces in Database
+from shared.database_utils import convert_sql_placeholders
 
 This script removes trailing spaces from agent location keys in users.metadata JSON.
 Example: {"agent-2 ": "1762411564661"} -> {"agent-2": "1762411564661"}
@@ -63,7 +64,9 @@ def fix_assignment_spaces():
                 new_metadata_json = json.dumps(metadata)
                 
                 # Update database
-                cursor.execute("UPDATE users SET metadata = ? WHERE id = ?", (new_metadata_json, user_id))
+                sql, params = convert_sql_placeholders("UPDATE users SET metadata = ? WHERE id = ?", (new_metadata_json, user_id))
+
+                cursor.execute(sql, params)
                 fixed_users += 1
                 
         except json.JSONDecodeError as e:

@@ -1,6 +1,7 @@
 """Check what's wrong with /api/threads/details"""
 import sqlite3
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 root = Path(__file__).parent
 db_path = root / 'data' / 'sessions.db'

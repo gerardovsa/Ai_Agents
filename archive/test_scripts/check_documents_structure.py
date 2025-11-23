@@ -2,6 +2,7 @@
 import sqlite3
 from pathlib import Path
 import json
+from shared.database_utils import convert_sql_placeholders
 
 root = Path('C:/Users/gpoli/GIT/AI_agents')
 db = root / 'data' / 'synergy_sessions.db'
@@ -10,11 +11,14 @@ conn = sqlite3.connect(str(db))
 conn.row_factory = sqlite3.Row
 cursor = conn.cursor()
 
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT session_id, title, documents 
     FROM synergy_sessions 
     WHERE session_id LIKE ?
 """, ('%email_thread_quote%',))
+
+
+cursor.execute(sql, params)
 
 row = cursor.fetchone()
 

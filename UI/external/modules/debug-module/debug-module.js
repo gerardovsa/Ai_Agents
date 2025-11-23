@@ -578,6 +578,7 @@ const DebugModule = {
 // Sidebar UI Manager
 const DebugSidebar = {
     isOpen: false,
+    isExpanded: false,
     currentTab: 'logs',
     refreshInterval: null,
 
@@ -601,6 +602,24 @@ const DebugSidebar = {
             sidebar.classList.remove('open');
             // Stop auto-refresh when sidebar closes
             this.stopAutoRefresh();
+        }
+    },
+
+    toggleExpand() {
+        const sidebar = document.getElementById('debug-sidebar');
+        const expandText = document.getElementById('debug-expand-text');
+        if (!sidebar) return;
+
+        this.isExpanded = !this.isExpanded;
+
+        if (this.isExpanded) {
+            sidebar.classList.add('expanded');
+            if (expandText) expandText.textContent = 'Collapse';
+            console.log('[DEBUG SIDEBAR] Expanded to double width');
+        } else {
+            sidebar.classList.remove('expanded');
+            if (expandText) expandText.textContent = 'Expand';
+            console.log('[DEBUG SIDEBAR] Collapsed to normal width');
         }
     },
 
@@ -662,6 +681,8 @@ const DebugSidebar = {
             this.renderValidation();
         } else if (this.currentTab === 'poolmonitor') {
             this.renderPoolMonitor();
+        } else if (this.currentTab === 'cssextract') {
+            this.renderCSSExtract();
         }
     },
 
@@ -699,7 +720,7 @@ const DebugSidebar = {
         }).join('\n\n');
 
         output.innerHTML = formattedLogs || '<span style="color: #666;">No logs captured yet...</span>';
-        // Auto-scroll removed per user request
+        // Note: Auto-scroll intentionally disabled
     },
 
     copyLogsToClipboard() {
@@ -1665,6 +1686,18 @@ ${sequenceHTML}
         } catch (error) {
             output.innerHTML = `<div style="color: #EF4444;">Failed to fetch pool stats: ${error.message}</div>`;
         }
+    },
+
+    /**
+     * Render CSS Extract section
+     */
+    renderCSSExtract() {
+        // Initialize CSS Extractor if first render
+        if (!window.CSSExtractor.initialized) {
+            window.CSSExtractor.init();
+        }
+        // Rebuild tree
+        window.CSSExtractor.buildElementTree();
     }
 };
 
@@ -1675,6 +1708,479 @@ if (document.readyState === 'loading') {
     DebugModule.init();
 }
 
+/**
+ * CSS EXTRACTOR MODULE
+ * 
+ * Extract computed CSS styles from rendered elements
+ * Interactive element selection with visual feedback
+ */
+const CSSExtractor = {
+    selectedElements: new Set(),
+    inspectorActive: false,
+    highlightOverlay: null,
+    initialized: false,
+    dynamicElementsLog: [],
+    mutationObserver: null,
+    isMonitoring: false,
+
+    init() {
+        console.log('[CSS EXTRACTOR] Initializing...');
+        this.createHighlightOverlay();
+        this.initialized = true;
+        console.log('[CSS EXTRACTOR] Ready');
+    },
+
+    /**
+     * Start monitoring DOM for dynamically added elements
+     */
+    startDynamicMonitoring() {
+        if (this.isMonitoring) {
+            this.stopDynamicMonitoring();
+            return;
+        }
+
+        this.isMonitoring = true;
+        this.dynamicElementsLog = [];
+
+        this.mutationObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1 && node.id !== 'css-highlight-overlay') {
+                        const timestamp = new Date().toLocaleTimeString();
+                        const selector = this.getElementSelector(node);
+                        
+                        this.dynamicElementsLog.push({
+                            element: node,
+                            selector: selector,
+                            timestamp: timestamp,
+                            tag: node.tagName.toLowerCase(),
+                            classes: node.className || ''
+                        });
+
+                        console.log(`[CSS EXTRACTOR] New element added: ${selector}`);
+                    }
+                });
+            });
+        });
+
+        this.mutationObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        console.log('[CSS EXTRACTOR] Dynamic monitoring STARTED');
+        this.updateMonitoringUI();
+    },
+
+    stopDynamicMonitoring() {
+        if (this.mutationObserver) {
+            this.mutationObserver.disconnect();
+            this.mutationObserver = null;
+        }
+        this.isMonitoring = false;
+        console.log('[CSS EXTRACTOR] Dynamic monitoring STOPPED');
+        console.log(`[CSS EXTRACTOR] Captured ${this.dynamicElementsLog.length} new elements`);
+        this.updateMonitoringUI();
+    },
+
+    updateMonitoringUI() {
+        const button = document.querySelector('[onclick*="toggleDynamicMonitoring"]');
+        if (button) {
+            if (this.isMonitoring) {
+                button.innerHTML = '<i class="fas fa-stop"></i> Stop Monitoring';
+                button.classList.add('debug-btn-danger');
+                button.classList.remove('debug-btn-secondary');
+            } else {
+                button.innerHTML = '<i class="fas fa-eye"></i> Monitor Dynamic Elements';
+                button.classList.remove('debug-btn-danger');
+                button.classList.add('debug-btn-secondary');
+            }
+        }
+
+        const countEl = document.getElementById('dynamic-elements-count');
+        if (countEl) {
+            countEl.textContent = this.dynamicElementsLog.length;
+        }
+    },
+
+    selectAllDynamic() {
+        this.dynamicElementsLog.forEach(item => {
+            if (document.body.contains(item.element)) {
+                this.selectedElements.add(item.element);
+            }
+        });
+        this.updateDisplay();
+        this.buildElementTree();
+        console.log(`[CSS EXTRACTOR] Selected ${this.dynamicElementsLog.length} dynamic elements`);
+    },
+
+    clearDynamicLog() {
+        this.dynamicElementsLog = [];
+        this.updateMonitoringUI();
+        console.log('[CSS EXTRACTOR] Dynamic elements log cleared');
+    },
+
+    /**
+     * Create visual highlight overlay for inspector mode
+     */
+    createHighlightOverlay() {
+        if (this.highlightOverlay) return;
+
+        this.highlightOverlay = document.createElement('div');
+        this.highlightOverlay.id = 'css-highlight-overlay';
+        this.highlightOverlay.style.cssText = `
+            position: fixed;
+            pointer-events: none;
+            border: 2px solid #3B82F6;
+            background: rgba(59, 130, 246, 0.1);
+            z-index: 999999;
+            display: none;
+            transition: all 0.1s ease;
+        `;
+        document.body.appendChild(this.highlightOverlay);
+    },
+
+    /**
+     * Start interactive inspector mode
+     */
+    startInspector() {
+        if (this.inspectorActive) {
+            this.stopInspector();
+            return;
+        }
+
+        this.inspectorActive = true;
+        document.body.style.cursor = 'crosshair';
+
+        // Event handlers
+        this.mouseMoveHandler = (e) => this.handleMouseMove(e);
+        this.clickHandler = (e) => this.handleElementClick(e);
+
+        document.addEventListener('mousemove', this.mouseMoveHandler);
+        document.addEventListener('click', this.clickHandler);
+
+        console.log('[CSS EXTRACTOR] Inspector mode ENABLED');
+    },
+
+    stopInspector() {
+        this.inspectorActive = false;
+        document.body.style.cursor = '';
+        this.highlightOverlay.style.display = 'none';
+
+        document.removeEventListener('mousemove', this.mouseMoveHandler);
+        document.removeEventListener('click', this.clickHandler);
+
+        console.log('[CSS EXTRACTOR] Inspector mode DISABLED');
+    },
+
+    handleMouseMove(e) {
+        if (!this.inspectorActive) return;
+
+        const target = document.elementFromPoint(e.clientX, e.clientY);
+        if (!target || target === this.highlightOverlay) return;
+
+        // Highlight element
+        const rect = target.getBoundingClientRect();
+        this.highlightOverlay.style.display = 'block';
+        this.highlightOverlay.style.left = rect.left + 'px';
+        this.highlightOverlay.style.top = rect.top + 'px';
+        this.highlightOverlay.style.width = rect.width + 'px';
+        this.highlightOverlay.style.height = rect.height + 'px';
+    },
+
+    handleElementClick(e) {
+        if (!this.inspectorActive) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const target = document.elementFromPoint(e.clientX, e.clientY);
+        if (!target || target === this.highlightOverlay) return;
+
+        // Toggle selection
+        if (this.selectedElements.has(target)) {
+            this.selectedElements.delete(target);
+            console.log('[CSS EXTRACTOR] Deselected:', this.getElementSelector(target));
+        } else {
+            this.selectedElements.add(target);
+            console.log('[CSS EXTRACTOR] Selected:', this.getElementSelector(target));
+        }
+
+        this.updateDisplay();
+        this.stopInspector(); // Auto-stop after selection
+    },
+
+    /**
+     * Build interactive HTML tree with checkboxes
+     */
+    buildElementTree(maxDepth = 5) {
+        const container = document.getElementById('css-element-tree');
+        if (!container) return;
+
+        console.log('[CSS EXTRACTOR] Building element tree with max depth:', maxDepth);
+        const tree = this.buildTreeRecursive(document.body, 0, maxDepth);
+        container.innerHTML = tree || '<div style="color: #888; padding: 20px; text-align: center;">No elements found. Try clicking "Rescan DOM" after dynamic content loads.</div>';
+    },
+
+    buildTreeRecursive(element, depth, maxDepth) {
+        if (!element || depth > maxDepth) return '';
+
+        // Skip debug sidebar and overlays
+        if (element.id === 'debug-sidebar' || 
+            element.id === 'css-highlight-overlay' ||
+            element.classList?.contains('debug-sidebar')) {
+            return '';
+        }
+
+        const isSelected = this.selectedElements.has(element);
+        const selector = this.getElementSelector(element);
+        const indent = '  '.repeat(depth);
+
+        let html = `${indent}<div style="margin: 4px 0; padding: 2px 0;">`;
+        
+        // Checkbox + element info
+        html += `<label style="display: flex; align-items: center; cursor: pointer; padding: 4px; border-radius: 2px; background: ${isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent'};">`;
+        html += `<input type="checkbox" ${isSelected ? 'checked' : ''} onchange="CSSExtractor.toggleElement(this, '${this.escapeSelector(selector)}')" style="margin-right: 6px;">`;
+        html += `<span style="color: ${isSelected ? '#3B82F6' : '#888'}; font-size: 10px;">`;
+        html += `&lt;${element.tagName.toLowerCase()}`;
+        if (element.id) html += ` <span style="color: #F59E0B;">#${element.id}</span>`;
+        if (element.className && typeof element.className === 'string') {
+            const classes = element.className.split(' ').filter(c => c).slice(0, 2).join('.');
+            if (classes) html += ` <span style="color: #8B5CF6;">.${classes}</span>`;
+        }
+        html += `&gt;`;
+        html += `</span></label>`;
+
+        // Children
+        if (element.children && element.children.length > 0 && depth < maxDepth) {
+            html += '<div style="margin-left: 16px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 8px;">';
+            for (let child of element.children) {
+                html += this.buildTreeRecursive(child, depth + 1, maxDepth);
+            }
+            html += '</div>';
+        }
+
+        html += '</div>';
+        return html;
+    },
+
+    escapeSelector(selector) {
+        return selector.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    },
+
+    /**
+     * Toggle element selection from checkbox
+     */
+    toggleElement(checkbox, encodedSelector) {
+        const selector = encodedSelector.replace(/\\'/g, "'").replace(/\\"/g, '"');
+        const element = document.querySelector(selector);
+        
+        if (!element) {
+            console.warn('[CSS EXTRACTOR] Element not found:', selector);
+            return;
+        }
+
+        if (checkbox.checked) {
+            this.selectedElements.add(element);
+        } else {
+            this.selectedElements.delete(element);
+        }
+
+        this.updateDisplay();
+    },
+
+    /**
+     * Rescan DOM tree (useful after dynamic content loads)
+     */
+    rescanDOM() {
+        console.log('[CSS EXTRACTOR] Rescanning DOM...');
+        this.buildElementTree(6); // Increased depth for dynamic content
+        console.log('[CSS EXTRACTOR] DOM rescan complete');
+    },
+
+    /**
+     * Select all visible elements in main content
+     */
+    selectAllVisible() {
+        const mainContent = document.querySelector('.main-content') || document.body;
+        const elements = mainContent.querySelectorAll('*');
+        
+        elements.forEach(el => {
+            if (el.id !== 'debug-sidebar' && 
+                !el.classList?.contains('debug-sidebar') &&
+                el.offsetParent !== null) { // Is visible
+                this.selectedElements.add(el);
+            }
+        });
+
+        this.updateDisplay();
+        this.buildElementTree();
+    },
+
+    /**
+     * Deselect all elements
+     */
+    deselectAll() {
+        this.selectedElements.clear();
+        this.updateDisplay();
+        this.buildElementTree();
+    },
+
+    /**
+     * Clear selection and reset
+     */
+    clearSelection() {
+        this.selectedElements.clear();
+        this.updateDisplay();
+        this.buildElementTree();
+    },
+
+    /**
+     * Update CSS output display
+     */
+    updateDisplay() {
+        const output = document.getElementById('css-extracted-output');
+        const countEl = document.getElementById('css-selected-count');
+
+        if (countEl) countEl.textContent = this.selectedElements.size;
+        if (!output) return;
+
+        if (this.selectedElements.size === 0) {
+            output.textContent = '/* Select elements to see their CSS here */';
+            return;
+        }
+
+        let css = '/* Extracted CSS from Selected Elements */\n';
+        css += `/* Generated: ${new Date().toLocaleString()} */\n`;
+        css += `/* Total Elements: ${this.selectedElements.size} */\n\n`;
+
+        this.selectedElements.forEach(element => {
+            const selector = this.getElementSelector(element);
+            const styles = this.extractComputedStyles(element);
+
+            css += `/* ${selector} */\n`;
+            css += `${selector} {\n`;
+            
+            Object.entries(styles).forEach(([prop, value]) => {
+                css += `    ${prop}: ${value};\n`;
+            });
+
+            css += '}\n\n';
+        });
+
+        output.textContent = css;
+    },
+
+    /**
+     * Extract computed styles for element (filtered for relevance)
+     */
+    extractComputedStyles(element) {
+        const computed = window.getComputedStyle(element);
+        const styles = {};
+
+        // Properties to extract (most relevant for layout/appearance)
+        const relevantProps = [
+            // Display & Layout
+            'display', 'position', 'top', 'right', 'bottom', 'left',
+            'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+            'flex', 'flex-direction', 'flex-wrap', 'justify-content', 'align-items',
+            'grid-template-columns', 'grid-template-rows', 'gap', 'grid-gap',
+            
+            // Spacing
+            'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+            'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+            
+            // Typography
+            'font-family', 'font-size', 'font-weight', 'line-height', 'letter-spacing',
+            'text-align', 'text-decoration', 'text-transform',
+            
+            // Colors & Backgrounds
+            'color', 'background', 'background-color', 'background-image',
+            'border', 'border-radius', 'box-shadow',
+            
+            // Misc
+            'opacity', 'z-index', 'overflow', 'cursor', 'transition', 'transform'
+        ];
+
+        relevantProps.forEach(prop => {
+            const value = computed.getPropertyValue(prop);
+            if (value && value !== 'none' && value !== 'normal' && value !== 'auto') {
+                styles[prop] = value;
+            }
+        });
+
+        return styles;
+    },
+
+    /**
+     * Get CSS selector for element
+     */
+    getElementSelector(element) {
+        if (element.id) {
+            return `#${element.id}`;
+        }
+
+        let selector = element.tagName.toLowerCase();
+        
+        if (element.className && typeof element.className === 'string') {
+            const classes = element.className.split(' ').filter(c => c);
+            if (classes.length > 0) {
+                selector += '.' + classes.join('.');
+            }
+        }
+
+        // Add nth-child if needed for uniqueness
+        const siblings = element.parentElement?.children;
+        if (siblings && siblings.length > 1) {
+            const index = Array.from(siblings).indexOf(element) + 1;
+            selector += `:nth-child(${index})`;
+        }
+
+        return selector;
+    },
+
+    /**
+     * Copy CSS to clipboard
+     */
+    copyToClipboard() {
+        const output = document.getElementById('css-extracted-output');
+        if (!output) return;
+
+        navigator.clipboard.writeText(output.textContent).then(() => {
+            alert(`CSS copied to clipboard!\n${this.selectedElements.size} elements extracted.`);
+        }).catch(err => {
+            console.error('[CSS EXTRACTOR] Failed to copy:', err);
+            alert('Failed to copy CSS. Check console for details.');
+        });
+    },
+
+    /**
+     * Export CSS to downloadable file
+     */
+    exportCSS() {
+        const output = document.getElementById('css-extracted-output');
+        if (!output || this.selectedElements.size === 0) {
+            alert('No CSS to export. Select elements first.');
+            return;
+        }
+
+        const css = output.textContent;
+        const blob = new Blob([css], { type: 'text/css' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `extracted-styles-${Date.now()}.css`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log(`[CSS EXTRACTOR] Exported ${this.selectedElements.size} elements to CSS file`);
+    }
+};
+
 // Export to window
 window.DebugModule = DebugModule;
 window.DebugSidebar = DebugSidebar;
+window.CSSExtractor = CSSExtractor;

@@ -1,6 +1,7 @@
 """
 Check specific thread ID: 1762592718945
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -21,12 +22,14 @@ cursor = conn.cursor()
 # Check threads table
 print("\n1. THREADS TABLE:")
 print("-" * 80)
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, thread_slug, name, user_id, location, created_at, metadata, 
            tags, synergy_card_id, parent_thread_id
     FROM threads
     WHERE id = ? OR thread_slug = ?
 """, (thread_id, thread_id))
+
+cursor.execute(sql, params)
 
 thread = cursor.fetchone()
 
@@ -53,12 +56,14 @@ print(f"\n2. MESSAGES FOR THREAD {thread_id}:")
 print("-" * 80)
 
 if internal_id:
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT id, role, content, created_at, tool_calls, tokens_used, response_time_ms
         FROM messages
         WHERE thread_id = ?
         ORDER BY created_at ASC
     """, (internal_id,))
+
+    cursor.execute(sql, params)
     
     messages = cursor.fetchall()
     
@@ -77,9 +82,11 @@ if internal_id:
         print(f"  ⚠️  No messages found for internal ID {internal_id}")
 
 # Also check by session_id
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT COUNT(*) FROM messages WHERE session_id = ?
 """, (thread_id,))
+
+cursor.execute(sql, params)
 session_msg_count = cursor.fetchone()[0]
 
 if session_msg_count > 0:
@@ -89,13 +96,16 @@ if session_msg_count > 0:
 print(f"\n3. SAVED_THREADS TABLE:")
 print("-" * 80)
 
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT thread_id, thread_name, message_count, conversation, saved_at
     FROM saved_threads
     WHERE thread_id LIKE '%' || ? || '%'
     ORDER BY saved_at DESC
     LIMIT 5
 """, (thread_id,))
+
+
+cursor.execute(sql, params)
 
 saved = cursor.fetchall()
 

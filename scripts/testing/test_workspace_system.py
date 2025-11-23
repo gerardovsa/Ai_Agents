@@ -1,5 +1,6 @@
 """
 Test Workspace System - Comprehensive integration tests
+from shared.database_utils import convert_sql_placeholders
 
 Tests workspace creation, members, invitations, permissions, and slugs.
 """
@@ -202,7 +203,9 @@ def test_member_management(workspace_id, owner_id):
         db_path = root_dir / 'data' / 'ai_infrastructure.db'
         conn = sqlite3.connect(str(db_path))
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE id != ? AND is_active = 1 LIMIT 1", (owner_id,))
+        sql, params = convert_sql_placeholders("SELECT id FROM users WHERE id != ? AND is_active = 1 LIMIT 1", (owner_id,))
+
+        cursor.execute(sql, params)
         row = cursor.fetchone()
         conn.close()
         

@@ -6,6 +6,7 @@ CONSOLIDATION PLAN: Merge sessions → synergy_sessions
 """
 import sqlite3
 from datetime import datetime
+from shared.database_utils import convert_sql_placeholders
 
 db_path = 'C:\\Users\\gpoli\\GIT\\AI_agents\\data\\synergy_sessions.db'
 
@@ -68,8 +69,9 @@ for row in sessions_data:
         session_dict = dict(zip(sessions_columns, row))
         
         # Check if already exists in synergy_sessions
-        cursor.execute("SELECT COUNT(*) FROM synergy_sessions WHERE session_id = ?", 
-                      (session_dict['session_id'],))
+        sql, params = convert_sql_placeholders("SELECT COUNT(*) FROM synergy_sessions WHERE session_id = ?", (session_dict['session_id'],))
+
+        cursor.execute(sql, params)
         if cursor.fetchone()[0] > 0:
             print(f"   ⚠️  Skipping {session_dict['session_id'][:50]} - already exists")
             continue

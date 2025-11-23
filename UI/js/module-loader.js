@@ -44,6 +44,7 @@ class ModuleLoader {
      */
     async loadModules() {
         console.log('📦 Loading modules from manifest...');
+        console.log('📍 [DEBUG] loadModules() called from:', new Error().stack);
 
         try {
             // Check if we're running from file:// protocol
@@ -180,9 +181,60 @@ class ModuleLoader {
     }
 }
 
+/**
+ * ✅ NEW HELPER: Wait for main app to be visible
+ * This ensures modules don't load before authentication completes
+ */
+async function waitForMainApp(maxWait = 15000) {
+    console.log('🔷 [MODULES] Waiting for main app to be visible...');
+    const startTime = Date.now();
+
+    while ((Date.now() - startTime) < maxWait) {
+        // Check for main-content element AND visibility
+        const mainContent = document.querySelector('.main-content');
+        
+        if (mainContent) {
+            // Check if it's visible (not display: none)
+            const isVisible = mainContent.offsetParent !== null;
+            
+            if (isVisible) {
+                console.log('✅ [MODULES] Main content is visible and ready');
+                return mainContent;
+            } else {
+                // Log only every 1 second to avoid spam
+                if ((Date.now() - startTime) % 1000 < 200) {
+                    console.log('⏳ [MODULES] Main content exists but hidden, waiting for auth...');
+                }
+            }
+        } else {
+            // Log only every 1 second to avoid spam
+            if ((Date.now() - startTime) % 1000 < 200) {
+                console.log('⏳ [MODULES] Main content not in DOM yet...');
+            }
+        }
+
+        // Wait 200ms before next check
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    console.error('❌ [MODULES] Timeout waiting for main app to become visible');
+    console.log('   Hint: Main app should be shown after authentication');
+    return null;
+}
+
 // Initialize module loader when DOM is ready
 async function initializeModuleSystem() {
-    console.log('🚀 Initializing module system...');
+    console.log('🚀 [MODULES] Initializing module system...');
+
+    // ✅ CRITICAL FIX: Wait for main app to be visible (auth must complete first)
+    const mainApp = await waitForMainApp();
+    if (!mainApp) {
+        console.error('❌ [MODULES] Main app not found - modules disabled');
+        console.log('   This usually means authentication hasn\'t completed yet');
+        return;
+    }
+
+    console.log('✅ [MODULES] Main app visible, proceeding with module initialization...');
 
     // Wait for ModuleManager class to be available (with timeout)
     const maxWait = 5000; // 5 seconds
@@ -206,7 +258,7 @@ async function initializeModuleSystem() {
             window.ModuleManager = new ModuleManager();
         }
 
-        const initialized = window.ModuleManager.initialize();
+        const initialized = await window.ModuleManager.initialize();
 
         if (initialized) {
             // Create and run module loader
@@ -242,22 +294,23 @@ let moduleSystemInitialized = false;
 
 async function safeInitializeModuleSystem() {
     if (moduleSystemInitialized) {
-        console.log('⏭️ Module system already initialized, skipping duplicate call');
+        console.log('⏭️ [MODULES] Module system already initialized, skipping duplicate call');
         return;
     }
     moduleSystemInitialized = true;
     await initializeModuleSystem();
 }
 
-// Initialize immediately if DOM is already loaded, otherwise wait
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', safeInitializeModuleSystem);
-} else {
-    // DOM already loaded, initialize after a small delay to ensure all scripts loaded
-    setTimeout(safeInitializeModuleSystem, 100);
-}
+// ❌ REMOVED: Don't initialize automatically on DOMContentLoaded
+// Modules should only load AFTER authentication completes
+// The auth system (user_auth.js) will call window.initializeModuleSystem() when ready
 
-console.log('✅ ModuleLoader script loaded');
+console.log('✅ ModuleLoader script loaded (waiting for auth to trigger initialization)');
+console.log('   💡 Modules will load after UserAuth.showMainApp() calls initializeModuleSystem()');
 
-// Expose for manual initialization if needed
+// ⚠️ CRITICAL: Expose ModuleLoader class to window IMMEDIATELY (not just instance)
+// This allows other code to check `if (window.ModuleLoader)` before async init completes
+window.ModuleLoader = ModuleLoader;
+
+// ✅ Expose for manual initialization by auth system
 window.initializeModuleSystem = safeInitializeModuleSystem;

@@ -2,6 +2,7 @@
 Fix Corrupted Sessions Database
 Repairs or rebuilds the sessions.db database when it becomes corrupted
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import os

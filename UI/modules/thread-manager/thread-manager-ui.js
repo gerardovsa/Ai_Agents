@@ -240,6 +240,13 @@ window.ThreadManagerUI = {
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
                         ` : ''}
+                        ${thread.location === 'prime' || thread.location === 'prime-loaded' ? `
+                        <button class="thread-action-btn ${thread.location === 'prime-loaded' ? 'active' : ''}" 
+                            onclick="event.stopPropagation(); ThreadManager.markAsPrimeLoaded('${thread.id}')" 
+                            title="${thread.location === 'prime-loaded' ? 'Loads on startup (active)' : 'Set to load on startup'}">
+                            <i class="fas fa-home"></i>
+                        </button>
+                        ` : ''}
                         <button class="thread-action-btn edit" 
                             onclick="event.stopPropagation(); ThreadManager.editThread('${thread.id}')" 
                             title="Edit thread">
@@ -447,12 +454,8 @@ window.ThreadManagerUI = {
         }
 
         if (!threadId) {
-            // Show welcome message/empty state
-            if (typeof this.initWelcomeMessage === 'function') {
-                this.initWelcomeMessage('prime');
-            } else if (typeof ThreadCardTemplates !== 'undefined') {
-                container.innerHTML = ThreadCardTemplates.welcomeContainer(594);
-            }
+            // Show clickable thread selector dropdown (no welcome screen)
+            container.innerHTML = this.renderEmptyThreadInfo('prime');
             return;
         }
 

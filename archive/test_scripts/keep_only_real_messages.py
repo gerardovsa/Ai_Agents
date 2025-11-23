@@ -1,4 +1,5 @@
 """Keep only the real conversation (hello what time is it)"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -41,12 +42,14 @@ print(f"   - Deleted {cursor.rowcount} Python test messages")
 print("\n🔄 Removing duplicates...")
 
 # Get all remaining messages
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, role, content, created_at 
     FROM messages 
     WHERE thread_id = ? 
     ORDER BY created_at
 """, (thread_id,))
+
+cursor.execute(sql, params)
 messages = cursor.fetchall()
 
 # Track seen content+role combinations
@@ -68,12 +71,14 @@ if to_delete:
 conn.commit()
 
 # Show remaining messages
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, role, content, created_at 
     FROM messages 
     WHERE thread_id = ? 
     ORDER BY created_at
 """, (thread_id,))
+
+cursor.execute(sql, params)
 final_messages = cursor.fetchall()
 
 print(f"\n✅ FINAL MESSAGES ({len(final_messages)}):")

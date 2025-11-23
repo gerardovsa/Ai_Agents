@@ -10,6 +10,8 @@
 
 class AutomationCanvas {
     constructor() {
+        console.log('[AUTOMATION] Constructor called - initializing properties...');
+        
         this.shapes = [];
         this.connections = [];
         this.selectedShape = null;
@@ -55,13 +57,27 @@ class AutomationCanvas {
         // API configuration
         this.apiBaseUrl = window.API_BASE_URL || 'http://localhost:5001';
 
+        console.log('[AUTOMATION] Properties initialized, calling init()...');
         this.init();
+        console.log('[AUTOMATION] Constructor complete!');
+        
+        // Add debug panel in development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            this.createDebugPanel();
+        }
     }
 
     init() {
+        console.log('[AUTOMATION] init() - Setting up event listeners...');
         this.setupEventListeners();
+        
+        console.log('[AUTOMATION] init() - Loading workflows from API...');
         this.loadWorkflows();
+        
+        console.log('[AUTOMATION] init() - Starting auto-save timer...');
         this.startAutoSave();
+        
+        console.log('[AUTOMATION] init() - Complete! Canvas ready.');
     }
 
     /**
@@ -165,7 +181,56 @@ class AutomationCanvas {
         }
     }
 
+    /**
+     * Verify and re-attach event listeners for toolbar buttons
+     * Call this whenever canvas becomes visible or active
+     * @returns {Object} Result with attached and missing counts
+     */
+    verifyEventListeners() {
+        console.log('[AUTOMATION] 🔍 Verifying event listeners...');
+        
+        const handlers = {
+            'new-workflow-btn': () => this.openWorkflowModal(),
+            'load-workflow-btn': () => this.showLoadWorkflowDialog(),
+            'save-workflow-btn': () => this.saveWorkflow(),
+            'export-workflow-btn': () => this.exportToJSON(),
+            'print-workflow-btn': () => this.printWorkflow(),
+            'automation-send-ai-btn': () => this.sendToAI(),
+            'zoom-in-btn': () => this.zoomIn(),
+            'zoom-out-btn': () => this.zoomOut(),
+            'zoom-reset-btn': () => this.zoomReset(),
+            'recenter-btn': () => this.recenterToShapes()
+        };
+        
+        let attached = 0;
+        let missing = 0;
+        
+        Object.entries(handlers).forEach(([id, handler]) => {
+            const btn = document.getElementById(id);
+            
+            if (btn) {
+                // Remove all existing listeners by cloning
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Attach fresh listener
+                newBtn.addEventListener('click', handler);
+                
+                attached++;
+                console.log(`[AUTOMATION]    ✅ ${id}`);
+            } else {
+                missing++;
+                console.warn(`[AUTOMATION]    ⚠️ ${id} NOT FOUND`);
+            }
+        });
+        
+        console.log(`[AUTOMATION] 📊 Result: ${attached} attached, ${missing} missing`);
+        return { attached, missing };
+    }
+
     setupEventListeners() {
+        console.log('[AUTOMATION] setupEventListeners() - Starting...');
+        
         // Palette collapse/expand toggle
         const paletteToggle = document.getElementById('palette-toggle');
         if (paletteToggle) {
@@ -178,33 +243,55 @@ class AutomationCanvas {
                     chevron.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
                 }
             });
+            console.log('[AUTOMATION] Palette toggle listener attached');
+        } else {
+            console.warn('[AUTOMATION] Palette toggle not found');
         }
 
         // Shape palette drag-and-drop (floating palette)
-        document.querySelectorAll('.floating-shape-item').forEach(item => {
-            item.addEventListener('dragstart', (e) => this.handleShapeDragStart(e));
+        const shapeItems = document.querySelectorAll('.floating-shape-item');
+        console.log(`[AUTOMATION] Found ${shapeItems.length} draggable shape items`);
+        
+        shapeItems.forEach((item, index) => {
+            const shapeType = item.dataset.shape;
+            item.addEventListener('dragstart', (e) => {
+                console.log(`[AUTOMATION] Drag start: ${shapeType}`);
+                this.handleShapeDragStart(e);
+            });
+            console.log(`[AUTOMATION] Attached dragstart to shape ${index + 1}: ${shapeType}`);
         });
 
         // Color swatch selection
-        document.querySelectorAll('.color-swatch').forEach(swatch => {
+        const swatches = document.querySelectorAll('.color-swatch');
+        console.log(`[AUTOMATION] Found ${swatches.length} color swatches`);
+        swatches.forEach(swatch => {
             swatch.addEventListener('click', (e) => this.selectColor(e.target.dataset.color));
         });
 
         // Canvas drop zone
         const canvasWrapper = document.getElementById('automation-canvas-wrapper');
         if (canvasWrapper) {
-            canvasWrapper.addEventListener('dragover', (e) => e.preventDefault());
-            canvasWrapper.addEventListener('drop', (e) => this.handleCanvasDrop(e));
+            console.log('[AUTOMATION] Canvas wrapper found, attaching drop handlers');
+            
+            canvasWrapper.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            });
+            
+            canvasWrapper.addEventListener('drop', (e) => {
+                console.log('[AUTOMATION] Drop event triggered');
+                this.handleCanvasDrop(e);
+            });
+            
             canvasWrapper.addEventListener('click', (e) => this.handleCanvasClick(e));
+            
+            console.log('[AUTOMATION] Canvas drop zone configured');
+        } else {
+            console.error('[AUTOMATION] Canvas wrapper NOT FOUND - drag and drop will not work!');
         }
 
-        // Toolbar buttons
-        document.getElementById('new-workflow-btn')?.addEventListener('click', () => this.openWorkflowModal());
-        document.getElementById('load-workflow-btn')?.addEventListener('click', () => this.showLoadWorkflowDialog());
-        document.getElementById('save-workflow-btn')?.addEventListener('click', () => this.saveWorkflow());
-        document.getElementById('export-workflow-btn')?.addEventListener('click', () => this.exportToJSON());
-        document.getElementById('print-workflow-btn')?.addEventListener('click', () => this.printWorkflow());
-        document.getElementById('automation-send-ai-btn')?.addEventListener('click', () => this.sendToAI());
+        // ✅ NEW: Use verifyEventListeners() for toolbar buttons
+        this.verifyEventListeners();
 
         // Modal buttons
         document.getElementById('close-workflow-modal')?.addEventListener('click', () => this.closeWorkflowModal());
@@ -2505,18 +2592,159 @@ class AutomationCanvas {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    /**
+     * Create debug panel for development testing
+     * Shows initialization status and allows testing drag/drop
+     */
+    createDebugPanel() {
+        console.log('[AUTOMATION] Creating debug panel...');
+        
+        const panel = document.createElement('div');
+        panel.id = 'automation-debug-panel';
+        panel.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            z-index: 10000;
+            max-width: 350px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            border: 1px solid #333;
+        `;
+        
+        panel.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 10px; color: #58a6ff; font-size: 12px;">
+                <i class="fas fa-bug"></i> Automation Canvas Debug
+            </div>
+            <div id="debug-initialized" style="margin-bottom: 5px;">
+                <span style="color: #10b981;">✓</span> Initialized: YES
+            </div>
+            <div id="debug-shapes" style="margin-bottom: 5px;">
+                Shapes: ${this.shapes.length}
+            </div>
+            <div id="debug-connections" style="margin-bottom: 5px;">
+                Connections: ${this.connections.length}
+            </div>
+            <div id="debug-workflows" style="margin-bottom: 5px;">
+                Workflows: ${this.workflows.length}
+            </div>
+            <div id="debug-canvas" style="margin-bottom: 5px;">
+                Canvas: <span id="debug-canvas-status">checking...</span>
+            </div>
+            <div id="debug-palette" style="margin-bottom: 10px;">
+                Palette: <span id="debug-palette-status">checking...</span>
+            </div>
+            <button onclick="window.automationCanvas.testCreateShape()" 
+                    style="width: 100%; padding: 8px; cursor: pointer; background: #58a6ff; color: white; border: none; border-radius: 4px; font-weight: bold; margin-bottom: 5px;">
+                <i class="fas fa-plus"></i> Test Create Shape
+            </button>
+            <button onclick="window.testAutomationCanvas()" 
+                    style="width: 100%; padding: 8px; cursor: pointer; background: #666; color: white; border: none; border-radius: 4px; font-weight: bold;">
+                <i class="fas fa-terminal"></i> Console Dump
+            </button>
+        `;
+        
+        document.body.appendChild(panel);
+        
+        // Update status after a short delay
+        setTimeout(() => {
+            const canvas = document.getElementById('automation-canvas-wrapper');
+            const palette = document.querySelector('.floating-shape-palette');
+            const shapeItems = document.querySelectorAll('.floating-shape-item');
+            
+            document.getElementById('debug-canvas-status').innerHTML = 
+                canvas ? '<span style="color: #10b981;">✓ Found</span>' : '<span style="color: #ef4444;">✗ Missing</span>';
+            document.getElementById('debug-palette-status').innerHTML = 
+                palette ? `<span style="color: #10b981;">✓ Found (${shapeItems.length} items)</span>` : '<span style="color: #ef4444;">✗ Missing</span>';
+        }, 100);
+        
+        console.log('[AUTOMATION] Debug panel created');
+    }
+
+    /**
+     * Test function to create a shape programmatically
+     */
+    testCreateShape() {
+        console.log('[TEST] Creating test shape at (200, 200)');
+        
+        const testX = 200 + Math.random() * 100;
+        const testY = 200 + Math.random() * 100;
+        
+        this.createShape('rectangle', testX, testY, 'Test Shape ' + this.shapes.length);
+        
+        // Update debug panel
+        const debugShapes = document.getElementById('debug-shapes');
+        if (debugShapes) {
+            debugShapes.textContent = `Shapes: ${this.shapes.length}`;
+        }
+        
+        console.log('[TEST] Shape created! Total shapes:', this.shapes.length);
+    }
 }
 
 // Initialize when DOM is ready
-let automationCanvas;
+let automationCanvas = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[AUTOMATION] DOM loaded, checking for canvas wrapper...');
+    
     // Only initialize if automation dashboard exists
-    if (document.getElementById('automation-canvas-wrapper')) {
-        automationCanvas = new AutomationCanvas();
-        console.log('Automation Canvas initialized');
+    const canvasWrapper = document.getElementById('automation-canvas-wrapper');
+    
+    if (canvasWrapper) {
+        console.log('[AUTOMATION] Canvas wrapper found, initializing AutomationCanvas...');
+        try {
+            automationCanvas = new AutomationCanvas();
+            window.automationCanvas = automationCanvas; // Assign AFTER creation
+            console.log('[AUTOMATION] AutomationCanvas initialized and assigned to window.automationCanvas');
+            console.log('[AUTOMATION] Instance check:', window.automationCanvas instanceof AutomationCanvas);
+        } catch (error) {
+            console.error('[AUTOMATION] Failed to initialize:', error);
+        }
+    } else {
+        console.warn('[AUTOMATION] Canvas wrapper not found in DOM');
+        console.log('[AUTOMATION] Available automation elements:', 
+            Array.from(document.querySelectorAll('[id*="automation"]')).map(el => el.id));
     }
 });
 
-// Export for global access
-window.automationCanvas = automationCanvas;
+// Fallback: Lazy initialization when automation tab is activated
+window.initializeAutomationCanvas = function() {
+    console.log('[AUTOMATION] Lazy initialization triggered');
+    
+    if (!window.automationCanvas) {
+        const canvasWrapper = document.getElementById('automation-canvas-wrapper');
+        if (canvasWrapper && typeof AutomationCanvas !== 'undefined') {
+            console.log('[AUTOMATION] Creating AutomationCanvas instance...');
+            automationCanvas = new AutomationCanvas();
+            window.automationCanvas = automationCanvas;
+            console.log('[AUTOMATION] Lazy initialization complete');
+        } else {
+            console.error('[AUTOMATION] Cannot initialize - wrapper or class not found');
+            console.log('[AUTOMATION] Wrapper exists:', !!canvasWrapper);
+            console.log('[AUTOMATION] Class defined:', typeof AutomationCanvas);
+        }
+    } else {
+        console.log('[AUTOMATION] Already initialized');
+    }
+    
+    return window.automationCanvas;
+};
+
+// Test function for debugging
+window.testAutomationCanvas = function() {
+    console.log('=== AUTOMATION CANVAS DEBUG ===');
+    console.log('window.automationCanvas:', window.automationCanvas);
+    console.log('Is instance?:', window.automationCanvas instanceof AutomationCanvas);
+    console.log('Canvas wrapper exists?:', !!document.getElementById('automation-canvas-wrapper'));
+    console.log('Palette exists?:', !!document.querySelector('.floating-shape-palette'));
+    console.log('Shape count:', window.automationCanvas?.shapes?.length || 0);
+    console.log('Workflows loaded:', window.automationCanvas?.workflows?.length || 0);
+    console.log('==============================');
+};

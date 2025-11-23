@@ -1,6 +1,7 @@
 """
 Agent Routes - EXPANDED with Triple Agent Endpoints + TOOL EXECUTION
 Routes for Data Agent, Single Viewer, Triple Agent (1, 2, 3), and Stock AI
+from shared.database_utils import convert_sql_placeholders
 
 NOW WITH REAL TOOL EXECUTION - 281 tools across 19 platforms
 PROTECTED by user authentication
@@ -434,11 +435,13 @@ def handle_main_chat(message, session_id, provider, model, user_id=None):
             cursor = conn.cursor()
             
             # Fetch comprehensive user data
-            cursor.execute('''
+            sql, params = convert_sql_placeholders('''
                 SELECT username, email, password_hash, created_at 
                 FROM users 
                 WHERE id = ?
             ''', (user_id,))
+
+            cursor.execute(sql, params)
             user_row = cursor.fetchone()
             
             if user_row:
@@ -458,7 +461,7 @@ def handle_main_chat(message, session_id, provider, model, user_id=None):
                 
                 # Check OAuth token presence
                 if user_platform == 'google':
-                    cursor.execute('''
+                    sql, params = convert_sql_placeholders('''
                         SELECT COUNT(*) as count 
                         FROM user_platform_credentials 
                         WHERE user_id = ? 
@@ -466,11 +469,13 @@ def handle_main_chat(message, session_id, provider, model, user_id=None):
                         AND credential_key = 'access_token'
                         AND is_active = 1
                     ''', (user_id,))
+
+                    cursor.execute(sql, params)
                     result = cursor.fetchone()
                     google_oauth_connected = result['count'] > 0 if result else False
                     
                 elif user_platform == 'microsoft':
-                    cursor.execute('''
+                    sql, params = convert_sql_placeholders('''
                         SELECT COUNT(*) as count 
                         FROM user_platform_credentials 
                         WHERE user_id = ? 
@@ -478,6 +483,8 @@ def handle_main_chat(message, session_id, provider, model, user_id=None):
                         AND credential_key = 'access_token'
                         AND is_active = 1
                     ''', (user_id,))
+
+                    cursor.execute(sql, params)
                     result = cursor.fetchone()
                     microsoft_oauth_connected = result['count'] > 0 if result else False
             

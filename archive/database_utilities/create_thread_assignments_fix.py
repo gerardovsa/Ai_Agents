@@ -1,5 +1,6 @@
 """
 Create and populate thread_assignments table to fix the missing table warnings
+from shared.database_utils import convert_sql_placeholders
 
 This script:
 1. Creates thread_assignments table in ai_infrastructure.db

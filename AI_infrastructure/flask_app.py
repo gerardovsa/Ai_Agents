@@ -149,6 +149,7 @@ from routes.prompt_library_routes import prompt_routes  # NEW: Prompt library (d
 from routes.token_routes import token_routes  # NEW: Token tracking (real-time token counts for threads)
 from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-device session management)
 from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool monitoring dashboard
+from routes.monitoring_routes import monitoring_bp  # NEW: Connection pool health monitoring (Supabase optimization)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 
 # Initialize Flask app
@@ -287,6 +288,7 @@ app.register_blueprint(render_bp)                                    # NEW: Rend
 app.register_blueprint(prompt_routes)                                # NEW: Prompt library (10 endpoints: /api/prompts/*)
 app.register_blueprint(token_routes)                                 # NEW: Token tracking (3 endpoints: /api/tokens/*)
 app.register_blueprint(pool_monitor_bp)                              # NEW: Connection pool monitoring (4 endpoints: /api/pool/*)
+app.register_blueprint(monitoring_bp)                                # NEW: Connection pool health monitoring (4 endpoints: /api/pool/stats, /api/pool/health)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
 
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)
@@ -363,8 +365,12 @@ UI_DIR = os.path.join(os.path.dirname(__file__), '..', 'UI')
 
 @app.route('/')
 def serve_ui():
-    """Serve the main UI page"""
-    return send_from_directory(UI_DIR, 'business-ai-platform-v2.html')
+    """Serve the main UI page with no-cache headers to prevent stale JS/CSS"""
+    response = send_from_directory(UI_DIR, 'business-ai-platform-v2.html')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/<path:filename>')
 def serve_ui_static(filename):
@@ -394,6 +400,27 @@ socketio = SocketIO(
 
 # Track connected clients and their rooms
 connected_clients = {}
+
+# ============================================================================
+# DEFAULT NAMESPACE HANDLERS (catch unwanted connections)
+# ============================================================================
+
+@socketio.on('connect')
+def default_connect():
+    """
+    Handle connection attempts to default namespace (/)
+    Reject these connections as we only support /ws/synergy
+    """
+    log_warning(logger, "[WS] Connection attempt to default namespace - rejecting")
+    return False  # Reject connection
+
+@socketio.on('disconnect')
+def default_disconnect():
+    """
+    Handle disconnection from default namespace (/)
+    This should rarely be called since we reject connections
+    """
+    pass  # Silently ignore
 
 # ============================================================================
 # COMPREHENSIVE SOCKETIO HANDLERS FOR /ws/synergy NAMESPACE
@@ -433,40 +460,36 @@ def ws_synergy_connect(auth=None):
         return False  # Reject connection on error
 
 @socketio.on('disconnect', namespace='/ws/synergy')
-def ws_synergy_disconnect(sid=None):
+def ws_synergy_disconnect(reason=None):
     """
     Handle client disconnection from /ws/synergy namespace
     
     Args:
-        sid: Session ID passed by Flask-SocketIO (optional, fallback to request.sid)
+        reason: Disconnect reason passed by Flask-SocketIO (optional)
     
-    Note: Flask-SocketIO automatically passes the session ID to disconnect handlers.
+    Note: Flask-SocketIO automatically provides request context with session ID.
     This works identically on local Windows and Render Linux deployments with Supabase.
     """
     try:
         from flask import request as flask_request
         
-        # Use passed sid parameter (Flask-SocketIO provides this)
-        # Fallback to flask_request.sid for backward compatibility
-        client_id = sid or getattr(flask_request, 'sid', None)
+        # Get client_id from Flask-SocketIO request context
+        client_id = getattr(flask_request, 'sid', None)
         
-        # If no client_id could be determined, log and return early
+        # If no client_id could be determined, skip silently (normal for some disconnect scenarios)
         if not client_id:
-            log_warning(logger, "Disconnect event with no identifiable client_id")
             return
         
         if client_id in connected_clients:
             del connected_clients[client_id]
             log_config(logger, f"Client disconnected from /ws/synergy: {client_id}")
-        else:
-            # This is normal - client might disconnect before full connection
-            log_config(logger, f"Disconnect event for untracked client: {client_id}")
+        # Silently ignore untracked clients (normal during connection failures)
     
     except Exception as e:
         # Prevent exceptions from breaking WebSocket connection handling
+        # Log error but don't re-raise to avoid 500 errors
         log_error(logger, f"Error in ws_synergy_disconnect: {e}")
-        import traceback
-        traceback.print_exc()
+        pass  # Silently continue
 
 @socketio.on('subscribe', namespace='/ws/synergy')
 def ws_synergy_subscribe(data):
@@ -1456,6 +1479,25 @@ except Exception as e:
     log_error(logger, f"Failed to start scheduler: {e}")
     import traceback
     log_error(logger, traceback.format_exc())
+
+# ============================================================================
+# CLEANUP HANDLER
+# ============================================================================
+
+import atexit
+from shared.database_utils import close_all_pools
+
+def cleanup_resources():
+    """Cleanup connection pools on shutdown"""
+    print("\n🔷 [SHUTDOWN] Cleaning up connection pools...")
+    try:
+        close_all_pools()
+        print("✅ [SHUTDOWN] Connection pools closed")
+    except Exception as e:
+        print(f"⚠️  [SHUTDOWN] Failed to close pools: {e}")
+
+# Register cleanup handler (called on normal exit)
+atexit.register(cleanup_resources)
 
 # ============================================================================
 # RUN APP

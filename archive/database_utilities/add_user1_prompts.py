@@ -2,6 +2,7 @@
 import sqlite3
 from datetime import datetime
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 db_path = Path(__file__).parent / 'data' / 'ai_infrastructure.db'
 conn = sqlite3.connect(str(db_path))
@@ -44,11 +45,13 @@ prompts = [
 now = datetime.now().isoformat()
 
 for name, category, ptype, description, prompt_text, tags, visibility in prompts:
-    cursor.execute('''
+    sql, params = convert_sql_placeholders('''
         INSERT INTO prompt_library 
         (user_id, name, category, type, description, prompt_text, tags, visibility, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (1, name, category, ptype, description, prompt_text, tags, visibility, now, now))
+
+    cursor.execute(sql, params)
 
 conn.commit()
 print(f'✅ Added {len(prompts)} prompts for user_id=1')

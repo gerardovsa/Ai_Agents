@@ -1,6 +1,7 @@
 """
 Check messages in sessions.db for the TEST 1 thread
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -19,7 +20,7 @@ cursor = conn.cursor()
 
 # 1. Find the TEST 1 thread
 print("1. FINDING YOUR THREAD:")
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT id, thread_slug, name, user_id, created_at, location
     FROM threads
     WHERE name LIKE '%TEST%'
@@ -58,6 +59,8 @@ cursor.execute("""
     WHERE thread_id = ? OR session_id = ?
     ORDER BY created_at ASC
 """, (thread_id, thread_slug))
+
+cursor.execute(sql, params)
 messages = cursor.fetchall()
 
 if not messages:
@@ -76,11 +79,13 @@ else:
 
 # 4. Check sessions table
 print("\n4. SESSION DATA:")
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT session_id, agent_id, created_at, last_active, conversation
     FROM sessions
     WHERE session_id = ?
 """, (thread_slug,))
+
+cursor.execute(sql, params)
 session = cursor.fetchone()
 
 if session:

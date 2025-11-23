@@ -1,5 +1,6 @@
 """
 Add prompt_library table to ai_infrastructure.db
+from shared.database_utils import convert_sql_placeholders
 
 This migration adds support for the prompt library feature with:
 - User-specific prompts
@@ -34,7 +35,7 @@ def create_prompt_library_table():
     try:
         # Create prompt_library table
         print("\nCreating prompt_library table...")
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             CREATE TABLE IF NOT EXISTS prompt_library (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -255,11 +256,13 @@ APPROACH:
                     prompt['tags'],
                     prompt['visibility']
                 ))
+
+        cursor.execute(sql, params)
         
         conn.commit()
         
         # Verify table creation
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT name FROM sqlite_master 
             WHERE type='table' AND name='prompt_library'
         """)
@@ -286,6 +289,8 @@ APPROACH:
                 WHERE user_id = ? 
                 ORDER BY category, name
             """, (user_ids[0] if user_ids else 1,))
+
+        cursor.execute(sql, params)
             
             print("\nSample prompts for first user:")
             for row in cursor.fetchall():

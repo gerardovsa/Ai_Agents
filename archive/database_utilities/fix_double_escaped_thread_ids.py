@@ -2,6 +2,7 @@
 Fix double-escaped thread_ids in synergy_sessions table
 This script fixes the database corruption where thread_ids were double-stringified
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import json

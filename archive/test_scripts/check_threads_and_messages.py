@@ -1,4 +1,5 @@
 """Check threads and messages to verify everything is working"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path

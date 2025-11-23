@@ -2,6 +2,7 @@
 Fix Synergy Database Schema
 ============================
 Adds missing columns to synergy_sessions and threads tables.
+from shared.database_utils import convert_sql_placeholders
 
 Run: python fix_synergy_database_schema.py
 """
@@ -99,7 +100,7 @@ def initialize_column_positions():
         cursor = conn.cursor()
         
         # Get all sessions grouped by column
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT session_id, kanban_column 
             FROM synergy_sessions 
             ORDER BY kanban_column, created_at
@@ -127,6 +128,8 @@ def initialize_column_positions():
                     SET column_position = ? 
                     WHERE session_id = ?
                 """, (position, session_id))
+
+        cursor.execute(sql, params)
                 updated += 1
         
         conn.commit()

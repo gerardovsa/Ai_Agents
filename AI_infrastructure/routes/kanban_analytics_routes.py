@@ -526,7 +526,7 @@ def update_performance_metrics(ticket_id: int):
                       'customer_satisfaction', 'material_cost', 'labor_cost', 'overhead_cost',
                       'total_actual_cost', 'profit_margin', 'recorded_by']:
             if field in data:
-                fields.append(f"{field} = ?")
+                fields.append(f"{field} = %s")
                 values.append(data[field])
         
         if not fields:

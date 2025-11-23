@@ -430,7 +430,7 @@ def update_log_entry(log_id: int):
         
         for field in allowed_fields:
             if field in data:
-                updates.append(f"{field} = ?")
+                updates.append(f"{field} = %s")
                 values.append(data[field])
         
         if not updates:

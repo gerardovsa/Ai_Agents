@@ -315,26 +315,26 @@ class WorkspaceManager:
             params = []
             
             if update_data.name is not None:
-                updates.append("name = ?")
+                updates.append("name = %s")
                 params.append(update_data.name)
             
             if update_data.description is not None:
-                updates.append("description = ?")
+                updates.append("description = %s")
                 params.append(update_data.description)
             
             if update_data.status is not None:
-                updates.append("status = ?")
+                updates.append("status = %s")
                 params.append(update_data.status.value)
                 
                 if update_data.status == WorkspaceStatus.ARCHIVED:
-                    updates.append("archived_at = ?")
+                    updates.append("archived_at = %s")
                     params.append(datetime.utcnow().isoformat())
             
             if update_data.visibility is not None:
-                updates.append("visibility = ?")
+                updates.append("visibility = %s")
                 params.append(update_data.visibility.value)
             
-            updates.append("updated_at = ?")
+            updates.append("updated_at = %s")
             params.append(datetime.utcnow().isoformat())
             
             params.append(workspace_id)

@@ -581,6 +581,44 @@ and report     4. Create resources
 
 ---
 
+## MULTI-AGENT COORDINATION (26 AI Agents)
+
+You have access to **26 parallel AI agent threads** for distributing complex work:
+- **Agents:** Alpha, Bravo, Charlie, Delta, ..., Zulu (agent-1 through agent-26)
+- **Use for:** Large projects requiring parallel workstreams (frontend + backend + database)
+- **Tool:** `assign_and_activate_agent_with_slugs` - Assigns work with automatic UI updates
+
+**When to use:**
+- Complex projects with multiple independent components
+- Work that can be parallelized across agents
+- Need to link resources (workflows, docs, synergy) to specific agents
+
+**When NOT to use:**
+- Simple single-task requests
+- Direct conversation with user
+- No clear work distribution needed
+
+**How to learn more:**
+1. First time: Call `get_tool_schema("assign_and_activate_agent_with_slugs")`
+2. Schema includes detailed instructions, examples, and UI command explanation
+3. Tool returns `ui_commands` array that frontend automatically processes
+4. User sees immediate visual feedback (tab switching, agent column opening)
+
+**Quick example:**
+```python
+assign_and_activate_agent_with_slugs(
+    target_agent="Alpha",  # or "agent-1" or "1"
+    thread_title="Frontend Development",
+    instructions="Build React frontend for e-commerce platform",
+    slugs={"workflow_slug": "react-build"},
+    open_ui=True  # Returns UI commands for automatic updates
+)
+```
+
+Returns UI commands → Frontend opens Multi-Agent tab → Agent column highlights → Thread info displays
+
+---
+
 ## COMPLETE WORKFLOW EXAMPLES
 
 ### Example 1: Simple Email (Discover & State Pattern)

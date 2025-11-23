@@ -1,5 +1,6 @@
 """
 Add InHouse Print Business-Specific Prompts to Database
+from shared.database_utils import convert_sql_placeholders
 
 This script adds comprehensive prompts focused on:
 - Daily email coordination with explicit db_get_available_queries() workflow
@@ -31,7 +32,9 @@ def add_prompt(conn, user_id, name, category, prompt_type, description, prompt_t
     cursor = conn.cursor()
     
     # Check if prompt already exists
-    cursor.execute("SELECT id FROM prompt_library WHERE name = ? AND user_id = ?", (name, user_id))
+    sql, params = convert_sql_placeholders("SELECT id FROM prompt_library WHERE name = ? AND user_id = ?", (name, user_id))
+
+    cursor.execute(sql, params)
     existing = cursor.fetchone()
     
     if existing:
@@ -39,7 +42,7 @@ def add_prompt(conn, user_id, name, category, prompt_type, description, prompt_t
         return False
     
     # Insert new prompt
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         INSERT INTO prompt_library 
         (user_id, name, category, type, description, prompt_text, tags, visibility, usage_count, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -339,7 +342,9 @@ Review AI progress, process new emails, update Synergy, report status.
     
     # Get totals
     cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM prompt_library WHERE user_id = ?", (user_id,))
+    sql, params = convert_sql_placeholders("SELECT COUNT(*) FROM prompt_library WHERE user_id = ?", (user_id,))
+
+    cursor.execute(sql, params)
     total_prompts = cursor.fetchone()[0]
     
     cursor.execute("""
@@ -349,6 +354,8 @@ Review AI progress, process new emails, update Synergy, report status.
         GROUP BY category
         ORDER BY count DESC
     """, (user_id,))
+
+    cursor.execute(sql, params)
     
     categories = cursor.fetchall()
     

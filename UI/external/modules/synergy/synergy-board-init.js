@@ -20,13 +20,22 @@ window.synergyBoard = {
     sessions: [],
     apiBaseUrl: window.API_BASE_URL || 'http://localhost:5001',
     initialized: false,
+    initPromise: null, // Track initialization promise to avoid duplicate inits
 
     // Safe wrapper for methods that require initialization
     async ensureInitialized() {
-        if (!this.initialized) {
-            console.log('⏳ [SYNERGY] Auto-initializing synergyBoard...');
-            await this.init();
+        if (this.initialized) {
+            return; // Already initialized
         }
+        if (this.initPromise) {
+            console.log('⏳ [SYNERGY] Waiting for ongoing initialization...');
+            await this.initPromise; // Wait for ongoing initialization
+            return;
+        }
+        console.log('⏳ [SYNERGY] Auto-initializing synergyBoard...');
+        this.initPromise = this.init();
+        await this.initPromise;
+        this.initPromise = null;
     },
 
     async init() {
@@ -448,11 +457,12 @@ window.synergyBoard = {
             return;
         }
 
-        // Create card element
+        // Create card element - using synergy-session-item class for shared styling
         const card = document.createElement('div');
-        card.className = 'kanban-card';
+        card.className = 'synergy-session-item kanban-card';
         card.dataset.sessionId = session.session_id;
         card.dataset.column = htmlColumn;
+        card.dataset.context = 'dashboard';
 
         // Enable drag and drop
         card.draggable = true;
@@ -524,8 +534,17 @@ window.synergyBoard = {
                         <div class="synergy-progress-fill" style="width: ${progressPercent}%"></div>
                     </div>
                     <div class="synergy-footer">
-                        <div class="synergy-project">${this.escapeHtml(session.project_name || 'General')}</div>
-                        <div class="synergy-updated">${timeAgo}</div>
+                        <div class="synergy-footer-row-1">
+                            <div class="synergy-project">${this.escapeHtml(session.project_name || 'General')}</div>
+                            <div class="synergy-updated">${timeAgo}</div>
+                        </div>
+                        ${session.tags && session.tags.length > 0 ? `
+                            <div class="synergy-footer-row-2">
+                                <div class="synergy-tags">
+                                    ${session.tags.slice(0, 3).map(tag => `<span class="synergy-tag">${this.escapeHtml(tag)}</span>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -564,24 +583,28 @@ window.synergyBoard = {
 
     /**
      * Toggle card expansion (show/hide details)
+     * Now uses unified rendering with full milestone/task/subtask hierarchy
      */
     async toggleCardExpand(sessionId) {
-        const card = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
+        const card = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"][data-context="dashboard"]`);
         if (!card) return;
 
         const isExpanded = card.dataset.expanded === 'true';
 
         if (isExpanded) {
-            // Collapse - remove expanded content
+            // Collapse - hide expanded content
             card.dataset.expanded = 'false';
             card.classList.remove('expanded');
             const expandedContent = card.querySelector('.synergy-card-expanded-content');
             if (expandedContent) {
-                expandedContent.remove();
+                expandedContent.style.display = 'none';
             }
+            // Update chevron
+            const chevron = card.querySelector('.synergy-chevron i');
+            if (chevron) chevron.className = 'fas fa-chevron-down';
             console.log(`[SYNERGY] Collapsed card: ${sessionId}`);
         } else {
-            // Expand - load and show milestones
+            // Expand - load and show full milestones hierarchy
             card.dataset.expanded = 'true';
             card.classList.add('expanded');
             console.log(`[SYNERGY] Expanded card: ${sessionId}`);
@@ -592,11 +615,12 @@ window.synergyBoard = {
                 // Create expanded content container
                 expandedContent = document.createElement('div');
                 expandedContent.className = 'synergy-card-expanded-content';
-                expandedContent.innerHTML = '<div class="loading-placeholder"><i class="fas fa-spinner fa-spin"></i> Loading milestones...</div>';
+                expandedContent.style.display = 'block';
+                expandedContent.innerHTML = '<div class="loading-placeholder"><i class="fas fa-spinner fa-spin"></i> Loading session data...</div>';
                 card.querySelector('.synergy-session-header-new').appendChild(expandedContent);
 
                 try {
-                    // Fetch milestones
+                    // Fetch milestones with full hierarchy
                     const response = await fetch(`http://localhost:5001/api/synergy/${sessionId}/milestones`);
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}`);
@@ -604,55 +628,38 @@ window.synergyBoard = {
 
                     const data = await response.json();
                     const milestones = data.milestones || [];
+                    const session = data.session || {};
 
                     console.log(`[SYNERGY] Loaded ${milestones.length} milestones for ${sessionId}`);
-                    if (milestones.length > 0) {
-                        console.log('[SYNERGY] First milestone data:', {
-                            milestone_id: milestones[0].milestone_id,
-                            milestone_number: milestones[0].milestone_number,
-                            milestone_name: milestones[0].milestone_name,
-                            description: milestones[0].description,
-                            tasks_count: milestones[0].tasks ? milestones[0].tasks.length : 0
-                        });
-                    }
 
-                    // Render milestones with proper structure
-                    if (milestones.length === 0) {
-                        expandedContent.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary);">No milestones yet</div>';
+                    // Use unified renderer from SynergySidebarRenderer
+                    if (window.SynergySidebarRenderer) {
+                        const renderer = new window.SynergySidebarRenderer();
+                        expandedContent.innerHTML = renderer.renderExpandedCardContent(session, milestones, sessionId);
                     } else {
-                        expandedContent.innerHTML = milestones.map(m => {
-                            const completedTasks = m.tasks ? m.tasks.filter(t => t.completed).length : 0;
-                            const totalTasks = m.tasks ? m.tasks.length : 0;
-                            const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-                            const milestoneName = m.milestone_name || 'Untitled Milestone';
-                            const milestoneDesc = m.description || '';
-
-                            console.log(`[SYNERGY] Rendering M${m.milestone_number}: "${milestoneName}"`);
-
-                            return `
-                                <div class="milestone-compact ${m.completed ? 'completed' : ''} ${m.blocked ? 'blocked' : ''}">
-                                    <div class="milestone-header-compact">
-                                        <div class="milestone-badge">M${m.milestone_number || '?'}</div>
-                                        <div class="milestone-name-compact">${this.escapeHtml(milestoneName)}</div>
-                                        ${totalTasks > 0 ? `<div class="milestone-progress-compact">${progress}%</div>` : ''}
-                                        ${m.due_date ? `<div class="milestone-due-date"><i class="fas fa-calendar"></i> ${new Date(m.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
-                                    </div>
-                                    ${milestoneDesc ? `<div class="milestone-description-compact">${this.escapeHtml(milestoneDesc)}</div>` : ''}
-                                    ${totalTasks > 0 ? `
-                                        <div class="milestone-stats-compact">
-                                            <span><i class="fas fa-tasks"></i> ${completedTasks}/${totalTasks} tasks</span>
-                                            ${m.estimated_hours ? `<span><i class="fas fa-clock"></i> ${m.estimated_hours}h estimated</span>` : ''}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            `;
-                        }).join('');
+                        // Fallback to basic rendering if renderer not available
+                        expandedContent.innerHTML = this.renderExpandedContentFallback(session, milestones, sessionId);
                     }
+
+                    // Update chevron
+                    const chevron = card.querySelector('.synergy-chevron i');
+                    if (chevron) chevron.className = 'fas fa-chevron-up';
                 } catch (error) {
+                    console.error('[SYNERGY] Error loading milestones:', error);
                     expandedContent.innerHTML = `
-                        <div style="padding: 16px; background: rgba(220, 38, 38, 0.1); border: 2px solid #dc2626; border-radius: 8px; color: #dc2626; margin: 8px;">
-                            <i class="fas fa-exclamation-triangle"></i> Failed to load milestones: ${error.message}
+                        <div style="
+                            padding: 16px;
+                            background: rgba(220, 38, 38, 0.1);
+                            border: 2px solid #dc2626;
+                            border-radius: 8px;
+                            color: #dc2626;
+                        ">
+                            <div style="font-weight: 700; margin-bottom: 8px;">
+                                <i class="fas fa-exclamation-triangle"></i> Error Loading Session
+                            </div>
+                            <div style="font-size: 12px; opacity: 0.9;">
+                                ${this.escapeHtml(error.message)}
+                            </div>
                         </div>
                     `;
                 }

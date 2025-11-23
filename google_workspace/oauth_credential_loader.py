@@ -16,7 +16,7 @@ from google.oauth2.credentials import Credentials
 
 # Add AI_infrastructure to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / 'AI_infrastructure'))
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 
 
 def get_oauth_credentials_from_db(user_id: int) -> Optional[Dict[str, Any]]:
@@ -53,7 +53,7 @@ def get_oauth_credentials_from_db(user_id: int) -> Optional[Dict[str, Any]]:
         cursor = conn.cursor()
         
         # Query oauth_tokens table
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT platform, access_token, refresh_token, 
                    token_type, expires_at, scope,
                    account_identifier, account_name,
@@ -63,6 +63,8 @@ def get_oauth_credentials_from_db(user_id: int) -> Optional[Dict[str, Any]]:
             ORDER BY updated_at DESC
             LIMIT 1
         """, (user_id,))
+
+        cursor.execute(sql, params)
         
         row = cursor.fetchone()
         conn.close()

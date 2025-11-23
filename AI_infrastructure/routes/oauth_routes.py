@@ -12,7 +12,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 
 # Add parent directory to path
 import sys
@@ -190,7 +190,7 @@ def oauth_workspace_callback():
             print(f" Created new user: {user_id}")
         
         # Store access token with proper schema
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT OR REPLACE INTO ai_infrastructure.user_platform_credentials 
             (user_id, platform, credential_type, credential_key, credential_value, is_active, metadata, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
@@ -207,6 +207,8 @@ def oauth_workspace_callback():
                 (user_id, platform, credential_type, credential_key, credential_value, is_active, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             ''', (user_id, 'google', 'oauth', 'refresh_token', credentials.refresh_token, 1))
+
+        cursor.execute(sql, params)
         
         conn.commit()
         conn.close()

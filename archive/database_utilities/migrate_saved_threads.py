@@ -1,5 +1,6 @@
 """
 Migrate saved_threads table to new schema with agent_id and other metadata fields
+from shared.database_utils import convert_sql_placeholders
 
 This fixes: "table saved_threads has no column named agent_id"
 
@@ -96,12 +97,15 @@ def migrate():
                 agent_id = 'unknown'
                 session_id = thread_id
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO saved_threads 
                 (thread_id, agent_id, session_id, user_id, location, thread_name, 
                  conversation, message_count, context, saved_at, last_updated)
                 VALUES (?, ?, ?, ?, 'prime', 'Migrated Thread', '[]', 0, '{}', ?, ?)
             """, (thread_id, agent_id, session_id, user_id, saved_at, saved_at))
+
+            
+            cursor.execute(sql, params)
         
         conn.commit()
         print(f"  Restored {len(old_data)} rows")

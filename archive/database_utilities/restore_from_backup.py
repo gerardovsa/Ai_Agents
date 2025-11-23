@@ -2,6 +2,7 @@
 Restore Data from Corrupted Database Backup
 Attempts to extract as much data as possible from the backup
 """
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 import os

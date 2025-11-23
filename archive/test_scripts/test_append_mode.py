@@ -2,6 +2,7 @@
 import requests
 import json
 import sqlite3
+from shared.database_utils import convert_sql_placeholders
 
 test_thread_id = "1762664406832"
 test_user_id = 12

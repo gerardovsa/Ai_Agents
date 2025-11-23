@@ -150,13 +150,19 @@ def get_connection_pool(schema_name: str):
             print(f" [POOL] Using {connection_mode} for '{schema_name}'")
             
             # Create thread-safe connection pool
-            # SMALL pool size (1-2) to avoid exhausting Supabase's 60 connection limit
+            # OPTIMIZED for Supabase Nano Transaction Mode (Nov 2025):
+            # - Transaction Mode pooler supports 200 concurrent CLIENT connections
+            # - Backend limit is 60 connections (shared across all poolers)
+            # - Transaction Mode efficiently reuses backend connections
+            # - minconn=5: Keep 5 warm connections ready for fast response
+            # - maxconn=20: Allow bursts up to 20 concurrent (only 10% of 200 client limit)
+            # - Each connection is short-lived in transaction mode (seconds, not minutes)
             _connection_pools[schema_name] = pool.ThreadedConnectionPool(
                 minconn=1,
-                maxconn=2,  # Reduced from 3 to 2 (more schemas = more pools)
+                maxconn=3,  # Reduced for faster startup
                 dsn=db_url,
                 sslmode='require',
-                connect_timeout=30,
+                connect_timeout=10,  # Reduced from 30
                 keepalives=1,
                 keepalives_idle=30,
                 keepalives_interval=10,
@@ -259,10 +265,46 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         # GET CONNECTION FROM POOL (FAST - reuses existing connections)
         start_time = time.time()
         pool_instance = get_connection_pool(schema_name)
-        conn = pool_instance.getconn()
+        
+        # CRITICAL FIX: Add timeout to prevent infinite blocking
+        # If pool is exhausted, fail fast instead of blocking forever
+        import threading
+        
+        conn = None
+        def _get_conn_with_timeout():
+            nonlocal conn
+            conn = pool_instance.getconn()
+        
+        thread = threading.Thread(target=_get_conn_with_timeout)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout=5.0)  # Wait max 5 seconds
+        
+        if thread.is_alive() or conn is None:
+            # Pool exhausted - log leaked connections
+            print(f"\n{'='*70}")
+            print(f" [POOL] CONNECTION POOL EXHAUSTED - LEAKED CONNECTIONS DETECTED")
+            print(f"{'='*70}")
+            print(f"Schema: {schema_name}")
+            print(f"Pool stats:")
+            print(f"  Acquired: {_pool_stats['connections_acquired']}")
+            print(f"  Returned: {_pool_stats['connections_returned']}")
+            print(f"  LEAKED: {_pool_stats['connections_acquired'] - _pool_stats['connections_returned']}")
+            print(f"\n SOLUTION:")
+            print(f"  1. Check code for missing conn.close() calls")
+            print(f"  2. Use context managers: with get_database_connection() as conn:")
+            print(f"  3. Restart application to reset pool")
+            print(f"{'='*70}\n")
+            
+            raise ConnectionError(
+                f"Connection pool exhausted for '{schema_name}'. "
+                f"Leaked connections: {_pool_stats['connections_acquired'] - _pool_stats['connections_returned']}. "
+                f"Check code for missing conn.close() calls."
+            )
+        
         wait_time = time.time() - start_time
         
-        # Track pool stats
+        # ✅ FIX 4: Track pool stats AFTER successful getconn()
         _pool_stats['connections_acquired'] += 1
         _pool_stats['total_wait_time'] += wait_time
         
@@ -283,18 +325,30 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                 self._pool = pool
                 self._schema = schema
                 self._closed = False
+                self._return_attempted = False  # ✅ FIX 3: Prevent double-return
             
             def close(self):
                 """Return to pool instead of closing"""
-                if not self._closed:
-                    try:
-                        if not self._conn.closed:
-                            self._conn.rollback()
-                            self._pool.putconn(self._conn)
-                            _pool_stats['connections_returned'] += 1
-                        self._closed = True
-                    except Exception as e:
-                        print(f" [POOL] Error returning connection: {e}")
+                if self._closed or self._return_attempted:
+                    # Already closed or return attempted - skip
+                    return
+                
+                self._return_attempted = True  # ✅ Mark BEFORE putconn
+                
+                try:
+                    if not self._conn.closed:
+                        self._conn.rollback()
+                        self._pool.putconn(self._conn)
+                        _pool_stats['connections_returned'] += 1
+                        self._closed = True  # ✅ Only mark closed if putconn succeeds
+                except Exception as e:
+                    # ✅ Even if putconn fails, mark as closed to prevent retry
+                    self._closed = True
+                    print(f"❌ [POOL] Failed to return connection to pool: {e}")
+                    print(f"   Schema: {self._schema}")
+                    print(f"   This connection is now LEAKED (cannot be returned)")
+                    leaked = _pool_stats['connections_acquired'] - _pool_stats['connections_returned']
+                    print(f"   Total leaked connections: {leaked}")
             
             def __getattr__(self, name):
                 return getattr(self._conn, name)
@@ -305,6 +359,15 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             def __exit__(self, exc_type, exc_val, exc_tb):
                 self.close()
                 return False
+            
+            def __del__(self):
+                """Ensure connection returned even if close() not called"""
+                if not self._closed and not self._return_attempted:
+                    print(f"⚠️  [POOL] Connection NOT returned in close() - attempting in __del__ for '{self._schema}'")
+                    try:
+                        self.close()
+                    except:
+                        print(f"❌ [POOL] Failed to return connection in __del__ - CONNECTION LEAKED")
         
         pooled_conn = PooledConnection(conn, pool_instance, schema_name)
         
@@ -504,8 +567,8 @@ class DatabaseCursor:
     Usage:
         conn = get_database_connection('ai_infrastructure')
         cursor = DatabaseCursor(conn)
-        cursor.execute("SELECT * FROM users WHERE id = ?", (123,))
-        # Automatically converts ? to %s for PostgreSQL
+        cursor.execute("SELECT * FROM users WHERE id = %s", (123,))
+        # Uses PostgreSQL %s placeholders
     """
     def __init__(self, connection):
         self.connection = connection

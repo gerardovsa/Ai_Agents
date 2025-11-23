@@ -2,6 +2,7 @@
 import sqlite3
 import json
 from pathlib import Path
+from shared.database_utils import convert_sql_placeholders
 
 root = Path(__file__).parent
 

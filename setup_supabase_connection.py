@@ -2,6 +2,7 @@
 Setup and Test Supabase Database Connection
 Helps configure Supabase credentials and verify database access
 """
+from shared.database_utils import convert_sql_placeholders
 
 import os
 import sys
@@ -137,7 +138,7 @@ def test_connection(connection_string):
         
         # 1. List all schemas
         print("\n📊 Listing schemas:")
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             SELECT schema_name 
             FROM information_schema.schemata 
             WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
@@ -155,6 +156,8 @@ def test_connection(connection_string):
                 FROM information_schema.tables
                 WHERE table_schema = %s
             """, (schema_name,))
+
+        cursor.execute(sql, params)
             result = cursor.fetchone()
             table_count = result['count']
             print(f"    Tables: {table_count}")

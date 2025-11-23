@@ -12,7 +12,7 @@
     background: var(--bg-primary);
     border-left: 1px solid var(--border-color);
     z-index: 10000;
-    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
@@ -20,6 +20,15 @@
 }
 
 .debug-sidebar.open {
+    right: 0;
+}
+
+.debug-sidebar.expanded {
+    width: 900px;
+    right: -900px;
+}
+
+.debug-sidebar.expanded.open {
     right: 0;
 }
 
@@ -46,6 +55,30 @@
 .debug-title i {
     color: #F59E0B;
     font-size: 20px;
+}
+
+.debug-expand-btn {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #3B82F6;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    margin-right: 8px;
+}
+
+.debug-expand-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.debug-expand-btn i {
+    font-size: 12px;
 }
 
 .debug-close-btn {

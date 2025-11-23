@@ -3,6 +3,7 @@ Analyze the two tables: 'sessions' vs 'synergy_sessions'
 Why do we have both? What's the difference?
 """
 import json
+from shared.database_utils import convert_sql_placeholders
 
 schema_file = 'c:\\Users\\gpoli\\GIT\\AI_agents\\data\\schema_C__Users_gpoli_GIT_AI_agents_data_synergy_sessions.db.json'
 

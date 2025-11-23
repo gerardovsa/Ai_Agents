@@ -2052,7 +2052,17 @@ window.fetch = function (...args) {
 
 // Initialize authentication on page load
 // IMPORTANT: Handle OAuth callback token BEFORE initializing UserAuth
+
+// Track if initializeApp has already run to prevent duplicate calls
+let isInitialized = false;
+
 async function initializeApp() {
+    // Guard: Prevent duplicate initialization
+    if (isInitialized) {
+        console.log('[AUTH] Account profile already initialized, skipping duplicate call');
+        return;
+    }
+
     // Check for OAuth callback token in URL
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -2097,6 +2107,9 @@ async function initializeApp() {
         // Show main app
         await UserAuth.showMainApp();
 
+        // Mark as initialized to prevent duplicate calls
+        isInitialized = true;
+
         // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
         return; // Don't call init() - we already initialized
@@ -2104,6 +2117,9 @@ async function initializeApp() {
 
     // No OAuth token in URL - proceed with normal init
     UserAuth.init();
+
+    // Mark as initialized to prevent duplicate calls
+    isInitialized = true;
 
     // Initialize Device Lock Manager after authentication
     setTimeout(() => {

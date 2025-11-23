@@ -14,7 +14,7 @@ Date: November 8, 2025
 """
 
 from flask import Blueprint, request, jsonify
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 import json
 from datetime import datetime
 import uuid

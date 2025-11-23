@@ -1810,6 +1810,51 @@ def agent_worker(
             preserve_first_user=True
         )
         
+        # ========================================================================
+        # INTELLIGENT TOOL DISCOVERY - Get tool suggestions before AI call
+        # ========================================================================
+        try:
+            from tools.intelligent_discovery import IntelligentToolSuggestion
+            
+            suggester = IntelligentToolSuggestion(registry)
+            
+            # Get tool suggestions with platform filtering
+            suggested_tools, confidence = suggester.suggest_tools(
+                query=message,
+                conversation_history=conversation_history,
+                user_id=user_id,  # Enable platform filtering
+                top_k=10
+            )
+            
+            # Log suggested tools to console
+            print("\n" + "="*80)
+            print("🎯 [INTELLIGENT TOOL SUGGESTIONS]")
+            print("="*80)
+            print(f"Query: '{message[:60]}{'...' if len(message) > 60 else ''}'")
+            print(f"User ID: {user_id}")
+            print(f"Confidence: {confidence:.0%}")
+            print(f"\nTop 10 Suggested Tools:")
+            print("-"*80)
+            
+            for i, tool in enumerate(suggested_tools, 1):
+                tool_name = tool['tool_name']
+                platform = tool['platform']
+                final_score = tool['final_score']
+                scoring = tool['scoring_breakdown']
+                platform_boost = scoring.get('platform_boost', 1.0)
+                
+                # Format with alignment
+                print(f"{i:2d}. {tool_name:<50} "
+                      f"platform={platform:<20} "
+                      f"score={final_score:6.2f} "
+                      f"boost={platform_boost:.1f}x")
+            
+            print("="*80 + "\n")
+            
+        except Exception as discovery_error:
+            print(f"⚠️ [Tool Discovery] Failed to get suggestions: {discovery_error}")
+            # Continue without suggestions - don't block the request
+        
         # Build system prompt
         system_prompt = """You are a helpful AI assistant with access to tools.
 
@@ -1826,9 +1871,10 @@ You can use tools to help the user complete tasks."""
         
         response_text = ''
         tool_calls = []
+        content_blocks = response.get('content', [])
         
         # Process response
-        for block in response.get('content', []):
+        for block in content_blocks:
             if block.get('type') == 'text':
                 response_text += block.get('text', '')
             elif block.get('type') == 'tool_use':
@@ -1855,6 +1901,7 @@ You can use tools to help the user complete tasks."""
         
         return {
             'response': response_text,
+            'content_blocks': content_blocks,  # Full content with thinking blocks
             'tool_calls': tool_calls,
             'session_id': session_id
         }
@@ -2051,6 +2098,48 @@ def execute_streaming_request(
         if ai_thinking_enabled and ai_temperature != 1.0:
             print(f"{log_prefix} ⚙️  Temperature overridden: {ai_temperature} → 1.0 (required when thinking enabled)")
         
+        # CRITICAL: Final validation before API call (Nov 22, 2025)
+        # Double-check that all assistant messages with thinking blocks have thinking as first block
+        print(f"{log_prefix} 🔍 FINAL VALIDATION: Checking thinking block order before API call...")
+        for idx, msg in enumerate(messages):
+            if msg.get('role') == 'assistant':
+                content = msg.get('content', [])
+                if isinstance(content, list) and content:
+                    # Check if message has thinking blocks
+                    has_thinking = any(
+                        isinstance(b, dict) and b.get('type') in ('thinking', 'redacted_thinking')
+                        for b in content
+                    )
+                    
+                    if has_thinking:
+                        first_block = content[0]
+                        first_type = first_block.get('type') if isinstance(first_block, dict) else 'unknown'
+                        
+                        if first_type not in ('thinking', 'redacted_thinking'):
+                            print(f"{log_prefix} ❌ CRITICAL: Message {idx} has thinking blocks but first block is '{first_type}'")
+                            print(f"{log_prefix} 🔧 AUTO-FIX: Reordering blocks to put thinking first...")
+                            
+                            # Separate blocks by type
+                            thinking_blocks = [b for b in content if isinstance(b, dict) and b.get('type') in ('thinking', 'redacted_thinking')]
+                            other_blocks = [b for b in content if not (isinstance(b, dict) and b.get('type') in ('thinking', 'redacted_thinking'))]
+                            
+                            # Reorder: thinking first
+                            messages[idx]['content'] = thinking_blocks + other_blocks
+                            
+                            after_first = messages[idx]['content'][0].get('type') if messages[idx]['content'] else 'empty'
+                            print(f"{log_prefix} ✅ Fixed: First block is now '{after_first}'")
+        
+        # DEBUG: Log message structure being sent to API
+        print(f"{log_prefix} 📋 FINAL MESSAGE STRUCTURE BEING SENT:")
+        for idx, msg in enumerate(messages):
+            role = msg.get('role')
+            content = msg.get('content', [])
+            if isinstance(content, list):
+                block_types = [b.get('type') if isinstance(b, dict) else 'string' for b in content]
+                print(f"  [{idx}] {role}: {block_types}")
+            else:
+                print(f"  [{idx}] {role}: (string content)")
+        
         # Stream response from Claude with USER'S AI PREFERENCES
         stream_params = {
             'model': ai_model,
@@ -2162,6 +2251,35 @@ def execute_streaming_request(
             from tools.registry_v3 import get_registry
             registry = get_registry()
             
+            # CRITICAL: Detect infinite loops (same meta-tool called 3+ times consecutively)
+            if current_round >= 3:
+                recent_tools = []
+                for msg in conversation_history[-6:]:  # Check last 3 rounds (6 messages: assistant + user)
+                    if msg.get('role') == 'assistant':
+                        content = msg.get('content', [])
+                        # Handle both list and string content
+                        if isinstance(content, str):
+                            try:
+                                content = json.loads(content)
+                            except:
+                                content = []
+                        if not isinstance(content, list):
+                            content = []
+                        
+                        for block in content:
+                            if isinstance(block, dict) and block.get('type') == 'tool_use':
+                                recent_tools.append(block.get('name'))
+                
+                # Check if same meta-tool called 3+ times in a row
+                if len(recent_tools) >= 3:
+                    meta_tools = ['list_platform_tools', 'list_available_platforms', 'search_tools']
+                    last_three = recent_tools[-3:]
+                    if all(t in meta_tools for t in last_three) and len(set(last_three)) == 1:
+                        error_msg = f"⚠️  INFINITE LOOP DETECTED: Same discovery tool '{last_three[0]}' called {len([t for t in recent_tools if t == last_three[0]])} times. After discovering tools, proceed to STEP 2 (get_tool_schema) or STEP 3 (execute_tool). DO NOT repeat discovery!"
+                        print(f"{log_prefix} {error_msg}")
+                        yield {'type': 'error', 'error': error_msg, 'session_id': session_id, 'round': current_round}
+                        return
+            
             tool_results = []
             for tool_use in tool_uses:
                 tool_name = tool_use['name']
@@ -2220,16 +2338,41 @@ def execute_streaming_request(
                 if hasattr(block, 'type') and block.type == 'text':
                     final_text += block.text
             
-            # CRITICAL FIX (Nov 19, 2025): Send updated conversation_history to frontend
-            # This allows frontend to sync its conversation state with backend's authoritative state
-            # Backend has tool_use/tool_result blocks properly structured, frontend needs to know!
+            # CRITICAL FIX (Nov 22, 2025): Send conversation_sync BEFORE complete event
+            # This ensures frontend has authoritative history before finalizing
+            print(f"{log_prefix} 📤 Sending conversation_sync with {len(conversation_history)} messages")
+            
+            # DEBUG: Log last assistant message structure
+            if conversation_history:
+                last_msg = conversation_history[-1]
+                if last_msg.get('role') == 'assistant':
+                    content = last_msg.get('content', [])
+                    print(f"{log_prefix} 🔍 Last assistant message has {len(content)} content blocks:")
+                    for idx, block in enumerate(content):
+                        block_type = block.get('type', 'unknown')
+                        if block_type == 'text':
+                            text_preview = block.get('text', '')[:50]
+                            print(f"{log_prefix}   [{idx}] text: {repr(text_preview)}... (length: {len(block.get('text', ''))})")
+                        else:
+                            print(f"{log_prefix}   [{idx}] {block_type}")
+            
+            yield {
+                'type': 'conversation_sync',
+                'session_id': session_id,
+                'conversation_history': conversation_history,
+                'message_count': len(conversation_history),
+                'round': current_round
+            }
+            
+            # Then send complete event
+            print(f"{log_prefix} ✅ Sending complete event")
             yield {
                 'type': 'complete', 
                 'session_id': session_id, 
                 'full_response': final_text, 
                 'stop_reason': stop_reason, 
                 'total_rounds': current_round,
-                'conversation_history': conversation_history  # Frontend will sync with this!
+                'conversation_history': conversation_history  # Keep for backward compatibility
             }
     
     except Exception as e:

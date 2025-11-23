@@ -1,5 +1,6 @@
 """
 Cleanup Orphaned Thread Assignments
+from shared.database_utils import convert_sql_placeholders
 
 This script removes thread assignments from users.metadata for threads that no longer exist.
 Ensures database integrity by cleaning up stale references.

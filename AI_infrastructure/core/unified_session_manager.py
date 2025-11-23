@@ -2,6 +2,9 @@
 Unified Session Manager
 Single source of truth for ALL session data across all AI UIs
 
+FILE: AI_infrastructure/core/unified_session_manager.py
+PURPOSE: Centralized session management with PostgreSQL persistence
+
 Replaces:
 - agent_states = {}
 - agent_sessions = {}  
@@ -9,14 +12,13 @@ Replaces:
 - agent_execution_locks = {}
 
 Features:
-- SQLite persistence (sessions.db)
+- PostgreSQL persistence (Supabase sessions schema)
 - In-memory cache for active sessions
 - SSE queue management per session
 - Thread-safe execution locks
 - Automatic cleanup of inactive sessions
 """
 
-import sqlite3
 import threading
 from queue import Queue
 from datetime import datetime
@@ -36,7 +38,7 @@ class UnifiedSessionManager:
     Single source of truth for ALL session data
     
     Architecture:
-    - SQLite: Long-term persistence (survives server restarts)
+    - PostgreSQL (Supabase): Long-term persistence (survives server restarts)
     - In-memory: Fast access for active sessions
     - Queues: SSE event streaming per session
     - Locks: Prevent concurrent AI requests per session
@@ -65,62 +67,16 @@ class UnifiedSessionManager:
         self._init_db()
     
     def _init_db(self):
-        """Initialize SQLite database with sessions table"""
-        import time
-        
-        # Retry logic to handle WAL race condition with multiple Gunicorn workers
-        max_retries = 5
-        for attempt in range(max_retries):
-            try:
-                conn = get_database_connection()
-                cursor = conn.cursor()
-                
-                # Check if we're using PostgreSQL (Supabase) or SQLite
-                # PostgreSQL connections come from the pool, SQLite are direct
-                is_postgres = hasattr(conn, '_conn') and 'psycopg2' in str(type(getattr(conn, '_conn', conn)))
-                
-                if not is_postgres:
-                    # SQLite-specific optimizations
-                    is_render = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_URL', '')
-                    
-                    if not is_render:
-                        try:
-                            cursor.execute("PRAGMA journal_mode=WAL")
-                            print("✓ [DB] WAL mode enabled (local/persistent filesystem)")
-                        except sqlite3.OperationalError as e:
-                            print(f"⚠ [DB] WAL mode failed (expected on ephemeral FS): {e}")
-                            cursor.execute("PRAGMA journal_mode=DELETE")  # Fallback to DELETE mode
-                    else:
-                        print("✓ [DB] Using DELETE journal mode (Render ephemeral filesystem)")
-                        cursor.execute("PRAGMA journal_mode=DELETE")
-                    
-                    # Optimize for performance
-                    cursor.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe
-                    cursor.execute("PRAGMA cache_size=-64000")  # 64MB cache
-                    cursor.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
-                else:
-                    # PostgreSQL (Supabase) - no PRAGMA needed, already configured by pool
-                    print("✓ [DB] Using PostgreSQL (Supabase) - pool configured")
-                
-                cursor.close()
-                
-                # If we got here, initialization succeeded
-                break
-                
-            except sqlite3.OperationalError as e:
-                if "database is locked" in str(e) and attempt < max_retries - 1:
-                    # Another worker is initializing - wait and retry
-                    import time
-                    time.sleep(0.5 * (attempt + 1))  # Exponential backoff
-                    continue
-                else:
-                    # Either not a lock error, or we've exhausted retries
-                    raise
-        
-        # Create tables (database-agnostic)
+        """Initialize PostgreSQL database with sessions table"""
+        conn = get_database_connection('sessions')
         cursor = conn.cursor()
+        
+        # PostgreSQL (Supabase) - connection pool already configured
+        print("✓ [DB] Using PostgreSQL (Supabase) - sessions schema")
+        
+        # Create tables - PostgreSQL syntax
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS sessions (
+            CREATE TABLE IF NOT EXISTS sessions.sessions (
                 session_id TEXT PRIMARY KEY,
                 ui_context TEXT NOT NULL,
                 agent_id TEXT,
@@ -134,7 +90,7 @@ class UnifiedSessionManager:
         conn.commit()
         conn.close()
         
-        log_db(logger, "Database initialized with WAL mode (improved concurrency)")
+        log_db(logger, "Database initialized - PostgreSQL sessions table ready")
     
     def create_session(self, ui_context: str, agent_id: Optional[str] = None, session_id: Optional[str] = None, source: str = 'ui') -> str:
         """
@@ -170,20 +126,21 @@ class UnifiedSessionManager:
             #  ONLY store in DB if NOT from CLI
             if source != 'cli':
                 # Use connection timeout for stability
-                with get_database_connection() as conn:
-                    cursor = conn.cursor()  # PostgreSQL needs cursor first
-                    cursor.execute("""
-                        INSERT INTO sessions (session_id, ui_context, agent_id, conversation, metadata)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (
-                        session_id,
-                        ui_context,
-                        agent_id,
-                        json.dumps([]),
-                        json.dumps({'source': source})
-                    ))
-                    cursor.close()
-                    conn.commit()
+                conn = get_database_connection('sessions')
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO sessions.sessions (session_id, ui_context, agent_id, conversation, metadata)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    session_id,
+                    ui_context,
+                    agent_id,
+                    json.dumps([]),
+                    json.dumps({'source': source})
+                ))
+                cursor.close()
+                conn.commit()
+                conn.close()
                 print(f"[SessionManager] Created session: {session_id} (ui_context={ui_context}, agent_id={agent_id}, source={source})")
             else:
                 print(f"[SessionManager] Created CLI session (in-memory only): {session_id}")
@@ -204,34 +161,37 @@ class UnifiedSessionManager:
                 return self.sessions[session_id]
             
             # Load from DB (slow path - session not active)
-            with get_database_connection() as conn:
-                cursor = conn.execute("""
-                    SELECT session_id, ui_context, agent_id, conversation, metadata, created_at, last_active
-                    FROM sessions
-                    WHERE session_id = %s
-                """, (session_id,))
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT session_id, ui_context, agent_id, conversation, metadata, created_at, last_active
+                FROM sessions.sessions
+                WHERE session_id = %s
+            """, (session_id,))
+            
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if row:
+                session_data = {
+                    'session_id': row[0],
+                    'ui_context': row[1],
+                    'agent_id': row[2],
+                    'conversation': json.loads(row[3]),
+                    'metadata': json.loads(row[4]),
+                    'created_at': row[5],
+                    'last_active': row[6]
+                }
                 
-                row = cursor.fetchone()
-                if row:
-                    session_data = {
-                        'session_id': row[0],
-                        'ui_context': row[1],
-                        'agent_id': row[2],
-                        'conversation': json.loads(row[3]),
-                        'metadata': json.loads(row[4]),
-                        'created_at': row[5],
-                        'last_active': row[6]
-                    }
-                    
-                    # Cache it for future access
-                    self.sessions[session_id] = session_data
-                    self._update_last_active(session_id)
-                    
-                    print(f"[SessionManager] Loaded session from DB: {session_id}")
-                    return session_data
+                # Cache it for future access
+                self.sessions[session_id] = session_data
+                self._update_last_active(session_id)
                 
-                print(f"[SessionManager] Session not found: {session_id}")
-                return None
+                print(f"[SessionManager] Loaded session from DB: {session_id}")
+                return session_data
+            
+            print(f"[SessionManager] Session not found: {session_id}")
+            return None
     
     def update_conversation(self, session_id: str, conversation: List[Dict]):
         """
@@ -254,15 +214,16 @@ class UnifiedSessionManager:
                     return
             
             # Update DB (only for UI sessions)
-            with get_database_connection() as conn:
-                cursor = conn.cursor()  # PostgreSQL needs cursor first
-                cursor.execute("""
-                    UPDATE sessions
-                    SET conversation = %s, last_active = CURRENT_TIMESTAMP
-                    WHERE session_id = %s
-                """, (json.dumps(conversation), session_id))
-                cursor.close()
-                conn.commit()
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE sessions.sessions
+                SET conversation = %s, last_active = CURRENT_TIMESTAMP
+                WHERE session_id = %s
+            """, (json.dumps(conversation), session_id))
+            cursor.close()
+            conn.commit()
+            conn.close()
     
     def update_metadata(self, session_id: str, metadata: Dict):
         """
@@ -279,15 +240,16 @@ class UnifiedSessionManager:
                 self.sessions[session_id]['last_active'] = datetime.now().isoformat()
             
             # Update DB
-            with get_database_connection() as conn:
-                cursor = conn.cursor()  # PostgreSQL needs cursor first
-                cursor.execute("""
-                    UPDATE sessions
-                    SET metadata = %s, last_active = CURRENT_TIMESTAMP
-                    WHERE session_id = %s
-                """, (json.dumps(metadata), session_id))
-                cursor.close()
-                conn.commit()
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE sessions.sessions
+                SET metadata = %s, last_active = CURRENT_TIMESTAMP
+                WHERE session_id = %s
+            """, (json.dumps(metadata), session_id))
+            cursor.close()
+            conn.commit()
+            conn.close()
     
     def get_queue(self, session_id: str) -> Queue:
         """
@@ -325,27 +287,30 @@ class UnifiedSessionManager:
             max_age_hours: Sessions inactive longer than this are removed from cache
         """
         with self.lock:
-            with get_database_connection() as conn:
-                # Get inactive session IDs
-                cursor = conn.execute("""
-                    SELECT session_id
-                    FROM sessions
-                    WHERE last_active < datetime('now', '-' || %s || ' hours')
-                """, (max_age_hours,))
-                
-                inactive_ids = [row[0] for row in cursor.fetchall()]
-                
-                # Remove from cache only (keep in DB for history)
-                removed_count = 0
-                for session_id in inactive_ids:
-                    if session_id in self.sessions:
-                        self.sessions.pop(session_id, None)
-                        removed_count += 1
-                    self.queues.pop(session_id, None)
-                    self.locks.pop(session_id, None)
-                
-                if removed_count > 0:
-                    print(f"[SessionManager] Cleaned up {removed_count} inactive sessions from cache")
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            # Get inactive session IDs - PostgreSQL syntax for interval
+            cursor.execute("""
+                SELECT session_id
+                FROM sessions.sessions
+                WHERE last_active < NOW() - INTERVAL '%s hours'
+            """, (max_age_hours,))
+            
+            inactive_ids = [row[0] for row in cursor.fetchall()]
+            cursor.close()
+            conn.close()
+            
+            # Remove from cache only (keep in DB for history)
+            removed_count = 0
+            for session_id in inactive_ids:
+                if session_id in self.sessions:
+                    self.sessions.pop(session_id, None)
+                    removed_count += 1
+                self.queues.pop(session_id, None)
+                self.locks.pop(session_id, None)
+            
+            if removed_count > 0:
+                print(f"[SessionManager] Cleaned up {removed_count} inactive sessions from cache")
     
     def delete_session(self, session_id: str):
         """
@@ -361,11 +326,12 @@ class UnifiedSessionManager:
             self.locks.pop(session_id, None)
             
             # Remove from DB
-            with get_database_connection() as conn:
-                cursor = conn.cursor()  # PostgreSQL needs cursor first
-                cursor.execute("DELETE FROM sessions WHERE session_id = %s", (session_id,))
-                cursor.close()
-                conn.commit()
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM sessions.sessions WHERE session_id = %s", (session_id,))
+            cursor.close()
+            conn.commit()
+            conn.close()
             
             print(f"[SessionManager] Deleted session: {session_id}")
     
@@ -389,9 +355,12 @@ class UnifiedSessionManager:
         with self.lock:
             active_count = len(self.sessions)
             
-            with get_database_connection() as conn:
-                cursor = conn.execute("SELECT COUNT(*) FROM sessions")
-                total_count = cursor.fetchone()[0]
+            conn = get_database_connection('sessions')
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM sessions.sessions")
+            total_count = cursor.fetchone()[0]
+            cursor.close()
+            conn.close()
             
             return {
                 'active': active_count,
@@ -400,15 +369,16 @@ class UnifiedSessionManager:
     
     def _update_last_active(self, session_id: str):
         """Update last active timestamp (internal helper)"""
-        with get_database_connection() as conn:
-            cursor = conn.cursor()  # PostgreSQL needs cursor first
-            cursor.execute("""
-                UPDATE sessions
-                SET last_active = CURRENT_TIMESTAMP
-                WHERE session_id = %s
-            """, (session_id,))
-            cursor.close()
-            conn.commit()
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE sessions.sessions
+            SET last_active = CURRENT_TIMESTAMP
+            WHERE session_id = %s
+        """, (session_id,))
+        cursor.close()
+        conn.commit()
+        conn.close()
 
 
 # Global singleton instance

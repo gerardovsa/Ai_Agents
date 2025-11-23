@@ -39,7 +39,7 @@ from flask import Blueprint, request, jsonify
 import sqlite3
 import json
 from pathlib import Path
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders
 from typing import Dict, List, Any, Optional
 import sys
 import os

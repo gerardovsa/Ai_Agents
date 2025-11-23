@@ -1,4 +1,5 @@
 """Clear remaining test messages"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -23,11 +24,13 @@ thread_slug = thread[1]
 print(f"\n📍 Thread: {thread_slug} (ID: {thread_id})")
 
 # Delete messages with "THIS IS THE AI RESPONSE TO THE TEST"
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     DELETE FROM messages 
     WHERE thread_id = ? 
     AND content LIKE '%THIS IS THE AI RESPONSE TO THE TEST%'
 """, (thread_id,))
+
+cursor.execute(sql, params)
 
 deleted = cursor.rowcount
 conn.commit()
@@ -35,7 +38,9 @@ conn.commit()
 print(f"\n✅ Deleted {deleted} messages containing 'THIS IS THE AI RESPONSE TO THE TEST'")
 
 # Show remaining messages
-cursor.execute("SELECT id, role, content, created_at FROM messages WHERE thread_id = ? ORDER BY created_at", (thread_id,))
+sql, params = convert_sql_placeholders("SELECT id, role, content, created_at FROM messages WHERE thread_id = ? ORDER BY created_at", (thread_id,))
+
+cursor.execute(sql, params)
 messages = cursor.fetchall()
 
 print(f"\n📊 Remaining messages ({len(messages)}):")

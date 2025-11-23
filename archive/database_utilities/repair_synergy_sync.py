@@ -1,5 +1,6 @@
 """
 Repair Synergy Bidirectional Sync Issues
+from shared.database_utils import convert_sql_placeholders
 
 This script fixes mismatched links between threads and Synergy cards:
 - Option 1: Update threads.synergy_card_id based on synergy_sessions.thread_ids

@@ -2,6 +2,7 @@
 import sqlite3
 from pathlib import Path
 import json
+from shared.database_utils import convert_sql_placeholders
 
 root = Path('C:/Users/gpoli/GIT/AI_agents')
 db = root / 'data' / 'synergy_sessions.db'
@@ -37,8 +38,9 @@ for session_id, docs_raw in rows:
                 # Fix it in the database
                 correct_json = json.dumps(second_parse)
                 print(f"\nFixing in database...")
-                cursor.execute("UPDATE synergy_sessions SET documents = ? WHERE session_id = ?", 
-                             (correct_json, session_id))
+                sql, params = convert_sql_placeholders("UPDATE synergy_sessions SET documents = ? WHERE session_id = ?", (correct_json, session_id))
+
+                cursor.execute(sql, params)
                 print("✅ Fixed!")
             else:
                 print(f"❌ Second parse gave unexpected type: {type(second_parse)}")

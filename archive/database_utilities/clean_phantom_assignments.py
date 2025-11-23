@@ -1,5 +1,6 @@
 """
 Clean phantom thread assignments from users.metadata in ai_infrastructure.db
+from shared.database_utils import convert_sql_placeholders
 
 The frontend loads old thread assignments from users.metadata JSON field,
 but those threads no longer exist. This script cleans them up.
@@ -90,7 +91,10 @@ if phantom_agents:
         metadata['thread_assignments'] = assignments
         new_metadata = json.dumps(metadata)
         
-        cursor.execute("UPDATE users SET metadata = ? WHERE id = 12", (new_metadata,))
+        sql, params = convert_sql_placeholders("UPDATE users SET metadata = ? WHERE id = 12", (new_metadata,))
+
+        
+        cursor.execute(sql, params)
         conn.commit()
         
         print(f"\n[OK] Deleted {len(phantom_agents)} phantom assignments")

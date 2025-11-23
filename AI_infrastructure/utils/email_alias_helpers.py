@@ -235,19 +235,23 @@ def remove_email_alias(alias_email: str, user_id: int) -> Tuple[bool, str]:
     
     try:
         # Verify this alias belongs to this user
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT id FROM user_email_aliases 
             WHERE alias_email = %s AND user_id = %s
         ''', (alias_email, user_id))
+
+        cursor.execute(sql, params)
         
         if not cursor.fetchone():
             return False, "Email alias not found or doesn't belong to this user"
         
         # Remove the alias
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             DELETE FROM user_email_aliases 
             WHERE alias_email = %s AND user_id = %s
         ''', (alias_email, user_id))
+
+        cursor.execute(sql, params)
         
         conn.commit()
         return True, f"Successfully unlinked {alias_email}"
@@ -288,13 +292,15 @@ def get_alias_info(alias_email: str) -> Optional[Dict]:
     cursor = conn.cursor()
     
     try:
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT 
                 id, user_id, alias_email, oauth_provider, 
                 is_primary, created_at, updated_at, metadata
             FROM user_email_aliases 
             WHERE alias_email = %s
         ''', (alias_email,))
+
+        cursor.execute(sql, params)
         
         result = cursor.fetchone()
         
@@ -334,10 +340,12 @@ def count_user_aliases(user_id: int) -> int:
     cursor = conn.cursor()
     
     try:
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT COUNT(*) FROM user_email_aliases 
             WHERE user_id = %s
         ''', (user_id,))
+
+        cursor.execute(sql, params)
         
         result = cursor.fetchone()
         return result[0] if result else 0

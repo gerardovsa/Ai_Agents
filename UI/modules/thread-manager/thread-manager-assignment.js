@@ -53,23 +53,44 @@ Object.assign(window.ThreadManager, {
             // Set pending flag to prevent realtime loop
             this.pendingAssignment = true;
 
-            // PHASE 1: UPDATE DATABASE FIRST (single source of truth)
-            const response = await fetch(`${this.apiBaseUrl}/api/thread-assignments/assign`, {
+            // PHASE 1: UPDATE SUPABASE DIRECTLY (single source of truth)
+            if (!window.SUPABASE_CLIENT) {
+                window.SUPABASE_CLIENT = window.supabase.createClient(
+                    window.SUPABASE_URL,
+                    window.SUPABASE_ANON_KEY
+                );
+            }
+
+            const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
+
+            // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
+            const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/thread-assignments/assign`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    user_id: (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1,
                     session_id: threadId,
-                    location: location || 'prime'
+                    location: location || 'prime',
+                    user_id: userId
                 })
             });
 
             if (!response.ok) {
-                throw new Error(`Database update failed: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                throw new Error(`API update failed: ${errorData.error || response.statusText}`);
             }
 
-            const data = await response.json();
-            console.log(`✅ [Assignment] Database updated:`, data.assignment);
+            const updateData = await response.json();
+            console.log(`✅ [Assignment] API updated:`, updateData);
+
+            const data = {
+                success: true,
+                assignment: {
+                    session_id: threadId,
+                    location: location || 'prime',
+                    user_id: userId
+                }
+            };
 
             // PHASE 2: CASCADE UI UPDATES (only after DB success)
             await this._cascadeThreadAssignment(threadId, location, data.assignment);
@@ -227,43 +248,36 @@ Object.assign(window.ThreadManager, {
         console.log('📍 [Assignment] Current locations:', this.threads.map(t => `${t.id}→${t.location}`));
 
         try {
+            // Initialize Supabase client if not exists
+            if (!window.SUPABASE_CLIENT) {
+                window.SUPABASE_CLIENT = window.supabase.createClient(
+                    window.SUPABASE_URL,
+                    window.SUPABASE_ANON_KEY
+                );
+            }
+
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
             console.log('👤 [Assignment] User ID:', userId);
-            console.log('🌐 [Assignment] Fetching from:', `${this.apiBaseUrl}/api/thread-assignments/list?user_id=${userId}`);
+            console.log('🌐 [Assignment] Fetching from Flask API...');
 
-            const response = await fetch(`${this.apiBaseUrl}/api/thread-assignments/list?user_id=${userId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${UserAuth.token}`
-                }
-            });
-
+            // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
+            const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/thread-assignments?user_id=${userId}`);
+            
             if (!response.ok) {
-                console.error('❌ [Assignment] API error:', response.status, response.statusText);
-                throw new Error(`Failed to fetch assignments: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                throw new Error(`Failed to fetch assignments: ${errorData.error || response.statusText}`);
             }
 
-            const data = await response.json();
-            console.log('📦 [Assignment] API response:', data);
+            const result = await response.json();
+            const assignmentsObj = result.assignments || {};
+            console.log('📦 [Assignment] API response:', assignmentsObj);
 
-            // Handle different response formats
-            let assignments = [];
-            if (Array.isArray(data)) {
-                assignments = data;
-            } else if (data && Array.isArray(data.assignments)) {
-                assignments = data.assignments;
-            } else if (data && data.assignments && typeof data.assignments === 'object') {
-                // Handle {assignments: {"agent-1": "session_id"}} format from backend
-                console.log('[Assignment] Converting object-based assignments to array');
-                assignments = Object.entries(data.assignments).map(([location, session_id]) => ({
-                    session_id,
-                    location
-                }));
-            } else if (data && typeof data === 'object') {
-                console.warn('[Assignment] Unexpected response format:', data);
-                assignments = [];
-            }
+            // Convert API response {location: thread_slug} to array format [{session_id, location}]
+            const assignments = Object.entries(assignmentsObj).map(([location, thread_slug]) => ({
+                session_id: thread_slug,
+                location: location
+            }));
 
             console.log(`✅ [Assignment] Restored ${assignments.length} thread assignments`);
             console.log('📋 [Assignment] Assignments:', assignments);
@@ -340,18 +354,35 @@ Object.assign(window.ThreadManager, {
     },
 
     /**
-     * Get thread assignments from backend
+     * Get thread assignments from Supabase
      */
     async getThreadAssignments() {
         try {
-            const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
-            const response = await fetch(`${this.apiBaseUrl}/api/thread-assignments/list?user_id=${userId}`);
-            const data = await response.json();
-
-            if (data.success && data.assignments) {
-                return data.assignments;
+            // Initialize Supabase client if not exists
+            if (!window.SUPABASE_CLIENT) {
+                window.SUPABASE_CLIENT = window.supabase.createClient(
+                    window.SUPABASE_URL,
+                    window.SUPABASE_ANON_KEY
+                );
             }
-            return {};
+
+            const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
+            
+            // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
+            const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/thread-assignments?user_id=${userId}`);
+            
+            if (!response.ok) {
+                console.error('❌ [Assignment] API error:', response.statusText);
+                return {};
+            }
+
+            const result = await response.json();
+            const assignments = result.assignments || {};
+            
+            // API already returns {location: thread_slug} format
+            console.log('✅ [Assignment] Fetched assignments:', assignments);
+            return assignments;
         } catch (error) {
             console.error('❌ [Assignment] Failed to fetch:', error);
             return {};
@@ -483,12 +514,28 @@ Object.assign(window.ThreadManager, {
      */
     async clearAllAssignments() {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/thread-assignments/clear`, {
-                method: 'DELETE'
+            // Initialize Supabase client if not exists
+            if (!window.SUPABASE_CLIENT) {
+                window.SUPABASE_CLIENT = window.supabase.createClient(
+                    window.SUPABASE_URL,
+                    window.SUPABASE_ANON_KEY
+                );
+            }
+
+            const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
+
+            // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
+            const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/thread-assignments/clear/all`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
             });
-            const data = await response.json();
-            if (data.success) {
-                console.log('✅ [Assignment] All thread assignments cleared from backend');
+
+            if (!response.ok) {
+                console.error('❌ [Assignment] API error:', response.statusText);
+            } else {
+                console.log('✅ [Assignment] All thread assignments cleared via API');
             }
         } catch (error) {
             console.error('❌ [Assignment] Failed to clear assignments:', error);

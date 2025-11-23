@@ -18,23 +18,33 @@ device_lock_bp = Blueprint('device_lock', __name__)
 def execute_sqlite_query(db_path, query, params=()):
     """Wrapper: Redirects to Supabase instead of SQLite"""
     schema = 'sessions' if 'sessions.db' in db_path else 'ai_infrastructure'
-    conn = get_database_connection(schema)
-    cursor = conn.cursor()
-    query = convert_sql_placeholders(query)
-    cursor.execute(query, params)
-    result = cursor.fetchone()
-    conn.close()
-    return result
+    conn = None
+    try:
+        conn = get_database_connection(schema)
+        cursor = conn.cursor()
+        query = convert_sql_placeholders(query)
+        cursor.execute(query, params)
+        result = cursor.fetchone()
+        return result
+    finally:
+        # CRITICAL FIX: Always close connection
+        if conn:
+            conn.close()
 
 def execute_sqlite_update(db_path, query, params=()):
     """Wrapper: Redirects to Supabase instead of SQLite"""
     schema = 'sessions' if 'sessions.db' in db_path else 'ai_infrastructure'
-    conn = get_database_connection(schema)
-    cursor = conn.cursor()
-    query = convert_sql_placeholders(query)
-    cursor.execute(query, params)
-    conn.commit()
-    conn.close()
+    conn = None
+    try:
+        conn = get_database_connection(schema)
+        cursor = conn.cursor()
+        query = convert_sql_placeholders(query)
+        cursor.execute(query, params)
+        conn.commit()
+    finally:
+        # CRITICAL FIX: Always close connection
+        if conn:
+            conn.close()
 
 # Legacy path constants (now ignored, using Supabase)
 AI_DB_PATH = 'ai_infrastructure'  # Schema name
@@ -67,6 +77,7 @@ def register_device():
     device_name = data.get('device_name', 'Unknown Device')
     device_fingerprint = data.get('device_fingerprint', '')
     
+    conn = None
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
@@ -94,7 +105,6 @@ def register_device():
             cursor.execute(query, (device_id, user_id, device_name, device_fingerprint))
         
         conn.commit()
-        conn.close()
         
         return jsonify({
             'success': True,
@@ -104,6 +114,10 @@ def register_device():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        # CRITICAL FIX: Always close connection
+        if conn:
+            conn.close()
 
 
 @device_lock_bp.route('/api/thread/<int:thread_id>/lock', methods=['POST'])

@@ -2,6 +2,7 @@
 Kanban & AI Infrastructure Integration Test
 ============================================
 Tests the bridge between Synergy Kanban Board and AI Infrastructure
+from shared.database_utils import convert_sql_placeholders
 
 Tests:
 1. Create Kanban task
@@ -137,13 +138,15 @@ def test_link_task_to_agent(kanban_session_id):
         cursor = ai_conn.cursor()
         
         # Create link
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             INSERT INTO kanban_task_links 
             (agent_id, agent_name, kanban_session_id, kanban_title, kanban_status, 
              kanban_column, sync_direction, agent_work_status)
             VALUES (?, ?, ?, ?, ?, ?, 'bidirectional', 'pending')
         ''', (agent_id, agent_name, kanban_session_id, 'Integration Test Task', 
               'active', 'backlog'))
+
+        cursor.execute(sql, params)
         
         ai_conn.commit()
         link_id = cursor.lastrowid
@@ -178,7 +181,9 @@ def test_cross_database_query(kanban_session_id):
         synergy_conn = sqlite3.connect(SYNERGY_DB)
         synergy_conn.row_factory = sqlite3.Row
         cursor = synergy_conn.cursor()
-        cursor.execute('SELECT * FROM sessions WHERE session_id = ?', (kanban_session_id,))
+        sql, params = convert_sql_placeholders('SELECT * FROM sessions WHERE session_id = ?', (kanban_session_id,))
+
+        cursor.execute(sql, params)
         kanban_task = cursor.fetchone()
         synergy_conn.close()
         
@@ -196,10 +201,12 @@ def test_cross_database_query(kanban_session_id):
         ai_conn = sqlite3.connect(AI_INFRASTRUCTURE_DB)
         ai_conn.row_factory = sqlite3.Row
         cursor = ai_conn.cursor()
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             SELECT * FROM kanban_task_links 
             WHERE kanban_session_id = ?
         ''', (kanban_session_id,))
+
+        cursor.execute(sql, params)
         agent_link = cursor.fetchone()
         ai_conn.close()
         

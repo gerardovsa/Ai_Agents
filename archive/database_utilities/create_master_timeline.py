@@ -224,7 +224,7 @@ def create_master_timeline_html(files_by_date):
         .group-title {{
             font-weight: bold;
             color: #2c3e50;
-            padding: 10px 0;
+            padding: 10px;
             border-bottom: 2px solid #3498db;
             margin-bottom: 10px;
             font-size: 0.9em;

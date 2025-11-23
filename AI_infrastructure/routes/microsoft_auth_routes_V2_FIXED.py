@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 # CRITICAL: Import centralized database path helper (Render compatibility)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.db_path_helper import get_ai_infrastructure_db_path
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, convert_sql_placeholders, is_using_supabase
 
 from Microsoft_365_Connection.microsoft365_oauth_manager import (
     microsoft_oauth_manager,
@@ -112,6 +112,7 @@ def get_db_connection():
 
 def init_db():
     """Initialize database with oauth_tokens table (SQLite & PostgreSQL compatible)"""
+    conn = None  # CRITICAL FIX: Initialize connection variable
     try:
         from shared.database_utils import is_using_supabase
         
@@ -123,7 +124,7 @@ def init_db():
         
         if using_postgres:
             # PostgreSQL syntax (SERIAL for auto-increment, BOOLEAN for flags)
-            cursor.execute('''
+            sql = convert_sql_placeholders('''
                 CREATE TABLE IF NOT EXISTS oauth_tokens (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER NOT NULL,
@@ -151,6 +152,8 @@ def init_db():
                     UNIQUE(user_id, platform)
                 )
             ''')
+            
+            cursor.execute(sql)
             
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS oauth_states (
@@ -212,12 +215,15 @@ def init_db():
         ''')
         
         conn.commit()
-        conn.close()
         logger.info(f"Database tables initialized (oauth_tokens, oauth_states) - {'PostgreSQL' if using_postgres else 'SQLite'}")
     except Exception as e:
         logger.error(f" Error initializing database: {e}")
         import traceback
         logger.error(traceback.format_exc())
+    finally:
+        # CRITICAL FIX: Always close connection if it was opened
+        if conn:
+            conn.close()
 
 # Initialize tables on module load
 init_db()
@@ -386,13 +392,6 @@ def microsoft_login():
                     VALUES (%s, 'microsoft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '5 minutes')
                 """
                 sql, params = convert_sql_placeholders(sql, (state,))
-            else:
-                # SQLite: datetime('now')
-                sql = """
-                    INSERT INTO oauth_states (state, platform, created_at, expires_at)
-                    VALUES (?, 'microsoft', datetime('now'), datetime('now', '+5 minutes'))
-                """
-                params = (state,)
             
             cursor.execute(sql, params)
             conn.commit()
@@ -424,14 +423,10 @@ def microsoft_login():
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            if is_using_supabase():
-                sql, params = convert_sql_placeholders(
-                    "UPDATE oauth_states SET return_url = %s WHERE state = %s",
-                    (return_url, state)
-                )
-            else:
-                sql = "UPDATE oauth_states SET return_url = ? WHERE state = ?"
-                params = (return_url, state)
+            sql, params = convert_sql_placeholders(
+                "UPDATE oauth_states SET return_url = %s WHERE state = %s",
+                (return_url, state)
+            )
             
             cursor.execute(sql, params)
             conn.commit()
@@ -503,14 +498,6 @@ def microsoft_callback():
                     AND expires_at > CURRENT_TIMESTAMP
                 """
                 sql, params = convert_sql_placeholders(sql, (state,))
-            else:
-                # SQLite: datetime('now')
-                sql = """
-                    SELECT state, return_url, expires_at FROM oauth_states 
-                    WHERE state = ? AND platform = 'microsoft'
-                    AND expires_at > datetime('now')
-                """
-                params = (state,)
             
             cursor.execute(sql, params)
             row = cursor.fetchone()
@@ -519,15 +506,10 @@ def microsoft_callback():
                 stored_state = row[0] if not isinstance(row, dict) else row['state']
                 return_url = (row[1] if not isinstance(row, dict) else row['return_url']) or '/'
                 
-                # Delete used state (database-agnostic)
-                if is_using_supabase():
-                    delete_sql, delete_params = convert_sql_placeholders(
-                        "DELETE FROM oauth_states WHERE state = %s", (state,)
-                    )
-                else:
-                    delete_sql = "DELETE FROM oauth_states WHERE state = ?"
-                    delete_params = (state,)
-                    
+                # Delete used state
+                delete_sql, delete_params = convert_sql_placeholders(
+                    "DELETE FROM oauth_states WHERE state = %s", (state,)
+                )
                 cursor.execute(delete_sql, delete_params)
             
             conn.commit()
@@ -848,6 +830,7 @@ def microsoft_status():
     
     Returns connection status and token info FROM ai_infrastructure.oauth_tokens table
     """
+    conn = None  # CRITICAL FIX: Initialize connection variable
     try:
         # Get user_id from request.user (set by @require_auth decorator)
         user_id = request.user.get('user_id')
@@ -878,14 +861,12 @@ def microsoft_status():
             row = cursor.fetchone()
         except Exception as query_error:
             logger.error(f"❌ Database query failed: {query_error}")
-            conn.close()
+            # Connection will be closed in finally block
             return jsonify({
                 'success': False,
                 'error': 'Database query failed',
                 'details': str(query_error)
             }), 500
-        
-        conn.close()
         
         if not row:
             return jsonify({
@@ -923,6 +904,7 @@ def microsoft_status():
         except Exception as parse_error:
             logger.error(f"❌ Failed to parse database row: {parse_error}")
             logger.error(f"Row type: {type(row)}, Row: {row}")
+            # Connection will be closed in finally block
             return jsonify({
                 'success': False,
                 'error': 'Failed to parse database response',
@@ -968,6 +950,9 @@ def microsoft_status():
         
     except Exception as e:
         logger.error(f"❌ Status check failed (outer exception): {e}")
+        # CRITICAL FIX: Always close connection if it was opened
+        if conn:
+            conn.close()
         import traceback
         logger.error(traceback.format_exc())
         return jsonify({
@@ -975,6 +960,10 @@ def microsoft_status():
             'error': 'Unexpected error during status check',
             'details': str(e)
         }), 500
+    finally:
+        # CRITICAL FIX: Always close connection on successful path
+        if conn:
+            conn.close()
 
 
 @microsoft_auth_bp.route('/disconnect', methods=['POST'])
@@ -996,10 +985,12 @@ def microsoft_disconnect():
         cursor = conn.cursor()
         
         # Delete tokens FROM ai_infrastructure.oauth_tokens table
-        cursor.execute('''
+        sql, params = convert_sql_placeholders('''
             DELETE FROM ai_infrastructure.oauth_tokens
             WHERE user_id = %s AND platform = %s
         ''', (user_id, 'microsoft'))
+
+        cursor.execute(sql, params)
         
         conn.commit()
         conn.close()

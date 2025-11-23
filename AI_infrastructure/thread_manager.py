@@ -299,15 +299,15 @@ class ThreadManager:
                 raise ValueError(f"Thread '{thread_slug}' not found")
             
             timestamp = datetime.now().isoformat()
-            updates = ['updated_at = ?']
+            updates = ['updated_at = %s']
             params = [timestamp]
             
             if name:
-                updates.append('name = ?')
+                updates.append('name = %s')
                 params.append(name)
             
             if metadata:
-                updates.append('metadata = ?')
+                updates.append('metadata = %s')
                 params.append(json.dumps(metadata))
             
             params.append(thread['id'])

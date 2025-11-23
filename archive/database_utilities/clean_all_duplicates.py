@@ -1,4 +1,5 @@
 """Clean ALL duplicate messages from the database"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -25,12 +26,14 @@ for thread in threads:
     thread_id, thread_slug, name = thread
     
     # Get all messages for this thread
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         SELECT id, role, content, created_at 
         FROM messages 
         WHERE thread_id = ? 
         ORDER BY created_at
     """, (thread_id,))
+
+    cursor.execute(sql, params)
     messages = cursor.fetchall()
     
     if len(messages) == 0:

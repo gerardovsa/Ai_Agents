@@ -5,6 +5,7 @@ Find the SOURCE OF TRUTH and inconsistencies
 import sqlite3
 import json
 import os
+from shared.database_utils import convert_sql_placeholders
 
 print("=" * 120)
 print("DOCUMENT FIELD NAMING - SYSTEM-WIDE ANALYSIS")

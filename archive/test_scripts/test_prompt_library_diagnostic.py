@@ -1,5 +1,6 @@
 """
 Prompt Library Diagnostic Script
+from shared.database_utils import convert_sql_placeholders
 
 Tests:
 1. Database connection

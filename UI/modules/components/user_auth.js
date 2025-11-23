@@ -267,7 +267,19 @@ const UserAuth = {
     async showMainApp() {
         //  PREVENT DOUBLE INITIALIZATION OF MAIN APP
         if (this.mainAppInitialized) {
-            console.log(' [AUTH] Main app already initialized, skipping duplicate call');
+            console.log(' [AUTH] Main app already initialized, checking module system...');
+            
+            // ✅ CRITICAL FIX (Nov 23, 2025): Ensure modules are loaded even if main app is initialized
+            // This handles page refresh scenarios where mainAppInitialized=true but modules aren't loaded
+            if (window.initializeModuleSystem) {
+                console.log('🔷 [AUTH] Triggering module system initialization (retry)...');
+                try {
+                    await window.initializeModuleSystem();
+                    console.log('✅ [AUTH] Module system initialized');
+                } catch (error) {
+                    console.error('❌ [AUTH] Module system initialization failed:', error);
+                }
+            }
             return;
         }
         this.mainAppInitialized = true;
@@ -292,8 +304,19 @@ const UserAuth = {
 
         try {
             // PHASE 1: Initialize main app with existing libraries (15% progress)
-            this.setLoadingProgress(15, 'Loading modules...');
+            this.setLoadingProgress(15, 'Initializing application...');
             await window.initializeMainApp();
+            this.setLoadingProgress(20, 'Application initialized');
+
+            // ✅ CRITICAL FIX: Initialize module system AFTER main app is visible
+            this.setLoadingProgress(22, 'Loading modules...');
+            if (window.initializeModuleSystem) {
+                console.log('🔷 [AUTH] Triggering module system initialization...');
+                await window.initializeModuleSystem();
+                console.log('✅ [AUTH] Module system initialized');
+            } else {
+                console.warn('⚠️ [AUTH] initializeModuleSystem not found - modules may not load');
+            }
             this.setLoadingProgress(25, 'Modules loaded');
 
             // PHASE 2: Load heavy libraries AFTER app is visible (25-75% progress)
@@ -325,7 +348,7 @@ const UserAuth = {
             this.setLoadingProgress(100, 'Ready!');
             setTimeout(() => {
                 this.hideLoadingOverlay();
-            }, 500);
+            }, 10000); // 10 second delay before hiding auth loading overlay
 
         } catch (error) {
             console.error(' [AUTH] Failed to initialize main app:', error);

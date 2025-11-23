@@ -1,6 +1,6 @@
 {
   "platform": "google_calendar",
-  "description": "Google Calendar API - Complete calendar and event management tools\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "description": "Google Calendar API - Complete calendar and event management tools. Schedule meetings, create appointments, manage events, book time, and organize your calendar.\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
   "tools": [
     {
       "name": "google_calendar_list_calendars",
@@ -37,7 +37,7 @@
     },
     {
       "name": "google_calendar_create_event",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_create_event', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new calendar event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_create_event', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new calendar event (meeting, appointment, booking, schedule). Use this to schedule meetings, appointments, or any calendar events.",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -111,7 +111,7 @@
     },
     {
       "name": "google_calendar_update_event",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_update_event', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing calendar event",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_update_event', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing calendar event (meeting, appointment). Modify meeting times, attendees, location, or details.",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -197,7 +197,7 @@
     },
     {
       "name": "google_calendar_list_events",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_list_events', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList events in a calendar with filters",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_list_events', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList events in a calendar with filters. View upcoming meetings, scheduled appointments, and calendar events.",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {
@@ -269,7 +269,7 @@
     },
     {
       "name": "google_calendar_check_availability",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_check_availability', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck free/busy information for calendars",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_check_availability', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck free/busy information for calendars. Find available meeting times and check schedule conflicts before booking.",
       "platform": "google_calendar",
       "parameters": {
         "time_min": {
@@ -301,7 +301,7 @@
     },
     {
       "name": "google_calendar_quick_add",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_quick_add', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate event from natural language text",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_calendar_quick_add', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate event from natural language text. Quick schedule meetings using phrases like 'Meeting with John tomorrow at 2pm' or 'Lunch appointment Friday noon'.",
       "platform": "google_calendar",
       "parameters": {
         "calendar_id": {

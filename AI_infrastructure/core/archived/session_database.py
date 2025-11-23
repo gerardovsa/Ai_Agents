@@ -1,6 +1,7 @@
 """
 Session Database Manager
 ========================
+from shared.database_utils import convert_sql_placeholders
 
 SQLite database for storing complete conversation sessions with:
 - Full message history with timestamps
@@ -123,7 +124,7 @@ class SessionDatabase:
             cursor = conn.cursor()
             
             # Sessions table
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 CREATE TABLE IF NOT EXISTS sessions (
                     session_id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL,
@@ -241,6 +242,8 @@ class SessionDatabase:
                     tags, created_at, last_active
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (session_id, user_id, title, project_name, tags_json, now, now))
+
+            cursor.execute(sql, params)
             
             # Log creation
             self._log_activity(
@@ -271,18 +274,23 @@ class SessionDatabase:
             if role == 'assistant':
                 content = prepare_content_for_storage(content)
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO messages (
                     session_id, role, content, tools_used, timestamp
                 ) VALUES (%s, %s, %s, %s, %s)
             """, (session_id, role, content, tools_json, now))
+
+            
+            cursor.execute(sql, params)
             
             message_id = cursor.lastrowid
             
             # Update last_active
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE sessions SET last_active = %s WHERE session_id = %s
             """, (now, session_id))
+
+            cursor.execute(sql, params)
             
             # Log activity
             self._log_activity(
@@ -301,11 +309,14 @@ class SessionDatabase:
             
             now = datetime.now().isoformat()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO documents (
                     session_id, doc_type, title, url, created_at
                 ) VALUES (%s, %s, %s, %s, %s)
             """, (session_id, doc_type, title, url, now))
+
+            
+            cursor.execute(sql, params)
             
             doc_id = cursor.lastrowid
             
@@ -326,11 +337,14 @@ class SessionDatabase:
             
             now = datetime.now().isoformat()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE documents 
                 SET status = 'archived', archived_at = %s
                 WHERE doc_id = %s
             """, (now, doc_id))
+
+            
+            cursor.execute(sql, params)
             
             # Get session_id for logging
             cursor.execute("SELECT session_id, title FROM documents WHERE doc_id = %s", (doc_id,))
@@ -351,10 +365,13 @@ class SessionDatabase:
             
             now = datetime.now().isoformat()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 INSERT INTO next_steps (session_id, description, created_at)
                 VALUES (%s, %s, %s)
             """, (session_id, description, now))
+
+            
+            cursor.execute(sql, params)
             
             step_id = cursor.lastrowid
             
@@ -373,11 +390,14 @@ class SessionDatabase:
             
             now = datetime.now().isoformat()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE next_steps 
                 SET completed = 1, completed_at = %s
                 WHERE step_id = %s
             """, (now, step_id))
+
+            
+            cursor.execute(sql, params)
             
             # Get session_id for logging
             cursor.execute("SELECT session_id, description FROM next_steps WHERE step_id = %s", (step_id,))
@@ -397,11 +417,14 @@ class SessionDatabase:
         now = datetime.now().isoformat()
         metadata_json = json.dumps(metadata) if metadata else None
         
-        cursor.execute("""
+        sql, params = convert_sql_placeholders("""
             INSERT INTO activity_log (
                 session_id, event_type, description, metadata, timestamp
             ) VALUES (%s, %s, %s, %s, %s)
         """, (session_id, event_type, description, metadata_json, now))
+
+        
+        cursor.execute(sql, params)
     
     def get_session(self, session_id: str) -> Optional[Dict]:
         """Get session with all related data"""
@@ -419,44 +442,54 @@ class SessionDatabase:
             session['tags'] = json.loads(session['tags']) if session['tags'] else []
             
             # Get messages
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT * FROM messages 
                 WHERE session_id = %s 
                 ORDER BY timestamp ASC
             """, (session_id,))
+
+            cursor.execute(sql, params)
             session['messages'] = [dict(row) for row in cursor.fetchall()]
             
             # Get activity log
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT * FROM activity_log 
                 WHERE session_id = %s 
                 ORDER BY timestamp DESC
                 LIMIT 50
             """, (session_id,))
+
+            cursor.execute(sql, params)
             session['activity_log'] = [dict(row) for row in cursor.fetchall()]
             
             # Get active documents
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT * FROM documents 
                 WHERE session_id = %s AND status = 'active'
                 ORDER BY created_at DESC
             """, (session_id,))
+
+            cursor.execute(sql, params)
             session['active_documents'] = [dict(row) for row in cursor.fetchall()]
             
             # Get archived documents
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT * FROM documents 
                 WHERE session_id = %s AND status = 'archived'
                 ORDER BY archived_at DESC
             """, (session_id,))
+
+            cursor.execute(sql, params)
             session['archived_documents'] = [dict(row) for row in cursor.fetchall()]
             
             # Get next steps
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT * FROM next_steps 
                 WHERE session_id = %s AND completed = 0
                 ORDER BY created_at ASC
             """, (session_id,))
+
+            cursor.execute(sql, params)
             session['next_steps'] = [dict(row) for row in cursor.fetchall()]
             
             return session
@@ -494,12 +527,15 @@ class SessionDatabase:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE sessions 
                 SET kanban_column = %s,
                     status = CASE WHEN ? = 'done' THEN 'completed' ELSE status END
                 WHERE session_id = %s
             """, (column, column, session_id))
+
+            
+            cursor.execute(sql, params)
             
             self._log_activity(
                 cursor, session_id, 'kanban_moved',
@@ -513,11 +549,14 @@ class SessionDatabase:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 UPDATE sessions 
                 SET google_task_id = %s
                 WHERE session_id = %s
             """, (task_id, session_id))
+
+            
+            cursor.execute(sql, params)
             
             self._log_activity(
                 cursor, session_id, 'task_linked',
@@ -548,13 +587,15 @@ class SessionDatabase:
             session['active_docs'] = cursor.fetchone()['count']
             
             # Get latest activity (last 3)
-            cursor.execute("""
+            sql, params = convert_sql_placeholders("""
                 SELECT event_type, description, timestamp 
                 FROM activity_log 
                 WHERE session_id = %s 
                 ORDER BY timestamp DESC 
                 LIMIT 3
             """, (session_id,))
+
+            cursor.execute(sql, params)
             session['recent_activity'] = [dict(row) for row in cursor.fetchall()]
             
             return session

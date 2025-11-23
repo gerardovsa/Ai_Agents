@@ -5,6 +5,7 @@ Aligns database with official schema (synergy_tools.json)
 import sqlite3
 import json
 from datetime import datetime
+from shared.database_utils import convert_sql_placeholders
 
 db_path = 'C:\\Users\\gpoli\\GIT\\AI_agents\\data\\synergy_sessions.db'
 
@@ -33,8 +34,9 @@ total_docs_fixed = 0
 
 for session_id in incorrect_sessions:
     # Get session
-    cursor.execute("SELECT session_id, title, documents FROM synergy_sessions WHERE session_id LIKE ?", 
-                   (session_id + '%',))
+    sql, params = convert_sql_placeholders("SELECT session_id, title, documents FROM synergy_sessions WHERE session_id LIKE ?", (session_id + '%',))
+
+    cursor.execute(sql, params)
     row = cursor.fetchone()
     
     if not row:
@@ -70,11 +72,13 @@ for session_id in incorrect_sessions:
     
     # Update database
     fixed_json = json.dumps(fixed_documents, ensure_ascii=False)
-    cursor.execute("""
+    sql, params = convert_sql_placeholders("""
         UPDATE synergy_sessions 
         SET documents = ?
         WHERE session_id = ?
     """, (fixed_json, full_session_id))
+
+    cursor.execute(sql, params)
     
     fixed_count += 1
     total_docs_fixed += len(fixed_documents)

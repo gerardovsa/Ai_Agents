@@ -547,6 +547,67 @@ Object.assign(window.ThreadManager, {
                 }
             }
         });
+    },
+
+    /**
+     * Mark thread as prime-loaded (single startup thread)
+     * Automatically unmarks any existing prime-loaded thread
+     */
+    async markAsPrimeLoaded(threadId) {
+        try {
+            const thread = this.threads.find(t => t.id === threadId);
+            if (!thread) {
+                showNotification('Thread not found', 'error');
+                return;
+            }
+
+            // Check if already prime-loaded
+            if (thread.location === 'prime-loaded') {
+                showNotification('This thread already loads on startup', 'info');
+                return;
+            }
+
+            // Call backend to mark as prime-loaded
+            const response = await fetch('/api/threads/mark-prime-loaded', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${UserAuth.token}`
+                },
+                body: JSON.stringify({
+                    thread_id: threadId,
+                    user_id: UserAuth.user?.id || 1
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Failed to mark thread');
+            }
+
+            // Update local thread state
+            // Unmark all other prime-loaded threads
+            this.threads.forEach(t => {
+                if (t.location === 'prime-loaded' && t.id !== threadId) {
+                    t.location = 'prime';
+                }
+            });
+
+            // Mark this thread
+            thread.location = 'prime-loaded';
+            thread.updated = new Date().toISOString();
+
+            // Update UI
+            this.renderThreadList();
+
+            showNotification('Thread will load on startup', 'success');
+            console.log(`🎯 [ThreadManager] Marked thread ${threadId} as prime-loaded`);
+
+        } catch (error) {
+            console.error('❌ [ThreadManager] Failed to mark as prime-loaded:', error);
+            showNotification('Failed to set startup thread', 'error');
+        }
     }
 });
 

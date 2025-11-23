@@ -542,66 +542,10 @@
                     "next_steps": {
                         "type": "array",
                         "items": {
-                            "oneOf": [
-                                {
-                                    "type": "string",
-                                    "description": "Simple next step description (RECOMMENDED for AI agents - backend auto-converts)"
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Next step with metadata (advanced - only if you need to preserve completion states)",
-                                    "properties": {
-                                        "description": {
-                                            "type": "string",
-                                            "description": "Step text"
-                                        },
-                                        "completed": {
-                                            "type": "boolean",
-                                            "description": "Whether step is completed"
-                                        },
-                                        "completed_at": {
-                                            "type": "string",
-                                            "description": "ISO timestamp when completed"
-                                        },
-                                        "due_date": {
-                                            "type": "string",
-                                            "description": "ISO date when due (YYYY-MM-DD)"
-                                        }
-                                    },
-                                    "required": [
-                                        "description"
-                                    ]
-                                }
-                            ]
+                            "type": "string",
+                            "description": "Simple next step description. Backend auto-converts to rich objects with completion tracking. Examples: 'Review dashboard', 'Update documentation', 'Schedule demo'"
                         },
-                        "description": "WARNING: REPLACES all next steps. Use simple strings ['Step 1', 'Step 2'] (RECOMMENDED). Backend auto-converts to rich objects. MUST include ALL steps (existing + new). Get existing via synergy_get_session() first.",
-                        "examples": {
-                            "simple_format_recommended": [
-                                "Review dashboard",
-                                "Update documentation",
-                                "Schedule demo"
-                            ],
-                            "object_format_advanced": [
-                                {
-                                    "description": "Review dashboard",
-                                    "completed": true,
-                                    "completed_at": "2025-01-10T14:30:00Z"
-                                },
-                                {
-                                    "description": "Update documentation",
-                                    "completed": false,
-                                    "due_date": "2025-01-15"
-                                }
-                            ],
-                            "backend_output": [
-                                {
-                                    "description": "Review dashboard",
-                                    "completed": false,
-                                    "due_date": null,
-                                    "completed_at": null
-                                }
-                            ]
-                        }
+                        "description": "WARNING: REPLACES all next steps. Use simple strings ['Step 1', 'Step 2']. Backend auto-converts to rich objects. MUST include ALL steps (existing + new). Get existing via synergy_get_session() first."
                     },
                     "tags": {
                         "type": "array",

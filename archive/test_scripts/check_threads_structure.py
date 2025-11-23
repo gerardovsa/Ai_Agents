@@ -1,5 +1,6 @@
 """Check threads table structure and understand relationships"""
 import sqlite3
+from shared.database_utils import convert_sql_placeholders
 
 sessions_db = r'C:\Users\gpoli\GIT\AI_agents\data\sessions.db'
 infra_db = r'C:\Users\gpoli\GIT\AI_agents\data\ai_infrastructure.db'

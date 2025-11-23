@@ -1,4 +1,5 @@
 """Check if 'default' workspace exists in sessions.db"""
+from shared.database_utils import convert_sql_placeholders
 
 import sqlite3
 from pathlib import Path
@@ -36,7 +37,9 @@ for thread in threads:
     
     if thread['workspace_id']:
         # Try to find the workspace
-        cursor.execute("SELECT slug FROM workspaces WHERE id = ?", (thread['workspace_id'],))
+        sql, params = convert_sql_placeholders("SELECT slug FROM workspaces WHERE id = ?", (thread['workspace_id'],))
+
+        cursor.execute(sql, params)
         ws = cursor.fetchone()
         if ws:
             print(f"     Workspace Slug: {ws['slug']}")
@@ -45,12 +48,14 @@ for thread in threads:
 
 # Check what happens when calling get_thread
 print("\n3. TESTING get_thread() QUERY:")
-cursor.execute("""
+sql, params = convert_sql_placeholders("""
     SELECT t.*, w.slug as workspace_slug
     FROM threads t
     JOIN workspaces w ON t.workspace_id = w.id
     WHERE w.slug = ? AND t.thread_slug = ?
 """, ('default', '1762614784052'))
+
+cursor.execute(sql, params)
 
 result = cursor.fetchone()
 if result:

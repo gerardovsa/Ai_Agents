@@ -1,5 +1,6 @@
 """
 Comprehensive Thread Assignment System Test
+from shared.database_utils import convert_sql_placeholders
 
 Tests database schema, API endpoints, and frontend logic
 to ensure thread assignment system is properly implemented.

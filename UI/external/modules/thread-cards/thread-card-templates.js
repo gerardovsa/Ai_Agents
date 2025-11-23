@@ -45,9 +45,13 @@ window.ThreadCardTemplates = {
      * Welcome Container - Prime panel (no thread loaded)
      * Shows interactive visualizations, tool count, quick start buttons
      * 
+     * COMMENTED OUT - Nov 22, 2025: Prime now uses thread selector (noThreadMessage) instead
+     * The "Welcome to Prime" message was incorrect - should show "Click to select a thread"
+     * 
      * @param {number} toolCount - Number of available tools (default: 594)
      * @returns {string} HTML string for welcome container
      */
+    /* DISABLED - Use noThreadMessage() for Prime instead
     welcomeContainer(toolCount = 594) {
         return `
             <div class="ai-chat-header-info" id="prime-thread-info" style="padding: 20px; text-align: center;">
@@ -70,6 +74,7 @@ window.ThreadCardTemplates = {
             </div>
         `;
     },
+    */
 
     /**
      * No Thread Message - Agents/Synergy panels (no thread assigned)
@@ -80,9 +85,8 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for no-thread message
      */
     noThreadMessage(agentName, agentIcon, agentId = null) {
-        // For agent columns, return clickable thread selector (matching unloadThreadFromAgent HTML)
+        // For agent columns: clickable selector dropdown with proper agentId
         if (agentId !== null && agentId !== undefined) {
-            // For agent columns: clickable selector dropdown with proper agentId
             return `
                 <div class="thread-info-wrapper">
                     <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
@@ -93,8 +97,21 @@ window.ThreadCardTemplates = {
                     <div class="thread-selector-dropdown" id="thread-selector-${agentId}" style="display: none;"></div>
                 </div>
             `;
+        } else if (agentName === 'Prime') {
+            // For Prime: clickable selector dropdown (same as agents but with 'prime' identifier)
+            // CRITICAL: No inline onclick - event delegation with stopPropagation handles clicks
+            return `
+                <div class="thread-info-wrapper">
+                    <div class="no-thread-message clickable" id="prime-no-thread" style="cursor: pointer !important;">
+                        <i class="fas fa-inbox"></i>
+                        <span>Click to select a thread</span>
+                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
+                    </div>
+                    <div class="thread-selector-dropdown" id="thread-selector-prime" style="display: none;"></div>
+                </div>
+            `;
         } else {
-            // For Prime/Synergy: static empty state message
+            // For Synergy: static empty state message (Synergy doesn't load individual threads)
             return `
                 <div class="ai-chat-header-info" style="padding: 20px; text-align: center; color: #666;">
                     <i class="fas ${agentIcon}" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
@@ -151,7 +168,16 @@ window.ThreadCardTemplates = {
         }
 
         return `
-            <div class="ai-chat-header-info agent-thread-card" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}">
+            <div class="ai-chat-header-info agent-thread-card" 
+                 id="${location}-thread-info" 
+                 data-thread-id="${thread.id}" 
+                 data-location="${location}"
+                 draggable="true"
+                 ondragstart="ThreadManager.handleDragStart(event)"
+                 ondragend="ThreadManager.handleDragEnd(event)"
+                 ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${location}')"
+                 style="cursor: pointer;" 
+                 title="Double-click to load in Prime">
                 
                 <!-- ALWAYS VISIBLE: Row 1 - Title + Badge + Actions/Unload -->
                 ${headerHtml}
@@ -212,7 +238,16 @@ window.ThreadCardTemplates = {
         const synergyPriority = synergyMeta?.priority || '';
 
         return `
-            <div class="ai-chat-header-info" id="${location}-thread-info" data-thread-id="${thread.id}" data-location="${location}">
+            <div class="ai-chat-header-info" 
+                 id="${location}-thread-info" 
+                 data-thread-id="${thread.id}" 
+                 data-location="${location}"
+                 draggable="true"
+                 ondragstart="ThreadManager.handleDragStart(event)"
+                 ondragend="ThreadManager.handleDragEnd(event)"
+                 ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${location}')"
+                 style="cursor: pointer;" 
+                 title="Double-click to load in Prime">
                 
                 ${this.headerRowClean(thread, location, agent)}
                 
