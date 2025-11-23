@@ -1142,6 +1142,43 @@ class SettingsSidebarModule extends BaseModule {
         this.errorLogManager.add(errorLog);
     }
 
+    // ==================== SIDEBAR CONTROL ====================
+
+    open() {
+        console.log('[Settings Sidebar] Opening sidebar...');
+        const sidebar = document.getElementById('settings-sidebar');
+        if (sidebar) {
+            sidebar.classList.add('active');
+            console.log('[Settings Sidebar] Sidebar opened');
+        } else {
+            console.error('[Settings Sidebar] Sidebar element not found!');
+        }
+    }
+
+    close() {
+        console.log('[Settings Sidebar] Closing sidebar...');
+        const sidebar = document.getElementById('settings-sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('active');
+            console.log('[Settings Sidebar] Sidebar closed');
+        } else {
+            console.error('[Settings Sidebar] Sidebar element not found!');
+        }
+    }
+
+    toggle() {
+        const sidebar = document.getElementById('settings-sidebar');
+        if (sidebar) {
+            if (sidebar.classList.contains('active')) {
+                this.close();
+            } else {
+                this.open();
+            }
+        }
+    }
+
+    // ==================== CLEANUP ====================
+
     cleanup() {
         super.cleanup();
     }
@@ -1161,6 +1198,34 @@ window.isErrorRecoveryEnabled = (type) => window.settingsModule?.isErrorRecovery
 window.getMaxRetryAttempts = () => window.settingsModule?.getMaxRetryAttempts();
 window.shouldShowRecoveryNotifications = () => window.settingsModule?.shouldShowRecoveryNotifications();
 window.isDetailedLoggingEnabled = () => window.settingsModule?.isDetailedLoggingEnabled();
+
+// Global open/close functions for button onclick handlers
+window.openSettingsSidebar = () => {
+    console.log('[Settings] openSettingsSidebar called');
+    if (window.settingsModule) {
+        window.settingsModule.open();
+    } else {
+        console.error('[Settings] settingsModule not initialized!');
+    }
+};
+
+window.closeSettingsSidebar = () => {
+    console.log('[Settings] closeSettingsSidebar called');
+    if (window.settingsModule) {
+        window.settingsModule.close();
+    } else {
+        console.error('[Settings] settingsModule not initialized!');
+    }
+};
+
+window.switchSettingsTab = (tabName) => {
+    console.log('[Settings] switchSettingsTab called:', tabName);
+    if (window.settingsModule) {
+        window.settingsModule.switchSubTab(tabName);
+    } else {
+        console.error('[Settings] settingsModule not initialized!');
+    }
+};
 
 console.log('[Settings Sidebar] Module loaded');
 console.warn('[DEPRECATED] Global settings functions - use window.settingsModule instead');

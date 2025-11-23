@@ -191,7 +191,7 @@ class AutomationCanvas {
         
         const handlers = {
             'new-workflow-btn': () => this.openWorkflowModal(),
-            'load-workflow-btn': () => this.showLoadWorkflowDialog(),
+            'load-workflow-btn': () => window.toggleWorkflowLibraryPanel(),
             'save-workflow-btn': () => this.saveWorkflow(),
             'export-workflow-btn': () => this.exportToJSON(),
             'print-workflow-btn': () => this.printWorkflow(),
@@ -1112,30 +1112,57 @@ class AutomationCanvas {
     }
 
     sendToAI() {
-        const automation = {
-            automation_id: this.automationId || `auto_${Date.now()}`,
-            title: this.automationTitle,
-            shapes: this.shapes,
-            connections: this.connections
-        };
+        if (!this.workflowSlug) {
+            this.showToast('Please save the workflow first', 'warning');
+            return;
+        }
 
-        // Create automation slug
-        const slug = {
-            type: 'automation_slug',
-            data: automation
-        };
+        // Get active thread from AI Prime
+        const activeThreadId = window.ThreadManager?.getActiveThreadId ? window.ThreadManager.getActiveThreadId() : null;
+        
+        if (!activeThreadId) {
+            this.showToast('No active AI Prime thread. Please start a conversation first.', 'warning');
+            return;
+        }
 
-        // Insert into AI chat input
-        const chatInput = document.getElementById('user-input');
-        if (chatInput) {
-            const slugText = `[AUTOMATION: ${automation.title} (${automation.automation_id})]`;
-            chatInput.value = (chatInput.value + ' ' + slugText).trim();
-            chatInput.focus();
+        // Link workflow to thread via API
+        this.linkWorkflowToThread(activeThreadId, this.workflowSlug, this.workflowTitle);
+    }
 
-            // Store slug data for AI
-            window.currentAutomationSlug = slug;
+    async linkWorkflowToThread(threadId, workflowSlug, workflowTitle) {
+        try {
+            const response = await fetch('/api/threads/link-workflow', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+                },
+                body: JSON.stringify({
+                    thread_id: threadId,
+                    workflow_id: workflowSlug,
+                    workflow_name: workflowTitle
+                })
+            });
 
-            this.showToast(`Automation "${automation.title}" added to AI chat! Click Send to have the AI analyze and refine your workflow.`, 'success', 5000);
+            if (!response.ok) {
+                throw new Error(`Failed to link workflow: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showToast(`Workflow "${workflowTitle}" linked to AI Prime thread`, 'success');
+                
+                // Refresh thread card to show workflow badge
+                if (window.ThreadManager?.refreshThreadCard) {
+                    window.ThreadManager.refreshThreadCard(threadId);
+                }
+            } else {
+                throw new Error(data.error || 'Failed to link workflow');
+            }
+        } catch (error) {
+            console.error('[AUTOMATION] Failed to link workflow to thread:', error);
+            this.showToast(`Failed to link workflow: ${error.message}`, 'error');
         }
     }
 
@@ -1372,6 +1399,7 @@ class AutomationCanvas {
          */
         try {
             console.log('[AUTOMATION CANVAS] Loading workflow onto canvas:', workflow.slug);
+            console.log('[AUTOMATION CANVAS] Full workflow object:', workflow);
             
             // Clear canvas first
             this.clearCanvas();
@@ -1393,7 +1421,9 @@ class AutomationCanvas {
                                workflow.ui_json?.connections || 
                                [];
             
-            console.log(`  Shapes: ${shapes.length}, Connections: ${connections.length}`);
+            console.log(`[AUTOMATION CANVAS] Extracted - Shapes: ${shapes.length}, Connections: ${connections.length}`);
+            console.log('[AUTOMATION CANVAS] Shapes data:', shapes);
+            console.log('[AUTOMATION CANVAS] Connections data:', connections);
             
             // Load shapes
             shapes.forEach(shape => {
@@ -2546,11 +2576,8 @@ class AutomationCanvas {
                 this.renderAllShapes();
                 this.renderConnections();
 
-                // Update workflow name display
-                const nameDisplay = document.getElementById('workflow-name-display');
-                if (nameDisplay) {
-                    nameDisplay.textContent = `[${this.workflowSlug}]`;
-                }
+                // Update workflow name display with title (not ugly slug)
+                this.updateWorkflowNameDisplay();
 
                 // Center canvas on shapes
                 this.recenterToShapes();

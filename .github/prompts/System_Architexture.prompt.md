@@ -1,7 +1,8 @@
 ---
-mode: agent
+agent: agent
 ---
-@workspace 
+
+
 
 I need you to analyze this codebase and create a comprehensive ARCHITECTURE.md file in the project root.
 

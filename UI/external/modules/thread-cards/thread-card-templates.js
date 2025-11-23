@@ -325,7 +325,7 @@ window.ThreadCardTemplates = {
                     <button class="agent-unload-btn" 
                             onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 
                             title="Unload thread from agent (move to Prime)">
-                        <i class="fas fa-times"></i>
+                        <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
             </div>

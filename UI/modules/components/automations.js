@@ -107,8 +107,12 @@ const AutomationsSidebar = {
                 }
             });
 
+            console.log('[AUTOMATIONS] API response status:', response.status);
+
             if (!response.ok) {
-                console.warn('[AUTOMATIONS] API not available - showing empty state');
+                console.error('[AUTOMATIONS] API request failed with status:', response.status);
+                const errorText = await response.text();
+                console.error('[AUTOMATIONS] Error response:', errorText);
                 this.automations = [];
                 this.automationsLoaded = true;
                 this.renderAutomations();
@@ -116,6 +120,7 @@ const AutomationsSidebar = {
             }
 
             const data = await response.json();
+            console.log('[AUTOMATIONS] API response data:', data);
             
             if (!data.success) {
                 console.error('[AUTOMATIONS] API error:', data.error);
@@ -447,28 +452,139 @@ const AutomationsSidebar = {
 
             // Check if automation canvas exists
             if (typeof automationCanvas !== 'undefined' && automationCanvas) {
-                // Switch to automation workflows tab
+                // Switch to automation workflows tab FIRST
                 const automationTab = document.querySelector('[data-module-id="automation-workflows"]');
                 if (automationTab) {
+                    console.log('[AUTOMATIONS] Switching to automation tab');
                     automationTab.click();
+                } else {
+                    // Try alternative selector
+                    const altTab = document.querySelector('[data-tab="automation"]');
+                    if (altTab) {
+                        console.log('[AUTOMATIONS] Switching to automation tab (alt selector)');
+                        altTab.click();
+                    }
                 }
 
-                // Load workflow into canvas
+                // Load workflow into canvas with longer delay to ensure tab switch completes
                 setTimeout(() => {
                     if (automationCanvas.loadWorkflowFromList) {
+                        console.log('[AUTOMATIONS] Loading workflow into canvas:', workflow);
                         automationCanvas.loadWorkflowFromList(workflow);
+                        // Show workflow library with loaded workflow highlighted
+                        this.showWorkflowInLibrary(workflow);
                     } else {
                         console.warn('[AUTOMATIONS] Canvas loadWorkflowFromList not available');
                     }
-                }, 100);
+                }, 300);
             } else {
                 console.error('[AUTOMATIONS] Automation canvas not initialized');
-                showNotification('Automation canvas module not loaded. Please refresh the page.', 'error');
+                if (typeof showNotification !== 'undefined') {
+                    showNotification('Automation canvas module not loaded. Please refresh the page.', 'error');
+                }
             }
         } catch (error) {
             console.error('[AUTOMATIONS] Failed to open workflow:', error);
             showNotification(`Failed to open workflow: ${error.message}`, 'error');
         }
+    },
+
+    showWorkflowInLibrary(workflow) {
+        // Populate floating workflow library with workflow cards
+        const library = document.getElementById('workflow-library-content');
+        if (!library) return;
+
+        // Render all workflows using the same automation-item structure from the sidebar
+        library.innerHTML = this.automations.map(auto => {
+            const isActive = auto.slug === workflow.slug;
+            return this.createAutomationItemForLibrary(auto, isActive);
+        }).join('');
+
+        // Show library panel
+        const panel = document.getElementById('workflow-library-panel');
+        if (panel) {
+            panel.style.display = 'flex';
+            panel.style.maxHeight = '600px';
+        }
+    },
+
+    createAutomationItemForLibrary(automation, isActive = false) {
+        // Same structure as createAutomationItem but with active state highlighting
+        const lastRun = automation.last_run_at ? new Date(automation.last_run_at) : null;
+        const created = new Date(automation.created_at);
+        const updated = new Date(automation.updated_at);
+
+        const timeAgo = (date) => {
+            if (!date) return 'Never';
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return `${seconds}s ago`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        };
+
+        return `
+            <div class="automation-item ${automation.enabled ? 'enabled' : 'disabled'} ${isActive ? 'library-active' : ''}" 
+                onclick="AutomationsSidebar.loadWorkflowInCanvas('${automation.slug}')"
+                style="${isActive ? 'background: var(--accent-primary-alpha); border-left: 3px solid var(--accent-primary);' : ''}">
+                <div class="automation-item-header">
+                    <div>
+                        <div class="automation-item-title">${this.escapeHtml(automation.name)}</div>
+                        <div class="automation-item-slug">${automation.slug}</div>
+                    </div>
+                    <span class="automation-status-badge ${automation.enabled ? 'enabled' : 'disabled'}">
+                        ${automation.enabled ? 'ENABLED' : 'DISABLED'}
+                    </span>
+                </div>
+                
+                ${automation.description ? `
+                    <div class="automation-item-description">
+                        ${this.escapeHtml(automation.description)}
+                    </div>
+                ` : ''}
+                
+                <div class="automation-item-meta">
+                    ${automation.category ? `
+                        <div class="automation-meta-item">
+                            <i class="fas fa-tag"></i>
+                            ${automation.category}
+                        </div>
+                    ` : ''}
+                    <div class="automation-meta-item">
+                        <i class="fas fa-clock"></i>
+                        Updated ${timeAgo(updated)}
+                    </div>
+                    <div class="automation-meta-item">
+                        <i class="fas fa-calendar-plus"></i>
+                        Created ${created.toLocaleDateString()}
+                    </div>
+                </div>
+                
+                <div class="automation-item-stats">
+                    <div class="automation-stat-mini">
+                        <i class="fas fa-play-circle"></i>
+                        <strong>${automation.run_count || 0}</strong> runs
+                    </div>
+                    <div class="automation-stat-mini">
+                        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                        <strong>${automation.success_count || 0}</strong> success
+                    </div>
+                    <div class="automation-stat-mini">
+                        <i class="fas fa-exclamation-circle" style="color: var(--error);"></i>
+                        <strong>${automation.error_count || 0}</strong> errors
+                    </div>
+                    <div class="automation-stat-mini">
+                        <i class="fas fa-bolt"></i>
+                        Last: ${lastRun ? timeAgo(lastRun) : 'Never'}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    async loadWorkflowInCanvas(slug) {
+        // Reuse openAutomation logic
+        await this.openAutomation(slug);
     },
 
     escapeHtml(text) {

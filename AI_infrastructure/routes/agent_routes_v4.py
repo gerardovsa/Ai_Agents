@@ -1273,8 +1273,10 @@ Use tools in multiple rounds with interleaved thinking."""
                 event_type = event.get('type', 'unknown')
                 yield stream_sse_event(event_type, event)
                 
-                # Auto-save on completion
-                if event_type == 'complete':
+                # REMOVED (Nov 23, 2025): Auto-save on completion is now IMMEDIATE in combined_agent_worker.py
+                # Messages are saved immediately after generation to prevent orphaned tool_use blocks
+                # This redundant save-on-complete caused duplicate saves and race conditions
+                if event_type == 'complete' and False:  # Disabled - keeping code for reference
                     try:
                         conversation_full = event.get('conversation_history', [])
                         

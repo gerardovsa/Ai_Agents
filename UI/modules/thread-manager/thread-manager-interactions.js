@@ -91,6 +91,10 @@ Object.assign(window.ThreadManager, {
             }
         }
 
+        // CRITICAL: Set thread location to 'prime-loaded' (only ONE thread can be prime-loaded at a time)
+        await this.assignThread(threadId, 'prime-loaded', true);
+        console.log(`✅ [Interactions] Thread assigned to prime-loaded: ${threadId}`);
+
         this.currentThreadId = threadId;
 
         // Clear attached files
@@ -500,8 +504,9 @@ Object.assign(window.ThreadManager, {
 
         console.log(`📍 [Interactions] Thread "${threadId}" (length: ${threadId.length}) dropped on ${targetLocation}`);
 
-        // Check if dropping in same location - no action needed
-        if (sourceLocation === targetLocation) {
+        // Check if dropping in same location - no action needed (EXCEPT for Prime)
+        // Prime should always load the thread when dropped, even if already marked as in Prime
+        if (sourceLocation === targetLocation && targetLocation !== 'prime') {
             console.log('🔄 [Drop] Same location - no change needed');
             if (typeof showNotification === 'function') {
                 showNotification('Thread already in this location', 'info');
@@ -522,11 +527,13 @@ Object.assign(window.ThreadManager, {
                 return;
             }
             
-            // Assign to prime location
-            await this.assignThread(threadId, 'prime');
-            
-            // Load in Prime using loadThreadInPrime (not switchThread)
+            // Load in Prime using loadThreadInPrime (this will set prime-loaded internally)
             await this.loadThreadInPrime(threadId);
+            
+            // Update thread info card
+            if (typeof this.renderThreadInfoContainer === 'function') {
+                this.renderThreadInfoContainer('prime', threadId, true);
+            }
             
             // Close thread menu
             this.closeThreadMenu();
@@ -668,7 +675,7 @@ Object.assign(window.ThreadManager, {
     setupPrimeDropZone() {
         console.log('[ThreadManager] Setting up Prime drop zone...');
 
-        // Use the entire ai-chat-panel as drop zone instead of just thread-info
+        // Use the entire ai-chat-panel as drop zone (no visual overlay)
         const primeContainer = document.getElementById('ai-chat-panel');
         if (!primeContainer) {
             console.error('❌ [ThreadManager] Prime chat panel not found');
@@ -685,19 +692,11 @@ Object.assign(window.ThreadManager, {
             e.preventDefault();
             e.stopPropagation();
             e.dataTransfer.dropEffect = 'move';
-            primeContainer.classList.add('drag-over');
-        });
-
-        primeContainer.addEventListener('dragleave', (e) => {
-            // Only remove highlight if actually leaving container (not entering child element)
-            if (!primeContainer.contains(e.relatedTarget)) {
-                primeContainer.classList.remove('drag-over');
-            }
+            // NO visual drag-over class - just allow the drop
         });
 
         primeContainer.addEventListener('drop', async (e) => {
             e.preventDefault();
-            primeContainer.classList.remove('drag-over');
 
             const threadId = e.dataTransfer.getData('application/x-thread-id');
             if (!threadId) return;
@@ -709,7 +708,7 @@ Object.assign(window.ThreadManager, {
         });
 
         primeContainer.dataset.dropZoneConfigured = 'true';
-        console.log('✅ [Drop Zone] Prime configured (entire panel is drop area)');
+        console.log('✅ [Drop Zone] Prime configured (entire panel is drop area, no visual overlay)');
     },
 
     /**

@@ -2608,11 +2608,36 @@ def get_session_milestones(session_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check session exists
-        cursor.execute('SELECT session_id FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
-        if not cursor.fetchone():
+        # Get session data including description
+        cursor.execute('''
+            SELECT session_id, title, description, status, priority, 
+                   due_date, assignees, documents, links, tags, project_name,
+                   created_at, updated_at, message_count
+            FROM synergy_sessions.synergy_sessions 
+            WHERE session_id = %s
+        ''', (session_id,))
+        
+        session_row = cursor.fetchone()
+        if not session_row:
             conn.close()
             return jsonify({'success': False, 'error': 'Session not found'}), 404
+        
+        session_data = {
+            'session_id': session_row['session_id'],
+            'title': session_row['title'],
+            'description': session_row['description'],
+            'status': session_row['status'],
+            'priority': session_row['priority'],
+            'due_date': session_row['due_date'],
+            'assignees': session_row['assignees'],
+            'documents': session_row['documents'],
+            'links': session_row['links'],
+            'tags': session_row['tags'],
+            'project_name': session_row['project_name'],
+            'created_at': session_row['created_at'],
+            'updated_at': session_row['updated_at'],
+            'message_count': session_row['message_count'] or 0
+        }
         
         # Get all milestones
         sql, params = convert_sql_placeholders('''
@@ -2736,6 +2761,7 @@ def get_session_milestones(session_id):
         return jsonify({
             'success': True,
             'session_id': session_id,
+            'session': session_data,
             'milestones': milestones
         })
     

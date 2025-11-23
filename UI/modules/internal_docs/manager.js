@@ -1366,7 +1366,7 @@ class InternalDocsManager {
                 </button>
             </div>
             <div class="toolbar-group" style="margin-left: auto;">
-                <span class="auto-save-indicator" style="color: var(--text-secondary); font-size: 13px; padding: 0 12px;">
+                <span class="auto-save-indicator" style="color: var(--text-secondary); font-size: 13px; padding: 0px;">
                     <i class="fas fa-circle" style="font-size: 8px; color: var(--accent-success);"></i>
                     Auto-save enabled
                 </span>

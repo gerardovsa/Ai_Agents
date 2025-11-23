@@ -564,10 +564,27 @@ def validate_conversation_history(conversation_history: List[Dict]) -> List[Dict
                             missing_ids = set(tool_use_ids) - set(tool_result_ids)
                             if missing_ids:
                                 print(f"[Combined Worker]     ⚠️ MISSING tool_result for IDs: {list(missing_ids)[:3]}{'...' if len(missing_ids) > 3 else ''}")
+                                print(f"[Combined Worker]     🚨 CRITICAL: Truncating conversation at message {idx} to prevent API error!")
+                                print(f"[Combined Worker]     → Orphaned tool_use blocks cannot be sent to Claude")
+                                print(f"[Combined Worker]     → Keeping only messages 0-{idx-1} (before the problematic assistant message)")
+                                # CRITICAL FIX: Truncate conversation BEFORE the message with orphaned tool_use
+                                messages = messages[:idx]
+                                print(f"[Combined Worker]     ✅ Truncated to {len(messages)} messages")
+                                return messages  # Return immediately with truncated conversation
                         else:
                             print(f"[Combined Worker]     ⚠️ Next message is {next_msg.get('role')}, not user with tool_result!")
+                            print(f"[Combined Worker]     🚨 CRITICAL: Truncating conversation at message {idx} to prevent API error!")
+                            # Truncate to exclude this assistant message
+                            messages = messages[:idx]
+                            print(f"[Combined Worker]     ✅ Truncated to {len(messages)} messages")
+                            return messages
                     else:
                         print(f"[Combined Worker]     ⚠️ No next message - tool_use blocks are orphaned!")
+                        print(f"[Combined Worker]     🚨 CRITICAL: Truncating conversation at message {idx} to prevent API error!")
+                        # Truncate to exclude this assistant message
+                        messages = messages[:idx]
+                        print(f"[Combined Worker]     ✅ Truncated to {len(messages)} messages")
+                        return messages
     
     return messages
 
@@ -1645,10 +1662,45 @@ def run_simple_agent_worker(
 
             # Add validated content to messages
             messages.append({'role': 'assistant', 'content': validated_content})
+            
+            # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save assistant message with tool_use to database
+            # This prevents orphaned tool_use blocks when errors occur before 'complete' event
+            if thread_id:
+                print(f"{log_prefix} 💾 IMMEDIATE SAVE: Assistant message with tool_use")
+                from routes.agent_routes_v4 import save_message_to_database
+                save_success = save_message_to_database(
+                    thread_slug=thread_id,
+                    role='assistant',
+                    content=validated_content,
+                    user_id=user_id,
+                    model='claude-sonnet-4-5-20250929',
+                    metadata={'round': tool_iteration, 'has_tool_use': True}
+                )
+                if save_success:
+                    print(f"{log_prefix} ✅ Assistant message saved immediately")
+                else:
+                    print(f"{log_prefix} ⚠️ Failed to save assistant message immediately")
+            
             # If there are extracted tool_results, insert them as a user message immediately after
             if extracted_tool_results:
                 messages.append({'role': 'user', 'content': extracted_tool_results})
             messages.append({'role': 'user', 'content': tool_results})
+            
+            # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save tool_result message to database
+            # This prevents orphaned tool_use blocks when errors occur
+            if thread_id:
+                print(f"{log_prefix} 💾 IMMEDIATE SAVE: Tool result message")
+                save_success = save_message_to_database(
+                    thread_slug=thread_id,
+                    role='user',
+                    content=tool_results,
+                    user_id=user_id,
+                    metadata={'round': tool_iteration, 'tool_results': True}
+                )
+                if save_success:
+                    print(f"{log_prefix} ✅ Tool results saved immediately")
+                else:
+                    print(f"{log_prefix} ⚠️ Failed to save tool results immediately")
             
             # CRITICAL FIX: Re-validate entire message history before next API call
             # This prevents "text block before thinking block" errors from propagating
@@ -1701,17 +1753,55 @@ def run_simple_agent_worker(
         # Send final response
         if tool_iteration > 0:
             final_text = ''
+            final_content = []
             if isinstance(current_response, dict) and 'content' in current_response:
-                for block in current_response['content']:
+                final_content = current_response['content']
+                for block in final_content:
                     if block.get('type') == 'text':
                         final_text += block.get('text', '')
             
             if final_text:
                 queue.put({'type': 'content_delta', 'text': final_text})
                 response_text += final_text
+            
+            # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save final assistant message to database
+            if thread_id and final_content:
+                print(f"{log_prefix} 💾 IMMEDIATE SAVE: Final assistant message")
+                from routes.agent_routes_v4 import save_message_to_database
+                validated_final_content, _ = validate_and_reorder_assistant_content(final_content)
+                save_success = save_message_to_database(
+                    thread_slug=thread_id,
+                    role='assistant',
+                    content=validated_final_content,
+                    user_id=user_id,
+                    model='claude-sonnet-4-5-20250929',
+                    metadata={'final_response': True, 'rounds': tool_iteration}
+                )
+                if save_success:
+                    print(f"{log_prefix} ✅ Final assistant message saved immediately")
+                else:
+                    print(f"{log_prefix} ⚠️ Failed to save final assistant message")
         else:
             if response_text:
                 queue.put({'type': 'content_delta', 'text': response_text})
+            
+            # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save assistant response (no tools used)
+            if thread_id and response.get('content'):
+                print(f"{log_prefix} 💾 IMMEDIATE SAVE: Assistant message (no tools)")
+                from routes.agent_routes_v4 import save_message_to_database
+                validated_content, _ = validate_and_reorder_assistant_content(response['content'])
+                save_success = save_message_to_database(
+                    thread_slug=thread_id,
+                    role='assistant',
+                    content=validated_content,
+                    user_id=user_id,
+                    model='claude-sonnet-4-5-20250929',
+                    metadata={'direct_response': True}
+                )
+                if save_success:
+                    print(f"{log_prefix} ✅ Assistant message saved immediately")
+                else:
+                    print(f"{log_prefix} ⚠️ Failed to save assistant message")
         
         complete_payload = {'type': 'complete', 'result': response_text, 'session_id': session_id}
         if thread_id is not None:

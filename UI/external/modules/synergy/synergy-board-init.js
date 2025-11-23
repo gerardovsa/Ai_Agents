@@ -86,6 +86,44 @@ window.synergyBoard = {
     },
 
     /**
+     * Handle drag start for Synergy cards
+     */
+    handleDragStart(event) {
+        const card = event.currentTarget;
+        const sessionId = card.dataset.sessionId;
+        
+        console.log('[SYNERGY DRAG] Started dragging session:', sessionId);
+        
+        // Set drag data
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', sessionId);
+        event.dataTransfer.setData('synergy-session', sessionId);
+        
+        // Add visual feedback
+        card.classList.add('dragging');
+        card.style.opacity = '0.5';
+    },
+
+    /**
+     * Handle drag end for Synergy cards
+     */
+    handleDragEnd(event) {
+        const card = event.currentTarget;
+        const sessionId = card.dataset.sessionId;
+        
+        console.log('[SYNERGY DRAG] Ended dragging session:', sessionId);
+        
+        // Remove visual feedback
+        card.classList.remove('dragging');
+        card.style.opacity = '1';
+        
+        // Remove drag-over class from all columns
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            col.classList.remove('drag-over');
+        });
+    },
+
+    /**
      * Load sessions from API (with DataLoader caching)
      */
     async loadSessions() {
@@ -509,15 +547,17 @@ window.synergyBoard = {
                     <span class="status-badge status-${statusClass}">${session.status || 'Active'}</span>
                     
                     <div class="synergy-actions">
-                        <button class="synergy-icon-btn" onclick="event.stopPropagation(); synergyBoard.openCardMenu('${session.session_id}')" title="Menu">
+                        <button class="synergy-icon-btn" onclick="event.stopPropagation(); synergyBoard.openCardMenu('${session.session_id}', event)" title="Menu">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- ROW 2: Description -->
+                <!-- ROW 2: Description (truncated, hover for full) -->
                 <div class="synergy-row-2">
-                    <div class="synergy-description">${session.description ? (session.description.length > 100 ? this.escapeHtml(session.description.substring(0, 100)) + '...' : this.escapeHtml(session.description)) : 'No description'}</div>
+                    <div class="synergy-description" title="${session.description ? this.escapeHtml(session.description) : 'No description'}">
+                        ${session.description ? (session.description.length > 100 ? this.escapeHtml(session.description.substring(0, 100)) + '...' : this.escapeHtml(session.description)) : 'No description'}
+                    </div>
                 </div>
 
                 <!-- ROW 3: Stats -->
@@ -585,9 +625,21 @@ window.synergyBoard = {
      * Toggle card expansion (show/hide details)
      * Now uses unified rendering with full milestone/task/subtask hierarchy
      */
-    async toggleCardExpand(sessionId) {
+    async toggleCardExpand(sessionId, event = null) {
+        // Stop event propagation to prevent multiple triggers from nested elements
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+
         const card = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"][data-context="dashboard"]`);
         if (!card) return;
+
+        // Prevent race conditions from rapid clicks
+        if (card.dataset.processing === 'true') {
+            console.log(`[SYNERGY] Card ${sessionId} already processing, ignoring click`);
+            return;
+        }
 
         const isExpanded = card.dataset.expanded === 'true';
 
@@ -604,6 +656,8 @@ window.synergyBoard = {
             if (chevron) chevron.className = 'fas fa-chevron-down';
             console.log(`[SYNERGY] Collapsed card: ${sessionId}`);
         } else {
+            // Mark as processing to prevent concurrent expand operations
+            card.dataset.processing = 'true';
             // Expand - load and show full milestones hierarchy
             card.dataset.expanded = 'true';
             card.classList.add('expanded');
@@ -662,18 +716,183 @@ window.synergyBoard = {
                             </div>
                         </div>
                     `;
+                } finally {
+                    // Clear processing flag after DOM updates complete
+                    setTimeout(() => {
+                        card.dataset.processing = 'false';
+                    }, 100);
                 }
+            } else {
+                // Expanded content already exists, just show it
+                expandedContent.style.display = 'block';
+                const chevron = card.querySelector('.synergy-chevron i');
+                if (chevron) chevron.className = 'fas fa-chevron-up';
+                
+                // Clear processing flag immediately since no async work needed
+                card.dataset.processing = 'false';
             }
         }
     },
 
     /**
-     * Open card menu (edit, delete, etc.)
+     * Open card menu (edit, delete, archive)
      */
-    openCardMenu(sessionId) {
+    openCardMenu(sessionId, event) {
         console.log('[SYNERGY] Opening card menu for:', sessionId);
-        // TODO: Implement context menu
-        alert(`Card menu for ${sessionId}\n\nOptions:\n- Edit\n- Delete\n- Move to column\n- Archive`);
+        
+        // Close any existing menus
+        const existingMenu = document.querySelector('.synergy-card-dropdown-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+
+        // Get button position for menu placement
+        const button = event ? event.target.closest('.synergy-icon-btn') : null;
+        if (!button) return;
+
+        const rect = button.getBoundingClientRect();
+
+        // Create dropdown menu
+        const menu = document.createElement('div');
+        menu.className = 'synergy-card-dropdown-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: ${rect.bottom + 5}px;
+            left: ${rect.left - 150}px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            min-width: 180px;
+            padding: 8px 0;
+        `;
+
+        menu.innerHTML = `
+            <button class="synergy-dropdown-item" onclick="synergyBoard.editCardFromMenu('${sessionId}'); this.closest('.synergy-card-dropdown-menu').remove();">
+                <i class="fas fa-edit" style="width: 20px; color: #3b82f6;"></i>
+                <span>Edit Session</span>
+            </button>
+            <button class="synergy-dropdown-item" onclick="synergyBoard.archiveCard('${sessionId}'); this.closest('.synergy-card-dropdown-menu').remove();">
+                <i class="fas fa-archive" style="width: 20px; color: #f59e0b;"></i>
+                <span>Archive</span>
+            </button>
+            <div style="height: 1px; background: var(--border-secondary); margin: 8px 0;"></div>
+            <button class="synergy-dropdown-item danger" onclick="synergyBoard.deleteCard('${sessionId}'); this.closest('.synergy-card-dropdown-menu').remove();">
+                <i class="fas fa-trash" style="width: 20px; color: #ef4444;"></i>
+                <span>Delete Session</span>
+            </button>
+        `;
+
+        document.body.appendChild(menu);
+
+        // Close menu when clicking outside
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target) && !button.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 10);
+    },
+
+    /**
+     * Edit card from menu
+     */
+    async editCardFromMenu(sessionId) {
+        console.log('[SYNERGY] Editing session:', sessionId);
+        
+        // Use popup modal if available
+        if (window.synergyPopupModal) {
+            await window.synergyPopupModal.open(sessionId);
+            setTimeout(() => {
+                window.synergyPopupModal.toggleEditMode();
+            }, 500);
+        } else {
+            alert('Edit functionality requires popup modal. Please enable it.');
+        }
+    },
+
+    /**
+     * Archive card
+     */
+    async archiveCard(sessionId) {
+        if (!confirm('Archive this session? You can restore it later from archived sessions.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'archived' })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            console.log('[SYNERGY] Archived session:', sessionId);
+            
+            // Remove card from board
+            const card = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => card.remove(), 300);
+            }
+
+            // Refresh board
+            await this.fetchAndRenderAllSessions();
+
+        } catch (error) {
+            console.error('[SYNERGY] Failed to archive session:', error);
+            alert('Failed to archive session. Please try again.');
+        }
+    },
+
+    /**
+     * Delete card permanently
+     */
+    async deleteCard(sessionId) {
+        if (!confirm('⚠️ PERMANENTLY DELETE this session?\n\nThis action CANNOT be undone!\n\nAll milestones, tasks, and data will be lost.')) {
+            return;
+        }
+
+        // Double confirmation for safety
+        if (!confirm('Are you absolutely sure? This will delete ALL data for this session.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            console.log('[SYNERGY] Deleted session:', sessionId);
+            
+            // Remove card from board with animation
+            const card = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                setTimeout(() => card.remove(), 300);
+            }
+
+            // Refresh board
+            await this.fetchAndRenderAllSessions();
+
+        } catch (error) {
+            console.error('[SYNERGY] Failed to delete session:', error);
+            alert('Failed to delete session. Please try again.');
+        }
     },
 
     /**
@@ -758,6 +977,134 @@ window.synergyBoard = {
             console.error('[SYNERGY] Error opening popup:', error);
             alert(`Failed to open session: ${error.message}`);
         }
+    },
+
+    /**
+     * Show real-time diagnostics modal
+     * Displays WebSocket connection status, heartbeat info, and connection history
+     */
+    showRealtimeDiagnostics() {
+        console.log('[SYNERGY] Opening real-time diagnostics...');
+
+        // Get connection status from SynergyRealtime
+        const isConnected = window.SynergyRealtime?.isConnected() || false;
+        const socketId = window.SynergyRealtime?.socket?.id || 'Not connected';
+        const connectionStatus = isConnected ? '🟢 Connected' : '🔴 Disconnected';
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'edit-card-modal';
+        modal.innerHTML = `
+            <div class="modal-overlay"></div>
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-signal"></i> Real-Time Diagnostics</h3>
+                    <button class="modal-close-btn" onclick="this.closest('.edit-card-modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <!-- Connection Status -->
+                        <div style="
+                            padding: 16px;
+                            background: ${isConnected ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
+                            border: 2px solid ${isConnected ? '#22c55e' : '#ef4444'};
+                            border-radius: 8px;
+                        ">
+                            <div style="font-weight: 700; font-size: 16px; margin-bottom: 8px;">
+                                ${connectionStatus}
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">
+                                Socket ID: <code style="
+                                    background: var(--bg-tertiary);
+                                    padding: 2px 6px;
+                                    border-radius: 4px;
+                                    font-family: monospace;
+                                ">${socketId}</code>
+                            </div>
+                        </div>
+
+                        <!-- Connection Details -->
+                        <div style="
+                            padding: 16px;
+                            background: var(--bg-tertiary);
+                            border-radius: 8px;
+                        ">
+                            <div style="font-weight: 700; margin-bottom: 12px;">
+                                <i class="fas fa-info-circle"></i> Connection Details
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                                <div><strong>Namespace:</strong> /ws/synergy</div>
+                                <div><strong>Room:</strong> synergy_board</div>
+                                <div><strong>Transport:</strong> ${window.SynergyRealtime?.socket?.io?.engine?.transport?.name || 'Unknown'}</div>
+                                <div><strong>Reconnect Attempts:</strong> ${window.SynergyRealtime?.reconnectAttempts || 0}</div>
+                            </div>
+                        </div>
+
+                        <!-- Events Subscribed -->
+                        <div style="
+                            padding: 16px;
+                            background: var(--bg-tertiary);
+                            border-radius: 8px;
+                        ">
+                            <div style="font-weight: 700; margin-bottom: 12px;">
+                                <i class="fas fa-plug"></i> Subscribed Events
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <span class="status-badge status-active">session_created</span>
+                                <span class="status-badge status-active">session_updated</span>
+                                <span class="status-badge status-active">session_deleted</span>
+                                <span class="status-badge status-active">column_changed</span>
+                                <span class="status-badge status-active">pong</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div style="
+                            padding: 16px;
+                            background: var(--bg-tertiary);
+                            border-radius: 8px;
+                        ">
+                            <div style="font-weight: 700; margin-bottom: 12px;">
+                                <i class="fas fa-wrench"></i> Actions
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-secondary" onclick="
+                                    if (window.SynergyRealtime) {
+                                        window.SynergyRealtime.ping();
+                                        alert('Ping sent! Check console for response.');
+                                    }
+                                ">
+                                    <i class="fas fa-heartbeat"></i> Send Ping
+                                </button>
+                                <button class="btn-secondary" onclick="
+                                    if (window.SynergyRealtime) {
+                                        window.SynergyRealtime.disconnect();
+                                        setTimeout(() => window.SynergyRealtime.connect(), 1000);
+                                        alert('Reconnecting...');
+                                    }
+                                ">
+                                    <i class="fas fa-sync-alt"></i> Reconnect
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="this.closest('.edit-card-modal').remove()">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Close on overlay click
+        modal.querySelector('.modal-overlay').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        document.body.appendChild(modal);
     }
 };
 

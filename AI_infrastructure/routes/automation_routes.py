@@ -671,6 +671,86 @@ def list_automations():
             ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
             execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
             
+            # Transform nodes/edges to shapes/connections (canvas format)
+            shapes = []
+            connections = []
+            
+            if isinstance(ui_json, dict):
+                # Parse canvas_data for node positions (if stored separately)
+                canvas_data_str = row.get('canvas_data')
+                canvas_data = {}
+                if canvas_data_str:
+                    try:
+                        canvas_data = json.loads(canvas_data_str) if isinstance(canvas_data_str, str) else canvas_data_str
+                        if isinstance(canvas_data, dict) and 'nodes' in canvas_data:
+                            canvas_data = canvas_data['nodes']  # Extract nodes dict
+                    except:
+                        canvas_data = {}
+                
+                # Extract nodes and transform to shapes
+                nodes = ui_json.get('nodes', [])
+                for node in nodes:
+                    node_id = node.get('id')
+                    
+                    # Get position from canvas_data if available, otherwise from node
+                    position = canvas_data.get(node_id, {}) if canvas_data else {}
+                    x = position.get('x', node.get('x', node.get('position', {}).get('x', 100)))
+                    y = position.get('y', node.get('y', node.get('position', {}).get('y', 100)))
+                    
+                    # Determine shape type based on node type
+                    node_type = node.get('type', 'action')
+                    shape_type_map = {
+                        'email_trigger': 'trigger',
+                        'trigger': 'trigger',
+                        'ai_agent': 'tool',
+                        'send_email': 'output',
+                        'if_else': 'decision',
+                        'condition': 'decision'
+                    }
+                    shape_type = shape_type_map.get(node_type, 'rectangle')
+                    
+                    # Determine color based on node type
+                    color_map = {
+                        'trigger': '#10B981',  # Green for triggers
+                        'tool': '#6B7280',     # Gray for tools
+                        'output': '#EAB308',   # Yellow for output
+                        'decision': '#F59E0B', # Orange for decisions
+                        'rectangle': '#58a6ff' # Default blue
+                    }
+                    color = color_map.get(shape_type, '#58a6ff')
+                    
+                    # Extract text from config or use node type
+                    config = node.get('config', {})
+                    text = config.get('role', config.get('subject', node_type.upper()))
+                    
+                    shape = {
+                        'id': node_id,
+                        'type': shape_type,
+                        'x': int(x),
+                        'y': int(y),
+                        'width': node.get('width', 150),
+                        'height': node.get('height', 80),
+                        'text': text,
+                        'color': color
+                    }
+                    shapes.append(shape)
+                
+                # Extract edges and transform to connections
+                edges = ui_json.get('edges', [])
+                for edge in edges:
+                    connection = {
+                        'id': edge.get('id', f"conn_{edge.get('from')}_{edge.get('to')}"),
+                        'from': edge.get('from'),
+                        'to': edge.get('to')
+                    }
+                    connections.append(connection)
+                
+                # Also check for existing shapes/connections format (backward compatibility)
+                if not shapes and 'shapes' in ui_json:
+                    shapes = ui_json.get('shapes', [])
+                if not connections and 'connections' in ui_json:
+                    connections = ui_json.get('connections', [])
+            
             # UI COMPATIBLE FORMAT - Map database fields to UI expected names
             automations.append({
                 # Primary identifiers (UI expects these exact names)
@@ -686,12 +766,19 @@ def list_automations():
                 
                 # Status fields (UI expects 'enabled' boolean)
                 'status': row['status'],
-                'enabled': bool(row.get('is_active', True)),  # Map is_active -> enabled
+                'enabled': bool(row.get('is_active') if row.get('is_active') is not None else True),  # Map is_active -> enabled
                 
-                # JSON data
-                'workflow_json': ui_json,  # UI expects workflow_json
+                # JSON data with transformed shapes/connections
+                'workflow_json': {
+                    'shapes': shapes,
+                    'connections': connections,
+                    'nodes': ui_json.get('nodes', []) if isinstance(ui_json, dict) else [],
+                    'edges': ui_json.get('edges', []) if isinstance(ui_json, dict) else []
+                },
                 'ui_json': ui_json,
                 'execution_json': execution_json,
+                'shapes': shapes,  # Direct access for canvas
+                'connections': connections,  # Direct access for canvas
                 
                 # Scheduling
                 'is_scheduled': bool(row['is_scheduled']),
@@ -703,7 +790,11 @@ def list_automations():
                 'last_executed_at': str(row['last_executed_at']) if row['last_executed_at'] else None,
                 
                 # Execution stats
-                'execution_count': row['execution_count'] or 0
+                'execution_count': row['execution_count'] or 0,
+                'run_count': row['execution_count'] or 0,  # Alias for UI
+                'success_count': 0,  # TODO: Calculate from execution history
+                'error_count': 0,  # TODO: Calculate from execution history
+                'last_run_at': str(row['last_executed_at']) if row['last_executed_at'] else None
             })
         
         return jsonify({
@@ -744,6 +835,86 @@ def get_automation(automation_id):
         ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else (row.get('ui_json') or {})
         execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else (row.get('execution_json') or {})
         
+        # Transform nodes/edges to shapes/connections (canvas format)
+        shapes = []
+        connections = []
+        
+        if isinstance(ui_json, dict):
+            # Parse canvas_data for node positions (if stored separately)
+            canvas_data_str = row.get('canvas_data')
+            canvas_data = {}
+            if canvas_data_str:
+                try:
+                    canvas_data = json.loads(canvas_data_str) if isinstance(canvas_data_str, str) else canvas_data_str
+                    if isinstance(canvas_data, dict) and 'nodes' in canvas_data:
+                        canvas_data = canvas_data['nodes']  # Extract nodes dict
+                except:
+                    canvas_data = {}
+            
+            # Extract nodes and transform to shapes
+            nodes = ui_json.get('nodes', [])
+            for node in nodes:
+                node_id = node.get('id')
+                
+                # Get position from canvas_data if available, otherwise from node
+                position = canvas_data.get(node_id, {}) if canvas_data else {}
+                x = position.get('x', node.get('x', node.get('position', {}).get('x', 100)))
+                y = position.get('y', node.get('y', node.get('position', {}).get('y', 100)))
+                
+                # Determine shape type based on node type
+                node_type = node.get('type', 'action')
+                shape_type_map = {
+                    'email_trigger': 'trigger',
+                    'trigger': 'trigger',
+                    'ai_agent': 'tool',
+                    'send_email': 'output',
+                    'if_else': 'decision',
+                    'condition': 'decision'
+                }
+                shape_type = shape_type_map.get(node_type, 'rectangle')
+                
+                # Determine color based on node type
+                color_map = {
+                    'trigger': '#10B981',  # Green for triggers
+                    'tool': '#6B7280',     # Gray for tools
+                    'output': '#EAB308',   # Yellow for output
+                    'decision': '#F59E0B', # Orange for decisions
+                    'rectangle': '#58a6ff' # Default blue
+                }
+                color = color_map.get(shape_type, '#58a6ff')
+                
+                # Extract text from config or use node type
+                config = node.get('config', {})
+                text = config.get('role', config.get('subject', node_type.upper()))
+                
+                shape = {
+                    'id': node_id,
+                    'type': shape_type,
+                    'x': int(x),
+                    'y': int(y),
+                    'width': node.get('width', 150),
+                    'height': node.get('height', 80),
+                    'text': text,
+                    'color': color
+                }
+                shapes.append(shape)
+            
+            # Extract edges and transform to connections
+            edges = ui_json.get('edges', [])
+            for edge in edges:
+                connection = {
+                    'id': edge.get('id', f"conn_{edge.get('from')}_{edge.get('to')}"),
+                    'from': edge.get('from'),
+                    'to': edge.get('to')
+                }
+                connections.append(connection)
+            
+            # Also check for existing shapes/connections format (backward compatibility)
+            if not shapes and 'shapes' in ui_json:
+                shapes = ui_json.get('shapes', [])
+            if not connections and 'connections' in ui_json:
+                connections = ui_json.get('connections', [])
+        
         # UI COMPATIBLE FORMAT - Extract shapes and connections for canvas
         automation = {
             'workflow_id': row['automation_id'],
@@ -757,11 +928,16 @@ def get_automation(automation_id):
             'status': row.get('status', 'draft'),
             'enabled': bool(row.get('is_active', True)),
             
-            # Canvas data - Extract shapes and connections
-            'workflow_json': ui_json,
+            # Canvas data - Transformed shapes and connections
+            'workflow_json': {
+                'shapes': shapes,
+                'connections': connections,
+                'nodes': ui_json.get('nodes', []) if isinstance(ui_json, dict) else [],
+                'edges': ui_json.get('edges', []) if isinstance(ui_json, dict) else []
+            },
             'ui_json': ui_json,
-            'shapes': ui_json.get('shapes', []) if isinstance(ui_json, dict) else [],
-            'connections': ui_json.get('connections', []) if isinstance(ui_json, dict) else [],
+            'shapes': shapes,  # Direct access for canvas
+            'connections': connections,  # Direct access for canvas
             'execution_json': execution_json,
             
             # Legacy fields (keep for backward compatibility) - use .get() to avoid KeyError

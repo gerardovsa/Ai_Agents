@@ -1,0 +1,775 @@
+/**
+ * FILE: UI/external/modules/synergy/synergy-flat-spacing.css
+ * PURPOSE: FLAT SPACING CSS - Optimized for 350px width containers
+ * 
+ * CRITICAL RULES:
+ * - Container padding ONLY: 8px (left/right)
+ * - ZERO margin-left on tasks/subtasks (NO nested indentation)
+ * - Section separators: 1px border-top + 8px padding-top
+ * - Visual hierarchy: Badges, borders, font sizes (NO indentation)
+ * 
+ * SPACE EFFICIENCY:
+ * - 350px total width
+ * - 16px lost to container padding (8px each side)
+ * - 334px usable (95.4% efficiency vs 75% old system)
+ * 
+ * VISUAL HIERARCHY:
+ * - Milestone: 3px blue left border, 17px font, [M1] badge
+ * - Task: 2px gray left border, 15px font, [T1.1] badge  
+ * - Subtask: No border, 14px font, [S1.1.1] badge
+ * 
+ * LAST MODIFIED: 2025-11-24 - Initial flat spacing implementation
+ */
+
+/* ==================== FLAT CONTAINER ==================== */
+
+.synergy-flat-container {
+    padding: 8px;
+    /* CRITICAL: ONLY padding here - NO padding on children */
+    min-width: 400px;
+    background: var(--bg-primary);
+}
+
+/* ==================== FLAT SECTIONS ==================== */
+
+.synergy-flat-section {
+    border-top: 1px solid var(--border-default);
+    padding-top: 15px;
+    margin-bottom: 15px;
+}
+
+.synergy-flat-section:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.synergy-flat-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.synergy-flat-section-header i {
+    display: none;
+    /* Hide section icons */
+}
+
+/* ==================== METADATA ==================== */
+
+.synergy-flat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.synergy-flat-value {
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+.synergy-flat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.synergy-flat-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* ==================== DESCRIPTION ==================== */
+
+.synergy-flat-description {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
+/* ==================== EMPTY STATES ==================== */
+
+.synergy-flat-empty {
+    text-align: center;
+    padding: 20px;
+    background: var(--bg-quaternary);
+    border-radius: 6px;
+    border: 2px dashed var(--border-default);
+}
+
+.synergy-flat-empty i {
+    font-size: 28px;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+    display: block;
+}
+
+.synergy-flat-empty div:first-of-type {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.synergy-flat-empty-hint {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* ==================== MILESTONES - FLAT TWO-ROW ==================== */
+
+.synergy-flat-milestone {
+    border-left: 3px solid var(--accent-primary);
+    /* Blue 3px border for visual hierarchy */
+    padding: 8px;
+    margin-bottom: 15px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    /* CRITICAL: NO margin-left, NO padding-left beyond 8px */
+}
+
+.synergy-flat-milestone-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.synergy-flat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.synergy-flat-header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.synergy-flat-index {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    min-width: 40px;
+}
+
+.synergy-flat-milestone-title {
+    font-size: 17px;
+    /* Largest font for top-level hierarchy */
+    color: var(--text-primary);
+    line-height: 1.4;
+    padding: 6px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    min-height: 30px;
+}
+
+.synergy-flat-milestone-title[contenteditable="true"] {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--accent-primary);
+    outline: none;
+}
+
+.synergy-flat-milestone-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+.synergy-flat-milestone-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.synergy-flat-milestone-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+}
+
+/* ==================== TASKS - FLAT TWO-ROW ==================== */
+
+.synergy-flat-task {
+    border-left: 3px solid var(--text-tertiary);
+    /* Thicker border for better visibility */
+    padding: 12px;
+    margin-bottom: 15px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    /* CRITICAL: NO margin-left (flat structure) */
+}
+
+.synergy-flat-task-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.synergy-flat-task-title {
+    font-size: 17px;
+    /* Larger font for better readability */
+    color: var(--text-primary);
+    line-height: 1.4;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    min-height: 32px;
+}
+
+.synergy-flat-task-title[contenteditable="true"] {
+    background: var(--bg-quaternary);
+    border: 2px solid var(--accent-primary);
+    outline: none;
+}
+
+.synergy-flat-task-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.synergy-flat-task-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--bg-quaternary);
+    border-radius: 6px;
+}
+
+/* ==================== SUBTASKS - FLAT TWO-ROW ==================== */
+
+.synergy-flat-subtask {
+    /* NO left border for lowest-level hierarchy */
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--bg-quaternary);
+    border-radius: 4px;
+    /* CRITICAL: NO margin-left (completely flat) */
+}
+
+.synergy-flat-subtask-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.synergy-flat-subtask-title {
+    font-size: 16px;
+    /* Larger font for better readability */
+    color: var(--text-primary);
+    line-height: 1.4;
+    padding: 6px;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+.synergy-flat-subtask-title[contenteditable="true"] {
+    background: var(--bg-primary);
+    border: 2px solid var(--accent-primary);
+    outline: none;
+}
+
+.synergy-flat-subtask-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.synergy-flat-subtask-hours {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    padding: 2px 6px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+
+.synergy-flat-action-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border-default);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.synergy-flat-action-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
+.synergy-edit-btn:hover {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.synergy-delete-btn:hover {
+    background: #dc2626;
+    color: white;
+    border-color: #dc2626;
+}
+
+.synergy-save-btn {
+    background: #22c55e;
+    color: white;
+    border-color: #22c55e;
+}
+
+.synergy-save-btn:hover {
+    background: #16a34a;
+}
+
+.synergy-cancel-btn:hover {
+    background: #6b7280;
+    color: white;
+}
+
+.synergy-link-btn {
+    font-size: 14px;
+    padding: 4px 8px;
+}
+
+.synergy-flat-edit-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 6px;
+    background: var(--bg-quaternary);
+    border-radius: 4px;
+}
+
+/* ==================== BLOCKED INDICATOR ==================== */
+
+.synergy-flat-blocked-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    background: #dc2626;
+    color: white;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.synergy-flat-blocker {
+    padding: 8px 12px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    border-left: 4px solid #ef4444;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.synergy-flat-blocker-header {
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.synergy-flat-blocker div {
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.synergy-flat-blocker-since {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ==================== PROGRESS BARS ==================== */
+
+.synergy-flat-progress-section {
+    margin-bottom: 8px;
+}
+
+.synergy-flat-progress-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    display: block;
+}
+
+.synergy-flat-progress-bar {
+    background: var(--bg-quaternary);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+}
+
+.synergy-flat-progress-fill {
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+/* ==================== CHECKBOXES ==================== */
+
+.synergy-flat-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.synergy-flat-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* ==================== DOCUMENTS - TWO-ROW ==================== */
+
+.synergy-flat-docs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.synergy-flat-doc-item {
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 2px solid var(--accent-primary);
+}
+
+.synergy-flat-doc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.synergy-flat-doc-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.synergy-flat-doc-title i {
+    color: var(--accent-primary);
+    font-size: 16px;
+}
+
+.synergy-flat-doc-type {
+    font-size: 11px;
+    padding: 2px 6px;
+    background: var(--bg-quaternary);
+    border-radius: 4px;
+    color: var(--text-tertiary);
+    margin-left: auto;
+}
+
+/* ==================== LINKS ==================== */
+
+.synergy-flat-links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.synergy-flat-link-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--accent-primary);
+    text-decoration: none;
+    transition: background 0.2s ease;
+}
+
+.synergy-flat-link-item:hover {
+    background: var(--bg-hover);
+    text-decoration: underline;
+}
+
+.synergy-flat-link-item i {
+    font-size: 14px;
+}
+
+/* ==================== TAGS ==================== */
+
+.synergy-flat-tags-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Priority badges (from old system - keep for consistency) */
+.priority-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.priority-high {
+    background: #dc2626;
+    color: white;
+}
+
+.priority-medium {
+    background: #f59e0b;
+    color: white;
+}
+
+.priority-low {
+    background: #10b981;
+    color: white;
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+
+@media (max-width: 400px) {
+    .synergy-flat-container {
+        padding: 6px;
+        /* Even less padding on tiny screens */
+    }
+
+    .synergy-flat-milestone-name {
+        font-size: 16px;
+    }
+
+    .synergy-flat-task-name {
+        font-size: 14px;
+    }
+
+    .synergy-flat-subtask-name {
+        font-size: 13px;
+    }
+}
+
+/* ==================== INLINE EDITING ENHANCEMENTS ==================== */
+
+/* Editable description container */
+.synergy-flat-description-container[data-editing="true"] .synergy-flat-description {
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-primary);
+    border-radius: 4px;
+    padding: 8px;
+    min-height: 60px;
+}
+
+.synergy-flat-description[contenteditable="true"]:focus {
+    outline: none;
+    background: var(--bg-tertiary);
+}
+
+/* Empty editable placeholder */
+.synergy-flat-empty-editable {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border-default);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-style: italic;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.synergy-flat-empty-editable:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+}
+
+/* Tag editable with remove button */
+.synergy-flat-tag-editable {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    font-size: 12px;
+    margin: 4px;
+    transition: all 0.2s;
+}
+
+.synergy-flat-tag-editable:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+}
+
+.synergy-flat-tag-text {
+    color: var(--text-primary);
+}
+
+.synergy-flat-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 10px;
+}
+
+.synergy-flat-tag-remove:hover {
+    background: var(--accent-error);
+    color: white;
+}
+
+/* Link item with remove button */
+.synergy-flat-link-item-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    transition: all 0.2s;
+}
+
+.synergy-flat-link-item-wrapper:hover {
+    background: var(--bg-tertiary);
+}
+
+.synergy-flat-link-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--accent-primary);
+    font-size: 14px;
+    overflow: hidden;
+}
+
+.synergy-flat-link-item:hover {
+    text-decoration: underline;
+}
+
+.synergy-remove-link-btn {
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.synergy-remove-link-btn:hover {
+    background: var(--accent-error);
+    border-color: var(--accent-error);
+    color: white;
+}
+
+/* Add item row for milestones/tasks/subtasks */
+.synergy-flat-add-item-row {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+/* Session title editable */
+.synergy-session-title-editable {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.synergy-session-title-editable:hover {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: -4px -8px;
+}
+
+.synergy-session-title-editable[contenteditable="true"] {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--accent-primary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    outline: none;
+}
+
+/* Header right section for action buttons */
+.synergy-flat-header-right {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* ==================== PRINT STYLES ==================== */
+
+@media print {
+    .synergy-flat-container {
+        padding: 0;
+        max-width: none;
+    }
+
+    .synergy-flat-section {
+        page-break-inside: avoid;
+    }
+
+    .synergy-flat-checkbox,
+    .synergy-flat-action-btn,
+    .synergy-flat-tag-remove,
+    .synergy-remove-link-btn,
+    .synergy-flat-add-item-row {
+        display: none;
+    }
+}

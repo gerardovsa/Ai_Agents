@@ -1252,22 +1252,28 @@ const MultiAgent = {
         }
 
         // Store thread info with message count
-        const messageCount = thread.messages ? thread.messages.length : 0;
+        // CRITICAL: Preserve original database message_count (don't overwrite with 0!)
+        // thread.messages may be empty/undefined when loading metadata, but message_count from DB is accurate
+        const originalMessageCount = thread.message_count || 0;
+        const messageCount = thread.messages ? thread.messages.length : originalMessageCount;
+        
         const metadata = {
             synergyCardId: thread.synergy_card_id || null,
             synergySessionName: thread.synergy_card_name || null,
             workflowId: thread.workflow_id || null,
             automationId: thread.automation_id || null
         };
-        this.setLoadedThread(agentId, thread.id, thread.title, messageCount, metadata);
+        this.setLoadedThread(agentId, thread.id, thread.title, originalMessageCount, metadata);
 
-        // CRITICAL: Update thread.message_count in ThreadManager.threads array
-        // This ensures renderThreadInfoContainer shows correct count
+        // CRITICAL: DON'T overwrite thread.message_count if it's already set from database
+        // Only update if we have loaded messages in thread.messages array
         if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
             const threadInArray = ThreadManager.threads.find(t => t.id === thread.id);
-            if (threadInArray) {
+            if (threadInArray && thread.messages && thread.messages.length > 0) {
                 threadInArray.message_count = messageCount;
                 console.log(`[LOAD] Updated thread.message_count in ThreadManager.threads: ${messageCount}`);
+            } else if (threadInArray) {
+                console.log(`[LOAD] Preserving database message_count: ${threadInArray.message_count}`);
             }
         }
 
@@ -1811,21 +1817,31 @@ async function initMultiAgent() {
     // Update stats
     MultiAgent.updateDashboardStats();
 
-    // STEP 5: Restore threads based on centralized assignments (authoritative source)
+    // STEP 5: LOAD threads on page initialization (not just restore to memory)
+    // CRITICAL: Load prime-loaded thread FIRST, then agent threads
+    
+    // Load prime-loaded thread if exists
+    const primeLoadedThreadId = assignments['prime-loaded'];
+    if (primeLoadedThreadId && typeof ThreadManager !== 'undefined') {
+        console.log(`🎯 [initMultiAgent] Loading prime-loaded thread: ${primeLoadedThreadId}`);
+        await ThreadManager.loadThreadInPrime(primeLoadedThreadId);
+        
+        // Update thread info card for Prime
+        if (typeof ThreadManager.renderThreadInfoContainer === 'function') {
+            ThreadManager.renderThreadInfoContainer('prime', primeLoadedThreadId, true);
+            console.log(`✅ [initMultiAgent] Updated Prime thread info card`);
+        }
+    }
+    
+    // Then load all agent-assigned threads
+    const agentLoadPromises = [];
     Object.keys(assignments).forEach(location => {
         const threadId = assignments[location];
         if (!threadId) return;
 
-        if (location === 'prime') {
-            // Thread assigned to Prime panel - restore to AppState
-            if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
-                const thread = ThreadManager.threads.find(t => t.id === threadId);
-                if (thread && typeof AppState !== 'undefined') {
-                    AppState.sessionId = threadId;
-                    AppState.chatMessages = thread.messages || [];
-                    console.log(`[OK] Restored thread "${thread.title}" to Prime from assignments`);
-                }
-            }
+        if (location === 'prime' || location === 'prime-loaded') {
+            // Already handled above or not a loaded thread
+            return;
         } else if (location.startsWith('agent-')) {
             // Thread assigned to agent column
             const agentId = parseInt(location.replace('agent-', ''));
@@ -1842,11 +1858,10 @@ async function initMultiAgent() {
                     // Tag thread with agent name
                     const agentName = MultiAgent.getAgentName(agentId);
                     thread.agent = agentName;
-                    // Note: Thread saved via backend API, no manual save needed
-                    console.log(`[OK] Tagged thread "${thread.title}" with agent: ${agentName} `);
+                    console.log(`[OK] Tagged thread "${thread.title}" with agent: ${agentName}`);
 
-                    // Load thread messages into agent with TwoRuleStreamProcessor
-                    setTimeout(() => {
+                    // Load thread immediately (no setTimeout delay)
+                    const loadPromise = (async () => {
                         // Clear welcome message
                         const messagesContainer = document.querySelector(`#agent-${agentId} .agent-messages-container`);
                         if (messagesContainer) {
@@ -1854,21 +1869,47 @@ async function initMultiAgent() {
                         }
 
                         // Load thread with full rendering
-                        MultiAgent.loadThreadIntoAgent(agentId, thread);
-                        console.log(`[OK] Restored thread "${thread.title}" to ${agentName} from assignments`);
+                        await MultiAgent.loadThreadIntoAgent(agentId, thread);
+                        console.log(`✅ [initMultiAgent] Loaded thread "${thread.title}" into ${agentName}`);
 
-                        // Force header update
-                        setTimeout(() => {
-                            MultiAgent.updateAgentHeader(agentId);
-                            console.log(`[OK] Updated header for ${agentName} with full thread info`);
-                        }, 50);
-                    }, 200);
+                        // Update thread info card for agent column
+                        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                            console.log(`📋 [initMultiAgent] Rendering thread info card for agent-${agentId}, thread: ${thread.id}`);
+                            const cardHtml = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, thread.id, true);
+                            console.log(`📋 [initMultiAgent] Card HTML generated: ${cardHtml ? cardHtml.length + ' chars' : 'NULL'}`);
+                            
+                            const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+                            console.log(`📋 [initMultiAgent] Container element:`, threadInfoContainer ? 'FOUND' : 'NOT FOUND');
+                            
+                            if (threadInfoContainer) {
+                                threadInfoContainer.innerHTML = cardHtml;
+                                console.log(`✅ [initMultiAgent] Updated thread info card for ${agentName}`);
+                                console.log(`✅ [initMultiAgent] Container HTML after injection:`, threadInfoContainer.innerHTML.substring(0, 100) + '...');
+                            } else {
+                                console.error(`❌ [initMultiAgent] thread-info-${agentId} container NOT FOUND in DOM!`);
+                            }
+                        } else {
+                            console.error(`❌ [initMultiAgent] ThreadManager or renderThreadInfoContainer NOT available!`);
+                        }
+
+                        // Update header
+                        MultiAgent.updateAgentHeader(agentId);
+                    })();
+                    
+                    agentLoadPromises.push(loadPromise);
                 } else {
                     console.warn(`[WARN] Thread ${threadId} not found for location ${location}`);
                 }
             }
         }
     });
+    
+    // Wait for all agent threads to finish loading
+    if (agentLoadPromises.length > 0) {
+        console.log(`⏳ [initMultiAgent] Waiting for ${agentLoadPromises.length} agent threads to load...`);
+        await Promise.all(agentLoadPromises);
+        console.log(`✅ [initMultiAgent] All agent threads loaded successfully`);
+    }
 
     // Legacy fallback: Restore threads from old MultiAgent.loadedThreads if not in assignments
     // This handles migration from old system to new centralized tracker
@@ -2066,13 +2107,13 @@ function createAgentColumn(agentId) {
 
                 <div class="agent-header">
                     <!-- Header Top Row: [Collapse] [Agent Title] [Width Toggle] [Hamburger] -->
-                    <div class="agent-header-top" style="position: relative; display: flex; align-items: center; justify-content: center; padding: 0 12px;">
-                        <button class="collapse-btn" onclick="event.stopPropagation(); MultiAgent.collapseColumn(${agentId})" title="Collapse column" style="position: absolute; left: 12px; z-index: 10;">
+                    <div class="agent-header-top" style="position: relative; display: flex; align-items: center; justify-content: center; padding: 0px;">
+                        <button class="collapse-btn" onclick="event.stopPropagation(); MultiAgent.collapseColumn(${agentId})" title="Collapse column" style="position: absolute; left: 10px; z-index: 10;">
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         
                         <div class="agent-title-wrapper" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                            <i class="fas ${MultiAgent.getAgentIcon(agentId)}" style="font-size: 1.2em; color: var(--accent-primary, #667eea);"></i>
+                            <i class="fas ${MultiAgent.getAgentIcon(agentId)}" style="font-size: 1.2em; color: white;"></i>
                             <h2 style="margin: 0;">${agentName}</h2>
                         </div>
                         

@@ -1,0 +1,746 @@
+/**
+ * FILE: UI/external/modules/synergy/synergy-sidebar-renderer-v2-FLAT.js
+ * PURPOSE: FLAT SPACING RENDERER - Optimized for 350px width containers
+ * 
+ * CRITICAL CHANGES FROM V1:
+ * - ZERO nested indentation (no margin-left on tasks/subtasks)
+ * - Container padding ONLY: 8px left/right (16px total = 4.6% loss)
+ * - Visual hierarchy via: Badge prefixes ([M1], [T1.1], [S1.1.1])
+ * - Visual hierarchy via: Left border colors (milestone=3px blue, task=2px gray)
+ * - Visual hierarchy via: Font size cascade (17px → 15px → 14px)
+ * - Section separators: 1px border-top + 8px padding-top
+ * 
+ * SPACE EFFICIENCY:
+ * - Old: 350px → 88px lost (25%) → 262px usable (75%)
+ * - New: 350px → 16px lost (4.6%) → 334px usable (95.4%)
+ * - Gain: +72px usable width (+27% more space)
+ * 
+ * DEPENDENCIES:
+ * - synergy-flat-spacing.css (new CSS file)
+ * 
+ * USED BY:
+ * - Sidebar expanded cards
+ * - Popup modal
+ * - Dashboard kanban cards
+ * 
+ * LAST MODIFIED: 2025-11-24 - Complete flat spacing rewrite
+ */
+
+class SynergySidebarRendererV2 {
+    constructor() {
+        this.API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+        console.log('[SYNERGY RENDERER V2] FLAT spacing module loaded');
+    }
+
+    /**
+     * Create session card item (same as V1)
+     */
+    createSessionItem(session, expandedSessions, pinnedSessions) {
+        const isPinned = pinnedSessions.has(session.session_id);
+        const isExpanded = expandedSessions.has(session.session_id);
+
+        const item = document.createElement('div');
+        item.className = 'synergy-session-item';
+        item.setAttribute('data-session-id', session.session_id);
+        item.setAttribute('data-context', 'sidebar');
+        if (isPinned) item.classList.add('pinned');
+        if (isExpanded) item.classList.add('expanded');
+
+        item.innerHTML = this.renderSimpleListItem(session);
+
+        if (isExpanded) {
+            this.loadAndRenderFullCard(session.session_id, item);
+        }
+
+        return item;
+    }
+
+    /**
+     * Render collapsed card (same as V1)
+     */
+    renderSimpleListItem(session) {
+        const priority = session.priority || 'medium';
+        const status = session.status || 'active';
+        const title = session.title || 'Untitled';
+        const desc = session.description || 'No description';
+        const tags = Array.isArray(session.tags) ? session.tags :
+            (typeof session.tags === 'string' ? JSON.parse(session.tags || '[]') : []);
+        const lastActive = session.last_active ? new Date(session.last_active).toLocaleDateString() : 'Never';
+        const dueDate = session.due_date ? new Date(session.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+        const projectName = session.project_name || title;
+
+        const statusBadges = {
+            'active': { icon: 'check-circle', color: 'var(--accent-success)' },
+            'completed': { icon: 'check-circle', color: 'var(--accent-primary)' },
+            'blocked': { icon: 'exclamation-triangle', color: 'var(--accent-error)' },
+            'paused': { icon: 'pause-circle', color: 'var(--accent-warning)' }
+        };
+        const statusBadge = statusBadges[status] || statusBadges['active'];
+
+        const counts = this.calculateSessionCounts(session);
+        const progress = counts.milestones > 0 ? Math.round((counts.tasksDone / counts.totalTasks) * 100) || 0 : 0;
+
+        return `
+            <div class="synergy-session-header-new">
+                <div class="synergy-title-row">
+                    <div class="synergy-title-text">${this.escapeHtml(title)}</div>
+                </div>
+
+                <div class="synergy-row-1">
+                    <span class="priority-badge priority-${priority}">${priority.toUpperCase()}</span>
+                    <span class="status-badge status-${status}">
+                        <i class="fas fa-${statusBadge.icon}"></i> ${status}
+                    </span>
+                    <div class="synergy-actions">
+                        <button class="synergy-icon-btn" title="Pin" onclick="event.stopPropagation(); SynergySidebar.togglePin('${session.session_id}')">
+                            <i class="fas fa-thumbtack"></i>
+                        </button>
+                        <button class="synergy-icon-btn" title="Open Popup" onclick="event.stopPropagation(); SynergySidebar.openInPopup('${session.session_id}')">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="synergy-icon-btn synergy-chevron" title="Expand/Collapse" onclick="event.stopPropagation(); SynergySidebar.toggleCardExpand('${session.session_id}')">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="synergy-row-2">
+                    <div class="synergy-description">${this.escapeHtml(desc)}</div>
+                </div>
+
+                <div class="synergy-row-3">
+                    ${dueDate ? `<div class="synergy-stat" title="Due: ${this.getFormattedDateTime(session.due_date)}"><i class="fas fa-calendar"></i> ${dueDate}</div>` : ''}
+                    ${counts.milestones > 0 ? `<div class="synergy-stat" title="${counts.milestones} milestone${counts.milestones > 1 ? 's' : ''} in session"><i class="fas fa-flag-checkered"></i> ${counts.milestones} MS</div>` : ''}
+                    ${counts.totalTasks > 0 ? `<div class="synergy-stat" title="${counts.tasksDone} completed out of ${counts.totalTasks} total tasks"><i class="fas fa-tasks"></i> ${counts.tasksDone}/${counts.totalTasks}</div>` : ''}
+                    ${counts.docs > 0 ? `<div class="synergy-stat" title="${counts.docs} document${counts.docs > 1 ? 's' : ''} attached"><i class="fas fa-file"></i> ${counts.docs}</div>` : ''}
+                    ${counts.links > 0 ? `<div class="synergy-stat" title="${counts.links} external link${counts.links > 1 ? 's' : ''}"><i class="fas fa-link"></i> ${counts.links}</div>` : ''}
+                </div>
+
+                <div class="synergy-row-4">
+                    <div class="synergy-progress-bar">
+                        <div class="synergy-progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="synergy-footer">
+                        <div class="synergy-footer-row-1">
+                            <span class="synergy-project">${this.escapeHtml(projectName)}</span>
+                            <div class="synergy-updated" title="Last updated: ${this.getFormattedDateTime(session.updated_at || session.last_active)}">
+                                <i class="fas fa-clock"></i> ${this.getRelativeTime(session.updated_at || session.last_active)}
+                            </div>
+                        </div>
+                        ${tags.length > 0 ? `
+                            <div class="synergy-footer-row-2">
+                                <div class="synergy-tags">
+                                    ${tags.slice(0, 3).map(tag => `<span class="synergy-tag">${this.escapeHtml(tag)}</span>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+
+            <div class="synergy-card-expanded-content" style="display: none;">
+                <div class="loading-placeholder">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <div class="loading-text">Loading session details...</div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Load and render full card content (expanded view)
+     */
+    async loadAndRenderFullCard(sessionId, cardElement) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/milestones`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Unknown error');
+
+            const expandedContent = cardElement.querySelector('.synergy-card-expanded-content');
+            if (!expandedContent) return;
+
+            expandedContent.innerHTML = this.renderExpandedCardContent(data.session, data.milestones, sessionId);
+            expandedContent.style.display = 'block';
+
+        } catch (error) {
+            console.error('[SYNERGY V2] Error loading card:', error);
+            const expandedContent = cardElement.querySelector('.synergy-card-expanded-content');
+            if (expandedContent) {
+                expandedContent.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: var(--accent-error);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>Error loading session: ${error.message}</div>
+                    </div>
+                `;
+                expandedContent.style.display = 'block';
+            }
+        }
+    }
+
+    /**
+     * ========================================
+     * FLAT EXPANDED CARD CONTENT
+     * CRITICAL: 8px container padding ONLY
+     * ========================================
+     */
+    renderExpandedCardContent(session, milestones, sessionId) {
+        return `
+            <div class="synergy-flat-container" data-session-id="${sessionId}">
+                ${this.renderMetadataSection(session)}
+                ${this.renderDescriptionSection(session.description)}
+                ${this.renderMilestonesSection(milestones, sessionId)}
+                ${this.renderDocumentsSection(session.documents, sessionId)}
+                ${this.renderLinksSection(session.links)}
+                ${this.renderTagsSection(session.tags)}
+            </div>
+        `;
+    }
+
+    /**
+     * METADATA SECTION - FLAT
+     * Border-top separator, 8px padding, NO indentation
+     */
+    renderMetadataSection(session) {
+        const assignees = this.parseJsonField(session.assignees, []);
+        const assigneeNames = assignees
+            .map(a => (typeof a === 'object' ? a.name : a))
+            .filter(n => n)
+            .join(', ');
+
+        let dueDateHTML = '';
+        if (session.due_date) {
+            const dueDate = new Date(session.due_date);
+            if (dueDate.getFullYear() > 1970) {
+                const isOverdue = dueDate < new Date();
+                dueDateHTML = `
+                    <div class="synergy-flat-pill" style="background: ${isOverdue ? '#dc2626' : 'var(--bg-quaternary)'}; color: ${isOverdue ? 'white' : 'var(--text-primary)'};">
+                        <i class="fas fa-calendar"></i>
+                        ${isOverdue ? 'OVERDUE: ' : 'Due: '}${dueDate.toLocaleDateString()}
+                    </div>
+                `;
+            }
+        }
+
+        return `
+            <div class="synergy-flat-section">
+                <div class="synergy-flat-section-header">
+                    <b>Metadata</b>
+                </div>
+                ${assigneeNames ? `
+                    <div style="margin-bottom: 8px;">
+                        <div class="synergy-flat-label"><i class="fas fa-users"></i> Assigned to</div>
+                        <div class="synergy-flat-value">${this.escapeHtml(assigneeNames)}</div>
+                    </div>
+                ` : ''}
+                ${dueDateHTML ? `<div style="margin-bottom: 8px;">${dueDateHTML}</div>` : ''}
+                <div class="synergy-flat-stats">
+                    <span><i class="fas fa-comments"></i> ${session.message_count || 0} messages</span>
+                    <span><i class="fas fa-clock"></i> ${this.formatTimeAgo(session.updated_at)}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * DESCRIPTION SECTION - FLAT
+     */
+    renderDescriptionSection(description) {
+        const hasDescription = description && description.trim().length > 0;
+        
+        return `
+            <div class="synergy-flat-section" data-section="description">
+                <div class="synergy-flat-section-header">
+                    <b>Description</b>
+                    <div class="synergy-flat-header-right">
+                        <button class="synergy-flat-action-btn synergy-edit-description-btn" title="Edit Description">Edit</button>
+                    </div>
+                </div>
+                <div class="synergy-flat-description-container" data-editing="false">
+                    ${hasDescription ? `
+                        <div class="synergy-flat-description" contenteditable="false" data-field="description">${this.escapeHtml(description)}</div>
+                    ` : `
+                        <div class="synergy-flat-description synergy-flat-empty-editable" contenteditable="false" data-field="description" data-placeholder="Click edit to add a description">
+                            <i class="fas fa-align-left"></i>
+                            <div>No description provided</div>
+                        </div>
+                    `}
+                    <div class="synergy-flat-edit-actions" style="display: none;">
+                        <button class="synergy-flat-action-btn synergy-save-description-btn">Save</button>
+                        <button class="synergy-flat-action-btn synergy-cancel-description-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * MILESTONES SECTION - FLAT
+     * NO nested indentation - all at same level
+     * Visual hierarchy via badges: [M1], [T1.1], [S1.1.1]
+     * Visual hierarchy via borders: M=3px blue, T=2px gray
+     * Visual hierarchy via fonts: 17px → 15px → 14px
+     */
+    renderMilestonesSection(milestones, sessionId) {
+        if (!milestones || milestones.length === 0) {
+            return `
+                <div class="synergy-flat-section">
+                    <div class="synergy-flat-section-header">
+                        <b>Project milestones</b>
+                    </div>
+                    <div class="synergy-flat-empty">
+                        <i class="fas fa-flag-checkered"></i>
+                        <div>No milestones defined</div>
+                        <div class="synergy-flat-empty-hint">Add milestones to track progress</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        const completedCount = milestones.filter(m => m.completed).length;
+        const totalCount = milestones.length;
+        const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+        let html = `
+            <div class="synergy-flat-section" data-section="milestones">
+                <div class="synergy-flat-section-header">
+                    <b>Project milestones</b>
+                    <span style="font-size: 15px; color: var(--text-secondary);">${completedCount}/${totalCount} (${progress}%)</span>
+                    <div class="synergy-flat-header-right">
+                        <button class="synergy-flat-action-btn synergy-add-milestone-btn" title="Add Milestone"><i class="fas fa-plus"></i> Add Milestone</button>
+                    </div>
+                </div>
+        `;
+
+        milestones.forEach((milestone, mIdx) => {
+            html += this.renderMilestone(milestone, mIdx + 1, sessionId);
+        });
+
+        html += `</div>`;
+        return html;
+    }
+
+    /**
+     * SINGLE MILESTONE - TWO-ROW STRUCTURE
+     * Row 1: Checkbox + Index + Priority + Actions
+     * Row 2: Title (full width, 17px, editable)
+     */
+    renderMilestone(milestone, milestoneNum, sessionId) {
+        const tasks = milestone.tasks || [];
+        const completedTasks = tasks.filter(t => t.completed).length;
+        const taskProgress = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+        const isCompleted = milestone.completed;
+        const milestoneId = milestone.milestone_id || `temp_${milestoneNum}`;
+
+        return `
+            <div class="synergy-flat-milestone" data-milestone-id="${milestoneId}" data-editing="false">
+                <!-- ROW 1: Controls -->
+                <div class="synergy-flat-milestone-header">
+                    <div class="synergy-flat-header-left">
+                        <input type="checkbox" ${isCompleted ? 'checked' : ''} class="synergy-flat-checkbox">
+                        <span class="synergy-flat-index">M${milestoneNum}</span>
+                    </div>
+                    <div class="synergy-flat-header-right">
+                        ${milestone.priority ? `<span class="priority-badge priority-${milestone.priority}">${milestone.priority.toUpperCase()}</span>` : ''}
+                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit">Edit</button>
+                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete">Del</button>
+                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link">🔗</button>
+                    </div>
+                </div>
+
+                <!-- ROW 2: Title (Editable) -->
+                <div class="synergy-flat-milestone-title" contenteditable="false" data-field="milestone">
+                    ${this.escapeHtml(milestone.milestone || 'Untitled Milestone')}
+                </div>
+
+                <!-- Save/Cancel buttons (hidden by default) -->
+                <div class="synergy-flat-edit-actions" style="display: none;">
+                    <button class="synergy-flat-action-btn synergy-save-btn">Save</button>
+                    <button class="synergy-flat-action-btn synergy-cancel-btn">Cancel</button>
+                </div>
+
+                <!-- Milestone Description -->
+                ${milestone.description ? `
+                    <div class="synergy-flat-milestone-desc" contenteditable="false" data-field="description">
+                        ${this.escapeHtml(milestone.description)}
+                    </div>
+                ` : ''}
+
+                <!-- Milestone Metadata -->
+                <div class="synergy-flat-milestone-meta">
+                    ${milestone.due_date ? `<span><i class="fas fa-calendar"></i> ${new Date(milestone.due_date).toLocaleDateString()}</span>` : ''}
+                    ${milestone.estimated_hours ? `<span><i class="fas fa-clock"></i> ${milestone.estimated_hours}h</span>` : ''}
+                    ${milestone.assigned_to ? `<span><i class="fas fa-user"></i> ${this.escapeHtml(milestone.assigned_to)}</span>` : ''}
+                </div>
+
+                <!-- Task Progress -->
+                ${tasks.length > 0 ? `
+                    <div class="synergy-flat-progress-section">
+                        <span class="synergy-flat-progress-label">Tasks: ${completedTasks}/${tasks.length} (${taskProgress}%)</span>
+                        <div class="synergy-flat-progress-bar">
+                            <div class="synergy-flat-progress-fill" style="width: ${taskProgress}%"></div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Add Task Button -->
+                <div class="synergy-flat-add-item-row">
+                    <button class="synergy-flat-action-btn synergy-add-task-btn" data-milestone-id="${milestoneId}" title="Add Task">
+                        <i class="fas fa-plus"></i> Add Task
+                    </button>
+                </div>
+
+                <!-- Tasks (FLAT - NO INDENT) -->
+                ${tasks.map((task, tIdx) => this.renderTask(task, milestoneNum, tIdx + 1, sessionId)).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * SINGLE TASK - TWO-ROW STRUCTURE
+     * Row 1: Checkbox + Index + Priority + Actions
+     * Row 2: Title (full width, 15px, editable)
+     */
+    renderTask(task, milestoneNum, taskNum, sessionId) {
+        const subtasks = task.subtasks || [];
+        const completedSubtasks = subtasks.filter(s => s.completed).length;
+        const isBlocked = task.blocked || task.status === 'blocked';
+        const isCompleted = task.completed;
+        const taskId = task.task_id || `temp_${milestoneNum}_${taskNum}`;
+
+        return `
+            <div class="synergy-flat-task" data-task-id="${taskId}" data-editing="false">
+                <!-- ROW 1: Controls -->
+                <div class="synergy-flat-task-header">
+                    <div class="synergy-flat-header-left">
+                        <input type="checkbox" ${isCompleted ? 'checked' : ''} ${isBlocked ? 'disabled' : ''} class="synergy-flat-checkbox">
+                        <span class="synergy-flat-index">T${milestoneNum}.${taskNum}</span>
+                    </div>
+                    <div class="synergy-flat-header-right">
+                        ${task.priority ? `<span class="priority-badge priority-${task.priority}">${task.priority.toUpperCase()}</span>` : ''}
+                        ${isBlocked ? `<span class="synergy-flat-blocked-badge">BLOCKED</span>` : ''}
+                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit">Edit</button>
+                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete">Del</button>
+                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link">🔗</button>
+                    </div>
+                </div>
+
+                <!-- ROW 2: Title (Editable) -->
+                <div class="synergy-flat-task-title" contenteditable="false" data-field="task">
+                    ${this.escapeHtml(task.task || 'Untitled Task')}
+                </div>
+
+                <!-- Save/Cancel buttons (hidden by default) -->
+                <div class="synergy-flat-edit-actions" style="display: none;">
+                    <button class="synergy-flat-action-btn synergy-save-btn">Save</button>
+                    <button class="synergy-flat-action-btn synergy-cancel-btn">Cancel</button>
+                </div>
+
+                <!-- Task Metadata -->
+                <div class="synergy-flat-task-meta">
+                    ${task.assigned_to ? `<span><i class="fas fa-user"></i> ${this.escapeHtml(task.assigned_to)}</span>` : ''}
+                    ${task.estimated_hours ? `<span><i class="fas fa-clock"></i> ${task.estimated_hours}h</span>` : ''}
+                    ${task.actual_hours ? `<span><i class="fas fa-stopwatch"></i> ${task.actual_hours}h</span>` : ''}
+                </div>
+
+                <!-- Blocker Info -->
+                ${isBlocked ? `
+                    <div class="synergy-flat-blocker">
+                        <div class="synergy-flat-blocker-header">
+                            <i class="fas fa-ban"></i> BLOCKED${task.blocker_type ? ` (${task.blocker_type})` : ''}
+                        </div>
+                        <div>${this.escapeHtml(task.blocker_reason || 'No reason provided')}</div>
+                        ${task.blocked_since ? `<div class="synergy-flat-blocker-since">Since: ${this.getFormattedDateTime(task.blocked_since)}</div>` : ''}
+                    </div>
+                ` : ''}
+
+                <!-- Subtasks (FLAT - NO INDENT) -->
+                ${subtasks.length > 0 ? `
+                    <div class="synergy-flat-subtask-count">Subtasks: ${completedSubtasks}/${subtasks.length}</div>
+                ` : ''}
+                
+                <!-- Add Subtask Button -->
+                <div class="synergy-flat-add-item-row">
+                    <button class="synergy-flat-action-btn synergy-add-subtask-btn" data-task-id="${taskId}" title="Add Subtask">
+                        <i class="fas fa-plus"></i> Add Subtask
+                    </button>
+                </div>
+                
+                ${subtasks.length > 0 ? subtasks.map((subtask, sIdx) => this.renderSubtask(subtask, milestoneNum, taskNum, sIdx + 1, sessionId)).join('') : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * SINGLE SUBTASK - TWO-ROW STRUCTURE
+     * Row 1: Checkbox + Index + Priority + Actions
+     * Row 2: Title (full width, 14px, editable)
+     */
+    renderSubtask(subtask, milestoneNum, taskNum, subtaskNum, sessionId) {
+        const isCompleted = subtask.completed;
+        const subtaskId = subtask.subtask_id || `temp_${milestoneNum}_${taskNum}_${subtaskNum}`;
+
+        return `
+            <div class="synergy-flat-subtask" data-subtask-id="${subtaskId}" data-editing="false">
+                <!-- ROW 1: Controls -->
+                <div class="synergy-flat-subtask-header">
+                    <div class="synergy-flat-header-left">
+                        <input type="checkbox" ${isCompleted ? 'checked' : ''} class="synergy-flat-checkbox">
+                        <span class="synergy-flat-index">S${milestoneNum}.${taskNum}.${subtaskNum}</span>
+                    </div>
+                    <div class="synergy-flat-header-right">
+                        ${subtask.priority ? `<span class="priority-badge priority-${subtask.priority}">${subtask.priority.toUpperCase()}</span>` : ''}
+                        ${subtask.estimated_hours ? `<span class="synergy-flat-subtask-hours">${subtask.estimated_hours}h</span>` : ''}
+                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit">Edit</button>
+                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete">Del</button>
+                    </div>
+                </div>
+
+                <!-- ROW 2: Title (Editable) -->
+                <div class="synergy-flat-subtask-title" contenteditable="false" data-field="subtask">
+                    ${this.escapeHtml(subtask.subtask || 'Untitled Subtask')}
+                </div>
+
+                <!-- Save/Cancel buttons (hidden by default) -->
+                <div class="synergy-flat-edit-actions" style="display: none;">
+                    <button class="synergy-flat-action-btn synergy-save-btn">Save</button>
+                    <button class="synergy-flat-action-btn synergy-cancel-btn">Cancel</button>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * DOCUMENTS SECTION - FLAT
+     */
+    renderDocumentsSection(documents, sessionId) {
+        const docs = this.parseJsonField(documents, []);
+
+        return `
+            <div class="synergy-flat-section">
+                <div class="synergy-flat-section-header">
+                    <b>Documents</b>
+                    <span style="font-size: 14px; color: var(--text-secondary);">${docs.length} files</span>
+                </div>
+                ${docs.length > 0 ? `
+                    <div class="synergy-flat-docs-list">
+                        ${docs.map((doc, idx) => {
+                            const docId = doc.id || `doc_${idx + 1}`;
+                            return `
+                            <div class="synergy-flat-doc-item" data-doc-id="${docId}" data-session-id="${sessionId}" data-editing="false">
+                                <!-- ROW 1: Index + Actions -->
+                                <div class="synergy-flat-doc-header">
+                                    <span class="synergy-flat-index">PD${idx + 1}</span>
+                                    <div class="synergy-flat-header-right">
+                                        <button class="synergy-flat-action-btn synergy-edit-doc-btn" title="Edit">Edit</button>
+                                        <button class="synergy-flat-action-btn synergy-delete-doc-btn" title="Delete">Del</button>
+                                        <button class="synergy-flat-action-btn synergy-open-doc-btn" title="Open">🔗</button>
+                                    </div>
+                                </div>
+                                <!-- ROW 2: Filename (Editable) -->
+                                <div class="synergy-flat-doc-title" contenteditable="false" data-field="document">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>${this.escapeHtml(doc.name || doc.title || 'Untitled')}</span>
+                                    ${doc.type ? `<span class="synergy-flat-doc-type">${doc.type}</span>` : ''}
+                                </div>
+                                <!-- Save/Cancel buttons (hidden by default) -->
+                                <div class="synergy-flat-edit-actions" style="display: none;">
+                                    <button class="synergy-flat-action-btn synergy-save-doc-btn">Save</button>
+                                    <button class="synergy-flat-action-btn synergy-cancel-doc-btn">Cancel</button>
+                                </div>
+                            </div>
+                        `}).join('')}
+                    </div>
+                ` : `
+                    <div class="synergy-flat-empty">
+                        <i class="fas fa-file"></i>
+                        <div>No documents attached</div>
+                        <div class="synergy-flat-empty-hint">Upload documents to share with team</div>
+                    </div>
+                `}
+            </div>
+        `;
+    }
+
+    /**
+     * LINKS SECTION - FLAT
+     */
+    renderLinksSection(links) {
+        const linkArray = this.parseJsonField(links, []);
+
+        return `
+            <div class="synergy-flat-section" data-section="links">
+                <div class="synergy-flat-section-header">
+                    <b>Links</b>
+                    <span style="font-size: 14px; color: var(--text-secondary);">${linkArray.length} links</span>
+                    <div class="synergy-flat-header-right">
+                        <button class="synergy-flat-action-btn synergy-add-link-btn" title="Add Link"><i class="fas fa-plus"></i> Add Link</button>
+                    </div>
+                </div>
+                ${linkArray.length > 0 ? `
+                    <div class="synergy-flat-links-list">
+                        ${linkArray.map((link, idx) => `
+                            <div class="synergy-flat-link-item-wrapper">
+                                <a href="${this.escapeHtml(link.url || link)}" target="_blank" class="synergy-flat-link-item">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>${this.escapeHtml(link.title || link.url || link)}</span>
+                                </a>
+                                <button class="synergy-flat-action-btn synergy-remove-link-btn" data-link-index="${idx}" title="Remove Link">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="synergy-flat-empty">
+                        <i class="fas fa-link"></i>
+                        <div>No links added</div>
+                        <div class="synergy-flat-empty-hint">Click 'Add Link' to add external references</div>
+                    </div>
+                `}
+            </div>
+        `;
+    }
+
+    /**
+     * TAGS SECTION - FLAT
+     */
+    renderTagsSection(tags) {
+        const tagArray = this.parseJsonField(tags, []);
+
+        return `
+            <div class="synergy-flat-section" data-section="tags">
+                <div class="synergy-flat-section-header">
+                    <b>Tags</b>
+                    <span style="font-size: 14px; color: var(--text-secondary);">${tagArray.length} tags</span>
+                    <div class="synergy-flat-header-right">
+                        <button class="synergy-flat-action-btn synergy-add-tag-btn" title="Add Tag"><i class="fas fa-plus"></i> Add Tag</button>
+                    </div>
+                </div>
+                ${tagArray.length > 0 ? `
+                    <div class="synergy-flat-tags-list">
+                        ${tagArray.map(tag => `
+                            <span class="synergy-flat-tag-editable">
+                                <span class="synergy-flat-tag-text">${this.escapeHtml(tag)}</span>
+                                <button class="synergy-flat-tag-remove synergy-remove-tag-btn" data-tag-name="${this.escapeHtml(tag)}" title="Remove Tag">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </span>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="synergy-flat-empty">
+                        <i class="fas fa-tags"></i>
+                        <div>No tags</div>
+                        <div class="synergy-flat-empty-hint">Click 'Add Tag' to organize this session</div>
+                    </div>
+                `}
+            </div>
+        `;
+    }
+
+    // ========================================
+    // HELPER METHODS (unchanged from V1)
+    // ========================================
+
+    calculateSessionCounts(session) {
+        const milestones = this.parseJsonField(session.milestones, []);
+        let totalTasks = 0;
+        let tasksDone = 0;
+        let totalSubtasks = 0;
+        let subtasksDone = 0;
+
+        milestones.forEach(m => {
+            const tasks = m.tasks || [];
+            totalTasks += tasks.length;
+            tasksDone += tasks.filter(t => t.completed).length;
+
+            tasks.forEach(t => {
+                const subtasks = t.subtasks || [];
+                totalSubtasks += subtasks.length;
+                subtasksDone += subtasks.filter(s => s.completed).length;
+            });
+        });
+
+        const docs = this.parseJsonField(session.documents, []);
+        const links = this.parseJsonField(session.links, []);
+
+        return {
+            milestones: milestones.length,
+            totalTasks,
+            tasksDone,
+            totalSubtasks,
+            subtasksDone,
+            docs: docs.length,
+            links: links.length
+        };
+    }
+
+    parseJsonField(field, defaultValue = []) {
+        if (!field) return defaultValue;
+        if (Array.isArray(field)) return field;
+        if (typeof field === 'string') {
+            try {
+                return JSON.parse(field);
+            } catch (e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    getRelativeTime(dateString) {
+        if (!dateString) return 'Never';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays}d ago`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+        });
+    }
+
+    getFormattedDateTime(dateString) {
+        if (!dateString) return 'No date';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric'
+        }) + ' at ' + date.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+        });
+    }
+
+    formatTimeAgo(dateString) {
+        return this.getRelativeTime(dateString);
+    }
+}
+
+// Export to global scope
+window.SynergySidebarRendererV2 = SynergySidebarRendererV2;
+// BACKWARD COMPATIBILITY: Make V2 available as original name
+window.SynergySidebarRenderer = SynergySidebarRendererV2;
+console.log('[SYNERGY V2] FLAT spacing renderer loaded and registered');
+console.log('[SYNERGY V2] Backward compatibility: window.SynergySidebarRenderer = SynergySidebarRendererV2');

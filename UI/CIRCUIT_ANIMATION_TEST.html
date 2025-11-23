@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Animation Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+        }
+
+        .test-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(13, 17, 23, 0.97) 0%, rgba(22, 27, 34, 0.95) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .test-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(22, 27, 34, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            z-index: 10002;
+            max-width: 400px;
+        }
+
+        .test-info h2 {
+            margin: 0 0 15px 0;
+            color: #58a6ff;
+            font-size: 18px;
+        }
+
+        .test-info p {
+            margin: 8px 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .test-info code {
+            background: #161b22;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #79c0ff;
+        }
+
+        .success {
+            color: #3fb950;
+        }
+
+        .warning {
+            color: #d29922;
+        }
+
+        .error {
+            color: #f85149;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10002;
+        }
+
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #2ea043;
+        }
+
+        button.stop {
+            background: #da3633;
+        }
+
+        button.stop:hover {
+            background: #f85149;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-overlay">
+        <canvas id="testCanvas"></canvas>
+
+        <div class="test-info">
+            <h2>Circuit Animation Test</h2>
+            <p><strong>Status:</strong> <span id="status" class="success">Initializing...</span></p>
+            <p><strong>Canvas:</strong> <span id="canvasStatus">Checking...</span></p>
+            <p><strong>Animation:</strong> <span id="animStatus">Checking...</span></p>
+            <p><strong>Cycle Time:</strong> <code id="cycleTime">--</code> / 22s</p>
+            <p><strong>Speed:</strong> <code id="speed">--</code></p>
+            <p><strong>Brightness:</strong> <code id="brightness">--</code></p>
+            <p><strong>Particles:</strong> <code id="particles">--</code></p>
+            <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #30363d;">
+                <small>This test verifies the 22-second circuit animation is working correctly.
+                    You should see energy particles moving across neural network lines with increasing
+                    speed over a 22-second cycle.</small>
+            </p>
+        </div>
+
+        <div class="controls">
+            <button onclick="startAnimation()">Start</button>
+            <button class="stop" onclick="stopAnimation()">Stop</button>
+            <button onclick="resetAnimation()">Reset Cycle</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('[Test] Circuit Animation Test Page Loading...');
+
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        let animationStartTime = Date.now();
+        let isAnimationActive = true;
+        let animationFrameId = null;
+        let particles = [];
+        let neuralNodes = [];
+
+        // Update status display
+        document.getElementById('canvasStatus').textContent = canvas ? 'Found' : 'Missing';
+        document.getElementById('canvasStatus').className = canvas ? 'success' : 'error';
+
+        // Particle class
+        class EnergyParticle {
+            constructor() {
+                const angle = Math.random() * Math.PI * 2;
+                const absX = Math.abs(Math.cos(angle));
+                const absY = Math.abs(Math.sin(angle));
+
+                if (absX > absY) {
+                    this.x = Math.cos(angle) > 0 ? canvas.width : 0;
+                    this.y = centerY + Math.tan(angle) * (canvas.width / 2);
+                } else {
+                    this.y = Math.sin(angle) > 0 ? canvas.height : 0;
+                    this.x = centerX + (1 / Math.tan(angle)) * (canvas.height / 2);
+                }
+
+                this.targetX = centerX;
+                this.targetY = centerY;
+                this.speed = 0.5 + Math.random() * 0.5;
+                this.life = 1.0;
+                this.color = `rgba(88, 166, 255, ${0.6 + Math.random() * 0.4})`;
+            }
+
+            update(speedMultiplier, shouldMove) {
+                if (!shouldMove) return false;
+
+                const dx = this.targetX - this.x;
+                const dy = this.targetY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 5) {
+                    return false;
+                }
+
+                const moveSpeed = this.speed * speedMultiplier * 2;
+                this.x += (dx / distance) * moveSpeed;
+                this.y += (dy / distance) * moveSpeed;
+
+                this.life = distance / Math.max(canvas.width, canvas.height);
+
+                return true;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        // Neural Node class
+        class NeuralNode {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.connections = [];
+            }
+
+            draw(ctx, brightness) {
+                if (brightness === 0) return;
+
+                ctx.save();
+                ctx.globalAlpha = brightness * 0.3;
+
+                // Draw connections
+                this.connections.forEach(target => {
+                    ctx.strokeStyle = 'rgba(88, 166, 255, 0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(target.x, target.y);
+                    ctx.stroke();
+                });
+
+                // Draw node
+                ctx.fillStyle = 'rgba(88, 166, 255, 0.5)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Create neural network
+        function createNeuralNetwork() {
+            neuralNodes = [];
+            const nodeCount = 30;
+
+            for (let i = 0; i < nodeCount; i++) {
+                const angle = (i / nodeCount) * Math.PI * 2;
+                const radius = Math.min(canvas.width, canvas.height) * 0.3;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                neuralNodes.push(new NeuralNode(x, y));
+            }
+
+            // Create connections
+            neuralNodes.forEach((node, i) => {
+                const connectCount = 3;
+                for (let j = 1; j <= connectCount; j++) {
+                    const targetIndex = (i + j) % neuralNodes.length;
+                    node.connections.push(neuralNodes[targetIndex]);
+                }
+            });
+        }
+
+        // Speed controller
+        function getGlobalSpeedPhase() {
+            const time = (Date.now() - animationStartTime) / 1000;
+            const cycleTime = time % 22;
+
+            let speedMultiplier, brightness;
+
+            if (cycleTime < 13) {
+                speedMultiplier = 0.3 + (cycleTime / 13) * 1.2;
+            } else if (cycleTime < 14) {
+                speedMultiplier = 2.0;
+            } else if (cycleTime < 15) {
+                speedMultiplier = 2.5;
+            } else if (cycleTime < 16) {
+                speedMultiplier = 3.0;
+            } else if (cycleTime < 17) {
+                speedMultiplier = 4.5;
+            } else if (cycleTime < 18) {
+                speedMultiplier = 5.5;
+            } else if (cycleTime < 20) {
+                speedMultiplier = 6.0;
+            } else if (cycleTime < 21.5) {
+                speedMultiplier = 6.0;
+            } else {
+                speedMultiplier = 0;
+            }
+
+            if (cycleTime < 4) {
+                brightness = 0;
+            } else if (cycleTime < 17) {
+                brightness = (cycleTime - 4) / 13;
+            } else if (cycleTime < 20) {
+                brightness = 1.0;
+            } else if (cycleTime < 22) {
+                brightness = 1.0 - ((cycleTime - 20) / 2);
+            } else {
+                brightness = 0;
+            }
+
+            return { cycleTime, speedMultiplier, brightness };
+        }
+
+        // Animation loop
+        function animate() {
+            if (!isAnimationActive) {
+                document.getElementById('animStatus').textContent = 'Stopped';
+                document.getElementById('animStatus').className = 'warning';
+                return;
+            }
+
+            document.getElementById('animStatus').textContent = 'Running';
+            document.getElementById('animStatus').className = 'success';
+
+            const speedPhase = getGlobalSpeedPhase();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update UI
+            document.getElementById('cycleTime').textContent = speedPhase.cycleTime.toFixed(1) + 's';
+            document.getElementById('speed').textContent = speedPhase.speedMultiplier.toFixed(1) + 'x';
+            document.getElementById('brightness').textContent = (speedPhase.brightness * 100).toFixed(0) + '%';
+            document.getElementById('particles').textContent = particles.length;
+
+            // Draw central hub
+            ctx.fillStyle = 'rgba(88, 166, 255, 0.3)';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'rgba(88, 166, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Draw neural network
+            neuralNodes.forEach(node => {
+                node.draw(ctx, speedPhase.brightness);
+            });
+
+            // Update particles
+            const inProductionPause = speedPhase.cycleTime >= 20 && speedPhase.cycleTime < 22;
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const alive = particles[i].update(speedPhase.speedMultiplier, !inProductionPause);
+                if (!alive) {
+                    particles.splice(i, 1);
+                } else {
+                    particles[i].draw(ctx);
+                }
+            }
+
+            // Add particles
+            let maxParticles = 50;
+            if (speedPhase.cycleTime >= 18) {
+                maxParticles = 100;
+            }
+
+            if (!inProductionPause && particles.length < maxParticles && Math.random() > 0.5) {
+                particles.push(new EnergyParticle());
+            }
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function startAnimation() {
+            if (isAnimationActive) return;
+            console.log('[Test] Starting animation...');
+            isAnimationActive = true;
+            animate();
+        }
+
+        function stopAnimation() {
+            console.log('[Test] Stopping animation...');
+            isAnimationActive = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        function resetAnimation() {
+            console.log('[Test] Resetting animation cycle...');
+            animationStartTime = Date.now();
+            particles = [];
+        }
+
+        // Initialize
+        createNeuralNetwork();
+        for (let i = 0; i < 50; i++) {
+            particles.push(new EnergyParticle());
+        }
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            createNeuralNetwork();
+        });
+
+        // Start animation
+        console.log('[Test] Starting animation loop...');
+        document.getElementById('status').textContent = 'Running';
+        animate();
+    </script>
+</body>
+
+</html>

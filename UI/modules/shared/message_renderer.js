@@ -60,6 +60,19 @@ const UnifiedMessageRenderer = (function () {
             syncToBackend = false
         } = options;
 
+        // CRITICAL FIX: Skip rendering user messages that ONLY contain tool_result blocks
+        // Backend stores tool results as role="user" but UI shouldn't show empty bubbles
+        if (role === 'user' && Array.isArray(content)) {
+            const hasOnlyToolResults = content.every(block => 
+                block && typeof block === 'object' && block.type === 'tool_result'
+            );
+            
+            if (hasOnlyToolResults && content.length > 0) {
+                console.log(`[UnifiedMessageRenderer] Skipping user message with ${content.length} tool_result blocks (no visible content)`);
+                return null;
+            }
+        }
+
         // Add to MessageStore if threadId provided (centralized deduplication)
         if (threadId && typeof window.MessageStore !== 'undefined') {
             window.MessageStore.addMessage(threadId, {
@@ -303,7 +316,7 @@ const UnifiedMessageRenderer = (function () {
             // If no text blocks, check for thinking blocks (Extended Thinking)
             const thinkingBlocks = content
                 .filter(block => block && (block.type === 'thinking' || block.type === 'redacted_thinking'))
-                .map(block => `🧠 Thinking: ${block.thinking || '[Thinking process]'}`);
+                .map(block => `🧠 ${block.thinking || '[Thinking process]'}`);
 
             if (thinkingBlocks.length > 0) {
                 return thinkingBlocks.join('\n\n');
@@ -319,7 +332,7 @@ const UnifiedMessageRenderer = (function () {
                 return content.text;
             }
             if (content.type === 'thinking' && content.thinking) {
-                return `🧠 Thinking: ${content.thinking}`;
+                return `🧠 ${content.thinking}`;
             }
             if (content.text) {
                 return content.text;

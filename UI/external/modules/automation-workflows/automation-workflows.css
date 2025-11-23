@@ -12,9 +12,11 @@
 
 .automation-dashboard {
     display: flex;
-    height: 100%;
+    height: calc(100vh - 100px);
     gap: 0;
     background: var(--bg-primary);
+    margin-top: 0;
+    padding-top: 0;
 }
 
 /* ==================== WORKFLOW LIST SECTION ==================== */

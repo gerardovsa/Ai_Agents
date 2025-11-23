@@ -325,8 +325,8 @@ class InhouseKanbanModule extends BaseModule {
             }
             
             #tab-inhouse-kanban.active .kanban-column {
-                min-width: 340px !important;
-                max-width: 340px !important;
+                min-width: 400px !important;
+                max-width: 40px !important;
             /*    background: #1A1F2E !important; */
                 border: 1px solid #2A3142 !important;
                 border-radius: 8px !important;
