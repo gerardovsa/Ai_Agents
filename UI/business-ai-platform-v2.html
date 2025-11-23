@@ -114,12 +114,38 @@
     <!-- ==================== SETTINGS SIDEBAR MODULE ==================== -->
     <!-- Error recovery control system with toggles and statistics -->
     <!-- v2: Dynamic HTML loading, toast notifications, hover tooltips -->
-    <link rel="stylesheet" href="modules/settings-sidebar/settings-sidebar.css">
-    <script src="modules/settings-sidebar/settings-sidebar-v2.js"></script>
+    <!-- CRITICAL: Load BaseModule first (required dependency) -->
+    <script src="js/module-base.js?v=20251124"></script>
+    <link rel="stylesheet" href="external/modules/settings-sidebar/settings-sidebar.css?v=20251124">
+    <script src="external/modules/settings-sidebar/settings-sidebar.js?v=20251124"></script>
+
+    <!-- Initialize Settings Sidebar Module -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof SettingsSidebarModule !== 'undefined') {
+                console.log('[Settings] Creating SettingsSidebarModule instance...');
+                try {
+                    // Create instance (sidebar HTML already exists in DOM, no init needed)
+                    window.settingsModule = new SettingsSidebarModule('settings-sidebar');
+
+                    // Load settings from localStorage
+                    window.settingsModule.settings = window.settingsModule.settingsManager.load();
+                    window.settingsModule.errorLogs = window.settingsModule.errorLogManager.load();
+
+                    console.log('[Settings] SettingsSidebarModule ready');
+                } catch (error) {
+                    console.error('[Settings] Failed to create SettingsSidebarModule:', error);
+                }
+            } else {
+                console.error('[Settings] SettingsSidebarModule class not found!');
+            }
+        });
+    </script>
 
     <!-- ==================== AUTOMATION WORKFLOWS MODULE ==================== -->
     <!-- Visual automation canvas with drag-and-drop flow builder -->
     <link rel="stylesheet" href="external/modules/automation-workflows/automation-workflows.css">
+    <script src="external/modules/automation-workflows/automation-workflows.js" defer></script>
     <script src="external/modules/automation-workflows/automation-canvas-extensions.js" defer></script>
 
     <!-- ==================== DEBUG MODULE ==================== -->
@@ -155,13 +181,20 @@
     <!-- Synergy session management with milestone-based task hierarchy -->
     <script src="external/modules/synergy/synergy-board-init.js"></script>
     <script src="external/modules/synergy/synergy-functions.js"></script>
-    <script src="external/modules/synergy/synergy-sidebar-renderer.js"></script>
+    <!-- FLAT SPACING RENDERER V2 (Nov 24, 2025) - Two-row structure, inline editing -->
+    <script src="external/modules/synergy/synergy-sidebar-renderer-v2-FLAT.js"></script>
+    <script src="external/modules/synergy/synergy-inline-edit.js"></script>
     <script src="external/modules/synergy/synergy-card-renderer.js"></script>
     <script src="external/modules/synergy/synergy-milestone-renderer.js"></script>
     <script src="external/modules/synergy/synergy-milestone-interactions.js"></script>
     <script src="external/modules/synergy/synergy-sidebar-controller.js"></script>
+    <script src="external/modules/synergy/synergy-popup-modal.js"></script>
+    <!-- NEW: Popup modal for full session view -->
     <script src="external/modules/synergy/thread_synergy.js"></script>
+    <!-- FLAT SPACING CSS V2 (Nov 24, 2025) - Two-row structure, 400px width -->
+    <link rel="stylesheet" href="external/modules/synergy/synergy-flat-spacing.css">
     <link rel="stylesheet" href="external/modules/synergy/synergy-milestone-styles.css">
+    <link rel="stylesheet" href="external/modules/synergy/synergy-popup-modal.css"> <!-- NEW: Popup modal styles -->
 
     <!-- ==================== SHARED MODULES (Nov 2025) ==================== -->
     <!-- Unified message rendering for Prime and Agent columns -->
@@ -3941,28 +3974,43 @@
 
         /* Agent Unload Button (Red) */
         .agent-unload-btn {
-            display: flex !important;
+            display: inline-flex !important;
             align-items: center;
             justify-content: center;
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             padding: 0;
             margin-left: 0;
-            background: rgba(248, 81, 73, 0.1);
-            border: 1px solid rgba(248, 81, 73, 0.3);
+            background: rgba(248, 81, 73, 0.15);
+            border: 1px solid rgba(248, 81, 73, 0.4);
             border-radius: 6px;
-            color: #f85149;
-            font-size: 12px;
+            color: #f85149 !important;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .agent-unload-btn i {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f85149 !important;
+            font-size: 14px;
+            line-height: 1;
         }
 
         .agent-unload-btn:hover {
-            background: rgba(248, 81, 73, 0.2);
-            border-color: rgba(248, 81, 73, 0.5);
-            color: #ff6b6b;
+            background: rgba(248, 81, 73, 0.25);
+            border-color: rgba(248, 81, 73, 0.6);
+            color: #ff6b6b !important;
             transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(248, 81, 73, 0.3);
+            box-shadow: 0 2px 8px rgba(248, 81, 73, 0.4);
+        }
+
+        .agent-unload-btn:hover i {
+            color: #ff6b6b !important;
         }
 
         /* ========================================
@@ -5977,6 +6025,7 @@
             flex-direction: column;
             gap: var(--space-2);
             animation: slideIn 0.3s ease;
+            margin-bottom: 10px;
         }
 
         @keyframes slideIn {
@@ -6130,6 +6179,7 @@
             word-wrap: break-word;
             word-break: break-word;
             overflow-wrap: break-word;
+            margin-bottom: 10px;
         }
 
         .ai-message-content:hover {
@@ -8121,7 +8171,6 @@
             height: 100%;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            padding-top: 5px;
         }
 
         /* Wide column state (1.5x width) */
@@ -8164,8 +8213,7 @@
         }
 
         .agent-header {
-            padding: 10px;
-            padding-top: 5px;
+            padding: 10px 0;
             border-bottom: 1px solid var(--border-default);
             display: flex;
             flex-direction: column;
@@ -8473,11 +8521,11 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 3px 10px;
+            padding: 4px 10px;
             background: var(--accent-primary, #238636);
             color: white;
-            border-radius: 12px;
-            font-size: 11px;
+            border-radius: 8px;
+            font-size: 12px;
             font-weight: 600;
             white-space: nowrap;
         }
@@ -12242,6 +12290,92 @@
             color: var(--text-secondary);
             line-height: 1.4;
         }
+
+        /* ==================== KANBAN BOARD SCROLLING FIX (NOV 23, 2025) ==================== */
+        /* Fix for Synergy Dashboard columns not scrolling when cards are expanded */
+
+        .kanban-board-container {
+            display: flex;
+            gap: 16px;
+            padding: var(--space-5);
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex: 1;
+        }
+
+        .kanban-column {
+            min-width: 400px;
+            max-width: 400px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            /* FIXED: Remove height: fit-content and add proper max-height */
+            max-height: calc(100vh - var(--header-height) - 180px);
+            overflow: hidden;
+            /* Column itself doesn't scroll, only the cards container */
+        }
+
+        .kanban-column-header {
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            /* Header doesn't shrink */
+        }
+
+        .kanban-cards-container {
+            padding: var(--space-2);
+            /* FIXED: Enable vertical scrolling and set flex grow */
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex: 1;
+            /* Takes remaining space */
+            min-height: 100px;
+        }
+
+        /* Scrollbar styling for cards container */
+        .kanban-cards-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .kanban-cards-container::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .kanban-cards-container::-webkit-scrollbar-thumb {
+            background: var(--border-default);
+            border-radius: 4px;
+        }
+
+        .kanban-cards-container::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+
+        /* FIXED: Set max-height for expanded cards to ensure scrolling works */
+        .synergy-session-item.expanded {
+            max-height: none;
+            /* Allow card to expand to full content height */
+            overflow: visible;
+            /* Let the parent container handle scrolling */
+        }
+
+        /* Ensure expanded content is visible and doesn't overflow horizontally */
+        .synergy-card-expanded-content {
+            max-width: 100%;
+            overflow-x: hidden;
+            word-wrap: break-word;
+        }
+
+        .add-card-btn {
+            flex-shrink: 0;
+            /* Button doesn't shrink */
+            margin: var(--space-2);
+        }
     </style>
 
     <!-- Agent Status Indicator Module -->
@@ -13539,7 +13673,7 @@
                                             <i class="fas fa-plus"></i>
                                         </button>
                                         <button class="workflow-action-icon-btn" id="load-workflow-btn"
-                                            title="Load Workflow">
+                                            title="Load Workflow from Library">
                                             <i class="fas fa-folder-open"></i>
                                         </button>
                                         <button class="workflow-action-icon-btn" id="save-workflow-btn"
@@ -13564,6 +13698,67 @@
                                         title="Send to AI for analysis">
                                         <i class="fa-solid fa-atom"></i>
                                     </button>
+                                </div>
+                            </div>
+
+                            <!-- Workflow Library Panel (Absolutely positioned like shape palette) -->
+                            <div class="workflow-library-panel" id="workflow-library-panel"
+                                style="position: absolute; left: 550px; top: 80px; width: 800px; max-height: 0; overflow: hidden; background: var(--surface-secondary); border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 16px rgba(0,0,0,0.3); z-index: 999; transition: max-height 0.3s ease, padding 0.3s ease; display: none; flex-direction: column;">
+                                <!-- Search and Filters (Enhanced) -->
+                                <div class="workflow-library-filters"
+                                    style="padding: 16px; border-bottom: 1px solid var(--border); background: var(--bg-tertiary);">
+                                    <!-- Search + Dropdowns Row -->
+                                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                                        <div style="flex: 1;">
+                                            <input type="text" class="workflow-form-input" id="workflow-library-search"
+                                                placeholder="Search workflows by title, slug, or description..."
+                                                oninput="filterWorkflowLibrary()"
+                                                style="width: 100%; padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 13px; font-weight: 600;">
+                                        </div>
+                                        <select class="workflow-form-select" id="workflow-filter-category"
+                                            onchange="filterWorkflowLibrary()"
+                                            style="width: 200px; padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 13px; font-weight: 600; cursor: pointer;">
+                                            <option value="">All Categories</option>
+                                            <option value="sales">Sales</option>
+                                            <option value="marketing">Marketing</option>
+                                            <option value="operations">Operations</option>
+                                            <option value="finance">Finance</option>
+                                            <option value="hr">Human Resources</option>
+                                            <option value="it">IT & Tech</option>
+                                            <option value="customer_service">Customer Service</option>
+                                            <option value="automation">Automation</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                        <select class="workflow-form-select" id="workflow-filter-status"
+                                            onchange="filterWorkflowLibrary()"
+                                            style="width: 150px; padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 13px; font-weight: 600; cursor: pointer;">
+                                            <option value="">All Status</option>
+                                            <option value="draft">Draft</option>
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                    <!-- Quick Filter Chips Row -->
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <button class="automation-filter-chip active" data-filter="all"
+                                            onclick="setLibraryFilter('all')"
+                                            style="padding: 6px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 16px; color: var(--text-primary); font-size: 12px; cursor: pointer; transition: all 0.2s;">All</button>
+                                        <button class="automation-filter-chip" data-filter="enabled"
+                                            onclick="setLibraryFilter('enabled')"
+                                            style="padding: 6px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 16px; color: var(--text-primary); font-size: 12px; cursor: pointer; transition: all 0.2s;">Enabled</button>
+                                        <button class="automation-filter-chip" data-filter="disabled"
+                                            onclick="setLibraryFilter('disabled')"
+                                            style="padding: 6px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 16px; color: var(--text-primary); font-size: 12px; cursor: pointer; transition: all 0.2s;">Disabled</button>
+                                        <button class="automation-filter-chip" data-filter="recent"
+                                            onclick="setLibraryFilter('recent')"
+                                            style="padding: 6px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 16px; color: var(--text-primary); font-size: 12px; cursor: pointer; transition: all 0.2s;">Recent</button>
+                                    </div>
+                                </div>
+
+                                <!-- Workflow Cards (Draggable) -->
+                                <div class="workflow-library-content" id="workflow-library-content"
+                                    style="overflow-y: auto; padding: 12px; max-height: 500px; scrollbar-color: var(--border-default) transparent; scrollbar-width: thin; background: var(--bg-secondary);">
+                                    <!-- Workflow cards loaded dynamically -->
                                 </div>
                             </div>
 
@@ -13679,139 +13874,7 @@
                         </div>
                     </div>
 
-                    <!-- Workflow Modal -->
-                    <div class="workflow-modal-overlay" id="workflow-modal-overlay" style="display: none;">
-                        <div class="workflow-modal">
-                            <div class="workflow-modal-header">
-                                <div class="workflow-modal-title">
-                                    <i class="fas fa-edit"></i>
-                                    <span id="modal-title-text">New Workflow</span>
-                                </div>
-                                <button class="workflow-modal-close" id="close-workflow-modal">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            <div class="workflow-modal-body">
-                                <div class="workflow-form-group">
-                                    <label class="workflow-form-label">Title</label>
-                                    <input type="text" class="workflow-form-input" id="workflow-title-input"
-                                        placeholder="Enter workflow title...">
-                                </div>
-                                <div class="workflow-form-group">
-                                    <label class="workflow-form-label">Slug</label>
-                                    <input type="text" class="workflow-form-input readonly" id="workflow-slug-input"
-                                        readonly placeholder="Auto-generated...">
-                                </div>
-                                <div class="workflow-form-group">
-                                    <label class="workflow-form-label">Timestamp</label>
-                                    <input type="text" class="workflow-form-input readonly"
-                                        id="workflow-timestamp-input" readonly>
-                                </div>
-                                <div class="workflow-category-row">
-                                    <div class="workflow-form-group">
-                                        <label class="workflow-form-label">Category</label>
-                                        <select class="workflow-form-select" id="workflow-category-select">
-                                            <option value="">Select category...</option>
-                                            <option value="sales">Sales</option>
-                                            <option value="marketing">Marketing</option>
-                                            <option value="operations">Operations</option>
-                                            <option value="finance">Finance</option>
-                                            <option value="hr">Human Resources</option>
-                                            <option value="it">IT & Tech</option>
-                                            <option value="customer_service">Customer Service</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                    <button class="workflow-add-category-btn" id="add-category-btn"
-                                        title="Add New Category">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                </div>
-                                <div class="workflow-form-group">
-                                    <label class="workflow-form-label">Description</label>
-                                    <textarea class="workflow-form-input workflow-form-textarea"
-                                        id="workflow-description-input"
-                                        placeholder="Describe your automation workflow..."></textarea>
-                                </div>
-                            </div>
-                            <div class="workflow-modal-footer">
-                                <button class="workflow-modal-btn" id="cancel-workflow-btn">Cancel</button>
-                                <button class="workflow-modal-btn primary" id="save-workflow-modal-btn">Save
-                                    Workflow</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Load Workflow Modal -->
-                    <div class="workflow-modal-overlay" id="load-workflow-modal-overlay" style="display: none;">
-                        <div class="workflow-modal" style="max-width: 900px; width: 90vw;">
-                            <div class="workflow-modal-header">
-                                <div class="workflow-modal-title">
-                                    <i class="fas fa-folder-open"></i>
-                                    <span>Load Workflow</span>
-                                </div>
-                                <button class="workflow-modal-close" id="close-load-workflow-modal">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            <div class="workflow-modal-body">
-                                <!-- Search and Filters -->
-                                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                                    <div style="flex: 1;">
-                                        <input type="text" class="workflow-form-input" id="workflow-search-input"
-                                            placeholder="Search workflows by title, slug, or description...">
-                                    </div>
-                                    <select class="workflow-form-select" id="workflow-filter-category"
-                                        style="width: 200px;">
-                                        <option value="">All Categories</option>
-                                        <option value="sales">Sales</option>
-                                        <option value="marketing">Marketing</option>
-                                        <option value="operations">Operations</option>
-                                        <option value="finance">Finance</option>
-                                        <option value="hr">Human Resources</option>
-                                        <option value="it">IT & Tech</option>
-                                        <option value="customer_service">Customer Service</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                    <select class="workflow-form-select" id="workflow-filter-status"
-                                        style="width: 150px;">
-                                        <option value="">All Status</option>
-                                        <option value="draft">Draft</option>
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                    </select>
-                                </div>
-
-                                <!-- Workflow List -->
-                                <div id="workflow-load-list"
-                                    style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary);">
-                                    <!-- Loading state -->
-                                    <div id="workflow-load-loading"
-                                        style="padding: 60px; text-align: center; color: var(--text-secondary);">
-                                        <i class="fas fa-spinner fa-spin"
-                                            style="font-size: 32px; margin-bottom: 12px;"></i>
-                                        <div>Loading workflows...</div>
-                                    </div>
-
-                                    <!-- Empty state -->
-                                    <div id="workflow-load-empty"
-                                        style="display: none; padding: 60px; text-align: center; color: var(--text-muted);">
-                                        <i class="fas fa-inbox"
-                                            style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                                        <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">No Workflows
-                                            Found</div>
-                                        <div style="font-size: 13px;">Create your first workflow using the "New" button
-                                        </div>
-                                    </div>
-
-                                    <!-- Workflow items will be inserted here -->
-                                </div>
-                            </div>
-                            <div class="workflow-modal-footer">
-                                <button class="workflow-modal-btn" id="cancel-load-workflow-btn">Cancel</button>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Modals removed - functionality moved to slide-down panel -->
                 </div>
 
                 <!-- ==================== MULTI-AGENT TAB (NATO AI COLUMNS) ==================== -->
@@ -15056,8 +15119,8 @@
                 <button class="btn btn-secondary" onclick="closeConfirmation()">
                     <i class="fas fa-times"></i> Cancel
                 </button>
-                <button class="btn" id="confirmation-btn" style="background: #dc3545; color: white;">
-                    <i class="fas fa-trash"></i> Delete
+                <button class="btn" id="confirmation-btn" style="background: #f59e0b; color: white;">
+                    <i class="fas fa-sign-out-alt"></i> Unload
                 </button>
             </div>
         </div>
@@ -17822,20 +17885,36 @@
                 if (tabId === 'automation') {
                     console.log('[AUTOMATION] Tab activated - checking canvas initialization...');
 
-                    // Ensure canvas wrapper is visible
+                    // Defensive: Ensure canvas wrapper is visible
                     const canvasWrapper = document.getElementById('automation-canvas-wrapper');
                     if (canvasWrapper) {
                         canvasWrapper.style.display = 'block';
                         console.log('[AUTOMATION] Canvas wrapper set to visible');
+                    } else {
+                        console.error('[AUTOMATION] CRITICAL: Canvas wrapper not found in DOM');
+                        return;
+                    }
+
+                    // Defensive: Check if AutomationCanvas class is defined
+                    if (typeof AutomationCanvas === 'undefined') {
+                        console.error('[AUTOMATION] CRITICAL: AutomationCanvas class not loaded. Check if automation-workflows.js is included.');
+                        return;
                     }
 
                     // Initialize if not already done
                     if (typeof window.automationCanvas === 'undefined' || !window.automationCanvas) {
                         console.log('[AUTOMATION] Canvas not initialized, attempting lazy init...');
                         if (typeof window.initializeAutomationCanvas === 'function') {
-                            window.initializeAutomationCanvas();
+                            try {
+                                window.initializeAutomationCanvas();
+                                console.log('[AUTOMATION] Lazy initialization successful');
+                            } catch (error) {
+                                console.error('[AUTOMATION] Initialization failed:', error);
+                                return;
+                            }
                         } else {
-                            console.warn('[AUTOMATION] initializeAutomationCanvas function not found - canvas may not be ready yet');
+                            console.error('[AUTOMATION] CRITICAL: initializeAutomationCanvas function not defined. Check script load order.');
+                            return;
                         }
                     } else {
                         console.log('[AUTOMATION] Canvas already initialized');
@@ -17939,6 +18018,326 @@
                 setTimeout(() => notification.remove(), duration);
             }
         }
+
+        // ==================== WORKFLOW LIBRARY PANEL ====================
+        let libraryCurrentFilter = 'all';
+        let librarySearchQuery = '';
+
+        function toggleWorkflowLibraryPanel() {
+            const panel = document.getElementById('workflow-library-panel');
+            const isOpen = panel.style.display === 'flex';
+
+            if (isOpen) {
+                // Close panel
+                panel.style.display = 'none';
+                panel.style.maxHeight = '0';
+            } else {
+                // Open panel
+                panel.style.display = 'flex';
+                panel.style.maxHeight = '600px';
+
+                console.log('[LIBRARY] Opening workflow library panel');
+                console.log('[LIBRARY] AutomationsSidebar available:', typeof AutomationsSidebar !== 'undefined');
+                console.log('[LIBRARY] Automations loaded:', AutomationsSidebar?.automationsLoaded);
+                console.log('[LIBRARY] Automations count:', AutomationsSidebar?.automations?.length);
+
+                // Always try to load/refresh workflows when opening
+                if (typeof AutomationsSidebar !== 'undefined') {
+                    if (!AutomationsSidebar.automationsLoaded) {
+                        console.log('[LIBRARY] Loading automations for first time...');
+                        AutomationsSidebar.loadAutomations().then(() => {
+                            showWorkflowLibraryContent();
+                        });
+                    } else {
+                        console.log('[LIBRARY] Automations already loaded, showing content');
+                        showWorkflowLibraryContent();
+                    }
+                } else {
+                    console.error('[LIBRARY] AutomationsSidebar not available!');
+                    const container = document.getElementById('workflow-library-content');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="padding: 60px; text-align: center; color: var(--text-secondary);">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; color: var(--warning-color);"></i>
+                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">AutomationsSidebar Not Loaded</div>
+                                <div style="font-size: 13px;">Please refresh the page</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        }
+
+        function showWorkflowLibraryContent() {
+            console.log('[LIBRARY] showWorkflowLibraryContent called');
+            console.log('[LIBRARY] AutomationsSidebar:', typeof AutomationsSidebar !== 'undefined');
+            console.log('[LIBRARY] AutomationsSidebar.automations:', AutomationsSidebar?.automations);
+            console.log('[LIBRARY] Automations length:', AutomationsSidebar?.automations?.length);
+
+            if (typeof AutomationsSidebar === 'undefined' || !AutomationsSidebar.automations) {
+                console.error('[LIBRARY] AutomationsSidebar not available or no automations array');
+                const container = document.getElementById('workflow-library-content');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="padding: 60px; text-align: center; color: var(--text-secondary);">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; color: var(--warning-color);"></i>
+                            <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">AutomationsSidebar Not Ready</div>
+                            <div style="font-size: 13px;">Automations module not loaded. Please refresh the page.</div>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            const filtered = getFilteredWorkflows();
+            console.log('[LIBRARY] Filtered workflows:', filtered.length);
+            const container = document.getElementById('workflow-library-content');
+
+            if (filtered.length === 0) {
+                console.log('[LIBRARY] No workflows to display');
+                container.innerHTML = `
+                    <div style="padding: 60px; text-align: center; color: var(--text-secondary);">
+                        <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">No Workflows Found</div>
+                        <div style="font-size: 13px;">${librarySearchQuery ? 'Try a different search term' : 'Create your first workflow to get started'}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            console.log('[LIBRARY] Rendering', filtered.length, 'workflow cards');
+            container.innerHTML = filtered.map(auto => createDraggableWorkflowCard(auto)).join('');
+        }
+
+        function createDraggableWorkflowCard(automation) {
+            const lastRun = automation.last_run_at ? new Date(automation.last_run_at) : null;
+            const updated = new Date(automation.updated_at);
+
+            const timeAgo = (date) => {
+                if (!date) return 'Never';
+                const seconds = Math.floor((new Date() - date) / 1000);
+                if (seconds < 60) return `${seconds}s ago`;
+                if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+                if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+                return `${Math.floor(seconds / 86400)}d ago`;
+            };
+
+            return `
+                <div class="automation-item ${automation.enabled ? 'enabled' : 'disabled'}" 
+                    draggable="true"
+                    data-workflow-slug="${automation.slug}"
+                    data-workflow-name="${escapeHtml(automation.name)}"
+                    onclick="loadWorkflowFromLibrary('${automation.slug}')"
+                    ondragstart="handleWorkflowDragStart(event)"
+                    style="cursor: move; margin-bottom: 8px;">
+                    <div class="automation-item-header">
+                        <div>
+                            <div class="automation-item-title">${escapeHtml(automation.name)}</div>
+                            <div class="automation-item-slug">${automation.slug}</div>
+                        </div>
+                        <span class="automation-status-badge ${automation.enabled ? 'enabled' : 'disabled'}">
+                            ${automation.enabled ? 'ENABLED' : 'DISABLED'}
+                        </span>
+                    </div>
+                    
+                    ${automation.description ? `
+                        <div class="automation-item-description">
+                            ${escapeHtml(automation.description)}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="automation-item-meta">
+                        ${automation.category ? `
+                            <div class="automation-meta-item">
+                                <i class="fas fa-tag"></i>
+                                ${automation.category}
+                            </div>
+                        ` : ''}
+                        <div class="automation-meta-item">
+                            <i class="fas fa-clock"></i>
+                            Updated ${timeAgo(updated)}
+                        </div>
+                    </div>
+                    
+                    <div class="automation-item-stats">
+                        <div class="automation-stat-mini">
+                            <i class="fas fa-play-circle"></i>
+                            <strong>${automation.run_count || 0}</strong> runs
+                        </div>
+                        <div class="automation-stat-mini">
+                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                            <strong>${automation.success_count || 0}</strong> success
+                        </div>
+                        <div class="automation-stat-mini">
+                            <i class="fas fa-exclamation-circle" style="color: var(--error);"></i>
+                            <strong>${automation.error_count || 0}</strong> errors
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function setLibraryFilter(filter) {
+            libraryCurrentFilter = filter;
+
+            // Update active chip
+            document.querySelectorAll('.automation-filter-chip').forEach(chip => {
+                if (chip.dataset.filter === filter) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+
+            showWorkflowLibraryContent();
+        }
+
+        function filterWorkflowLibrary() {
+            librarySearchQuery = document.getElementById('workflow-library-search').value.toLowerCase();
+            showWorkflowLibraryContent();
+        }
+
+        function getFilteredWorkflows() {
+            if (typeof AutomationsSidebar === 'undefined' || !AutomationsSidebar.automations) {
+                return [];
+            }
+
+            let filtered = [...AutomationsSidebar.automations];
+
+            // Get dropdown values
+            const categoryFilter = document.getElementById('workflow-filter-category')?.value || '';
+            const statusFilter = document.getElementById('workflow-filter-status')?.value || '';
+
+            // Apply chip status filter (enabled/disabled/recent)
+            if (libraryCurrentFilter === 'enabled') {
+                filtered = filtered.filter(a => a.enabled);
+            } else if (libraryCurrentFilter === 'disabled') {
+                filtered = filtered.filter(a => !a.enabled);
+            } else if (libraryCurrentFilter === 'recent') {
+                filtered = filtered.filter(a => {
+                    const lastRun = new Date(a.last_run_at);
+                    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                    return lastRun > dayAgo;
+                });
+            }
+
+            // Apply category dropdown filter
+            if (categoryFilter) {
+                filtered = filtered.filter(a => a.category === categoryFilter);
+            }
+
+            // Apply status dropdown filter (draft/active/inactive)
+            if (statusFilter) {
+                filtered = filtered.filter(a => a.status === statusFilter);
+            }
+
+            // Apply search filter
+            if (librarySearchQuery) {
+                filtered = filtered.filter(a => {
+                    const searchableText = `${a.name} ${a.slug} ${a.description || ''} ${a.category || ''}`.toLowerCase();
+                    return searchableText.includes(librarySearchQuery);
+                });
+            }
+
+            return filtered;
+        } function loadWorkflowFromLibrary(slug) {
+            if (typeof AutomationsSidebar !== 'undefined' && AutomationsSidebar.openAutomation) {
+                AutomationsSidebar.openAutomation(slug);
+            }
+        }
+
+        // Drag and drop workflow cards to AI Prime
+        function handleWorkflowDragStart(event) {
+            const slug = event.target.dataset.workflowSlug;
+            const name = event.target.dataset.workflowName;
+
+            if (!slug || !name) return;
+
+            event.dataTransfer.effectAllowed = 'copy';
+            event.dataTransfer.setData('workflow-slug', slug);
+            event.dataTransfer.setData('workflow-name', name);
+
+            console.log('[LIBRARY] Started dragging workflow:', slug);
+        }
+
+        // Set up drop zone on AI Prime thread info panel
+        document.addEventListener('DOMContentLoaded', () => {
+            const primeThreadInfo = document.querySelector('#ai-chat-thread-info');
+
+            if (primeThreadInfo) {
+                primeThreadInfo.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    primeThreadInfo.style.background = 'var(--accent-primary-alpha)';
+                });
+
+                primeThreadInfo.addEventListener('dragleave', (e) => {
+                    primeThreadInfo.style.background = '';
+                });
+
+                primeThreadInfo.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    primeThreadInfo.style.background = '';
+
+                    const slug = e.dataTransfer.getData('workflow-slug');
+                    const name = e.dataTransfer.getData('workflow-name');
+
+                    if (!slug || !name) return;
+
+                    console.log('[LIBRARY] Dropped workflow into Prime:', slug);
+
+                    // Get active thread ID
+                    const activeThreadId = window.ThreadManager?.getActiveThreadId ? window.ThreadManager.getActiveThreadId() : null;
+
+                    if (!activeThreadId) {
+                        showNotification('No active AI Prime thread. Please start a conversation first.', 'warning');
+                        return;
+                    }
+
+                    // Link workflow to thread
+                    try {
+                        const response = await fetch('/api/threads/link-workflow', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+                            },
+                            body: JSON.stringify({
+                                thread_id: activeThreadId,
+                                workflow_id: slug,
+                                workflow_name: name
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Failed to link workflow: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            showNotification(`Workflow "${name}" linked to AI Prime thread`, 'success');
+
+                            // Refresh thread info card to show workflow badge
+                            if (window.ThreadManager?.refreshThreadCard) {
+                                window.ThreadManager.refreshThreadCard(activeThreadId);
+                            }
+                        } else {
+                            throw new Error(data.error || 'Failed to link workflow');
+                        }
+                    } catch (error) {
+                        console.error('[LIBRARY] Failed to link workflow:', error);
+                        showNotification(`Failed to link workflow: ${error.message}`, 'error');
+                    }
+                });
+            }
+        });
 
         // ==================== UTILITY FUNCTIONS ====================
         function formatNumber(num) {
@@ -18173,15 +18572,27 @@
     <script>
         // Circuit Board Animation for Login and Auth Loading overlays
         (function () {
+            console.log('[Circuit] Initializing circuit board animation...');
+
             const canvases = {
                 login: document.getElementById('loginCircuitCanvas'),
                 auth: document.getElementById('authCircuitCanvas')
             };
 
+            console.log('[Circuit] Canvas elements found:', {
+                login: !!canvases.login,
+                auth: !!canvases.auth
+            });
+
             const contexts = {
                 login: canvases.login ? canvases.login.getContext('2d') : null,
                 auth: canvases.auth ? canvases.auth.getContext('2d') : null
             };
+
+            console.log('[Circuit] Contexts created:', {
+                login: !!contexts.login,
+                auth: !!contexts.auth
+            });
 
             // Initialize canvases
             function initCanvas(canvas, ctx) {
@@ -18205,6 +18616,7 @@
 
             // Global animation start time - start immediately (Nov 22, 2025)
             let animationStartTime = Date.now();
+            let isAnimationActive = true; // Flag to control animation lifecycle
 
             const animations = {
                 login: initCanvas(canvases.login, contexts.login),
@@ -18549,6 +18961,36 @@
 
             // Animation loop
             function animate() {
+                // Check if EITHER overlay is visible - animation should run if any overlay is shown
+                const loginOverlay = document.getElementById('loginOverlay');
+                const authOverlay = document.getElementById('authLoadingOverlay');
+
+                const loginVisible = loginOverlay &&
+                    !loginOverlay.classList.contains('hidden') &&
+                    loginOverlay.style.display !== 'none';
+
+                const authVisible = authOverlay &&
+                    !authOverlay.classList.contains('hidden') &&
+                    authOverlay.style.display !== 'none';
+
+                // Animation should run if EITHER overlay is visible
+                const shouldAnimate = loginVisible || authVisible;
+
+                if (!shouldAnimate && isAnimationActive) {
+                    console.log('[Circuit] Both overlays hidden - stopping animation');
+                    isAnimationActive = false;
+                } else if (shouldAnimate && !isAnimationActive) {
+                    console.log('[Circuit] Overlay visible - restarting animation');
+                    isAnimationActive = true;
+                    animationStartTime = Date.now(); // Reset animation cycle
+                }
+
+                // Stop animation if not active
+                if (!isAnimationActive) {
+                    requestAnimationFrame(animate); // Keep checking for overlay visibility
+                    return;
+                }
+
                 const speedPhase = getGlobalSpeedPhase(); // MASTER CONTROLLER
 
                 ['login', 'auth'].forEach(type => {
@@ -18656,8 +19098,90 @@
             });
 
             // Start animation
+            console.log('[Circuit] Starting animation loop...');
             animate();
         })();
+    </script>
+
+    <!-- TEMP DEBUG: Manual module loader button + Status Display -->
+    <script>
+        // MODULE SYSTEM STATUS DISPLAY
+        setTimeout(() => {
+            // Create status panel
+            const statusPanel = document.createElement('div');
+            statusPanel.style.cssText = 'position: fixed; top: 70px; right: 10px; z-index: 999999; background: rgba(0,0,0,0.9); color: white; border: 2px solid #4fc3f7; border-radius: 8px; padding: 15px; font-family: monospace; font-size: 12px; min-width: 300px;';
+            statusPanel.innerHTML = `
+                <div style="font-weight: bold; color: #4fc3f7; margin-bottom: 10px;">MODULE SYSTEM STATUS</div>
+                <div id="moduleStatusContent">Checking...</div>
+            `;
+            document.body.appendChild(statusPanel);
+
+            // Create manual load button
+            const btn = document.createElement('button');
+            btn.innerHTML = '🔧 LOAD MODULES';
+            btn.style.cssText = 'position: fixed; top: 270px; right: 10px; z-index: 999999; padding: 10px 20px; background: #ff6b6b; color: white; border: 2px solid #fff; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+            btn.onclick = async () => {
+                console.log('%c🔧 [DEBUG] Forcing module load...', 'color: #ff6b6b; font-size: 16px; font-weight: bold');
+                btn.textContent = '⏳ Loading...';
+                try {
+                    await window.initializeModuleSystem();
+                    const mods = window.ModuleManager?.getModules() || [];
+                    btn.textContent = `✅ ${mods.length} loaded`;
+                    btn.style.background = '#51cf66';
+                    console.log(`%c✅ Loaded ${mods.length} modules`, 'color: #51cf66; font-weight: bold', mods.map(m => m.name));
+                    updateStatus();
+                } catch (e) {
+                    btn.textContent = '❌ Error';
+                    console.error('%c❌ Failed:', 'color: red; font-weight: bold', e);
+                    updateStatus();
+                }
+            };
+            document.body.appendChild(btn);
+
+            // Update status function
+            function updateStatus() {
+                const content = document.getElementById('moduleStatusContent');
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                const moduleSection = document.getElementById('sidebarModulesSection');
+                
+                let html = '';
+                html += `<div style="color: ${typeof window.ModuleManager !== 'undefined' ? '#51cf66' : '#ff6b6b'}">ModuleManager: ${typeof window.ModuleManager !== 'undefined' ? 'LOADED ✅' : 'MISSING ❌'}</div>`;
+                html += `<div style="color: ${typeof window.ModuleLoader !== 'undefined' ? '#51cf66' : '#ff6b6b'}">ModuleLoader: ${typeof window.ModuleLoader !== 'undefined' ? 'LOADED ✅' : 'MISSING ❌'}</div>`;
+                html += `<div style="color: ${typeof window.initializeModuleSystem !== 'undefined' ? '#51cf66' : '#ff6b6b'}">initializeModuleSystem: ${typeof window.initializeModuleSystem !== 'undefined' ? 'LOADED ✅' : 'MISSING ❌'}</div>`;
+                html += `<div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">`;
+                html += `<div style="color: ${sidebar ? '#51cf66' : '#ff6b6b'}">.sidebar: ${sidebar ? 'FOUND ✅' : 'NOT FOUND ❌'}</div>`;
+                html += `<div style="color: ${mainContent ? '#51cf66' : '#ff6b6b'}">.main-content: ${mainContent ? 'FOUND ✅' : 'NOT FOUND ❌'}</div>`;
+                html += `<div style="color: ${moduleSection ? '#51cf66' : '#ff6b6b'}">#sidebarModulesSection: ${moduleSection ? 'FOUND ✅' : 'NOT FOUND ❌'}</div>`;
+                html += `</div>`;
+                
+                if (window.ModuleManager && window.ModuleManager.getModules) {
+                    const modules = window.ModuleManager.getModules();
+                    html += `<div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">`;
+                    html += `<div style="color: ${modules.length > 0 ? '#51cf66' : '#ffa94d'}">Modules Loaded: ${modules.length}</div>`;
+                    if (modules.length > 0) {
+                        html += `<div style="font-size: 10px; color: #aaa; margin-top: 5px;">`;
+                        modules.forEach(m => {
+                            html += `• ${m.name}<br>`;
+                        });
+                        html += `</div>`;
+                    }
+                    html += `</div>`;
+                }
+                
+                if (moduleSection) {
+                    html += `<div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">`;
+                    html += `<div style="color: ${moduleSection.children.length > 0 ? '#51cf66' : '#ff6b6b'}">Icons in Sidebar: ${moduleSection.children.length}</div>`;
+                    html += `</div>`;
+                }
+                
+                content.innerHTML = html;
+            }
+
+            // Update every 2 seconds
+            updateStatus();
+            setInterval(updateStatus, 2000);
+        }, 3000);
     </script>
 
 </body>

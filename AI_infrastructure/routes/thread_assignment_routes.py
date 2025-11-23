@@ -224,6 +224,7 @@ def get_thread_assignments():
         
         # Read from sessions.threads.location (single source of truth in Supabase)
         # PostgreSQL uses %s for parameters
+        # CRITICAL: Include prime-loaded (frontend needs this for page load)
         logger.info(f"🔍 [Assignment] Executing query for user {user_id}")
         cursor.execute("""
             SELECT thread_slug, location 
@@ -244,15 +245,15 @@ def get_thread_assignments():
                 'assignments': {}
             })
         
-        # Build assignments dict: {"agent-1": "thread_slug", "agent-2": "thread_slug", ...}
+        # Build assignments dict: {"agent-1": "thread_slug", "prime-loaded": "thread_slug", ...}
         assignments = {}
         for row in rows:
             # row is a RealDictRow (dictionary), not a tuple
             thread_slug = str(row['thread_slug'])  # Use dict key access
             location = row['location']
             
-            # Only include agent locations (not 'prime', 'stock_ai', etc.)
-            if location and location.startswith('agent-'):
+            # Include agent locations AND prime-loaded (needed for page load)
+            if location and (location.startswith('agent-') or location == 'prime-loaded'):
                 assignments[location] = thread_slug
         
         logger.info(f"Loaded {len(assignments)} thread assignments from sessions.threads for user {user_id}")

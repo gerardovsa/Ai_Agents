@@ -73,24 +73,27 @@
 }
 
 .synergy-icon-btn {
+    display: flex;
     width: 32px;
     height: 32px;
-    background: transparent;
-    border: 1px solid var(--border-default);
-    border-radius: 6px;
     color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    padding: var(--space-1);
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
-    display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 14px;
 }
 
 .synergy-icon-btn:hover {
     background: var(--bg-hover);
-    border-color: var(--accent-primary);
     color: var(--accent-primary);
+    transform: scale(1.05);
+    border: 1px solid var(--accent-primary);
 }
 
 /* ==================== VIEW TABS ==================== */
@@ -299,9 +302,11 @@
 /* ==================== PRIORITY BADGES ==================== */
 
 .priority-badge {
-    padding: 3px 10px;
+    padding: 4px 12px;
+    /* Increased from 3px 10px */
     border-radius: 12px;
-    font-size: 10px;
+    font-size: 11px;
+    /* Increased from 10px */
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -327,12 +332,18 @@
 /* ==================== STATUS BADGES ==================== */
 
 .status-badge {
-    padding: 3px 10px;
+    padding: 4px 12px;
+    /* Increased from 3px 10px */
     border-radius: 12px;
-    font-size: 10px;
+    font-size: 11px;
+    /* Increased from 10px */
     font-weight: 600;
     background: var(--bg-quaternary);
     color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    /* Space for icon */
 }
 
 .status-badge.status-active {
@@ -443,4 +454,54 @@
 
 .synergy-sidebar-content::-webkit-scrollbar-thumb:hover {
     background: var(--text-tertiary);
+}
+
+/* ==================== CARD DROPDOWN MENU ==================== */
+
+.synergy-card-dropdown-menu {
+    animation: menuFadeIn 0.15s ease;
+}
+
+@keyframes menuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.synergy-dropdown-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.synergy-dropdown-item:hover {
+    background: var(--bg-hover);
+}
+
+.synergy-dropdown-item.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.synergy-dropdown-item i {
+    flex-shrink: 0;
+}
+
+.synergy-dropdown-item span {
+    flex: 1;
 }

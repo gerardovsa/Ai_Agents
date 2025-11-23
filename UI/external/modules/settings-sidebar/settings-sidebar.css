@@ -726,3 +726,110 @@ input:disabled {
 .error-logs-list::-webkit-scrollbar-thumb:hover {
     background: var(--border-default, #30363d);
 }
+
+/* ==================== LEGACY STATS PANEL (OLD HTML STRUCTURE) ==================== */
+/* These classes support the old statistics panel structure in business-ai-platform-v2.html */
+
+.settings-stats-panel {
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.stats-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #c9d1d9);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-default, #30363d);
+}
+
+.stats-header i {
+    color: var(--module-settings-primary, #8b5cf6);
+    font-size: 16px;
+}
+
+/* Override .stats-grid for legacy structure - use 4 columns instead of 2 */
+.settings-stats-panel .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 1024px) {
+    .settings-stats-panel .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .settings-stats-panel .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.stat-item {
+    background: var(--bg-primary, #0d1117);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    border-left: 3px solid var(--module-settings-primary, #8b5cf6);
+}
+
+.stat-label {
+    font-size: 11px;
+    color: var(--text-secondary, #8b949e);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary, #c9d1d9);
+    line-height: 1;
+}
+
+.stat-value.stat-success {
+    color: #3fb950;
+}
+
+.stat-value.stat-failure {
+    color: #da3633;
+}
+
+.stats-reset-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background: var(--bg-tertiary, #21262d);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-primary, #c9d1d9);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.stats-reset-btn:hover {
+    background: var(--bg-secondary, #161b22);
+    border-color: var(--module-settings-primary, #8b5cf6);
+    color: var(--module-settings-primary, #8b5cf6);
+}
+
+.stats-reset-btn i {
+    font-size: 12px;
+}

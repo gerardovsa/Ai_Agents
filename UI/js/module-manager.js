@@ -436,7 +436,7 @@ class ModuleManager {
     /**
      * Switch to module tab
      */
-    switchToModule(moduleId) {
+    async switchToModule(moduleId) {
         const module = this.modules.get(moduleId);
         if (!module) {
             console.error(` Module ${moduleId} not found`);
@@ -469,6 +469,9 @@ class ModuleManager {
         if (button) {
             button.classList.add('active');
         }
+
+        // ✅ CRITICAL FIX: Initialize module on first view (lazy loading)
+        await this.handleTabActivation(moduleId);
 
         // Notify module it's active (if initialized)
         if (module.loaded && module.instance && module.instance.onActivate) {

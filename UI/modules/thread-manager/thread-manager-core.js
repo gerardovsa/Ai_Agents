@@ -99,6 +99,22 @@ const ThreadManager = {
         return this.threads.find(t => t.id === this.currentThreadId);
     },
 
+    // Get active AI Prime thread ID for workflow linking
+    getActiveThreadId() {
+        // Check AppState.currentThreadId (AI Prime active thread)
+        if (typeof AppState !== 'undefined' && AppState.currentThreadId) {
+            return AppState.currentThreadId;
+        }
+        
+        // Fallback: Find thread at location='prime-loaded'
+        const primeThread = this.threads.find(t => t.location === 'prime-loaded');
+        if (primeThread) {
+            return primeThread.id;
+        }
+        
+        return null;
+    },
+
     // REPLACE the existing init() with this enhanced version:
     async init() {
         console.log('🚀 [ThreadManager] Initializing...');
@@ -319,26 +335,26 @@ const ThreadManager = {
             return;
         }
 
-        // PRIORITY 1: Check for prime-loaded thread (explicit startup thread)
+        // ONLY load prime-loaded thread (explicit startup thread)
+        // Do NOT fallback to first prime thread - show empty state instead
         const primeLoadedThread = this.threads.find(t => t.location === 'prime-loaded');
         
         if (primeLoadedThread) {
             console.log(`🎯 [ThreadManager] Auto-loading PRIME-LOADED thread: ${primeLoadedThread.title}`);
             await this.loadThreadInPrime(primeLoadedThread.id);
+            
+            // Update thread info card after loading
+            if (typeof this.renderThreadInfoContainer === 'function') {
+                this.renderThreadInfoContainer('prime', primeLoadedThread.id, true);
+            }
             return;
         }
 
-        // PRIORITY 2: Find first thread that belongs in Prime (fallback)
-        const primeThread = this.threads.find(t => !t.location || t.location === 'prime');
-
-        if (primeThread) {
-            console.log(`📖 [ThreadManager] Auto-loading Prime thread: ${primeThread.title}`);
-            await this.loadThreadInPrime(primeThread.id);
-        } else {
-            console.log('📝 [ThreadManager] No Prime threads - all in agent columns');
-            this.showStartNewChatButton('ai-chat-messages', 'prime');
-        }
+        // No prime-loaded thread - show empty state with thread selector
+        console.log('📝 [ThreadManager] No prime-loaded thread - showing empty state');
+        this.showStartNewChatButton('ai-chat-messages', 'prime');
     },
+
 
     startAutoSave() {
         // ⚠️ AUTO-SAVE DISABLED (Nov 22, 2025)

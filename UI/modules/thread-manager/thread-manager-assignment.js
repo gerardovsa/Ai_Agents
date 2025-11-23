@@ -48,6 +48,28 @@ Object.assign(window.ThreadManager, {
      */
     async assignThread(threadId, location) {
         console.log(`🔄 [Assignment] START: ${threadId} → ${location}`);
+        
+        // CRITICAL: Enforce single prime-loaded thread
+        if (location === 'prime-loaded') {
+            const existingPrimeLoaded = this.threads.find(t => t.location === 'prime-loaded' && t.id !== threadId);
+            if (existingPrimeLoaded) {
+                console.log(`🔄 [Assignment] Clearing previous prime-loaded: ${existingPrimeLoaded.id}`);
+                existingPrimeLoaded.location = 'prime'; // Reset to resting state
+                // Update backend for cleared thread
+                try {
+                    await fetch('/api/threads/location', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            thread_id: existingPrimeLoaded.id, 
+                            location: 'prime' 
+                        })
+                    });
+                } catch (err) {
+                    console.error('Failed to clear previous prime-loaded:', err);
+                }
+            }
+        }
 
         try {
             // Set pending flag to prevent realtime loop

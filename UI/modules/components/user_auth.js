@@ -302,6 +302,22 @@ const UserAuth = {
         platformContainer.classList.add('active');
         platformContainer.style.opacity = '0';
 
+        // ✅ CRITICAL FIX (Nov 24, 2025): Wait for DOM to render AND become visible
+        // Multiple animation frames to ensure layout is complete
+        console.log('[AUTH] Waiting for DOM to be fully rendered...');
+        await new Promise(resolve => requestAnimationFrame(() => 
+            requestAnimationFrame(() => 
+                requestAnimationFrame(resolve)
+            )
+        ));
+        
+        // Verify platform container is actually active
+        if (platformContainer.classList.contains('active')) {
+            console.log('✅ [AUTH] Platform container is active and in layout');
+        } else {
+            console.error('❌ [AUTH] Platform container is NOT active!');
+        }
+
         try {
             // PHASE 1: Initialize main app with existing libraries (15% progress)
             this.setLoadingProgress(15, 'Initializing application...');
@@ -312,8 +328,24 @@ const UserAuth = {
             this.setLoadingProgress(22, 'Loading modules...');
             if (window.initializeModuleSystem) {
                 console.log('🔷 [AUTH] Triggering module system initialization...');
-                await window.initializeModuleSystem();
-                console.log('✅ [AUTH] Module system initialized');
+                try {
+                    await window.initializeModuleSystem();
+                    console.log('✅ [AUTH] Module system initialization complete');
+                    
+                    // Verify modules loaded
+                    if (window.ModuleManager && window.ModuleManager.getModules) {
+                        const modules = window.ModuleManager.getModules();
+                        console.log(`📦 [AUTH] ${modules.length} modules loaded`);
+                        const kanban = modules.find(m => m.id === 'inhouse-kanban');
+                        if (kanban) {
+                            console.log('✅ [AUTH] InHouse Kanban module registered');
+                        } else {
+                            console.warn('⚠️ [AUTH] InHouse Kanban module NOT found');
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ [AUTH] Module system initialization ERROR:', error);
+                }
             } else {
                 console.warn('⚠️ [AUTH] initializeModuleSystem not found - modules may not load');
             }

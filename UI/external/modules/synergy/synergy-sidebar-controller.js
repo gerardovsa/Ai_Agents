@@ -280,38 +280,51 @@ class SynergySidebarController {
 
     /**
      * Open session in popup
+     * Uses new SynergyPopupModal for full-screen view
      */
     openInPopup(sessionId) {
         console.log(`[SYNERGY SIDEBAR] Opening session in popup: ${sessionId}`);
 
-        // Call the existing popup function if it exists
-        if (window.synergyBoard && typeof window.synergyBoard.popOutCard === 'function') {
+        // Use new popup modal if available
+        if (window.synergyPopupModal) {
+            window.synergyPopupModal.open(sessionId);
+        }
+        // Fallback to old popup if exists
+        else if (window.synergyBoard && typeof window.synergyBoard.popOutCard === 'function') {
             window.synergyBoard.popOutCard(sessionId);
         } else {
             console.warn('[SYNERGY SIDEBAR] Popup function not available');
+            alert('Popup modal not loaded. Please refresh the page.');
         }
     }
 
     /**
      * Edit session
+     * Opens popup in edit mode
      */
-    editCard(sessionId) {
+    async editCard(sessionId) {
         console.log(`[SYNERGY SIDEBAR] Editing session: ${sessionId}`);
 
-        // Open in popup and enter edit mode
-        this.openInPopup(sessionId);
-
-        // After short delay, trigger edit mode
-        setTimeout(() => {
-            if (window.synergyBoard && typeof window.synergyBoard.togglePopupEdit === 'function') {
-                const popout = Array.from(document.querySelectorAll('.popout-card-window'))
-                    .find(w => w.dataset.sessionId === sessionId);
-
-                if (popout) {
-                    window.synergyBoard.togglePopupEdit(popout.id, sessionId);
+        // Open in new popup modal with edit mode
+        if (window.synergyPopupModal) {
+            await window.synergyPopupModal.open(sessionId);
+            // Wait for content to load, then enable edit mode
+            setTimeout(() => {
+                window.synergyPopupModal.toggleEditMode();
+            }, 500);
+        } else {
+            // Fallback to old edit behavior
+            this.openInPopup(sessionId);
+            setTimeout(() => {
+                if (window.synergyBoard && typeof window.synergyBoard.togglePopupEdit === 'function') {
+                    const popout = Array.from(document.querySelectorAll('.popout-card-window'))
+                        .find(w => w.dataset.sessionId === sessionId);
+                    if (popout) {
+                        window.synergyBoard.togglePopupEdit(popout.id, sessionId);
+                    }
                 }
-            }
-        }, 100);
+            }, 100);
+        }
     }
 
     /**

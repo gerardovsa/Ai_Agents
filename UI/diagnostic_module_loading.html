@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Module Loading Diagnostic</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 40px;
+            line-height: 1.6;
+        }
+        .section {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        h1 { color: #4fc3f7; margin-top: 0; }
+        h2 { color: #81c784; margin-top: 0; }
+        .pass { color: #51cf66; }
+        .fail { color: #ff6b6b; }
+        .warn { color: #ffa94d; }
+        pre {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 12px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background: #4fc3f7;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover { background: #29b6f6; }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        .test-pass {
+            background: #1b3a26;
+            border-color: #51cf66;
+        }
+        .test-fail {
+            background: #3a1b1b;
+            border-color: #ff6b6b;
+        }
+        .test-warn {
+            background: #3a301b;
+            border-color: #ffa94d;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Module Loading Diagnostic Tool</h1>
+    <p>This page will diagnose why modules are not appearing in the sidebar.</p>
+
+    <div class="section">
+        <h2>Quick Actions</h2>
+        <button onclick="runFullDiagnostic()">🔬 Run Full Diagnostic</button>
+        <button onclick="testManifestFetch()">📡 Test Manifest Fetch</button>
+        <button onclick="testModuleManagerExists()">🔧 Test ModuleManager</button>
+        <button onclick="manuallyLoadModules()">🚀 Manually Load Modules</button>
+        <button onclick="location.reload()">🔄 Reload Page</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(title, status, details) {
+            const div = document.createElement('div');
+            div.className = 'section';
+            
+            const statusClass = status === 'pass' ? 'pass' : status === 'fail' ? 'fail' : 'warn';
+            const statusIcon = status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⚠️';
+            
+            div.innerHTML = `
+                <h2 class="${statusClass}">${statusIcon} ${title}</h2>
+                <pre>${details}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        async function runFullDiagnostic() {
+            results.innerHTML = '<h2>🔬 Running Full Diagnostic...</h2>';
+            
+            // Test 1: Check if module scripts are loaded
+            await testScriptLoading();
+            
+            // Test 2: Check ModuleManager
+            await testModuleManagerExists();
+            
+            // Test 3: Check DOM elements
+            await testDOMElements();
+            
+            // Test 4: Test manifest fetch
+            await testManifestFetch();
+            
+            // Test 5: Try manual load
+            await manuallyLoadModules();
+            
+            addResult('Diagnostic Complete', 'pass', 'All tests completed. Check results above.');
+        }
+
+        async function testScriptLoading() {
+            const scripts = [
+                '/js/module-manager.js',
+                '/js/module-loader.js'
+            ];
+            
+            let details = '';
+            let allLoaded = true;
+            
+            for (const scriptPath of scripts) {
+                const found = Array.from(document.scripts).some(s => s.src.includes(scriptPath));
+                if (found) {
+                    details += `✅ ${scriptPath} - LOADED\n`;
+                } else {
+                    details += `❌ ${scriptPath} - NOT FOUND\n`;
+                    allLoaded = false;
+                }
+            }
+            
+            // Check if classes exist
+            details += '\nGlobal Classes:\n';
+            details += `window.ModuleManager: ${typeof window.ModuleManager}\n`;
+            details += `window.ModuleLoader: ${typeof window.ModuleLoader}\n`;
+            details += `window.initializeModuleSystem: ${typeof window.initializeModuleSystem}\n`;
+            
+            addResult('Script Loading', allLoaded ? 'pass' : 'fail', details);
+        }
+
+        async function testModuleManagerExists() {
+            let details = '';
+            let status = 'pass';
+            
+            if (typeof window.ModuleManager === 'undefined') {
+                details = '❌ ModuleManager class NOT found in window object\n\n';
+                details += 'Available properties with "Module":\n';
+                details += Object.keys(window).filter(k => k.includes('Module')).join('\n');
+                status = 'fail';
+            } else {
+                details = '✅ ModuleManager class EXISTS\n\n';
+                details += `Type: ${typeof window.ModuleManager}\n`;
+                details += `Constructor: ${window.ModuleManager.constructor ? 'Yes' : 'No'}\n`;
+                
+                // Check if initialized
+                if (window.ModuleManager.sidebar) {
+                    details += `✅ ModuleManager.sidebar: ${window.ModuleManager.sidebar ? 'SET' : 'NULL'}\n`;
+                } else {
+                    details += `❌ ModuleManager.sidebar: NOT SET\n`;
+                    status = 'warn';
+                }
+                
+                if (window.ModuleManager.mainContent) {
+                    details += `✅ ModuleManager.mainContent: ${window.ModuleManager.mainContent ? 'SET' : 'NULL'}\n`;
+                } else {
+                    details += `❌ ModuleManager.mainContent: NOT SET\n`;
+                    status = 'warn';
+                }
+                
+                // Check modules
+                if (window.ModuleManager.getModules) {
+                    const modules = window.ModuleManager.getModules();
+                    details += `\nRegistered Modules: ${modules.length}\n`;
+                    if (modules.length > 0) {
+                        details += '\nModule List:\n';
+                        modules.forEach(m => {
+                            details += `  - ${m.name} (${m.id})\n`;
+                        });
+                    } else {
+                        details += '⚠️ No modules registered yet\n';
+                        status = 'warn';
+                    }
+                } else {
+                    details += '❌ getModules() method NOT found\n';
+                    status = 'fail';
+                }
+            }
+            
+            addResult('ModuleManager Check', status, details);
+        }
+
+        async function testDOMElements() {
+            let details = '';
+            let status = 'pass';
+            
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const moduleSection = document.getElementById('sidebarModulesSection');
+            
+            if (sidebar) {
+                details += `✅ .sidebar element: FOUND\n`;
+                details += `   offsetParent: ${sidebar.offsetParent !== null ? 'VISIBLE' : 'HIDDEN'}\n`;
+                details += `   display: ${getComputedStyle(sidebar).display}\n`;
+            } else {
+                details += `❌ .sidebar element: NOT FOUND\n`;
+                status = 'fail';
+            }
+            
+            if (mainContent) {
+                details += `✅ .main-content element: FOUND\n`;
+                details += `   offsetParent: ${mainContent.offsetParent !== null ? 'VISIBLE' : 'HIDDEN'}\n`;
+            } else {
+                details += `❌ .main-content element: NOT FOUND\n`;
+                status = 'fail';
+            }
+            
+            if (moduleSection) {
+                details += `✅ #sidebarModulesSection: FOUND\n`;
+                details += `   innerHTML length: ${moduleSection.innerHTML.length}\n`;
+                details += `   Child elements: ${moduleSection.children.length}\n`;
+                if (moduleSection.children.length === 0) {
+                    details += `⚠️ No child elements - modules not loaded!\n`;
+                    status = 'warn';
+                }
+            } else {
+                details += `❌ #sidebarModulesSection: NOT FOUND\n`;
+                status = 'fail';
+            }
+            
+            addResult('DOM Elements', status, details);
+        }
+
+        async function testManifestFetch() {
+            let details = '';
+            let status = 'pass';
+            
+            try {
+                const url = 'http://localhost:5001/external/modules/manifest.json';
+                details += `Fetching: ${url}\n\n`;
+                
+                const response = await fetch(url);
+                details += `Status: ${response.status} ${response.statusText}\n`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    details += `✅ Manifest loaded successfully\n\n`;
+                    details += `Modules in manifest: ${data.modules ? data.modules.length : 0}\n\n`;
+                    
+                    if (data.modules) {
+                        details += 'Module List:\n';
+                        data.modules.forEach(m => {
+                            details += `  - ${m.name} (${m.id}) - ${m.enabled !== false ? 'ENABLED' : 'DISABLED'}\n`;
+                        });
+                    }
+                } else {
+                    details += `❌ Failed to fetch manifest\n`;
+                    status = 'fail';
+                }
+            } catch (error) {
+                details += `❌ Error fetching manifest:\n${error.message}\n${error.stack}`;
+                status = 'fail';
+            }
+            
+            addResult('Manifest Fetch Test', status, details);
+        }
+
+        async function manuallyLoadModules() {
+            let details = '';
+            let status = 'pass';
+            
+            try {
+                details += 'Step 1: Checking if ModuleManager exists...\n';
+                if (!window.ModuleManager) {
+                    details += '❌ ModuleManager not found!\n';
+                    status = 'fail';
+                    addResult('Manual Module Load', status, details);
+                    return;
+                }
+                details += '✅ ModuleManager found\n\n';
+                
+                details += 'Step 2: Calling ModuleManager.initialize()...\n';
+                const initResult = await window.ModuleManager.initialize();
+                details += `Initialize result: ${initResult}\n\n`;
+                
+                if (!initResult) {
+                    details += '❌ ModuleManager.initialize() failed\n';
+                    details += 'Checking DOM elements:\n';
+                    details += `  .sidebar: ${document.querySelector('.sidebar') ? 'FOUND' : 'NOT FOUND'}\n`;
+                    details += `  .main-content: ${document.querySelector('.main-content') ? 'FOUND' : 'NOT FOUND'}\n`;
+                    status = 'fail';
+                    addResult('Manual Module Load', status, details);
+                    return;
+                }
+                details += '✅ ModuleManager initialized\n\n';
+                
+                details += 'Step 3: Creating ModuleLoader...\n';
+                const loader = new window.ModuleLoader();
+                details += '✅ ModuleLoader created\n\n';
+                
+                details += 'Step 4: Loading modules...\n';
+                await loader.loadModules();
+                details += '✅ loadModules() completed\n\n';
+                
+                details += 'Step 5: Checking results...\n';
+                const modules = window.ModuleManager.getModules();
+                details += `✅ ${modules.length} modules loaded\n\n`;
+                
+                if (modules.length > 0) {
+                    details += 'Loaded modules:\n';
+                    modules.forEach(m => {
+                        details += `  - ${m.name} (${m.id})\n`;
+                    });
+                    status = 'pass';
+                } else {
+                    details += '⚠️ No modules loaded!\n';
+                    status = 'warn';
+                }
+            } catch (error) {
+                details += `\n❌ Error during manual load:\n${error.message}\n${error.stack}`;
+                status = 'fail';
+            }
+            
+            addResult('Manual Module Load', status, details);
+        }
+
+        // Auto-run diagnostic on page load
+        setTimeout(runFullDiagnostic, 500);
+    </script>
+</body>
+</html>

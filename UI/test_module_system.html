@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module System Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .log-entry {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .log-entry.error { border-left: 4px solid #f44336; }
+        .log-entry.success { border-left: 4px solid #4CAF50; }
+        .log-entry.warning { border-left: 4px solid #ff9800; }
+        .log-entry.info { border-left: 4px solid #2196F3; }
+        h1 { color: #4CAF50; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #1976D2; }
+        #logOutput {
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Module System Live Test</h1>
+    
+    <div>
+        <button onclick="checkModuleSystem()">🔄 Check Module System</button>
+        <button onclick="checkGlobalObjects()">🌐 Check Global Objects</button>
+        <button onclick="forceInitModules()">⚡ Force Init Modules</button>
+        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+    </div>
+    
+    <div id="logOutput"></div>
+    
+    <script src="js/module-manager.js"></script>
+    <script src="js/module-loader.js"></script>
+    
+    <script>
+        const logOutput = document.getElementById('logOutput');
+        
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLogs() {
+            logOutput.innerHTML = '';
+        }
+        
+        function checkModuleSystem() {
+            log('=== CHECKING MODULE SYSTEM ===', 'info');
+            
+            // Check if ModuleManager exists
+            if (window.ModuleManager) {
+                log('✅ window.ModuleManager exists', 'success');
+                
+                // Check if initialized
+                if (window.ModuleManager.sidebar && window.ModuleManager.mainContent) {
+                    log('✅ ModuleManager is initialized', 'success');
+                    log(`   Sidebar: ${window.ModuleManager.sidebar ? 'Found' : 'NOT FOUND'}`, 'info');
+                    log(`   Main Content: ${window.ModuleManager.mainContent ? 'Found' : 'NOT FOUND'}`, 'info');
+                } else {
+                    log('⚠️ ModuleManager exists but not initialized', 'warning');
+                    log(`   Sidebar: ${window.ModuleManager.sidebar ? 'Found' : 'NOT FOUND'}`, 'warning');
+                    log(`   Main Content: ${window.ModuleManager.mainContent ? 'Found' : 'NOT FOUND'}`, 'warning');
+                }
+                
+                // Check registered modules
+                const modules = window.ModuleManager.getModules();
+                log(`📦 Registered modules: ${modules.length}`, modules.length > 0 ? 'success' : 'warning');
+                
+                if (modules.length > 0) {
+                    modules.forEach(module => {
+                        const status = module.loaded ? '✅' : '⏳';
+                        log(`   ${status} ${module.name} (${module.id})`, 'info');
+                    });
+                    
+                    // Check for inhouse-kanban specifically
+                    const kanban = modules.find(m => m.id === 'inhouse-kanban');
+                    if (kanban) {
+                        log('✅ InHouse Kanban module found!', 'success');
+                        log(`   Loaded: ${kanban.loaded}`, kanban.loaded ? 'success' : 'warning');
+                        log(`   Instance: ${kanban.instance ? 'YES' : 'NO'}`, kanban.instance ? 'success' : 'warning');
+                    } else {
+                        log('❌ InHouse Kanban module NOT registered', 'error');
+                    }
+                }
+            } else {
+                log('❌ window.ModuleManager does NOT exist', 'error');
+            }
+            
+            // Check ModuleLoader
+            if (window.ModuleLoader) {
+                log('✅ window.ModuleLoader class exists', 'success');
+            } else {
+                log('❌ window.ModuleLoader class does NOT exist', 'error');
+            }
+            
+            // Check initializeModuleSystem
+            if (window.initializeModuleSystem) {
+                log('✅ window.initializeModuleSystem function exists', 'success');
+            } else {
+                log('❌ window.initializeModuleSystem function does NOT exist', 'error');
+            }
+        }
+        
+        function checkGlobalObjects() {
+            log('=== CHECKING GLOBAL OBJECTS ===', 'info');
+            
+            const moduleRelated = Object.keys(window).filter(k => 
+                k.toLowerCase().includes('module') || 
+                k.toLowerCase().includes('kanban')
+            );
+            
+            if (moduleRelated.length > 0) {
+                log(`Found ${moduleRelated.length} module-related global objects:`, 'success');
+                moduleRelated.forEach(key => {
+                    const value = window[key];
+                    const type = typeof value;
+                    log(`   ${key}: ${type}`, 'info');
+                });
+            } else {
+                log('No module-related global objects found', 'warning');
+            }
+            
+            // Check ModuleRegistry
+            if (window.ModuleRegistry) {
+                log('✅ window.ModuleRegistry exists', 'success');
+                const registeredModules = Object.keys(window.ModuleRegistry);
+                log(`   Registered: ${registeredModules.join(', ')}`, 'info');
+            } else {
+                log('❌ window.ModuleRegistry does NOT exist', 'error');
+            }
+        }
+        
+        async function forceInitModules() {
+            log('=== FORCE INITIALIZING MODULES ===', 'info');
+            
+            if (!window.initializeModuleSystem) {
+                log('❌ initializeModuleSystem not found', 'error');
+                return;
+            }
+            
+            try {
+                log('🚀 Calling initializeModuleSystem()...', 'info');
+                await window.initializeModuleSystem();
+                log('✅ Module system initialization complete', 'success');
+                
+                // Check results
+                setTimeout(() => checkModuleSystem(), 2000);
+            } catch (error) {
+                log(`❌ Error during initialization: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        // Auto-check on load
+        setTimeout(() => {
+            log('🔍 Running auto-check...', 'info');
+            checkModuleSystem();
+            checkGlobalObjects();
+        }, 500);
+    </script>
+</body>
+</html>

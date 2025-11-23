@@ -341,12 +341,17 @@ window.ThreadManagerUI = {
      * Render thread info container (for Prime/Agent headers)
      */
     renderThreadInfoContainer(location, threadId, compact = false) {
+        console.log(`🎨 [renderThreadInfoContainer] CALLED: location="${location}", threadId="${threadId}", compact=${compact}`);
+        
         const threads = window.ThreadManager.threads || [];
         const thread = threads.find(t => t.id === threadId);
 
         if (!thread) {
+            console.warn(`⚠️ [renderThreadInfoContainer] Thread ${threadId} NOT FOUND in threads array`);
             return this.renderEmptyThreadInfo(location);
         }
+
+        console.log(`✅ [renderThreadInfoContainer] Thread found:`, { id: thread.id, title: thread.title, location: thread.location });
 
         // Use ThreadCardTemplates for consistent 7-row structure
         if (typeof ThreadCardTemplates === 'undefined') {
@@ -364,6 +369,15 @@ window.ThreadManagerUI = {
                 hour: 'numeric', minute: '2-digit'
             })
         };
+
+        // Debug log for agent columns
+        if (location && location.startsWith('agent-')) {
+            console.log(`[renderThreadInfoContainer] ${location} - Thread:`, thread.id, 'Meta:', meta, 'Thread data:', {
+                message_count: thread.message_count,
+                updated: thread.updated,
+                created: thread.created
+            });
+        }
 
         // Agent metadata (varies by location)
         let agent = {
@@ -397,7 +411,7 @@ window.ThreadManagerUI = {
         const currentLocation = thread.location || 'prime';
 
         // Use ThreadCardTemplates.compactCard() for all locations
-        return ThreadCardTemplates.compactCard(
+        const cardHtml = ThreadCardTemplates.compactCard(
             thread,
             location,
             agent,
@@ -406,6 +420,9 @@ window.ThreadManagerUI = {
             null,  // synergyMeta (fetched separately if needed)
             currentLocation
         );
+        
+        console.log(`✅ [renderThreadInfoContainer] Generated card HTML (${cardHtml.length} chars) for location="${location}"`);
+        return cardHtml;
     },
 
     /**

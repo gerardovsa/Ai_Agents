@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Loading Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .test-section.error {
+            border-left-color: #f44336;
+        }
+        .test-section.warning {
+            border-left-color: #ff9800;
+        }
+        h1 { color: #4CAF50; }
+        h2 { color: #2196F3; margin-top: 0; }
+        pre {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #444;
+        }
+        .status { font-weight: bold; }
+        .status.ok { color: #4CAF50; }
+        .status.fail { color: #f44336; }
+        .status.warn { color: #ff9800; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976D2; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Module System Diagnostic</h1>
+    
+    <div id="results"></div>
+    
+    <button onclick="runTests()">🔄 Run Tests</button>
+    <button onclick="location.reload()">🔃 Reload Page</button>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function addTest(title, status, details, isError = false, isWarning = false) {
+            const section = document.createElement('div');
+            section.className = 'test-section' + (isError ? ' error' : '') + (isWarning ? ' warning' : '');
+            
+            const statusClass = isError ? 'fail' : (isWarning ? 'warn' : 'ok');
+            const statusIcon = isError ? '❌' : (isWarning ? '⚠️' : '✅');
+            
+            section.innerHTML = `
+                <h2>${statusIcon} ${title}</h2>
+                <div class="status ${statusClass}">${status}</div>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+            results.appendChild(section);
+        }
+        
+        async function runTests() {
+            results.innerHTML = '';
+            
+            // TEST 1: Check manifest.json exists
+            try {
+                const response = await fetch('external/modules/manifest.json');
+                if (response.ok) {
+                    const manifest = await response.json();
+                    addTest(
+                        'Manifest File',
+                        `Found ${manifest.modules.length} modules`,
+                        JSON.stringify(manifest, null, 2)
+                    );
+                    
+                    // Check if inhouse-kanban is in manifest
+                    const kanban = manifest.modules.find(m => m.id === 'inhouse-kanban');
+                    if (kanban) {
+                        addTest(
+                            'InHouse Kanban Module',
+                            kanban.enabled ? 'ENABLED' : 'DISABLED',
+                            JSON.stringify(kanban, null, 2),
+                            !kanban.enabled
+                        );
+                    } else {
+                        addTest(
+                            'InHouse Kanban Module',
+                            'NOT FOUND in manifest',
+                            'Module "inhouse-kanban" is missing from manifest.json',
+                            true
+                        );
+                    }
+                } else {
+                    addTest(
+                        'Manifest File',
+                        `HTTP ${response.status}`,
+                        'Could not load external/modules/manifest.json',
+                        true
+                    );
+                }
+            } catch (error) {
+                addTest(
+                    'Manifest File',
+                    'FETCH FAILED',
+                    error.message,
+                    true
+                );
+            }
+            
+            // TEST 2: Check if module files exist
+            const modulePath = 'external/modules/inhouse-kanban/manifest.json';
+            try {
+                const response = await fetch(modulePath);
+                if (response.ok) {
+                    const moduleManifest = await response.json();
+                    addTest(
+                        'Module Manifest File',
+                        'EXISTS',
+                        JSON.stringify(moduleManifest, null, 2)
+                    );
+                } else {
+                    addTest(
+                        'Module Manifest File',
+                        `HTTP ${response.status}`,
+                        `Could not load ${modulePath}`,
+                        true
+                    );
+                }
+            } catch (error) {
+                addTest(
+                    'Module Manifest File',
+                    'FETCH FAILED',
+                    error.message,
+                    true
+                );
+            }
+            
+            // TEST 3: Check backend API
+            try {
+                const response = await fetch('http://localhost:5001/api/inhouse-kanban/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    addTest(
+                        'Backend API Health',
+                        'CONNECTED',
+                        JSON.stringify(data, null, 2)
+                    );
+                } else {
+                    addTest(
+                        'Backend API Health',
+                        `HTTP ${response.status}`,
+                        'Backend route not responding',
+                        false,
+                        true
+                    );
+                }
+            } catch (error) {
+                addTest(
+                    'Backend API Health',
+                    'CONNECTION FAILED',
+                    error.message,
+                    true
+                );
+            }
+            
+            // TEST 4: Check if module script exists
+            const scriptPath = 'external/modules/inhouse-kanban/inhouse-kanban.js';
+            try {
+                const response = await fetch(scriptPath);
+                if (response.ok) {
+                    const size = (response.headers.get('content-length') / 1024).toFixed(2);
+                    addTest(
+                        'Module Script File',
+                        'EXISTS',
+                        `${scriptPath} (${size} KB)`
+                    );
+                } else {
+                    addTest(
+                        'Module Script File',
+                        `HTTP ${response.status}`,
+                        `Could not load ${scriptPath}`,
+                        true
+                    );
+                }
+            } catch (error) {
+                addTest(
+                    'Module Script File',
+                    'FETCH FAILED',
+                    error.message,
+                    true
+                );
+            }
+        }
+        
+        // Run tests on page load
+        runTests();
+    </script>
+</body>
+</html>

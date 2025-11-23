@@ -386,6 +386,7 @@ CORS(app,
 )
 
 # Initialize SocketIO with full async support
+# FIX: Disable session management and cookies to prevent WSGI "write() before start_response" errors
 socketio = SocketIO(
     app, 
     cors_allowed_origins="*",
@@ -395,6 +396,8 @@ socketio = SocketIO(
     ping_timeout=60,
     ping_interval=25,
     always_connect=True,
+    manage_session=False,  # ✅ FIX: Disable Flask-SocketIO session management to avoid WSGI conflicts
+    cookie=None,  # ✅ FIX: Disable cookies to prevent "write before start_response" errors
     engineio_logger_level='WARNING'  # Only show warnings/errors
 )
 
@@ -543,19 +546,29 @@ def ws_synergy_ping(data):
 # SOCKETIO ERROR HANDLERS
 # ============================================================================
 
+@socketio.on_error()
+def global_error_handler(e):
+    """Handle Socket.IO errors gracefully across all namespaces"""
+    log_error(logger, f"[WS ERROR] Global: {str(e)}")
+    import traceback
+    log_error(logger, traceback.format_exc())
+    return {'error': str(e), 'status': 'error'}
+
 @socketio.on_error(namespace='/ws/synergy')
 def ws_synergy_error_handler(e):
     """Handle errors in /ws/synergy namespace"""
-    print(f'[WS ERROR] /ws/synergy error: {e}')
+    log_error(logger, f'[WS ERROR] /ws/synergy: {str(e)}')
     import traceback
-    traceback.print_exc()
+    log_error(logger, traceback.format_exc())
+    return {'error': str(e), 'status': 'error'}
 
 @socketio.on_error_default
 def default_error_handler(e):
     """Handle errors in default namespace"""
-    print(f'[WS ERROR] Default namespace error: {e}')
+    log_error(logger, f'[WS ERROR] Default namespace: {str(e)}')
     import traceback
-    traceback.print_exc()
+    log_error(logger, traceback.format_exc())
+    return {'error': str(e), 'status': 'error'}
 
 # ============================================================================
 # SOCKETIO EVENT HANDLERS (CONTINUED)
