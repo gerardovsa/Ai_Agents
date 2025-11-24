@@ -142,9 +142,19 @@ const UserAuth = {
                 }
             });
 
+            if (!response.ok) {
+                // Token is invalid - clear it from storage to prevent flickering
+                console.log(' Clearing invalid token from storage');
+                localStorage.removeItem('auth_token');
+                this.token = null;
+            }
+
             return response.ok;
         } catch (error) {
             console.error('Token verification failed:', error);
+            // Clear token on network error too
+            localStorage.removeItem('auth_token');
+            this.token = null;
             return false;
         }
     },
