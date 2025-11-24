@@ -90,6 +90,18 @@ class AutomationCanvas {
         return `${this.apiBaseUrl}${endpoint}`;
     }
 
+    /**
+     * Get auth token from localStorage (checks multiple keys for compatibility)
+     * @returns {string} Auth token or empty string
+     */
+    getAuthToken() {
+        return localStorage.getItem('authToken') || 
+               localStorage.getItem('auth_token') || 
+               this.getAuthToken() || 
+               window.UserAuth?.token || 
+               '';
+    }
+
     startAutoSave() {
         // Clear any existing timer
         if (this.autoSaveTimer) {
@@ -136,7 +148,7 @@ class AutomationCanvas {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 },
                 body: JSON.stringify(workflowData)
             });
@@ -1136,7 +1148,7 @@ class AutomationCanvas {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+                    'Authorization': `Bearer ${this.getAuthToken() || ''}`
                 },
                 body: JSON.stringify({
                     thread_id: threadId,
@@ -1189,7 +1201,7 @@ class AutomationCanvas {
         try {
             const response = await fetch(this.getApiUrl('/api/automation/list'), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 }
             });
 
@@ -1363,7 +1375,7 @@ class AutomationCanvas {
         try {
             const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 }
             });
 
@@ -1490,7 +1502,7 @@ class AutomationCanvas {
             // Workflow not in list, fetch from backend by slug
             const response = await fetch(this.getApiUrl(`/api/automation/list?slug=${encodeURIComponent(slug)}`), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 }
             });
 
@@ -1569,7 +1581,7 @@ class AutomationCanvas {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 },
                 body: JSON.stringify(workflowData)
             });
@@ -1599,7 +1611,7 @@ class AutomationCanvas {
         try {
             const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 }
             });
 
@@ -1626,7 +1638,7 @@ class AutomationCanvas {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 },
                 body: JSON.stringify(duplicate)
             });
@@ -1674,7 +1686,7 @@ class AutomationCanvas {
             const response = await fetch(this.getApiUrl(`/api/automation/${workflowId}`), {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 }
             });
 
@@ -2260,7 +2272,7 @@ class AutomationCanvas {
         try {
             const response = await fetch(this.getApiUrl('/api/automation/list'), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+                    'Authorization': `Bearer ${this.getAuthToken()}`
                 }
             });
 
@@ -2776,3 +2788,4 @@ window.testAutomationCanvas = function () {
     console.log('Workflows loaded:', window.automationCanvas?.workflows?.length || 0);
     console.log('==============================');
 };
+
