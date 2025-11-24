@@ -131,11 +131,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             
             logger.info(f"✅ Thread {session_id} moved to Prime in both metadata and sessions.threads (removed from {previous_location})")
             
-            # CRITICAL FIX: Close connection before returning to prevent leak
-            if conn:
-                conn.close()
-                conn = None  # Prevent double-close in finally
-            
+            # ✅ FIXED: Let finally block close connection - no manual close here
+            # This prevents connection leaks if commit() fails with exception
             return {
                 'previous_location': previous_location,
                 'displaced_thread': None
@@ -353,6 +350,7 @@ def save_thread_assignments():
             SET metadata = %s, last_active = CURRENT_TIMESTAMP
             WHERE id = %s
         """, [json.dumps(metadata), user_id])
+        conn.commit()  # CRITICAL FIX: Commit the transaction
         
         logger.info(f"Saved {len(agent_assignments)} thread assignments for user {user_id}")
         
@@ -515,6 +513,7 @@ def clear_location(location):
             "cleared": "agent-1"
         }
     """
+    conn = None
     try:
         user_id = request.args.get('user_id', 1, type=int)
         
@@ -547,8 +546,6 @@ def clear_location(location):
             except json.JSONDecodeError:
                 logger.warning(f"Invalid JSON in metadata for user {user_id}")
         
-        conn.close()
-        
         return jsonify({
             'success': True,
             'cleared': location
@@ -560,6 +557,9 @@ def clear_location(location):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @thread_assignment_bp.route('/api/thread-assignments/location/<session_id>', methods=['GET'])
@@ -580,6 +580,7 @@ def get_thread_location(session_id):
             "location": "agent-1"  // or null if not in any agent
         }
     """
+    conn = None
     try:
         user_id = request.args.get('user_id', 1, type=int)
         
@@ -588,7 +589,6 @@ def get_thread_location(session_id):
         
         cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", [user_id])
         row = cursor.fetchone()
-        conn.close()
         
         metadata_value = row[0] if row else None
         if metadata_value:
@@ -620,6 +620,9 @@ def get_thread_location(session_id):
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @thread_assignment_bp.route('/api/thread-assignments/validate', methods=['POST'])
@@ -639,6 +642,7 @@ def validate_assignments():
             "fixed": 0
         }
     """
+    conn = None
     try:
         user_id = request.args.get('user_id', 1, type=int)
         
@@ -687,8 +691,6 @@ def validate_assignments():
             except json.JSONDecodeError:
                 errors.append("Invalid JSON in metadata")
         
-        conn.close()
-        
         logger.info(f"Validation complete: {len(errors)} errors, {fixed} fixed")
         
         return jsonify({
@@ -704,5 +706,8 @@ def validate_assignments():
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
