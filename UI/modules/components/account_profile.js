@@ -2078,13 +2078,23 @@ async function initializeApp() {
 
     if (error) {
         console.error(' OAuth error:', error);
-        const errorDiv = document.getElementById('loginError');
-        if (errorDiv) {
-            errorDiv.textContent = `OAuth login failed: ${error}`;
-            errorDiv.classList.add('show');
-        }
-        // Clean URL
+        
+        // Clean URL first
         window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Show login screen with error message
+        UserAuth.showLoginScreen();
+        
+        // Display error message after login screen is rendered
+        setTimeout(() => {
+            const errorDiv = document.getElementById('loginError');
+            if (errorDiv) {
+                const message = urlParams.get('message') || error;
+                errorDiv.textContent = `OAuth login failed: ${decodeURIComponent(message)}`;
+                errorDiv.classList.add('show');
+            }
+        }, 100);
+        
         isInitialized = true;
         return;
     } else if (token) {
