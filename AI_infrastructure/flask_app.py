@@ -151,6 +151,7 @@ from routes.token_routes import token_routes  # NEW: Token tracking (real-time t
 from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-device session management)
 from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool monitoring dashboard
 from routes.monitoring_routes import monitoring_bp  # NEW: Connection pool health monitoring (Supabase optimization)
+from routes.search_routes import search_bp  # NEW: Supabase full-text and semantic search (5 endpoints)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 
 # Initialize Flask app
@@ -288,6 +289,7 @@ app.register_blueprint(communication_bp)                             # NEW: Comm
 app.register_blueprint(user_management_bp)                           # NEW: Sub-user management (5 endpoints: /api/users/sub-users/*)
 app.register_blueprint(render_bp)                                    # NEW: Render cloud management (6 endpoints: /api/render/*)
 app.register_blueprint(prompt_routes)                                # NEW: Prompt library (10 endpoints: /api/prompts/*)
+app.register_blueprint(search_bp)                                    # NEW: Supabase search system (5 endpoints: /api/search/*)
 app.register_blueprint(token_routes)                                 # NEW: Token tracking (3 endpoints: /api/tokens/*)
 app.register_blueprint(pool_monitor_bp)                              # NEW: Connection pool monitoring (4 endpoints: /api/pool/*)
 app.register_blueprint(monitoring_bp)                                # NEW: Connection pool health monitoring (4 endpoints: /api/pool/stats, /api/pool/health)
