@@ -1,6 +1,6 @@
 // Environment-aware API Base URL
-// Use API_BASE_URL from global scope (declared in main HTML)
-const API_BASE_URL = window.API_BASE_URL || window.location.origin + '/api';
+// Reference API_BASE_URL from global scope (declared in main HTML)
+let API_BASE_URL = window.API_BASE_URL || window.location.origin + '/api';
 
 // ==================== USER AUTHENTICATION SYSTEM ====================
 
