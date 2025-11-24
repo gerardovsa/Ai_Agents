@@ -163,35 +163,49 @@ window.SupabaseConnectionManager = {
         try {
             console.log('🔷 [Supabase] Establishing realtime connection...');
 
-            // Test connection with a simple channel
-            const testChannel = this.client
-                .channel('connection-test')
-                .on('broadcast', { event: 'test' }, () => { })
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ [Supabase] Realtime connection established');
-                        this.connectionState = 'connected';
-                        this.retryCount = 0;
-                        this.reconnectAttempts = 0;
+            // Use Promise to wait for subscription result
+            return await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    console.error('❌ [Supabase] Realtime connection timeout (15s)');
+                    this.connectionState = 'failed';
+                    resolve(false);
+                }, 15000);
 
-                        // Cleanup test channel
-                        setTimeout(() => {
-                            if (this.client) {
-                                this.client.removeChannel(testChannel);
-                            }
-                        }, 1000);
+                // Test connection with a simple channel
+                const testChannel = this.client
+                    .channel('connection-test')
+                    .on('broadcast', { event: 'test' }, () => { })
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            clearTimeout(timeout);
+                            console.log('✅ [Supabase] Realtime connection established');
+                            this.connectionState = 'connected';
+                            this.retryCount = 0;
+                            this.reconnectAttempts = 0;
 
-                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                        console.error('❌ [Supabase] Realtime connection failed:', status);
-                        this._handleConnectionError();
-                    }
-                });
+                            // Cleanup test channel
+                            setTimeout(() => {
+                                if (this.client) {
+                                    this.client.removeChannel(testChannel);
+                                }
+                            }, 1000);
 
-            this.realtimeConnection = testChannel;
-            return true;
+                            this.realtimeConnection = testChannel;
+                            resolve(true);
+
+                        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                            clearTimeout(timeout);
+                            console.error('❌ [Supabase] Realtime connection failed:', status);
+                            this.connectionState = 'failed';
+                            this._handleConnectionError();
+                            resolve(false);
+                        }
+                    });
+            });
 
         } catch (error) {
             console.error('❌ [Supabase] Realtime init failed:', error);
+            this.connectionState = 'failed';
             this._handleConnectionError();
             return false;
         }
