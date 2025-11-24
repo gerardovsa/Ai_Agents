@@ -683,12 +683,12 @@ def list_automations():
                     canvas_data_str = row.get('canvas_data')
                     canvas_data = {}
                     if canvas_data_str:
-                    try:
-                        canvas_data = json.loads(canvas_data_str) if isinstance(canvas_data_str, str) else canvas_data_str
-                        if isinstance(canvas_data, dict) and 'nodes' in canvas_data:
-                            canvas_data = canvas_data['nodes']  # Extract nodes dict
-                    except:
-                        canvas_data = {}
+                        try:
+                            canvas_data = json.loads(canvas_data_str) if isinstance(canvas_data_str, str) else canvas_data_str
+                            if isinstance(canvas_data, dict) and 'nodes' in canvas_data:
+                                canvas_data = canvas_data['nodes']  # Extract nodes dict
+                        except:
+                            canvas_data = {}
                 
                 # Extract nodes and transform to shapes
                 nodes = ui_json.get('nodes', [])
@@ -753,9 +753,9 @@ def list_automations():
                     shapes = ui_json.get('shapes', [])
                 if not connections and 'connections' in ui_json:
                     connections = ui_json.get('connections', [])
-            
-            # UI COMPATIBLE FORMAT - Map database fields to UI expected names
-            automations.append({
+                
+                # UI COMPATIBLE FORMAT - Map database fields to UI expected names
+                automations.append({
                 # Primary identifiers (UI expects these exact names)
                 'workflow_id': row['automation_id'],  # Map automation_id -> workflow_id
                 'id': row['automation_id'],
@@ -798,8 +798,8 @@ def list_automations():
                 'success_count': 0,  # TODO: Calculate from execution history
                 'error_count': 0,  # TODO: Calculate from execution history
                 'last_run_at': str(row['last_executed_at']) if row['last_executed_at'] else None
-            })
-            
+                })
+                
             except Exception as transform_error:
                 skipped_count += 1
                 print(f'[ERROR /api/automation/list] Failed to transform workflow #{i} ({row.get("automation_id", "UNKNOWN")}): {type(transform_error).__name__}: {str(transform_error)}')
