@@ -260,6 +260,11 @@ window.DataLoader = {
                 loader._log('[SYNERGY] Loading all sessions with batch endpoint...');
                 const startTime = performance.now();
 
+                // Show loading status
+                if (window.StatusIndicator) {
+                    window.StatusIndicator.addOperation('synergy_load', 'Loading Synergy sessions...');
+                }
+
                 // Use batch endpoint (includes internal docs)
                 const response = await fetch(
                     `${loader.config.apiBaseUrl}/api/synergy/sessions/batch`,
@@ -290,10 +295,22 @@ window.DataLoader = {
 
                 loader._log(`[SYNERGY] Loaded ${sessions.length} sessions with ${totalDocs} docs in ${loadTime}ms`);
 
+                // Update status
+                if (window.StatusIndicator) {
+                    window.StatusIndicator.removeOperation('synergy_load', 
+                        `Loaded ${sessions.length} sessions`);
+                }
+
                 return sessions;
 
             } catch (error) {
                 console.error('[SYNERGY] LoadAll failed:', error);
+                
+                if (window.StatusIndicator) {
+                    window.StatusIndicator.removeOperation('synergy_load');
+                    window.StatusIndicator.show('Failed to load Synergy sessions', 'error', 5000);
+                }
+                
                 throw error;
             }
         },
