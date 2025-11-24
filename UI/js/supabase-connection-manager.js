@@ -54,12 +54,20 @@ window.SupabaseConnectionManager = {
         this._setupNetworkListeners();
 
         // Get initial client
+        if (window.StatusIndicator) {
+            window.StatusIndicator.addOperation('supabase_init', 'Connecting to Supabase...');
+        }
+        
         await this.getClient();
 
         // Start health monitoring
         this._startHealthMonitoring();
 
         console.log('✅ [Supabase] Connection manager initialized');
+        
+        if (window.StatusIndicator) {
+            window.StatusIndicator.removeOperation('supabase_init', 'Supabase connected');
+        }
     },
 
     /**
@@ -479,6 +487,10 @@ window.SupabaseConnectionManager = {
         this.reconnectAttempts++;
         console.log(`🔄 [Supabase] Reconnecting (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
 
+        if (window.StatusIndicator) {
+            window.StatusIndicator.setConnectionStatus('reconnecting', 'Supabase');
+        }
+
         // Disconnect existing channels (but keep client instance)
         this._disconnectChannels();
 
@@ -493,6 +505,10 @@ window.SupabaseConnectionManager = {
         if (this.connectionState === 'connected') {
             console.log('✅ [Supabase] Reconnected successfully');
             this.reconnectAttempts = 0;
+
+            if (window.StatusIndicator) {
+                window.StatusIndicator.setConnectionStatus('connected', 'Supabase');
+            }
 
             // Resubscribe to existing channels
             await this._resubscribeChannels();
