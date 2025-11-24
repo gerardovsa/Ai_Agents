@@ -37,7 +37,7 @@ window.SupabaseConnectionManager = {
     // Health monitoring
     lastActivity: Date.now(),
     healthCheckInterval: null,
-    healthCheckIntervalMs: 30000, // 30 seconds
+    healthCheckIntervalMs: 60000, // 60 seconds (reduced frequency for Render)
     reconnectAttempts: 0,
     maxReconnectAttempts: 5,
 
@@ -340,7 +340,7 @@ window.SupabaseConnectionManager = {
             this._performHealthCheck();
         }, this.healthCheckIntervalMs);
 
-        console.log('✅ [Supabase] Health monitoring started (30s idle threshold)');
+        console.log('✅ [Supabase] Health monitoring started (60s idle threshold)');
     },
 
     /**
@@ -352,7 +352,7 @@ window.SupabaseConnectionManager = {
             return;
         }
 
-        // Check if idle for more than 30 seconds
+        // Check if idle for more than 60 seconds
         const idleTime = Date.now() - this.lastActivity;
         if (idleTime < this.healthCheckIntervalMs) {
             // Not idle long enough - skip ping
@@ -371,7 +371,7 @@ window.SupabaseConnectionManager = {
                     console.warn('⚠️ [Supabase] Health check timed out');
                     this._handleHealthCheckFailure();
                 }
-            }, 5000);
+            }, 15000); // Increased to 15s for Render deployment
 
             pingChannel
                 .on('broadcast', { event: 'pong' }, () => {
@@ -400,6 +400,18 @@ window.SupabaseConnectionManager = {
      * Handle health check failure
      */
     _handleHealthCheckFailure() {
+        // Don't reconnect if already at max attempts
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.warn('⚠️ [Supabase] Max reconnect attempts reached, health check skipped');
+            return;
+        }
+
+        // Don't reconnect if already connecting
+        if (this.connectionState === 'connecting') {
+            console.warn('⚠️ [Supabase] Already reconnecting, skipping duplicate attempt');
+            return;
+        }
+
         console.warn('⚠️ [Supabase] Connection unhealthy - attempting reconnection...');
         this.connectionState = 'connecting';
         this._reconnect();
@@ -453,18 +465,18 @@ window.SupabaseConnectionManager = {
         this.reconnectAttempts++;
         console.log(`🔄 [Supabase] Reconnecting (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
 
-        // Disconnect existing connections
+        // Disconnect existing channels (but keep client instance)
         this._disconnectChannels();
 
-        // Reset client
-        this.client = null;
+        // Reset connection state only (DON'T destroy client to avoid multiple GoTrueClient instances)
         this.realtimeConnection = null;
         this.retryCount = 0;
+        this.connectionState = 'connecting';
 
-        // Attempt to reconnect
-        const client = await this.getClient();
+        // Attempt to reconnect realtime (reuses existing client)
+        await this._initRealtimeConnection();
 
-        if (client && this.connectionState === 'connected') {
+        if (this.connectionState === 'connected') {
             console.log('✅ [Supabase] Reconnected successfully');
             this.reconnectAttempts = 0;
 
@@ -473,8 +485,16 @@ window.SupabaseConnectionManager = {
         } else {
             console.error('❌ [Supabase] Reconnection failed');
 
+            // Stop if max attempts reached
+            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                console.error(`❌ [Supabase] Max reconnect attempts (${this.maxReconnectAttempts}) reached, stopping`);
+                this.connectionState = 'disconnected';
+                return;
+            }
+
             // Retry with exponential backoff
             const delay = 2000 * Math.pow(2, this.reconnectAttempts - 1);
+            console.log(`🔄 [Supabase] Retrying in ${delay}ms...`);
             setTimeout(() => {
                 this._reconnect();
             }, delay);

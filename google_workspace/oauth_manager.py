@@ -208,8 +208,8 @@ def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[s
         "❌ File-based OAuth is no longer supported.\n"
         "To authenticate, visit: http://localhost:5001/auth/google/login"
     )
-        }
     
+    """
     Example:
         # Desktop mode (local testing) - ONE browser popup for all services
         services = authenticate_all_services(mode='desktop')
@@ -218,6 +218,7 @@ def authenticate_all_services(mode: Optional[str] = None, user_email: Optional[s
         
         # Use them immediately
         profile = gmail.users().getProfile(userId='me').execute()
+    """
         calendars = calendar.calendarList().list().execute()
     """
     if not HAS_OAUTH_LIBS:
