@@ -184,10 +184,24 @@ window.ThreadCardTemplates = {
                  style="cursor: pointer;" 
                  title="Double-click to load in Prime">
                 
-                <!-- ALWAYS VISIBLE: Row 1 - Title + Badge + Actions/Unload -->
+                <!-- Row 1: Title + Chevron -->
+                <div class="thread-item-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span class="thread-item-title" style="flex: 1; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${thread.title || 'Untitled'}
+                    </span>
+                    <button class="thread-card-expand-btn" 
+                            onclick="ThreadCardExpansion.toggleCard(event, '${thread.id}')"
+                            aria-label="Expand details"
+                            title="Click to expand/collapse details"
+                            style="flex-shrink: 0;">
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </button>
+                </div>
+                
+                <!-- Row 2: Agent Badge + Action Buttons -->
                 ${headerHtml}
                 
-                <!-- ALWAYS VISIBLE: Row 2 - Meta (msgs/date/time) -->
+                <!-- Row 3: Meta (msgs/date/time) -->
                 <div class="thread-meta-row-always-visible" style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
                     <span class="thread-meta-item" title="Message count">
                         <i class="fas fa-comments"></i> ${meta.msgCount} msgs
@@ -293,16 +307,12 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for clean header row
      */
     headerRowClean(thread, location, agent) {
+        // NO title or chevron here - those are in Row 1 (separate)
+        // This is ONLY Row 2: Agent badge
         return `
-            <div class="thread-item-header">
-                <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}" style="flex: 1; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${thread.title || 'Untitled'}
-                </span>
-                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                    <div class="thread-item-agent-badge ${agent.class}">
-                        <i class="fas ${agent.icon}"></i> ${agent.name}
-                    </div>
-                    
+            <div style="display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin-top: 8px;">
+                <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
+                    <i class="fas ${agent.icon}"></i> ${agent.name}
                 </div>
             </div>
         `;
@@ -318,21 +328,19 @@ window.ThreadCardTemplates = {
      * @returns {string} HTML string for header row with unload button
      */
     headerRowWithUnload(thread, location, agent) {
+        // NO title or chevron here - those are in Row 1 (separate)
+        // This is ONLY Row 2: Agent badge + unload button
         return `
-            <div class="thread-item-header">
-                <span class="thread-item-title" id="${location}-thread-title" title="${thread.title || 'Untitled'}" style="flex: 1; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${thread.title || 'Untitled'}
-                </span>
-                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                    <div class="thread-item-agent-badge ${agent.class}">
-                        <i class="fas ${agent.icon}"></i> ${agent.name}
-                    </div>
-                    <button class="agent-unload-btn" 
-                            onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 
-                            title="Unload thread from agent (move to Prime)">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px;">
+                <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
+                    <i class="fas ${agent.icon}"></i> ${agent.name}
                 </div>
+                <button class="agent-unload-btn" 
+                        onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 
+                        title="Unload thread from agent (move to Prime)"
+                        style="flex-shrink: 0;">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
         `;
     },
@@ -349,19 +357,15 @@ window.ThreadCardTemplates = {
      */
     headerRowWithActions(thread, location, agent, currentLocation) {
         const isInAgent = currentLocation && currentLocation.startsWith('agent-');
-        const threadTitle = thread.title || thread.name || 'Untitled Thread';
 
+        // NO title or chevron here - those are in Row 1 (separate)
+        // This is ONLY Row 2: Agent badge + action buttons
         return `
-            <div class="thread-item-header">
-                <div class="thread-item-title" style="flex: 1; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 8px;" title="${threadTitle}">
-                    ${threadTitle}
-                </div>
-            </div>
-            <div class="thread-item-header">
-                <div class="thread-item-agent-badge ${agent.class}">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px;">
+                <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
                     <i class="fas ${agent.icon}"></i> ${agent.name}
                 </div>
-                <div class="thread-item-actions">
+                <div class="thread-item-actions" style="display: flex; gap: 4px; flex-shrink: 0;">
                     ${isInAgent ? `
                     <button class="thread-action-btn unload"
                         onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
@@ -553,7 +557,7 @@ window.ThreadCardTemplates = {
                         <button class="thread-synergy-info" title="Show description" onclick="event.stopPropagation(); const badge = this.parentElement.querySelector('.synergy-badge[data-tooltip-title]'); if (badge && window.showSynergyTooltip) { window.showSynergyTooltip(badge, event); }">
                             <i class="fas fa-question-circle"></i>
                         </button>
-                        <button class="thread-synergy-popout" title="Open in popup" onclick="event.stopPropagation(); if(typeof synergyBoard !== 'undefined') { if(synergyBoard.sessions.length === 0) { synergyBoard.loadSessions().then(() => synergyBoard.popOutCard('${safeEscape(thread.synergy_card_id)}')); } else { synergyBoard.popOutCard('${safeEscape(thread.synergy_card_id)}'); } }">
+                        <button class="thread-synergy-popout" title="Open in popup" onclick="event.stopPropagation(); if(window.synergyPopupModal) { window.synergyPopupModal.open('${safeEscape(thread.synergy_card_id)}'); } else { console.error('Synergy popup modal not loaded'); }">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                         ${location !== 'synergy' ? `

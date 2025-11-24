@@ -540,10 +540,15 @@ window.synergyBoard = {
         card.dataset.column = htmlColumn;
         card.dataset.context = 'dashboard';
 
-        // Enable drag and drop
+        // Enable drag and drop for card reordering
         card.draggable = true;
         card.addEventListener('dragstart', (e) => this.handleDragStart(e));
         card.addEventListener('dragend', (e) => this.handleDragEnd(e));
+
+        // Enable thread drop zone (for linking threads to synergy sessions)
+        card.addEventListener('dragover', (e) => this.handleThreadDragOver(e));
+        card.addEventListener('dragleave', (e) => this.handleThreadDragLeave(e));
+        card.addEventListener('drop', (e) => this.handleThreadDrop(e, session.session_id));
 
         // Priority emoji
         const priorityEmoji = {
@@ -941,7 +946,7 @@ window.synergyBoard = {
 
         try {
             // Fetch session data and milestones
-            const sessionResponse = await fetch(`http://localhost:5001/api/synergy/sessions/${sessionId}`);
+            const sessionResponse = await fetch(`http://localhost:5001/api/synergy/${sessionId}`);
             if (!sessionResponse.ok) {
                 throw new Error(`Failed to load session: ${sessionResponse.status}`);
             }
@@ -1143,6 +1148,91 @@ window.synergyBoard = {
         });
 
         document.body.appendChild(modal);
+    },
+
+    /**
+     * THREAD DRAG-AND-DROP HANDLERS
+     * Handle threads being dropped onto synergy cards to link them
+     */
+
+    handleThreadDragOver(event) {
+        // Check if dragging a thread (not a synergy card)
+        const types = Array.from(event.dataTransfer.types);
+        const isThread = types.includes('text/plain'); // Thread cards set 'text/plain' with thread ID
+
+        if (isThread) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'link';
+
+            // Add visual feedback
+            event.currentTarget.classList.add('drag-over');
+        }
+    },
+
+    handleThreadDragLeave(event) {
+        event.currentTarget.classList.remove('drag-over');
+    },
+
+    async handleThreadDrop(event, synergySessionId) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.classList.remove('drag-over');
+
+        // Get dropped thread ID
+        const threadId = event.dataTransfer.getData('text/plain');
+        if (!threadId) {
+            console.warn('[SYNERGY] No thread ID in drop event');
+            return;
+        }
+
+        console.log(`[SYNERGY] Thread ${threadId} dropped on synergy session ${synergySessionId}`);
+
+        try {
+            // Call backend to link thread to synergy session
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${synergySessionId}/link-thread`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    thread_id: threadId
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log(`✅ [SYNERGY] Thread ${threadId} linked to synergy session ${synergySessionId}`);
+
+                // Show notification
+                if (window.showNotification) {
+                    window.showNotification('Thread linked to Synergy session', 'success');
+                }
+
+                // Refresh the linked threads section in the synergy card/sidebar
+                await this.refreshLinkedThreads(synergySessionId);
+            } else {
+                console.error('[SYNERGY] Failed to link thread:', result.error);
+                if (window.showNotification) {
+                    window.showNotification('Failed to link thread: ' + result.error, 'error');
+                }
+            }
+        } catch (error) {
+            console.error('[SYNERGY] Error linking thread:', error);
+            if (window.showNotification) {
+                window.showNotification('Error linking thread', 'error');
+            }
+        }
+    },
+
+    async refreshLinkedThreads(sessionId) {
+        console.log(`[SYNERGY] Refreshing linked threads for session ${sessionId}`);
+
+        // If sidebar is open for this session, refresh it
+        if (typeof SynergySidebar !== 'undefined') {
+            await SynergySidebar.refreshLinkedThreadsSection(sessionId);
+        }
     }
 };
 

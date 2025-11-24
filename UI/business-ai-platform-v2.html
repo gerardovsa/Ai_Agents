@@ -172,7 +172,7 @@
 
     <!-- ==================== THREAD CARD STYLES MODULE ==================== -->
     <!-- Unified thread card styling for Prime, Agents, Synergy (Phase 1: CSS Extraction) -->
-    <link rel="stylesheet" href="external/modules/thread-cards/thread-card-styles.css">
+    <link rel="stylesheet" href="external/modules/thread-cards/thread-card-styles.css?v=20251124143423">
 
     <!-- ==================== THREAD MANAGER STYLES ==================== -->
     <!-- Core thread management styles (menus, modals, filters, etc.) -->
@@ -180,7 +180,11 @@
 
     <!-- ==================== THREAD CARD TEMPLATES MODULE ==================== -->
     <!-- HTML template generation for thread cards (Phase 2: Template Extraction) -->
-    <script src="external/modules/thread-cards/thread-card-templates.js"></script>
+    <script src="external/modules/thread-cards/thread-card-templates.js?v=20251124141959"></script>
+
+    <!-- ==================== THREAD CARD EXPANSION MODULE ==================== -->
+    <!-- Click-based expansion controller (replaces hover behavior) -->
+    <script src="external/modules/thread-cards/thread-card-expansion.js?v=20251124141959"></script>
 
     <!-- ==================== THREAD LOCK TOGGLE MODULE ==================== -->
     <!-- Lock/Unlock toggle button functionality for thread cards -->
@@ -205,13 +209,10 @@
     <script src="external/modules/synergy/synergy-milestone-renderer.js"></script>
     <script src="external/modules/synergy/synergy-milestone-interactions.js"></script>
     <script src="external/modules/synergy/synergy-sidebar-controller.js"></script>
-    <script src="external/modules/synergy/synergy-popup-modal.js"></script>
-    <!-- NEW: Popup modal for full session view -->
     <script src="external/modules/synergy/thread_synergy.js"></script>
     <!-- FLAT SPACING CSS V2 (Nov 24, 2025) - Two-row structure, 400px width -->
-    <link rel="stylesheet" href="external/modules/synergy/synergy-flat-spacing.css?v=20251124_1445">
+    <link rel="stylesheet" href="external/modules/synergy/synergy-flat-spacing.css?v=20251124_1500">
     <link rel="stylesheet" href="external/modules/synergy/synergy-milestone-styles.css">
-    <link rel="stylesheet" href="external/modules/synergy/synergy-popup-modal.css"> <!-- NEW: Popup modal styles -->
     <link rel="stylesheet" href="external/modules/synergy/synergy-doc-picker.css?v=20251124">
     <!-- NEW: Document picker -->
     <script src="external/modules/synergy/synergy-doc-picker.js?v=20251124"></script> <!-- NEW: Document picker -->
@@ -233,8 +234,8 @@
     <script src="modules/components/automations.js"></script>
 
     <!-- ==================== MODULE SYSTEM (Added Nov 22, 2025) ==================== -->
-    <script src="js/module-manager.js?v=20251124e"></script>
-    <script src="js/module-loader.js?v=20251124e"></script>
+    <script src="js/module-manager.js?v=20251124f"></script>
+    <script src="js/module-loader.js?v=20251124f"></script>
 
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
     <!-- ThreadManager Core - Load FIRST (creates base object) -->
@@ -4327,36 +4328,50 @@
             transform: translateX(2px);
         }
 
-        /* Thread History Menu - INDEPENDENT SIDEBAR (NOT CHILD OF PRIME) */
+        /* Thread History Menu - COMPLETELY INDEPENDENT SIDEBAR */
+        /* Works regardless of Prime panel state (chat-collapsed or not) */
         .thread-menu-overlay {
-            position: fixed;
-            top: 60px;
+            position: fixed !important;
+            top: 60px !important;
             /* Start below navbar */
-            right: -540px;
+            right: -540px !important;
             /* Hidden off-screen initially (480px + 60px offset) */
-            width: 480px;
+            width: 480px !important;
             /* Full width sidebar */
-            height: calc(100vh - 60px);
+            height: calc(100vh - 60px) !important;
             /* Full viewport height minus navbar */
-            padding: 0;
-            background: var(--bg-secondary);
-            border-left: 1px solid var(--border-default);
-            border-radius: 0;
-            z-index: 9999;
-            /* High z-index - independent layer */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+            padding: 0 !important;
+            background: var(--bg-secondary) !important;
+            border-left: 1px solid var(--border-default) !important;
+            border-radius: 0 !important;
+            z-index: 9999 !important;
+            /* High z-index - independent layer, above everything */
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease !important;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3) !important;
+            pointer-events: auto !important;
+            /* Always allow interaction */
+        }
+
+        /* CRITICAL: Works independently of ANY parent state */
+        .chat-collapsed .thread-menu-overlay,
+        .main-content-wrapper .thread-menu-overlay,
+        body .thread-menu-overlay {
+            position: fixed !important;
+            display: flex !important;
+            z-index: 9999 !important;
         }
 
         .thread-menu-overlay.active {
             right: 60px !important;
             /* Slide to 60px from right edge */
             display: flex !important;
-            visibility: visible;
-            transform: translateX(0);
+            visibility: visible !important;
+            opacity: 1 !important;
+            transform: translateX(0) !important;
+            pointer-events: auto !important;
         }
 
         .thread-menu-overlay.collapsed {
@@ -4735,54 +4750,18 @@
         }
 
         /* ==================== FILTER CHIPS (Agent/Tag Filters) ==================== */
+        /* Filter chips - DEPRECATED (replaced by dropdowns) */
         .thread-filter-chips {
-            display: flex;
-            gap: var(--space-1);
-            margin-bottom: var(--space-1);
-            overflow-x: auto;
-            padding: 2px;
-            flex-wrap: wrap;
-        }
-
-        .thread-filter-chips::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .thread-filter-chip {
-            padding: 6px 12px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-default);
-            border-radius: 20px;
-            color: var(--text-secondary);
-            font-size: 12px;
-            white-space: nowrap;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .thread-filter-chip:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-        }
-
-        .thread-filter-chip.active {
-            background: var(--accent-primary);
-            color: white;
-            border-color: var(--accent-primary);
-        }
-
-        .thread-filter-chip i {
-            font-size: 10px;
+            display: none;
+            /* Hidden - no longer used */
         }
 
         /* ==================== FILTER DROPDOWNS ==================== */
         .thread-filter-dropdowns {
             display: flex;
+            flex-direction: column;
             gap: var(--space-2);
-            padding: 0 var(--space-4) var(--space-2);
+            padding: var(--space-3) var(--space-4);
             border-bottom: 1px solid var(--border-primary);
         }
 
@@ -4790,7 +4769,6 @@
             display: flex;
             align-items: center;
             gap: var(--space-2);
-            flex: 1;
         }
 
         .thread-filter-dropdown-group label {
@@ -4800,11 +4778,12 @@
             display: flex;
             align-items: center;
             gap: var(--space-1);
+            min-width: 60px;
         }
 
         .thread-filter-dropdown-group select {
             flex: 1;
-            padding: 6px 10px;
+            padding: 8px 12px;
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
             border-radius: 6px;
@@ -4832,6 +4811,80 @@
 
         .thread-filter-dropdown-group option {
             padding: 4px;
+        }
+
+        /* Custom Date Range Picker */
+        .thread-custom-date-range {
+            padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--border-primary);
+            background: rgba(88, 166, 255, 0.03);
+        }
+
+        .thread-custom-date-inputs {
+            display: flex;
+            gap: var(--space-2);
+            align-items: flex-end;
+        }
+
+        .thread-custom-date-inputs>div {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .thread-custom-date-inputs label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .thread-custom-date-inputs input[type="date"] {
+            padding: 6px 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .thread-custom-date-inputs input[type="date"]:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .thread-custom-date-inputs input[type="date"]:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.1);
+        }
+
+        .thread-date-apply-btn {
+            padding: 6px 12px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .thread-date-apply-btn:hover {
+            background: var(--accent-primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+        }
+
+        .thread-date-apply-btn:active {
+            transform: translateY(0);
         }
 
         /* OLD FILTER TABS - DEPRECATED (replaced by view tabs above) */
@@ -14457,172 +14510,6 @@
                     </div>
                 </div>
 
-                <!-- Thread History Menu - INDEPENDENT SIDEBAR -->
-                <div class="thread-menu-overlay" id="thread-menu">
-                    <!-- Header with Title, Agent Tag, and Collapse Button -->
-                    <div class="thread-menu-header">
-                        <div class="thread-menu-header-top">
-                            <div class="thread-menu-title">
-                                <i class="fas fa-history"></i>
-                                <span>Thread History</span>
-                            </div>
-                            <div class="thread-menu-header-actions">
-                                <!-- Agent Badge (Right side of header) -->
-                                <div class="thread-menu-agent-badge" id="thread-menu-agent-badge"
-                                    style="display: none;">
-                                    <i class="fas fa-star" id="thread-menu-agent-icon"></i>
-                                    <span id="thread-menu-agent-name">Prime</span>
-                                </div>
-                                <!-- Expand/Collapse Chevron -->
-                                <button class="thread-menu-collapse-btn"
-                                    onclick="ThreadManager.toggleThreadMenuCollapse()" title="Collapse sidebar"
-                                    id="thread-menu-collapse-btn">
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons Row (below title) -->
-                        <div class="thread-menu-actions-row" style="display: flex; gap: 8px; align-items: center;">
-                            <button class="right-sidebar-btn" onclick="ThreadManager.showNewChatModal('prime')"
-                                title="Create New Thread" style="flex: 1;">
-                                <!-- Streamline chat-bubble-square-add icon -->
-                                <svg class="icon icon-message-plus" xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 14 14" aria-hidden="true" focusable="false"
-                                    style="width:1.25em; height:1.25em; vertical-align:middle; fill:currentColor;">
-                                    <g>
-                                        <path
-                                            d="M11.5,0H2.5A2.5,2.5,0,0,0,0,2.5v6A2.5,2.5,0,0,0,2.5,11h.25a.75.75,0,0,1,.75.75v1.69a.56.56,0,0,0,.95.4l2.69-2.69a.74.74,0,0,1,.53-.22H11.5A2.5,2.5,0,0,0,14,8.5v-6A2.5,2.5,0,0,0,11.5,0Z" />
-                                        <path
-                                            d="M7,3.5a.5.5,0,0,1,.5.5V5.5H9a.5.5,0,0,1,0,1H7.5V8a.5.5,0,0,1-1,0V6.5H5a.5.5,0,0,1,0-1H6.5V4A.5.5,0,0,1,7,3.5Z"
-                                            style="fill:#fff" />
-                                    </g>
-                                </svg>
-                            </button>
-                            <button class="thread-menu-icon-btn" onclick="ThreadManager.refreshThreads()"
-                                title="Refresh threads">
-                                <i class="fas fa-sync"></i>
-                            </button>
-                            <button class="thread-menu-icon-btn" onclick="ThreadManager.closeThreadMenu()"
-                                title="Close sidebar">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-
-                        <!-- View Tabs (Active/Archived) -->
-                        <div class="thread-view-tabs">
-                            <button class="thread-view-tab active" onclick="ThreadManager.setFilter('active', event)"
-                                data-view="active">
-                                <i class="fas fa-comments"></i>
-                                <span>Active</span>
-                            </button>
-                            <button class="thread-view-tab" onclick="ThreadManager.setFilter('archived', event)"
-                                data-view="archived">
-                                <i class="fas fa-archive"></i>
-                                <span>Archived</span>
-                            </button>
-                        </div>
-
-                        <!-- Search Bar -->
-                        <div class="thread-search-bar">
-                            <i class="fas fa-search thread-search-icon"></i>
-                            <input type="text" class="thread-search-input" id="thread-search"
-                                placeholder="Search threads..." oninput="ThreadManager.filterThreads(this.value)">
-                        </div>
-
-                        <!-- Sort Toggle -->
-                        <div class="thread-sort-toggle">
-                            <span class="thread-sort-label">
-                                <i class="fas fa-sort"></i>
-                                Sort:
-                            </span>
-                            <div class="thread-sort-buttons">
-                                <button class="thread-sort-btn active"
-                                    onclick="ThreadManager.setSortOrder('updated', event)" data-sort="updated"
-                                    title="Sort by most recently active threads">
-                                    <i class="fas fa-clock-rotate-left"></i>
-                                    Recent Activity
-                                </button>
-                                <button class="thread-sort-btn" onclick="ThreadManager.setSortOrder('created', event)"
-                                    data-sort="created" title="Sort by thread creation date (oldest first)">
-                                    <i class="fas fa-calendar-plus"></i>
-                                    Creation Date
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Filter Chips (Agent/Tag Filters) -->
-                        <div class="thread-filter-chips" id="thread-filter-chips">
-                            <div class="thread-filter-chip active" onclick="ThreadManager.filterByLocation('all')"
-                                data-filter="all">
-                                All
-                            </div>
-                            <div class="thread-filter-chip" onclick="ThreadManager.filterByLocation('prime')"
-                                data-filter="prime">
-                                <i class="fa-solid fa-atom"></i> Prime
-                            </div>
-                            <div class="thread-filter-chip" onclick="ThreadManager.filterByLocation('all-agents')"
-                                data-filter="all-agents">
-                                <i class="fas fa-users"></i> All Agents
-                            </div>
-                            <div class="thread-filter-chip" onclick="ThreadManager.filterByLocation('agent-1')"
-                                data-filter="agent-1">
-                                <i class="fas fa-robot"></i> Agent-1
-                            </div>
-                            <div class="thread-filter-chip" onclick="ThreadManager.filterByLocation('agent-2')"
-                                data-filter="agent-2">
-                                <i class="fas fa-robot"></i> Agent-2
-                            </div>
-                            <div class="thread-filter-chip" onclick="ThreadManager.filterByLocation('agent-3')"
-                                data-filter="agent-3">
-                                <i class="fas fa-robot"></i> Agent-3
-                            </div>
-                            <div class="thread-filter-chip" onclick="ThreadManager.filterByTag('synergy')"
-                                data-filter="synergy">
-                                <i class="fas fa-hexagon-nodes-bolt"></i> Synergy
-                            </div>
-                            <div class="thread-filter-chip" onclick="ThreadManager.filterByTag('automation')"
-                                data-filter="automation">
-                                <i class="fas fa-bolt"></i> Automation
-                            </div>
-                        </div>
-
-                        <!-- Advanced Filter Dropdowns -->
-                        <div class="thread-filter-dropdowns">
-                            <div class="thread-filter-dropdown-group">
-                                <label for="agent-select"><i class="fas fa-robot"></i> Agent:</label>
-                                <select id="agent-select" onchange="ThreadManager.filterByLocation(this.value)">
-                                    <option value="all">All Locations</option>
-                                    <option value="prime">Prime Only</option>
-                                    <option value="all-agents">All Agents</option>
-                                    <optgroup label="Specific Agents">
-                                        <option value="agent-1">Agent-1 (Alpha)</option>
-                                        <option value="agent-2">Agent-2 (Bravo)</option>
-                                        <option value="agent-3">Agent-3 (Charlie)</option>
-                                        <option value="agent-4">Agent-4 (Delta)</option>
-                                        <option value="agent-5">Agent-5 (Echo)</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-                            <div class="thread-filter-dropdown-group">
-                                <label for="date-range-select"><i class="fas fa-calendar"></i> Date:</label>
-                                <select id="date-range-select" onchange="ThreadManager.filterByDateRange(this.value)">
-                                    <option value="all">All Time</option>
-                                    <option value="today">Today</option>
-                                    <option value="yesterday">Yesterday</option>
-                                    <option value="3days">Last 3 Days</option>
-                                    <option value="week">Last Week</option>
-                                    <option value="month">Last Month</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="thread-list" id="thread-list">
-                        <!-- Thread items will be inserted here -->
-                    </div>
-                </div>
-
                 <!-- Thread View Choice Modal -->
                 <div class="thread-view-choice-modal" id="thread-view-choice-modal">
                     <div class="thread-view-choice-header">
@@ -14790,6 +14677,135 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ==================== THREAD HISTORY MENU (INDEPENDENT SIDEBAR) ==================== -->
+    <!-- CRITICAL: This menu is positioned OUTSIDE ai-chat-panel so it remains visible when Prime collapses -->
+    <div class="thread-menu-overlay" id="thread-menu">
+        <!-- Header with Title, Agent Tag, and Collapse Button -->
+        <div class="thread-menu-header">
+            <div class="thread-menu-header-top">
+                <div class="thread-menu-title">
+                    <i class="fas fa-history"></i>
+                    <span>Thread History</span>
+                </div>
+                <div class="thread-menu-header-actions">
+                    <!-- Agent Badge (Right side of header) -->
+                    <div class="thread-menu-agent-badge" id="thread-menu-agent-badge" style="display: none;">
+                        <i class="fas fa-star" id="thread-menu-agent-icon"></i>
+                        <span id="thread-menu-agent-name">Prime</span>
+                    </div>
+                    <!-- Expand/Collapse Chevron -->
+                    <button class="thread-menu-collapse-btn" onclick="ThreadManager.toggleThreadMenuCollapse()"
+                        title="Collapse sidebar" id="thread-menu-collapse-btn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons Row (below title) - Create New, Refresh only -->
+            <div class="thread-menu-actions-row" style="display: flex; gap: 8px; align-items: center;">
+                <button class="thread-menu-icon-btn" onclick="ThreadManager.showNewChatModal('prime')"
+                    title="Create New Thread" style="flex: 1;">
+                    <i class="fas fa-plus"></i>
+                    <span>New Thread</span>
+                </button>
+                <button class="thread-menu-icon-btn" onclick="ThreadManager.refreshThreads()" title="Refresh threads">
+                    <i class="fas fa-sync"></i>
+                </button>
+            </div>
+
+            <!-- View Tabs (Active/Archived) -->
+            <div class="thread-view-tabs">
+                <button class="thread-view-tab active" onclick="ThreadManager.setFilter('active', event)"
+                    data-view="active">
+                    <i class="fas fa-comments"></i>
+                    <span>Active</span>
+                </button>
+                <button class="thread-view-tab" onclick="ThreadManager.setFilter('archived', event)"
+                    data-view="archived">
+                    <i class="fas fa-archive"></i>
+                    <span>Archived</span>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="thread-search-bar">
+                <i class="fas fa-search thread-search-icon"></i>
+                <input type="text" class="thread-search-input" id="thread-search" placeholder="Search threads..."
+                    oninput="ThreadManager.filterThreads(this.value)">
+            </div>
+
+            <!-- Sort Toggle -->
+            <div class="thread-sort-toggle">
+                <span class="thread-sort-label">
+                    <i class="fas fa-sort"></i>
+                    Sort:
+                </span>
+                <div class="thread-sort-buttons">
+                    <button class="thread-sort-btn active" onclick="ThreadManager.setSortOrder('updated', event)"
+                        data-sort="updated" title="Sort by most recently active threads">
+                        <i class="fas fa-clock-rotate-left"></i>
+                        Recent Activity
+                    </button>
+                    <button class="thread-sort-btn" onclick="ThreadManager.setSortOrder('created', event)"
+                        data-sort="created" title="Sort by thread creation date (oldest first)">
+                        <i class="fas fa-calendar-plus"></i>
+                        Creation Date
+                    </button>
+                </div>
+            </div>
+
+            <div class="thread-filter-dropdowns">
+                <div class="thread-filter-dropdown-group">
+                    <label for="agent-select"><i class="fas fa-robot"></i> Agent:</label>
+                    <select id="agent-select" onchange="ThreadManager.filterByLocation(this.value)">
+                        <option value="all">All Locations</option>
+                        <!-- Dynamic options populated from threads.location -->
+                    </select>
+                </div>
+                <div class="thread-filter-dropdown-group">
+                    <label for="tags-select"><i class="fas fa-tags"></i> Tags:</label>
+                    <select id="tags-select" onchange="ThreadManager.filterByTag(this.value)">
+                        <option value="all">All Tags</option>
+                        <!-- Dynamic options populated from thread tags -->
+                    </select>
+                </div>
+                <div class="thread-filter-dropdown-group">
+                    <label for="date-range-select"><i class="fas fa-calendar"></i> Date:</label>
+                    <select id="date-range-select" onchange="ThreadManager.filterByDateRange(this.value)">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="3days">Last 3 Days</option>
+                        <option value="week">Last Week</option>
+                        <option value="month">Last Month</option>
+                        <option value="custom">Custom Range...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Custom Date Range Picker (hidden by default) -->
+            <div class="thread-custom-date-range" id="thread-custom-date-range" style="display: none;">
+                <div class="thread-custom-date-inputs">
+                    <div>
+                        <label for="date-range-start">From:</label>
+                        <input type="date" id="date-range-start" />
+                    </div>
+                    <div>
+                        <label for="date-range-end">To:</label>
+                        <input type="date" id="date-range-end" />
+                    </div>
+                    <button class="thread-date-apply-btn" onclick="ThreadManager.applyCustomDateRange()">
+                        <i class="fas fa-check"></i> Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="thread-list" id="thread-list">
+            <!-- Thread items will be inserted here -->
         </div>
     </div>
 

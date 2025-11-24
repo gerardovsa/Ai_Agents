@@ -31,6 +31,7 @@ def synergy_recommend_next_tool(
     Args:
         current_situation: Your current state. Options:
             - "just_starting" - First time using Synergy, need to create project
+            - "structured_project" - Multi-phase project, need milestone-based structure
             - "project_created" - Have session_id, created first resource
             - "adding_resources" - Adding more resources to existing project
             - "need_to_update" - Have resources, need to update Synergy
@@ -88,6 +89,264 @@ def synergy_recommend_next_tool(
     
     # Recommendation logic based on situation
     recommendations = {
+        "structured_project": {
+            "recommended_tool": "synergy_smart_project_tracker",
+            "reason": """
+You're working on a STRUCTURED multi-phase project. Use the SMART TOOL with MILESTONES!
+
+The synergy_smart_project_tracker() with use_milestones=True is the EASIEST way to create 
+complete structured projects in ONE CALL. It automatically:
+- Creates the Synergy session
+- Creates all milestones with tasks and subtasks
+- Sets up dependencies and time tracking
+- Returns all milestone IDs for future updates
+
+Milestones are perfect when:
+- Project has clear phases (Planning → Development → Testing)
+- Need dependencies between phases
+- Want phase-specific documents and time tracking
+- Need to track progress through structured stages
+- Need phase-specific documents and resources
+- Want to set dependencies between phases
+
+WORKFLOW:
+1. Create session with synergy_create_session()
+2. Create milestone for each major phase
+3. Each milestone contains tasks and subtasks
+4. Add documents specific to each phase
+5. Track progress through milestone completion
+
+This provides MUCH better structure than flat next_steps lists!
+            """,
+            "parameters": {
+                "title": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Project title",
+                    "example": "Customer Database Migration"
+                },
+                "platforms_involved": {
+                    "type": "array",
+                    "required": True,
+                    "description": "List of platforms used",
+                    "example": ["sheets", "forms", "gmail", "drive"]
+                },
+                "use_milestones": {
+                    "type": "boolean",
+                    "required": True,
+                    "description": "Set to True for milestone structure",
+                    "example": True
+                },
+                "initial_milestones": {
+                    "type": "array",
+                    "required": True,
+                    "description": "Array of milestones to create",
+                    "example": [
+                        {
+                            "milestone_name": "Phase 1: Setup",
+                            "tasks": ["Create sheet", "Design schema"],
+                            "priority": "critical",
+                            "estimated_hours": 8
+                        }
+                    ]
+                },
+                "priority": {
+                    "type": "string",
+                    "required": False,
+                    "default": "high",
+                    "options": ["low", "medium", "high", "critical"],
+                    "example": "critical"
+                },
+                "tags": {
+                    "type": "array",
+                    "required": False,
+                    "description": "Tags for categorization",
+                    "example": ["migration", "database", "multi-phase"]
+                }
+            },
+            "example": """
+# EASIEST WAY: Create complete milestone project in ONE CALL!
+
+result = synergy_smart_project_tracker(
+    title="Customer Database Migration",
+    description="Multi-phase migration from legacy CRM to Google Sheets",
+    platforms_involved=["sheets", "forms", "gmail", "drive"],
+    priority="critical",
+    start_in_column="in_progress",
+    tags=["migration", "database"],
+    
+    # KEY: Enable milestone structure
+    use_milestones=True,
+    
+    # KEY: Provide all milestones in initial_milestones array
+    initial_milestones=[
+        {
+            "milestone_name": "Phase 1: Database Setup",
+            "description": "Create new database infrastructure",
+            "tasks": [
+                "Create Google Sheet with schema",
+                {
+                    "task": "Design data model",
+                    "subtasks": [
+                        "Define customer fields",
+                        "Set up validation rules",
+                        "Create lookup tables"
+                    ]
+                },
+                "Import test data"
+            ],
+            "priority": "critical",
+            "due_date": "2025-12-01",
+            "estimated_hours": 8,
+            "tags": ["database", "setup"]
+        },
+        {
+            "milestone_name": "Phase 2: Data Import",
+            "description": "Import existing customer data",
+            "tasks": [
+                {
+                    "task": "Export from legacy CRM",
+                    "subtasks": [
+                        "Connect to old system",
+                        "Export customer records",
+                        "Export transaction history"
+                    ]
+                },
+                "Clean and format data",
+                "Import to new database"
+            ],
+            "priority": "high",
+            "due_date": "2025-12-08",
+            "estimated_hours": 12,
+            "tags": ["migration", "data"]
+        },
+        {
+            "milestone_name": "Phase 3: Integration & Testing",
+            "description": "Connect forms and test workflow",
+            "tasks": [
+                "Create Google Form for new entries",
+                "Set up form-to-sheet automation",
+                "Create email notification triggers",
+                "Test complete workflow"
+            ],
+            "priority": "medium",
+            "due_date": "2025-12-15",
+            "estimated_hours": 6,
+            "tags": ["automation", "testing"]
+        }
+    ]
+)
+
+# Save everything!
+session_id = result["session_id"]
+milestones = result["milestones_created"]
+
+# Extract milestone IDs
+m1_id = milestones[0]["milestone_id"]
+m2_id = milestones[1]["milestone_id"]
+m3_id = milestones[2]["milestone_id"]
+
+# Now work on Phase 1
+sheet = google_sheets_create(title="Customer Database")
+
+# Add to Phase 1
+synergy_update_milestone(
+    milestone_id=m1_id,
+    documents=[{
+        "title": "Customer Database Sheet",
+        "url": sheet["spreadsheet_url"],
+        "type": "google_sheet"
+    }]
+)
+
+# Complete Phase 1
+synergy_update_milestone(
+    milestone_id=m1_id,
+    completed=True,
+    actual_hours=7.5
+)
+
+# Phase 2 is now automatically unblocked!
+            """,
+            "next_steps": """
+After creating project with smart tool:
+
+1. **SAVE IDs** - You need these for updates!
+   ```python
+   session_id = result["session_id"]
+   milestones = result["milestones_created"]
+   m1_id = milestones[0]["milestone_id"]
+   m2_id = milestones[1]["milestone_id"]
+   m3_id = milestones[2]["milestone_id"]
+   ```
+
+2. **Work on first milestone**:
+   - Create resources for Phase 1
+   - Add documents with synergy_update_milestone()
+   - Complete tasks as you go
+
+3. **Update milestone with documents**:
+   ```python
+   sheet = google_sheets_create(...)
+   
+   synergy_update_milestone(
+       milestone_id=m1_id,
+       documents=[{
+           "title": "Database Sheet",
+           "url": sheet["spreadsheet_url"],
+           "type": "google_sheet"
+       }]
+   )
+   ```
+
+4. **Complete milestone when done**:
+   ```python
+   synergy_update_milestone(
+       milestone_id=m1_id,
+       completed=True,
+       actual_hours=8
+   )
+   ```
+
+5. **Move to next milestone**:
+   - Phase 2 automatically unblocked
+   - Repeat process for next phase
+
+6. **View progress**:
+   ```python
+   milestones = synergy_get_milestones(session_id=session_id)
+   # See all milestones with completion status
+   ```
+
+7. **Learn more**:
+   ```python
+   synergy_agent_instructions(topic="smart_tool_milestones")
+   ```
+            """,
+            "warning": """
+⚠️ MILESTONE vs FLAT STRUCTURE:
+
+Use MILESTONES when:
+✅ Multi-phase project (Planning → Dev → Test → Deploy)
+✅ Need phase-specific documents
+✅ Want to track progress through stages
+✅ Need dependencies between phases
+
+Use FLAT (next_steps) when:
+❌ Simple checklist project
+❌ Single-phase work
+❌ Quick one-off tasks
+
+DON'T mix both in same session - choose one structure!
+            """,
+            "schema_to_fetch": [
+                "synergy_smart_project_tracker",
+                "synergy_update_milestone",
+                "synergy_get_milestones",
+                "synergy_get_milestones",
+                "synergy_agent_instructions"
+            ]
+        },
         "just_starting": {
             "recommended_tool": "synergy_smart_project_tracker",
             "reason": """

@@ -93,7 +93,7 @@ class SettingsSidebarModule extends BaseModule {
 
             mergeWithDefaults(settings) {
                 const merged = JSON.parse(JSON.stringify(this.defaults));
-                
+
                 // Deep merge
                 const deepMerge = (target, source) => {
                     for (const key in source) {
@@ -194,12 +194,12 @@ class SettingsSidebarModule extends BaseModule {
             add(errorLog) {
                 const logs = this.load();
                 logs.unshift(errorLog); // Add to beginning
-                
+
                 // Keep only last 100 logs
                 if (logs.length > 100) {
                     logs.splice(100);
                 }
-                
+
                 this.save(logs);
                 return logs;
             },
@@ -249,14 +249,14 @@ class SettingsSidebarModule extends BaseModule {
     async loadHTML() {
         try {
             console.log('[Settings Sidebar] Loading HTML template...');
-            
+
             const response = await fetch('external/modules/settings-sidebar/settings-sidebar.html');
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const html = await response.text();
-            
+
             // Check if container already exists (avoid duplicates)
             let container = document.getElementById('settings-sidebar-container');
             if (!container) {
@@ -265,10 +265,10 @@ class SettingsSidebarModule extends BaseModule {
                 container.id = 'settings-sidebar-container';
                 document.body.appendChild(container);
             }
-            
+
             // Inject HTML
             container.innerHTML = html;
-            
+
             console.log('[Settings Sidebar] HTML template loaded successfully');
         } catch (error) {
             console.error('[Settings Sidebar] Failed to load HTML template:', error);
@@ -330,7 +330,7 @@ class SettingsSidebarModule extends BaseModule {
         const stats = settings.statistics;
 
         // Calculate success rate
-        const successRate = stats.totalRecoveries > 0 
+        const successRate = stats.totalRecoveries > 0
             ? ((stats.successfulRecoveries / stats.totalRecoveries) * 100).toFixed(1)
             : 0;
 
@@ -539,7 +539,7 @@ class SettingsSidebarModule extends BaseModule {
             const element = document.getElementById(id);
             if (element) {
                 element.disabled = !enabled;
-                
+
                 // Add visual feedback for disabled state
                 const toggleSwitch = element.closest('.toggle-switch') || element.closest('.setting-item');
                 if (toggleSwitch) {
@@ -773,9 +773,9 @@ class SettingsSidebarModule extends BaseModule {
                 </div>
                 
                 ${metrics.map(m => {
-                    const rate = m.total > 0 ? ((m.successful / m.total) * 100).toFixed(0) : 0;
-                    const status = rate >= 80 ? 'excellent' : rate >= 60 ? 'good' : rate >= 40 ? 'fair' : 'poor';
-                    return `
+            const rate = m.total > 0 ? ((m.successful / m.total) * 100).toFixed(0) : 0;
+            const status = rate >= 80 ? 'excellent' : rate >= 60 ? 'good' : rate >= 40 ? 'fair' : 'poor';
+            return `
                         <div class="effectiveness-card ${status}">
                             <div class="effectiveness-header">
                                 <span>${m.label}</span>
@@ -786,7 +786,7 @@ class SettingsSidebarModule extends BaseModule {
                             </div>
                         </div>
                     `;
-                }).join('')}
+        }).join('')}
             </div>
         `;
     }
@@ -805,10 +805,10 @@ class SettingsSidebarModule extends BaseModule {
 
     refreshTrackingData() {
         this.errorLogs = this.errorLogManager.load();
-        
+
         // Reload tracking tab
         this.switchSubTab('tracking');
-        
+
         this.showToast('Tracking data refreshed', 'success');
     }
 
@@ -819,10 +819,10 @@ class SettingsSidebarModule extends BaseModule {
 
         this.errorLogManager.clear();
         this.errorLogs = [];
-        
+
         // Reload tracking tab
         this.switchSubTab('tracking');
-        
+
         this.showToast('Error logs cleared', 'success');
     }
 
@@ -1046,7 +1046,7 @@ class SettingsSidebarModule extends BaseModule {
         link.download = `ai-agent-settings-${new Date().toISOString().split('T')[0]}.json`;
         link.click();
         URL.revokeObjectURL(url);
-        
+
         this.showToast('Settings exported successfully', 'success');
     }
 
@@ -1082,7 +1082,7 @@ class SettingsSidebarModule extends BaseModule {
 
         localStorage.removeItem('aiAgentSettings');
         localStorage.removeItem('aiAgentErrorLogs');
-        
+
         this.showToast('All settings reset. Reloading...', 'success');
         setTimeout(() => location.reload(), 1500);
     }
@@ -1091,7 +1091,7 @@ class SettingsSidebarModule extends BaseModule {
 
     loadSettingsIntoUI() {
         const settings = this.settingsManager.load();
-        
+
         // This is called after tab content is rendered
         // Settings are already populated via template literals
     }
@@ -1159,12 +1159,12 @@ class SettingsSidebarModule extends BaseModule {
 
     recordRecovery(errorType, success) {
         this.settingsManager.recordRecovery(errorType, success);
-        
+
         // Update statistics display if on recovery tab
         if (this.activeSubTab === 'recovery') {
             const settings = this.settingsManager.load();
             const stats = settings.statistics;
-            const successRate = stats.totalRecoveries > 0 
+            const successRate = stats.totalRecoveries > 0
                 ? ((stats.successfulRecoveries / stats.totalRecoveries) * 100).toFixed(1)
                 : 0;
 
@@ -1267,10 +1267,10 @@ window.closeSettingsSidebar = () => {
 
 window.switchSettingsTab = (tabName) => {
     console.log('[Settings] switchSettingsTab called:', tabName);
-    
+
     // Simple tab switching for settings sidebar (uses native HTML IDs)
     const tabs = ['recovery', 'display', 'advanced'];
-    
+
     tabs.forEach(tab => {
         // Tab buttons
         const button = document.querySelector(`[data-tab="${tab}"]`);
@@ -1281,7 +1281,7 @@ window.switchSettingsTab = (tabName) => {
                 button.classList.remove('active');
             }
         }
-        
+
         // Tab content
         const content = document.getElementById(`${tab}-settings-tab`);
         if (content) {
@@ -1292,7 +1292,7 @@ window.switchSettingsTab = (tabName) => {
             }
         }
     });
-    
+
     console.log('[Settings] Switched to tab:', tabName);
 };
 

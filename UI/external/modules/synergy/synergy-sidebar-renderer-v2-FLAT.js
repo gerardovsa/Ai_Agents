@@ -168,6 +168,9 @@ class SynergySidebarRendererV2 {
             expandedContent.innerHTML = this.renderExpandedCardContent(data.session, data.milestones, sessionId);
             expandedContent.style.display = 'block';
 
+            // Load linked threads asynchronously (don't block card rendering)
+            setTimeout(() => this.loadLinkedThreads(sessionId), 100);
+
         } catch (error) {
             console.error('[SYNERGY V2] Error loading card:', error);
             const expandedContent = cardElement.querySelector('.synergy-card-expanded-content');
@@ -196,6 +199,7 @@ class SynergySidebarRendererV2 {
                 ${this.renderDescriptionSection(session.description)}
                 ${this.renderMilestonesSection(milestones, sessionId)}
                 ${this.renderDocumentsSection(session.documents, sessionId)}
+                ${this.renderLinkedThreadsSection(sessionId)}
                 ${this.renderLinksSection(session.links)}
                 ${this.renderTagsSection(session.tags)}
             </div>
@@ -598,6 +602,125 @@ class SynergySidebarRendererV2 {
                 `}
             </div>
         `;
+    }
+
+    /**
+     * LINKED THREADS SECTION - FLAT
+     * Shows all threads linked to this synergy session
+     * Drop zone for drag-and-drop thread linking
+     */
+    renderLinkedThreadsSection(sessionId) {
+        return `
+            <div class="synergy-flat-section" data-section="linked-threads" id="synergy-linked-threads-${sessionId}">
+                <div class="synergy-flat-section-header">
+                    <b>Linked Threads</b>
+                    <span style="font-size: 14px; color: var(--text-secondary);" class="linked-threads-count">Loading...</span>
+                </div>
+                <div class="synergy-linked-threads-container" data-session-id="${sessionId}">
+                    <div class="synergy-flat-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <div>Loading linked threads...</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Load and render linked threads dynamically
+     * Called after card expansion and after thread linking
+     */
+    async loadLinkedThreads(sessionId) {
+        const container = document.querySelector(`#synergy-linked-threads-${sessionId} .synergy-linked-threads-container`);
+        const countSpan = document.querySelector(`#synergy-linked-threads-${sessionId} .linked-threads-count`);
+
+        if (!container) {
+            console.warn('[SYNERGY] Linked threads container not found for session', sessionId);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/linked-threads`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Unknown error');
+
+            const threads = data.threads || [];
+
+            // Update count
+            if (countSpan) {
+                countSpan.textContent = `${threads.length} thread${threads.length !== 1 ? 's' : ''}`;
+            }
+
+            if (threads.length === 0) {
+                container.innerHTML = `
+                    <div class="synergy-flat-empty synergy-drop-zone-hint">
+                        <i class="fas fa-comments"></i>
+                        <div>No linked threads</div>
+                        <div class="synergy-flat-empty-hint">
+                            <i class="fas fa-hand-pointer"></i>
+                            Drag and drop a thread card here to link it
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="synergy-linked-threads-list">
+                        ${threads.map(thread => `
+                            <div class="synergy-linked-thread-card" 
+                                 data-thread-id="${thread.thread_id}"
+                                 onclick="ThreadManager.switchThread('${thread.thread_id}', '${thread.agent_id}')"
+                                 title="Click to open thread in ${thread.agent_id === 'prime' ? 'Prime' : 'Agent ' + thread.agent_id}">
+                                <div class="thread-card-header">
+                                    <span class="thread-agent-badge ${thread.agent_id === 'prime' ? 'prime-badge' : 'agent-badge'}">
+                                        <i class="fas fa-${thread.agent_id === 'prime' ? 'star' : 'robot'}"></i>
+                                        ${thread.agent_id === 'prime' ? 'Prime' : 'Agent ' + thread.agent_id}
+                                    </span>
+                                    <span class="thread-message-count" title="Message count">
+                                        <i class="fas fa-comment"></i>
+                                        ${thread.message_count || 0}
+                                    </span>
+                                </div>
+                                <div class="thread-card-title">
+                                    ${this.escapeHtml(thread.title || 'Untitled Thread')}
+                                </div>
+                                <div class="thread-card-meta">
+                                    <span class="thread-created" title="Created">
+                                        <i class="fas fa-clock"></i>
+                                        ${this.formatTimeAgo(thread.created_at)}
+                                    </span>
+                                    ${thread.last_activity ? `
+                                        <span class="thread-activity" title="Last activity">
+                                            <i class="fas fa-bolt"></i>
+                                            ${this.formatTimeAgo(thread.last_activity)}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[SYNERGY] Error loading linked threads:', error);
+            if (countSpan) countSpan.textContent = 'Error';
+            container.innerHTML = `
+                <div class="synergy-flat-empty" style="color: var(--accent-error);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>Error loading threads</div>
+                    <div class="synergy-flat-empty-hint">${error.message}</div>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Refresh linked threads section (called after thread linking)
+     */
+    async refreshLinkedThreadsSection(sessionId) {
+        console.log('[SYNERGY] Refreshing linked threads for session', sessionId);
+        await this.loadLinkedThreads(sessionId);
     }
 
     /**

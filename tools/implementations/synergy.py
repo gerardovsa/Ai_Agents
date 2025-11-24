@@ -32,7 +32,7 @@ class SynergyError(Exception):
 def synergy_smart_project_tracker(
     title: str,
     platforms_involved: List[str],
-    next_steps: List[str],
+    next_steps: Optional[List[str]] = None,
     description: Optional[str] = None,
     priority: str = "high",
     start_in_column: str = "in_progress",
@@ -42,34 +42,39 @@ def synergy_smart_project_tracker(
     auto_update_mode: bool = True,
     sync_to_google: bool = False,
     notify_user: bool = True,
+    use_milestones: bool = False,
+    initial_milestones: Optional[List[Dict[str, Any]]] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
     SMART TOOL: Complete multi-platform project tracking in ONE call
     
     This is your PRIMARY tool for complex multi-step projects. It:
-    1. Creates Synergy session with proper structure
-    2. Sets up initial documents (if provided)
-    3. Configures next steps checklist
-    4. Places in correct Kanban column
-    5. Optionally syncs to Google Tasks
-    6. Returns dashboard URL and session info
+    1. Creates Synergy session with proper structure (flat OR milestone-based)
+    2. Sets up initial milestones with tasks/subtasks (if use_milestones=True)
+    3. Sets up initial documents (if provided)
+    4. Configures next steps checklist (if flat structure)
+    5. Places in correct Kanban column
+    6. Optionally syncs to Google Tasks
+    7. Returns dashboard URL and session info
     
-    Use this INSTEAD of calling synergy_create_session + synergy_update_session
+    Use this INSTEAD of calling synergy_create_session + synergy_create_milestone separately
     
     Args:
         title: Project title (required)
         platforms_involved: List of platforms ['gmail', 'sheets', 'forms', etc.]
-        next_steps: Action items checklist
+        next_steps: Action items checklist (for flat structure) - Optional if using milestones
         description: What you're building (auto-generated if not provided)
         priority: Priority level (default: high)
         start_in_column: backlog or in_progress (default: in_progress)
-        initial_documents: Documents already created [{"name": "", "url": "", "type": ""}]
+        initial_documents: Documents already created [{"title": "", "url": "", "type": ""}]
         due_date: Due date ISO format
         tags: Tags for filtering
         auto_update_mode: AI updates automatically (default: true)
         sync_to_google: Also create Google Task (default: false)
         notify_user: Tell user about dashboard (default: true)
+        use_milestones: Use milestone-based structure instead of flat (default: false)
+        initial_milestones: List of milestones to create [{"milestone_name": "", "tasks": [], ...}]
         
     Returns:
         Dict with:
@@ -130,6 +135,13 @@ def synergy_smart_project_tracker(
         if not tags:
             tags = platforms_involved + ["multi-platform", "automation"]
         
+        # Validate structure choice
+        if use_milestones and initial_milestones is None:
+            raise SynergyError("use_milestones=True but no initial_milestones provided. Either provide milestones or use flat structure.")
+        
+        if not use_milestones and next_steps is None:
+            raise SynergyError("Flat structure requires next_steps. Either provide next_steps or use use_milestones=True.")
+        
         # Build payload
         payload = {
             "title": title,
@@ -143,8 +155,12 @@ def synergy_smart_project_tracker(
             "notes": f"Auto-update mode: {'ON' if auto_update_mode else 'OFF'}\nPlatforms: {', '.join(platforms_involved)}",
             "documents": initial_documents or [],
             "links": [],
-            "next_steps": next_steps
+            "uses_milestones": use_milestones
         }
+        
+        # Add next_steps for flat structure
+        if not use_milestones:
+            payload["next_steps"] = next_steps
         
         if due_date:
             payload["due_date"] = due_date
@@ -160,6 +176,19 @@ def synergy_smart_project_tracker(
         response.raise_for_status()
         session = response.json()
         session_id = session.get("session_id")
+        
+        # Create milestones if using milestone structure
+        created_milestones = []
+        if use_milestones and initial_milestones:
+            for milestone_data in initial_milestones:
+                try:
+                    milestone_result = synergy_create_milestone(
+                        session_id=session_id,
+                        **milestone_data
+                    )
+                    created_milestones.append(milestone_result)
+                except Exception as e:
+                    print(f"Warning: Failed to create milestone '{milestone_data.get('milestone_name', 'Unknown')}': {str(e)}")
         
         # Optionally sync to Google Tasks
         google_sync_status = ""
@@ -189,9 +218,19 @@ def synergy_smart_project_tracker(
             f"✅ Project tracker created: {title}",
             f"📊 Dashboard: {dashboard_url}",
             f"🎯 Priority: {priority}",
-            f"📋 Next Steps: {len(next_steps)} action items",
             f"🔧 Platforms: {', '.join(platforms_involved)}"
         ]
+        
+        if use_milestones:
+            milestone_count = len(created_milestones)
+            # tasks_created can be int (count) or list (IDs), handle both
+            total_tasks = sum(
+                m.get('tasks_created', 0) if isinstance(m.get('tasks_created'), int) else len(m.get('tasks_created', []))
+                for m in created_milestones
+            )
+            message_parts.append(f"📊 Structure: Milestone-based ({milestone_count} milestones, {total_tasks} tasks)")
+        else:
+            message_parts.append(f"📋 Next Steps: {len(next_steps)} action items")
         
         if doc_count > 0:
             message_parts.append(f"📄 Initial Documents: {doc_count}")
@@ -204,7 +243,7 @@ def synergy_smart_project_tracker(
         
         user_message = "\n".join(message_parts)
         
-        return {
+        result = {
             "success": True,
             "session_id": session_id,
             "session": session,
@@ -212,8 +251,15 @@ def synergy_smart_project_tracker(
             "message": user_message,
             "auto_update_enabled": auto_update_mode,
             "platforms": platforms_involved,
-            "notify_user": notify_user
+            "notify_user": notify_user,
+            "uses_milestones": use_milestones
         }
+        
+        if use_milestones:
+            result["milestones_created"] = created_milestones
+            result["milestone_count"] = len(created_milestones)
+        
+        return result
         
     except requests.exceptions.RequestException as e:
         raise SynergyError(f"Failed to create smart project tracker: {str(e)}")
@@ -238,6 +284,7 @@ def synergy_create_session(
     assigned_agents: Optional[List[str]] = None,
     sync_google_tasks: bool = False,
     sync_google_calendar: bool = False,
+    uses_milestones: bool = False,
     **kwargs
 ) -> Dict[str, Any]:
     # CRITICAL AUTO-LINKING: Extract thread_id and agent context from kwargs
@@ -280,6 +327,7 @@ def synergy_create_session(
         assigned_agents: AI agents assigned to work on this session
         sync_google_tasks: Sync to Google Tasks
         sync_google_calendar: Sync to Google Calendar
+        uses_milestones: Use milestone-based structure (default: false for flat structure)
         
     Returns:
         Dict with session object including session_id
@@ -298,6 +346,7 @@ def synergy_create_session(
             "assignees": assignees or [],
             "tags": tags or [],
             "notes": notes or "",
+            "uses_milestones": uses_milestones,
             "documents": documents or [],
             "links": links or [],
             "next_steps": next_steps or [],
@@ -518,6 +567,25 @@ def synergy_update_session(
         )
     """
     try:
+        # MILESTONE AWARENESS: Check if session uses milestones
+        # Fetch current session to check structure
+        session_response = requests.get(
+            f"{SYNERGY_API_BASE}/{session_id}",
+            timeout=10
+        )
+        session_response.raise_for_status()
+        current_session = session_response.json()
+        uses_milestones = current_session.get('uses_milestones', False)
+        
+        # Validate: Don't allow flat structure updates on milestone sessions
+        if uses_milestones and (next_steps is not None or checklist is not None):
+            raise SynergyError(
+                f"Session {session_id} uses MILESTONE structure. "
+                f"Cannot update 'next_steps' or 'checklist' on milestone sessions. "
+                f"Use synergy_create_milestone(), synergy_update_milestone(), synergy_create_task(), etc. instead. "
+                f"To learn about milestone operations, call: synergy_agent_instructions(topic='milestones')"
+            )
+        
         # Build updates dict from provided parameters
         updates = {}
         
@@ -1691,6 +1759,7 @@ def synergy_create_internal_doc(
     title: str,
     content: str,
     format: str = "markdown",
+    linked_milestone_id: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -1706,6 +1775,10 @@ def synergy_create_internal_doc(
     - Export to Word/Google Docs/PDF/Email
     - Copy doc_id for AI processing
     
+    NEW: Can be linked to a specific milestone using linked_milestone_id parameter.
+    This allows you to organize documents by project phase and see which documents
+    belong to which milestone.
+    
     Args:
         session_id: Synergy session ID (format: sess_YYYYMMDD_HHMM_title)
         title: Document title (e.g., 'Meeting Summary', 'Q4 Strategy')
@@ -1717,6 +1790,10 @@ def synergy_create_internal_doc(
                  - Links, code blocks, etc.
         format: Content format (default: 'markdown'). Can be 'html' but markdown
                 is preferred for AI editability
+        linked_milestone_id: Optional milestone ID to link this document to.
+                            Use when document is specific to a project phase.
+                            Format: ms_20251124120000
+                            Example: Link "Phase 1 Summary" to milestone 1
         **kwargs: Additional parameters (e.g., _user_id)
     
     Returns:
@@ -1753,26 +1830,35 @@ Review proposal next week.'''
         # User can paste "int_doc_1731600000123" in chat for AI to read it
     """
     try:
+        payload = {
+            'session_id': session_id,
+            'title': title,
+            'content': content,
+            'format': format,
+            'created_by': kwargs.get('_user_id', 'ai_agent')
+        }
+        
+        # Add linked_milestone_id if provided
+        if linked_milestone_id:
+            payload['linked_milestone_id'] = linked_milestone_id
+        
         response = requests.post(
             f'{SYNERGY_API_BASE}/internal-doc/create',
-            json={
-                'session_id': session_id,
-                'title': title,
-                'content': content,
-                'format': format,
-                'created_by': kwargs.get('_user_id', 'ai_agent')
-            }
+            json=payload
         )
         
         response.raise_for_status()
         data = response.json()
+        
+        link_msg = f" (linked to milestone)" if linked_milestone_id else ""
         
         return {
             'success': True,
             'doc_id': data.get('doc_id'),
             'title': data.get('title'),
             'preview': data.get('preview', content[:100]),
-            'message': f"✅ Created internal document: {title}. Doc ID: {data.get('doc_id')} (user can paste in chat for AI to read)"
+            'linked_milestone_id': linked_milestone_id,
+            'message': f"✅ Created internal document: {title}{link_msg}. Doc ID: {data.get('doc_id')} (user can paste in chat for AI to read)"
         }
         
     except requests.exceptions.RequestException as e:
@@ -2035,3 +2121,711 @@ def synergy_export_internal_doc(
         if 'Permission denied' in str(e):
             raise SynergyError(f"Export failed: User needs to configure {export_format} OAuth credentials")
         raise SynergyError(f"Failed to export internal document {doc_id}: {str(e)}")
+
+
+# ============================================================================
+# MILESTONE-BASED PROJECT MANAGEMENT
+# ============================================================================
+
+def synergy_create_milestone(
+    session_id: str,
+    milestone_name: str,
+    description: Optional[str] = None,
+    tasks: Optional[List[Any]] = None,
+    due_date: Optional[str] = None,
+    priority: str = "medium",
+    estimated_hours: Optional[float] = None,
+    documents: Optional[List[Dict[str, str]]] = None,
+    links: Optional[List[Dict[str, str]]] = None,
+    tags: Optional[List[str]] = None,
+    start_date: Optional[str] = None,
+    depends_on_milestone_id: Optional[str] = None,
+    color_hex: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Create a new milestone with tasks and subtasks in one call
+    
+    Milestones are major phases in a Synergy session. Each milestone can have:
+    - Multiple tasks (smaller units of work)
+    - Each task can have subtasks (granular steps)
+    - Documents specific to this milestone
+    - Links and tags for organization
+    - Priority, due dates, time estimates
+    - Dependencies on other milestones
+    
+    Use this when you have a structured project with clear phases like:
+    - "Phase 1: Planning", "Phase 2: Development", "Phase 3: Testing"
+    - "Database Setup", "API Integration", "UI Development"
+    
+    Args:
+        session_id: Synergy session ID (required)
+        milestone_name: Milestone title (required)
+        description: Detailed milestone description
+        tasks: List of tasks - can be strings or objects with subtasks
+               Examples:
+               - ["Create database", "Import data"]
+               - [{"task": "Setup infrastructure", "subtasks": ["Create server", "Configure DNS"]}]
+        due_date: Due date in ISO format (YYYY-MM-DD)
+        priority: Priority level (low|medium|high|critical) - default: medium
+        estimated_hours: Estimated hours to complete milestone
+        documents: Documents specific to this milestone
+                   Format: [{"title": "Design Doc", "url": "https://...", "type": "google_doc"}]
+        links: Related links
+               Format: [{"title": "Dashboard", "url": "https://..."}]
+        tags: Tags for categorization (e.g., ["backend", "database", "critical"])
+        start_date: Start date in ISO format (YYYY-MM-DD)
+        depends_on_milestone_id: ID of milestone that must complete first
+        color_hex: Color for visual identification (e.g., "#FF5733")
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - milestone_id: str (save this for updates!)
+        - milestone_number: int (auto-incremented)
+        - tasks_created: int
+        - subtasks_created: int
+        - message: str
+        
+    Example:
+        result = synergy_create_milestone(
+            session_id="sess_abc123",
+            milestone_name="Database Setup",
+            description="Set up customer database and import existing contacts",
+            tasks=[
+                "Create Google Sheet for customer data",
+                {
+                    "task": "Import existing contacts",
+                    "subtasks": [
+                        "Export from old CRM",
+                        "Clean and format data",
+                        "Import to new sheet"
+                    ]
+                },
+                "Set up automated backups"
+            ],
+            due_date="2025-12-01",
+            priority="high",
+            estimated_hours=8,
+            tags=["database", "migration", "critical"]
+        )
+        
+        milestone_id = result["milestone_id"]  # Save this!
+    """
+    try:
+        payload = {
+            "session_id": session_id,
+            "milestone_name": milestone_name,
+            "description": description,
+            "tasks": tasks or [],
+            "due_date": due_date,
+            "priority": priority,
+            "estimated_hours": estimated_hours
+        }
+        
+        # Add optional fields if provided
+        if documents:
+            payload["documents"] = documents
+        if links:
+            payload["links"] = links
+        if tags:
+            payload["tags"] = tags
+        if start_date:
+            payload["start_date"] = start_date
+        if depends_on_milestone_id:
+            payload["depends_on_milestone_id"] = depends_on_milestone_id
+        if color_hex:
+            payload["color_hex"] = color_hex
+        
+        response = requests.post(
+            f"{SYNERGY_API_BASE}/milestone/create",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "milestone_id": result.get("milestone_id"),
+            "milestone_number": result.get("milestone_number"),
+            "tasks_created": result.get("tasks_created", 0),
+            "subtasks_created": result.get("subtasks_created", 0),
+            "message": f"✅ Created milestone: {milestone_name} (#{result.get('milestone_number')})"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to create milestone: {str(e)}")
+
+
+def synergy_get_milestones(
+    session_id: str,
+    include_archived: bool = False,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Get all milestones for a Synergy session
+    
+    Returns complete milestone data including:
+    - All milestone fields (name, description, dates, priority, etc.)
+    - Counts of tasks and subtasks
+    - Completion status and progress
+    - Documents and links attached to each milestone
+    
+    Args:
+        session_id: Synergy session ID
+        include_archived: Include archived milestones (default: False)
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - count: int (number of milestones)
+        - milestones: List of milestone objects
+        - session_uses_milestones: bool
+        
+    Example:
+        result = synergy_get_milestones(session_id="sess_abc123")
+        
+        for milestone in result["milestones"]:
+            print(f"{milestone['milestone_number']}. {milestone['milestone_name']}")
+            print(f"   Tasks: {milestone['task_count']}")
+            print(f"   Status: {'✅ Done' if milestone['completed'] else '⏳ In Progress'}")
+    """
+    try:
+        params = {"include_archived": "true" if include_archived else "false"}
+        
+        response = requests.get(
+            f"{SYNERGY_API_BASE}/{session_id}/milestones",
+            params=params,
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        return {
+            "success": True,
+            "count": len(data.get("milestones", [])),
+            "milestones": data.get("milestones", []),
+            "session_uses_milestones": data.get("uses_milestones", False)
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to get milestones for session {session_id}: {str(e)}")
+
+
+def synergy_update_milestone(
+    milestone_id: str,
+    milestone_name: Optional[str] = None,
+    description: Optional[str] = None,
+    priority: Optional[str] = None,
+    due_date: Optional[str] = None,
+    start_date: Optional[str] = None,
+    estimated_hours: Optional[float] = None,
+    actual_hours: Optional[float] = None,
+    completed: Optional[bool] = None,
+    blocked: Optional[bool] = None,
+    blocker_reason: Optional[str] = None,
+    documents: Optional[List[Dict[str, str]]] = None,
+    links: Optional[List[Dict[str, str]]] = None,
+    tags: Optional[List[str]] = None,
+    archived: Optional[bool] = None,
+    depends_on_milestone_id: Optional[str] = None,
+    color_hex: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Update any field(s) of an existing milestone
+    
+    CRITICAL: Only pass the fields you want to UPDATE. Omitted fields remain unchanged.
+    
+    For arrays (documents, links, tags): These REPLACE the entire array.
+    To add items, you must:
+    1. Get current milestone data
+    2. Append new items to existing array
+    3. Pass complete array to this function
+    
+    Args:
+        milestone_id: Milestone ID to update (required)
+        milestone_name: Update milestone title
+        description: Update description
+        priority: Update priority (low|medium|high|critical)
+        due_date: Update due date (YYYY-MM-DD)
+        start_date: Update start date (YYYY-MM-DD)
+        estimated_hours: Update time estimate
+        actual_hours: Update actual time spent
+        completed: Mark as complete (true) or incomplete (false)
+        blocked: Mark as blocked (true) or unblocked (false)
+        blocker_reason: Reason for block (required if blocked=true)
+        documents: REPLACE all documents
+                   Format: [{"title": "Doc", "url": "https://...", "type": "google_doc"}]
+        links: REPLACE all links
+               Format: [{"title": "Link", "url": "https://..."}]
+        tags: REPLACE all tags
+              Format: ["tag1", "tag2"]
+        archived: Archive milestone (true) or unarchive (false)
+        depends_on_milestone_id: Update dependency milestone ID
+        color_hex: Update color (e.g., "#FF5733")
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - milestone_id: str
+        - updated_fields: list of field names updated
+        - message: str
+        
+    Example:
+        # Mark milestone as complete
+        synergy_update_milestone(
+            milestone_id="ms_20251124120000",
+            completed=True,
+            actual_hours=6.5
+        )
+        
+        # Add a document (must include existing docs)
+        current = synergy_get_milestones(session_id="sess_abc")
+        milestone = [m for m in current["milestones"] if m["milestone_id"] == "ms_20251124120000"][0]
+        existing_docs = milestone.get("documents", [])
+        
+        synergy_update_milestone(
+            milestone_id="ms_20251124120000",
+            documents=existing_docs + [{"title": "New Doc", "url": "https://...", "type": "pdf"}]
+        )
+    """
+    try:
+        updates = {}
+        
+        # Simple field updates
+        if milestone_name is not None:
+            updates["milestone_name"] = milestone_name
+        if description is not None:
+            updates["description"] = description
+        if priority is not None:
+            updates["priority"] = priority
+        if due_date is not None:
+            updates["due_date"] = due_date
+        if start_date is not None:
+            updates["start_date"] = start_date
+        if estimated_hours is not None:
+            updates["estimated_hours"] = estimated_hours
+        if actual_hours is not None:
+            updates["actual_hours"] = actual_hours
+        if completed is not None:
+            updates["completed"] = completed
+        if blocked is not None:
+            updates["blocked"] = blocked
+        if blocker_reason is not None:
+            updates["blocker_reason"] = blocker_reason
+        if archived is not None:
+            updates["archived"] = archived
+        if depends_on_milestone_id is not None:
+            updates["depends_on_milestone_id"] = depends_on_milestone_id
+        if color_hex is not None:
+            updates["color_hex"] = color_hex
+        
+        # Array fields (REPLACE entire array)
+        if documents is not None:
+            response = requests.patch(
+                f"{SYNERGY_API_BASE}/milestone/{milestone_id}/documents",
+                json={"documents": documents},
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            response.raise_for_status()
+            updates["documents"] = len(documents)
+        
+        if links is not None:
+            response = requests.patch(
+                f"{SYNERGY_API_BASE}/milestone/{milestone_id}/links",
+                json={"links": links},
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            response.raise_for_status()
+            updates["links"] = len(links)
+        
+        if tags is not None:
+            updates["tags"] = tags
+        
+        # Send simple field updates
+        if len(updates) > 0:
+            response = requests.patch(
+                f"{SYNERGY_API_BASE}/milestone/{milestone_id}/update",
+                json=updates,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            response.raise_for_status()
+        
+        return {
+            "success": True,
+            "milestone_id": milestone_id,
+            "updated_fields": list(updates.keys()),
+            "message": f"✅ Updated milestone ({len(updates)} fields)"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to update milestone {milestone_id}: {str(e)}")
+
+
+def synergy_create_task(
+    milestone_id: str,
+    task: str,
+    subtasks: Optional[List[str]] = None,
+    priority: str = "medium",
+    estimated_hours: Optional[float] = None,
+    assigned_to: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    start_date: Optional[str] = None,
+    depends_on_task_id: Optional[str] = None,
+    links: Optional[List[Dict[str, str]]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Add a new task to an existing milestone
+    
+    Tasks are units of work within a milestone. Each task can have:
+    - Subtasks (smaller steps)
+    - Priority, time estimates, assignments
+    - Dependencies on other tasks
+    - Links and tags
+    
+    Args:
+        milestone_id: Parent milestone ID (required)
+        task: Task description (required)
+        subtasks: List of subtask descriptions
+                  Example: ["Step 1", "Step 2", "Step 3"]
+        priority: Priority level (low|medium|high|critical) - default: medium
+        estimated_hours: Estimated time to complete
+        assigned_to: Person assigned to this task
+        tags: Tags for categorization
+        start_date: Start date (YYYY-MM-DD)
+        depends_on_task_id: ID of task that must complete first
+        links: Related links
+               Format: [{"title": "Reference", "url": "https://..."}]
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - task_id: str (save this for updates!)
+        - subtasks_created: int
+        - message: str
+        
+    Example:
+        result = synergy_create_task(
+            milestone_id="ms_20251124120000",
+            task="Set up database backups",
+            subtasks=[
+                "Configure automated daily backups",
+                "Test restore procedure",
+                "Document backup process"
+            ],
+            priority="high",
+            estimated_hours=2,
+            assigned_to="DevOps Team"
+        )
+        
+        task_id = result["task_id"]  # Save this!
+    """
+    try:
+        payload = {
+            "task": task,
+            "subtasks": subtasks or [],
+            "priority": priority
+        }
+        
+        # Add optional fields
+        if estimated_hours is not None:
+            payload["estimated_hours"] = estimated_hours
+        if assigned_to:
+            payload["assigned_to"] = assigned_to
+        if tags:
+            payload["tags"] = tags
+        if start_date:
+            payload["start_date"] = start_date
+        if depends_on_task_id:
+            payload["depends_on_task_id"] = depends_on_task_id
+        if links:
+            payload["links"] = links
+        
+        response = requests.post(
+            f"{SYNERGY_API_BASE}/milestone/{milestone_id}/task/create",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "task_id": result.get("task_id"),
+            "subtasks_created": result.get("subtasks_created", 0),
+            "message": f"✅ Created task: {task[:50]}..."
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to create task: {str(e)}")
+
+
+def synergy_update_task(
+    task_id: str,
+    task: Optional[str] = None,
+    priority: Optional[str] = None,
+    completed: Optional[bool] = None,
+    blocked: Optional[bool] = None,
+    blocker_reason: Optional[str] = None,
+    estimated_hours: Optional[float] = None,
+    actual_hours: Optional[float] = None,
+    assigned_to: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    start_date: Optional[str] = None,
+    archived: Optional[bool] = None,
+    depends_on_task_id: Optional[str] = None,
+    links: Optional[List[Dict[str, str]]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Update any field(s) of an existing task
+    
+    CRITICAL: Only pass fields you want to UPDATE. Omitted fields remain unchanged.
+    
+    Args:
+        task_id: Task ID to update (required)
+        task: Update task description
+        priority: Update priority (low|medium|high|critical)
+        completed: Mark as complete (true) or incomplete (false)
+        blocked: Mark as blocked (true) or unblocked (false)
+        blocker_reason: Reason for block
+        estimated_hours: Update time estimate
+        actual_hours: Update actual time spent
+        assigned_to: Update assignee
+        tags: REPLACE all tags
+        start_date: Update start date (YYYY-MM-DD)
+        archived: Archive task (true) or unarchive (false)
+        depends_on_task_id: Update dependency task ID
+        links: REPLACE all links
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - task_id: str
+        - updated_fields: list
+        - message: str
+        
+    Example:
+        # Mark task as complete
+        synergy_update_task(
+            task_id="task_20251124120000",
+            completed=True,
+            actual_hours=2.5
+        )
+        
+        # Block task with reason
+        synergy_update_task(
+            task_id="task_20251124120000",
+            blocked=True,
+            blocker_reason="Waiting for API credentials"
+        )
+    """
+    try:
+        updates = {}
+        
+        if task is not None:
+            updates["task"] = task
+        if priority is not None:
+            updates["priority"] = priority
+        if completed is not None:
+            updates["completed"] = completed
+        if blocked is not None:
+            updates["blocked"] = blocked
+        if blocker_reason is not None:
+            updates["blocker_reason"] = blocker_reason
+        if estimated_hours is not None:
+            updates["estimated_hours"] = estimated_hours
+        if actual_hours is not None:
+            updates["actual_hours"] = actual_hours
+        if assigned_to is not None:
+            updates["assigned_to"] = assigned_to
+        if tags is not None:
+            updates["tags"] = tags
+        if start_date is not None:
+            updates["start_date"] = start_date
+        if archived is not None:
+            updates["archived"] = archived
+        if depends_on_task_id is not None:
+            updates["depends_on_task_id"] = depends_on_task_id
+        if links is not None:
+            updates["links"] = links
+        
+        response = requests.patch(
+            f"{SYNERGY_API_BASE}/task/{task_id}",
+            json=updates,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        
+        return {
+            "success": True,
+            "task_id": task_id,
+            "updated_fields": list(updates.keys()),
+            "message": f"✅ Updated task ({len(updates)} fields)"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to update task {task_id}: {str(e)}")
+
+
+def synergy_create_subtask(
+    task_id: str,
+    task: str,
+    priority: str = "medium",
+    estimated_hours: Optional[float] = None,
+    assigned_to: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Add a new subtask to an existing task
+    
+    Subtasks are granular steps within a task. Use them for:
+    - Breaking down complex tasks into smaller steps
+    - Tracking detailed progress
+    - Assigning specific steps to individuals
+    
+    Args:
+        task_id: Parent task ID (required)
+        task: Subtask description (required)
+        priority: Priority level (low|medium|high|critical) - default: medium
+        estimated_hours: Estimated time
+        assigned_to: Person assigned
+        tags: Tags for categorization
+        
+    Returns:
+        Dict with:
+        - success: bool
+        - subtask_id: str
+        - message: str
+        
+    Example:
+        result = synergy_create_subtask(
+            task_id="task_20251124120000",
+            task="Review and approve backup configuration",
+            priority="high",
+            assigned_to="Team Lead"
+        )
+        
+        subtask_id = result["subtask_id"]
+    """
+    try:
+        payload = {
+            "task": task,
+            "priority": priority
+        }
+        
+        if estimated_hours is not None:
+            payload["estimated_hours"] = estimated_hours
+        if assigned_to:
+            payload["assigned_to"] = assigned_to
+        if tags:
+            payload["tags"] = tags
+        
+        response = requests.post(
+            f"{SYNERGY_API_BASE}/task/{task_id}/subtask/create",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        return {
+            "success": True,
+            "subtask_id": result.get("subtask_id"),
+            "message": f"✅ Created subtask: {task[:50]}..."
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to create subtask: {str(e)}")
+
+
+def synergy_update_subtask(
+    subtask_id: str,
+    task: Optional[str] = None,
+    priority: Optional[str] = None,
+    completed: Optional[bool] = None,
+    estimated_hours: Optional[float] = None,
+    actual_hours: Optional[float] = None,
+    assigned_to: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    archived: Optional[bool] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Update any field(s) of an existing subtask
+    
+    Args:
+        subtask_id: Subtask ID to update (required)
+        task: Update subtask description
+        priority: Update priority
+        completed: Mark as complete/incomplete
+        estimated_hours: Update time estimate
+        actual_hours: Update actual time spent
+        assigned_to: Update assignee
+        tags: REPLACE all tags
+        archived: Archive subtask
+        
+    Returns:
+        Dict with success status and updated fields
+        
+    Example:
+        synergy_update_subtask(
+            subtask_id="sub_20251124120000",
+            completed=True,
+            actual_hours=0.5
+        )
+    """
+    try:
+        updates = {}
+        
+        if task is not None:
+            updates["task"] = task
+        if priority is not None:
+            updates["priority"] = priority
+        if completed is not None:
+            updates["completed"] = completed
+        if estimated_hours is not None:
+            updates["estimated_hours"] = estimated_hours
+        if actual_hours is not None:
+            updates["actual_hours"] = actual_hours
+        if assigned_to is not None:
+            updates["assigned_to"] = assigned_to
+        if tags is not None:
+            updates["tags"] = tags
+        if archived is not None:
+            updates["archived"] = archived
+        
+        response = requests.patch(
+            f"{SYNERGY_API_BASE}/subtask/{subtask_id}",
+            json=updates,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        
+        return {
+            "success": True,
+            "subtask_id": subtask_id,
+            "updated_fields": list(updates.keys()),
+            "message": f"✅ Updated subtask ({len(updates)} fields)"
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to update subtask {subtask_id}: {str(e)}")

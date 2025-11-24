@@ -37,26 +37,8 @@
     margin: 0px 10px;
 }
 
-/* Hide rows 3+ by default (show only first 2 rows: title + meta) */
-.ai-chat-header-info>div:nth-child(n+3) {
-    opacity: 0;
-    max-height: 0;
-    overflow: hidden;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    transition: all 0.25s ease-out;
-}
-
-/* Show all rows on hover (expand downward) */
-.ai-chat-header-info:hover>div:nth-child(n+3) {
-    opacity: 1;
-    max-height: 300px;
-    /* Increased to accommodate all content */
-    margin-top: 8px !important;
-    transition: all 0.3s ease-in 0.1s;
-}
+/* CLICK-BASED EXPANSION: Controlled by .expanded class (see below for per-card rules) */
+/* Old hover-based expansion removed Nov 24, 2025 */
 
 /* ============================================================
    ROW 1: TITLE + AGENT BADGE
@@ -278,79 +260,118 @@
    ============================================================ */
 
 /* Agent Thread Cards (thread-info-1, thread-info-2, thread-info-3) */
-/* Hide synergy and tags rows by default */
-#thread-info-1:not(:hover) .thread-item-synergy,
-#thread-info-1:not(:hover) .thread-tags-row,
-#thread-info-2:not(:hover) .thread-item-synergy,
-#thread-info-2:not(:hover) .thread-tags-row,
-#thread-info-3:not(:hover) .thread-item-synergy,
-#thread-info-3:not(:hover) .thread-tags-row {
+/* HOVER-BASED EXPANSION (restored for agents) */
+/* Hide expanded content by default */
+#thread-info-1 .thread-expand-on-hover,
+#thread-info-2 .thread-expand-on-hover,
+#thread-info-3 .thread-expand-on-hover {
     opacity: 0;
     max-height: 0;
     overflow: hidden;
     margin: 0 !important;
     padding: 0 !important;
-    transition: opacity 0.2s ease, max-height 0.2s ease;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-/* Show synergy and tags on hover */
-#thread-info-1:hover .thread-item-synergy,
-#thread-info-1:hover .thread-tags-row,
-#thread-info-2:hover .thread-item-synergy,
-#thread-info-2:hover .thread-tags-row,
-#thread-info-3:hover .thread-item-synergy,
-#thread-info-3:hover .thread-tags-row {
+/* Show expanded content on HOVER */
+#thread-info-1:hover .thread-expand-on-hover,
+#thread-info-2:hover .thread-expand-on-hover,
+#thread-info-3:hover .thread-expand-on-hover {
     opacity: 1;
-    max-height: 200px;
-    transition: opacity 0.3s ease 0.1s, max-height 0.3s ease 0.1s;
+    max-height: 500px;
+    margin-top: 8px !important;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-/* Hide action buttons in row 1 until hover (for cleaner default view) */
-#thread-info-1:not(:hover) .thread-item-header .thread-item-actions,
-#thread-info-2:not(:hover) .thread-item-header .thread-item-actions,
-#thread-info-3:not(:hover) .thread-item-header .thread-item-actions {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
+/* Chevron rotation on hover */
+#thread-info-1:hover .chevron-icon,
+#thread-info-2:hover .chevron-icon,
+#thread-info-3:hover .chevron-icon {
+    transform: rotate(180deg);
 }
 
-#thread-info-1:hover .thread-item-header .thread-item-actions,
-#thread-info-2:hover .thread-item-header .thread-item-actions,
-#thread-info-3:hover .thread-item-header .thread-item-actions {
-    opacity: 1;
-    pointer-events: auto;
-    transition: opacity 0.3s ease 0.1s;
-}
-
-/* Prime Panel Thread Card - Same collapse behavior */
-#prime-thread-info:not(:hover) .thread-item-synergy,
-#prime-thread-info:not(:hover) .thread-tags-row {
+/* Prime Panel Thread Card - HOVER-BASED EXPANSION (restored) */
+/* Hide expanded content by default */
+#prime-thread-info .thread-expand-on-hover {
     opacity: 0;
     max-height: 0;
     overflow: hidden;
     margin: 0 !important;
     padding: 0 !important;
-    transition: opacity 0.2s ease, max-height 0.2s ease;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-#prime-thread-info:hover .thread-item-synergy,
-#prime-thread-info:hover .thread-tags-row {
+/* Show expanded content on HOVER */
+#prime-thread-info:hover .thread-expand-on-hover {
     opacity: 1;
-    max-height: 200px;
-    transition: opacity 0.3s ease 0.1s, max-height 0.3s ease 0.1s;
+    max-height: 500px;
+    margin-top: 8px !important;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-#prime-thread-info:not(:hover) .thread-item-header .thread-item-actions {
+/* Chevron rotation on hover */
+#prime-thread-info:hover .chevron-icon {
+    transform: rotate(180deg);
+}
+
+/* Thread History Panel - CLICK-BASED EXPANSION ONLY (no hover) */
+/* Hide expanded content by default in thread-history */
+.ai-chat-header-info[data-location="thread-history"] .thread-expand-on-hover {
     opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-#prime-thread-info:hover .thread-item-header .thread-item-actions {
+/* Show expanded content when clicked (has .expanded class) */
+.ai-chat-header-info[data-location="thread-history"].expanded .thread-expand-on-hover {
     opacity: 1;
-    pointer-events: auto;
-    transition: opacity 0.3s ease 0.1s;
+    max-height: 500px;
+    margin-top: 8px !important;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
 }
+
+/* Chevron rotation when expanded */
+.ai-chat-header-info[data-location="thread-history"].expanded .chevron-icon {
+    transform: rotate(180deg);
+}
+
+/* ============================================================
+   CHEVRON EXPAND BUTTON (CLICK-BASED EXPANSION)
+   ============================================================ */
+
+.thread-card-expand-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border-default, #30363d);
+    background: transparent;
+    color: var(--text-secondary, #8b949e);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    margin-left: auto;
+    /* Push to right margin */
+}
+
+.thread-card-expand-btn:hover {
+    background: var(--bg-tertiary, #161b22);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.chevron-icon {
+    transition: transform 0.3s ease;
+    font-size: 12px;
+}
+
+/* Expanded state handled per-card above */
 
 /* ============================================================
    DEVICE LOCK/UNLOCK CONTROLS
@@ -1356,21 +1377,9 @@
     margin-top: 8px !important;
 }
 
-/* Expandable content (hidden by default) */
-.thread-expand-on-hover {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
-}
-
-/* Show all content on hover */
-.agent-thread-card:hover .thread-expand-on-hover {
-    max-height: 500px;
-    /* Enough for all rows */
-    opacity: 1;
-    overflow: visible;
-}
+/* Expandable content - CLICK-BASED (not hover) */
+/* Controlled by .expanded class added above (lines 265-315) */
+/* Old hover behavior removed Nov 24, 2025 */
 
 /* Unload button styling */
 .agent-unload-btn {
