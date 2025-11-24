@@ -407,6 +407,7 @@ def get_sessions_with_internal_docs():
         ]
     }
     """
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -569,8 +570,6 @@ def get_sessions_with_internal_docs():
                     session['subtask_count'] = 0
                     session['subtasks_done'] = 0
         
-        conn.close()
-        
         return jsonify({
             'success': True,
             'sessions': sessions,
@@ -583,6 +582,10 @@ def get_sessions_with_internal_docs():
             'success': False,
             'error': str(e)
         }), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('', methods=['GET'])
@@ -1848,6 +1851,7 @@ def get_linked_threads(session_id):
             ]
         }
     """
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -1869,19 +1873,30 @@ def get_linked_threads(session_id):
         
         cursor.execute(sql, params)
         rows = cursor.fetchall()
-        conn.close()
         
         threads = []
         for row in rows:
-            threads.append({
-                'thread_id': row[0],
-                'thread_slug': row[1],
-                'title': row[2],
-                'agent_id': row[3] or 'prime',
-                'message_count': row[4] or 0,
-                'created_at': row[5].isoformat() if row[5] else None,
-                'last_activity': row[6].isoformat() if row[6] else None
-            })
+            # Handle both RealDictRow (dict) and tuple formats
+            if isinstance(row, dict):
+                threads.append({
+                    'thread_id': row.get('thread_id'),
+                    'thread_slug': row.get('thread_slug'),
+                    'title': row.get('title'),
+                    'agent_id': row.get('agent_id') or 'prime',
+                    'message_count': row.get('message_count') or 0,
+                    'created_at': row.get('created_at').isoformat() if row.get('created_at') else None,
+                    'last_activity': row.get('last_activity').isoformat() if row.get('last_activity') else None
+                })
+            else:
+                threads.append({
+                    'thread_id': row[0],
+                    'thread_slug': row[1],
+                    'title': row[2],
+                    'agent_id': row[3] or 'prime',
+                    'message_count': row[4] or 0,
+                    'created_at': row[5].isoformat() if row[5] else None,
+                    'last_activity': row[6].isoformat() if row[6] else None
+                })
         
         print(f"[SYNERGY] Found {len(threads)} linked threads for session {session_id}")
         
@@ -1896,6 +1911,10 @@ def get_linked_threads(session_id):
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/internal-doc/<doc_id>/link-ai', methods=['POST'])
