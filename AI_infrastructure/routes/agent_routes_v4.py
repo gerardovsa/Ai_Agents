@@ -57,15 +57,22 @@ logger = logging.getLogger(__name__)
 # NEW: DATABASE CONVERSATION LOADER (Source of Truth)
 # ============================================================
 
-def load_conversation_from_database(thread_slug: str) -> List[Dict[str, Any]]:
+def load_conversation_from_database(thread_slug: str, limit: Optional[int] = None, offset: int = 0) -> List[Dict[str, Any]]:
     """
-    Load complete conversation history from database.
+    Load conversation history from database with optional pagination.
     This is the AUTHORITATIVE source of truth for all conversations.
+    
+    Args:
+        thread_slug: Thread identifier
+        limit: Max messages to return (None = all messages)
+        offset: Number of messages to skip (for pagination)
     """
     print(f"\n{'='*80}")
     print(f"[DB LOAD] Loading conversation from database")
     print(f"{'='*80}")
     print(f"[DB LOAD] Thread Slug: {thread_slug}")
+    if limit:
+        print(f"[DB LOAD] Pagination: limit={limit}, offset={offset}")
     
     conn = None
     try:
@@ -88,13 +95,24 @@ def load_conversation_from_database(thread_slug: str) -> List[Dict[str, Any]]:
         thread_id = thread_row[0] if isinstance(thread_row, tuple) else thread_row['id']
         print(f"[DB LOAD] Thread ID: {thread_id}")
         
-        # Get ALL messages for this thread (ordered by creation time)
-        cursor.execute("""
-            SELECT role, content, created_at, model, tokens_used
-            FROM sessions.messages 
-            WHERE thread_id = %s 
-            ORDER BY created_at ASC
-        """, (thread_id,))
+        # Get messages for this thread (with optional pagination)
+        if limit:
+            # Paginated query - get MOST RECENT messages first
+            cursor.execute("""
+                SELECT role, content, created_at, model, tokens_used
+                FROM sessions.messages 
+                WHERE thread_id = %s 
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+            """, (thread_id, limit, offset))
+        else:
+            # Get ALL messages (ordered by creation time)
+            cursor.execute("""
+                SELECT role, content, created_at, model, tokens_used
+                FROM sessions.messages 
+                WHERE thread_id = %s 
+                ORDER BY created_at ASC
+            """, (thread_id,))
         
         rows = cursor.fetchall()
         print(f"[DB LOAD] Found {len(rows)} messages in database")

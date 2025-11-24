@@ -6040,6 +6040,35 @@
             min-height: 0;
         }
 
+        /* Load More Messages Button */
+        .load-more-messages {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .load-more-messages button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .load-more-messages button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+        }
+
+        .load-more-messages button:active {
+            transform: translateY(0);
+        }
+
         /* Drag and Drop Visual Feedback (Updated Nov 21, 2025 - Smooth transitions) */
 
         /* Base state - smooth transitions for all drop zones */
@@ -16125,9 +16154,15 @@
         <div class="debug-section" data-section="modulestatus">
             <div class="debug-section-header">
                 <h3><i class="fas fa-cube"></i> Module System Status</h3>
-                <button class="debug-btn debug-btn-primary" onclick="ModuleStatusDebug.forceLoadModules()">
-                    <i class="fas fa-sync"></i> Force Load Modules
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="debug-btn debug-btn-primary" onclick="ModuleStatusDebug.runDiagnostics()"
+                        title="Run comprehensive diagnostic tests (check console)">
+                        <i class="fas fa-stethoscope"></i> Run Diagnostics
+                    </button>
+                    <button class="debug-btn debug-btn-primary" onclick="ModuleStatusDebug.forceLoadModules()">
+                        <i class="fas fa-sync"></i> Force Load Modules
+                    </button>
+                </div>
             </div>
             <div class="debug-section-content">
                 <div id="module-status-output" style="font-family: monospace; font-size: 12px; line-height: 1.6;">
@@ -19461,6 +19496,113 @@
                         btn.disabled = false;
                     }, 3000);
                 }
+            },
+
+            async runDiagnostics() {
+                console.clear();
+                console.log('%c═══════════════════════════════════════════════════', 'color: #3B82F6; font-weight: bold');
+                console.log('%c    MODULE SYSTEM DIAGNOSTIC TEST', 'color: #3B82F6; font-size: 16px; font-weight: bold');
+                console.log('%c═══════════════════════════════════════════════════', 'color: #3B82F6; font-weight: bold');
+                console.log('');
+
+                // TEST 1: Check Classes
+                console.log('%c▶ TEST 1: Core Classes', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('  ModuleManager class:', typeof ModuleManager !== 'undefined' ? '✅ FOUND' : '❌ MISSING');
+                console.log('  ModuleLoader class:', typeof ModuleLoader !== 'undefined' ? '✅ FOUND' : '❌ MISSING');
+                console.log('  window.initializeModuleSystem:', typeof window.initializeModuleSystem === 'function' ? '✅ FOUND' : '❌ MISSING');
+                console.log('');
+
+                // TEST 2: Check DOM
+                console.log('%c▶ TEST 2: DOM Elements', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                const moduleSection = document.getElementById('sidebarModulesSection');
+                console.log('  .sidebar:', sidebar ? '✅ FOUND' : '❌ MISSING');
+                console.log('    - Visible:', sidebar ? (sidebar.offsetParent !== null ? '✅ YES' : '⚠️ NO') : 'N/A');
+                console.log('  .main-content:', mainContent ? '✅ FOUND' : '❌ MISSING');
+                console.log('    - Visible:', mainContent ? (mainContent.offsetParent !== null ? '✅ YES' : '⚠️ NO') : 'N/A');
+                console.log('  #sidebarModulesSection:', moduleSection ? '✅ FOUND' : '❌ MISSING');
+                console.log('');
+
+                // TEST 3: Check ModuleManager Instance
+                console.log('%c▶ TEST 3: ModuleManager Instance', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                if (window.ModuleManager) {
+                    console.log('  window.ModuleManager:', '✅ EXISTS');
+                    console.log('  Type:', typeof window.ModuleManager);
+                    console.log('  Has initialize():', typeof window.ModuleManager.initialize === 'function' ? '✅ YES' : '❌ NO');
+                    console.log('  Has getModules():', typeof window.ModuleManager.getModules === 'function' ? '✅ YES' : '❌ NO');
+                    console.log('  sidebar property:', window.ModuleManager.sidebar ? '✅ SET' : '⚠️ NULL');
+                    console.log('  mainContent property:', window.ModuleManager.mainContent ? '✅ SET' : '⚠️ NULL');
+                } else {
+                    console.log('  window.ModuleManager:', '❌ NOT FOUND');
+                }
+                console.log('');
+
+                // TEST 4: Try to fetch manifest.json
+                console.log('%c▶ TEST 4: Manifest Access', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                try {
+                    const response = await fetch('external/modules/manifest.json');
+                    console.log('  HTTP Status:', response.status === 200 ? '✅ 200 OK' : `❌ ${response.status}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('  Module count in manifest:', data.length);
+                        console.log('  Modules:', data.map(m => m.name).join(', '));
+                    }
+                } catch (e) {
+                    console.log('  Fetch error:', '❌', e.message);
+                }
+                console.log('');
+
+                // TEST 5: Check current module state
+                console.log('%c▶ TEST 5: Current Module State', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                if (window.ModuleManager && window.ModuleManager.getModules) {
+                    const modules = window.ModuleManager.getModules();
+                    console.log('  Loaded modules count:', modules.length > 0 ? `✅ ${modules.length}` : '⚠️ 0');
+                    if (modules.length > 0) {
+                        console.log('  Module names:');
+                        modules.forEach(m => console.log(`    - ${m.name} (${m.id})`));
+                    }
+                } else {
+                    console.log('  Cannot check:', '❌ ModuleManager.getModules not available');
+                }
+                console.log('');
+
+                // TEST 6: Check sidebar icons
+                console.log('%c▶ TEST 6: Sidebar Icon Count', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                if (moduleSection) {
+                    const iconCount = moduleSection.children.length;
+                    console.log('  Icons in sidebar:', iconCount > 0 ? `✅ ${iconCount}` : '⚠️ 0');
+                    if (iconCount > 0) {
+                        console.log('  Icon elements:');
+                        Array.from(moduleSection.children).forEach((el, i) => {
+                            const tab = el.getAttribute('data-tab');
+                            console.log(`    ${i + 1}. data-tab="${tab}"`);
+                        });
+                    }
+                } else {
+                    console.log('  Cannot check:', '❌ #sidebarModulesSection not found');
+                }
+                console.log('');
+
+                // TEST 7: Try manual initialization
+                console.log('%c▶ TEST 7: Manual Initialization Test', 'color: #8B5CF6; font-weight: bold; font-size: 14px');
+                console.log('  Calling window.initializeModuleSystem(true)...');
+                try {
+                    await window.initializeModuleSystem(true);
+                    console.log('  Result:', '✅ SUCCESS (no error thrown)');
+                    const mods = window.ModuleManager?.getModules() || [];
+                    console.log('  Modules after init:', mods.length);
+                } catch (e) {
+                    console.log('  Result:', '❌ ERROR');
+                    console.error('  Error details:', e);
+                }
+                console.log('');
+
+                console.log('%c═══════════════════════════════════════════════════', 'color: #22C55E; font-weight: bold');
+                console.log('%c    DIAGNOSTIC COMPLETE', 'color: #22C55E; font-size: 16px; font-weight: bold');
+                console.log('%c═══════════════════════════════════════════════════', 'color: #22C55E; font-weight: bold');
+
+                this.updateStatus();
             },
 
             updateStatus() {

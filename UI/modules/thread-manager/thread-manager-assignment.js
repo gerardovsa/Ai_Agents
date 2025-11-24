@@ -57,12 +57,15 @@ Object.assign(window.ThreadManager, {
                 existingPrimeLoaded.location = 'prime'; // Reset to resting state
                 // Update backend for cleared thread
                 try {
-                    await fetch('/api/threads/location', {
+                    const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
+                    const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
+                    await fetch(`${apiUrl}/api/thread-assignments/assign`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            thread_id: existingPrimeLoaded.id,
-                            location: 'prime'
+                            session_id: existingPrimeLoaded.id,
+                            location: 'prime',
+                            user_id: userId
                         })
                     });
                 } catch (err) {

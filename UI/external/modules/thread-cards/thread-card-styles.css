@@ -260,7 +260,7 @@
    ============================================================ */
 
 /* Agent Thread Cards (thread-info-1, thread-info-2, thread-info-3) */
-/* HOVER-BASED EXPANSION (restored for agents) */
+/* HOVER OR CLICK-BASED EXPANSION */
 /* Hide expanded content by default */
 #thread-info-1 .thread-expand-on-hover,
 #thread-info-2 .thread-expand-on-hover,
@@ -273,24 +273,30 @@
     transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-/* Show expanded content on HOVER */
+/* Show expanded content on HOVER OR when clicked (.expanded class) */
 #thread-info-1:hover .thread-expand-on-hover,
 #thread-info-2:hover .thread-expand-on-hover,
-#thread-info-3:hover .thread-expand-on-hover {
+#thread-info-3:hover .thread-expand-on-hover,
+#thread-info-1.expanded .thread-expand-on-hover,
+#thread-info-2.expanded .thread-expand-on-hover,
+#thread-info-3.expanded .thread-expand-on-hover {
     opacity: 1;
     max-height: 500px;
     margin-top: 8px !important;
     transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-/* Chevron rotation on hover */
+/* Chevron rotation on hover OR when clicked (.expanded class) */
 #thread-info-1:hover .chevron-icon,
 #thread-info-2:hover .chevron-icon,
-#thread-info-3:hover .chevron-icon {
+#thread-info-3:hover .chevron-icon,
+#thread-info-1.expanded .chevron-icon,
+#thread-info-2.expanded .chevron-icon,
+#thread-info-3.expanded .chevron-icon {
     transform: rotate(180deg);
 }
 
-/* Prime Panel Thread Card - HOVER-BASED EXPANSION (restored) */
+/* Prime Panel Thread Card - HOVER OR CLICK-BASED EXPANSION */
 /* Hide expanded content by default */
 #prime-thread-info .thread-expand-on-hover {
     opacity: 0;
@@ -301,16 +307,18 @@
     transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-/* Show expanded content on HOVER */
-#prime-thread-info:hover .thread-expand-on-hover {
+/* Show expanded content on HOVER OR when clicked (.expanded class) */
+#prime-thread-info:hover .thread-expand-on-hover,
+#prime-thread-info.expanded .thread-expand-on-hover {
     opacity: 1;
     max-height: 500px;
     margin-top: 8px !important;
     transition: opacity 0.3s ease, max-height 0.3s ease;
 }
 
-/* Chevron rotation on hover */
-#prime-thread-info:hover .chevron-icon {
+/* Chevron rotation on hover OR when clicked (.expanded class) */
+#prime-thread-info:hover .chevron-icon,
+#prime-thread-info.expanded .chevron-icon {
     transform: rotate(180deg);
 }
 

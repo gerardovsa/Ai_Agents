@@ -121,8 +121,16 @@ Object.assign(window.ThreadManager, {
 
         if (thread.messages.length === 0 && thread.message_count > 0) {
             console.log(`📥 [Interactions] Loading ${thread.message_count} messages from backend...`);
-            const messages = await this.loadMessagesForThread(threadId);
-            thread.messages = messages;
+            // AI Prime loads ALL messages (no pagination) - pass null for limit
+            const result = await this.loadMessagesForThread(threadId, null, 0);
+            const messages = result?.messages || (Array.isArray(result) ? result : []);
+            thread.messages = Array.isArray(messages) ? messages : [];
+        }
+
+        // Ensure messages is always an array before iteration
+        if (!Array.isArray(thread.messages)) {
+            console.warn(`⚠️ [Interactions] thread.messages is not an array, resetting to []`);
+            thread.messages = [];
         }
 
         // Render messages (skip tool_use/tool_result messages - they're internal only)
@@ -186,7 +194,8 @@ Object.assign(window.ThreadManager, {
 
         // Update AppState
         if (typeof AppState !== 'undefined') {
-            AppState.chatMessages = [...thread.messages];
+            // Ensure thread.messages is an array before spreading
+            AppState.chatMessages = Array.isArray(thread.messages) ? [...thread.messages] : [];
             AppState.sessionId = threadId;
         }
 

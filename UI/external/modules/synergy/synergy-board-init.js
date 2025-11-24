@@ -579,21 +579,20 @@ window.synergyBoard = {
                 <!-- TITLE ROW - Clickable for expand -->
                 <div class="synergy-title-row" onclick="synergyBoard.toggleCardExpand('${session.session_id}')" style="cursor: pointer;">
                     <div class="synergy-title-text">${this.escapeHtml(session.title || 'Untitled Session')}</div>
-                    <button class="synergy-icon-btn synergy-chevron" style="pointer-events: none;">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button class="synergy-icon-btn" onclick="event.stopPropagation(); synergyBoard.openCardMenu('${session.session_id}', event)" title="Menu" style="pointer-events: auto;">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <button class="synergy-icon-btn synergy-chevron" style="pointer-events: none;">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- ROW 1: Priority + Status + Actions -->
+                <!-- ROW 1: Priority + Status -->
                 <div class="synergy-row-1">
                     <span class="priority-badge priority-${(session.priority || 'medium').toLowerCase()}">${session.priority || 'Medium'}</span>
                     <span class="status-badge status-${statusClass}">${session.status || 'Active'}</span>
-                    
-                    <div class="synergy-actions">
-                        <button class="synergy-icon-btn" onclick="event.stopPropagation(); synergyBoard.openCardMenu('${session.session_id}', event)" title="Menu">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
                 </div>
 
                 <!-- ROW 2: Description (truncated, hover for full) -->
