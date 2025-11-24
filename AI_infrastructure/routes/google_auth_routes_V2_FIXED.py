@@ -265,9 +265,10 @@ def create_user(email, username=None):
         cursor.execute('''
             INSERT INTO ai_infrastructure.users (username, email, password_hash, role) 
             VALUES (%s, %s, %s, %s)
+            RETURNING id
         ''', (username, email, 'oauth_google', 'user'))
         
-        user_id = cursor.lastrowid
+        user_id = cursor.fetchone()['id']
         conn.commit()
         
         print(f'✅ Created new user: {username} (ID: {user_id})')
@@ -619,12 +620,14 @@ def google_callback():
                 print(f'✅ [GOOGLE OAUTH] New user created: {user["username"]} (ID: {user_id})')
             except Exception as e:
                 print(f'❌ [GOOGLE OAUTH] Failed to create user: {e}')
+                from urllib.parse import quote
                 frontend_url = request.url_root.rstrip('/')
                 if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
                     frontend_url = frontend_url.replace('http://', 'https://')
                 if 'localhost' in request.host or '127.0.0.1' in request.host:
                     frontend_url = frontend_url.replace('https://', 'http://')
-                return redirect(f'{frontend_url}/?error=user_creation_failed&message={str(e)}')
+                error_msg = quote(str(e).replace('\n', ' '))
+                return redirect(f'{frontend_url}/?error=user_creation_failed&message={error_msg}')
         
         # ====================================================================
         # STEP 4: Store or update tokens in oauth_tokens table
