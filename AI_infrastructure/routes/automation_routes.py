@@ -88,6 +88,7 @@ def init_automation_tables():
     - visual_automations: Stores automation metadata and visual flow JSON
     - automation_executions: Tracks execution history and results
     """
+    conn = None
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
@@ -105,8 +106,6 @@ def init_automation_tables():
             """)
             result = cursor.fetchone()
             exists = result['exists'] if isinstance(result, dict) else result[0]
-            
-            conn.close()
             
             if not exists:
                 print("⚠️  WARNING: visual_automations table not found in PostgreSQL")
@@ -164,13 +163,17 @@ def init_automation_tables():
         """)
         
         conn.commit()
-        conn.close()
         print("✅ Automation tables initialized (SQLite)")
     
     except Exception as e:
         print(f"❌ Error initializing automation tables: {e}")
-        if 'conn' in locals():
-            conn.close()
+    finally:
+        # CRITICAL FIX: Always close connection
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass  # Ignore close errors
 
 
 # Initialize tables on module load
