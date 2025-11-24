@@ -2083,7 +2083,7 @@ async function initializeApp() {
         window.history.replaceState({}, document.title, window.location.pathname);
         
         // Show login screen with error message
-        UserAuth.showLoginScreen();
+        UserAuth.showLogin();
         
         // Display error message after login screen is rendered
         setTimeout(() => {
