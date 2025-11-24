@@ -21,6 +21,13 @@ window.synergyBoard = {
     apiBaseUrl: window.API_BASE_URL || 'http://localhost:5001',
     initialized: false,
     initPromise: null, // Track initialization promise to avoid duplicate inits
+    _dragDropInitialized: false, // Track if drag-drop handlers are set up
+    columnDefinitions: [ // Column configuration (can be customized)
+        { id: 'backlog', name: 'Backlog', icon: 'fa-inbox', color: '#6b7280' },
+        { id: 'in_progress', name: 'In Progress', icon: 'fa-spinner', color: '#3b82f6' },
+        { id: 'review', name: 'Review', icon: 'fa-eye', color: '#f59e0b' },
+        { id: 'done', name: 'Done', icon: 'fa-check-circle', color: '#10b981' }
+    ],
 
     // Safe wrapper for methods that require initialization
     async ensureInitialized() {
@@ -44,6 +51,9 @@ window.synergyBoard = {
             return;
         }
         console.log('🚀 Initializing Synergy Dashboard...');
+
+        // Load column definitions from localStorage
+        this.loadColumnDefinitions();
 
         // Load sessions from API
         await this.loadSessions();
@@ -158,6 +168,138 @@ window.synergyBoard = {
         // Remove drag-over class from all columns
         document.querySelectorAll('.kanban-column').forEach(col => {
             col.classList.remove('drag-over');
+        });
+    },
+
+    /**
+     * Handle drag over for kanban columns (enable drop)
+     */
+    handleColumnDragOver(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+
+        const column = event.currentTarget;
+        column.classList.add('drag-over');
+    },
+
+    /**
+     * Handle drag leave for kanban columns
+     */
+    handleColumnDragLeave(event) {
+        const column = event.currentTarget;
+        column.classList.remove('drag-over');
+    },
+
+    /**
+     * Handle drop on kanban column (move card between columns)
+     */
+    async handleColumnDrop(event, targetColumn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const column = event.currentTarget;
+        column.classList.remove('drag-over');
+
+        // Get session ID from drag data
+        const sessionId = event.dataTransfer.getData('synergy-session') || event.dataTransfer.getData('text/plain');
+        if (!sessionId) {
+            console.warn('[SYNERGY] No session ID in drop event');
+            return;
+        }
+
+        // Find the card being dragged
+        const card = document.querySelector(`.kanban-card[data-session-id="${sessionId}"]`);
+        if (!card) {
+            console.warn('[SYNERGY] Card not found:', sessionId);
+            return;
+        }
+
+        const fromColumn = card.dataset.column;
+
+        // Don't do anything if dropped in same column
+        if (fromColumn === targetColumn) {
+            console.log('[SYNERGY] Dropped in same column, no action needed');
+            return;
+        }
+
+        console.log(`[SYNERGY] Moving ${sessionId} from ${fromColumn} to ${targetColumn}`);
+
+        try {
+            // Update backend
+            const userId = (window.UserAuth && window.UserAuth.user && (window.UserAuth.user.id || window.UserAuth.user.user_id)) || 1;
+            const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}/column`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    target_column: targetColumn,
+                    from_column: fromColumn,
+                    moved_by: window.UserAuth?.user?.email || 'User'
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log('[SYNERGY] ✅ Column updated successfully');
+
+                // Update card column in memory
+                const session = this.sessions.find(s => s.session_id === sessionId);
+                if (session) {
+                    session.kanban_column = targetColumn;
+                }
+
+                // Move card to new column in DOM
+                const targetContainer = document.getElementById(`${targetColumn}-cards`);
+                if (targetContainer) {
+                    card.dataset.column = targetColumn;
+                    targetContainer.appendChild(card);
+                }
+
+                // Update column counts
+                this.updateColumnCounts();
+
+                // Show success notification
+                if (window.showNotification) {
+                    window.showNotification(`Moved to ${this.formatColumnName(targetColumn)}`, 'success');
+                }
+            } else {
+                console.error('[SYNERGY] Failed to update column:', result.error);
+                if (window.showNotification) {
+                    window.showNotification('Failed to move card: ' + (result.error || 'Unknown error'), 'error');
+                }
+            }
+        } catch (error) {
+            console.error('[SYNERGY] Error updating column:', error);
+            if (window.showNotification) {
+                window.showNotification('Error moving card', 'error');
+            }
+        }
+    },
+
+    /**
+     * Format column name for display
+     */
+    formatColumnName(column) {
+        const names = {
+            'backlog': 'Backlog',
+            'in_progress': 'In Progress',
+            'review': 'Review',
+            'done': 'Done'
+        };
+        return names[column] || column;
+    },
+
+    /**
+     * Update column card counts
+     */
+    updateColumnCounts() {
+        ['backlog', 'in_progress', 'review', 'done'].forEach(column => {
+            const container = document.getElementById(`${column}-cards`);
+            const countElement = document.querySelector(`.column-count[data-column="${column}"]`);
+            if (container && countElement) {
+                const count = container.querySelectorAll('.kanban-card').length;
+                countElement.textContent = count;
+            }
         });
     },
 
@@ -508,7 +650,32 @@ window.synergyBoard = {
             }
         });
 
+        // Initialize drag-and-drop for columns (only once)
+        if (!this._dragDropInitialized) {
+            this.initializeColumnDragDrop();
+            this._dragDropInitialized = true;
+        }
+
+        // Update column counts
+        this.updateColumnCounts();
+
         console.log(`✅ [SYNERGY] Rendered ${this.sessions.length} cards`);
+    },
+
+    /**
+     * Initialize drag and drop for kanban columns
+     */
+    initializeColumnDragDrop() {
+        const columns = document.querySelectorAll('.kanban-cards-container');
+        columns.forEach(container => {
+            const columnName = container.dataset.column;
+
+            container.addEventListener('dragover', (e) => this.handleColumnDragOver(e));
+            container.addEventListener('dragleave', (e) => this.handleColumnDragLeave(e));
+            container.addEventListener('drop', (e) => this.handleColumnDrop(e, columnName));
+        });
+
+        console.log('[SYNERGY] ✅ Drag-and-drop initialized for kanban columns');
     },
 
     /**
@@ -785,7 +952,7 @@ window.synergyBoard = {
      */
     async addCard(column) {
         console.log('[SYNERGY] Adding new card to column:', column);
-        
+
         // Use popup modal if available
         if (window.synergyPopupModal) {
             // Create a new session with default values for the target column
@@ -795,7 +962,7 @@ window.synergyBoard = {
                 priority: 'medium',
                 status: 'active'
             };
-            
+
             // Open modal in create mode
             await window.synergyPopupModal.open(null, newSessionData);
         } else {
@@ -881,6 +1048,396 @@ window.synergyBoard = {
         } else {
             alert('Edit functionality requires popup modal. Please enable it.');
         }
+    },
+
+    /**
+     * Column menu - manage column settings
+     */
+    columnMenu(columnId) {
+        console.log('[SYNERGY] Opening column menu for:', columnId);
+
+        // Close any existing menus
+        const existingMenu = document.querySelector('.synergy-column-dropdown-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+
+        // Get column header button
+        const columnHeader = document.querySelector(`.kanban-column[data-column="${columnId}"] .column-menu-btn`);
+        if (!columnHeader) return;
+
+        const rect = columnHeader.getBoundingClientRect();
+
+        // Create dropdown menu
+        const menu = document.createElement('div');
+        menu.className = 'synergy-column-dropdown-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: ${rect.bottom + 5}px;
+            left: ${rect.left - 150}px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            min-width: 200px;
+            padding: 8px 0;
+        `;
+
+        const columnDef = this.columnDefinitions.find(c => c.id === columnId);
+        const isDefaultColumn = ['backlog', 'in_progress', 'review', 'done'].includes(columnId);
+
+        menu.innerHTML = `
+            <button class="synergy-dropdown-item" onclick="synergyBoard.renameColumn('${columnId}'); this.closest('.synergy-column-dropdown-menu').remove();">
+                <i class="fas fa-edit" style="width: 20px; color: #3b82f6;"></i>
+                <span>Rename Column</span>
+            </button>
+            <button class="synergy-dropdown-item" onclick="synergyBoard.setColumnColor('${columnId}'); this.closest('.synergy-column-dropdown-menu').remove();">
+                <i class="fas fa-palette" style="width: 20px; color: #a855f7;"></i>
+                <span>Change Color</span>
+            </button>
+            ${!isDefaultColumn ? `
+                <div style="height: 1px; background: var(--border-secondary); margin: 8px 0;"></div>
+                <button class="synergy-dropdown-item" onclick="synergyBoard.moveColumnLeft('${columnId}'); this.closest('.synergy-column-dropdown-menu').remove();">
+                    <i class="fas fa-arrow-left" style="width: 20px; color: #6b7280;"></i>
+                    <span>Move Left</span>
+                </button>
+                <button class="synergy-dropdown-item" onclick="synergyBoard.moveColumnRight('${columnId}'); this.closest('.synergy-column-dropdown-menu').remove();">
+                    <i class="fas fa-arrow-right" style="width: 20px; color: #6b7280;"></i>
+                    <span>Move Right</span>
+                </button>
+                <div style="height: 1px; background: var(--border-secondary); margin: 8px 0;"></div>
+                <button class="synergy-dropdown-item danger" onclick="synergyBoard.deleteColumn('${columnId}'); this.closest('.synergy-column-dropdown-menu').remove();">
+                    <i class="fas fa-trash" style="width: 20px; color: #ef4444;"></i>
+                    <span>Delete Column</span>
+                </button>
+            ` : ''}
+        `;
+
+        document.body.appendChild(menu);
+
+        // Close menu when clicking outside
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target) && !columnHeader.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 10);
+    },
+
+    /**
+     * Rename column
+     */
+    async renameColumn(columnId) {
+        const columnDef = this.columnDefinitions.find(c => c.id === columnId);
+        const currentName = columnDef ? columnDef.name : this.formatColumnName(columnId);
+
+        const newName = prompt(`Rename column "${currentName}":`, currentName);
+        if (!newName || newName.trim() === '' || newName === currentName) {
+            return;
+        }
+
+        console.log('[SYNERGY] Renaming column:', columnId, '->', newName);
+
+        // Update column definition
+        if (columnDef) {
+            columnDef.name = newName.trim();
+        }
+
+        // Update UI
+        const columnTitle = document.querySelector(`.kanban-column[data-column="${columnId}"] .column-title`);
+        if (columnTitle) {
+            columnTitle.textContent = newName.trim();
+        }
+
+        // TODO: Save to backend/localStorage
+        this.saveColumnDefinitions();
+
+        if (window.showNotification) {
+            window.showNotification(`Column renamed to "${newName}"`, 'success');
+        }
+    },
+
+    /**
+     * Set column color
+     */
+    async setColumnColor(columnId) {
+        const columnDef = this.columnDefinitions.find(c => c.id === columnId);
+        const currentColor = columnDef ? columnDef.color : '#6b7280';
+
+        const newColor = prompt(`Enter hex color for column (e.g., #3b82f6):`, currentColor);
+        if (!newColor || !newColor.match(/^#[0-9A-Fa-f]{6}$/)) {
+            if (newColor) {
+                alert('Invalid color format. Please use hex format like #3b82f6');
+            }
+            return;
+        }
+
+        console.log('[SYNERGY] Setting column color:', columnId, '->', newColor);
+
+        // Update column definition
+        if (columnDef) {
+            columnDef.color = newColor;
+        }
+
+        // Update UI (column icon color)
+        const columnIcon = document.querySelector(`.kanban-column[data-column="${columnId}"] .column-icon i`);
+        if (columnIcon) {
+            columnIcon.style.color = newColor;
+        }
+
+        // TODO: Save to backend/localStorage
+        this.saveColumnDefinitions();
+
+        if (window.showNotification) {
+            window.showNotification(`Column color updated`, 'success');
+        }
+    },
+
+    /**
+     * Move column left
+     */
+    moveColumnLeft(columnId) {
+        const index = this.columnDefinitions.findIndex(c => c.id === columnId);
+        if (index <= 0) {
+            if (window.showNotification) {
+                window.showNotification('Column is already at the leftmost position', 'info');
+            }
+            return;
+        }
+
+        // Swap with previous column
+        [this.columnDefinitions[index - 1], this.columnDefinitions[index]] =
+            [this.columnDefinitions[index], this.columnDefinitions[index - 1]];
+
+        this.saveColumnDefinitions();
+        this.reorderColumnsInUI();
+
+        if (window.showNotification) {
+            window.showNotification('Column moved left', 'success');
+        }
+    },
+
+    /**
+     * Move column right
+     */
+    moveColumnRight(columnId) {
+        const index = this.columnDefinitions.findIndex(c => c.id === columnId);
+        if (index === -1 || index >= this.columnDefinitions.length - 1) {
+            if (window.showNotification) {
+                window.showNotification('Column is already at the rightmost position', 'info');
+            }
+            return;
+        }
+
+        // Swap with next column
+        [this.columnDefinitions[index], this.columnDefinitions[index + 1]] =
+            [this.columnDefinitions[index + 1], this.columnDefinitions[index]];
+
+        this.saveColumnDefinitions();
+        this.reorderColumnsInUI();
+
+        if (window.showNotification) {
+            window.showNotification('Column moved right', 'success');
+        }
+    },
+
+    /**
+     * Delete custom column
+     */
+    async deleteColumn(columnId) {
+        const columnDef = this.columnDefinitions.find(c => c.id === columnId);
+        const columnName = columnDef ? columnDef.name : columnId;
+
+        // Check if column has cards
+        const container = document.getElementById(`${columnId}-cards`);
+        const cardCount = container ? container.querySelectorAll('.kanban-card').length : 0;
+
+        if (cardCount > 0) {
+            const move = confirm(`This column has ${cardCount} card(s). Delete anyway? Cards will be moved to Backlog.`);
+            if (!move) return;
+        } else {
+            if (!confirm(`Delete column "${columnName}"?`)) {
+                return;
+            }
+        }
+
+        console.log('[SYNERGY] Deleting column:', columnId);
+
+        // Move cards to backlog before deleting
+        if (cardCount > 0) {
+            const cards = container.querySelectorAll('.kanban-card');
+            for (const card of cards) {
+                const sessionId = card.dataset.sessionId;
+                // Update backend
+                await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}/column`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_column: 'backlog' })
+                });
+            }
+        }
+
+        // Remove column definition
+        this.columnDefinitions = this.columnDefinitions.filter(c => c.id !== columnId);
+        this.saveColumnDefinitions();
+
+        // Remove column from UI
+        const column = document.querySelector(`.kanban-column[data-column="${columnId}"]`);
+        if (column) {
+            column.style.transition = 'opacity 0.3s, transform 0.3s';
+            column.style.opacity = '0';
+            column.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                column.remove();
+                this.renderAllCards(); // Re-render to move cards
+            }, 300);
+        }
+
+        if (window.showNotification) {
+            window.showNotification(`Column "${columnName}" deleted`, 'success');
+        }
+    },
+
+    /**
+     * Save column definitions to localStorage
+     */
+    saveColumnDefinitions() {
+        try {
+            localStorage.setItem('synergy_column_definitions', JSON.stringify(this.columnDefinitions));
+            console.log('[SYNERGY] Column definitions saved');
+        } catch (error) {
+            console.error('[SYNERGY] Failed to save column definitions:', error);
+        }
+    },
+
+    /**
+     * Load column definitions from localStorage
+     */
+    loadColumnDefinitions() {
+        try {
+            const saved = localStorage.getItem('synergy_column_definitions');
+            if (saved) {
+                this.columnDefinitions = JSON.parse(saved);
+                console.log('[SYNERGY] Column definitions loaded:', this.columnDefinitions);
+            }
+        } catch (error) {
+            console.error('[SYNERGY] Failed to load column definitions:', error);
+        }
+    },
+
+    /**
+     * Reorder columns in UI based on columnDefinitions array
+     */
+    reorderColumnsInUI() {
+        const container = document.getElementById('kanban-board-container');
+        if (!container) return;
+
+        // Get all column elements
+        const columns = {};
+        this.columnDefinitions.forEach(def => {
+            const col = document.querySelector(`.kanban-column[data-column="${def.id}"]`);
+            if (col) columns[def.id] = col;
+        });
+
+        // Re-append in order (before the add column button)
+        const addColumnBtn = document.querySelector('.kanban-add-column');
+        this.columnDefinitions.forEach(def => {
+            if (columns[def.id]) {
+                if (addColumnBtn) {
+                    container.insertBefore(columns[def.id], addColumnBtn);
+                } else {
+                    container.appendChild(columns[def.id]);
+                }
+            }
+        });
+
+        console.log('[SYNERGY] Columns reordered');
+    },
+
+    /**
+     * Create new custom column
+     */
+    async createNewColumn() {
+        const columnName = prompt('Enter new column name:');
+        if (!columnName || columnName.trim() === '') {
+            return;
+        }
+
+        const columnId = 'col_' + Date.now(); // Generate unique ID
+        const columnColor = '#6b7280'; // Default color
+        const columnIcon = 'fa-list'; // Default icon
+
+        console.log('[SYNERGY] Creating new column:', columnName);
+
+        // Add to column definitions
+        this.columnDefinitions.push({
+            id: columnId,
+            name: columnName.trim(),
+            icon: columnIcon,
+            color: columnColor
+        });
+
+        this.saveColumnDefinitions();
+
+        // Create column HTML
+        const container = document.getElementById('kanban-board-container');
+        const addColumnBtn = document.querySelector('.kanban-add-column');
+
+        const newColumn = document.createElement('div');
+        newColumn.className = 'kanban-column';
+        newColumn.dataset.column = columnId;
+
+        newColumn.innerHTML = `
+            <div class="kanban-column-header">
+                <div class="column-header-left">
+                    <span class="column-icon"><i class="fas ${columnIcon}"></i></span>
+                    <h3 class="column-title">${this.escapeHtml(columnName)}</h3>
+                    <span class="column-count" data-column="${columnId}">0</span>
+                </div>
+                <button class="column-menu-btn" onclick="synergyBoard.columnMenu('${columnId}')">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+            </div>
+            <div class="kanban-cards-container" id="${columnId}-cards" data-column="${columnId}">
+                <!-- Cards will be inserted here -->
+            </div>
+            <button class="add-card-btn" onclick="synergyBoard.addCard('${columnId}')">
+                <i class="fas fa-plus"></i> Add Card
+            </button>
+        `;
+
+        // Insert before add column button
+        if (addColumnBtn) {
+            container.insertBefore(newColumn, addColumnBtn);
+        } else {
+            container.appendChild(newColumn);
+        }
+
+        // Initialize drag-and-drop for the new column
+        const cardsContainer = newColumn.querySelector('.kanban-cards-container');
+        if (cardsContainer) {
+            cardsContainer.addEventListener('dragover', (e) => this.handleColumnDragOver(e));
+            cardsContainer.addEventListener('dragleave', (e) => this.handleColumnDragLeave(e));
+            cardsContainer.addEventListener('drop', (e) => this.handleColumnDrop(e, columnId));
+        }
+
+        // Animate in
+        newColumn.style.opacity = '0';
+        newColumn.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+            newColumn.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            newColumn.style.opacity = '1';
+            newColumn.style.transform = 'translateY(0)';
+        }, 10);
+
+        if (window.showNotification) {
+            window.showNotification(`Column "${columnName}" created`, 'success');
+        }
+
+        console.log('[SYNERGY] New column created:', columnId);
     },
 
     /**

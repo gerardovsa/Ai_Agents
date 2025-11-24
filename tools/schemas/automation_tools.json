@@ -728,7 +728,64 @@
         },
         {
             "name": "automation_deactivate_workflow",
-            "description": "Deactivate a scheduled workflow. Stops automatic execution but preserves the workflow.\n\nUSAGE INSTRUCTIONS:\n- Use this when user says 'pause this workflow', 'stop the automation', 'deactivate this'\n- Stops scheduled execution immediately\n- Workflow remains in database (can be reactivated later)\n- Does NOT delete workflow or execution history\n- Status changes from 'active' to 'inactive'\n\nEXAMPLE RESPONSE TO USER:\n'Your Daily Gmail Summary workflow has been deactivated.\n\n⏸️ Status: Inactive\n📊 Total executions: 45 (95.6% success)\n🕐 Last run: 2 hours ago (success)\n\nThe workflow is paused and won't run automatically. You can:\n- Reactivate it with automation_schedule_workflow()\n- Run it manually with automation_execute_workflow()\n- Delete it permanently with automation_delete_workflow()'\n\nCOMMON USE CASES:\n- User wants to pause workflow temporarily\n- Workflow needs modifications before next run\n- Testing period is over\n- User is away and doesn't need automated runs\n\nREACTIVATION:\n- Call automation_schedule_workflow() with same cron to reactivate\n- All workflow settings and history are preserved",
+            "description": "Deactivate a scheduled workflow temporarily while preserving its configuration, history, and visual layout. This operation immediately stops any future scheduled runs and sets the workflow status to 'inactive' without deleting the workflow record or its execution logs. Deactivation is non-destructive and is intended for maintenance windows, safe testing, temporary suspensions, or when the owner wants to halt automated runs without losing the automation's configuration.\n\nWhen called, the service: validates the workflow exists, cancels any pending scheduler jobs, flips the status flag to 'inactive', and returns a confirmation with metadata (automation_id, slug, previous_schedule, last_execution_time). The workflow can be reactivated later by calling `automation_schedule_workflow()` with the same or a new cron expression.\n\nWHEN TO USE:\n- Pause recurring runs during maintenance or debugging.\n- Temporarily stop an automation while editing or migrating resources.\n- Disable a workflow while the owner is away or the integration is temporarily unavailable.\n\nWHEN NOT TO USE:\n- Do not use when you want to permanently remove a workflow — use `automation_delete_workflow()`.\n- For one-off runs, use `automation_execute_workflow()` rather than toggling schedule state.\n\nWORKFLOW (user flow):\n1. Identify workflow by slug or id.\n2. Confirm intent if called interactively (optional confirmation step).\n3. Call `automation_deactivate_workflow(automation_id)`.\n4. System cancels scheduler tasks and updates status.\n5. Return confirmation to user with next steps (reactivate, export, delete).\n\nBEST PRACTICES:\n- Provide a short reason when deactivating for auditability.\n- Verify no critical processes depend on the automation before pausing.\n- Use `automation_get_workflow_status()` after deactivation to confirm state.\n- Suggest export before deletion if user later needs the configuration.\n\nERROR HANDLING:\n- Workflow not found → return clear error and suggest `automation_list_workflows()`.\n- Scheduler cancel failure → return partial success with scheduler task id and retry instructions.\n- Permission error → surface authorization requirement.\n\nRELATED TOOLS:\nautomation_schedule_workflow - Reactivate or reschedule the workflow\nautomation_execute_workflow - Run once without scheduling\nautomation_get_workflow_status - Confirm status and schedule information\nautomation_export_workflow - Export configuration before destructive actions\nautomation_update_workflow - Modify configuration before reactivating",
+            "examples": [
+                {
+                    "description": "Simple - Pause a scheduled workflow",
+                    "parameters": {
+                        "automation_id": "wf_a3f8b2c1_1732029847"
+                    }
+                },
+                {
+                    "description": "Complex - Pause and provide reason for audit",
+                    "parameters": {
+                        "automation_id": "wf_k7m3p9x2_1732125847",
+                        "reason": "Maintenance: update Gmail OAuth credentials"
+                    }
+                },
+                {
+                    "description": "Error case - Workflow not found",
+                    "parameters": {
+                        "automation_id": "wf_invalid_12345"
+                    },
+                    "expected_error": "Workflow 'wf_invalid_12345' not found. Use automation_list_workflows() to find available workflows."
+                }
+            ],
+            "platform": "automation",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "automation_id": {
+                        "type": "string",
+                        "description": "Workflow ID to deactivate"
+                    }
+                },
+                        "description": "Permanently delete an automation and all associated data. This operation removes the workflow configuration, visual canvas layout, scheduled jobs, and execution history. Deletion is irreversible and should only be performed after an explicit confirmation from the user. The intent of this tool is to allow users to fully remove automations they no longer need or want retained in the system.\n\nWhen executed, the service will: validate the workflow exists, cancel and remove any scheduled tasks, archive or remove execution logs depending on retention policy, delete the workflow record, and return a detailed summary of removed items (counts of executions removed, scheduler_task_id, and timestamps). Because deletion is destructive, the API pattern expects an explicit confirmation (for example, a second call or a confirmation flag) and may optionally support a dry-run mode to preview what would be deleted.\n\nWHEN TO USE:\n- Permanently remove deprecated or duplicate workflows.\n- Clean up test or example automations that clutter the workspace.\n- Comply with data retention requests to remove automation logs and configurations.\n\nWHEN NOT TO USE:\n- If you want to temporarily stop a workflow, use `automation_deactivate_workflow()`.\n- If you want to keep a copy for reuse, export first using `automation_export_workflow()`.\n\nWORKFLOW (confirmation pattern):\n1. User requests deletion.\n2. AI replies with a confirmation prompt describing what will be removed.\n3. User confirms explicitly (e.g., reply 'yes delete').\n4. Call `automation_delete_workflow(automation_id, confirm=true)` to execute.\n5. Return deletion summary to the user.\n\nBEST PRACTICES:\n- Always offer `automation_export_workflow()` before deletion.\n- Use a confirmation token or explicit 'yes delete' reply to avoid accidental removal.\n- Log deletion events for audit.\n- Provide alternative suggestions (deactivate) when appropriate.\n\nERROR HANDLING:\n- Workflow not found → return friendly error and list available workflows.\n- Permission denied → indicate required roles or scopes.\n- Partial deletion → return details of what succeeded and what failed with retry guidance.\n\nRELATED TOOLS:\nautomation_deactivate_workflow - Temporarily pause without deleting\nautomation_export_workflow - Export before deleting for backup or migration\nautomation_get_execution_history - Review history prior to deletion\nautomation_list_workflows - Find workflow IDs and slugs to delete\nautomation_update_workflow - Modify instead of deleting if only changes are needed",
+                        "examples": [
+                            {
+                                "description": "Simple - Permanently delete a workflow after confirmation",
+                                "parameters": {
+                                    "automation_id": "wf_a3f8b2c1_1732029847",
+                                    "confirm": true
+                                }
+                            },
+                            {
+                                "description": "Complex - Dry-run preview before deletion",
+                                "parameters": {
+                                    "automation_id": "wf_k7m3p9x2_1732125847",
+                                    "dry_run": true
+                                }
+                            },
+                            {
+                                "description": "Error case - Attempt to delete non-existent workflow",
+                                "parameters": {
+                                    "automation_id": "wf_invalid_12345",
+                                    "confirm": true
+                                },
+                                "expected_error": "Workflow 'wf_invalid_12345' not found. Use automation_list_workflows() to find available workflows."
+                            }
+                        ]
+            },
             "platform": "automation",
             "parameters": {
                 "type": "object",
@@ -830,7 +887,31 @@
         },
         {
             "name": "automation_export_workflow",
-            "description": "Export workflow as JSON for backup, sharing, or import into another system.\n\nUSAGE INSTRUCTIONS:\n- Use this when user says 'export this workflow', 'backup my automation', 'share this workflow', 'download as JSON'\n- Returns complete workflow structure as JSON\n- Optionally include execution history (default: false)\n- Exported JSON can be saved to file, shared with others, or imported into another system\n- Preserves all workflow configuration: trigger, actions, placeholders, visual layout\n\nEXPORT INCLUDES:\n- automation_id, slug, title, description, category\n- trigger configuration (type, cron, event)\n- actions array with tool names and parameters\n- ui_json with visual canvas layout (shapes, connections)\n- execution_json with executable steps\n- created_at, updated_at metadata\n- (optional) execution_history array if include_history=true\n\nEXAMPLE RESPONSE TO USER:\n'Here's the export for your Daily Gmail Summary workflow:\n\n```json\n{\n  \"automation_id\": 42,\n  \"slug\": \"wf_a3f8b2c1_1732029847\",\n  \"title\": \"Daily Gmail Summary\",\n  \"trigger\": {\"type\": \"schedule\", \"schedule_cron\": \"0 9 * * *\"},\n  \"actions\": [...],\n  \"ui_json\": {...},\n  \"execution_json\": {...}\n}\n```\n\nYou can save this JSON to a file or share it with others. To restore, use automation_import_workflow() (if available) or recreate with automation_create_workflow().'\n\nCOMMON USE CASES:\n- Backup before making changes\n- Share workflow template with team\n- Migrate workflow to another account/system\n- Version control for workflow configurations\n- Document workflow structure\n\nPARAMETERS:\n- automation_id='wf_xxx' (required)\n- include_history=true (optional, adds execution logs to export)",
+            "description": "Export a workflow's complete configuration and optional execution history as a JSON document suitable for backup, sharing, versioning, or migration. The export includes both the visual canvas (`ui_json`) and the executable representation (`execution_json`) so imported workflows can be displayed and executed in another environment. By default, execution history is excluded to keep the export compact; include it by setting `include_history=true`.\n\nThe exported payload contains metadata (automation_id, slug, title, created_at), trigger configuration, the ordered actions array (tool names and parameters), UI layout (shapes, connections, positions), and optional execution logs. Exports are safe to share but may contain sensitive parameters (API keys, tokens) if they were stored in action parameters—sensitive fields should be redacted or omitted before sharing.\n\nWHEN TO USE:\n- Create a backup prior to major edits or deployments.\n- Migrate workflows between accounts or environments.\n- Share templates with teammates or publish an example.\n- Store workflow versions in source control or documentation.\n\nWHEN NOT TO USE:\n- Do not export sensitive secrets unless you plan to redact them.\n- For quick ad-hoc checks, use `automation_get_workflow()` instead of exporting the full JSON.\n\nWORKFLOW (user flow):\n1. User requests export for a workflow slug or id.\n2. Decide whether to include execution history.\n3. Call `automation_export_workflow(automation_id, include_history=false)`.\n4. System returns JSON payload; offer to download, save to thread, or copy to clipboard.\n5. If migrating, provide import instructions or `automation_import_workflow()` if supported.\n\nBEST PRACTICES:\n- Redact or remove secrets from action parameters before sharing.\n- Prefer compressed exports for large histories (e.g., last 30 runs).\n- Use exports to seed new workflows in other environments.\n- Keep exports under version control for change tracking.\n\nERROR HANDLING:\n- Workflow not found → return descriptive error and suggest `automation_list_workflows()`.\n- Include_history requested but history too large → return truncated history with warning and offer archival download.\n- Permission denied → indicate required roles.\n\nRELATED TOOLS:\nautomation_import_workflow - Import exported JSON into another system or account\nautomation_export_workflow - (this tool) create backups before changes\nautomation_delete_workflow - Use export as backup before deletion\nautomation_get_workflow - Preview workflow details without full export\nautomation_get_execution_history - Use for targeted history export (filtered)",
+            "examples": [
+                {
+                    "description": "Simple - Export workflow without history",
+                    "parameters": {
+                        "automation_id": "wf_a3f8b2c1_1732029847",
+                        "include_history": false
+                    }
+                },
+                {
+                    "description": "Complex - Export with last 30 executions included",
+                    "parameters": {
+                        "automation_id": "wf_k7m3p9x2_1732125847",
+                        "include_history": true,
+                        "history_limit": 30
+                    }
+                },
+                {
+                    "description": "Error case - Attempt to export non-existent workflow",
+                    "parameters": {
+                        "automation_id": "wf_invalid_12345"
+                    },
+                    "expected_error": "Workflow 'wf_invalid_12345' not found. Use automation_list_workflows() to find available workflows."
+                }
+            ],
             "platform": "automation",
             "parameters": {
                 "type": "object",
@@ -855,14 +936,14 @@
         },
         {
             "name": "automation_get_workflow_by_slug",
-            "description": "Get workflow details by slug. Use this when user references a workflow by its slug (e.g., 'wf_a3f8b2c1_1732029847') or when a thread has a linked workflow. Returns complete workflow structure including shapes, connections, and execution steps.\n\nUSAGE INSTRUCTIONS:\n- Use this when user drags a workflow slug pill into chat\n- Use this when thread has linked workflow and user asks about it\n- Use this when user says 'show me wf_xxx' or mentions a specific slug\n- Identical to automation_get_workflow() but specifically for slug lookup\n- Returns full workflow details: trigger, actions, visual layout, status\n\nWHEN TO USE:\n1. User drags slug pill from canvas into chat\n2. Thread has workflow linked (check thread metadata)\n3. User copies/pastes a slug from elsewhere\n4. User says 'show me that workflow we created earlier'\n\nEXAMPLE RESPONSE TO USER:\n'Found your workflow: Daily Gmail Summary (wf_a3f8b2c1_1732029847)\n\n**Trigger:** Schedule (Every day at 9:00 AM)\n**Actions:**\n1. gmail_list_messages - Get unread emails (max 20)\n2. ai_summarize_text - Generate summary (max 500 chars)\n3. gmail_send_email - Send digest to you\n\n**Status:** Active\n**Last Run:** 2 hours ago (success)\n**Success Rate:** 95.6% (43/45 executions)\n\nWould you like to:\n- Execute it now?\n- View execution history?\n- Modify the schedule?\n- Open in visual editor?'\n\nCOMMON PATTERNS:\n- User drops slug pill: Fetch and explain workflow\n- User asks about thread workflow: Get slug from thread metadata, then fetch details\n- User references old workflow: Search by slug to retrieve\n\nRETURNS SAME AS automation_get_workflow():",
+            "description": "Retrieve complete workflow details using its unique immutable slug identifier. This tool is optimized for slug-based lookups when users reference workflows by their canonical ID (format: wf_<8random>_<timestamp>). It returns the full workflow structure including visual canvas layout (shapes, connections), executable configuration (trigger, actions), scheduling metadata, and execution statistics. Slugs are permanent identifiers that never change, making this the preferred lookup method when the slug is known.\n\nResponse payload includes: automation_id, slug, title, description, category, trigger configuration (type, cron, event), actions array with tool calls and parameters, ui_json with visual layout data, execution_json with executable steps, status (draft/active/inactive), scheduling fields (is_scheduled, schedule_cron), and timestamps (created_at, updated_at, last_executed_at).\n\nWHEN TO USE:\n- User drags a workflow slug pill from canvas or thread history into chat.\n- Thread metadata contains a linked workflow slug and user asks about 'this workflow'.\n- User explicitly references a slug: 'show me wf_a3f8b2c1_1732029847'.\n- User asks about 'that workflow we created' and you have the slug from context.\n\nWHEN NOT TO USE:\n- User provides a workflow title or description (not slug) → use automation_list_workflows with filters.\n- User wants to see ALL workflows → use automation_list_workflows.\n- Slug is unknown and needs discovery → list workflows first.\n\nWORKFLOW (user flow):\n1. Identify slug from user input, thread metadata, or conversation history.\n2. Call automation_get_workflow_by_slug(slug='wf_xxx').\n3. Parse response and present workflow summary to user.\n4. Calculate success rate from execution stats if available.\n5. Offer next actions: execute, view history, edit, schedule.\n\nBEST PRACTICES:\n- Always format the slug in code blocks or pills for easy copy-paste.\n- Present trigger, actions, and status in a clear hierarchy.\n- Calculate and show success rate percentage from execution counts.\n- Suggest contextual next steps based on workflow state (active vs inactive, scheduled vs manual).\n\nERROR HANDLING:\n- Slug not found → suggest automation_list_workflows() to find available workflows.\n- Invalid slug format → validate format (wf_<8alphanumeric>_<10digit_timestamp>).\n- Permission denied → workflow belongs to different user.\n\nRELATED TOOLS:\nautomation_get_workflow - Retrieve workflow by automation_id (numeric ID)\nautomation_list_workflows - Search workflows when slug is unknown\nautomation_execute_workflow - Run the workflow after retrieving details\nautomation_open_workflow_in_canvas - Open workflow in visual editor\nautomation_get_execution_history - View past runs and performance\nautomation_update_workflow - Modify workflow configuration",
             "platform": "automation",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "slug": {
                         "type": "string",
-                        "description": "Workflow slug (e.g., 'workflow-email-to-sheets', 'workflow-1234567890')"
+                        "description": "Workflow slug (e.g., 'wf_a3f8b2c1_1732029847', 'wf_k7m3p9x2_1732125847')"
                     }
                 },
                 "required": [
@@ -872,18 +953,39 @@
             "returns": {
                 "type": "object",
                 "description": "Workflow object with title, description, ui_json (shapes/connections), execution_json (steps), status, created_at, updated_at"
-            }
+            },
+            "examples": [
+                {
+                    "description": "Simple - Get workflow details by slug",
+                    "parameters": {
+                        "slug": "wf_a3f8b2c1_1732029847"
+                    }
+                },
+                {
+                    "description": "Complex - Get workflow from thread context",
+                    "parameters": {
+                        "slug": "wf_k7m3p9x2_1732125847"
+                    }
+                },
+                {
+                    "description": "Error case - Slug not found",
+                    "parameters": {
+                        "slug": "wf_invalid_12345"
+                    },
+                    "expected_error": "Workflow with slug 'wf_invalid_12345' not found. Use automation_list_workflows() to find available workflows."
+                }
+            ]
         },
         {
             "name": "automation_open_workflow_in_canvas",
-            "description": "Open a workflow in the visual automation canvas for the user to see and edit. Use this when user wants to view or edit a workflow visually (e.g., 'show me that workflow', 'open the email automation', 'let me see the workflow'). This switches the UI to the Automation tab and loads the workflow on the canvas.\n\nUSAGE INSTRUCTIONS:\n- Use this when user wants to SEE or EDIT workflow visually\n- Switches UI to Automation tab automatically\n- Loads workflow on drag-and-drop canvas with nodes and connections\n- User can then modify workflow with visual editor\n- Provide helpful message explaining what user will see\n\nWHEN TO USE:\n- User says 'show me the workflow', 'let me see it', 'open that automation'\n- User wants to edit workflow ('I need to change the schedule', 'add another step')\n- User wants visual representation ('what does it look like?')\n- After creating workflow ('Here's your workflow, I'm opening it so you can see')\n\nEXAMPLE RESPONSE TO USER:\n'Opening your Daily Gmail Summary workflow in the visual editor...\n\nI've switched to the Automation tab and loaded your workflow. You'll see:\n\n🟢 Green hexagon: Schedule trigger (9:00 AM daily)\n🔵 Blue rectangle: Get Gmail messages\n🔵 Blue rectangle: Summarize with AI\n🔵 Blue rectangle: Send email\n\nYou can now:\n- Drag nodes to rearrange\n- Click nodes to edit parameters\n- Add new actions from the tools panel\n- Connect nodes by dragging between ports\n- Save changes when done'\n\nUI ACTIONS:\n1. Sends command to frontend: {type: 'open_automation_canvas', slug: 'wf_xxx'}\n2. Frontend switches to Automation tab\n3. Frontend loads workflow JSON (shapes, connections)\n4. Frontend renders visual flowchart\n5. User can interact with visual editor\n\nPARAMETERS:\n- slug='wf_a3f8b2c1_1732029847' (required)\n- message_to_user='Here is your workflow...' (optional, shown in UI)",
+            "description": "Open a workflow in the visual automation canvas for interactive viewing and editing. This tool sends a UI command to the frontend that switches the interface to the Automation tab, loads the specified workflow's visual representation (nodes, edges, shapes, connections), and renders it on the drag-and-drop canvas. Users can then interact with the visual editor to modify triggers, add/remove actions, edit parameters, rearrange nodes, and save changes back to the workflow.\n\nThe operation is non-destructive: it only opens the canvas view and does not modify the workflow. The frontend receives a command payload containing the workflow slug and an optional user-facing message, then fetches the workflow's ui_json (shapes, connections) and execution_json (actions, trigger) to render the visual flowchart. The canvas displays color-coded nodes: green hexagons for triggers, blue rectangles for actions/tools, yellow for outputs, and orange for decision nodes.\n\nWHEN TO USE:\n- User says 'show me the workflow', 'open that automation', 'let me see it visually'.\n- User wants to edit a workflow: 'I need to change the schedule', 'add another step', 'modify parameters'.\n- User wants visual representation instead of text description.\n- After creating a new workflow to show the user what was built.\n- User drags a workflow slug pill and wants to view it.\n\nWHEN NOT TO USE:\n- User wants text summary or details → use automation_get_workflow() or automation_get_workflow_by_slug().\n- User wants to execute the workflow → use automation_execute_workflow().\n- User wants to view execution history → use automation_get_execution_history().\n\nWORKFLOW (user flow):\n1. Identify workflow slug from user request or context.\n2. Optionally prepare a user-facing message explaining what they'll see.\n3. Call automation_open_workflow_in_canvas(slug='wf_xxx', message_to_user='Opening your workflow...').\n4. Frontend switches to Automation tab and renders the workflow.\n5. User can now drag nodes, edit parameters, and save changes.\n\nBEST PRACTICES:\n- Provide a descriptive message_to_user that explains the workflow's purpose and what they'll see.\n- Describe the visual elements (green triggers, blue actions) so user knows what to expect.\n- After opening, suggest next steps: 'You can now edit nodes, rearrange, or save'.\n- Use this after create operations to show the user their new workflow.\n\nERROR HANDLING:\n- Slug not found → return clear error and suggest automation_list_workflows().\n- UI not available (headless/API mode) → fallback to automation_get_workflow() text summary.\n- Permission denied → indicate workflow belongs to different user.\n\nRELATED TOOLS:\nautomation_get_workflow_by_slug - Get workflow details as text before opening canvas\nautomation_create_workflow - Create workflow then open in canvas to show user\nautomation_update_workflow - Modify workflow programmatically without canvas\nautomation_execute_workflow - Run workflow after viewing in canvas\nautomation_publish_workflow - Publish draft workflow from canvas to production\nautomation_get_execution_history - View past runs after inspecting workflow",
             "platform": "automation",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "slug": {
                         "type": "string",
-                        "description": "Workflow slug to open (e.g., 'workflow-email-to-sheets')"
+                        "description": "Workflow slug to open (e.g., 'wf_a3f8b2c1_1732029847')"
                     },
                     "message_to_user": {
                         "type": "string",
@@ -897,7 +999,29 @@
             "returns": {
                 "type": "object",
                 "description": "Confirmation that workflow was opened in canvas with UI command"
-            }
+            },
+            "examples": [
+                {
+                    "description": "Simple - Open workflow in canvas",
+                    "parameters": {
+                        "slug": "wf_a3f8b2c1_1732029847"
+                    }
+                },
+                {
+                    "description": "Complex - Open with custom message",
+                    "parameters": {
+                        "slug": "wf_k7m3p9x2_1732125847",
+                        "message_to_user": "Opening your Daily Gmail Summary workflow. You'll see a green trigger node (9am schedule), followed by 3 blue action nodes (get emails, summarize, send). You can drag nodes to rearrange or click to edit parameters."
+                    }
+                },
+                {
+                    "description": "Error case - Slug not found",
+                    "parameters": {
+                        "slug": "wf_invalid_12345"
+                    },
+                    "expected_error": "Workflow 'wf_invalid_12345' not found. Use automation_list_workflows() to find available workflows."
+                }
+            ]
         },
         {
             "name": "automation_publish_workflow",

@@ -855,6 +855,107 @@
     box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
 }
 
+/* Add Column Button */
+.kanban-add-column {
+    min-width: 320px;
+    max-width: 320px;
+    height: 180px;
+    background: var(--bg-secondary);
+    border: 2px dashed var(--border-default);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.kanban-add-column:hover {
+    border-color: var(--accent-primary);
+    background: rgba(88, 166, 255, 0.05);
+    transform: translateY(-2px);
+}
+
+.add-column-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.kanban-add-column:hover .add-column-content {
+    color: var(--accent-primary);
+}
+
+.add-column-content i {
+    font-size: 32px;
+}
+
+/* Drag and Drop States */
+.kanban-card.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+}
+
+.kanban-cards-container.drag-over {
+    background: rgba(88, 166, 255, 0.1);
+    border: 2px dashed var(--accent-primary);
+    border-radius: 8px;
+}
+
+.kanban-column.drag-over {
+    background: rgba(88, 166, 255, 0.05);
+    box-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
+}
+
+/* Column Dropdown Menu */
+.synergy-column-dropdown-menu {
+    animation: dropdownFadeIn 0.2s ease;
+}
+
+.synergy-dropdown-item {
+    width: 100%;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.synergy-dropdown-item:hover {
+    background: var(--bg-hover);
+}
+
+.synergy-dropdown-item.danger {
+    color: var(--accent-error);
+}
+
+.synergy-dropdown-item.danger:hover {
+    background: rgba(248, 81, 73, 0.1);
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Sync Indicator */
 .sync-indicator {
     position: fixed;

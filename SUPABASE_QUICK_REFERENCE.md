@@ -1,192 +1,205 @@
-# Supabase Quick Reference Card
-**For AI Agents Platform - Production Database Management**
+# Supabase Connection Manager - Quick Reference
 
----
+## 🚀 Quick Commands
 
-## Connection Info
-
-```
-Project: ai-agents-production-inhouse
-URL: https://ryoicrdifiqhqpsnjmdo.supabase.co
-Region: Singapore (ap-southeast-1)
-Database: PostgreSQL 17.6
-Size: 22 MB
+### Check Connection Status
+```javascript
+SupabaseConnectionManager.getState()
+// Returns: {state, isOnline, channels, lastActivity, idleTime}
 ```
 
----
-
-## Most Used Commands
-
-```powershell
-# Test connection
-python Supabase\supabase_toolkit.py test
-
-# View all schemas and tables
-python Supabase\supabase_toolkit.py summary
-
-# List schemas
-python Supabase\supabase_toolkit.py schemas
-
-# List tables in schema
-python Supabase\supabase_toolkit.py tables --schema sessions
-
-# Get table details
-python Supabase\supabase_toolkit.py info --schema sessions --table threads
-
-# Execute query
-python Supabase\supabase_toolkit.py query --query "SELECT * FROM sessions.threads LIMIT 10"
-
-# Compare local vs production
-python data\show_database_structure_v2.py
+### Verify Single Client
+```javascript
+console.log('Same client?', 
+    SupabaseConnectionManager.client === window.SUPABASE_CLIENT
+); // Should be: true
 ```
 
----
-
-## Schema Mappings
-
-| SQLite Database | Supabase Schema | Tables |
-|----------------|----------------|--------|
-| `ai_infrastructure.db` | `ai_infrastructure` | 16 |
-| `sessions.db` | `sessions` | 11 |
-| `synergy_sessions.db` | `synergy_sessions` | 2 |
-| `kanban_analytics.db` | `kanban_analytics` | 14 |
-| `stock_data.db` | `stock_data` | 35 |
-
----
-
-## Common Queries
-
-```sql
--- Count threads
-SELECT COUNT(*) FROM sessions.threads;
-
--- Get user threads
-SELECT id, name, created_at 
-FROM sessions.threads 
-WHERE user_id = 1 
-ORDER BY created_at DESC LIMIT 10;
-
--- Check OAuth connections
-SELECT user_id, platform, email, created_at 
-FROM ai_infrastructure.user_platform_credentials 
-ORDER BY created_at DESC;
-
--- Count messages in thread
-SELECT COUNT(*) 
-FROM sessions.messages 
-WHERE thread_id = 1;
-
--- Get recent orders
-SELECT order_id, customer_name, order_date, status 
-FROM kanban_analytics.orders 
-ORDER BY order_date DESC LIMIT 10;
-
--- Check stock levels
-SELECT "StockName", "CurrentQuantity", "MinLevel" 
-FROM stock_data."StockLevels" 
-WHERE "CurrentQuantity" < "MinLevel";
+### Force Reconnect
+```javascript
+SupabaseConnectionManager.disconnect();
+await SupabaseConnectionManager.init();
 ```
 
----
-
-## Environment Variables
-
-**Local Development (SQLite):**
-```bash
-USE_SUPABASE=false  # or not set
-```
-
-**Production (Supabase):**
-```bash
-USE_SUPABASE=true
-RENDER=true
-SUPABASE_URL=https://ryoicrdifiqhqpsnjmdo.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGci...
-SUPABASE_DB_URL=postgresql://postgres:***@db.ryoicrdifiqhqpsnjmdo.supabase.co:5432/postgres
-```
-
----
-
-## In Python Code
-
+### Backend Pool Stats
 ```python
-# Use centralized database utility (RECOMMENDED)
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'AI_infrastructure'))
-from shared.database_utils import get_database_connection
-
-# Auto-detects SQLite vs Supabase
-conn = get_database_connection('sessions')
-cursor = conn.cursor()
-
-# Works with both SQLite and PostgreSQL
-cursor.execute("SELECT * FROM threads WHERE user_id = %s", (1,))
-
-# Always close
-conn.close()
+from AI_infrastructure.shared.database_utils import log_pool_usage
+log_pool_usage()
 ```
 
 ---
 
-## Troubleshooting
+## ✅ Expected Console Output (Healthy)
 
-**Connection refused:**
-- Check Supabase project is active (not paused)
-- Verify SUPABASE_DB_URL in .env.master
-- Test: `python Supabase\test_supabase_connection.py`
-
-**"relation does not exist":**
-- Use schema-qualified names: `sessions.threads` not `threads`
-- Check schema exists: `python Supabase\supabase_toolkit.py schemas`
-
-**"column does not exist":**
-- PostgreSQL is case-sensitive
-- Use double quotes for mixed case: `"StockName"` not `stockname`
-
-**Authentication failed:**
-- Use SUPABASE_SERVICE_KEY (not anon key)
-- Check key in Supabase Dashboard → Settings → API
+```
+✅ [SUPABASE] Config ready for connection manager
+🔷 [Supabase] Initializing connection manager...
+🔷 [Supabase] Creating new client...
+✅ [Supabase] Realtime connection established
+✅ [Supabase] Health monitoring started (30s idle threshold)
+✅ [Supabase] Client created and aliases set
+✅ [ThreadCardRealtime] Initialized with connection manager
+✅ [Assignment] Realtime active with connection manager
+```
 
 ---
 
-## Files Still Needing Update
+## ❌ Warning Signs (Problems)
 
-**HIGH PRIORITY (3 files - 30 min):**
-- `AI_infrastructure/flask_app.py` (Line 153)
-- `AI_infrastructure/routes/microsoft_auth_routes_V2_FIXED.py` (Line 100)
-- `google_workspace/oauth_credential_loader.py` (Line 45)
+### Multiple Clients Warning
+```
+⚠️ Multiple GoTrueClient instances detected
+```
+**Fix:** Clear cache, hard reload (Ctrl+Shift+R)
 
-**MEDIUM PRIORITY (7 files - 2 hours):**
-- `AI_infrastructure/utils/email_alias_helpers.py` (6 occurrences)
-- `AI_infrastructure/utils/user_context_builder.py` (1 occurrence)
-- `AI_infrastructure/workspace/` files (3 files)
-- `tools/implementations/memory_tools.py` (1 occurrence)
+### Channel Errors
+```
+❌ [ThreadCardRealtime] Channel error: CHANNEL_ERROR
+```
+**Fix:** Check network, verify connection manager loaded
 
-**See SUPABASE_API_ASSESSMENT.md for details**
-
----
-
-## Resources
-
-- **CLI Guide:** `SUPABASE_CLI_GUIDE.md` (900+ lines)
-- **API Assessment:** `SUPABASE_API_ASSESSMENT.md` (800+ lines)
-- **Database Analyzer:** `data/show_database_structure_v2.py`
-- **Migration Summary:** `SUPABASE_MIGRATION_SUMMARY.md`
-- **Completion Report:** `SUPABASE_TOOLS_COMPLETE.md`
+### 500 Backend Errors
+```
+500 Internal Server Error: too many clients
+```
+**Fix:** Check for leaked connections, restart Flask
 
 ---
 
-## Supabase Dashboard
+## 🔍 Debugging Checklist
 
-**URL:** https://supabase.com/dashboard/project/ryoicrdifiqhqpsnjmdo
-
-**Sections:**
-- **Table Editor** - Browse and edit data
-- **SQL Editor** - Execute queries
-- **Database** - Manage schemas and tables
-- **Settings → API** - Get connection credentials
+- [ ] Clear browser cache (`localStorage.clear(); sessionStorage.clear()`)
+- [ ] Hard reload page (Ctrl+Shift+R)
+- [ ] Check DevTools → Console for warnings
+- [ ] Check DevTools → Network → WS tab (should see 1 connection)
+- [ ] Verify `SupabaseConnectionManager` exists
+- [ ] Verify single client instance
+- [ ] Check backend pool stats (Python)
+- [ ] Test network reconnection (toggle offline/online)
 
 ---
 
-**Last Updated:** January 15, 2025
+## 📊 Health Check
+
+### Good Signs ✅
+- One WebSocket connection
+- No "Multiple GoTrueClient" warnings
+- Connection state: 'connected'
+- Leaked connections: 0
+- Health checks only when idle >30s
+
+### Bad Signs ❌
+- Multiple WebSocket attempts
+- "Multiple GoTrueClient" warnings
+- Connection state: 'failed'
+- Leaked connections > 0
+- Health checks every second
+
+---
+
+## 🛠️ Common Fixes
+
+### Problem: No realtime updates
+```javascript
+// Check subscriptions
+console.log('Channels:', SupabaseConnectionManager.channels.size);
+// Should be: 2 or more
+
+// Force reconnect
+SupabaseConnectionManager.disconnect();
+await SupabaseConnectionManager.init();
+```
+
+### Problem: Connection keeps failing
+```javascript
+// Check config
+console.log('URL:', window.SUPABASE_URL);
+console.log('Key:', window.SUPABASE_ANON_KEY ? 'Set' : 'Missing');
+
+// Check network
+console.log('Online:', navigator.onLine);
+```
+
+### Problem: Backend errors
+```python
+# Check for leaks
+from AI_infrastructure.shared.database_utils import log_pool_usage
+log_pool_usage()
+
+# Look for: "Leaked connections: N" where N > 0
+# Fix: Search for missing conn.close() calls
+```
+
+---
+
+## 📝 Key Files
+
+**Frontend:**
+- `UI/js/supabase-connection-manager.js` - Main manager
+- `UI/business-ai-platform-v2.html` - Config loading
+
+**Backend:**
+- `AI_infrastructure/shared/database_utils.py` - Connection pool
+
+**Docs:**
+- `SUPABASE_FIX_FINAL_SUMMARY_NOV24.md` - Complete guide
+- `SUPABASE_CONNECTION_FIX_COMPLETE_NOV24.md` - Implementation details
+
+---
+
+## 🎯 Success Metrics
+
+| Metric | Target |
+|--------|--------|
+| WebSocket connections | 1 |
+| Client instances | 1 |
+| "Multiple GoTrueClient" warnings | 0 |
+| CHANNEL_ERROR count | 0 |
+| Backend 500 errors | 0 |
+| Leaked connections | 0 |
+| Page load time | <1s |
+
+---
+
+## 📞 Quick Test
+
+```javascript
+// Paste this in console:
+(async () => {
+    console.log('=== Supabase Health Check ===');
+    
+    // 1. Check manager
+    console.log('1. Manager exists:', !!window.SupabaseConnectionManager);
+    
+    // 2. Check state
+    const state = SupabaseConnectionManager?.getState();
+    console.log('2. State:', state?.state);
+    
+    // 3. Check client
+    const sameClient = SupabaseConnectionManager?.client === window.SUPABASE_CLIENT;
+    console.log('3. Single client:', sameClient);
+    
+    // 4. Check channels
+    const channels = SupabaseConnectionManager?.channels?.size;
+    console.log('4. Channels:', channels);
+    
+    // 5. Overall
+    const healthy = state?.state === 'connected' && sameClient && channels >= 2;
+    console.log('\n✅ Result:', healthy ? 'HEALTHY' : 'NEEDS ATTENTION');
+})();
+```
+
+Expected output:
+```
+=== Supabase Health Check ===
+1. Manager exists: true
+2. State: connected
+3. Single client: true
+4. Channels: 2
+✅ Result: HEALTHY
+```
+
+---
+
+**Last Updated:** November 24, 2025  
+**Status:** Production Ready

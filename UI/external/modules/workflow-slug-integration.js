@@ -11,7 +11,8 @@
     'use strict';
 
     // API Base URL (environment-aware)
-    const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+    // Use API_BASE_URL from global scope (declared in main HTML)
+    const API_BASE_URL = window.API_BASE_URL || window.location.origin + '/api';
 
     // ============================================================
     // WORKFLOW SLUG LINKING

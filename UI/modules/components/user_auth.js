@@ -1,5 +1,6 @@
 // Environment-aware API Base URL
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+// Use API_BASE_URL from global scope (declared in main HTML)
+const API_BASE_URL = window.API_BASE_URL || window.location.origin + '/api';
 
 // ==================== USER AUTHENTICATION SYSTEM ====================
 
