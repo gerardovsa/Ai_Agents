@@ -693,16 +693,10 @@ class UserAuthManager:
             print("="*60 + "\n")
             return None
         finally:
-            # CRITICAL FIX: Always close connection if it was opened and not yet closed
-            # Note: We close manually before early returns (lines 629, 670, 676)
-            # This is a safety net in case of exceptions before those returns
+            # CRITICAL FIX: Always close connection if it was opened
+            # This executes even when returning from try block
             if conn is not None:
-                try:
-                    # Check if connection is still open before closing
-                    if not conn.closed:
-                        conn.close()
-                except Exception:
-                    pass  # Silently ignore close errors (e.g., already closed)
+                conn.close()
     
     def link_gmail_account(self, user_id: int, gmail_address: str, display_name: str = None,
                           access_token: str = None, refresh_token: str = None,
