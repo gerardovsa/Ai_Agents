@@ -760,31 +760,31 @@
                         "description": "Workflow ID to deactivate"
                     }
                 },
-                        "description": "Permanently delete an automation and all associated data. This operation removes the workflow configuration, visual canvas layout, scheduled jobs, and execution history. Deletion is irreversible and should only be performed after an explicit confirmation from the user. The intent of this tool is to allow users to fully remove automations they no longer need or want retained in the system.\n\nWhen executed, the service will: validate the workflow exists, cancel and remove any scheduled tasks, archive or remove execution logs depending on retention policy, delete the workflow record, and return a detailed summary of removed items (counts of executions removed, scheduler_task_id, and timestamps). Because deletion is destructive, the API pattern expects an explicit confirmation (for example, a second call or a confirmation flag) and may optionally support a dry-run mode to preview what would be deleted.\n\nWHEN TO USE:\n- Permanently remove deprecated or duplicate workflows.\n- Clean up test or example automations that clutter the workspace.\n- Comply with data retention requests to remove automation logs and configurations.\n\nWHEN NOT TO USE:\n- If you want to temporarily stop a workflow, use `automation_deactivate_workflow()`.\n- If you want to keep a copy for reuse, export first using `automation_export_workflow()`.\n\nWORKFLOW (confirmation pattern):\n1. User requests deletion.\n2. AI replies with a confirmation prompt describing what will be removed.\n3. User confirms explicitly (e.g., reply 'yes delete').\n4. Call `automation_delete_workflow(automation_id, confirm=true)` to execute.\n5. Return deletion summary to the user.\n\nBEST PRACTICES:\n- Always offer `automation_export_workflow()` before deletion.\n- Use a confirmation token or explicit 'yes delete' reply to avoid accidental removal.\n- Log deletion events for audit.\n- Provide alternative suggestions (deactivate) when appropriate.\n\nERROR HANDLING:\n- Workflow not found → return friendly error and list available workflows.\n- Permission denied → indicate required roles or scopes.\n- Partial deletion → return details of what succeeded and what failed with retry guidance.\n\nRELATED TOOLS:\nautomation_deactivate_workflow - Temporarily pause without deleting\nautomation_export_workflow - Export before deleting for backup or migration\nautomation_get_execution_history - Review history prior to deletion\nautomation_list_workflows - Find workflow IDs and slugs to delete\nautomation_update_workflow - Modify instead of deleting if only changes are needed",
-                        "examples": [
-                            {
-                                "description": "Simple - Permanently delete a workflow after confirmation",
-                                "parameters": {
-                                    "automation_id": "wf_a3f8b2c1_1732029847",
-                                    "confirm": true
-                                }
-                            },
-                            {
-                                "description": "Complex - Dry-run preview before deletion",
-                                "parameters": {
-                                    "automation_id": "wf_k7m3p9x2_1732125847",
-                                    "dry_run": true
-                                }
-                            },
-                            {
-                                "description": "Error case - Attempt to delete non-existent workflow",
-                                "parameters": {
-                                    "automation_id": "wf_invalid_12345",
-                                    "confirm": true
-                                },
-                                "expected_error": "Workflow 'wf_invalid_12345' not found. Use automation_list_workflows() to find available workflows."
-                            }
-                        ]
+                "description": "Permanently delete an automation and all associated data. This operation removes the workflow configuration, visual canvas layout, scheduled jobs, and execution history. Deletion is irreversible and should only be performed after an explicit confirmation from the user. The intent of this tool is to allow users to fully remove automations they no longer need or want retained in the system.\n\nWhen executed, the service will: validate the workflow exists, cancel and remove any scheduled tasks, archive or remove execution logs depending on retention policy, delete the workflow record, and return a detailed summary of removed items (counts of executions removed, scheduler_task_id, and timestamps). Because deletion is destructive, the API pattern expects an explicit confirmation (for example, a second call or a confirmation flag) and may optionally support a dry-run mode to preview what would be deleted.\n\nWHEN TO USE:\n- Permanently remove deprecated or duplicate workflows.\n- Clean up test or example automations that clutter the workspace.\n- Comply with data retention requests to remove automation logs and configurations.\n\nWHEN NOT TO USE:\n- If you want to temporarily stop a workflow, use `automation_deactivate_workflow()`.\n- If you want to keep a copy for reuse, export first using `automation_export_workflow()`.\n\nWORKFLOW (confirmation pattern):\n1. User requests deletion.\n2. AI replies with a confirmation prompt describing what will be removed.\n3. User confirms explicitly (e.g., reply 'yes delete').\n4. Call `automation_delete_workflow(automation_id, confirm=true)` to execute.\n5. Return deletion summary to the user.\n\nBEST PRACTICES:\n- Always offer `automation_export_workflow()` before deletion.\n- Use a confirmation token or explicit 'yes delete' reply to avoid accidental removal.\n- Log deletion events for audit.\n- Provide alternative suggestions (deactivate) when appropriate.\n\nERROR HANDLING:\n- Workflow not found → return friendly error and list available workflows.\n- Permission denied → indicate required roles or scopes.\n- Partial deletion → return details of what succeeded and what failed with retry guidance.\n\nRELATED TOOLS:\nautomation_deactivate_workflow - Temporarily pause without deleting\nautomation_export_workflow - Export before deleting for backup or migration\nautomation_get_execution_history - Review history prior to deletion\nautomation_list_workflows - Find workflow IDs and slugs to delete\nautomation_update_workflow - Modify instead of deleting if only changes are needed",
+                "examples": [
+                    {
+                        "description": "Simple - Permanently delete a workflow after confirmation",
+                        "parameters": {
+                            "automation_id": "wf_a3f8b2c1_1732029847",
+                            "confirm": true
+                        }
+                    },
+                    {
+                        "description": "Complex - Dry-run preview before deletion",
+                        "parameters": {
+                            "automation_id": "wf_k7m3p9x2_1732125847",
+                            "dry_run": true
+                        }
+                    },
+                    {
+                        "description": "Error case - Attempt to delete non-existent workflow",
+                        "parameters": {
+                            "automation_id": "wf_invalid_12345",
+                            "confirm": true
+                        },
+                        "expected_error": "Workflow 'wf_invalid_12345' not found. Use automation_list_workflows() to find available workflows."
+                    }
+                ]
             },
             "platform": "automation",
             "parameters": {

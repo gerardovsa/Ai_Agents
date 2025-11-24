@@ -233,8 +233,7 @@ window.ThreadManagerUI = {
                 data-thread-id="${thread.id}"
                 data-current-location="${currentLocation}"
                 ondragstart="ThreadManager.handleDragStart(event)"
-                ondragend="ThreadManager.handleDragEnd(event)"
-                ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${currentLocation}')">
+                ondragend="ThreadManager.handleDragEnd(event)">
                 
                 <!-- ALWAYS VISIBLE: Title + Agent Badge + Actions -->
                 <div class="thread-item-header">
@@ -245,6 +244,11 @@ window.ThreadManagerUI = {
                         <i class="fas ${agentIcon}"></i> ${agentLabel}
                     </div>
                     <div class="thread-item-actions">
+                        <button class="thread-action-btn load-prime" 
+                            onclick="event.stopPropagation(); ThreadManager.handleThreadDoubleClick('${thread.id}', '${currentLocation}')" 
+                            title="Send to AI Prime">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
                         ${currentLocation && currentLocation.startsWith('agent-') ? `
                         <button class="thread-action-btn unload" 
                             onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 

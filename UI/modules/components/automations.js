@@ -519,6 +519,7 @@ const AutomationsSidebar = {
 
         return `
             <div class="automation-item ${automation.enabled ? 'enabled' : 'disabled'} ${isActive ? 'library-active' : ''}" 
+                data-category="${automation.category || 'workflow'}"
                 onclick="AutomationsSidebar.loadWorkflowInCanvas('${automation.slug}')"
                 style="${isActive ? 'background: var(--accent-primary-alpha); border-left: 3px solid var(--accent-primary);' : ''}">
                 <div class="automation-item-header">

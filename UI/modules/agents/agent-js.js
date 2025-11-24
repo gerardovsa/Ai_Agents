@@ -4955,7 +4955,9 @@ function setupScrollDetection(agentId, messagesContainer) {
             const scrollTop = messagesContainer.scrollTop;
             if (scrollTop < 100) {
                 console.log('[SCROLL] Near top - loading more messages...');
-                window.loadMoreMessages(agentId);
+                // DEACTIVATED: Auto-load on scroll (only loads 5 messages on startup now)
+                // May re-enable later if needed
+                // window.loadMoreMessages(agentId);
             }
         }, 150);
     });

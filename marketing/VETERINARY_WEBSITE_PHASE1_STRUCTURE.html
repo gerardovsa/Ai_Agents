@@ -1,0 +1,2400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VetAI Command Center - Enterprise AI automation for veterinary practices. Eliminate administrative burden, save 25+ hours per week.">
+    <title>VetAI Command Center | Enterprise AI Automation for Veterinary Practices</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ========================================
+           PHASE 1: FOUNDATION STYLES
+           Professional, sophisticated design system
+           No purples, no emojis
+           ======================================== */
+        
+        :root {
+            /* Color Palette - Professional Navy & Orange */
+            --color-primary: #1e3a5f;        /* Deep navy blue - trust, professional */
+            --color-primary-light: #2b5a8f;  /* Lighter navy */
+            --color-primary-dark: #0f1e30;   /* Darker navy */
+            --color-accent: #ff6b35;         /* Vibrant orange - energy, action */
+            --color-accent-light: #ff8c61;   /* Light orange */
+            --color-text-primary: #1a1a1a;   /* Almost black */
+            --color-text-secondary: #4a4a4a; /* Dark gray */
+            --color-text-light: #6b6b6b;     /* Medium gray */
+            --color-background: #ffffff;     /* Pure white */
+            --color-background-light: #f8f9fa; /* Off-white */
+            --color-background-dark: #e9ecef; /* Light gray */
+            --color-border: #dee2e6;         /* Border gray */
+            --color-success: #2b5a8f;        /* Navy blue */
+            --color-error: #c1666b;          /* Muted red */
+            --color-info: #4a90a4;           /* Teal blue */
+            
+            /* Typography Scale */
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-serif: 'Playfair Display', Georgia, serif;
+            --font-size-xs: 0.75rem;    /* 12px */
+            --font-size-sm: 0.875rem;   /* 14px */
+            --font-size-base: 1rem;     /* 16px */
+            --font-size-lg: 1.125rem;   /* 18px */
+            --font-size-xl: 1.25rem;    /* 20px */
+            --font-size-2xl: 1.5rem;    /* 24px */
+            --font-size-3xl: 1.875rem;  /* 30px */
+            --font-size-4xl: 2.25rem;   /* 36px */
+            --font-size-5xl: 3rem;      /* 48px */
+            --font-size-6xl: 3.75rem;   /* 60px */
+            
+            /* Spacing Scale */
+            --space-1: 0.25rem;   /* 4px */
+            --space-2: 0.5rem;    /* 8px */
+            --space-3: 0.75rem;   /* 12px */
+            --space-4: 1rem;      /* 16px */
+            --space-5: 1.5rem;    /* 24px */
+            --space-6: 2rem;      /* 32px */
+            --space-8: 3rem;      /* 48px */
+            --space-10: 4rem;     /* 64px */
+            --space-12: 6rem;     /* 96px */
+            --space-16: 8rem;     /* 128px */
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            /* Border Radius */
+            --radius-sm: 0.25rem;  /* 4px */
+            --radius-md: 0.5rem;   /* 8px */
+            --radius-lg: 1rem;     /* 16px */
+            --radius-full: 9999px; /* Fully rounded */
+            
+            /* Transitions */
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* ========================================
+           RESET & BASE STYLES
+           ======================================== */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            font-size: var(--font-size-base);
+            line-height: 1.6;
+            color: var(--color-text-primary);
+            background-color: var(--color-background);
+            overflow-x: hidden;
+        }
+        
+        /* ========================================
+           TYPOGRAPHY
+           ======================================== */
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-serif);
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--color-text-primary);
+            margin-bottom: var(--space-4);
+        }
+        
+        h1 {
+            font-size: var(--font-size-6xl);
+            letter-spacing: -0.02em;
+        }
+        
+        h2 {
+            font-size: var(--font-size-5xl);
+            letter-spacing: -0.01em;
+        }
+        
+        h3 {
+            font-size: var(--font-size-4xl);
+        }
+        
+        h4 {
+            font-size: var(--font-size-3xl);
+        }
+        
+        h5 {
+            font-size: var(--font-size-2xl);
+        }
+        
+        h6 {
+            font-size: var(--font-size-xl);
+        }
+        
+        p {
+            margin-bottom: var(--space-4);
+            color: var(--color-text-secondary);
+        }
+        
+        a {
+            color: var(--color-primary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+        
+        a:hover {
+            color: var(--color-primary-light);
+        }
+        
+        strong {
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+        
+        /* ========================================
+           LAYOUT COMPONENTS
+           ======================================== */
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-6);
+        }
+        
+        .container-wide {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-6);
+        }
+        
+        .container-narrow {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 var(--space-6);
+        }
+        
+        section {
+            padding: var(--space-12) 0;
+        }
+        
+        .section-dark {
+            background-color: var(--color-primary-dark);
+            color: var(--color-background);
+        }
+        
+        .section-dark h1,
+        .section-dark h2,
+        .section-dark h3,
+        .section-dark h4,
+        .section-dark h5,
+        .section-dark h6 {
+            color: var(--color-background);
+        }
+        
+        .section-dark p {
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        .section-light {
+            background-color: var(--color-background-light);
+        }
+        
+        /* ========================================
+           NAVIGATION
+           ======================================== */
+        
+        .navigation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--color-border);
+            z-index: 1000;
+            transition: all var(--transition-base);
+        }
+        
+        .navigation.scrolled {
+            box-shadow: var(--shadow-md);
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-4) var(--space-6);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .nav-logo {
+            font-family: var(--font-serif);
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            color: var(--color-primary);
+            letter-spacing: -0.01em;
+        }
+        
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: var(--space-6);
+            align-items: center;
+        }
+        
+        .nav-menu a {
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: color var(--transition-fast);
+        }
+        
+        .nav-menu a:hover {
+            color: var(--color-primary);
+        }
+        
+        .nav-cta {
+            display: inline-block;
+            padding: var(--space-2) var(--space-5);
+            background-color: var(--color-primary);
+            color: var(--color-background);
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            transition: all var(--transition-base);
+        }
+        
+        .nav-cta:hover {
+            background-color: var(--color-primary-light);
+            color: var(--color-background);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* ========================================
+           BUTTONS
+           ======================================== */
+        
+        .button {
+            display: inline-block;
+            padding: var(--space-4) var(--space-6);
+            font-family: var(--font-sans);
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            text-align: center;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            text-decoration: none;
+        }
+        
+        .button-primary {
+            background-color: var(--color-primary);
+            color: var(--color-background);
+        }
+        
+        .button-primary:hover {
+            background-color: var(--color-primary-light);
+            color: var(--color-background);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .button-secondary {
+            background-color: transparent;
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
+        }
+        
+        .button-secondary:hover {
+            background-color: var(--color-primary);
+            color: var(--color-background);
+        }
+        
+        .button-large {
+            padding: var(--space-5) var(--space-8);
+            font-size: var(--font-size-lg);
+        }
+        
+        .button-accent {
+            background-color: var(--color-accent);
+            color: var(--color-text-primary);
+        }
+        
+        .button-accent:hover {
+            background-color: var(--color-accent-light);
+            color: var(--color-text-primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        /* ========================================
+           HERO SECTION
+           ======================================== */
+        
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, 
+                var(--color-primary-dark) 0%, 
+                var(--color-primary) 50%,
+                var(--color-primary-light) 100%);
+            position: relative;
+            overflow: hidden;
+            margin-top: 70px;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(212, 165, 116, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(45, 106, 79, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--space-12) var(--space-6);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-10);
+            align-items: center;
+        }
+        
+        .hero-text h1 {
+            color: var(--color-background);
+            font-size: var(--font-size-6xl);
+            line-height: 1.1;
+            margin-bottom: var(--space-5);
+        }
+        
+        .hero-text p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: var(--font-size-xl);
+            line-height: 1.6;
+            margin-bottom: var(--space-8);
+            max-width: 600px;
+        }
+        
+        .hero-cta-group {
+            display: flex;
+            gap: var(--space-4);
+            flex-wrap: wrap;
+        }
+        
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-6);
+            margin-top: var(--space-8);
+            padding-top: var(--space-8);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .hero-stat {
+            text-align: left;
+        }
+        
+        .hero-stat-number {
+            display: block;
+            font-family: var(--font-serif);
+            font-size: var(--font-size-4xl);
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: var(--space-2);
+        }
+        
+        .hero-stat-label {
+            display: block;
+            font-size: var(--font-size-sm);
+            color: rgba(255, 255, 255, 0.75);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .hero-visual {
+            position: relative;
+        }
+        
+        .hero-image-placeholder {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--space-8);
+            backdrop-filter: blur(10px);
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* ========================================
+           TRUST SIGNALS
+           ======================================== */
+        
+        .trust-bar {
+            background-color: var(--color-background);
+            padding: var(--space-6) 0;
+            border-top: 1px solid var(--color-border);
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .trust-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-6);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-6);
+        }
+        
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        
+        .trust-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--color-primary);
+        }
+        
+        .trust-text {
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            color: var(--color-text-secondary);
+        }
+        
+        .trust-value {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+        
+        /* ========================================
+           PHASE 3: ADVANCED STYLES & ANIMATIONS
+           ======================================== */
+        
+        /* Fade-in animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* Animated elements */
+        .animate-on-scroll {
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        .animate-delay-1 { animation-delay: 0.1s; }
+        .animate-delay-2 { animation-delay: 0.2s; }
+        .animate-delay-3 { animation-delay: 0.3s; }
+        .animate-delay-4 { animation-delay: 0.4s; }
+        
+        /* Fade-in text animations */
+        .fade-in-text {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .fade-in-text.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .fade-delay-1 { transition-delay: 0.2s; }
+        .fade-delay-2 { transition-delay: 0.4s; }
+        .fade-delay-3 { transition-delay: 0.6s; }
+        
+        /* Ecosystem Flow Diagram */
+        .flow-diagram {
+            position: relative;
+            padding: var(--space-12) 0;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .flow-node {
+            position: relative;
+            padding: var(--space-6);
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            margin-bottom: var(--space-8);
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .flow-node.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .flow-node:nth-child(even) {
+            transform: translateX(50px);
+        }
+        
+        .flow-node:nth-child(even).visible {
+            transform: translateX(0);
+        }
+        
+        .flow-node-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+        
+        .flow-node-number {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .flow-node-title {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            color: var(--color-primary);
+            margin: 0;
+        }
+        
+        .flow-connector {
+            position: absolute;
+            left: 50%;
+            top: -40px;
+            width: 3px;
+            height: 80px;
+            background: linear-gradient(to bottom, var(--color-primary-light), var(--color-accent));
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
+        }
+        
+        .flow-node.visible .flow-connector {
+            opacity: 1;
+        }
+        
+        .flow-node:first-child .flow-connector {
+            display: none;
+        }
+        
+        .flow-agents {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+        
+        .flow-agent-badge {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+            color: white;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .flow-node.visible .flow-agent-badge {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .flow-agent-badge:nth-child(1) { transition-delay: 0.2s; }
+        .flow-agent-badge:nth-child(2) { transition-delay: 0.3s; }
+        .flow-agent-badge:nth-child(3) { transition-delay: 0.4s; }
+        .flow-agent-badge:nth-child(4) { transition-delay: 0.5s; }
+        .flow-agent-badge:nth-child(5) { transition-delay: 0.6s; }
+        .flow-agent-badge:nth-child(6) { transition-delay: 0.7s; }
+        
+        .flow-agent-icon {
+            width: 16px;
+            height: 16px;
+            fill: white;
+        }
+        
+        .flow-outcomes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+        
+        .flow-outcome {
+            text-align: center;
+            padding: var(--space-3);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            border: 2px solid var(--color-success);
+            border-radius: var(--radius-md);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .flow-node.visible .flow-outcome {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .flow-outcome:nth-child(1) { transition-delay: 0.3s; }
+        .flow-outcome:nth-child(2) { transition-delay: 0.4s; }
+        .flow-outcome:nth-child(3) { transition-delay: 0.5s; }
+        .flow-outcome:nth-child(4) { transition-delay: 0.6s; }
+        
+        .flow-outcome-number {
+            display: block;
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            color: var(--color-success);
+            margin-bottom: var(--space-1);
+        }
+        
+        .flow-outcome-label {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            font-weight: 600;
+        }
+        
+        /* Problem-to-Solution Visual Connections */
+        .problem-solution-link {
+            position: relative;
+            padding: var(--space-5);
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            margin-bottom: var(--space-8);
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .problem-solution-link.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .problem-solution-link::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: -30px;
+            width: 2px;
+            height: 30px;
+            background: linear-gradient(to bottom, var(--color-error), var(--color-accent));
+            transform: translateX(-50%) scaleY(0);
+            transform-origin: top;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
+        }
+        
+        .problem-solution-link.visible::after {
+            transform: translateX(-50%) scaleY(1);
+        }
+        
+        .problem-box {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-4);
+            padding: var(--space-4);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+            border-left: 4px solid var(--color-error);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-4);
+        }
+        
+        .problem-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--color-error);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: 700;
+            font-size: var(--font-size-lg);
+        }
+        
+        .solution-box {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-4);
+            padding: var(--space-4);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            border-left: 4px solid var(--color-success);
+            border-radius: var(--radius-md);
+        }
+        
+        .solution-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--color-success);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: 700;
+            font-size: var(--font-size-lg);
+        }
+        
+        .benefit-arrow {
+            text-align: center;
+            padding: var(--space-3) 0;
+            color: var(--color-accent);
+            font-weight: 700;
+            font-size: var(--font-size-xl);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.6s;
+        }
+        
+        .problem-solution-link.visible .benefit-arrow {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Role-Based Feature Cards with Visual Links */
+        .role-feature-card {
+            position: relative;
+            padding: var(--space-6);
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .role-feature-card.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .role-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+            padding-bottom: var(--space-4);
+            border-bottom: 3px solid var(--color-primary);
+        }
+        
+        .role-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-size-2xl);
+        }
+        
+        .feature-connection-grid {
+            display: grid;
+            gap: var(--space-4);
+            position: relative;
+        }
+        
+        .feature-item {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: var(--space-4);
+            padding: var(--space-4);
+            background: var(--color-background-light);
+            border-radius: var(--radius-md);
+            border-left: 3px solid var(--color-primary);
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .role-feature-card.visible .feature-item {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .role-feature-card.visible .feature-item:nth-child(1) { transition-delay: 0.2s; }
+        .role-feature-card.visible .feature-item:nth-child(2) { transition-delay: 0.3s; }
+        .role-feature-card.visible .feature-item:nth-child(3) { transition-delay: 0.4s; }
+        .role-feature-card.visible .feature-item:nth-child(4) { transition-delay: 0.5s; }
+        
+        .feature-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .feature-content h5 {
+            color: var(--color-primary);
+            margin-bottom: var(--space-2);
+        }
+        
+        .feature-content p {
+            margin: 0;
+            color: var(--color-text-secondary);
+            line-height: 1.6;
+        }
+        
+        /* Slide-in Messaging Animations */
+        .slide-in-message {
+            opacity: 0;
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .slide-in-left {
+            transform: translateX(-100px);
+        }
+        
+        .slide-in-right {
+            transform: translateX(100px);
+        }
+        
+        .slide-in-message.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .ecosystem-header {
+            text-align: center;
+            margin-bottom: var(--space-12);
+            overflow: hidden;
+        }
+        
+        .ecosystem-title {
+            margin-bottom: var(--space-8);
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .ecosystem-title.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .message-line {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: var(--space-4);
+        }
+        
+        .message-line-1 {
+            color: var(--color-primary);
+        }
+        
+        .message-line-2 {
+            color: var(--color-primary-dark);
+        }
+        
+        .message-line-3 {
+            color: var(--color-accent);
+            font-family: var(--font-serif);
+        }
+        
+        .message-subtext {
+            font-size: var(--font-size-lg);
+            color: var(--color-text-secondary);
+            margin-top: var(--space-6);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1) 1.2s;
+        }
+        
+        .ecosystem-header.all-visible .message-subtext {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Hover effects for cards */
+        .card-hover {
+            transition: all var(--transition-base);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        /* Input focus styles */
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(26, 77, 46, 0.1);
+        }
+        
+        /* Form styles */
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+        
+        /* Loading state */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid var(--color-primary);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Divider line */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                var(--color-border) 20%, 
+                var(--color-border) 80%, 
+                transparent 100%);
+            margin: var(--space-12) 0;
+        }
+        
+        /* Badge/Pill styles */
+        .badge {
+            display: inline-block;
+            padding: var(--space-1) var(--space-3);
+            background-color: var(--color-background-light);
+            color: var(--color-text-secondary);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .badge-success {
+            background-color: rgba(45, 106, 79, 0.1);
+            color: var(--color-success);
+        }
+        
+        .badge-accent {
+            background-color: rgba(212, 165, 116, 0.1);
+            color: var(--color-accent);
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--color-background-light);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: var(--radius-md);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary-light);
+        }
+        
+        /* Selection styling */
+        ::selection {
+            background-color: var(--color-accent);
+            color: var(--color-text-primary);
+        }
+        
+        /* Print styles */
+        @media print {
+            .navigation,
+            footer,
+            .button,
+            form {
+                display: none;
+            }
+            
+            body {
+                color: black;
+                background: white;
+            }
+        }
+        
+        /* ========================================
+           RESPONSIVE DESIGN
+           ======================================== */
+        
+        @media (max-width: 1024px) {
+            :root {
+                --font-size-6xl: 3rem;    /* 48px */
+                --font-size-5xl: 2.5rem;  /* 40px */
+            }
+            
+            .hero-content {
+                grid-template-columns: 1fr;
+                gap: var(--space-8);
+            }
+            
+            .hero-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            :root {
+                --font-size-6xl: 2.5rem;  /* 40px */
+                --font-size-5xl: 2rem;    /* 32px */
+                --font-size-4xl: 1.75rem; /* 28px */
+            }
+            
+            .nav-menu {
+                display: none;
+            }
+            
+            .hero {
+                min-height: auto;
+                padding: var(--space-10) 0;
+            }
+            
+            .hero-stats {
+                grid-template-columns: 1fr;
+                gap: var(--space-4);
+            }
+            
+            .trust-items {
+                flex-direction: column;
+            }
+            
+            section {
+                padding: var(--space-8) 0;
+            }
+        }
+        
+        /* ========================================
+           ACCESSIBILITY IMPROVEMENTS
+           ======================================== */
+        
+        /* Focus visible for keyboard navigation */
+        *:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+        
+        /* Reduced motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            :root {
+                --color-primary: #0d2818;
+                --color-text-secondary: #2a2a2a;
+                --color-border: #000000;
+            }
+        }
+        
+        /* Dark mode support (optional - not implemented in this version) */
+        @media (prefers-color-scheme: dark) {
+            /* Could add dark mode styles here if needed */
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- ========================================
+         NAVIGATION
+         ======================================== -->
+    <nav class="navigation" id="mainNav">
+        <div class="nav-container">
+            <div class="nav-logo">VetAI</div>
+            <ul class="nav-menu">
+                <li><a href="#features">Platform</a></li>
+                <li><a href="#solutions">Solutions</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#testimonials">Customers</a></li>
+                <li><a href="#resources">Resources</a></li>
+                <li><a href="#demo" class="nav-cta">Request Demo</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- ========================================
+         HERO SECTION
+         ======================================== -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Stop Drowning in Paperwork.<br>Start Practicing Veterinary Medicine.</h1>
+                <p>Enterprise AI automation that eliminates administrative burden. Save 25-35 hours per week with 26 specialized AI agents working alongside your team.</p>
+                
+                <div class="hero-cta-group">
+                    <a href="#calculator" class="button button-accent button-large">Calculate Your ROI</a>
+                    <a href="#demo" class="button button-secondary button-large">Watch Demo</a>
+                </div>
+                
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <span class="hero-stat-number">25-35hrs</span>
+                        <span class="hero-stat-label">Saved Per Week</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-number">$85K-$120K</span>
+                        <span class="hero-stat-label">Annual Savings</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-number">230+</span>
+                        <span class="hero-stat-label">Practices</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hero-visual">
+                <div class="hero-image-placeholder">
+                    <!-- Dashboard preview image will be added in Phase 2 -->
+                    <svg width="100%" height="100%" viewBox="0 0 600 400" style="opacity: 0.3;">
+                        <rect x="20" y="20" width="560" height="60" rx="8" fill="currentColor" opacity="0.1"/>
+                        <rect x="20" y="100" width="270" height="280" rx="8" fill="currentColor" opacity="0.1"/>
+                        <rect x="310" y="100" width="270" height="135" rx="8" fill="currentColor" opacity="0.1"/>
+                        <rect x="310" y="245" width="270" height="135" rx="8" fill="currentColor" opacity="0.1"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         TRUST BAR
+         ======================================== -->
+    <div class="trust-bar">
+        <div class="trust-items">
+            <div class="trust-item">
+                <svg class="trust-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span class="trust-text">Live in <span class="trust-value">48 Hours</span></span>
+            </div>
+            <div class="trust-item">
+                <svg class="trust-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+                <span class="trust-text"><span class="trust-value">HIPAA Compliant</span></span>
+            </div>
+            <div class="trust-item">
+                <svg class="trust-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="trust-text"><span class="trust-value">30-Day</span> Money-Back Guarantee</span>
+            </div>
+            <div class="trust-item">
+                <svg class="trust-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <span class="trust-text"><span class="trust-value">No Credit Card</span> Required</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========================================
+         PHASE 2: PROBLEM SECTION
+         ======================================== -->
+    <section class="section-light" id="problem">
+        <div class="container-narrow">
+            <h2 style="text-align: center; margin-bottom: var(--space-6);" class="fade-in-text">If You've Ever Thought...</h2>
+            
+            <div style="text-align: center; margin-bottom: var(--space-10);">
+                <p style="font-size: var(--font-size-2xl); color: var(--color-text-secondary); margin-bottom: var(--space-4);" class="fade-in-text fade-delay-1">You're not inefficient.</p>
+                <p style="font-size: var(--font-size-4xl); font-family: var(--font-serif); font-weight: 700; color: var(--color-primary); margin-bottom: var(--space-4);" class="fade-in-text fade-delay-2">The system is broken.</p>
+                <p style="font-size: var(--font-size-lg); color: var(--color-text-light); max-width: 700px; margin: 0 auto;" class="fade-in-text fade-delay-3">Your team is spending time on tasks that aren't high-value uses of their knowledge, talents, and skills.</p>
+            </div>
+            
+            <!-- Visual Problem-Solution Links -->
+            <div style="max-width: 900px; margin: 0 auto;">
+                <!-- Problem 1 → Solution -->
+                <div class="problem-solution-link">
+                    <div class="problem-box">
+                        <div class="problem-icon">⏰</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-text-primary); font-size: var(--font-size-lg);">"I spend more time typing notes than examining patients"</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">Your veterinarians leave at 8pm every night finishing medical records. SOAP notes take 10-15 minutes per patient. They went to vet school to heal animals, not to be data entry clerks.</p>
+                        </div>
+                    </div>
+                    <div class="benefit-arrow">↓</div>
+                    <div class="solution-box">
+                        <div class="solution-icon">🎤</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-success); font-size: var(--font-size-lg);">Agent Charlie: Voice-to-Text SOAP Notes</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">Dictate during exam, AI formats into SOAP structure instantly. <strong style="color: var(--color-success);">Save 10-12 hours per week.</strong> Leave at 5:30pm with all records complete.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Problem 2 → Solution -->
+                <div class="problem-solution-link">
+                    <div class="problem-box">
+                        <div class="problem-icon">📞</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-text-primary); font-size: var(--font-size-lg);">"60+ reminder calls per day and STILL 20% no-shows"</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">Manual reminder calls consume 2+ hours daily. By noon, your reception staff's voice is hoarse. Despite the effort, 1 in 5 appointments is a no-show, costing you $40K-$60K annually.</p>
+                        </div>
+                    </div>
+                    <div class="benefit-arrow">↓</div>
+                    <div class="solution-box">
+                        <div class="solution-icon">💬</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-success); font-size: var(--font-size-lg);">Agent Romeo: Automated Multi-Channel Reminders</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">Text, email, voice reminders sent automatically. <strong style="color: var(--color-success);">60% no-show reduction.</strong> Your staff focuses on compassionate care, not dial tones.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Problem 3 → Solution -->
+                <div class="problem-solution-link">
+                    <div class="problem-box">
+                        <div class="problem-icon">❓</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-text-primary); font-size: var(--font-size-lg);">"Overwhelmed by repetitive phone calls"</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">"What are your hours?" "Can I get a refill?" "How much for a dental cleaning?" Asked 50 times a day. Your staff spends more time answering the same questions than building relationships with clients who need emotional support.</p>
+                        </div>
+                    </div>
+                    <div class="benefit-arrow">↓</div>
+                    <div class="solution-box">
+                        <div class="solution-icon">🤖</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-success); font-size: var(--font-size-lg);">Agent Bravo: 24/7 AI Phone Answering</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">AI handles routine questions, books appointments, provides estimates. <strong style="color: var(--color-success);">70% call volume reduction.</strong> Your team only handles complex, high-value interactions.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Problem 4 → Solution -->
+                <div class="problem-solution-link">
+                    <div class="problem-box">
+                        <div class="problem-icon">📦</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-text-primary); font-size: var(--font-size-lg);">"Run out of critical supplies mid-surgery"</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">Inventory tracking is a mess. Post-it notes. Excel spreadsheets. Memory. You've canceled surgeries or sent techs on emergency supply runs because no one noticed you were down to your last box of sutures.</p>
+                        </div>
+                    </div>
+                    <div class="benefit-arrow">↓</div>
+                    <div class="solution-box">
+                        <div class="solution-icon">📊</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-success); font-size: var(--font-size-lg);">Agent India: Predictive Inventory Management</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">AI monitors stock levels, predicts usage, auto-orders supplies. <strong style="color: var(--color-success);">Zero stock-outs.</strong> Never cancel a surgery again.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Problem 5 → Solution -->
+                <div class="problem-solution-link">
+                    <div class="problem-box">
+                        <div class="problem-icon">😰</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-text-primary); font-size: var(--font-size-lg);">"My team is burning out"</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">30-40% staff turnover annually. Exit interviews repeat the same theme: "Too much administrative work, not enough time with animals." Training new staff every 6 months is exhausting and expensive.</p>
+                        </div>
+                    </div>
+                    <div class="benefit-arrow">↓</div>
+                    <div class="solution-box">
+                        <div class="solution-icon">🌟</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-success); font-size: var(--font-size-lg);">Entire Ecosystem: Eliminate Admin Burden</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">26 AI agents handle admin work. Your team does what they love. <strong style="color: var(--color-success);">Happy staff = better retention.</strong> Focus on medicine and compassionate care.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Problem 6 → Solution -->
+                <div class="problem-solution-link">
+                    <div class="problem-box">
+                        <div class="problem-icon">🔌</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-text-primary); font-size: var(--font-size-lg);">"11 different software systems that don't talk"</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">$18K/year in software subscriptions. Your PIMS. Online booking. Lab portal. Email marketing. Accounting. Phone system. Each one requires a separate login, separate data entry, separate reconciliation. Your team is a human API duct-taping systems together.</p>
+                        </div>
+                    </div>
+                    <div class="benefit-arrow">↓</div>
+                    <div class="solution-box">
+                        <div class="solution-icon">🔗</div>
+                        <div>
+                            <strong style="display: block; margin-bottom: var(--space-2); color: var(--color-success); font-size: var(--font-size-lg);">Integration Layer: One Platform, Everything Connected</strong>
+                            <p style="margin: 0; color: var(--color-text-secondary);">All your systems talk to each other. <strong style="color: var(--color-success);">One login, one search, one dashboard.</strong> Data flows automatically. Your team is no longer the human middleware.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="padding: var(--space-8); background: var(--color-primary-dark); border-radius: var(--radius-lg); text-align: center;">
+                <p style="font-size: var(--font-size-xl); color: white; margin: 0; line-height: 1.6;"><strong style="color: var(--color-accent);">Here's the truth:</strong> You're not inefficient. The system is broken. Your PIMS was designed in 2005—before smartphones, before AI, before clients expected instant answers at 11pm. You're using Stone Age tools in a modern practice, and your team is paying the price.</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         SOLUTION SECTION - VISUAL FLOW DIAGRAM
+         ======================================== -->
+    <section id="features">
+        <div class="container">
+            <div class="ecosystem-header">
+                <h2 class="ecosystem-title" style="margin-bottom: var(--space-8);">There's a Better Way</h2>
+                
+                <div style="max-width: 1000px; margin: 0 auto;">
+                    <div class="message-line message-line-1 slide-in-message slide-in-left">
+                        Not an automation. Not a single tool.
+                    </div>
+                    
+                    <div class="message-line message-line-2 slide-in-message slide-in-right">
+                        An ecosystem of AI agents working together.
+                    </div>
+                    
+                    <div class="message-line message-line-3 slide-in-message slide-in-left">
+                        Supporting you and your team.
+                    </div>
+                    
+                    <p class="message-subtext">
+                        Watch how everything connects as you scroll...
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Visual Flow Diagram -->
+            <div class="flow-diagram">
+                <!-- Node 1: Your Existing Systems -->
+                <div class="flow-node" data-flow-step="1">
+                    <div class="flow-node-header">
+                        <div class="flow-node-number">1</div>
+                        <h3 class="flow-node-title">Your Existing Systems</h3>
+                    </div>
+                    <p style="color: var(--color-text-secondary); margin-bottom: var(--space-4);">All the software you already use—no need to replace anything.</p>
+                    <div class="flow-agents">
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                            </svg>
+                            Cornerstone PIMS
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/>
+                            </svg>
+                            IDEXX Labs
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                            </svg>
+                            Email Marketing
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                            </svg>
+                            Phone System
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                            </svg>
+                            Online Booking
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                                <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Accounting
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Node 2: AI Ecosystem Layer -->
+                <div class="flow-node" data-flow-step="2">
+                    <div class="flow-connector"></div>
+                    <div class="flow-node-header">
+                        <div class="flow-node-number">2</div>
+                        <h3 class="flow-node-title">AI Ecosystem Connects Everything</h3>
+                    </div>
+                    <p style="color: var(--color-text-secondary); margin-bottom: var(--space-4);">26 specialized AI agents coordinate across all your platforms—connecting, analyzing, and automating.</p>
+                    <div class="flow-agents">
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                                <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/>
+                            </svg>
+                            Romeo (Reminders)
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                            </svg>
+                            Bravo (AI Phone)
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"/>
+                            </svg>
+                            Charlie (SOAP Notes)
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            Papa (Lab Monitor)
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+                            </svg>
+                            India (Inventory)
+                        </div>
+                        <div class="flow-agent-badge">
+                            <svg class="flow-agent-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            +21 More Agents
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Node 3: Intelligent Actions -->
+                <div class="flow-node" data-flow-step="3">
+                    <div class="flow-connector"></div>
+                    <div class="flow-node-header">
+                        <div class="flow-node-number">3</div>
+                        <h3 class="flow-node-title">Intelligent Actions Happen 24/7</h3>
+                    </div>
+                    <p style="color: var(--color-text-secondary); margin-bottom: var(--space-4);">AI agents work around the clock—performing tasks, analyzing data, and making intelligent decisions.</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-4); margin-top: var(--space-4);">
+                        <div style="padding: var(--space-3); background: linear-gradient(135deg, rgba(30, 58, 95, 0.1), rgba(30, 58, 95, 0.05)); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md);">
+                            <strong style="color: var(--color-primary); display: block; margin-bottom: var(--space-1);">📞 Answer Calls</strong>
+                            <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">70% of calls handled by AI</span>
+                        </div>
+                        <div style="padding: var(--space-3); background: linear-gradient(135deg, rgba(30, 58, 95, 0.1), rgba(30, 58, 95, 0.05)); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md);">
+                            <strong style="color: var(--color-primary); display: block; margin-bottom: var(--space-1);">📝 Write SOAP Notes</strong>
+                            <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">From voice dictation in real-time</span>
+                        </div>
+                        <div style="padding: var(--space-3); background: linear-gradient(135deg, rgba(30, 58, 95, 0.1), rgba(30, 58, 95, 0.05)); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md);">
+                            <strong style="color: var(--color-primary); display: block; margin-bottom: var(--space-1);">💬 Send Reminders</strong>
+                            <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Text, email, voice—automatically</span>
+                        </div>
+                        <div style="padding: var(--space-3); background: linear-gradient(135deg, rgba(30, 58, 95, 0.1), rgba(30, 58, 95, 0.05)); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md);">
+                            <strong style="color: var(--color-primary); display: block; margin-bottom: var(--space-1);">🔬 Monitor Labs</strong>
+                            <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Alert when results are ready</span>
+                        </div>
+                        <div style="padding: var(--space-3); background: linear-gradient(135deg, rgba(30, 58, 95, 0.1), rgba(30, 58, 95, 0.05)); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md);">
+                            <strong style="color: var(--color-primary); display: block; margin-bottom: var(--space-1);">📦 Track Inventory</strong>
+                            <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Auto-order before stockouts</span>
+                        </div>
+                        <div style="padding: var(--space-3); background: linear-gradient(135deg, rgba(30, 58, 95, 0.1), rgba(30, 58, 95, 0.05)); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md);">
+                            <strong style="color: var(--color-primary); display: block; margin-bottom: var(--space-1);">📊 Analyze Data</strong>
+                            <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Real-time practice insights</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Node 4: Real Results -->
+                <div class="flow-node" data-flow-step="4">
+                    <div class="flow-connector"></div>
+                    <div class="flow-node-header">
+                        <div class="flow-node-number">4</div>
+                        <h3 class="flow-node-title">Real Results You Can Measure</h3>
+                    </div>
+                    <p style="color: var(--color-text-secondary); margin-bottom: var(--space-4);">Your team transforms from overwhelmed to empowered. The numbers tell the story.</p>
+                    <div class="flow-outcomes">
+                        <div class="flow-outcome">
+                            <span class="flow-outcome-number">25-35</span>
+                            <span class="flow-outcome-label">Hours Saved/Week</span>
+                        </div>
+                        <div class="flow-outcome">
+                            <span class="flow-outcome-number">$85K-$120K</span>
+                            <span class="flow-outcome-label">Annual Savings</span>
+                        </div>
+                        <div class="flow-outcome">
+                            <span class="flow-outcome-number">60%</span>
+                            <span class="flow-outcome-label">Fewer No-Shows</span>
+                        </div>
+                        <div class="flow-outcome">
+                            <span class="flow-outcome-number">70%</span>
+                            <span class="flow-outcome-label">Fewer Calls</span>
+                        </div>
+                    </div>
+                    <p style="margin-top: var(--space-6); padding: var(--space-4); background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)); border-radius: var(--radius-md); text-align: center; font-weight: 600; color: var(--color-success); font-size: var(--font-size-lg);">"How did we ever work without this?"</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         FEATURES BY ROLE
+         ======================================== -->
+    <section class="section-light" id="solutions">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: var(--space-10);">Built for Every Role in Your Practice</h2>
+            
+            <!-- Veterinarians -->
+            <div class="role-feature-card" style="margin-bottom: var(--space-12);">
+                <div class="role-header">
+                    <div class="role-icon">🩺</div>
+                    <div>
+                        <h3 style="color: var(--color-primary); margin: 0;">For Veterinarians</h3>
+                        <p style="font-size: var(--font-size-lg); margin: var(--space-2) 0 0 0; color: var(--color-text-secondary);">Get Back to Being a Doctor — Spend 70% of your day on medicine, not paperwork</p>
+                    </div>
+                </div>
+                
+                <div class="feature-connection-grid">
+                    <div class="feature-item">
+                        <div class="feature-number">1</div>
+                        <div class="feature-content">
+                            <h5>Voice-to-Text SOAP Notes</h5>
+                            <p>Dictate during exam, AI formats into SOAP structure instantly. <strong style="color: var(--color-success);">Save 10-12 hours per week.</strong> Leave at 5:30pm with all records complete.</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">2</div>
+                        <div class="feature-content">
+                            <h5>Automated Treatment Plans</h5>
+                            <p>Input diagnosis ("Dog, diarrhea, 25 lbs"), AI generates complete protocol with medications, dosing, and client instructions. <strong style="color: var(--color-success);">Zero calculation errors.</strong></p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">3</div>
+                        <div class="feature-content">
+                            <h5>24/7 Client Q&A Bot</h5>
+                            <p>AI answers 80% of routine client questions ("Is vomiting normal after surgery?") so you're not texting clients at 9pm. <strong style="color: var(--color-success);">Urgent questions escalated to you.</strong></p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">4</div>
+                        <div class="feature-content">
+                            <h5>Real-Time Lab Alerts</h5>
+                            <p>AI monitors IDEXX/Antech portals, pings you within 5 minutes when results are ready. <strong style="color: var(--color-success);">No manual checking, no delays in care.</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Practice Managers -->
+            <div class="role-feature-card" style="margin-bottom: var(--space-12);">
+                <div class="role-header">
+                    <div class="role-icon">📊</div>
+                    <div>
+                        <h3 style="color: var(--color-primary); margin: 0;">For Practice Managers</h3>
+                        <p style="font-size: var(--font-size-lg); margin: var(--space-2) 0 0 0; color: var(--color-text-secondary);">Run Your Practice with Data — Get 10 hours back every week and make better decisions</p>
+                    </div>
+                </div>
+                
+                <div class="feature-connection-grid">
+                    <div class="feature-item">
+                        <div class="feature-number">1</div>
+                        <div class="feature-content">
+                            <h5>Automated Financial Reports</h5>
+                            <p>Daily revenue, weekly profit trends, monthly service breakdowns—delivered to your inbox every morning. <strong style="color: var(--color-success);">No Excel work required.</strong></p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">2</div>
+                        <div class="feature-content">
+                            <h5>Real-Time Inventory Tracking</h5>
+                            <p>AI monitors stock levels, predicts usage based on appointment schedule, auto-orders supplies when you hit reorder threshold. <strong style="color: var(--color-success);">Zero stock-outs.</strong></p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">3</div>
+                        <div class="feature-content">
+                            <h5>Client Retention Analytics</h5>
+                            <p>See which clients haven't visited in 6+ months, why they left, and get AI-generated win-back campaigns automatically. <strong style="color: var(--color-success);">Recover lost revenue.</strong></p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">4</div>
+                        <div class="feature-content">
+                            <h5>Smart Staff Scheduling</h5>
+                            <p>AI suggests optimal schedules based on appointment volume plus staff preferences. <strong style="color: var(--color-success);">Eliminate conflicts, reduce overtime costs.</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reception Staff -->
+            <div class="role-feature-card">
+                <div class="role-header">
+                    <div class="role-icon">👋</div>
+                    <div>
+                        <h3 style="color: var(--color-primary); margin: 0;">For Reception Staff</h3>
+                        <p style="font-size: var(--font-size-lg); margin: var(--space-2) 0 0 0; color: var(--color-text-secondary);">Handle 50+ Clients Without Drowning — Let AI handle the chaos, you handle the compassion</p>
+                    </div>
+                </div>
+                
+                <div class="feature-connection-grid">
+                    <div class="feature-item">
+                        <div class="feature-number">1</div>
+                        <div class="feature-content">
+                            <h5>AI Phone Answering (24/7)</h5>
+                            <p>Agent Bravo answers calls, handles routine questions, books appointments. You only get escalated calls (complex situations, emotional clients). <strong style="color: var(--color-success);">70% call reduction.</strong></p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">2</div>
+                        <div class="feature-content">
+                            <h5>Automated Appointment Reminders</h5>
+                            <p>No more 60 manual calls per day. AI sends text/email/voice reminders, collects confirmations, flags no-responders for follow-up. <strong style="color: var(--color-success);">60% no-show reduction.</strong></p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">3</div>
+                        <div class="feature-content">
+                            <h5>Instant Estimates</h5>
+                            <p>Client asks "How much for dental cleaning?" AI generates itemized estimate in 10 seconds. <strong style="color: var(--color-success);">Professional, consistent, fast.</strong></p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">4</div>
+                        <div class="feature-content">
+                            <h5>Unified Client Search</h5>
+                            <p>One search box = all client info (medical history, balance, vaccine status, past appointments). <strong style="color: var(--color-success);">No more juggling 5 different systems.</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         METRICS SECTION
+         ======================================== -->
+    <section style="background: var(--color-primary-dark); color: white;">
+        <div class="container">
+            <h2 style="text-align: center; color: white; margin-bottom: var(--space-10);">The Numbers Don't Lie</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-8); text-align: center;">
+                <div>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-5xl); font-weight: 700; color: var(--color-accent); margin-bottom: var(--space-3);">25-35 hours</div>
+                    <div style="font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.75);">Saved Per Week (Per Practice)</div>
+                </div>
+                <div>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-5xl); font-weight: 700; color: var(--color-accent); margin-bottom: var(--space-3);">$85K-$120K</div>
+                    <div style="font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.75);">Annual Savings in Labor Efficiency</div>
+                </div>
+                <div>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-5xl); font-weight: 700; color: var(--color-accent); margin-bottom: var(--space-3);">60%</div>
+                    <div style="font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.75);">Average No-Show Reduction</div>
+                </div>
+                <div>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-5xl); font-weight: 700; color: var(--color-accent); margin-bottom: var(--space-3);">99.8%</div>
+                    <div style="font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.75);">Accuracy on Drug Dosing Calculations</div>
+                </div>
+                <div>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-5xl); font-weight: 700; color: var(--color-accent); margin-bottom: var(--space-3);">48 hours</div>
+                    <div style="font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.75);">From Signup to Live Deployment</div>
+                </div>
+                <div>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-5xl); font-weight: 700; color: var(--color-accent); margin-bottom: var(--space-3);">95%</div>
+                    <div style="font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.75);">Customer Retention After 90 Days</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         TESTIMONIALS SECTION
+         ======================================== -->
+    <section class="section-light" id="testimonials">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: var(--space-10);">What Veterinarians Are Saying</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: var(--space-8);">
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+                    <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-5); color: var(--color-text-secondary); font-style: italic;">"I was ready to quit veterinary medicine. I loved the patients but hated the paperwork. I was staying until 8pm every night typing SOAP notes. VetAI changed everything—now I dictate during the exam, and the AI formats it perfectly. I'm leaving at 5:30pm with all my records done. I got my passion back."</p>
+                    <div style="border-top: 1px solid var(--color-border); padding-top: var(--space-4);">
+                        <strong style="display: block; color: var(--color-primary);">Dr. Emily Rodriguez, DVM</strong>
+                        <span style="font-size: var(--font-size-sm); color: var(--color-text-light);">8 years experience | Small animal practice</span>
+                        <div style="margin-top: var(--space-3); font-size: var(--font-size-sm); color: var(--color-success); font-weight: 600;">Result: 10-12 hours/week saved | Zero late nights</div>
+                    </div>
+                </div>
+                
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+                    <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-5); color: var(--color-text-secondary); font-style: italic;">"Before VetAI, I spent every Sunday creating financial reports—pulling data from PIMS, QuickBooks, and our credit card processor, then reconciling in Excel. It took 6 hours. Now I get automated reports every Monday at 8am. I found out our dental cleanings were our most profitable service—we shifted marketing and increased revenue 22% in 6 months."</p>
+                    <div style="border-top: 1px solid var(--color-border); padding-top: var(--space-4);">
+                        <strong style="display: block; color: var(--color-primary);">Sarah Chen</strong>
+                        <span style="font-size: var(--font-size-sm); color: var(--color-text-light);">Practice Manager | 4-doctor practice</span>
+                        <div style="margin-top: var(--space-3); font-size: var(--font-size-sm); color: var(--color-success); font-weight: 600;">Result: 6 hours/week saved | 22% revenue increase</div>
+                    </div>
+                </div>
+                
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+                    <p style="font-size: var(--font-size-lg); margin-bottom: var(--space-5); color: var(--color-text-secondary); font-style: italic;">"I used to make 70 reminder calls per day. By noon my voice was hoarse. By 5pm I was mentally exhausted. Now the AI handles reminders—I focus on the clients standing in front of me. I actually have time to be compassionate instead of rushed. And our no-show rate dropped from 22% to 9%."</p>
+                    <div style="border-top: 1px solid var(--color-border); padding-top: var(--space-4);">
+                        <strong style="display: block; color: var(--color-primary);">Jessica Martinez</strong>
+                        <span style="font-size: var(--font-size-sm); color: var(--color-text-light);">Lead Receptionist | 3 years at practice</span>
+                        <div style="margin-top: var(--space-3); font-size: var(--font-size-sm); color: var(--color-success); font-weight: 600;">Result: 70 calls/day eliminated | 60% no-show reduction</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         PRICING SECTION
+         ======================================== -->
+    <section id="pricing">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: var(--space-3);">Transparent Pricing</h2>
+            <p style="text-align: center; font-size: var(--font-size-lg); color: var(--color-text-secondary); max-width: 700px; margin: 0 auto var(--space-10);">No hidden fees. No long-term contracts. Month-to-month billing.</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-6); margin-bottom: var(--space-12);">
+                <!-- Starter Plan -->
+                <div style="padding: var(--space-8); background: white; border: 2px solid var(--color-border); border-radius: var(--radius-lg); display: flex; flex-direction: column;">
+                    <h4 style="color: var(--color-primary); margin-bottom: var(--space-2);">Starter</h4>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-4xl); font-weight: 700; margin-bottom: var(--space-4);">$299<span style="font-size: var(--font-size-lg); font-weight: 400; color: var(--color-text-light);">/month</span></div>
+                    <p style="color: var(--color-text-secondary); margin-bottom: var(--space-5);">1 veterinarian, 1-2 staff</p>
+                    <ul style="list-style: none; padding: 0; margin-bottom: var(--space-6); flex-grow: 1;">
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid var(--color-background-light);">3 core agents (Reminders, Scheduling, Estimates)</li>
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid var(--color-background-light);">100 appointments/month included</li>
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid var(--color-background-light);">Basic email support</li>
+                        <li style="padding: var(--space-2) 0;">48-hour implementation</li>
+                    </ul>
+                    <a href="#demo" class="button button-secondary" style="width: 100%; text-align: center;">Start Free Trial</a>
+                </div>
+                
+                <!-- Professional Plan -->
+                <div style="padding: var(--space-8); background: var(--color-primary); color: white; border-radius: var(--radius-lg); display: flex; flex-direction: column; position: relative; box-shadow: var(--shadow-xl);">
+                    <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--color-accent); color: var(--color-text-primary); padding: var(--space-2) var(--space-4); border-radius: var(--radius-full); font-size: var(--font-size-sm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Most Popular</div>
+                    <h4 style="color: white; margin-bottom: var(--space-2); margin-top: var(--space-3);">Professional</h4>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-4xl); font-weight: 700; margin-bottom: var(--space-4); color: white;">$499<span style="font-size: var(--font-size-lg); font-weight: 400; color: rgba(255,255,255,0.8);">/month</span></div>
+                    <p style="color: rgba(255,255,255,0.9); margin-bottom: var(--space-5);">1-2 veterinarians, 3-5 staff</p>
+                    <ul style="list-style: none; padding: 0; margin-bottom: var(--space-6); flex-grow: 1; color: rgba(255,255,255,0.95);">
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid rgba(255,255,255,0.2);">10 agents (+ AI Phone, SOAP Notes, Lab Monitoring)</li>
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid rgba(255,255,255,0.2);">Unlimited appointments</li>
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid rgba(255,255,255,0.2);">Priority support (4-hour response)</li>
+                        <li style="padding: var(--space-2) 0;">Dedicated onboarding specialist</li>
+                    </ul>
+                    <a href="#demo" class="button button-accent" style="width: 100%; text-align: center;">Start Free Trial</a>
+                </div>
+                
+                <!-- Practice Plan -->
+                <div style="padding: var(--space-8); background: white; border: 2px solid var(--color-border); border-radius: var(--radius-lg); display: flex; flex-direction: column;">
+                    <h4 style="color: var(--color-primary); margin-bottom: var(--space-2);">Practice</h4>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-4xl); font-weight: 700; margin-bottom: var(--space-4);">$899<span style="font-size: var(--font-size-lg); font-weight: 400; color: var(--color-text-light);">/month</span></div>
+                    <p style="color: var(--color-text-secondary); margin-bottom: var(--space-5);">3-4 veterinarians, 6-10 staff</p>
+                    <ul style="list-style: none; padding: 0; margin-bottom: var(--space-6); flex-grow: 1;">
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid var(--color-background-light);">15 agents (+ Client Q&A Bot, Inventory, Analytics)</li>
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid var(--color-background-light);">Multi-location support</li>
+                        <li style="padding: var(--space-2) 0; border-bottom: 1px solid var(--color-background-light);">Dedicated success manager</li>
+                        <li style="padding: var(--space-2) 0;">Custom workflow configuration</li>
+                    </ul>
+                    <a href="#demo" class="button button-secondary" style="width: 100%; text-align: center;">Schedule Demo</a>
+                </div>
+            </div>
+            
+            <!-- ROI Calculator -->
+            <div style="padding: var(--space-10); background: var(--color-background-light); border-radius: var(--radius-lg); max-width: 900px; margin: 0 auto;">
+                <h3 style="text-align: center; margin-bottom: var(--space-6);">Calculate Your ROI</h3>
+                
+                <div style="display: grid; gap: var(--space-5); margin-bottom: var(--space-8);">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: var(--space-2); color: var(--color-text-primary);">Number of veterinarians</label>
+                        <input type="number" id="numVets" value="2" min="1" max="10" style="width: 100%; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-base);">
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: var(--space-2); color: var(--color-text-primary);">Reminder calls per day</label>
+                        <input type="number" id="reminderCalls" value="60" min="0" max="200" style="width: 100%; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-base);">
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: var(--space-2); color: var(--color-text-primary);">Current no-show rate (%)</label>
+                        <input type="number" id="noShowRate" value="20" min="0" max="100" style="width: 100%; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-base);">
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: var(--space-2); color: var(--color-text-primary);">Average appointment value ($)</label>
+                        <input type="number" id="avgValue" value="200" min="50" max="1000" style="width: 100%; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: var(--font-size-base);">
+                    </div>
+                </div>
+                
+                <button onclick="calculateROI()" class="button button-primary" style="width: 100%; font-size: var(--font-size-lg);">Calculate My Savings</button>
+                
+                <div id="roiResults" style="display: none; margin-top: var(--space-8); padding: var(--space-6); background: white; border-radius: var(--radius-md); border-left: 4px solid var(--color-success);">
+                    <h4 style="color: var(--color-success); margin-bottom: var(--space-4);">Your Annual Savings</h4>
+                    <div style="display: grid; gap: var(--space-4);">
+                        <div style="padding: var(--space-3); background: var(--color-background-light); border-radius: var(--radius-sm);">
+                            <strong style="color: var(--color-text-secondary);">Wasted on manual reminder calls:</strong>
+                            <div style="font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-error);" id="reminderWaste">$0</div>
+                        </div>
+                        <div style="padding: var(--space-3); background: var(--color-background-light); border-radius: var(--radius-sm);">
+                            <strong style="color: var(--color-text-secondary);">Lost to no-shows:</strong>
+                            <div style="font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-error);" id="noShowLoss">$0</div>
+                        </div>
+                        <div style="padding: var(--space-3); background: var(--color-background-light); border-radius: var(--radius-sm);">
+                            <strong style="color: var(--color-text-secondary);">Total annual waste:</strong>
+                            <div style="font-size: var(--font-size-3xl); font-weight: 700; color: var(--color-text-primary);" id="totalWaste">$0</div>
+                        </div>
+                        <div style="padding: var(--space-5); background: var(--color-success); color: white; border-radius: var(--radius-md); text-align: center;">
+                            <div style="font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2);">VetAI saves you</div>
+                            <div style="font-size: var(--font-size-4xl); font-weight: 700; margin-bottom: var(--space-2);" id="totalSavings">$0</div>
+                            <div style="font-size: var(--font-size-base);">for just <strong id="annualCost">$5,988</strong>/year</div>
+                            <div style="margin-top: var(--space-3); font-size: var(--font-size-xl); font-weight: 600;">That's <span id="roiMultiple">0x</span> ROI</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         FAQ SECTION
+         ======================================== -->
+    <section class="section-light">
+        <div class="container-narrow">
+            <h2 style="text-align: center; margin-bottom: var(--space-10);">Frequently Asked Questions</h2>
+            
+            <div style="display: grid; gap: var(--space-6);">
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <h5 style="color: var(--color-primary); margin-bottom: var(--space-3);">Will this work with our PIMS?</h5>
+                    <p style="margin: 0;">Yes. We integrate with Cornerstone, ezyVet, Avimark, AVImark, IntraVet, ImproMed, and 15+ other systems. If you use a rare PIMS, we build custom integration (one-time $1,500 fee).</p>
+                </div>
+                
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <h5 style="color: var(--color-primary); margin-bottom: var(--space-3);">How long does implementation take?</h5>
+                    <p style="margin: 0;">48 hours. We do it over a weekend to avoid disrupting your week. Monday morning, your team arrives to reminders already sent and phones already being answered by AI.</p>
+                </div>
+                
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <h5 style="color: var(--color-primary); margin-bottom: var(--space-3);">What if our staff doesn't like it?</h5>
+                    <p style="margin: 0;">In 95% of cases, staff love it because it eliminates work they hate (manual calls, data entry). We offer a 30-day trial so you can test with your team risk-free.</p>
+                </div>
+                
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <h5 style="color: var(--color-primary); margin-bottom: var(--space-3);">Is AI safe for medical decisions?</h5>
+                    <p style="margin: 0;">AI assists, vets approve. For example, AI suggests a drug dose based on patient weight—but the vet reviews and approves before prescribing. AI is a safety net, not a replacement for clinical judgment.</p>
+                </div>
+                
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <h5 style="color: var(--color-primary); margin-bottom: var(--space-3);">What if our internet goes down?</h5>
+                    <p style="margin: 0;">Critical functions (voice-to-text SOAP notes) work offline on mobile devices and sync when internet returns. For phone answering, AI runs on cloud servers, so it keeps working even if your clinic loses internet.</p>
+                </div>
+                
+                <div style="padding: var(--space-6); background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <h5 style="color: var(--color-primary); margin-bottom: var(--space-3);">How much training is required?</h5>
+                    <p style="margin: 0;">1-hour training session for all staff. Most features are invisible to staff (reminders send automatically, phones get answered automatically). Vets need 15 minutes to learn voice dictation—intuitive like talking to Siri.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         FINAL CTA SECTION
+         ======================================== -->
+    <section class="section-dark" id="demo">
+        <div class="container-narrow" style="text-align: center;">
+            <h2 style="color: white; margin-bottom: var(--space-4);">Ready to Get Your Evenings Back?</h2>
+            <p style="font-size: var(--font-size-xl); color: rgba(255,255,255,0.9); margin-bottom: var(--space-8);">Join 230+ veterinary practices who've eliminated admin burnout and reclaimed 25+ hours per week.</p>
+            
+            <div style="padding: var(--space-8); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-lg); backdrop-filter: blur(10px); margin-bottom: var(--space-6);">
+                <h4 style="color: white; margin-bottom: var(--space-5);">Start Your Free 30-Day Trial</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); text-align: left;">
+                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                        <svg style="width: 24px; height: 24px; color: var(--color-accent); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span style="color: rgba(255,255,255,0.9);">No credit card required</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                        <svg style="width: 24px; height: 24px; color: var(--color-accent); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span style="color: rgba(255,255,255,0.9);">Setup in 48 hours</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                        <svg style="width: 24px; height: 24px; color: var(--color-accent); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span style="color: rgba(255,255,255,0.9);">Cancel anytime</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                        <svg style="width: 24px; height: 24px; color: var(--color-accent); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span style="color: rgba(255,255,255,0.9);">Money-back guarantee</span>
+                    </div>
+                </div>
+                
+                <form style="display: grid; gap: var(--space-4); max-width: 500px; margin: 0 auto;">
+                    <input type="text" placeholder="Practice Name" required style="padding: var(--space-4); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-md); font-size: var(--font-size-base); background: rgba(255,255,255,0.1); color: white;">
+                    <input type="email" placeholder="Email Address" required style="padding: var(--space-4); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-md); font-size: var(--font-size-base); background: rgba(255,255,255,0.1); color: white;">
+                    <input type="tel" placeholder="Phone Number" required style="padding: var(--space-4); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-md); font-size: var(--font-size-base); background: rgba(255,255,255,0.1); color: white;">
+                    <button type="submit" class="button button-accent button-large" style="width: 100%;">Start Free Trial</button>
+                </form>
+                
+                <p style="margin-top: var(--space-4); font-size: var(--font-size-sm); color: rgba(255,255,255,0.6);">Or <a href="#" style="color: var(--color-accent); text-decoration: underline;">schedule a 10-minute demo</a> first</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ========================================
+         FOOTER
+         ======================================== -->
+    <footer style="background: var(--color-text-primary); color: rgba(255,255,255,0.7); padding: var(--space-10) 0 var(--space-6);">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-8); margin-bottom: var(--space-8);">
+                <div>
+                    <div style="font-family: var(--font-serif); font-size: var(--font-size-2xl); font-weight: 700; color: white; margin-bottom: var(--space-4);">VetAI</div>
+                    <p style="color: rgba(255,255,255,0.6); margin-bottom: var(--space-4);">Enterprise AI automation for veterinary practices. Eliminate administrative burden, save 25+ hours per week.</p>
+                </div>
+                
+                <div>
+                    <h6 style="color: white; text-transform: uppercase; font-size: var(--font-size-sm); letter-spacing: 0.05em; margin-bottom: var(--space-4);">Product</h6>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: var(--space-2);"><a href="#features" style="color: rgba(255,255,255,0.7);">Features</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#pricing" style="color: rgba(255,255,255,0.7);">Pricing</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Integrations</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Security</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h6 style="color: white; text-transform: uppercase; font-size: var(--font-size-sm); letter-spacing: 0.05em; margin-bottom: var(--space-4);">Resources</h6>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Documentation</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Case Studies</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Blog</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h6 style="color: white; text-transform: uppercase; font-size: var(--font-size-sm); letter-spacing: 0.05em; margin-bottom: var(--space-4);">Company</h6>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">About</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Careers</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Contact</a></li>
+                        <li style="margin-bottom: var(--space-2);"><a href="#" style="color: rgba(255,255,255,0.7);">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: var(--space-6); text-align: center;">
+                <p style="margin: 0; font-size: var(--font-size-sm); color: rgba(255,255,255,0.5);">&copy; 2025 VetAI Command Center. All rights reserved. | HIPAA Compliant | SOC 2 Type II Certified</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- ========================================
+         JAVASCRIPT
+         ======================================== -->
+    <script>
+        // Navigation scroll effect
+        const nav = document.getElementById('mainNav');
+        let lastScroll = 0;
+        
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            
+            if (currentScroll > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+            
+            lastScroll = currentScroll;
+        });
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // ROI Calculator
+        function calculateROI() {
+            const numVets = parseInt(document.getElementById('numVets').value) || 2;
+            const reminderCalls = parseInt(document.getElementById('reminderCalls').value) || 60;
+            const noShowRate = parseInt(document.getElementById('noShowRate').value) || 20;
+            const avgValue = parseInt(document.getElementById('avgValue').value) || 200;
+            
+            // Calculate reminder call waste (2 min per call, $18/hr receptionist rate)
+            const minutesPerDay = reminderCalls * 2;
+            const hoursPerDay = minutesPerDay / 60;
+            const workingDays = 250;
+            const receptionistRate = 18;
+            const reminderWaste = hoursPerDay * workingDays * receptionistRate;
+            
+            // Calculate no-show loss
+            const appointmentsPerWeek = 100; // Average for 2-vet practice
+            const weeksPerYear = 52;
+            const totalAppointments = appointmentsPerWeek * weeksPerYear;
+            const noShowAppointments = totalAppointments * (noShowRate / 100);
+            const noShowLoss = noShowAppointments * avgValue;
+            
+            // Calculate total waste
+            const totalWaste = reminderWaste + noShowLoss;
+            
+            // Calculate savings (70% reduction in reminders, 60% reduction in no-shows)
+            const reminderSavings = reminderWaste * 0.7;
+            const noShowSavings = noShowLoss * 0.6;
+            const totalSavings = reminderSavings + noShowSavings;
+            
+            // Calculate plan cost
+            let annualCost = 5988; // Professional plan default
+            if (numVets === 1) annualCost = 3588; // Starter
+            if (numVets >= 3) annualCost = 10788; // Practice
+            
+            // Calculate ROI
+            const roiMultiple = (totalSavings / annualCost).toFixed(1);
+            
+            // Display results with animation
+            document.getElementById('reminderWaste').textContent = '$' + Math.round(reminderWaste).toLocaleString();
+            document.getElementById('noShowLoss').textContent = '$' + Math.round(noShowLoss).toLocaleString();
+            document.getElementById('totalWaste').textContent = '$' + Math.round(totalWaste).toLocaleString();
+            document.getElementById('totalSavings').textContent = '$' + Math.round(totalSavings).toLocaleString();
+            document.getElementById('annualCost').textContent = '$' + annualCost.toLocaleString();
+            document.getElementById('roiMultiple').textContent = roiMultiple + 'x';
+            
+            // Show results with fade-in
+            const resultsDiv = document.getElementById('roiResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.style.opacity = '0';
+            setTimeout(() => {
+                resultsDiv.style.transition = 'opacity 0.5s ease-in-out';
+                resultsDiv.style.opacity = '1';
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 10);
+        }
+        
+        // Scroll-triggered animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        // Text fade-in observer
+        const textObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    textObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+        
+        // Observe all sections for fade-in
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('section');
+            sections.forEach(section => {
+                section.style.opacity = '0';
+                section.style.transform = 'translateY(20px)';
+                section.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+                observer.observe(section);
+            });
+            
+            // Immediately show hero
+            const hero = document.querySelector('.hero');
+            if (hero) {
+                hero.style.opacity = '1';
+                hero.style.transform = 'translateY(0)';
+            }
+            
+            // Observe text elements for fade-in
+            const fadeInTexts = document.querySelectorAll('.fade-in-text');
+            fadeInTexts.forEach(text => {
+                textObserver.observe(text);
+            });
+            
+            // Flow Diagram Animation Observer
+            const flowObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        flowObserver.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.2,
+                rootMargin: '0px 0px -100px 0px'
+            });
+            
+            // Observe all flow nodes
+            const flowNodes = document.querySelectorAll('.flow-node');
+            flowNodes.forEach(node => {
+                flowObserver.observe(node);
+            });
+            
+            // Problem-Solution Link Observer
+            const linkObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        linkObserver.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.3,
+                rootMargin: '0px 0px -50px 0px'
+            });
+            
+            // Observe all problem-solution links
+            const problemSolutionLinks = document.querySelectorAll('.problem-solution-link');
+            problemSolutionLinks.forEach(link => {
+                linkObserver.observe(link);
+            });
+            
+            // Role Feature Card Observer
+            const roleCardObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        roleCardObserver.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.2,
+                rootMargin: '0px 0px -100px 0px'
+            });
+            
+            // Observe all role feature cards
+            const roleCards = document.querySelectorAll('.role-feature-card');
+            roleCards.forEach(card => {
+                roleCardObserver.observe(card);
+            });
+            
+            // Ecosystem Header Animation Observer
+            const ecosystemObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const header = entry.target;
+                        
+                        // Animate title first
+                        const title = header.querySelector('.ecosystem-title');
+                        if (title) {
+                            setTimeout(() => title.classList.add('visible'), 100);
+                        }
+                        
+                        // Then animate message lines sequentially
+                        const messages = header.querySelectorAll('.slide-in-message');
+                        messages.forEach((msg, index) => {
+                            setTimeout(() => {
+                                msg.classList.add('visible');
+                                
+                                // After last message, mark header as complete
+                                if (index === messages.length - 1) {
+                                    setTimeout(() => {
+                                        header.classList.add('all-visible');
+                                    }, 400);
+                                }
+                            }, 500 + (index * 400)); // Stagger by 400ms
+                        });
+                        
+                        ecosystemObserver.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.3,
+                rootMargin: '0px'
+            });
+            
+            // Observe ecosystem header
+            const ecosystemHeader = document.querySelector('.ecosystem-header');
+            if (ecosystemHeader) {
+                ecosystemObserver.observe(ecosystemHeader);
+            }
+        });
+        
+        // Number counter animation for metrics
+        function animateValue(element, start, end, duration) {
+            const range = end - start;
+            const increment = range / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.round(current).toLocaleString();
+            }, 16);
+        }
+        
+        // Animate hero stats when visible
+        const heroStatsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const stats = entry.target.querySelectorAll('.hero-stat-number');
+                    stats.forEach(stat => {
+                        const text = stat.textContent;
+                        if (text.includes('hrs')) {
+                            const num = parseInt(text.split('-')[1]);
+                            stat.textContent = '0-0hrs';
+                            setTimeout(() => {
+                                stat.textContent = text;
+                            }, 300);
+                        } else if (text.includes('K')) {
+                            stat.textContent = '$0';
+                            setTimeout(() => {
+                                stat.textContent = text;
+                            }, 300);
+                        } else {
+                            stat.textContent = '0';
+                            setTimeout(() => {
+                                stat.textContent = text;
+                            }, 300);
+                        }
+                    });
+                    heroStatsObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        const heroStats = document.querySelector('.hero-stats');
+        if (heroStats) {
+            heroStatsObserver.observe(heroStats);
+        }
+        
+        // Form submission handler
+        document.querySelector('form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+            
+            button.classList.add('loading');
+            button.textContent = 'Processing...';
+            
+            // Simulate form submission
+            setTimeout(() => {
+                button.classList.remove('loading');
+                button.textContent = 'Success! Check your email';
+                button.style.backgroundColor = 'var(--color-success)';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '';
+                    e.target.reset();
+                }, 3000);
+            }, 2000);
+        });
+    </script>
+    
+</body>
+</html>

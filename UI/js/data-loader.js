@@ -297,7 +297,7 @@ window.DataLoader = {
 
                 // Update status
                 if (window.StatusIndicator) {
-                    window.StatusIndicator.removeOperation('synergy_load', 
+                    window.StatusIndicator.removeOperation('synergy_load',
                         `Loaded ${sessions.length} sessions`);
                 }
 
@@ -305,12 +305,12 @@ window.DataLoader = {
 
             } catch (error) {
                 console.error('[SYNERGY] LoadAll failed:', error);
-                
+
                 if (window.StatusIndicator) {
                     window.StatusIndicator.removeOperation('synergy_load');
                     window.StatusIndicator.show('Failed to load Synergy sessions', 'error', 5000);
                 }
-                
+
                 throw error;
             }
         },

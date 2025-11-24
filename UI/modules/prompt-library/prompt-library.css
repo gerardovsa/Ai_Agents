@@ -43,14 +43,15 @@
 
 /* Active state when dropdown is open */
 .ai-chat-prompt-library-btn.active {
-    color: var(--accent-primary, #58a6ff);
+    color: white;
     border-color: var(--accent-primary, #58a6ff);
-    background: rgba(88, 166, 255, 0.1);
+    background: var(--accent-primary, #58a6ff);
 }
 
 /* Keep active color on hover */
 .ai-chat-prompt-library-btn.active:hover {
-    color: var(--accent-primary, #58a6ff) !important;
+    color: white !important;
+    background: var(--accent-primary, #58a6ff) !important;
 }
 
 /* Badge for selected prompt count */
@@ -605,7 +606,7 @@
     position: fixed;
     top: 60px;
     right: -450px;
-    width: 450px;
+    width: 480px;
     height: calc(100vh - 60px);
     padding: 0;
     background: var(--bg-tertiary);

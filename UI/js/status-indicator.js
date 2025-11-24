@@ -24,13 +24,13 @@ window.StatusIndicator = {
     detailsPanel: null,
     hideTimeout: null,
     currentOperations: new Map(), // Track multiple concurrent operations
-    
+
     /**
      * Initialize status indicator
      */
     init() {
         if (this.container) return; // Already initialized
-        
+
         // Create container
         this.container = document.createElement('div');
         this.container.id = 'status-indicator';
@@ -44,32 +44,32 @@ window.StatusIndicator = {
                 <div class="status-operations"></div>
             </div>
         `;
-        
+
         document.body.appendChild(this.container);
-        
+
         // Get references
         this.statusIcon = this.container.querySelector('.status-icon');
         this.statusText = this.container.querySelector('.status-text');
         this.detailsPanel = this.container.querySelector('.status-details');
         this.operationsList = this.container.querySelector('.status-operations');
-        
+
         // Add click to expand
         this.container.querySelector('.status-main').addEventListener('click', () => {
             this.toggleDetails();
         });
-        
+
         console.log('✅ [Status Indicator] Initialized');
-        
+
         // Auto-hide after 5 seconds of inactivity
         this.scheduleAutoHide();
     },
-    
+
     /**
      * Show status message
      */
     show(message, type = 'info', duration = 3000) {
         this.init();
-        
+
         // Update icon and color based on type
         const icons = {
             'loading': '⏳',
@@ -81,7 +81,7 @@ window.StatusIndicator = {
             'connected': '🔌',
             'disconnected': '🔌'
         };
-        
+
         const colors = {
             'loading': '#3b82f6',
             'success': '#10b981',
@@ -92,15 +92,15 @@ window.StatusIndicator = {
             'connected': '#10b981',
             'disconnected': '#ef4444'
         };
-        
+
         this.statusIcon.textContent = icons[type] || icons.info;
         this.statusText.textContent = message;
         this.container.style.borderLeftColor = colors[type] || colors.info;
-        
+
         // Show container
         this.container.classList.remove('hidden');
         this.container.classList.add('visible');
-        
+
         // Auto-hide if duration specified
         if (duration > 0 && type !== 'loading' && type !== 'syncing') {
             this.scheduleAutoHide(duration);
@@ -109,7 +109,7 @@ window.StatusIndicator = {
             clearTimeout(this.hideTimeout);
         }
     },
-    
+
     /**
      * Hide status indicator
      */
@@ -117,7 +117,7 @@ window.StatusIndicator = {
         if (this.container) {
             this.container.classList.remove('visible');
             this.container.classList.add('hidden');
-            
+
             // Clear after animation
             setTimeout(() => {
                 if (this.container.classList.contains('hidden')) {
@@ -126,7 +126,7 @@ window.StatusIndicator = {
             }, 300);
         }
     },
-    
+
     /**
      * Schedule auto-hide
      */
@@ -139,7 +139,7 @@ window.StatusIndicator = {
             }
         }, delay);
     },
-    
+
     /**
      * Add operation to tracking
      */
@@ -149,20 +149,20 @@ window.StatusIndicator = {
             message,
             startTime: Date.now()
         });
-        
+
         this.updateOperations();
         this.show(message, 'loading', 0); // Don't auto-hide
     },
-    
+
     /**
      * Remove operation from tracking
      */
     removeOperation(id, successMessage = null) {
         const operation = this.currentOperations.get(id);
         this.currentOperations.delete(id);
-        
+
         this.updateOperations();
-        
+
         // Show success message if provided
         if (successMessage && operation) {
             const duration = Date.now() - operation.startTime;
@@ -172,7 +172,7 @@ window.StatusIndicator = {
             this.show('Ready', 'info', 3000);
         }
     },
-    
+
     /**
      * Update operations display
      */
@@ -181,7 +181,7 @@ window.StatusIndicator = {
             this.detailsPanel.style.display = 'none';
             return;
         }
-        
+
         // Show operations in details panel
         this.operationsList.innerHTML = Array.from(this.currentOperations.entries())
             .map(([id, op]) => {
@@ -194,7 +194,7 @@ window.StatusIndicator = {
             })
             .join('');
     },
-    
+
     /**
      * Toggle details panel
      */
@@ -204,7 +204,7 @@ window.StatusIndicator = {
             this.detailsPanel.style.display = isVisible ? 'none' : 'block';
         }
     },
-    
+
     /**
      * Set connection status
      */
@@ -215,16 +215,16 @@ window.StatusIndicator = {
             'disconnected': `${service} disconnected`,
             'reconnecting': `Reconnecting to ${service}...`
         };
-        
+
         const types = {
             'connecting': 'loading',
             'connected': 'connected',
             'disconnected': 'disconnected',
             'reconnecting': 'syncing'
         };
-        
-        this.show(messages[status] || status, types[status] || 'info', 
-                  status === 'connected' ? 2000 : 0);
+
+        this.show(messages[status] || status, types[status] || 'info',
+            status === 'connected' ? 2000 : 0);
     }
 };
 

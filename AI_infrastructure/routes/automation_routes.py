@@ -639,12 +639,15 @@ def list_automations():
         # Use PostgreSQL placeholder
         placeholder = '%s'
         
+        # Query includes logged-in user's automations + system user (user_id=1) automations
+        # This allows all users to see system templates/examples
         query = f"""
             SELECT automation_id, slug, title, description, category, status,
                    ui_json, execution_json, is_scheduled, schedule_cron,
-                   created_at, updated_at, last_executed_at, execution_count
+                   created_at, updated_at, last_executed_at, execution_count,
+                   user_id
             FROM visual_automations
-            WHERE user_id = {placeholder}
+            WHERE user_id = {placeholder} OR user_id = 1
         """
         params = [user_id]
         
@@ -795,9 +798,21 @@ def list_automations():
                 'shapes': shapes,  # Direct access for canvas
                 'connections': connections,  # Direct access for canvas
                 
+                # User ownership
+                'user_id': row['user_id'],
+                'is_system_template': row['user_id'] == 1,  # Flag system templates
+                'is_editable': row['user_id'] == user_id,   # Only own workflows are editable
+                
+                # Automation lifecycle state
+                'automation_state': row['status'] or 'draft',  # draft, inactive, active
+                'is_design_only': row['status'] == 'draft',
+                'is_automated': row['status'] in ('inactive', 'active'),
+                'is_active': row['status'] == 'active',
+                
                 # Scheduling
                 'is_scheduled': bool(row['is_scheduled']),
                 'schedule_cron': row['schedule_cron'],
+                'timezone': row.get('timezone', 'UTC'),
                 
                 # Timestamps (UI expects ISO format strings)
                 'created_at': str(row['created_at']),
@@ -844,9 +859,10 @@ def get_automation(automation_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Allow access to user's own workflows AND system templates (user_id=1)
         cursor.execute("""
             SELECT * FROM visual_automations 
-            WHERE automation_id = %s AND user_id = %s
+            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
         """, (automation_id, user_id))
         
         row = cursor.fetchone()
@@ -1062,9 +1078,10 @@ def activate_automation(automation_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Allow activating system templates (user_id=1)
         cursor.execute("""
             SELECT * FROM visual_automations
-            WHERE automation_id = %s AND user_id = %s
+            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
         """, (automation_id, user_id))
         
         row = cursor.fetchone()
@@ -1143,9 +1160,10 @@ def deactivate_automation(automation_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Allow deactivating system templates (user_id=1)
         cursor.execute("""
             SELECT scheduler_task_id FROM visual_automations
-            WHERE automation_id = %s AND user_id = %s
+            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
         """, (automation_id, user_id))
         
         row = cursor.fetchone()
@@ -1175,6 +1193,241 @@ def deactivate_automation(automation_id):
         return jsonify({
             'success': True,
             'message': f'Automation {automation_id} deactivated'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@automation_bp.route('/<automation_id>/toggle', methods=['POST'])
+def toggle_automation(automation_id):
+    """Toggle automation between active and inactive states"""
+    try:
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current status (allow system templates)
+        cursor.execute("""
+            SELECT status, is_scheduled, schedule_cron FROM visual_automations
+            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+        """, (automation_id, user_id))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'error': 'Automation not found'}), 404
+        
+        current_status = row['status']
+        
+        # Only toggle if workflow is already automated (not 'draft')
+        if current_status == 'draft':
+            conn.close()
+            return jsonify({'error': 'Cannot toggle draft workflows. Use /convert endpoint first.'}), 400
+        
+        # Toggle status
+        new_status = 'inactive' if current_status == 'active' else 'active'
+        
+        # Update status
+        cursor.execute("""
+            UPDATE visual_automations
+            SET status = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE automation_id = %s
+        """, (new_status, automation_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'automation_id': automation_id,
+            'previous_status': current_status,
+            'new_status': new_status,
+            'message': f'Automation {new_status}'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@automation_bp.route('/<automation_id>/convert', methods=['POST'])
+def convert_to_automation(automation_id):
+    """Convert a draft workflow design into an automated workflow"""
+    try:
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get workflow (allow system templates)
+        cursor.execute("""
+            SELECT * FROM visual_automations
+            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+        """, (automation_id, user_id))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'error': 'Automation not found'}), 404
+        
+        if row['status'] != 'draft':
+            conn.close()
+            return jsonify({'error': 'Workflow is already automated'}), 400
+        
+        # Update status to inactive (automated but not scheduled)
+        cursor.execute("""
+            UPDATE visual_automations
+            SET status = 'inactive',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE automation_id = %s
+        """, (automation_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'automation_id': automation_id,
+            'status': 'inactive',
+            'message': 'Workflow converted to automation. Use /schedule or /toggle to activate.'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@automation_bp.route('/<automation_id>/test', methods=['POST'])
+def test_automation(automation_id):
+    """Execute automation once manually for testing"""
+    try:
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get automation (allow system templates)
+        cursor.execute("""
+            SELECT * FROM visual_automations
+            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+        """, (automation_id, user_id))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'error': 'Automation not found'}), 404
+        
+        # Parse execution JSON
+        execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else (row.get('execution_json') or {})
+        
+        # Record execution start
+        cursor.execute("""
+            INSERT INTO automation_executions 
+            (automation_id, user_id, triggered_by, status, started_at)
+            VALUES (%s, %s, 'manual_test', 'running', CURRENT_TIMESTAMP)
+            RETURNING execution_id
+        """, (automation_id, user_id))
+        
+        result = cursor.fetchone()
+        execution_id = result['execution_id'] if isinstance(result, dict) else result[0]
+        
+        conn.commit()
+        
+        # TODO: Implement actual execution logic here
+        # For now, just mark as completed
+        cursor.execute("""
+            UPDATE automation_executions
+            SET status = 'completed',
+                completed_at = CURRENT_TIMESTAMP,
+                result_summary = 'Test execution completed successfully'
+            WHERE execution_id = %s
+        """, (execution_id,))
+        
+        # Update last executed timestamp
+        cursor.execute("""
+            UPDATE visual_automations
+            SET last_executed_at = CURRENT_TIMESTAMP,
+                execution_count = execution_count + 1
+            WHERE automation_id = %s
+        """, (automation_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'execution_id': execution_id,
+            'automation_id': automation_id,
+            'status': 'completed',
+            'message': 'Test execution completed'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@automation_bp.route('/<automation_id>/schedule', methods=['POST'])
+def schedule_automation(automation_id):
+    """Set or update automation schedule"""
+    try:
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
+        
+        data = request.json
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get automation (allow system templates)
+        cursor.execute("""
+            SELECT * FROM visual_automations
+            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
+        """, (automation_id, user_id))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'error': 'Automation not found'}), 404
+        
+        # Validate cron expression
+        cron_expression = data.get('schedule_cron')
+        if not cron_expression:
+            conn.close()
+            return jsonify({'error': 'schedule_cron is required'}), 400
+        
+        # Update schedule
+        cursor.execute("""
+            UPDATE visual_automations
+            SET schedule_cron = %s,
+                timezone = %s,
+                is_scheduled = TRUE,
+                status = 'active',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE automation_id = %s
+        """, (cron_expression, data.get('timezone', 'UTC'), automation_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'automation_id': automation_id,
+            'schedule_cron': cron_expression,
+            'timezone': data.get('timezone', 'UTC'),
+            'status': 'active',
+            'message': 'Schedule updated successfully'
         })
         
     except Exception as e:

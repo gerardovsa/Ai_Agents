@@ -150,7 +150,9 @@ Object.assign(window.ThreadManager, {
                         addChatMessage(msg.role, msg.content);
                         renderedCount++;
                     } else {
-                        console.log(`[Interactions] Skipping message ${idx + 1} (role: ${msg.role}, content type: ${typeof msg.content})`);
+                        if (window.DEBUG_TWO_RULE) {
+                            console.log(`[Interactions] Skipping message ${idx + 1} (role: ${msg.role}, content type: ${typeof msg.content})`);
+                        }
                         skippedCount++;
                     }
                 } else {
@@ -607,6 +609,16 @@ Object.assign(window.ThreadManager, {
 
         const wasActive = menu.classList.contains('active');
         menu.classList.toggle('active');
+
+        // Toggle button visual state
+        const threadsBtn = document.getElementById('threads-btn');
+        if (threadsBtn) {
+            if (!wasActive) {
+                threadsBtn.classList.add('thread-menu-open');
+            } else {
+                threadsBtn.classList.remove('thread-menu-open');
+            }
+        }
 
         if (!wasActive) {
             // Opening menu - load threads

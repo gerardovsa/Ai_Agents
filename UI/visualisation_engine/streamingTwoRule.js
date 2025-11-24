@@ -34,6 +34,20 @@
  */
 
 // =====================================
+// DEBUG MODE CONFIGURATION
+// =====================================
+// Set to true to see detailed TWO-RULE logs
+// Set to false to only see consolidated summary logs
+window.DEBUG_TWO_RULE = window.DEBUG_TWO_RULE || false;
+
+// Debug logging function - only logs if DEBUG_TWO_RULE is enabled
+function debugLog(...args) {
+    if (window.DEBUG_TWO_RULE) {
+        console.log(...args);
+    }
+}
+
+// =====================================
 // GLOBAL STATE MANAGEMENT
 // =====================================
 
@@ -100,7 +114,7 @@ class TwoRuleStreamProcessor {
         this.visualBufferStart = 0;
 
         // Log thread initialization
-        console.log('🚀 TWO-RULE: New streaming thread started');
+        debugLog('🚀 TWO-RULE: New streaming thread started');
         this.visualBufferEnd = 0;
 
         // ENDERING/QUEUE STATE
