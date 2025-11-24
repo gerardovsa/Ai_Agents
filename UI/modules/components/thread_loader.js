@@ -40,18 +40,67 @@ const ThreadLoader = {
     },
 
     /**
-     * Load messages from backend for a specific thread
+     * Load messages from backend for a specific thread (with pagination)
+     * @param {string} threadId - Thread ID to load messages for
+     * @param {number} limit - Max messages to load (default: 5 for fast loading)
+     * @param {number} offset - Messages to skip (default: 0)
      */
-    async loadMessagesForThread(threadId) {
+    async loadMessagesForThread(threadId, limit = 5, offset = 0) {
         try {
-            console.log(`[ThreadLoader] Fetching messages for thread ${threadId}...`);
+            console.log(`[ThreadLoader] Fetching messages for thread ${threadId} (limit: ${limit}, offset: ${offset})...`);
 
-            const response = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/messages/get?thread_id=${threadId}`);
+            // Build URL - if limit is null/undefined, don't include it (loads all messages)
+            let url = `${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/messages/get?thread_id=${threadId}`;
+            if (limit !== null && limit !== undefined) {
+                url += `&limit=${limit}&offset=${offset}`;
+            }
+
+            const response = await fetch(url);
             const data = await response.json();
 
             if (data.success && data.data) {
                 const messages = data.data.messages || data.data || [];
-                console.log(`[ThreadLoader] Loaded ${messages.length} messages`);
+                
+                // If pagination data exists (paginated request), return it
+                if (data.data.total !== undefined) {
+                    const paginationInfo = {
+                        total: data.data.total,
+                        loaded: offset + messages.length,
+                        hasMore: data.data.has_more || false,
+                        nextOffset: offset + messages.length
+                    };
+                    console.log(`[ThreadLoader] Loaded ${messages.length} messages (${paginationInfo.loaded}/${paginationInfo.total})`);
+                    return { messages, pagination: paginationInfo };
+                } else {
+                    // No pagination (loaded all messages)
+                    console.log(`[ThreadLoader] Loaded ALL ${messages.length} messages`);
+                    return { messages, pagination: null };
+                }
+            } else {
+                console.error('[ThreadLoader] Failed to load messages:', data);
+                return { messages: [], pagination: { total: 0, loaded: 0, hasMore: false, nextOffset: 0 } };
+            }
+        } catch (error) {
+            console.error('[ThreadLoader] Error loading messages:', error);
+            return { messages: [], pagination: { total: 0, loaded: 0, hasMore: false, nextOffset: 0 } };
+        }
+    },
+
+    /**
+     * Load ALL messages for a thread (no pagination)
+     */
+    async loadAllMessagesForThread(threadId) {
+        try {
+            console.log(`[ThreadLoader] Fetching ALL messages for thread ${threadId}...`);
+
+            const response = await fetch(
+                `${window.API_BASE_URL || 'http://localhost:5001'}/api/threads/messages/get?thread_id=${threadId}`
+            );
+            const data = await response.json();
+
+            if (data.success && data.data) {
+                const messages = data.data.messages || data.data || [];
+                console.log(`[ThreadLoader] Loaded ${messages.length} total messages`);
                 return messages;
             } else {
                 console.error('[ThreadLoader] Failed to load messages:', data);

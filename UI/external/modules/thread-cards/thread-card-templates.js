@@ -185,8 +185,8 @@ window.ThreadCardTemplates = {
                  title="Double-click to load in Prime">
                 
                 <!-- Row 1: Title + Chevron -->
-                <div class="thread-item-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <span class="thread-item-title" style="flex: 1; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <div class="thread-item-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                    <span class="thread-item-title" style="flex: 1; font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         ${thread.title || 'Untitled'}
                     </span>
                     <button class="thread-card-expand-btn" 
@@ -310,7 +310,7 @@ window.ThreadCardTemplates = {
         // NO title or chevron here - those are in Row 1 (separate)
         // This is ONLY Row 2: Agent badge
         return `
-            <div style="display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin-top: 8px;">
+            <div style="display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin-top: 0;">
                 <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
                     <i class="fas ${agent.icon}"></i> ${agent.name}
                 </div>
@@ -331,7 +331,7 @@ window.ThreadCardTemplates = {
         // NO title or chevron here - those are in Row 1 (separate)
         // This is ONLY Row 2: Agent badge + unload button
         return `
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 0;">
                 <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
                     <i class="fas ${agent.icon}"></i> ${agent.name}
                 </div>
@@ -361,7 +361,7 @@ window.ThreadCardTemplates = {
         // NO title or chevron here - those are in Row 1 (separate)
         // This is ONLY Row 2: Agent badge + action buttons
         return `
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 0;">
                 <div class="thread-item-agent-badge ${agent.class}" style="flex-shrink: 0;">
                     <i class="fas ${agent.icon}"></i> ${agent.name}
                 </div>

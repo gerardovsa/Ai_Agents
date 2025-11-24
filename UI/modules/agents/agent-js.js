@@ -1346,16 +1346,38 @@ const MultiAgent = {
         const storedMessages = window.MessageStore.getMessages(thread.id);
         console.log(`📦 [MessageStore] Retrieved ${storedMessages.length} messages for Agent ${agentId}`);
 
+        // Initialize pagination state for this agent
+        if (!window.agentPagination) window.agentPagination = {};
+        window.agentPagination[agentId] = {
+            threadId: thread.id,
+            loaded: 0,
+            total: thread.message_count || 0,
+            hasMore: true,
+            loading: false,
+            nextOffset: 0
+        };
+
         if (!storedMessages || storedMessages.length === 0) {
             if (thread.message_count > 0) {
-                console.log(`[LOAD] Fetching ${thread.message_count} messages for thread ${thread.id} from backend...`);
+                console.log(`[LOAD] Fetching initial 5 messages for thread ${thread.id} from backend...`);
 
                 // Show processing indicator while loading messages
                 const processingIndicator = createProcessingIndicator(agentId);
                 messagesDiv.appendChild(processingIndicator);
 
                 if (typeof ThreadManager !== 'undefined' && ThreadManager.loadMessagesForThread) {
-                    ThreadManager.loadMessagesForThread(thread.id).then(() => {
+                    // Load initial 5 messages with pagination
+                    ThreadManager.loadMessagesForThread(thread.id, 5, 0).then((result) => {
+                        const pagination = result?.pagination || { hasMore: false, nextOffset: 0, total: 0, loaded: 0 };
+                        window.agentPagination[agentId] = {
+                            threadId: thread.id,
+                            loaded: pagination.loaded,
+                            total: pagination.total,
+                            hasMore: pagination.hasMore,
+                            loading: false,
+                            nextOffset: pagination.nextOffset
+                        };
+
                         // Re-fetch from MessageStore after backend load
                         const loadedMessages = window.MessageStore.getMessages(thread.id);
                         if (loadedMessages && loadedMessages.length > 0) {
@@ -1363,6 +1385,19 @@ const MultiAgent = {
 
                             // Remove processing indicator before rendering messages
                             removeProcessingIndicator(agentId);
+
+                            // Add "Load More" button if there are more messages
+                            if (pagination.hasMore) {
+                                const loadMoreBtn = document.createElement('div');
+                                loadMoreBtn.className = 'load-more-messages';
+                                loadMoreBtn.innerHTML = `
+                                    <button onclick="window.loadMoreMessages('${agentId}')">
+                                        📥 Load More Messages (${pagination.loaded}/${pagination.total})
+                                    </button>
+                                `;
+                                loadMoreBtn.style.cssText = 'text-align: center; padding: 10px; margin: 10px 0;';
+                                messagesDiv.insertBefore(loadMoreBtn, messagesDiv.firstChild);
+                            }
 
                             loadedMessages.forEach((msg, index) => {
                                 // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
@@ -1404,6 +1439,9 @@ const MultiAgent = {
                             });
                             messagesContainer.scrollTop = messagesContainer.scrollHeight;
                             console.log(`[OK] All ${loadedMessages.length} messages rendered for agent-${agentId}`);
+
+                            // Setup scroll detection for infinite scroll
+                            setupScrollDetection(agentId, messagesContainer);
                         } else {
                             console.warn(`[WARN] No messages found after loading thread ${thread.id}`);
                         }
@@ -1892,7 +1930,8 @@ async function initMultiAgent() {
             // Update thread info card for Prime
             if (typeof ThreadManager.renderThreadInfoContainer === 'function') {
                 // Render with compact=false for full card display
-                const cardHtml = ThreadManager.renderThreadInfoContainer('prime', primeLoadedThreadId, false);
+                // Use 'prime-loaded' location to show correct badge styling
+                const cardHtml = ThreadManager.renderThreadInfoContainer('prime-loaded', primeLoadedThreadId, false);
                 if (cardHtml) {
                     primeThreadInfoContainer.innerHTML = cardHtml;
                     console.log(`✅ [initMultiAgent] Prime thread card rendered (${cardHtml.length} chars, replaced empty state)`);
@@ -4832,6 +4871,95 @@ document.addEventListener('click', (e) => {
         });
     }
 });
+
+// ==================== LOAD MORE MESSAGES FUNCTIONALITY ====================
+// Load more messages function for pagination
+window.loadMoreMessages = async function(agentId) {
+    const pagination = window.agentPagination?.[agentId];
+    if (!pagination || pagination.loading || !pagination.hasMore) {
+        console.log(`[LOAD MORE] Cannot load more: loading=${pagination?.loading}, hasMore=${pagination?.hasMore}`);
+        return;
+    }
+
+    pagination.loading = true;
+    console.log(`[LOAD MORE] Loading next batch (offset: ${pagination.nextOffset})...`);
+
+    const messagesDiv = document.getElementById(`messages-${agentId}`);
+    const loadMoreBtn = messagesDiv?.querySelector('.load-more-messages');
+    if (loadMoreBtn) loadMoreBtn.style.opacity = '0.5';
+
+    try {
+        const result = await ThreadManager.loadMessagesForThread(
+            pagination.threadId,
+            10, // Load 10 more messages
+            pagination.nextOffset
+        );
+
+        const newPagination = result?.pagination || {};
+        pagination.loaded = newPagination.loaded || pagination.loaded;
+        pagination.total = newPagination.total || pagination.total;
+        pagination.hasMore = newPagination.hasMore || false;
+        pagination.nextOffset = newPagination.nextOffset || pagination.nextOffset;
+        pagination.loading = false;
+
+        // Re-render all messages
+        const allMessages = window.MessageStore.getMessages(pagination.threadId);
+        if (messagesDiv) {
+            // Clear and re-render
+            messagesDiv.innerHTML = '';
+            
+            // Add load more button if needed
+            if (pagination.hasMore) {
+                const loadMoreBtn = document.createElement('div');
+                loadMoreBtn.className = 'load-more-messages';
+                loadMoreBtn.innerHTML = `
+                    <button onclick="window.loadMoreMessages('${agentId}')">
+                        📥 Load More Messages (${pagination.loaded}/${pagination.total})
+                    </button>
+                `;
+                loadMoreBtn.style.cssText = 'text-align: center; padding: 10px; margin: 10px 0;';
+                messagesDiv.appendChild(loadMoreBtn);
+            }
+
+            // Render all messages
+            allMessages.forEach(msg => {
+                if (typeof UnifiedMessageRenderer !== 'undefined') {
+                    UnifiedMessageRenderer.render(
+                        messagesDiv,
+                        msg.role,
+                        msg.content,
+                        { threadId: pagination.threadId, syncToBackend: false, scrollToBottom: false }
+                    );
+                }
+            });
+        }
+
+        console.log(`[LOAD MORE] Now showing ${pagination.loaded}/${pagination.total} messages`);
+    } catch (err) {
+        console.error('[LOAD MORE] Error:', err);
+        pagination.loading = false;
+        if (loadMoreBtn) loadMoreBtn.style.opacity = '1';
+    }
+};
+
+// Setup scroll detection for infinite scroll
+function setupScrollDetection(agentId, messagesContainer) {
+    let scrollTimeout;
+    messagesContainer.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            const pagination = window.agentPagination?.[agentId];
+            if (!pagination || !pagination.hasMore || pagination.loading) return;
+
+            // Check if scrolled near top (for loading older messages)
+            const scrollTop = messagesContainer.scrollTop;
+            if (scrollTop < 100) {
+                console.log('[SCROLL] Near top - loading more messages...');
+                window.loadMoreMessages(agentId);
+            }
+        }, 150);
+    });
+}
 
 // ==================== EXPOSE TO GLOBAL SCOPE ====================
 // Required for main app initialization

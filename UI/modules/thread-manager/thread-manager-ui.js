@@ -393,7 +393,7 @@ window.ThreadManagerUI = {
 
         // Agent metadata (varies by location)
         let agent = {
-            name: 'Prime',
+            name: location === 'prime-loaded' ? 'Prime-Loaded' : 'Prime',
             icon: 'fa-star',
             class: location === 'prime-loaded' ? 'main-loaded' : 'main'
         };
@@ -489,7 +489,8 @@ window.ThreadManagerUI = {
         }
 
         // Render thread info card using ThreadCardTemplates
-        const html = this.renderThreadInfoContainer('prime', threadId, false);
+        // Use 'prime-loaded' location to show correct badge styling
+        const html = this.renderThreadInfoContainer('prime-loaded', threadId, false);
         if (html) {
             container.innerHTML = html;
             console.log(`[updatePrimeHeader] Rendered thread card for Prime: ${threadId}`);

@@ -1607,37 +1607,84 @@ def save_messages():
 @thread_bp.route('/messages/get', methods=['GET'])
 def get_messages():
     """
-    Get messages for a thread
+    Get messages for a thread (with optional pagination)
     
     GET /api/threads/messages/get?thread_id=1762614784052
+    GET /api/threads/messages/get?thread_id=1762614784052&limit=5&offset=0
+    
+    Query params:
+        thread_id (required): Thread slug/ID
+        limit (optional): Max messages to return (default: all messages)
+        offset (optional): Number of messages to skip (default: 0)
     
     Returns:
-        {"success": true, "messages": [...], "count": 2}
+        {"success": true, "messages": [...], "count": 2, "total": 37}
     """
     try:
         thread_id = request.args.get('thread_id')
         if not thread_id:
             return error_response('thread_id required', 400)
         
-        # Query messages by thread_slug (which matches thread_id)
-        query = """
-            SELECT 
-                m.id,
-                m.role,
-                m.content,
-                m.tool_calls,
-                m.tokens_used,
-                m.created_at,
-                m.metadata
+        # Get pagination params
+        limit = request.args.get('limit', type=int)
+        offset = request.args.get('offset', default=0, type=int)
+        
+        # First, get total message count for this thread
+        count_query = """
+            SELECT COUNT(m.id) as total
             FROM sessions.messages m
             JOIN sessions.threads t ON m.thread_id = t.id
             WHERE t.thread_slug = %s
-            ORDER BY m.created_at ASC
         """
+        
+        # Query messages by thread_slug (with optional pagination)
+        if limit:
+            # Paginated query - get MOST RECENT messages first, then reverse
+            query = """
+                SELECT 
+                    m.id,
+                    m.role,
+                    m.content,
+                    m.tool_calls,
+                    m.tokens_used,
+                    m.created_at,
+                    m.metadata
+                FROM sessions.messages m
+                JOIN sessions.threads t ON m.thread_id = t.id
+                WHERE t.thread_slug = %s
+                ORDER BY m.created_at DESC
+                LIMIT %s OFFSET %s
+            """
+        else:
+            # No pagination - get all messages in chronological order
+            query = """
+                SELECT 
+                    m.id,
+                    m.role,
+                    m.content,
+                    m.tool_calls,
+                    m.tokens_used,
+                    m.created_at,
+                    m.metadata
+                FROM sessions.messages m
+                JOIN sessions.threads t ON m.thread_id = t.id
+                WHERE t.thread_slug = %s
+                ORDER BY m.created_at ASC
+            """
         
         conn = get_database_connection('sessions')
         cursor = conn.cursor()
-        cursor.execute(query, (thread_id,))
+        
+        # Get total count
+        cursor.execute(count_query, (thread_id,))
+        total_count = cursor.fetchone()['total']
+        
+        # Get messages
+        if limit:
+            cursor.execute(query, (thread_id, limit, offset))
+        else:
+            cursor.execute(query, (thread_id,))
+        
         rows = cursor.fetchall()
         conn.close()
         
@@ -1671,10 +1718,20 @@ def get_messages():
                 'metadata': metadata  # Now properly loaded from database
             })
         
+        # If paginated, reverse messages to get chronological order
+        if limit:
+            messages.reverse()
+        
+        pagination_info = f' (page: {offset // limit + 1}, showing {offset + 1}-{offset + len(messages)} of {total_count})' if limit else ''
+        
         return success_response({
             'messages': messages,
-            'count': len(messages)
-        }, message=f'Found {len(messages)} messages')
+            'count': len(messages),
+            'total': total_count,
+            'offset': offset,
+            'limit': limit,
+            'has_more': (offset + len(messages)) < total_count if limit else False
+        }, message=f'Found {len(messages)} messages{pagination_info}')
     
     except Exception as e:
         print(f"[MESSAGE GET ERROR] {str(e)}")

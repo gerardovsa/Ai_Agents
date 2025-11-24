@@ -82,18 +82,20 @@ Object.assign(window.ThreadManager, {
     /**
      * Load messages for a thread from backend (DELEGATES to ThreadLoader)
      */
-    async loadMessagesForThread(threadId) {
-        console.log(`📥 [Messages] Loading messages for thread ${threadId}...`);
+    async loadMessagesForThread(threadId, limit, offset) {
+        console.log(`📥 [Messages] Loading messages for thread ${threadId} (limit: ${limit}, offset: ${offset})...`);
 
         // Delegate to ThreadLoader (data layer)
         if (typeof window.ThreadLoader !== 'undefined') {
-            const messages = await window.ThreadLoader.loadMessagesForThread(threadId);
+            const result = await window.ThreadLoader.loadMessagesForThread(threadId, limit, offset);
+            const messages = result?.messages || (Array.isArray(result) ? result : []);
+            const pagination = result?.pagination;
 
             // Update thread with loaded messages
             const thread = this.threads.find(t => t.id === threadId);
             if (thread) {
                 thread.messages = Array.isArray(messages) ? messages : [];
-                thread.message_count = messages.length;
+                thread.message_count = pagination?.total || messages.length;
 
                 // Cache in MessageStore for fast access
                 if (typeof window.MessageStore !== 'undefined') {
@@ -103,10 +105,10 @@ Object.assign(window.ThreadManager, {
                 }
             }
 
-            return messages;
+            return pagination ? { messages, pagination } : messages;
         } else {
             console.error('❌ [Messages] ThreadLoader not available');
-            return [];
+            return { messages: [], pagination: { total: 0, loaded: 0, hasMore: false, nextOffset: 0 } };
         }
     },
 
