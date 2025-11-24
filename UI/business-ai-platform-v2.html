@@ -227,14 +227,14 @@
 
     <!-- ==================== USER AUTHENTICATION (Must Load FIRST) ==================== -->
     <!-- Defines window.UserAuth object required by thread_manager.js and other modules -->
-    <script src="modules/components/user_auth.js?v=20251124h"></script>
+    <script src="modules/components/user_auth.js?v=20251124j"></script>
 
     <!-- ==================== THREAD COMPONENTS (Load After UserAuth) ==================== -->
     <!-- Additional thread system components -->
     <script src="modules/components/device_lock_manager.js"></script>
     <script src="modules/components/message_store.js"></script>
     <script src="modules/components/thread_loader.js?v=20251122q"></script>
-    <script src="modules/components/account_profile.js?v=20251124h"></script>
+    <script src="modules/components/account_profile.js?v=20251124j"></script>
     <script src="modules/components/automations.js"></script>
 
     <!-- ==================== MODULE SYSTEM (Added Nov 22, 2025) ==================== -->
@@ -16224,14 +16224,12 @@
 
         function signInWithMicrosoft() {
             console.log(' Initiating Microsoft 365 OAuth login...');
-            const backendUrl = window.API_BASE_URL || 'http://localhost:5001';
-            window.location.href = `${backendUrl}/api/auth/microsoft/login`;
+            window.location.href = `${window.API_BASE_URL || 'http://localhost:5001'}/api/auth/microsoft/login`;
         }
 
         function signInWithGoogle() {
             console.log(' Initiating Google OAuth login...');
-            const backendUrl = window.API_BASE_URL || 'http://localhost:5001';
-            window.location.href = `${backendUrl}/api/auth/google/login`;
+            window.location.href = `${window.API_BASE_URL || 'http://localhost:5001'}/api/auth/google/login`;
         }
 
         // ==================== CONFIRMATION MODAL FUNCTIONS ====================
@@ -18893,7 +18891,7 @@
 
     <!-- ==================== WORKFLOW SLUG INTEGRATION ==================== -->
     <link rel="stylesheet" href="external/modules/workflow-slug-integration.css">
-    <script src="external/modules/workflow-slug-integration.js?v=20251124h"></script>
+    <script src="external/modules/workflow-slug-integration.js?v=20251124j"></script>
 
     <!-- ==================== CIRCUIT BOARD ANIMATION ==================== -->
     <script>
