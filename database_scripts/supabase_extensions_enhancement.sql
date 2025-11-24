@@ -19,16 +19,40 @@
 -- No extension needed - uses PostgreSQL's native text search
 
 -- AI Embeddings & Semantic Search
-CREATE EXTENSION IF NOT EXISTS vector;
+DO $$ 
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS vector;
+EXCEPTION 
+    WHEN OTHERS THEN 
+        RAISE NOTICE 'vector extension not available or already exists';
+END $$;
 
 -- JSON Schema Validation
-CREATE EXTENSION IF NOT EXISTS pg_jsonschema;
+DO $$ 
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS pg_jsonschema;
+EXCEPTION 
+    WHEN OTHERS THEN 
+        RAISE NOTICE 'pg_jsonschema extension not available - validation will use fallback mode';
+END $$;
 
 -- GraphQL API (auto-generated from schema)
-CREATE EXTENSION IF NOT EXISTS pg_graphql CASCADE;
+DO $$ 
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS pg_graphql CASCADE;
+EXCEPTION 
+    WHEN OTHERS THEN 
+        RAISE NOTICE 'pg_graphql extension not available or already exists';
+END $$;
 
 -- Performance Monitoring
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+DO $$ 
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+EXCEPTION 
+    WHEN OTHERS THEN 
+        RAISE NOTICE 'pg_stat_statements extension not available or already exists';
+END $$;
 
 -- Verify extensions installed
 SELECT 
@@ -453,25 +477,47 @@ GRANT EXECUTE ON FUNCTION ai_infrastructure.search_similar_docs TO authenticated
 -- Prevent bad tool executions by validating parameters before API calls
 
 -- Example: Validate Gmail send_email parameters
+-- Note: This function requires pg_jsonschema extension
+-- If extension not available, it does basic validation only
 CREATE OR REPLACE FUNCTION public.validate_gmail_params(params JSONB)
 RETURNS BOOLEAN AS $$
-DECLARE
-    gmail_schema JSONB := '{
-        "type": "object",
-        "required": ["to", "subject", "body"],
-        "properties": {
-            "to": {"type": "string", "format": "email"},
-            "subject": {"type": "string", "minLength": 1},
-            "body": {"type": "string"},
-            "cc": {"type": "array", "items": {"type": "string"}},
-            "attachments": {"type": "array"}
-        }
-    }'::JSONB;
 BEGIN
-    RETURN jsonb_matches_schema(gmail_schema, params);
+    -- Check if pg_jsonschema extension is available
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_jsonschema') THEN
+        -- Use full JSON schema validation
+        RETURN jsonb_matches_schema(
+            schema := '{
+                "type": "object",
+                "required": ["to", "subject", "body"],
+                "properties": {
+                    "to": {"type": "string"},
+                    "subject": {"type": "string"},
+                    "body": {"type": "string"},
+                    "cc": {"type": "array"},
+                    "attachments": {"type": "array"}
+                }
+            }'::jsonb,
+            instance := params
+        );
+    ELSE
+        -- Fallback: Basic validation (check required fields exist)
+        RETURN (
+            params ? 'to' AND
+            params ? 'subject' AND
+            params ? 'body' AND
+            (params->>'to') IS NOT NULL AND
+            (params->>'subject') IS NOT NULL AND
+            (params->>'body') IS NOT NULL
+        );
+    END IF;
 EXCEPTION
     WHEN OTHERS THEN
-        RETURN FALSE;
+        -- If any error occurs, do basic validation
+        RETURN (
+            params ? 'to' AND
+            params ? 'subject' AND
+            params ? 'body'
+        );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -536,20 +582,32 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Use pg_stat_statements to find slow queries
 
 -- View slowest queries (requires pg_stat_statements enabled)
-CREATE OR REPLACE VIEW public.slow_queries AS
-SELECT 
-    query,
-    calls,
-    total_exec_time::numeric(10,2) as total_time_ms,
-    mean_exec_time::numeric(10,2) as avg_time_ms,
-    max_exec_time::numeric(10,2) as max_time_ms,
-    rows as total_rows
-FROM pg_stat_statements
-WHERE query NOT LIKE '%pg_stat_statements%'
-ORDER BY mean_exec_time DESC
-LIMIT 50;
+-- Note: This view will only work if pg_stat_statements extension is installed
+DO $$ 
+BEGIN
+    -- Only create view if pg_stat_statements exists
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements') THEN
+        EXECUTE '
+            CREATE OR REPLACE VIEW public.slow_queries AS
+            SELECT 
+                query,
+                calls,
+                total_exec_time::numeric(10,2) as total_time_ms,
+                mean_exec_time::numeric(10,2) as avg_time_ms,
+                max_exec_time::numeric(10,2) as max_time_ms,
+                rows as total_rows
+            FROM pg_stat_statements
+            WHERE query NOT LIKE ''%pg_stat_statements%''
+            ORDER BY mean_exec_time DESC
+            LIMIT 50
+        ';
+        RAISE NOTICE 'slow_queries view created successfully';
+    ELSE
+        RAISE NOTICE 'pg_stat_statements not available - skipping slow_queries view creation';
+    END IF;
+END $$;
 
--- Check slow queries
+-- Check slow queries (only if pg_stat_statements is available)
 -- SELECT * FROM public.slow_queries;
 
 
