@@ -6,14 +6,15 @@
  * @created October 30, 2025
  */
 class BaseModule {
-    constructor(moduleId) {
+    constructor(moduleId, modulePath = null) {
         this.moduleId = moduleId;
+        this.modulePath = modulePath || moduleId; // Allow custom folder path
         this.container = null;
         this.subTabs = new Map();
         this.activeSubTab = null;
         this.manifest = null;
 
-        console.log(`🔧 BaseModule created for ${moduleId}`);
+        console.log(`🔧 BaseModule created for ${moduleId} (path: ${this.modulePath})`);
     }
 
     /**
@@ -34,8 +35,8 @@ class BaseModule {
         // Create UI structure
         this.createModuleStructure();
 
-        // Initialize sub-tabs (override this in child class)
-        this.initializeSubTabs();
+        // Note: Sub-tabs initialization is handled by child classes
+        // Child modules call initializeSubTabs() explicitly after their setup completes
 
         console.log(`✅ ${this.moduleId} initialized`);
     }
@@ -45,15 +46,16 @@ class BaseModule {
      */
     async loadManifest() {
         try {
-            console.log(`📥 Loading manifest for ${this.moduleId}...`);
-            const response = await fetch(`external/modules/${this.moduleId}/manifest.json`);
+            console.log(`📥 Loading manifest for ${this.moduleId} from: external/modules/${this.modulePath}/manifest.json`);
+            const manifestUrl = `external/modules/${this.modulePath}/manifest.json`;
+            const response = await fetch(manifestUrl);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             this.manifest = await response.json();
-            console.log(`✅ Manifest loaded for ${this.moduleId}`);
+            console.log(`Manifest loaded for ${this.moduleId}`);
 
         } catch (error) {
             console.error(` Failed to load manifest for ${this.moduleId}:`, error);
@@ -128,7 +130,7 @@ class BaseModule {
                 }
 
                 button.setAttribute('data-subtab', tab.id);
-                button.innerHTML = `<i class="${tab.icon}"></i> ${tab.label || tab.name}`;
+                button.innerHTML = `<i class="${tab.icon}"></i> ${tab.name}`;
                 button.addEventListener('click', () => this.switchSubTab(tab.id));
                 subTabsNav.appendChild(button);
             });
@@ -144,6 +146,7 @@ class BaseModule {
 
         // Create sub-tab containers
         if (this.manifest.tabs && this.manifest.tabs.length > 0) {
+            console.log(`📦 [DOM] Creating ${this.manifest.tabs.length} sub-tab containers for ${this.moduleId}...`);
             this.manifest.tabs.forEach((tab, index) => {
                 const subTabDiv = document.createElement('div');
                 subTabDiv.className = 'module-subtab-content';
@@ -153,9 +156,11 @@ class BaseModule {
                     subTabDiv.classList.add('active');
                 }
 
-                subTabDiv.id = `${this.moduleId}-subtab-${tab.id}`;
+                const containerId = `${this.moduleId}-subtab-${tab.id}`;
+                subTabDiv.id = containerId;
                 subTabDiv.setAttribute('data-subtab', tab.id);
                 subTabsContent.appendChild(subTabDiv);
+                console.log(`   ✅ Created container: ${containerId}`);
             });
         } else {
             // If no sub-tabs, create single content area
@@ -166,6 +171,7 @@ class BaseModule {
         }
 
         console.log(`✅ UI structure created for ${this.moduleId}`);
+        console.log(`📍 [DOM] Sub-tabs container appended to: #${this.container.id}`);
     }
 
     /**
@@ -347,4 +353,4 @@ class BaseModule {
 
 // Make BaseModule available globally
 window.BaseModule = BaseModule;
-console.log('✅ BaseModule available globally');
+console.log('BaseModule available globally');

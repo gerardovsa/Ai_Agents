@@ -717,7 +717,7 @@ window.synergyBoard = {
 
                 try {
                     // Fetch milestones with full hierarchy
-                    const response = await fetch(`http://localhost:5001/api/synergy/${sessionId}/milestones`);
+                    const response = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}/milestones`);
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}`);
                     }
@@ -779,6 +779,33 @@ window.synergyBoard = {
     /**
      * Open card menu (edit, delete, archive)
      */
+    /**
+     * Add new card to a column
+     * Opens the popup modal to create a new synergy session
+     */
+    async addCard(column) {
+        console.log('[SYNERGY] Adding new card to column:', column);
+        
+        // Use popup modal if available
+        if (window.synergyPopupModal) {
+            // Create a new session with default values for the target column
+            const newSessionData = {
+                kanban_column: column,
+                title: 'New Session',
+                priority: 'medium',
+                status: 'active'
+            };
+            
+            // Open modal in create mode
+            await window.synergyPopupModal.open(null, newSessionData);
+        } else {
+            console.error('[SYNERGY] Popup modal not available');
+            if (window.showNotification) {
+                window.showNotification('Session creation UI not available', 'error');
+            }
+        }
+    },
+
     openCardMenu(sessionId, event) {
         console.log('[SYNERGY] Opening card menu for:', sessionId);
 
@@ -945,14 +972,14 @@ window.synergyBoard = {
 
         try {
             // Fetch session data and milestones
-            const sessionResponse = await fetch(`http://localhost:5001/api/synergy/${sessionId}`);
+            const sessionResponse = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}`);
             if (!sessionResponse.ok) {
                 throw new Error(`Failed to load session: ${sessionResponse.status}`);
             }
             const sessionData = await sessionResponse.json();
             const session = sessionData.session || {};
 
-            const milestonesResponse = await fetch(`http://localhost:5001/api/synergy/${sessionId}/milestones`);
+            const milestonesResponse = await fetch(`${this.apiBaseUrl}/api/synergy/${sessionId}/milestones`);
             if (!milestonesResponse.ok) {
                 throw new Error(`Failed to load milestones: ${milestonesResponse.status}`);
             }

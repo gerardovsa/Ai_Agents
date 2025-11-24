@@ -424,7 +424,7 @@ class SQLViewerHelper {
         resultsDiv.innerHTML = '<div class="shopify-loading">Executing query...</div>';
 
         try {
-            const response = await fetch('http://localhost:5001/api/shopify/sql-query', {
+            const response = await fetch(`${this.API_BASE_URL}/api/shopify/sql-query`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query })
@@ -518,7 +518,8 @@ class SQLViewerHelper {
 class ShopifyModule extends BaseModule {
     constructor(moduleId) {
         super(moduleId);
-        this.apiEndpoint = 'http://localhost:5001/api/shopify';
+        this.API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+        this.apiEndpoint = `${this.API_BASE_URL}/api/shopify`;
         this.sqlViewer = new SQLViewerHelper(this);
     }
 

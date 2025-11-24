@@ -150,16 +150,17 @@ def get_connection_pool(schema_name: str):
             print(f" [POOL] Using {connection_mode} for '{schema_name}'")
             
             # Create thread-safe connection pool
-            # OPTIMIZED for Supabase Nano Transaction Mode (Nov 2025):
+            # OPTIMIZED for Supabase Nano Transaction Mode (Nov 24, 2025):
             # - Transaction Mode pooler supports 200 concurrent CLIENT connections
             # - Backend limit is 60 connections (shared across all poolers)
-            # - Transaction Mode efficiently reuses backend connections
-            # - minconn=5: Keep 5 warm connections ready for fast response
-            # - maxconn=20: Allow bursts up to 20 concurrent (only 10% of 200 client limit)
+            # - Frontend WebSocket connections were causing pool exhaustion
+            # - REDUCED POOL SIZE to prevent "too many clients" errors
+            # - minconn=1: Minimal ready connections (was 1)
+            # - maxconn=2: Very small pool (was 3) - prevents connection exhaustion
             # - Each connection is short-lived in transaction mode (seconds, not minutes)
             _connection_pools[schema_name] = pool.ThreadedConnectionPool(
-                minconn=1,
-                maxconn=3,  # Reduced for faster startup
+                minconn=1,      # Minimal ready connections
+                maxconn=2,      # REDUCED from 3 - prevents exhaustion
                 dsn=db_url,
                 sslmode='require',
                 connect_timeout=10,  # Reduced from 30
@@ -175,6 +176,7 @@ def get_connection_pool(schema_name: str):
             print(f" [POOL] Created connection pool for '{schema_name}' (1-2 connections)")
             print(f" [POOL] Total pools: {_pool_stats['pools_created']}")
             print(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 2} (Supabase Nano limit: 60)")
+            print(f" [POOL] Pool configuration: minconn=1, maxconn=2 (reduced to prevent exhaustion)")
         else:
             _pool_stats['pool_hits'] += 1
         
@@ -198,11 +200,57 @@ def get_pool_stats():
     return dict(_pool_stats)
 
 
+def log_pool_usage():
+    """
+    Log current connection pool usage (for monitoring)
+    """
+    global _connection_pools, _pool_stats
+    
+    print(f"\n{'='*70}")
+    print(f" [POOL] CONNECTION POOL USAGE REPORT")
+    print(f"{'='*70}")
+    
+    with _pool_lock:
+        for schema_name, pool_instance in _connection_pools.items():
+            # Try to get pool statistics
+            try:
+                # psycopg2 pools expose _used and _pool attributes
+                used = len(pool_instance._used) if hasattr(pool_instance, '_used') else '?'
+                available = len(pool_instance._pool) if hasattr(pool_instance, '_pool') else '?'
+                maxconn = pool_instance._maxconn if hasattr(pool_instance, '_maxconn') else '?'
+                
+                print(f"\nSchema: {schema_name}")
+                print(f"  Active connections: {used}")
+                print(f"  Available in pool: {available}")
+                print(f"  Max connections: {maxconn}")
+                print(f"  Status: {'OK' if used < maxconn else 'EXHAUSTED'}")
+            except Exception as e:
+                print(f"\nSchema: {schema_name}")
+                print(f"  Error getting stats: {e}")
+    
+    print(f"\nGlobal Stats:")
+    print(f"  Total pools: {_pool_stats['pools_created']}")
+    print(f"  Connections acquired: {_pool_stats['connections_acquired']}")
+    print(f"  Connections returned: {_pool_stats['connections_returned']}")
+    print(f"  Leaked connections: {_pool_stats['connections_acquired'] - _pool_stats['connections_returned']}")
+    print(f"  Pool hits: {_pool_stats['pool_hits']}")
+    print(f"  Pool misses: {_pool_stats['pool_misses']}")
+    
+    if _pool_stats['connections_acquired'] > 0:
+        avg_wait = _pool_stats['total_wait_time'] / _pool_stats['connections_acquired']
+        print(f"  Avg wait time: {avg_wait*1000:.1f}ms")
+    
+    print(f"{'='*70}\n")
+
+
 def close_all_pools():
     """
     Close all connection pools (for graceful shutdown)
     """
     global _connection_pools
+    
+    # Log final usage before closing
+    log_pool_usage()
     
     with _pool_lock:
         for schema_name, pool_instance in _connection_pools.items():

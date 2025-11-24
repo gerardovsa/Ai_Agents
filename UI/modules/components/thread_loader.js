@@ -60,7 +60,7 @@ const ThreadLoader = {
 
             if (data.success && data.data) {
                 const messages = data.data.messages || data.data || [];
-                
+
                 // If pagination data exists (paginated request), return it
                 if (data.data.total !== undefined) {
                     const paginationInfo = {
@@ -121,14 +121,14 @@ const ThreadLoader = {
         // This method now only logs - does NOT save to prevent phantom threads
         console.warn('[ThreadLoader] ⚠️ saveThreadToBackend is DEPRECATED');
         console.warn('[ThreadLoader] Backend auto-saves after stream completion');
-        
+
         if (thread && thread.messages) {
             console.log(`[ThreadLoader] Thread ${thread.id} has ${thread.messages.length} messages (already in database)`);
         }
-        
+
         // Return success to avoid breaking code
         return true;
-        
+
         /* DEPRECATED: All save logic removed to prevent phantom threads
         try {
             // Don't try to save empty threads
@@ -188,14 +188,14 @@ const ThreadLoader = {
         console.warn(`[ThreadLoader] ⚠️ saveMessagesToBackend is DEPRECATED`);
         console.warn(`[ThreadLoader] Backend auto-saves messages after stream completion`);
         console.warn(`[ThreadLoader] Frontend should NEVER save messages`);
-        
+
         if (thread && thread.messages) {
             console.log(`[ThreadLoader] Thread ${thread.id} has ${thread.messages.length} messages (already in database)`);
         }
-        
+
         // Return success to avoid breaking code that calls this
         return true;
-        
+
         /* DEPRECATED CODE - Backend now handles message saving
         try {
             if (!thread || !thread.id) {
@@ -272,15 +272,10 @@ const ThreadLoader = {
     async getThreadLocation(threadId) {
         try {
             // Initialize Supabase client if not exists
+            // NOTE: SUPABASE_CLIENT is set by SupabaseConnectionManager
             if (!window.SUPABASE_CLIENT) {
-                if (typeof window.supabase === 'undefined') {
-                    console.warn('[ThreadLoader] Supabase not available');
-                    return null;
-                }
-                window.SUPABASE_CLIENT = window.supabase.createClient(
-                    window.SUPABASE_URL,
-                    window.SUPABASE_ANON_KEY
-                );
+                console.warn('[ThreadLoader] Supabase connection manager not initialized yet');
+                return null;
             }
 
             const userId = window.appUserId || 1;

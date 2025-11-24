@@ -79,6 +79,10 @@
     <!-- Supabase Client for Real-Time Database Updates -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <!-- ✨ NEW: Supabase Connection Manager - MUST LOAD BEFORE REALTIME MODULES -->
+    <!-- Prevents duplicate connections, adds health monitoring and auto-reconnect -->
+    <script src="js/supabase-connection-manager.js"></script>
+
     <!-- Socket.IO Client for Real-Time WebSocket Communication -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" crossorigin="anonymous"></script>
 
@@ -16298,11 +16302,12 @@
         // ? Supabase Global Configuration (loaded from Flask backend)
         window.SUPABASE_URL = null;
         window.SUPABASE_ANON_KEY = null;
-        window.SUPABASE_CLIENT = null;
+        window.SUPABASE_CLIENT = null; // DEPRECATED - Use SupabaseConnectionManager instead
         window.SUPABASE_REALTIME_ENABLED = false;
         window.SUPABASE_CONFIG_LOADED = false;
 
-        // Load Supabase config from Flask backend and initialize client
+        // Load Supabase config from Flask backend
+        // NOTE: Does NOT create client - SupabaseConnectionManager handles client creation
         window.loadSupabaseConfig = async function () {
             if (window.SUPABASE_CONFIG_LOADED) {
                 return true; // Already loaded
@@ -16317,19 +16322,10 @@
                     window.SUPABASE_CONFIG_LOADED = true;
                     console.log('? [SUPABASE] Config loaded:', window.SUPABASE_URL);
 
-                    // Initialize Supabase client
-                    if (typeof supabase !== 'undefined' && supabase.createClient) {
-                        window.SUPABASE_CLIENT = supabase.createClient(
-                            window.SUPABASE_URL,
-                            window.SUPABASE_ANON_KEY
-                        );
-                        window.supabaseClient = window.SUPABASE_CLIENT; // Alias for compatibility
-                        window.SUPABASE_REALTIME_ENABLED = true;
-                        console.log('? [SUPABASE] Client initialized - Realtime enabled');
-                    } else {
-                        console.error('? [SUPABASE] supabase.createClient not available');
-                        return false;
-                    }
+                    // ✅ DO NOT CREATE CLIENT HERE - SupabaseConnectionManager handles this
+                    // Client creation moved to connection manager to prevent duplicates
+                    window.SUPABASE_REALTIME_ENABLED = true;
+                    console.log('? [SUPABASE] Config ready for connection manager');
 
                     return true;
                 } else {

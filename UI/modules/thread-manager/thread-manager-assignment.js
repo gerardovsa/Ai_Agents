@@ -78,14 +78,8 @@ Object.assign(window.ThreadManager, {
             // Set pending flag to prevent realtime loop
             this.pendingAssignment = true;
 
-            // PHASE 1: UPDATE SUPABASE DIRECTLY (single source of truth)
-            if (!window.SUPABASE_CLIENT) {
-                window.SUPABASE_CLIENT = window.supabase.createClient(
-                    window.SUPABASE_URL,
-                    window.SUPABASE_ANON_KEY
-                );
-            }
-
+            // PHASE 1: UPDATE via Flask API (sessions schema not exposed in REST API)
+            // NOTE: SUPABASE_CLIENT is set by SupabaseConnectionManager
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
 
             // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
@@ -289,14 +283,7 @@ Object.assign(window.ThreadManager, {
         console.log('📍 [Assignment] Current locations:', this.threads.map(t => `${t.id}→${t.location}`));
 
         try {
-            // Initialize Supabase client if not exists
-            if (!window.SUPABASE_CLIENT) {
-                window.SUPABASE_CLIENT = window.supabase.createClient(
-                    window.SUPABASE_URL,
-                    window.SUPABASE_ANON_KEY
-                );
-            }
-
+            // NOTE: SUPABASE_CLIENT is set by SupabaseConnectionManager
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
             console.log('👤 [Assignment] User ID:', userId);
             console.log('🌐 [Assignment] Fetching from Flask API...');
@@ -411,14 +398,7 @@ Object.assign(window.ThreadManager, {
      */
     async getThreadAssignments() {
         try {
-            // Initialize Supabase client if not exists
-            if (!window.SUPABASE_CLIENT) {
-                window.SUPABASE_CLIENT = window.supabase.createClient(
-                    window.SUPABASE_URL,
-                    window.SUPABASE_ANON_KEY
-                );
-            }
-
+            // NOTE: SUPABASE_CLIENT is set by SupabaseConnectionManager
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
 
             // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
@@ -477,41 +457,38 @@ Object.assign(window.ThreadManager, {
         console.log('🔄 [Assignment] Initializing Realtime subscriptions...');
 
         // Check if Supabase is available
-        if (typeof window.supabase === 'undefined') {
-            console.warn('⚠️ [Assignment] Supabase not loaded, realtime disabled');
+        // ✅ Check for SupabaseConnectionManager
+        if (!window.SupabaseConnectionManager) {
+            console.warn('⚠️ [Assignment] SupabaseConnectionManager not available, realtime disabled');
             this.realtimeEnabled = false;
             return;
         }
 
         try {
-            if (!window.SUPABASE_CLIENT) {
-                window.SUPABASE_CLIENT = window.supabase.createClient(
-                    window.SUPABASE_URL,
-                    window.SUPABASE_ANON_KEY
-                );
-            }
-
+            console.log('🔷 [Assignment] Subscribing with connection manager...');
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
 
-            this.realtimeChannel = window.SUPABASE_CLIENT
-                .channel('thread-location-changes')
-                .on('postgres_changes', {
-                    event: 'UPDATE',
+            // ✨ USE CONNECTION MANAGER (prevents duplicate connections)
+            this.realtimeChannel = await window.SupabaseConnectionManager.subscribeChannel(
+                'thread-location-changes',
+                {
                     schema: 'sessions',
                     table: 'threads',
-                    filter: `user_id=eq.${userId}`
-                }, (payload) => {
-                    this.handleThreadLocationChange(payload);
-                })
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ [Assignment] Realtime active');
-                        this.realtimeEnabled = true;
-                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                        console.warn('⚠️ [Assignment] Realtime failed, using fallback mode');
-                        this.realtimeEnabled = false;
+                    event: 'UPDATE',
+                    filter: `user_id=eq.${userId}`,
+                    callback: (payload) => {
+                        this.handleThreadLocationChange(payload);
                     }
-                });
+                }
+            );
+
+            if (!this.realtimeChannel) {
+                console.warn('⚠️ [Assignment] Realtime failed, using fallback mode');
+                this.realtimeEnabled = false;
+            } else {
+                console.log('✅ [Assignment] Realtime active with connection manager');
+                this.realtimeEnabled = true;
+            }
         } catch (error) {
             console.error('❌ [Assignment] Failed to init realtime:', error);
             this.realtimeEnabled = false;
@@ -567,14 +544,7 @@ Object.assign(window.ThreadManager, {
      */
     async clearAllAssignments() {
         try {
-            // Initialize Supabase client if not exists
-            if (!window.SUPABASE_CLIENT) {
-                window.SUPABASE_CLIENT = window.supabase.createClient(
-                    window.SUPABASE_URL,
-                    window.SUPABASE_ANON_KEY
-                );
-            }
-
+            // NOTE: SUPABASE_CLIENT is set by SupabaseConnectionManager
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
 
             // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)

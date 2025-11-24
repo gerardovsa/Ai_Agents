@@ -23,6 +23,7 @@
 class XeroModule extends BaseModule {
     constructor() {
         super('xero');
+        this.API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
         this.currentBusiness = 1; // Default to InHouse Print
         this.data = {
             invoices: [],
@@ -295,7 +296,7 @@ class XeroModule extends BaseModule {
 
         try {
             // Fetch dashboard data
-            const response = await fetch(`http://localhost:5001/api/xero/dashboard?business_id=${this.currentBusiness}`);
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/dashboard?business_id=${this.currentBusiness}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -494,7 +495,7 @@ class XeroModule extends BaseModule {
         this.showLoading('Loading invoices...');
 
         try {
-            const response = await fetch(`http://localhost:5001/api/xero/invoices?business_id=${this.currentBusiness}`);
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/invoices?business_id=${this.currentBusiness}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -632,7 +633,7 @@ class XeroModule extends BaseModule {
         this.showLoading('Loading contacts...');
 
         try {
-            const response = await fetch(`http://localhost:5001/api/xero/contacts?business_id=${this.currentBusiness}`);
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/contacts?business_id=${this.currentBusiness}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -735,7 +736,7 @@ class XeroModule extends BaseModule {
         this.showLoading('Loading payments...');
 
         try {
-            const response = await fetch(`http://localhost:5001/api/xero/payments?business_id=${this.currentBusiness}`);
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/payments?business_id=${this.currentBusiness}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -832,7 +833,7 @@ class XeroModule extends BaseModule {
         this.showLoading('Loading accounts...');
 
         try {
-            const response = await fetch(`http://localhost:5001/api/xero/accounts?business_id=${this.currentBusiness}`);
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/accounts?business_id=${this.currentBusiness}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
