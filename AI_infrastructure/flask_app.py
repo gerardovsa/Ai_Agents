@@ -116,6 +116,7 @@ from routes.message_operations import message_ops_bp  # NEW: Message operations 
 from routes.export_routes import export_bp
 from routes.woocommerce_routes import woocommerce_bp
 from routes.auth_routes import auth_bp  # NEW: User authentication
+from routes.oauth_routes import oauth_bp  # NEW: OAuth workspace integration (Google Workspace + M365)
 from routes.google_auth_routes_V2_FIXED import google_auth_bp  # NEW: Google OAuth V2
 from routes.microsoft_auth_routes_V2_FIXED import microsoft_auth_bp  # NEW: Microsoft OAuth V2
 from routes.account_linking_routes import account_linking_bp  # NEW: Account linking
@@ -265,6 +266,7 @@ app.register_blueprint(file_bp)                                      # NEW: File
 app.register_blueprint(export_bp, url_prefix='/api/export')         # 3 endpoints (export functionality)
 app.register_blueprint(woocommerce_bp)                               # 9 endpoints (WooCommerce direct API)
 app.register_blueprint(auth_bp)                                      # NEW: 6 endpoints (user auth)
+app.register_blueprint(oauth_bp)                                     # NEW: OAuth workspace integration (/api/oauth/*)
 app.register_blueprint(google_auth_bp)                               # NEW: Google OAuth V2 (/api/auth/google/*)
 app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth V2 (/api/auth/microsoft/*)
 app.register_blueprint(account_linking_bp)                           # NEW: Account linking (/api/account/*)
