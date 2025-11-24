@@ -118,9 +118,16 @@ window.ThreadManagerUI = {
             }
 
             // Date range filter
-            if (dateRangeFilter && dateRangeFilter.startDate && thread.updated) {
+            if (dateRangeFilter && thread.updated) {
                 const threadDate = new Date(thread.updated);
-                if (threadDate < dateRangeFilter.startDate) {
+
+                // Check start date
+                if (dateRangeFilter.startDate && threadDate < dateRangeFilter.startDate) {
+                    return false;
+                }
+
+                // Check end date
+                if (dateRangeFilter.endDate && threadDate > dateRangeFilter.endDate) {
                     return false;
                 }
             }
@@ -388,7 +395,7 @@ window.ThreadManagerUI = {
         let agent = {
             name: 'Prime',
             icon: 'fa-star',
-            class: 'main'
+            class: location === 'prime-loaded' ? 'main-loaded' : 'main'
         };
 
         if (location && location.startsWith('agent-')) {

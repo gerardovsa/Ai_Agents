@@ -691,8 +691,8 @@ def create_session():
                 session_id, title, description, platforms_involved, status,
                 priority, kanban_column, tags, documents, links, next_steps,
                 assignees, recent_activity, checklist, due_date, created_at, last_active,
-                thread_ids, assigned_agents
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                thread_ids, assigned_agents, uses_milestones
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             session_id,
             data.get('title', 'Untitled Session'),
@@ -712,7 +712,8 @@ def create_session():
             datetime.now().isoformat(),
             datetime.now().isoformat(),
             thread_ids,
-            assigned_agents
+            assigned_agents,
+            data.get('uses_milestones', False)
         ))
         
         conn.commit()
@@ -1821,6 +1822,82 @@ def link_existing_document(session_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# REMOVED DUPLICATE: link_thread_to_synergy endpoint already defined at line 1138
+# The first implementation (line 1138) handles thread_ids array properly
+
+
+@synergy_bp.route('/<session_id>/linked-threads', methods=['GET'])
+def get_linked_threads(session_id):
+    """
+    Get all threads linked to a Synergy session
+    
+    Returns:
+        {
+            "success": true,
+            "count": 3,
+            "threads": [
+                {
+                    "thread_id": "thread_123",
+                    "thread_slug": "thr_abc",
+                    "title": "Thread Title",
+                    "agent_id": "prime",
+                    "message_count": 10,
+                    "created_at": "2025-11-24 12:00:00",
+                    "last_activity": "2025-11-24 15:30:00"
+                }
+            ]
+        }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get all threads linked to this session
+        sql, params = convert_sql_placeholders("""
+            SELECT 
+                thread_id,
+                thread_slug,
+                title,
+                agent_id,
+                message_count,
+                created_at,
+                updated_at as last_activity
+            FROM sessions.threads
+            WHERE synergy_session_id = %s
+            ORDER BY updated_at DESC
+        """, (session_id,))
+        
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        threads = []
+        for row in rows:
+            threads.append({
+                'thread_id': row[0],
+                'thread_slug': row[1],
+                'title': row[2],
+                'agent_id': row[3] or 'prime',
+                'message_count': row[4] or 0,
+                'created_at': row[5].isoformat() if row[5] else None,
+                'last_activity': row[6].isoformat() if row[6] else None
+            })
+        
+        print(f"[SYNERGY] Found {len(threads)} linked threads for session {session_id}")
+        
+        return jsonify({
+            'success': True,
+            'count': len(threads),
+            'threads': threads
+        })
+    
+    except Exception as e:
+        print(f"[SYNERGY ERROR] Failed to get linked threads: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @synergy_bp.route('/internal-doc/<doc_id>/link-ai', methods=['POST'])
 def link_doc_to_ai(doc_id):
     """
@@ -2090,11 +2167,13 @@ def create_milestone():
         
         # Get next milestone number
         sql, params = convert_sql_placeholders('''
-            SELECT COALESCE(MAX(milestone_number), 0) + 1 
+            SELECT COALESCE(MAX(milestone_number), 0) + 1 AS next_number
             FROM synergy_sessions.milestones 
             WHERE session_id = %s
         ''', (data['session_id'],))
-        milestone_number = cursor.fetchone()[0]
+        cursor.execute(sql, params)
+        result = cursor.fetchone()
+        milestone_number = result['next_number'] if isinstance(result, dict) else result[0]
         
         # Generate milestone ID
         milestone_id = f"ms_{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -2102,14 +2181,15 @@ def create_milestone():
         # Insert milestone
         sql, params = convert_sql_placeholders('''
             INSERT INTO synergy_sessions.milestones (
-                milestone_id, session_id, milestone_number, milestone_name,
+                milestone_id, session_id, milestone_number, milestone_order, milestone_name,
                 description, completed, due_date, priority, estimated_hours,
                 created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             milestone_id,
             data['session_id'],
             milestone_number,
+            milestone_number,  # milestone_order same as milestone_number
             data['milestone_name'],
             data.get('description'),
             False,
@@ -2119,6 +2199,7 @@ def create_milestone():
             datetime.now().isoformat(),
             datetime.now().isoformat()
         ))
+        cursor.execute(sql, params)
         
         # Insert tasks
         tasks_created = 0

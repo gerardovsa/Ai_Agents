@@ -2167,7 +2167,10 @@ function createAgentColumn(agentId) {
 
     // Use unified thread-info container (same as Prime)
     // Thread info card will be populated when thread is loaded via initMultiAgent()
-    let threadInfoHtml = '<div class="agent-thread-placeholder" style="padding: 12px; color: var(--text-muted); font-size: 13px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    // Show loading spinner ONLY if thread is assigned, otherwise show nothing (thread loads during init)
+    let threadInfoHtml = threadInAgent 
+        ? '<div class="agent-thread-placeholder" style="padding: 12px; color: var(--text-muted); font-size: 13px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>'
+        : '<div class="agent-thread-placeholder" style="padding: 12px; color: var(--text-muted); font-size: 13px; opacity: 0;"></div>';
 
     column.innerHTML = `
             <!-- Collapsed Column Bar (hidden by default) -->

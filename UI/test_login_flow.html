@@ -1,22 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Flow Test</title>
     <style>
-        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
-        .test-section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-left: 4px solid #4CAF50; }
-        .test-section h3 { margin-top: 0; color: #4CAF50; }
-        button { padding: 10px 20px; margin: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:hover { background: #45a049; }
-        .error { color: #f44336; }
-        .success { color: #4CAF50; }
-        .warning { color: #ff9800; }
-        #testResults { margin-top: 20px; }
-        .result-item { padding: 8px; margin: 5px 0; background: #333; border-radius: 4px; }
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #2a2a2a;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .test-section h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .error {
+            color: #f44336;
+        }
+
+        .success {
+            color: #4CAF50;
+        }
+
+        .warning {
+            color: #ff9800;
+        }
+
+        #testResults {
+            margin-top: 20px;
+        }
+
+        .result-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #333;
+            border-radius: 4px;
+        }
     </style>
 </head>
+
 <body>
     <h1>🧪 Login Flow Test Page</h1>
     <p>This page simulates the login flow logic to identify issues.</p>
@@ -73,7 +119,7 @@
             html += `authToken: ${token ? '✅ EXISTS (length: ' + token.length + ')' : '❌ NULL'}\n`;
             html += `userProfile: ${user ? '✅ EXISTS' : '❌ NULL'}\n`;
             html += `dev_mode_user: ${devMode ? '✅ EXISTS' : '❌ NULL'}\n`;
-            
+
             if (user) {
                 try {
                     const parsed = JSON.parse(user);
@@ -197,4 +243,5 @@
         });
     </script>
 </body>
+
 </html>

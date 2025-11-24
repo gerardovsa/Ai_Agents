@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Loading Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #fff; }
+        .test { margin: 10px 0; padding: 10px; background: #16213e; border-radius: 5px; }
+        .pass { border-left: 4px solid #10b981; }
+        .fail { border-left: 4px solid #ef4444; }
+        .log { background: #0f3460; padding: 5px; margin: 5px 0; border-radius: 3px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Module Loading Test</h1>
+    <div id="results"></div>
+
+    <!-- Minimal DOM structure needed by ModuleManager -->
+    <div class="sidebar" style="display: block;"></div>
+    <div class="main-content" style="display: block;"></div>
+
+    <!-- Load module system -->
+    <script src="js/module-manager.js?v=20251124f"></script>
+    <script src="js/module-loader.js?v=20251124f"></script>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function log(message, isPass = true) {
+            const div = document.createElement('div');
+            div.className = `test ${isPass ? 'pass' : 'fail'}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+
+        function addLog(message) {
+            const div = document.createElement('div');
+            div.className = 'log';
+            div.textContent = message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        // Capture console output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            addLog('LOG: ' + args.join(' '));
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            addLog('ERROR: ' + args.join(' '));
+            originalError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            addLog('WARN: ' + args.join(' '));
+            originalWarn.apply(console, args);
+        };
+
+        // Wait for DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', async () => {
+            log('<strong>TEST 1:</strong> Check if ModuleManager class exists');
+            if (typeof ModuleManager !== 'undefined') {
+                log('✅ ModuleManager class found', true);
+            } else {
+                log('❌ ModuleManager class NOT found', false);
+                return;
+            }
+
+            log('<strong>TEST 2:</strong> Check if ModuleLoader class exists');
+            if (typeof ModuleLoader !== 'undefined') {
+                log('✅ ModuleLoader class found', true);
+            } else {
+                log('❌ ModuleLoader class NOT found', false);
+                return;
+            }
+
+            log('<strong>TEST 3:</strong> Check if window.initializeModuleSystem exists');
+            if (typeof window.initializeModuleSystem === 'function') {
+                log('✅ initializeModuleSystem function found', true);
+            } else {
+                log('❌ initializeModuleSystem function NOT found', false);
+                return;
+            }
+
+            log('<strong>TEST 4:</strong> Check DOM elements');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            if (sidebar && mainContent) {
+                log('✅ Sidebar and main-content elements found', true);
+                log(`Sidebar visible: ${sidebar.offsetParent !== null}`, true);
+                log(`Main-content visible: ${mainContent.offsetParent !== null}`, true);
+            } else {
+                log('❌ DOM elements missing', false);
+                return;
+            }
+
+            log('<strong>TEST 5:</strong> Call initializeModuleSystem()');
+            try {
+                await window.initializeModuleSystem();
+                log('✅ initializeModuleSystem() completed without error', true);
+            } catch (error) {
+                log(`❌ initializeModuleSystem() threw error: ${error.message}`, false);
+                return;
+            }
+
+            log('<strong>TEST 6:</strong> Check if modules loaded');
+            if (window.ModuleManager && window.ModuleManager.getModules) {
+                const modules = window.ModuleManager.getModules();
+                if (modules.length > 0) {
+                    log(`✅ ${modules.length} modules loaded successfully`, true);
+                    modules.forEach(m => {
+                        log(`&nbsp;&nbsp;&nbsp;- ${m.name} (${m.id})`, true);
+                    });
+                } else {
+                    log('❌ No modules loaded (getModules returned 0)', false);
+                }
+            } else {
+                log('❌ ModuleManager.getModules not available', false);
+            }
+
+            log('<strong>TEST 7:</strong> Check if InHouse Kanban registered');
+            if (window.ModuleManager) {
+                const modules = window.ModuleManager.getModules();
+                const kanban = modules.find(m => m.id === 'inhouse-kanban');
+                if (kanban) {
+                    log('✅ InHouse Kanban module registered', true);
+                } else {
+                    log('❌ InHouse Kanban module NOT registered', false);
+                }
+            }
+
+            log('<strong>COMPLETE</strong> - Check console for detailed logs');
+        });
+    </script>
+</body>
+</html>

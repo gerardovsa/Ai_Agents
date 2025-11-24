@@ -105,13 +105,13 @@ const ThreadManager = {
         if (typeof AppState !== 'undefined' && AppState.currentThreadId) {
             return AppState.currentThreadId;
         }
-        
+
         // Fallback: Find thread at location='prime-loaded'
         const primeThread = this.threads.find(t => t.location === 'prime-loaded');
         if (primeThread) {
             return primeThread.id;
         }
-        
+
         return null;
     },
 
@@ -179,9 +179,9 @@ const ThreadManager = {
         // Modules that extend ThreadManager directly via Object.assign
         // (Assignment, CRUD, Messages, Interactions)
         // These don't have separate globals - they add methods to window.ThreadManager
-                // Setup drag/drop zones for agent columns and Prime (called after agents load)
+        // Setup drag/drop zones for agent columns and Prime (called after agents load)
         const directExtensions = [
-            'assignThread', 'createThread', 'saveMessagesToBackend', 'toggleThreadMenu', 
+            'assignThread', 'createThread', 'saveMessagesToBackend', 'toggleThreadMenu',
             'setupPrimeDropZone', 'handleThreadDoubleClick', 'handleDragStart', 'handleDragEnd', 'handleDrop'
         ];
         const missingMethods = directExtensions.filter(method => typeof this[method] !== 'function');
@@ -338,11 +338,11 @@ const ThreadManager = {
         // ONLY load prime-loaded thread (explicit startup thread)
         // Do NOT fallback to first prime thread - show empty state instead
         const primeLoadedThread = this.threads.find(t => t.location === 'prime-loaded');
-        
+
         if (primeLoadedThread) {
             console.log(`🎯 [ThreadManager] Auto-loading PRIME-LOADED thread: ${primeLoadedThread.title}`);
             await this.loadThreadInPrime(primeLoadedThread.id);
-            
+
             // Update thread info card after loading
             if (typeof this.renderThreadInfoContainer === 'function') {
                 this.renderThreadInfoContainer('prime', primeLoadedThread.id, true);
@@ -361,7 +361,7 @@ const ThreadManager = {
         // Backend now auto-saves messages after stream completion
         // Frontend auto-save was causing phantom threads via UPSERT
         console.log('ℹ️ [ThreadManager] Auto-save disabled - backend handles saves');
-        
+
         /* DEPRECATED: Frontend auto-save removed
         if (this.autoSaveInterval) {
             clearInterval(this.autoSaveInterval);
@@ -423,6 +423,10 @@ const ThreadManager = {
     filterByDateRange(...args) { return window.ThreadManagerFilters.filterByDateRange.call(this, ...args); },
     setSortOrder(...args) { return window.ThreadManagerFilters.setSortOrder.call(this, ...args); },
     getDateLabel(...args) { return window.ThreadManagerFilters.getDateLabel.call(this, ...args); },
+    populateAgentDropdown(...args) { return window.ThreadManagerFilters.populateAgentDropdown.call(this, ...args); },
+    populateTagsDropdown(...args) { return window.ThreadManagerFilters.populateTagsDropdown.call(this, ...args); },
+    applyCustomDateRange(...args) { return window.ThreadManagerFilters.applyCustomDateRange.call(this, ...args); },
+    toggleCustomDateRange(...args) { return window.ThreadManagerFilters.toggleCustomDateRange.call(this, ...args); },
 
     // Helper methods
     getCurrentThread() {

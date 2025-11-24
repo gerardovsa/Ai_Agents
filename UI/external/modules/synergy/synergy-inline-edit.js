@@ -555,8 +555,8 @@ class SynergyInlineEditClass {
 
         const titleEl = container.querySelector('.synergy-flat-task-title');
         const priorityEl = container.querySelector('.synergy-priority-select');
-        
-        const data = { 
+
+        const data = {
             task: titleEl ? titleEl.textContent.trim() : '',
             priority: priorityEl ? priorityEl.value : 'medium'
         };
@@ -641,8 +641,8 @@ class SynergyInlineEditClass {
 
         const titleEl = container.querySelector('.synergy-flat-subtask-title');
         const priorityEl = container.querySelector('.synergy-priority-select');
-        
-        const data = { 
+
+        const data = {
             subtask: titleEl ? titleEl.textContent.trim() : '',
             priority: priorityEl ? priorityEl.value : 'medium'
         };
@@ -729,10 +729,10 @@ class SynergyInlineEditClass {
                 const deleteBtn = headerRight.querySelector('.synergy-delete-btn');
                 const priorityDisplay = headerRight.querySelector('.synergy-priority-display');
                 const prioritySelect = headerRight.querySelector('.synergy-priority-select');
-                
+
                 if (editBtn) editBtn.style.display = 'none';
                 if (deleteBtn) deleteBtn.style.display = 'none';
-                
+
                 // Show priority dropdown, hide badge
                 if (priorityDisplay) priorityDisplay.style.display = 'none';
                 if (prioritySelect) prioritySelect.style.display = 'inline-block';
@@ -744,10 +744,10 @@ class SynergyInlineEditClass {
                 const deleteBtn = headerRight.querySelector('.synergy-delete-btn');
                 const priorityDisplay = headerRight.querySelector('.synergy-priority-display');
                 const prioritySelect = headerRight.querySelector('.synergy-priority-select');
-                
+
                 if (editBtn) editBtn.style.display = 'inline-block';
                 if (deleteBtn) deleteBtn.style.display = 'inline-block';
-                
+
                 // Hide priority dropdown, show badge
                 if (priorityDisplay) priorityDisplay.style.display = 'inline-flex';
                 if (prioritySelect) prioritySelect.style.display = 'none';

@@ -119,23 +119,17 @@ window.ThreadManagerFilters = {
     filterByTag(tag) {
         console.log(`🏷️ [Filters] Tag filter: ${tag}`);
 
-        // Toggle tag filter
-        if (this.activeTagFilter === tag) {
+        // Set tag filter (or clear if "all")
+        if (tag === 'all') {
             this.activeTagFilter = null;
         } else {
             this.activeTagFilter = tag;
         }
 
-        // Update active chip
-        document.querySelectorAll('[data-filter="synergy"], [data-filter="automation"]').forEach(chip => {
-            chip.classList.remove('active');
-        });
-
-        if (this.activeTagFilter) {
-            const activeChip = document.querySelector(`[data-filter="${tag}"]`);
-            if (activeChip) {
-                activeChip.classList.add('active');
-            }
+        // Sync dropdown if exists
+        const tagsSelect = document.getElementById('tags-select');
+        if (tagsSelect && tagsSelect.value !== tag) {
+            tagsSelect.value = tag;
         }
 
         if (typeof this.renderThreadList === 'function') {
@@ -149,32 +143,47 @@ window.ThreadManagerFilters = {
     filterByDateRange(range) {
         console.log(`📅 [Filters] Date range: ${range}`);
 
+        // Show/hide custom date picker
+        if (range === 'custom') {
+            this.toggleCustomDateRange(true);
+            return; // Don't apply filter yet - wait for user to apply custom range
+        } else {
+            this.toggleCustomDateRange(false);
+        }
+
         const now = new Date();
         let startDate = null;
+        let endDate = null;
 
         switch (range) {
             case 'today':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                 break;
             case 'yesterday':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
                 break;
             case '3days':
                 startDate = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
+                endDate = now;
                 break;
             case 'week':
                 startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+                endDate = now;
                 break;
             case 'month':
                 startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+                endDate = now;
                 break;
             case 'all':
             default:
                 startDate = null;
+                endDate = null;
                 break;
         }
 
-        this.dateRangeFilter = { range, startDate };
+        this.dateRangeFilter = { range, startDate, endDate };
 
         // Sync dropdown if exists
         const dateSelect = document.getElementById('date-range-select');
@@ -224,7 +233,7 @@ window.ThreadManagerFilters = {
         this.searchQuery = '';
         this.locationFilter = 'all';
         this.activeTagFilter = null;
-        this.dateRangeFilter = { range: 'all', startDate: null };
+        this.dateRangeFilter = { range: 'all', startDate: null, endDate: null };
 
         // Clear search input
         const searchInput = document.getElementById('thread-search-input');
@@ -245,6 +254,148 @@ window.ThreadManagerFilters = {
 
         if (typeof this.renderThreadList === 'function') {
             this.renderThreadList();
+        }
+    },
+
+    /**
+     * NEW: Populate agent dropdown with dynamic agents from threads.location
+     */
+    populateAgentDropdown() {
+        const agentSelect = document.getElementById('agent-select');
+        if (!agentSelect) return;
+
+        // Get unique agent locations from threads
+        const threads = window.ThreadManager?.threads || [];
+        const uniqueLocations = new Set();
+
+        threads.forEach(thread => {
+            if (thread.location) {
+                uniqueLocations.add(thread.location);
+            }
+        });
+
+        // Clear existing options (except "All Locations")
+        agentSelect.innerHTML = '<option value="all">All Locations</option>';
+
+        // Add Prime if it exists
+        if (uniqueLocations.has('prime')) {
+            agentSelect.innerHTML += '<option value="prime">Prime</option>';
+            uniqueLocations.delete('prime');
+        }
+
+        // Add agent options (sorted)
+        const agentLocations = Array.from(uniqueLocations)
+            .filter(loc => loc.startsWith('agent-'))
+            .sort();
+
+        if (agentLocations.length > 0) {
+            agentSelect.innerHTML += '<optgroup label="Agents">';
+            agentLocations.forEach(location => {
+                const agentNumber = location.replace('agent-', '');
+                agentSelect.innerHTML += `<option value="${location}">Agent-${agentNumber}</option>`;
+            });
+            agentSelect.innerHTML += '</optgroup>';
+        }
+
+        console.log(`✅ [Filters] Populated agent dropdown with ${uniqueLocations.size + 1} locations`);
+    },
+
+    /**
+     * NEW: Populate tags dropdown with dynamic tags from threads
+     */
+    populateTagsDropdown() {
+        const tagsSelect = document.getElementById('tags-select');
+        if (!tagsSelect) return;
+
+        // Get unique tags from threads
+        const threads = window.ThreadManager?.threads || [];
+        const uniqueTags = new Set();
+
+        threads.forEach(thread => {
+            // Check for Synergy
+            if (thread.synergy_card_id) {
+                uniqueTags.add('synergy');
+            }
+            // Check for Automation
+            if (thread.automation_workflow_id) {
+                uniqueTags.add('automation');
+            }
+            // Add other tags if they exist
+            if (thread.tags && Array.isArray(thread.tags)) {
+                thread.tags.forEach(tag => uniqueTags.add(tag));
+            }
+        });
+
+        // Clear existing options (except "All Tags")
+        tagsSelect.innerHTML = '<option value="all">All Tags</option>';
+
+        // Add tag options
+        if (uniqueTags.size > 0) {
+            Array.from(uniqueTags).sort().forEach(tag => {
+                const tagIcon = tag === 'synergy' ? '🔄' :
+                    tag === 'automation' ? '⚡' : '🏷️';
+                const tagLabel = tag.charAt(0).toUpperCase() + tag.slice(1);
+                tagsSelect.innerHTML += `<option value="${tag}">${tagIcon} ${tagLabel}</option>`;
+            });
+        }
+
+        console.log(`✅ [Filters] Populated tags dropdown with ${uniqueTags.size} tags`);
+    },
+
+    /**
+     * NEW: Handle custom date range selection
+     */
+    applyCustomDateRange() {
+        const startInput = document.getElementById('date-range-start');
+        const endInput = document.getElementById('date-range-end');
+        const customRangeDiv = document.getElementById('thread-custom-date-range');
+
+        if (!startInput || !endInput) {
+            console.error('❌ [Filters] Date range inputs not found');
+            return;
+        }
+
+        const startDate = startInput.value ? new Date(startInput.value) : null;
+        const endDate = endInput.value ? new Date(endInput.value) : null;
+
+        if (!startDate && !endDate) {
+            console.warn('⚠️ [Filters] No custom date range specified');
+            return;
+        }
+
+        // Validate date range
+        if (startDate && endDate && startDate > endDate) {
+            alert('Start date must be before end date');
+            return;
+        }
+
+        // Store custom range
+        this.dateRangeFilter = {
+            range: 'custom',
+            startDate: startDate,
+            endDate: endDate
+        };
+
+        console.log(`📅 [Filters] Custom date range: ${startDate?.toLocaleDateString()} - ${endDate?.toLocaleDateString()}`);
+
+        // Hide custom range picker
+        if (customRangeDiv) {
+            customRangeDiv.style.display = 'none';
+        }
+
+        // Re-render thread list
+        if (typeof this.renderThreadList === 'function') {
+            this.renderThreadList();
+        }
+    },
+
+    /**
+     * NEW: Show/hide custom date range picker
+     */
+    toggleCustomDateRange(show) {
+        const customRangeDiv = document.getElementById('thread-custom-date-range');
+        if (customRangeDiv) {
+            customRangeDiv.style.display = show ? 'block' : 'none';
         }
     }
 };
