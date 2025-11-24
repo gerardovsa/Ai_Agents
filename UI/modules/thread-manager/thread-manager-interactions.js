@@ -604,6 +604,15 @@ Object.assign(window.ThreadManager, {
             console.log('📂 [Interactions] Opening thread menu...');
             await this.loadThreadsFromBackend();
             await this.renderThreadList();
+
+            // Populate dynamic dropdowns
+            if (typeof this.populateAgentDropdown === 'function') {
+                this.populateAgentDropdown();
+            }
+            if (typeof this.populateTagsDropdown === 'function') {
+                this.populateTagsDropdown();
+            }
+
             console.log(`✅ [Interactions] Thread menu opened with ${this.threads.length} threads`);
         }
     },
@@ -761,11 +770,11 @@ Object.assign(window.ThreadManager, {
             (location.startsWith('agent-') ? `Agent ${location.split('-')[1]}` : location);
 
         const modalHTML = `
-            <div class="modal-overlay" id="newChatModalOverlay" onclick="if(event.target.id === 'newChatModalOverlay') document.getElementById('newChatModalOverlay').remove()">
+            <div class="modal-overlay" id="newChatModalOverlay" onclick="if(event.target.id === 'newChatModalOverlay') { const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove(); }">
                 <div class="new-chat-modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h3><i class="fas fa-plus-circle"></i> Start New Chat in ${locationName}</h3>
-                        <button class="modal-close" onclick="document.getElementById('newChatModalOverlay').remove()">
+                        <button class="modal-close" onclick="const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove();">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -784,7 +793,7 @@ Object.assign(window.ThreadManager, {
                                 <textarea id="initialMessage" class="form-control" rows="4" placeholder="Start the conversation..."></textarea>
                             </div>
                             <div class="modal-actions">
-                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('newChatModalOverlay').remove()">
+                                <button type="button" class="btn btn-secondary" onclick="const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove();">
                                     Cancel
                                 </button>
                                 <button type="submit" class="btn btn-primary">
@@ -823,7 +832,10 @@ Object.assign(window.ThreadManager, {
                 const newThreadId = await this.createThreadWithMetadata(title, tags, location);
 
                 // Close modal
-                document.getElementById('newChatModalOverlay').remove();
+                const modalOverlay = document.getElementById('newChatModalOverlay');
+                if (modalOverlay) {
+                    modalOverlay.remove();
+                }
 
                 // If initial message provided, add it
                 if (initialMessage && typeof this.addMessageToThread === 'function') {
