@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Force Load Modules Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 40px;
+        }
+
+        .log {
+            margin: 5px 0;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .success {
+            color: #51cf66;
+        }
+
+        .info {
+            color: #4fc3f7;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Force Load Modules Test</h1>
+    <button onclick="testModuleLoad()" style="padding: 20px; font-size: 18px; margin: 20px 0;">🚀 FORCE LOAD
+        MODULES</button>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = msg;
+            output.appendChild(div);
+            console.log(msg);
+        }
+
+        async function testModuleLoad() {
+            output.innerHTML = '';
+            log('========================================');
+            log('FORCE MODULE LOAD TEST');
+            log('========================================');
+
+            try {
+                // Step 1: Load module-manager.js
+                log('Step 1: Loading module-manager.js...', 'info');
+                await loadScript('/js/module-manager.js');
+                log('✅ module-manager.js loaded', 'success');
+                log('   window.ModuleManager type: ' + typeof window.ModuleManager, 'info');
+
+                // Step 2: Load module-loader.js
+                log('Step 2: Loading module-loader.js...', 'info');
+                await loadScript('/js/module-loader.js');
+                log('✅ module-loader.js loaded', 'success');
+                log('   window.ModuleLoader type: ' + typeof window.ModuleLoader, 'info');
+                log('   window.initializeModuleSystem type: ' + typeof window.initializeModuleSystem, 'info');
+
+                // Step 3: Create fake DOM elements
+                log('Step 3: Creating fake DOM elements...', 'info');
+                const sidebar = document.createElement('div');
+                sidebar.className = 'sidebar';
+                sidebar.style.cssText = 'width: 300px; height: 100vh; display: block;';
+                sidebar.id = 'test-sidebar';
+                document.body.appendChild(sidebar);
+
+                const mainContent = document.createElement('div');
+                mainContent.className = 'main-content';
+                mainContent.style.cssText = 'width: 800px; height: 100vh; display: block;';
+                mainContent.id = 'test-main-content';
+                document.body.appendChild(mainContent);
+
+                const moduleSection = document.createElement('div');
+                moduleSection.id = 'sidebarModulesSection';
+                moduleSection.style.cssText = 'padding: 10px;';
+                sidebar.appendChild(moduleSection);
+
+                log('✅ DOM elements created:', 'success');
+                log('   .sidebar: ' + !!document.querySelector('.sidebar'), 'info');
+                log('   .main-content: ' + !!document.querySelector('.main-content'), 'info');
+                log('   #sidebarModulesSection: ' + !!document.getElementById('sidebarModulesSection'), 'info');
+
+                // Step 4: Initialize ModuleManager
+                log('Step 4: Initializing ModuleManager...', 'info');
+                const initResult = await window.ModuleManager.initialize();
+                log('   ModuleManager.initialize() returned: ' + initResult, initResult ? 'success' : 'error');
+                log('   ModuleManager.sidebar: ' + !!window.ModuleManager.sidebar, 'info');
+                log('   ModuleManager.mainContent: ' + !!window.ModuleManager.mainContent, 'info');
+
+                if (!initResult) {
+                    log('❌ ModuleManager initialization failed!', 'error');
+                    return;
+                }
+
+                // Step 5: Create ModuleLoader and load modules
+                log('Step 5: Creating ModuleLoader...', 'info');
+                const loader = new window.ModuleLoader();
+                log('✅ ModuleLoader created', 'success');
+
+                log('Step 6: Loading modules...', 'info');
+                log('   Calling loader.loadModules()...', 'info');
+                await loader.loadModules();
+                log('✅ loadModules() completed', 'success');
+
+                // Step 7: Check results
+                const modules = window.ModuleManager.getModules();
+                log('Step 7: Checking results...', 'info');
+                log('   Total modules loaded: ' + modules.length, modules.length > 0 ? 'success' : 'error');
+
+                if (modules.length > 0) {
+                    log('✅ SUCCESS! Modules loaded:', 'success');
+                    modules.forEach(m => {
+                        log('     - ' + m.name + ' (' + m.id + ')', 'success');
+                    });
+
+                    log('   Icons in sidebar: ' + moduleSection.children.length, 'success');
+                } else {
+                    log('❌ FAILURE! No modules loaded', 'error');
+                    log('   Check console for errors', 'error');
+                }
+
+            } catch (error) {
+                log('❌ ERROR: ' + error.message, 'error');
+                log('   Stack: ' + error.stack, 'error');
+            }
+        }
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
+            });
+        }
+    </script>
+</body>
+
+</html>

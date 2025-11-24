@@ -1632,6 +1632,66 @@ def delete_internal_doc(doc_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@synergy_bp.route('/internal-docs/list', methods=['GET'])
+def list_all_internal_docs():
+    """
+    List ALL internal documents (for document picker)
+    
+    Returns:
+        {
+            "success": true,
+            "count": 25,
+            "documents": [
+                {
+                    "doc_id": "int_doc_123",
+                    "title": "Document 1",
+                    "doc_type": "richtext",
+                    "created_at": "...",
+                    "description": "...",
+                    "tags": "tag1,tag2"
+                }
+            ]
+        }
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders('''
+            SELECT doc_id, title, doc_type, created_at, updated_at, description, tags, session_id
+            FROM synergy_sessions.synergy_internal_docs
+            ORDER BY created_at DESC
+        ''', ())
+        
+        cursor.execute(sql, params)
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        documents = [{
+            'doc_id': row['doc_id'],
+            'title': row['title'],
+            'doc_type': row['doc_type'] or 'richtext',
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at'],
+            'description': row['description'],
+            'tags': row['tags'],
+            'session_id': row['session_id']
+        } for row in rows]
+        
+        return jsonify({
+            'success': True,
+            'count': len(documents),
+            'documents': documents
+        })
+    
+    except Exception as e:
+        print(f"[INTERNAL DOC ERROR] Failed to list all documents: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @synergy_bp.route('/internal-doc/list/<session_id>', methods=['GET'])
 def list_internal_docs(session_id):
     """
@@ -1696,6 +1756,68 @@ def list_internal_docs(session_id):
     
     except Exception as e:
         print(f"[INTERNAL DOC ERROR] Failed to list documents for {session_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/link-document', methods=['POST'])
+def link_existing_document(session_id):
+    """
+    Link an existing internal document to a Synergy session
+    
+    Body:
+        {
+            "doc_id": "int_doc_123",
+            "title": "Document Title",
+            "doc_type": "richtext"
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "session_id": "sess_123",
+            "doc_id": "int_doc_123",
+            "linked": true
+        }
+    """
+    try:
+        data = request.get_json()
+        doc_id = data.get('doc_id')
+        
+        if not doc_id:
+            return jsonify({'success': False, 'error': 'doc_id required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update document to link it to this session (if not already linked)
+        sql, params = convert_sql_placeholders("""
+            UPDATE synergy_sessions.synergy_internal_docs
+            SET session_id = %s, linked_to_ai = 1
+            WHERE doc_id = %s
+        """, (session_id, doc_id))
+        
+        cursor.execute(sql, params)
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Document not found'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[SYNERGY] Linked document {doc_id} to session {session_id}")
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'doc_id': doc_id,
+            'linked': True
+        })
+    
+    except Exception as e:
+        print(f"[SYNERGY ERROR] Failed to link document: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -2134,6 +2256,7 @@ def create_milestone_task(milestone_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@synergy_bp.route('/task/<task_id>/subtasks', methods=['POST'])
 @synergy_bp.route('/task/<task_id>/subtask/create', methods=['POST'])
 def create_task_subtask(task_id):
     """
@@ -2784,6 +2907,152 @@ def get_session_milestones(session_id):
             'error_type': type(e).__name__,
             'error_details': repr(e)
         }), 500
+
+
+@synergy_bp.route('/task/<task_id>', methods=['PATCH'])
+def update_task(task_id):
+    """
+    Update task fields (for inline editing)
+    
+    Request Body:
+    {
+        "task": "Updated task text",
+        "priority": "high",
+        "assigned_to": "john@example.com",
+        "estimated_hours": 4.5
+    }
+    
+    Response:
+    {
+        "success": true,
+        "task_id": "task_xxx",
+        "updated_fields": ["task", "priority"]
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        # Allowed fields for update
+        allowed_fields = ['task', 'priority', 'assigned_to', 'estimated_hours', 
+                         'actual_hours', 'tags', 'start_date', 'links', 
+                         'is_recurring', 'recurrence_pattern', 'progress_percent']
+        
+        # Build UPDATE query dynamically
+        updates = []
+        params = []
+        updated_fields = []
+        
+        for field in allowed_fields:
+            if field in data:
+                updates.append(f"{field} = %s")
+                params.append(data[field])
+                updated_fields.append(field)
+        
+        if not updates:
+            return jsonify({'success': False, 'error': 'No valid fields to update'}), 400
+        
+        # Always update updated_at
+        updates.append("updated_at = %s")
+        params.append(datetime.now())
+        params.append(task_id)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = f'''
+            UPDATE synergy_sessions.tasks 
+            SET {', '.join(updates)}
+            WHERE task_id = %s
+        '''
+        
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'updated_fields': updated_fields
+        })
+    
+    except Exception as e:
+        print(f"[TASK ERROR] Failed to update task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/subtask/<subtask_id>', methods=['PATCH'])
+def update_subtask(subtask_id):
+    """
+    Update subtask fields (for inline editing)
+    
+    Request Body:
+    {
+        "task": "Updated subtask text",
+        "subtask": "Updated subtask text",  // Alias for 'task'
+        "priority": "high",
+        "assigned_to": "jane@example.com",
+        "estimated_hours": 2.0
+    }
+    
+    Response:
+    {
+        "success": true,
+        "subtask_id": "subtask_xxx",
+        "updated_fields": ["task", "priority"]
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        # Handle 'subtask' as alias for 'task' field (frontend sends 'subtask', DB column is 'task')
+        if 'subtask' in data and 'task' not in data:
+            data['task'] = data.pop('subtask')
+        
+        # Allowed fields for update
+        allowed_fields = ['task', 'priority', 'assigned_to', 'estimated_hours', 
+                         'actual_hours', 'tags', 'start_date', 'links', 'description']
+        
+        # Build UPDATE query dynamically
+        updates = []
+        params = []
+        updated_fields = []
+        
+        for field in allowed_fields:
+            if field in data:
+                updates.append(f"{field} = %s")
+                params.append(data[field])
+                updated_fields.append(field)
+        
+        if not updates:
+            return jsonify({'success': False, 'error': 'No valid fields to update'}), 400
+        
+        # Always update updated_at
+        updates.append("updated_at = %s")
+        params.append(datetime.now())
+        params.append(subtask_id)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = f'''
+            UPDATE synergy_sessions.subtasks 
+            SET {', '.join(updates)}
+            WHERE subtask_id = %s
+        '''
+        
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'subtask_id': subtask_id,
+            'updated_fields': updated_fields
+        })
+    
+    except Exception as e:
+        print(f"[SUBTASK ERROR] Failed to update subtask: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @synergy_bp.route('/task/<task_id>/block', methods=['PATCH'])

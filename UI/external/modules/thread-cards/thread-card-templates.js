@@ -157,6 +157,7 @@ window.ThreadCardTemplates = {
         // Use different header based on location
         const isThreadHistory = location === 'thread-history';
         const isPrime = location === 'prime';
+        const isAgent = location && location.startsWith('agent-');
 
         let headerHtml;
         if (isThreadHistory) {
@@ -167,9 +168,13 @@ window.ThreadCardTemplates = {
             headerHtml = this.headerRowWithUnload(thread, location, agent);
         }
 
+        // For agent columns, don't add ID (container already has id="thread-info-1", etc.)
+        // For other locations (thread-history, prime), use id="${location}-thread-info"
+        const idAttr = isAgent ? '' : `id="${location}-thread-info"`;
+
         return `
             <div class="ai-chat-header-info agent-thread-card" 
-                 id="${location}-thread-info" 
+                 ${idAttr}
                  data-thread-id="${thread.id}" 
                  data-location="${location}"
                  draggable="true"

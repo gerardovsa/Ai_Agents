@@ -26,10 +26,14 @@
  * LAST MODIFIED: 2025-11-24 - Complete flat spacing rewrite
  */
 
+console.log('[SYNERGY V2] ========================================');
+console.log('[SYNERGY V2] Starting renderer module load...');
+console.log('[SYNERGY V2] ========================================');
+
 class SynergySidebarRendererV2 {
     constructor() {
         this.API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
-        console.log('[SYNERGY RENDERER V2] FLAT spacing module loaded');
+        console.log('[SYNERGY RENDERER V2] Instance created');
     }
 
     /**
@@ -248,13 +252,13 @@ class SynergySidebarRendererV2 {
      */
     renderDescriptionSection(description) {
         const hasDescription = description && description.trim().length > 0;
-        
+
         return `
             <div class="synergy-flat-section" data-section="description">
                 <div class="synergy-flat-section-header">
                     <b>Description</b>
                     <div class="synergy-flat-header-right">
-                        <button class="synergy-flat-action-btn synergy-edit-description-btn" title="Edit Description">Edit</button>
+                        <button class="synergy-flat-action-btn synergy-edit-description-btn" title="Edit Description"><i class="fas fa-pen"></i></button>
                     </div>
                 </div>
                 <div class="synergy-flat-description-container" data-editing="false">
@@ -308,7 +312,7 @@ class SynergySidebarRendererV2 {
                     <b>Project milestones</b>
                     <span style="font-size: 15px; color: var(--text-secondary);">${completedCount}/${totalCount} (${progress}%)</span>
                     <div class="synergy-flat-header-right">
-                        <button class="synergy-flat-action-btn synergy-add-milestone-btn" title="Add Milestone"><i class="fas fa-plus"></i> Add Milestone</button>
+                        <button class="synergy-flat-action-btn synergy-add-milestone-btn" title="Add Milestone"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
         `;
@@ -342,22 +346,28 @@ class SynergySidebarRendererV2 {
                         <span class="synergy-flat-index">M${milestoneNum}</span>
                     </div>
                     <div class="synergy-flat-header-right">
-                        ${milestone.priority ? `<span class="priority-badge priority-${milestone.priority}">${milestone.priority.toUpperCase()}</span>` : ''}
-                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit">Edit</button>
-                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete">Del</button>
-                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link">🔗</button>
+                        <span class="synergy-priority-display">${milestone.priority ? `<span class="priority-badge priority-${milestone.priority}">${milestone.priority.toUpperCase()}</span>` : ''}</span>
+                        <select class="synergy-priority-select" data-field="priority" style="display: none;">
+                            <option value="low" ${milestone.priority === 'low' ? 'selected' : ''}>Low</option>
+                            <option value="medium" ${!milestone.priority || milestone.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                            <option value="high" ${milestone.priority === 'high' ? 'selected' : ''}>High</option>
+                            <option value="critical" ${milestone.priority === 'critical' ? 'selected' : ''}>Critical</option>
+                        </select>
+                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit"><i class="fas fa-pen"></i></button>
+                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link"><i class="fas fa-external-link-alt"></i></button>
                     </div>
                 </div>
 
-                <!-- ROW 2: Title (Editable) -->
+                <!-- ROW 2: Task Title (Editable) -->
                 <div class="synergy-flat-milestone-title" contenteditable="false" data-field="milestone">
                     ${this.escapeHtml(milestone.milestone || 'Untitled Milestone')}
                 </div>
 
                 <!-- Save/Cancel buttons (hidden by default) -->
                 <div class="synergy-flat-edit-actions" style="display: none;">
-                    <button class="synergy-flat-action-btn synergy-save-btn">Save</button>
-                    <button class="synergy-flat-action-btn synergy-cancel-btn">Cancel</button>
+                    <button class="synergy-flat-action-btn synergy-save-btn" title="Save"><i class="fas fa-check"></i></button>
+                    <button class="synergy-flat-action-btn synergy-cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
                 </div>
 
                 <!-- Milestone Description -->
@@ -374,22 +384,26 @@ class SynergySidebarRendererV2 {
                     ${milestone.assigned_to ? `<span><i class="fas fa-user"></i> ${this.escapeHtml(milestone.assigned_to)}</span>` : ''}
                 </div>
 
-                <!-- Task Progress -->
+                <!-- Tasks Section -->
+                <hr class="synergy-flat-section-divider">
+                
+                <!-- Tasks Header Row: Label + Add Button -->
+                <div class="synergy-flat-section-header">
+                    <span class="synergy-flat-section-label">Tasks:</span>
+                    <button class="synergy-flat-action-btn synergy-add-task-btn" data-milestone-id="${milestoneId}" title="Add Task">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <!-- Progress Bar Row -->
                 ${tasks.length > 0 ? `
                     <div class="synergy-flat-progress-section">
-                        <span class="synergy-flat-progress-label">Tasks: ${completedTasks}/${tasks.length} (${taskProgress}%)</span>
+                        <span class="synergy-flat-progress-label">${completedTasks}/${tasks.length} (${taskProgress}%)</span>
                         <div class="synergy-flat-progress-bar">
                             <div class="synergy-flat-progress-fill" style="width: ${taskProgress}%"></div>
                         </div>
                     </div>
                 ` : ''}
-
-                <!-- Add Task Button -->
-                <div class="synergy-flat-add-item-row">
-                    <button class="synergy-flat-action-btn synergy-add-task-btn" data-milestone-id="${milestoneId}" title="Add Task">
-                        <i class="fas fa-plus"></i> Add Task
-                    </button>
-                </div>
 
                 <!-- Tasks (FLAT - NO INDENT) -->
                 ${tasks.map((task, tIdx) => this.renderTask(task, milestoneNum, tIdx + 1, sessionId)).join('')}
@@ -405,6 +419,7 @@ class SynergySidebarRendererV2 {
     renderTask(task, milestoneNum, taskNum, sessionId) {
         const subtasks = task.subtasks || [];
         const completedSubtasks = subtasks.filter(s => s.completed).length;
+        const subtaskProgress = subtasks.length > 0 ? Math.round((completedSubtasks / subtasks.length) * 100) : 0;
         const isBlocked = task.blocked || task.status === 'blocked';
         const isCompleted = task.completed;
         const taskId = task.task_id || `temp_${milestoneNum}_${taskNum}`;
@@ -418,11 +433,17 @@ class SynergySidebarRendererV2 {
                         <span class="synergy-flat-index">T${milestoneNum}.${taskNum}</span>
                     </div>
                     <div class="synergy-flat-header-right">
-                        ${task.priority ? `<span class="priority-badge priority-${task.priority}">${task.priority.toUpperCase()}</span>` : ''}
+                        <span class="synergy-priority-display">${task.priority ? `<span class="priority-badge priority-${task.priority}">${task.priority.toUpperCase()}</span>` : ''}</span>
+                        <select class="synergy-priority-select" data-field="priority" style="display: none;">
+                            <option value="low" ${task.priority === 'low' ? 'selected' : ''}>Low</option>
+                            <option value="medium" ${!task.priority || task.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                            <option value="high" ${task.priority === 'high' ? 'selected' : ''}>High</option>
+                            <option value="critical" ${task.priority === 'critical' ? 'selected' : ''}>Critical</option>
+                        </select>
                         ${isBlocked ? `<span class="synergy-flat-blocked-badge">BLOCKED</span>` : ''}
-                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit">Edit</button>
-                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete">Del</button>
-                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link">🔗</button>
+                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit"><i class="fas fa-pen"></i></button>
+                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+                        <button class="synergy-flat-action-btn synergy-link-btn" title="Link"><i class="fas fa-external-link-alt"></i></button>
                     </div>
                 </div>
 
@@ -433,8 +454,8 @@ class SynergySidebarRendererV2 {
 
                 <!-- Save/Cancel buttons (hidden by default) -->
                 <div class="synergy-flat-edit-actions" style="display: none;">
-                    <button class="synergy-flat-action-btn synergy-save-btn">Save</button>
-                    <button class="synergy-flat-action-btn synergy-cancel-btn">Cancel</button>
+                    <button class="synergy-flat-action-btn synergy-save-btn" title="Save"><i class="fas fa-check"></i></button>
+                    <button class="synergy-flat-action-btn synergy-cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
                 </div>
 
                 <!-- Task Metadata -->
@@ -455,19 +476,29 @@ class SynergySidebarRendererV2 {
                     </div>
                 ` : ''}
 
-                <!-- Subtasks (FLAT - NO INDENT) -->
-                ${subtasks.length > 0 ? `
-                    <div class="synergy-flat-subtask-count">Subtasks: ${completedSubtasks}/${subtasks.length}</div>
-                ` : ''}
+                <!-- Subtasks Section -->
+                <hr class="synergy-flat-section-divider">
                 
-                <!-- Add Subtask Button -->
-                <div class="synergy-flat-add-item-row">
+                <!-- Subtasks Header Row: Label + Add Button -->
+                <div class="synergy-flat-section-header">
+                    <span class="synergy-flat-section-label">Subtasks:</span>
                     <button class="synergy-flat-action-btn synergy-add-subtask-btn" data-task-id="${taskId}" title="Add Subtask">
-                        <i class="fas fa-plus"></i> Add Subtask
+                        <i class="fas fa-plus"></i>
                     </button>
                 </div>
                 
-                ${subtasks.length > 0 ? subtasks.map((subtask, sIdx) => this.renderSubtask(subtask, milestoneNum, taskNum, sIdx + 1, sessionId)).join('') : ''}
+                <!-- Progress Bar Row -->
+                ${subtasks.length > 0 ? `
+                    <div class="synergy-flat-progress-section">
+                        <span class="synergy-flat-progress-label">${completedSubtasks}/${subtasks.length} (${subtaskProgress}%)</span>
+                        <div class="synergy-flat-progress-bar">
+                            <div class="synergy-flat-progress-fill" style="width: ${subtaskProgress}%"></div>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Subtasks (FLAT - NO INDENT) -->
+                ${subtasks.map((subtask, sIdx) => this.renderSubtask(subtask, milestoneNum, taskNum, sIdx + 1, sessionId)).join('')}
             </div>
         `;
     }
@@ -490,22 +521,28 @@ class SynergySidebarRendererV2 {
                         <span class="synergy-flat-index">S${milestoneNum}.${taskNum}.${subtaskNum}</span>
                     </div>
                     <div class="synergy-flat-header-right">
-                        ${subtask.priority ? `<span class="priority-badge priority-${subtask.priority}">${subtask.priority.toUpperCase()}</span>` : ''}
+                        <span class="synergy-priority-display">${subtask.priority ? `<span class="priority-badge priority-${subtask.priority}">${subtask.priority.toUpperCase()}</span>` : ''}</span>
+                        <select class="synergy-priority-select" data-field="priority" style="display: none;">
+                            <option value="low" ${subtask.priority === 'low' ? 'selected' : ''}>Low</option>
+                            <option value="medium" ${!subtask.priority || subtask.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                            <option value="high" ${subtask.priority === 'high' ? 'selected' : ''}>High</option>
+                            <option value="critical" ${subtask.priority === 'critical' ? 'selected' : ''}>Critical</option>
+                        </select>
                         ${subtask.estimated_hours ? `<span class="synergy-flat-subtask-hours">${subtask.estimated_hours}h</span>` : ''}
-                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit">Edit</button>
-                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete">Del</button>
+                        <button class="synergy-flat-action-btn synergy-edit-btn" title="Edit"><i class="fas fa-pen"></i></button>
+                        <button class="synergy-flat-action-btn synergy-delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
 
-                <!-- ROW 2: Title (Editable) -->
+                <!-- ROW 2: Subtask Text (Editable) -->
                 <div class="synergy-flat-subtask-title" contenteditable="false" data-field="subtask">
                     ${this.escapeHtml(subtask.subtask || 'Untitled Subtask')}
                 </div>
 
                 <!-- Save/Cancel buttons (hidden by default) -->
                 <div class="synergy-flat-edit-actions" style="display: none;">
-                    <button class="synergy-flat-action-btn synergy-save-btn">Save</button>
-                    <button class="synergy-flat-action-btn synergy-cancel-btn">Cancel</button>
+                    <button class="synergy-flat-action-btn synergy-save-btn" title="Save"><i class="fas fa-check"></i></button>
+                    <button class="synergy-flat-action-btn synergy-cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
                 </div>
             </div>
         `;
@@ -526,15 +563,15 @@ class SynergySidebarRendererV2 {
                 ${docs.length > 0 ? `
                     <div class="synergy-flat-docs-list">
                         ${docs.map((doc, idx) => {
-                            const docId = doc.id || `doc_${idx + 1}`;
-                            return `
+            const docId = doc.id || `doc_${idx + 1}`;
+            return `
                             <div class="synergy-flat-doc-item" data-doc-id="${docId}" data-session-id="${sessionId}" data-editing="false">
                                 <!-- ROW 1: Index + Actions -->
                                 <div class="synergy-flat-doc-header">
                                     <span class="synergy-flat-index">PD${idx + 1}</span>
                                     <div class="synergy-flat-header-right">
-                                        <button class="synergy-flat-action-btn synergy-edit-doc-btn" title="Edit">Edit</button>
-                                        <button class="synergy-flat-action-btn synergy-delete-doc-btn" title="Delete">Del</button>
+                                        <button class="synergy-flat-action-btn synergy-edit-doc-btn" title="Edit"><i class="fas fa-pen"></i></button>
+                                        <button class="synergy-flat-action-btn synergy-delete-doc-btn" title="Delete"><i class="fas fa-trash"></i></button>
                                         <button class="synergy-flat-action-btn synergy-open-doc-btn" title="Open">🔗</button>
                                     </div>
                                 </div>
@@ -575,7 +612,7 @@ class SynergySidebarRendererV2 {
                     <b>Links</b>
                     <span style="font-size: 14px; color: var(--text-secondary);">${linkArray.length} links</span>
                     <div class="synergy-flat-header-right">
-                        <button class="synergy-flat-action-btn synergy-add-link-btn" title="Add Link"><i class="fas fa-plus"></i> Add Link</button>
+                        <button class="synergy-flat-action-btn synergy-add-link-btn" title="Add Link"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
                 ${linkArray.length > 0 ? `
@@ -615,7 +652,7 @@ class SynergySidebarRendererV2 {
                     <b>Tags</b>
                     <span style="font-size: 14px; color: var(--text-secondary);">${tagArray.length} tags</span>
                     <div class="synergy-flat-header-right">
-                        <button class="synergy-flat-action-btn synergy-add-tag-btn" title="Add Tag"><i class="fas fa-plus"></i> Add Tag</button>
+                        <button class="synergy-flat-action-btn synergy-add-tag-btn" title="Add Tag"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
                 ${tagArray.length > 0 ? `
@@ -712,24 +749,24 @@ class SynergySidebarRendererV2 {
         if (diffDays === 1) return 'Yesterday';
         if (diffDays < 7) return `${diffDays}d ago`;
         if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-        return date.toLocaleDateString('en-US', { 
-            month: 'short', 
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
             day: 'numeric',
-            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
         });
     }
 
     getFormattedDateTime(dateString) {
         if (!dateString) return 'No date';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
             year: 'numeric'
-        }) + ' at ' + date.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
+        }) + ' at ' + date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
             minute: '2-digit',
-            hour12: true 
+            hour12: true
         });
     }
 
@@ -739,8 +776,14 @@ class SynergySidebarRendererV2 {
 }
 
 // Export to global scope
+console.log('[SYNERGY V2] Exporting to window object...');
 window.SynergySidebarRendererV2 = SynergySidebarRendererV2;
+console.log('[SYNERGY V2] ✅ window.SynergySidebarRendererV2 =', typeof window.SynergySidebarRendererV2);
+
 // BACKWARD COMPATIBILITY: Make V2 available as original name
 window.SynergySidebarRenderer = SynergySidebarRendererV2;
+console.log('[SYNERGY V2] ✅ window.SynergySidebarRenderer =', typeof window.SynergySidebarRenderer);
+
+console.log('[SYNERGY V2] ========================================');
 console.log('[SYNERGY V2] FLAT spacing renderer loaded and registered');
-console.log('[SYNERGY V2] Backward compatibility: window.SynergySidebarRenderer = SynergySidebarRendererV2');
+console.log('[SYNERGY V2] ========================================');

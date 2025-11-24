@@ -43,19 +43,23 @@ class ModuleLoader {
      * Load all modules from manifest
      */
     async loadModules() {
+        console.log('%c🚀 [MODULE-LOADER] loadModules() CALLED', 'background: #4CAF50; color: white; padding: 4px 8px; font-weight: bold');
         console.log('📦 [MODULE-LOADER] Loading modules from manifest...');
         console.log('📍 [MODULE-LOADER] Manifest path:', this.manifestPath);
         console.log('📍 [MODULE-LOADER] Full URL:', window.location.origin + '/' + this.manifestPath);
+        console.log('📍 [MODULE-LOADER] window.location.protocol:', window.location.protocol);
 
         try {
             // Check if we're running from file:// protocol
             if (window.location.protocol === 'file:') {
-                console.log('⚠️ Running from file:// protocol - module loading disabled');
+                console.log('%c⚠️ [MODULE-LOADER] Running from file:// - ABORTING', 'background: orange; color: black; padding: 4px');
                 console.log('ℹ️ To enable modules, serve the app via HTTP (e.g., python -m http.server)');
                 return;
             }
 
+            console.log('✅ [MODULE-LOADER] Protocol check passed (not file://)');
             console.log('📡 [MODULE-LOADER] Fetching manifest...');
+
             // Fetch module list with retry logic
             const response = await this.fetchWithRetry(this.manifestPath, 3);
 
@@ -67,7 +71,7 @@ class ModuleLoader {
 
             const manifest = await response.json();
             console.log('📦 [MODULE-LOADER] Parsed manifest:', manifest);
-            
+
             this.modules = manifest.modules || [];
 
             console.log(`📦 [MODULE-LOADER] Found ${this.modules.length} modules in manifest`);
@@ -201,11 +205,11 @@ async function waitForMainApp(maxWait = 15000) {
     while ((Date.now() - startTime) < maxWait) {
         // Check for main-content element AND visibility
         const mainContent = document.querySelector('.main-content');
-        
+
         if (mainContent) {
             // Check if it's visible (not display: none)
             const isVisible = mainContent.offsetParent !== null;
-            
+
             if (isVisible) {
                 console.log('✅ [MODULES] Main content is visible and ready');
                 return mainContent;
@@ -232,28 +236,41 @@ async function waitForMainApp(maxWait = 15000) {
 }
 
 // Initialize module loader when DOM is ready
-async function initializeModuleSystem() {
+async function initializeModuleSystem(forceLoad = false) {
     console.log('🚀 [INIT] Initializing module system...');
+    console.log('📍 [INIT] forceLoad:', forceLoad);
     console.log('📍 [INIT] Called from:', new Error().stack.split('\n')[2]);
 
-    // ✅ CRITICAL FIX: Wait for main app to be visible (auth must complete first)
-    console.log('🔍 [INIT] Checking if main app is visible...');
+    // ✅ CRITICAL FIX: Check if main app is ALREADY visible (skip wait if yes)
+    // This prevents hanging when called after auth completes
     const mainContent = document.querySelector('.main-content');
-    console.log('   .main-content element:', mainContent ? 'FOUND' : 'NOT FOUND');
-    if (mainContent) {
-        console.log('   .main-content visible (offsetParent):', mainContent.offsetParent !== null);
-        console.log('   .main-content display:', getComputedStyle(mainContent).display);
-    }
-    
-    const mainApp = await waitForMainApp();
-    if (!mainApp) {
-        console.error('❌ [INIT] Main app not found - modules disabled');
-        console.log('   This usually means authentication hasn\'t completed yet');
-        console.log('   💡 TIP: Try clicking the "🔧 LOAD MODULES" button manually');
-        return;
-    }
+    const isAlreadyVisible = mainContent && mainContent.offsetParent !== null;
 
-    console.log('✅ [INIT] Main app visible, proceeding with module initialization...');
+    console.log('🔍 [INIT] Pre-check: main app already visible?', isAlreadyVisible);
+
+    if (!forceLoad && !isAlreadyVisible) {
+        console.log('🔍 [INIT] Main app NOT visible yet, need to wait...');
+        console.log('   .main-content element:', mainContent ? 'FOUND' : 'NOT FOUND');
+        if (mainContent) {
+            console.log('   .main-content visible (offsetParent):', mainContent.offsetParent !== null);
+            console.log('   .main-content display:', getComputedStyle(mainContent).display);
+        }
+
+        console.log('%c🔍 [INIT] Calling waitForMainApp()...', 'background: orange; color: white; padding: 4px');
+        const mainApp = await waitForMainApp();
+        console.log('%c🔍 [INIT] waitForMainApp() returned:', 'background: orange; color: white; padding: 4px', mainApp);
+
+        if (!mainApp) {
+            console.error('%c❌ [INIT] Main app not found - ABORTING MODULE LOAD', 'background: red; color: white; padding: 4px; font-weight: bold');
+            console.log('   This usually means authentication hasn\'t completed yet');
+            console.log('   💡 TIP: Try clicking the "Force Load Modules" button in Debug Panel');
+            return;
+        }
+
+        console.log('✅ [INIT] Main app visible after wait, proceeding with module initialization...');
+    } else {
+        console.log('✅ [INIT] Main app already visible OR force load - proceeding immediately...');
+    }
 
     // Wait for ModuleManager class to be available (with timeout)
     const maxWait = 5000; // 5 seconds
@@ -265,27 +282,30 @@ async function initializeModuleSystem() {
     }
 
     if (!window.ModuleManager) {
-        console.error('❌ [INIT] ModuleManager not found after timeout');
+        console.error('%c❌ [INIT] ModuleManager not found after timeout - ABORTING', 'background: red; color: white; padding: 4px; font-weight: bold');
         console.log('Available window properties:', Object.keys(window).filter(k => k.includes('Module')));
         return;
     }
 
+    console.log('%c✅ [INIT] ModuleManager found, entering main initialization block...', 'background: green; color: white; padding: 4px; font-weight: bold');
+
     try {
         // ✅ CRITICAL FIX (Nov 24, 2025): ALWAYS initialize ModuleManager first
         // Check if already initialized (has DOM references)
+        console.log('%c📊 [INIT] Checking ModuleManager initialization state...', 'background: blue; color: white; padding: 4px');
         const needsInit = !window.ModuleManager.sidebar || !window.ModuleManager.mainContent;
-        
+
         console.log('📦 [INIT] Checking ModuleManager state...');
         console.log('   sidebar:', window.ModuleManager.sidebar ? 'SET' : 'NULL');
         console.log('   mainContent:', window.ModuleManager.mainContent ? 'SET' : 'NULL');
         console.log('   needsInit:', needsInit);
-        
+
         if (needsInit) {
             console.log('📦 [INIT] ModuleManager needs initialization, calling initialize()...');
             console.log('📦 [INIT] DOM check before initialize:');
             console.log('   .sidebar exists:', !!document.querySelector('.sidebar'));
             console.log('   .main-content exists:', !!document.querySelector('.main-content'));
-            
+
             const sidebar = document.querySelector('.sidebar');
             const mainContent = document.querySelector('.main-content');
             if (sidebar) {
@@ -296,7 +316,7 @@ async function initializeModuleSystem() {
                 console.log('   .main-content visible (offsetParent):', mainContent.offsetParent !== null);
                 console.log('   .main-content display:', getComputedStyle(mainContent).display);
             }
-            
+
             const initialized = await window.ModuleManager.initialize();
             console.log('📦 [INIT] ModuleManager.initialize() returned:', initialized);
 
@@ -314,12 +334,16 @@ async function initializeModuleSystem() {
         console.log('✅ [INIT] ModuleManager ready, creating ModuleLoader...');
         // Create and run module loader
         const moduleLoader = new ModuleLoader();
-        console.log('📦 [INIT] ModuleLoader created, calling loadModules()...');
+        console.log('%c📦 [INIT] ModuleLoader instance created', 'background: #2196F3; color: white; padding: 4px 8px; font-weight: bold');
+        console.log('📦 [INIT] ModuleLoader.manifestPath:', moduleLoader.manifestPath);
+        console.log('📦 [INIT] typeof moduleLoader.loadModules:', typeof moduleLoader.loadModules);
+
+        console.log('%c🚀 [INIT] About to call moduleLoader.loadModules()...', 'background: #FF9800; color: white; padding: 4px 8px; font-weight: bold');
         await moduleLoader.loadModules();
-        console.log('📦 [INIT] loadModules() completed');
+        console.log('%c✅ [INIT] loadModules() call completed', 'background: #4CAF50; color: white; padding: 4px 8px; font-weight: bold');
 
         const moduleCount = window.ModuleManager.getModules().length;
-        console.log(`✅ [INIT] Module system ready with ${moduleCount} modules`);
+        console.log(`%c✅ [INIT] Module system ready with ${moduleCount} modules`, moduleCount > 0 ? 'color: green; font-weight: bold' : 'color: red; font-weight: bold');
     } catch (error) {
         console.error('❌ [INIT] Module system initialization error:', error);
         console.error('❌ [INIT] Error stack:', error.stack);
@@ -345,38 +369,52 @@ async function initializeModuleSystem() {
 let moduleSystemInitialized = false;
 let moduleSystemInitializing = false;
 
-async function safeInitializeModuleSystem() {
-    console.log('🔷 [MODULES] safeInitializeModuleSystem called, initialized:', moduleSystemInitialized, 'initializing:', moduleSystemInitializing);
-    
+async function safeInitializeModuleSystem(forceLoad = false) {
+    console.log('🔷 [MODULES] safeInitializeModuleSystem called with forceLoad:', forceLoad, '| initialized:', moduleSystemInitialized, 'initializing:', moduleSystemInitializing);
+
     // ✅ FIX: Check if modules are actually loaded, not just if flag is set
     const actuallyInitialized = moduleSystemInitialized && window.ModuleManager?.getModules().length > 0;
-    
-    if (actuallyInitialized) {
+
+    // If already initialized successfully, return immediately
+    if (actuallyInitialized && !forceLoad) {
         console.log('⏭️ [MODULES] Module system already initialized with', window.ModuleManager.getModules().length, 'modules');
         return;
     }
-    
+
+    // If already initializing, ABORT to prevent recursion
     if (moduleSystemInitializing) {
-        console.log('⏳ [MODULES] Module system initialization in progress, waiting...');
+        console.warn('⚠️ [MODULES] Already initializing - ABORTING to prevent recursion!');
         return;
     }
-    
+
     // Reset flag if it was set but modules weren't loaded
     if (moduleSystemInitialized && window.ModuleManager?.getModules().length === 0) {
         console.log('⚠️ [MODULES] Flag was set but no modules loaded, resetting...');
         moduleSystemInitialized = false;
     }
-    
+
+    if (forceLoad) {
+        console.log('⚡ [MODULES] Force load enabled - resetting flags and reinitializing...');
+        moduleSystemInitialized = false;
+        moduleSystemInitializing = false;
+    }
+
+    // Set flag BEFORE calling to prevent recursion
     moduleSystemInitializing = true;
     console.log('🚀 [MODULES] Starting module system initialization...');
-    
+
     try {
-        await initializeModuleSystem();
+        console.log('%c🎬 [MODULES] About to call initializeModuleSystem(forceLoad=' + forceLoad + ')', 'background: purple; color: white; padding: 4px 8px; font-weight: bold');
+        await initializeModuleSystem(forceLoad);
+        console.log('%c🎉 [MODULES] initializeModuleSystem() returned successfully', 'background: green; color: white; padding: 4px 8px; font-weight: bold');
         moduleSystemInitialized = true;
         console.log('✅ [MODULES] Module system initialization complete');
     } catch (error) {
-        console.error('❌ [MODULES] Module system initialization failed:', error);
-        moduleSystemInitializing = false;
+        console.error('%c❌ [MODULES] Module system initialization FAILED', 'background: red; color: white; padding: 4px 8px; font-weight: bold');
+        console.error('❌ [MODULES] Error details:', error);
+        console.error('❌ [MODULES] Error stack:', error.stack);
+        console.error('❌ [MODULES] Error name:', error.name);
+        console.error('❌ [MODULES] Error message:', error.message);
         throw error;
     } finally {
         moduleSystemInitializing = false;

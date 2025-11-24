@@ -190,7 +190,12 @@ window.ThreadManagerUI = {
         let agentIcon = 'fa-star';
         let agentClass = 'main';
 
-        if (currentLocation && currentLocation !== 'prime') {
+        // Check for prime-loaded (thread that loads on page reload)
+        if (currentLocation === 'prime-loaded') {
+            agentLabel = 'Prime-Loaded';
+            agentIcon = 'fa-star';
+            agentClass = 'main-loaded';
+        } else if (currentLocation && currentLocation !== 'prime') {
             const match = currentLocation.match(/agent-(\d+)/);
             if (match) {
                 const agentId = parseInt(match[1]);
@@ -342,7 +347,7 @@ window.ThreadManagerUI = {
      */
     renderThreadInfoContainer(location, threadId, compact = false) {
         console.log(`🎨 [renderThreadInfoContainer] CALLED: location="${location}", threadId="${threadId}", compact=${compact}`);
-        
+
         const threads = window.ThreadManager.threads || [];
         const thread = threads.find(t => t.id === threadId);
 
@@ -420,7 +425,7 @@ window.ThreadManagerUI = {
             null,  // synergyMeta (fetched separately if needed)
             currentLocation
         );
-        
+
         console.log(`✅ [renderThreadInfoContainer] Generated card HTML (${cardHtml.length} chars) for location="${location}"`);
         return cardHtml;
     },

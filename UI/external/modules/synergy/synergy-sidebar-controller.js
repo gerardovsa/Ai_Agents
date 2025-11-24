@@ -28,8 +28,17 @@ class SynergySidebarController {
         this.currentFilter = 'all'; // 'all', 'backlog', 'in_progress', 'review', 'done'
         this.searchQuery = '';
 
-        // Renderer instance
-        this.renderer = window.SynergySidebarRenderer ? new window.SynergySidebarRenderer() : null;
+        // Renderer instance - check for V2 first, then fallback
+        this.renderer = null;
+        if (window.SynergySidebarRendererV2) {
+            this.renderer = new window.SynergySidebarRendererV2();
+            console.log('[SYNERGY SIDEBAR CONTROLLER] Using V2 renderer');
+        } else if (window.SynergySidebarRenderer) {
+            this.renderer = new window.SynergySidebarRenderer();
+            console.log('[SYNERGY SIDEBAR CONTROLLER] Using legacy renderer');
+        } else {
+            console.error('[SYNERGY SIDEBAR CONTROLLER] No renderer available!');
+        }
 
         console.log('[SYNERGY SIDEBAR CONTROLLER] Initialized');
     }
@@ -232,7 +241,7 @@ class SynergySidebarController {
 
             const expandedContent = item.querySelector('.synergy-card-expanded-content');
             const chevron = item.querySelector('.synergy-chevron i');
-            
+
             if (expandedContent) {
                 if (!isExpanded) {
                     // Expanding - show content and load data

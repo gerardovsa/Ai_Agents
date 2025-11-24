@@ -48,7 +48,7 @@ Object.assign(window.ThreadManager, {
      */
     async assignThread(threadId, location) {
         console.log(`🔄 [Assignment] START: ${threadId} → ${location}`);
-        
+
         // CRITICAL: Enforce single prime-loaded thread
         if (location === 'prime-loaded') {
             const existingPrimeLoaded = this.threads.find(t => t.location === 'prime-loaded' && t.id !== threadId);
@@ -60,9 +60,9 @@ Object.assign(window.ThreadManager, {
                     await fetch('/api/threads/location', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            thread_id: existingPrimeLoaded.id, 
-                            location: 'prime' 
+                        body: JSON.stringify({
+                            thread_id: existingPrimeLoaded.id,
+                            location: 'prime'
                         })
                     });
                 } catch (err) {
@@ -199,6 +199,22 @@ Object.assign(window.ThreadManager, {
             this.refreshAllThreadInfoCards(threadId);
         }
 
+        // STEP 6: REFRESH threads array from backend to fix stale location
+        console.log(`🔄 [CASCADE] Refreshing threads[] from backend to verify location update`);
+        try {
+            await this.loadThreadsFromBackend();
+
+            // Verify thread location updated correctly
+            const updatedThread = this.threads.find(t => t.id === threadId);
+            if (updatedThread && updatedThread.location === newLocation) {
+                console.log(`✅ [CASCADE] Thread location verified in memory: ${updatedThread.location}`);
+            } else {
+                console.warn(`⚠️ [CASCADE] Location mismatch! Expected: ${newLocation}, Got: ${updatedThread?.location || 'NOT FOUND'}`);
+            }
+        } catch (error) {
+            console.error(`❌ [CASCADE] Failed to refresh threads from backend:`, error);
+        }
+
         console.log(`✅ [CASCADE] Complete for thread ${threadId}`);
         this.cascadeInProgress = false;  // Allow UI refreshes
     },
@@ -285,7 +301,7 @@ Object.assign(window.ThreadManager, {
             // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
             const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
             const response = await fetch(`${apiUrl}/api/thread-assignments?user_id=${userId}`);
-            
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                 throw new Error(`Failed to fetch assignments: ${errorData.error || response.statusText}`);
@@ -348,6 +364,18 @@ Object.assign(window.ThreadManager, {
 
                     if (assignment.location && assignment.location.startsWith('agent-')) {
                         const agentId = parseInt(assignment.location.replace('agent-', ''));
+
+                        // CRITICAL: Skip if thread is already loaded in this agent
+                        // Check MultiAgent.loadedThreads to avoid duplicate loading
+                        const alreadyLoaded = MultiAgent.loadedThreads &&
+                            MultiAgent.loadedThreads[agentId] &&
+                            MultiAgent.loadedThreads[agentId].threadId === thread.id;
+
+                        if (alreadyLoaded) {
+                            console.log(`✅ [Assignment] Thread "${thread.title}" already loaded in agent-${agentId}, skipping duplicate load`);
+                            continue;
+                        }
+
                         console.log(`🔄 [Assignment] Loading "${thread.title}" (${thread.id}) into agent-${agentId}...`);
 
                         try {
@@ -389,11 +417,11 @@ Object.assign(window.ThreadManager, {
             }
 
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1;
-            
+
             // Use Flask API instead of direct Supabase (sessions schema not exposed in REST API)
             const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
             const response = await fetch(`${apiUrl}/api/thread-assignments?user_id=${userId}`);
-            
+
             if (!response.ok) {
                 console.error('❌ [Assignment] API error:', response.statusText);
                 return {};
@@ -401,7 +429,7 @@ Object.assign(window.ThreadManager, {
 
             const result = await response.json();
             const assignments = result.assignments || {};
-            
+
             // API already returns {location: thread_slug} format
             console.log('✅ [Assignment] Fetched assignments:', assignments);
             return assignments;
@@ -603,12 +631,19 @@ Object.assign(window.ThreadManager, {
         }
 
         // Validate against AppState (Prime panel)
+        // NOTE: Check BOTH 'prime' and 'prime-loaded' - don't overwrite prime-loaded with prime!
         if (typeof AppState !== 'undefined' && AppState.sessionId) {
             const primeAssignment = assignments['prime'];
-            if (primeAssignment !== AppState.sessionId) {
+            const primeLoadedAssignment = assignments['prime-loaded'];
+
+            // Only fix if there's a mismatch AND thread is not assigned to prime-loaded
+            if (primeAssignment !== AppState.sessionId && primeLoadedAssignment !== AppState.sessionId) {
                 errors.push(`⚠️ Mismatch at prime: assignments=${primeAssignment}, AppState=${AppState.sessionId}`);
+                // Only assign to 'prime', not 'prime-loaded' (preserve loaded status)
                 assignments['prime'] = AppState.sessionId;
                 fixed = true;
+            } else if (primeLoadedAssignment === AppState.sessionId) {
+                console.log('✅ [Assignment] AppState thread is correctly in prime-loaded, not overwriting');
             }
         }
 

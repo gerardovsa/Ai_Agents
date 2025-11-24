@@ -26,8 +26,10 @@
 .synergy-flat-container {
     padding: 8px;
     /* CRITICAL: ONLY padding here - NO padding on children */
-    min-width: 400px;
+    width: 100%;
+    box-sizing: border-box;
     background: var(--bg-primary);
+    overflow: hidden;
 }
 
 /* ==================== FLAT SECTIONS ==================== */
@@ -69,6 +71,9 @@
 .synergy-flat-value {
     font-size: 15px;
     color: var(--text-primary);
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .synergy-flat-pill {
@@ -79,6 +84,9 @@
     border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .synergy-flat-stats {
@@ -86,6 +94,8 @@
     gap: 16px;
     font-size: 13px;
     color: var(--text-secondary);
+    max-width: 100%;
+    flex-wrap: wrap;
 }
 
 /* ==================== DESCRIPTION ==================== */
@@ -138,6 +148,8 @@
     margin-bottom: 15px;
     background: var(--bg-secondary);
     border-radius: 6px;
+    max-width: 100%;
+    box-sizing: border-box;
     /* CRITICAL: NO margin-left, NO padding-left beyond 8px */
 }
 
@@ -179,6 +191,9 @@
     border-radius: 4px;
     margin-bottom: 8px;
     min-height: 30px;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .synergy-flat-milestone-title[contenteditable="true"] {
@@ -204,6 +219,7 @@
     font-size: 13px;
     color: var(--text-secondary);
     margin-bottom: 8px;
+    max-width: 100%;
 }
 
 .synergy-flat-milestone-meta span {
@@ -213,6 +229,9 @@
     padding: 3px 8px;
     background: var(--bg-tertiary);
     border-radius: 6px;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ==================== TASKS - FLAT TWO-ROW ==================== */
@@ -224,6 +243,8 @@
     margin-bottom: 15px;
     background: var(--bg-tertiary);
     border-radius: 6px;
+    max-width: 100%;
+    box-sizing: border-box;
     /* CRITICAL: NO margin-left (flat structure) */
 }
 
@@ -278,6 +299,8 @@
     margin-bottom: 8px;
     background: var(--bg-quaternary);
     border-radius: 4px;
+    max-width: 100%;
+    box-sizing: border-box;
     /* CRITICAL: NO margin-left (completely flat) */
 }
 
@@ -320,37 +343,53 @@
 }
 
 /* ==================== ACTION BUTTONS ==================== */
+/* Consistent 28px icon buttons with Font Awesome icons */
 
 .synergy-flat-action-btn {
-    padding: 4px 10px;
+    width: 28px;
+    height: 28px;
+    background: transparent;
     border: 1px solid var(--border-default);
-    background: var(--bg-primary);
+    border-radius: 6px;
     color: var(--text-secondary);
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
+    font-size: 14px;
+    padding: 0;
+    flex-shrink: 0;
 }
 
 .synergy-flat-action-btn:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
     border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Edit Button - Pen icon */
+.synergy-edit-btn {
+    /* Inherits base styles */
 }
 
 .synergy-edit-btn:hover {
-    background: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* Delete Button - Trash icon (red) */
+.synergy-delete-btn {
+    color: var(--text-secondary);
 }
 
 .synergy-delete-btn:hover {
-    background: #dc2626;
-    color: white;
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
     border-color: #dc2626;
 }
 
+/* Save Button - Check icon (green when active) */
 .synergy-save-btn {
     background: #22c55e;
     color: white;
@@ -359,16 +398,28 @@
 
 .synergy-save-btn:hover {
     background: #16a34a;
+    border-color: #16a34a;
+}
+
+/* Cancel Button - X icon (gray) */
+.synergy-cancel-btn {
+    /* Inherits base styles */
 }
 
 .synergy-cancel-btn:hover {
-    background: #6b7280;
-    color: white;
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+    border-color: #6b7280;
 }
 
+/* Link Button - External link icon */
 .synergy-link-btn {
-    font-size: 14px;
-    padding: 4px 8px;
+    /* Inherits base styles */
+}
+
+.synergy-link-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
 }
 
 .synergy-flat-edit-actions {
@@ -378,6 +429,29 @@
     padding: 6px;
     background: var(--bg-quaternary);
     border-radius: 4px;
+}
+
+/* Priority Dropdown for Milestones */
+.synergy-priority-select {
+    height: 28px;
+    padding: 0 8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.synergy-priority-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.synergy-priority-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* ==================== BLOCKED INDICATOR ==================== */
@@ -428,10 +502,11 @@
 }
 
 .synergy-flat-progress-label {
-    font-size: 13px;
-    color: var(--text-secondary);
+    font-size: 15px;
+    color: var(--text-primary);
     margin-bottom: 4px;
     display: block;
+    margin-top: 10px;
 }
 
 .synergy-flat-progress-bar {
@@ -439,6 +514,7 @@
     border-radius: 4px;
     height: 8px;
     overflow: hidden;
+    margin-bottom: 8px;
 }
 
 .synergy-flat-progress-fill {
@@ -460,6 +536,38 @@
 .synergy-flat-checkbox:disabled {
     cursor: not-allowed;
     opacity: 0.5;
+}
+
+/* ==================== SECTION HEADERS ==================== */
+
+.synergy-flat-section-divider {
+    border: none;
+    border-top: 1px solid var(--border-default);
+    margin: 12px 0 8px 0;
+}
+
+.synergy-flat-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.synergy-flat-section-label {
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+/* Add buttons in section headers */
+.synergy-flat-section-header .synergy-flat-action-btn {
+    flex-shrink: 0;
+}
+
+.synergy-flat-action-btn i {
+    font-size: 14px;
+    display: inline-block;
+    line-height: 1;
+    pointer-events: none;
 }
 
 /* ==================== DOCUMENTS - TWO-ROW ==================== */
@@ -553,6 +661,12 @@
     text-transform: uppercase;
 }
 
+.priority-critical {
+    background: #7f1d1d;
+    color: white;
+    animation: pulse-critical 2s ease-in-out infinite;
+}
+
 .priority-high {
     background: #dc2626;
     color: white;
@@ -566,6 +680,47 @@
 .priority-low {
     background: #10b981;
     color: white;
+}
+
+@keyframes pulse-critical {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Priority dropdown styling */
+.synergy-priority-select {
+    padding: 4px 8px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.synergy-priority-select:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-tertiary);
+}
+
+.synergy-priority-select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.synergy-priority-display {
+    display: inline-flex;
+    align-items: center;
 }
 
 /* ==================== RESPONSIVE ADJUSTMENTS ==================== */

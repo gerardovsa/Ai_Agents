@@ -609,8 +609,14 @@ const AgentColumn = (function () {
     /**
      * Refresh all existing agent columns AND Prime to update no-thread-message with clickable version
      * Call this after page load to update any existing agents
+     * 
+     * DISABLED: This was interfering with thread loading. Threads now auto-populate during initMultiAgent()
      */
     function refreshAllAgentThreadInfos() {
+        // DISABLED: Don't inject empty states - let threads load naturally
+        console.log('🔄 [AgentColumn] refreshAllAgentThreadInfos called but DISABLED - threads load via initMultiAgent()');
+        return;
+
         // Don't refresh during CASCADE operations - it interferes with UI updates
         if (window.ThreadManager && window.ThreadManager.cascadeInProgress) {
             console.log('⏸️ [AgentColumn] Skipping refresh - CASCADE in progress');

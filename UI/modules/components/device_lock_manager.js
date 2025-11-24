@@ -15,9 +15,17 @@
 const DeviceLockManager = {
     deviceId: null,
     deviceName: null,
+    initialized: false, // ← NEW: Track initialization state
 
     async init() {
+        // ✅ FIX (Nov 24, 2025): Prevent double initialization
+        if (this.initialized) {
+            console.log('[Device Lock] Already initialized - skipping duplicate call');
+            return;
+        }
+
         console.log('[Device Lock] Initializing...');
+        this.initialized = true; // ← Set flag BEFORE async operations
 
         this.deviceId = localStorage.getItem('device_id');
         if (!this.deviceId) {

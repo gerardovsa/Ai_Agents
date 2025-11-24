@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Flow Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .test-section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-left: 4px solid #4CAF50; }
+        .test-section h3 { margin-top: 0; color: #4CAF50; }
+        button { padding: 10px 20px; margin: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .error { color: #f44336; }
+        .success { color: #4CAF50; }
+        .warning { color: #ff9800; }
+        #testResults { margin-top: 20px; }
+        .result-item { padding: 8px; margin: 5px 0; background: #333; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Login Flow Test Page</h1>
+    <p>This page simulates the login flow logic to identify issues.</p>
+
+    <div class="test-section">
+        <h3>Test 1: Check localStorage State</h3>
+        <button onclick="testLocalStorage()">Check localStorage</button>
+        <div id="localStorageResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Simulate checkExistingSession()</h3>
+        <button onclick="testCheckExistingSession()">Test checkExistingSession</button>
+        <div id="checkSessionResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Simulate Login Flow</h3>
+        <button onclick="testLoginFlow()">Test Login Flow</button>
+        <div id="loginFlowResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 4: Check DOM Elements</h3>
+        <button onclick="testDOMElements()">Check DOM Elements</button>
+        <div id="domElementsResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Actions</h3>
+        <button onclick="clearAuth()">Clear Auth Data</button>
+        <button onclick="setFakeAuth()">Set Fake Auth</button>
+        <button onclick="location.reload()">Reload Page</button>
+    </div>
+
+    <div id="testResults"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('testResults');
+            const item = document.createElement('div');
+            item.className = `result-item ${type}`;
+            item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.insertBefore(item, results.firstChild);
+        }
+
+        function testLocalStorage() {
+            const resultDiv = document.getElementById('localStorageResult');
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('userProfile');
+            const devMode = localStorage.getItem('dev_mode_user');
+
+            let html = '<pre>';
+            html += `authToken: ${token ? '✅ EXISTS (length: ' + token.length + ')' : '❌ NULL'}\n`;
+            html += `userProfile: ${user ? '✅ EXISTS' : '❌ NULL'}\n`;
+            html += `dev_mode_user: ${devMode ? '✅ EXISTS' : '❌ NULL'}\n`;
+            
+            if (user) {
+                try {
+                    const parsed = JSON.parse(user);
+                    html += `\nUser Data:\n${JSON.stringify(parsed, null, 2)}`;
+                } catch (e) {
+                    html += `\n⚠️ User data is invalid JSON`;
+                }
+            }
+            html += '</pre>';
+
+            resultDiv.innerHTML = html;
+            log('localStorage check completed', token ? 'success' : 'warning');
+        }
+
+        function testCheckExistingSession() {
+            const resultDiv = document.getElementById('checkSessionResult');
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('userProfile');
+
+            let result = '';
+            if (token && user) {
+                result = '<span class="success">✅ Would return TRUE (user authenticated)</span>';
+                log('checkExistingSession would return TRUE', 'success');
+            } else {
+                result = '<span class="warning">⚠️ Would return FALSE (no auth data)</span>';
+                log('checkExistingSession would return FALSE', 'warning');
+            }
+
+            resultDiv.innerHTML = result;
+        }
+
+        function testLoginFlow() {
+            const resultDiv = document.getElementById('loginFlowResult');
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('userProfile');
+
+            let html = '<pre>';
+            html += 'Expected Flow:\n\n';
+
+            if (token && user) {
+                html += '1. ✅ checkExistingSession() → TRUE\n';
+                html += '2. ✅ Call UserAuth.showMainApp()\n';
+                html += '3. ✅ Hide login screen\n';
+                html += '4. ✅ Show platform container\n';
+                html += '5. ✅ Load threads and initialize\n';
+                html += '\n❌ SHOULD NOT call initializeAccountProfile()';
+            } else {
+                html += '1. ❌ checkExistingSession() → FALSE\n';
+                html += '2. ✅ Call initializeAccountProfile()\n';
+                html += '3. ✅ Check for OAuth token in URL\n';
+                html += '4. ❌ No OAuth token found\n';
+                html += '5. ✅ Call UserAuth.init()\n';
+                html += '6. ✅ Check localStorage (no token)\n';
+                html += '7. ✅ Call hideLoadingOverlay()\n';
+                html += '8. ✅ Call showLogin()\n';
+                html += '9. ✅ Display login screen\n';
+                html += '\n✅ EXPECTED: Login screen should be visible';
+            }
+
+            html += '</pre>';
+            resultDiv.innerHTML = html;
+            log('Login flow analysis completed', 'info');
+        }
+
+        function testDOMElements() {
+            const resultDiv = document.getElementById('domElementsResult');
+            const elements = {
+                'loginOverlay': document.getElementById('loginOverlay'),
+                'authLoadingOverlay': document.getElementById('authLoadingOverlay'),
+                'platformContainer': document.querySelector('.platform-container')
+            };
+
+            let html = '<pre>';
+            for (const [name, el] of Object.entries(elements)) {
+                if (el) {
+                    const display = window.getComputedStyle(el).display;
+                    const visibility = window.getComputedStyle(el).visibility;
+                    const opacity = window.getComputedStyle(el).opacity;
+                    html += `${name}:\n`;
+                    html += `  ✅ Exists\n`;
+                    html += `  display: ${display}\n`;
+                    html += `  visibility: ${visibility}\n`;
+                    html += `  opacity: ${opacity}\n\n`;
+                } else {
+                    html += `${name}: ❌ NOT FOUND IN DOM\n\n`;
+                }
+            }
+            html += '</pre>';
+
+            resultDiv.innerHTML = html;
+            log('DOM elements check completed', 'info');
+        }
+
+        function clearAuth() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userProfile');
+            localStorage.removeItem('dev_mode_user');
+            log('Auth data cleared', 'success');
+            alert('Auth data cleared! Reload page to test login flow.');
+        }
+
+        function setFakeAuth() {
+            const fakeToken = 'fake-token-' + Date.now();
+            const fakeUser = {
+                id: 14,
+                user_id: 14,
+                email: 'test@example.com',
+                auth_platform: 'microsoft'
+            };
+            localStorage.setItem('authToken', fakeToken);
+            localStorage.setItem('userProfile', JSON.stringify(fakeUser));
+            log('Fake auth data set', 'success');
+            alert('Fake auth data set! Reload page to test authenticated flow.');
+        }
+
+        // Run initial tests
+        window.addEventListener('DOMContentLoaded', () => {
+            log('Test page loaded', 'info');
+            testLocalStorage();
+            testCheckExistingSession();
+        });
+    </script>
+</body>
+</html>

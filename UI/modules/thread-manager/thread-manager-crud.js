@@ -76,7 +76,7 @@ Object.assign(window.ThreadManager, {
     /**
      * Create thread with full metadata (backend-first)
      */
-    async createThreadWithMetadata(title, tags, location = 'prime') {
+    async createThreadWithMetadata(title, tags, location = 'prime-loaded') {
         console.log('🔄 [CRUD] Creating thread with metadata:', { title, tags, location });
 
         try {
@@ -130,9 +130,9 @@ Object.assign(window.ThreadManager, {
             this.threads.unshift(threadForUI);
             console.log('✅ [CRUD] Thread created with metadata:', newThreadId);
 
-            // Assign to location
+            // Assign to location (force 'prime-loaded' instead of 'prime')
             if (typeof this.assignThread === 'function') {
-                await this.assignThread(newThreadId, location);
+                await this.assignThread(newThreadId, location === 'prime' ? 'prime-loaded' : location);
             }
 
             // Refresh UI
