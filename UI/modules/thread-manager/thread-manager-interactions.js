@@ -190,9 +190,9 @@ Object.assign(window.ThreadManager, {
             AppState.sessionId = threadId;
         }
 
-        // Assign to Prime location
+        // Assign to Prime location (use 'prime-loaded' for page reload restoration)
         if (typeof this.assignThread === 'function') {
-            await this.assignThread(threadId, 'prime');
+            await this.assignThread(threadId, 'prime-loaded');
         }
 
         // Update UI
@@ -259,7 +259,7 @@ Object.assign(window.ThreadManager, {
 
         switch (option) {
             case 'move-to-prime':
-                await this.assignThread(threadId, 'prime');
+                await this.assignThread(threadId, 'prime-loaded');
                 await this.switchThread(threadId, true);
                 break;
 
@@ -279,7 +279,7 @@ Object.assign(window.ThreadManager, {
                 break;
 
             case 'unload-only':
-                await this.assignThread(threadId, 'prime');
+                await this.assignThread(threadId, 'prime-loaded');
 
                 if (agentId && typeof MultiAgent !== 'undefined') {
                     MultiAgent.clearAgentThread?.(parseInt(agentId));
@@ -349,7 +349,7 @@ Object.assign(window.ThreadManager, {
                 'Unload Thread?',
                 `Move "${thread.title}" from ${currentLocation} back to Prime?`,
                 async () => {
-                    await this.assignThread(threadId, 'prime');
+                    await this.assignThread(threadId, 'prime-loaded');
 
                     // Clear from agent
                     if (typeof MultiAgent !== 'undefined') {
@@ -516,7 +516,7 @@ Object.assign(window.ThreadManager, {
 
         if (targetLocation === 'prime') {
             console.log(`🎯 [Drop] Loading thread ${threadId} in Prime`);
-            
+
             // Find the thread
             const thread = this.threads.find(t => t.id === threadId);
             if (!thread) {
@@ -526,18 +526,18 @@ Object.assign(window.ThreadManager, {
                 }
                 return;
             }
-            
+
             // Load in Prime using loadThreadInPrime (this will set prime-loaded internally)
             await this.loadThreadInPrime(threadId);
-            
+
             // Update thread info card
             if (typeof this.renderThreadInfoContainer === 'function') {
                 this.renderThreadInfoContainer('prime', threadId, true);
             }
-            
+
             // Close thread menu
             this.closeThreadMenu();
-            
+
             if (typeof showNotification === 'function') {
                 showNotification(`Thread "${thread.title}" loaded in Prime`, 'success');
             }
@@ -727,34 +727,28 @@ Object.assign(window.ThreadManager, {
     },
 
     /**
-     * Toggle thread menu collapse state
+     * Toggle thread menu collapse state (full close/open like threads-btn)
      */
-    toggleThreadMenuCollapse() {
+    async toggleThreadMenuCollapse() {
         const menu = document.getElementById('thread-menu');
-        const collapseBtn = document.getElementById('thread-menu-collapse-btn');
-        
-        if (!menu || !collapseBtn) {
-            console.error('❌ [Interactions] Thread menu or collapse button not found');
+
+        if (!menu) {
+            console.error('❌ [Interactions] Thread menu not found');
             return;
         }
 
-        const isCollapsed = menu.classList.toggle('collapsed');
-        
-        // Update chevron icon direction
-        const icon = collapseBtn.querySelector('i');
-        if (icon) {
-            if (isCollapsed) {
-                icon.classList.remove('fa-chevron-right');
-                icon.classList.add('fa-chevron-left');
-                collapseBtn.title = 'Expand sidebar';
-            } else {
-                icon.classList.remove('fa-chevron-left');
-                icon.classList.add('fa-chevron-right');
-                collapseBtn.title = 'Collapse sidebar';
-            }
-        }
+        const wasActive = menu.classList.contains('active');
+        menu.classList.toggle('active');
 
-        console.log(`📐 [Interactions] Thread menu ${isCollapsed ? 'collapsed' : 'expanded'}`);
+        if (!wasActive) {
+            // Opening menu - load threads
+            console.log('📂 [Interactions] Opening thread menu via collapse button...');
+            await this.loadThreadsFromBackend();
+            await this.renderThreadList();
+            console.log(`✅ [Interactions] Thread menu opened with ${this.threads.length} threads`);
+        } else {
+            console.log('📐 [Interactions] Thread menu closed via collapse button');
+        }
     },
 
     /**

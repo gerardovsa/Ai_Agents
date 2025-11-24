@@ -32,7 +32,7 @@ class SynergyInlineEditClass {
         // Store original content
         const titleEl = container.querySelector('.synergy-flat-milestone-title');
         const descEl = container.querySelector('.synergy-flat-milestone-desc');
-        
+
         this.originalContent[milestoneId] = {
             title: titleEl ? titleEl.textContent : '',
             description: descEl ? descEl.textContent : ''
@@ -56,10 +56,12 @@ class SynergyInlineEditClass {
 
         const titleEl = container.querySelector('.synergy-flat-milestone-title');
         const descEl = container.querySelector('.synergy-flat-milestone-desc');
+        const priorityEl = container.querySelector('.synergy-priority-select');
 
         const data = {
             milestone: titleEl ? titleEl.textContent.trim() : '',
-            description: descEl ? descEl.textContent.trim() : ''
+            description: descEl ? descEl.textContent.trim() : '',
+            priority: priorityEl ? priorityEl.value : 'medium'
         };
 
         try {
@@ -151,7 +153,7 @@ class SynergyInlineEditClass {
         this.originalContent['session_title'] = titleEl.textContent;
         titleEl.setAttribute('contenteditable', 'true');
         titleEl.focus();
-        
+
         // Select all text
         const range = document.createRange();
         range.selectNodeContents(titleEl);
@@ -181,7 +183,7 @@ class SynergyInlineEditClass {
 
             titleEl.setAttribute('contenteditable', 'false');
             delete this.originalContent['session_title'];
-            
+
         } catch (error) {
             console.error('[SYNERGY INLINE EDIT] Save title error:', error);
             alert('Failed to save title');
@@ -194,7 +196,7 @@ class SynergyInlineEditClass {
 
         const container = section.querySelector('.synergy-flat-description-container');
         const descEl = section.querySelector('.synergy-flat-description');
-        
+
         if (!descEl) return;
 
         this.originalContent['description'] = descEl.textContent;
@@ -325,6 +327,100 @@ class SynergyInlineEditClass {
         }
     }
 
+    // Add Document - with picker and create options
+    async addDocument(sessionId) {
+        // Show choice modal: Create New or Link Existing
+        const choice = await this.showDocumentChoice();
+
+        if (choice === 'create') {
+            // Open internal docs manager to create new doc
+            if (window.internalDocsManager) {
+                await window.internalDocsManager.createInternalDoc(sessionId);
+            } else {
+                console.error('[SYNERGY INLINE EDIT] Internal docs manager not available');
+                alert('Document manager not loaded');
+            }
+        } else if (choice === 'existing') {
+            // Open document picker
+            if (window.SynergyDocPicker) {
+                window.SynergyDocPicker.open(async (docId, docData) => {
+                    await this.linkDocument(sessionId, docId, docData);
+                });
+            } else {
+                console.error('[SYNERGY INLINE EDIT] Document picker not available');
+                alert('Document picker not loaded');
+            }
+        }
+    }
+
+    // Show document choice modal (Create New vs Link Existing)
+    showDocumentChoice() {
+        return new Promise((resolve) => {
+            const modalHTML = `
+                <div id="synergy-doc-choice-modal" class="synergy-doc-choice-overlay">
+                    <div class="synergy-doc-choice-modal">
+                        <div class="synergy-doc-choice-header">
+                            <h3>Add Document</h3>
+                            <button onclick="document.getElementById('synergy-doc-choice-modal').remove(); return false;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="synergy-doc-choice-buttons">
+                            <button class="synergy-doc-choice-btn create" onclick="document.getElementById('synergy-doc-choice-modal').dispatchEvent(new CustomEvent('choice', {detail: 'create'}))">
+                                <i class="fas fa-plus-circle"></i>
+                                <div>
+                                    <strong>Create New</strong>
+                                    <small>Start a fresh document or spreadsheet</small>
+                                </div>
+                            </button>
+                            <button class="synergy-doc-choice-btn existing" onclick="document.getElementById('synergy-doc-choice-modal').dispatchEvent(new CustomEvent('choice', {detail: 'existing'}))">
+                                <i class="fas fa-link"></i>
+                                <div>
+                                    <strong>Link Existing</strong>
+                                    <small>Select from your internal documents</small>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modal = document.getElementById('synergy-doc-choice-modal');
+
+            modal.addEventListener('choice', (e) => {
+                modal.remove();
+                resolve(e.detail);
+            });
+        });
+    }
+
+    // Link an existing document to session
+    async linkDocument(sessionId, docId, docData) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/link-document`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    doc_id: docId,
+                    title: docData.title,
+                    doc_type: docData.doc_type
+                })
+            });
+
+            if (!response.ok) throw new Error('Link document failed');
+
+            console.log('[SYNERGY INLINE EDIT] Document linked:', docId);
+
+            // Reload card to show new document
+            await this.reloadCard(sessionId);
+
+        } catch (error) {
+            console.error('[SYNERGY INLINE EDIT] Link document error:', error);
+            alert('Failed to link document');
+        }
+    }
+
     async removeLink(sessionId, linkIndex) {
         if (!confirm('Remove this link?')) return;
 
@@ -353,7 +449,7 @@ class SynergyInlineEditClass {
             const response = await fetch(`${this.API_BASE_URL}/api/synergy/${sessionId}/milestones`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     milestone_name: milestoneName.trim(),
                     description: '',
                     priority: 'medium'
@@ -380,7 +476,7 @@ class SynergyInlineEditClass {
             const response = await fetch(`${this.API_BASE_URL}/api/synergy/milestone/${milestoneId}/tasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     task: taskName.trim(),
                     priority: 'medium'
                 })
@@ -406,7 +502,7 @@ class SynergyInlineEditClass {
             const response = await fetch(`${this.API_BASE_URL}/api/synergy/task/${taskId}/subtasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     task: subtaskName.trim(),
                     priority: 'medium'
                 })
@@ -458,7 +554,12 @@ class SynergyInlineEditClass {
         if (!container) return;
 
         const titleEl = container.querySelector('.synergy-flat-task-title');
-        const data = { task: titleEl ? titleEl.textContent.trim() : '' };
+        const priorityEl = container.querySelector('.synergy-priority-select');
+        
+        const data = { 
+            task: titleEl ? titleEl.textContent.trim() : '',
+            priority: priorityEl ? priorityEl.value : 'medium'
+        };
 
         try {
             const response = await fetch(`${this.API_BASE_URL}/api/synergy/task/${taskId}`, {
@@ -539,7 +640,12 @@ class SynergyInlineEditClass {
         if (!container) return;
 
         const titleEl = container.querySelector('.synergy-flat-subtask-title');
-        const data = { subtask: titleEl ? titleEl.textContent.trim() : '' };
+        const priorityEl = container.querySelector('.synergy-priority-select');
+        
+        const data = { 
+            subtask: titleEl ? titleEl.textContent.trim() : '',
+            priority: priorityEl ? priorityEl.value : 'medium'
+        };
 
         try {
             const response = await fetch(`${this.API_BASE_URL}/api/synergy/subtask/${subtaskId}`, {
@@ -621,16 +727,30 @@ class SynergyInlineEditClass {
             if (headerRight) {
                 const editBtn = headerRight.querySelector('.synergy-edit-btn');
                 const deleteBtn = headerRight.querySelector('.synergy-delete-btn');
+                const priorityDisplay = headerRight.querySelector('.synergy-priority-display');
+                const prioritySelect = headerRight.querySelector('.synergy-priority-select');
+                
                 if (editBtn) editBtn.style.display = 'none';
                 if (deleteBtn) deleteBtn.style.display = 'none';
+                
+                // Show priority dropdown, hide badge
+                if (priorityDisplay) priorityDisplay.style.display = 'none';
+                if (prioritySelect) prioritySelect.style.display = 'inline-block';
             }
         } else {
             if (editActions) editActions.style.display = 'none';
             if (headerRight) {
                 const editBtn = headerRight.querySelector('.synergy-edit-btn');
                 const deleteBtn = headerRight.querySelector('.synergy-delete-btn');
+                const priorityDisplay = headerRight.querySelector('.synergy-priority-display');
+                const prioritySelect = headerRight.querySelector('.synergy-priority-select');
+                
                 if (editBtn) editBtn.style.display = 'inline-block';
                 if (deleteBtn) deleteBtn.style.display = 'inline-block';
+                
+                // Hide priority dropdown, show badge
+                if (priorityDisplay) priorityDisplay.style.display = 'inline-flex';
+                if (prioritySelect) prioritySelect.style.display = 'none';
             }
         }
     }
@@ -645,117 +765,220 @@ window.SynergyInlineEdit = new SynergyInlineEditClass();
 console.log('[SYNERGY INLINE EDIT] ✅ Instance created with event delegation');
 
 // Setup event delegation on document level
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     const target = e.target;
-    
+
+    // CRITICAL FIX: Determine if click is in sidebar, dashboard, or popup modal
+    // This prevents cross-container editing (sidebar → dashboard, popup → sidebar, etc.)
+    const clickedInSidebar = target.closest('#synergy-sidebar');
+    const clickedInDashboard = target.closest('#synergy-dashboard-container');
+    const clickedInPopup = target.closest('#synergy-popup-modal');
+
+    // If not in any synergy container, ignore
+    if (!clickedInSidebar && !clickedInDashboard && !clickedInPopup) return;
+
     // Edit button clicked
     if (target.classList.contains('synergy-edit-btn')) {
         const container = target.closest('[data-milestone-id], [data-task-id], [data-subtask-id]');
         if (!container) return;
-        
+
+        // Verify container is in the same context (sidebar, dashboard, or popup)
+        const containerInSidebar = container.closest('#synergy-sidebar');
+        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInPopup = container.closest('#synergy-popup-modal');
+
+        // Only allow editing if click and container are in the SAME context
+        if (clickedInSidebar && !containerInSidebar) {
+            console.warn('[SYNERGY EDIT] Ignoring sidebar click - target not in sidebar');
+            return;
+        }
+        if (clickedInDashboard && !containerInDashboard) {
+            console.warn('[SYNERGY EDIT] Ignoring dashboard click - target not in dashboard');
+            return;
+        }
+        if (clickedInPopup && !containerInPopup) {
+            console.warn('[SYNERGY EDIT] Ignoring popup click - target not in popup');
+            return;
+        }
+
         const milestoneId = container.getAttribute('data-milestone-id');
         const taskId = container.getAttribute('data-task-id');
         const subtaskId = container.getAttribute('data-subtask-id');
         const sessionId = container.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
-        
+
         if (milestoneId) window.SynergyInlineEdit.editMilestone(sessionId, milestoneId);
         else if (taskId) window.SynergyInlineEdit.editTask(sessionId, taskId);
         else if (subtaskId) window.SynergyInlineEdit.editSubtask(sessionId, subtaskId);
         return;
     }
-    
+
     // Save button clicked
     if (target.classList.contains('synergy-save-btn')) {
         const container = target.closest('[data-milestone-id], [data-task-id], [data-subtask-id]');
         if (!container) return;
-        
+
+        // Verify container is in the same context
+        const containerInSidebar = container.closest('#synergy-sidebar');
+        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInPopup = container.closest('#synergy-popup-modal');
+
+        if (clickedInSidebar && !containerInSidebar) {
+            console.warn('[SYNERGY SAVE] Ignoring sidebar click - target not in sidebar');
+            return;
+        }
+        if (clickedInDashboard && !containerInDashboard) {
+            console.warn('[SYNERGY SAVE] Ignoring dashboard click - target not in dashboard');
+            return;
+        }
+        if (clickedInPopup && !containerInPopup) {
+            console.warn('[SYNERGY SAVE] Ignoring popup click - target not in popup');
+            return;
+        }
+
         const milestoneId = container.getAttribute('data-milestone-id');
         const taskId = container.getAttribute('data-task-id');
         const subtaskId = container.getAttribute('data-subtask-id');
         const sessionId = container.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
-        
+
         if (milestoneId) window.SynergyInlineEdit.saveMilestone(sessionId, milestoneId);
         else if (taskId) window.SynergyInlineEdit.saveTask(sessionId, taskId);
         else if (subtaskId) window.SynergyInlineEdit.saveSubtask(sessionId, subtaskId);
         return;
     }
-    
+
     // Cancel button clicked
     if (target.classList.contains('synergy-cancel-btn')) {
         const container = target.closest('[data-milestone-id], [data-task-id], [data-subtask-id]');
         if (!container) return;
-        
+
+        // Verify container is in the same context
+        const containerInSidebar = container.closest('#synergy-sidebar');
+        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInPopup = container.closest('#synergy-popup-modal');
+
+        if (clickedInSidebar && !containerInSidebar) {
+            console.warn('[SYNERGY CANCEL] Ignoring sidebar click - target not in sidebar');
+            return;
+        }
+        if (clickedInDashboard && !containerInDashboard) {
+            console.warn('[SYNERGY CANCEL] Ignoring dashboard click - target not in dashboard');
+            return;
+        }
+        if (clickedInPopup && !containerInPopup) {
+            console.warn('[SYNERGY CANCEL] Ignoring popup click - target not in popup');
+            return;
+        }
+
         const milestoneId = container.getAttribute('data-milestone-id');
         const taskId = container.getAttribute('data-task-id');
         const subtaskId = container.getAttribute('data-subtask-id');
         const sessionId = container.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
-        
+
         const itemId = milestoneId || taskId || subtaskId;
         window.SynergyInlineEdit.cancelEdit(sessionId, itemId);
         return;
     }
-    
+
     // Delete button clicked
     if (target.classList.contains('synergy-delete-btn')) {
         const container = target.closest('[data-milestone-id], [data-task-id], [data-subtask-id]');
         if (!container) return;
-        
+
+        // Verify container is in the same context
+        const containerInSidebar = container.closest('#synergy-sidebar');
+        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInPopup = container.closest('#synergy-popup-modal');
+
+        if (clickedInSidebar && !containerInSidebar) {
+            console.warn('[SYNERGY DELETE] Ignoring sidebar click - target not in sidebar');
+            return;
+        }
+        if (clickedInDashboard && !containerInDashboard) {
+            console.warn('[SYNERGY DELETE] Ignoring dashboard click - target not in dashboard');
+            return;
+        }
+        if (clickedInPopup && !containerInPopup) {
+            console.warn('[SYNERGY DELETE] Ignoring popup click - target not in popup');
+            return;
+        }
+
         const milestoneId = container.getAttribute('data-milestone-id');
         const taskId = container.getAttribute('data-task-id');
         const subtaskId = container.getAttribute('data-subtask-id');
         const sessionId = container.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
-        
+
         if (milestoneId) window.SynergyInlineEdit.deleteMilestone(sessionId, milestoneId);
         else if (taskId) window.SynergyInlineEdit.deleteTask(sessionId, taskId);
         else if (subtaskId) window.SynergyInlineEdit.deleteSubtask(sessionId, subtaskId);
         return;
     }
-    
+
     // Link button clicked
     if (target.classList.contains('synergy-link-btn')) {
         const container = target.closest('[data-milestone-id], [data-task-id]');
         if (!container) return;
-        
+
+        // Verify container is in the same context
+        const containerInSidebar = container.closest('#synergy-sidebar');
+        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInPopup = container.closest('#synergy-popup-modal');
+
+        if (clickedInSidebar && !containerInSidebar) {
+            console.warn('[SYNERGY LINK] Ignoring sidebar click - target not in sidebar');
+            return;
+        }
+        if (clickedInDashboard && !containerInDashboard) {
+            console.warn('[SYNERGY LINK] Ignoring dashboard click - target not in dashboard');
+            return;
+        }
+        if (clickedInPopup && !containerInPopup) {
+            console.warn('[SYNERGY LINK] Ignoring popup click - target not in popup');
+            return;
+        }
+
         const milestoneId = container.getAttribute('data-milestone-id');
         const taskId = container.getAttribute('data-task-id');
         const sessionId = container.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
-        
+
         if (milestoneId) window.SynergyInlineEdit.linkMilestone(sessionId, milestoneId);
         else if (taskId) window.SynergyInlineEdit.linkTask(sessionId, taskId);
         return;
     }
-    
-    // SESSION-LEVEL EDITING BUTTONS
-    
+
+    // SESSION-LEVEL EDITING BUTTONS (these are safe - only appear once per container)
+
     // Edit description button
     if (target.classList.contains('synergy-edit-description-btn')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
         window.SynergyInlineEdit.editDescription(sessionId);
         return;
     }
-    
+
     // Save description button
     if (target.classList.contains('synergy-save-description-btn')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
         window.SynergyInlineEdit.saveDescription(sessionId);
         return;
     }
-    
+
     // Cancel description button
     if (target.classList.contains('synergy-cancel-description-btn')) {
         window.SynergyInlineEdit.cancelDescription();
         return;
     }
-    
+
     // Add milestone button
     if (target.classList.contains('synergy-add-milestone-btn')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
         window.SynergyInlineEdit.addMilestone(sessionId);
         return;
     }
-    
+
     // Add task button
     if (target.classList.contains('synergy-add-task-btn')) {
+        // Verify button is in a synergy container
+        if (!clickedInSidebar && !clickedInDashboard && !clickedInPopup) return;
+
         const milestoneId = target.getAttribute('data-milestone-id') || target.closest('[data-milestone-id]')?.getAttribute('data-milestone-id');
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
         if (milestoneId) {
@@ -763,9 +986,12 @@ document.addEventListener('click', function(e) {
         }
         return;
     }
-    
+
     // Add subtask button
     if (target.classList.contains('synergy-add-subtask-btn')) {
+        // Verify button is in a synergy container
+        if (!clickedInSidebar && !clickedInDashboard && !clickedInPopup) return;
+
         const taskId = target.getAttribute('data-task-id') || target.closest('[data-task-id]')?.getAttribute('data-task-id');
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
         if (taskId) {
@@ -773,14 +999,14 @@ document.addEventListener('click', function(e) {
         }
         return;
     }
-    
+
     // Add tag button
     if (target.classList.contains('synergy-add-tag-btn')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
         window.SynergyInlineEdit.addTag(sessionId);
         return;
     }
-    
+
     // Remove tag button
     if (target.classList.contains('synergy-remove-tag-btn')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
@@ -790,14 +1016,21 @@ document.addEventListener('click', function(e) {
         }
         return;
     }
-    
+
     // Add link button
     if (target.classList.contains('synergy-add-link-btn')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
         window.SynergyInlineEdit.addLink(sessionId);
         return;
     }
-    
+
+    // Add document button
+    if (target.classList.contains('synergy-add-document-btn')) {
+        const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
+        window.SynergyInlineEdit.addDocument(sessionId);
+        return;
+    }
+
     // Remove link button
     if (target.classList.contains('synergy-remove-link-btn')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
@@ -807,7 +1040,7 @@ document.addEventListener('click', function(e) {
         }
         return;
     }
-    
+
     // Edit session title (double-click on title)
     if (target.classList.contains('synergy-session-title-editable')) {
         const sessionId = target.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
@@ -817,20 +1050,45 @@ document.addEventListener('click', function(e) {
 });
 
 // Setup checkbox change delegation
-document.addEventListener('change', function(e) {
+document.addEventListener('change', function (e) {
     const target = e.target;
-    
+
     // Checkbox toggle for milestone/task/subtask completion
     if (target.classList.contains('synergy-flat-checkbox')) {
+        // CRITICAL FIX: Verify checkbox is in correct container (sidebar, dashboard, or popup)
+        const clickedInSidebar = target.closest('#synergy-sidebar');
+        const clickedInDashboard = target.closest('#synergy-dashboard-container');
+        const clickedInPopup = target.closest('#synergy-popup-modal');
+
+        if (!clickedInSidebar && !clickedInDashboard && !clickedInPopup) return;
+
         const container = target.closest('[data-milestone-id], [data-task-id], [data-subtask-id]');
         if (!container) return;
-        
+
+        // Verify container is in the same context
+        const containerInSidebar = container.closest('#synergy-sidebar');
+        const containerInDashboard = container.closest('#synergy-dashboard-container');
+        const containerInPopup = container.closest('#synergy-popup-modal');
+
+        if (clickedInSidebar && !containerInSidebar) {
+            console.warn('[SYNERGY CHECKBOX] Ignoring sidebar change - target not in sidebar');
+            return;
+        }
+        if (clickedInDashboard && !containerInDashboard) {
+            console.warn('[SYNERGY CHECKBOX] Ignoring dashboard change - target not in dashboard');
+            return;
+        }
+        if (clickedInPopup && !containerInPopup) {
+            console.warn('[SYNERGY CHECKBOX] Ignoring popup change - target not in popup');
+            return;
+        }
+
         const milestoneId = container.getAttribute('data-milestone-id');
         const taskId = container.getAttribute('data-task-id');
         const subtaskId = container.getAttribute('data-subtask-id');
         const sessionId = container.closest('.synergy-flat-container')?.getAttribute('data-session-id') || '';
         const checked = target.checked;
-        
+
         if (milestoneId) window.SynergyInlineEdit.toggleMilestoneComplete(sessionId, milestoneId, checked);
         else if (taskId) window.SynergyInlineEdit.toggleTaskComplete(sessionId, taskId, checked);
         else if (subtaskId) window.SynergyInlineEdit.toggleSubtaskComplete(sessionId, subtaskId, checked);

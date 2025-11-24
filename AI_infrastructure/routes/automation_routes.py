@@ -663,23 +663,26 @@ def list_automations():
         
         cursor.execute(query, params)
         rows = cursor.fetchall()
+        print(f'[DEBUG /api/automation/list] SQL query returned {len(rows)} rows for user_id={user_id}')
         conn.close()
         
         automations = []
-        for row in rows:
-            # Parse JSON fields
-            ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
-            execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
-            
-            # Transform nodes/edges to shapes/connections (canvas format)
-            shapes = []
-            connections = []
-            
-            if isinstance(ui_json, dict):
-                # Parse canvas_data for node positions (if stored separately)
-                canvas_data_str = row.get('canvas_data')
-                canvas_data = {}
-                if canvas_data_str:
+        skipped_count = 0
+        for i, row in enumerate(rows, 1):
+            try:
+                # Parse JSON fields
+                ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
+                execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
+                
+                # Transform nodes/edges to shapes/connections (canvas format)
+                shapes = []
+                connections = []
+                
+                if isinstance(ui_json, dict):
+                    # Parse canvas_data for node positions (if stored separately)
+                    canvas_data_str = row.get('canvas_data')
+                    canvas_data = {}
+                    if canvas_data_str:
                     try:
                         canvas_data = json.loads(canvas_data_str) if isinstance(canvas_data_str, str) else canvas_data_str
                         if isinstance(canvas_data, dict) and 'nodes' in canvas_data:
@@ -796,6 +799,16 @@ def list_automations():
                 'error_count': 0,  # TODO: Calculate from execution history
                 'last_run_at': str(row['last_executed_at']) if row['last_executed_at'] else None
             })
+            
+            except Exception as transform_error:
+                skipped_count += 1
+                print(f'[ERROR /api/automation/list] Failed to transform workflow #{i} ({row.get("automation_id", "UNKNOWN")}): {type(transform_error).__name__}: {str(transform_error)}')
+                import traceback
+                traceback.print_exc()
+                continue  # Skip this workflow and process the rest
+        
+        print(f'[DEBUG /api/automation/list] Successfully transformed {len(automations)} workflows, skipped {skipped_count}')
+        print(f'[DEBUG /api/automation/list] Returning JSON response with count={len(automations)}')
         
         return jsonify({
             'success': True,

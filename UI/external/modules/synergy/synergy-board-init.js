@@ -86,19 +86,57 @@ window.synergyBoard = {
     },
 
     /**
+     * Fallback renderer for expanded content when SynergySidebarRenderer is not available
+     */
+    renderExpandedContentFallback(session, milestones, sessionId) {
+        return `
+            <div class="synergy-flat-container" data-session-id="${sessionId}" style="padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+                <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                    <i class="fas fa-info-circle"></i> Synergy Renderer Loading...
+                </div>
+                <div style="font-size: 13px; color: var(--text-tertiary);">
+                    ${milestones.length} milestone(s) found
+                </div>
+                ${milestones.length > 0 ? `
+                    <div style="margin-top: 16px;">
+                        ${milestones.map(m => `
+                            <div style="
+                                padding: 12px;
+                                background: var(--bg-primary);
+                                border-left: 3px solid var(--accent-primary);
+                                border-radius: 6px;
+                                margin-bottom: 8px;
+                            ">
+                                <div style="font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">
+                                    ${this.escapeHtml(m.milestone || 'Untitled Milestone')}
+                                </div>
+                                ${m.description ? `
+                                    <div style="font-size: 13px; color: var(--text-secondary);">
+                                        ${this.escapeHtml(m.description)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    /**
      * Handle drag start for Synergy cards
      */
     handleDragStart(event) {
         const card = event.currentTarget;
         const sessionId = card.dataset.sessionId;
-        
+
         console.log('[SYNERGY DRAG] Started dragging session:', sessionId);
-        
+
         // Set drag data
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', sessionId);
         event.dataTransfer.setData('synergy-session', sessionId);
-        
+
         // Add visual feedback
         card.classList.add('dragging');
         card.style.opacity = '0.5';
@@ -110,13 +148,13 @@ window.synergyBoard = {
     handleDragEnd(event) {
         const card = event.currentTarget;
         const sessionId = card.dataset.sessionId;
-        
+
         console.log('[SYNERGY DRAG] Ended dragging session:', sessionId);
-        
+
         // Remove visual feedback
         card.classList.remove('dragging');
         card.style.opacity = '1';
-        
+
         // Remove drag-over class from all columns
         document.querySelectorAll('.kanban-column').forEach(col => {
             col.classList.remove('drag-over');
@@ -727,7 +765,7 @@ window.synergyBoard = {
                 expandedContent.style.display = 'block';
                 const chevron = card.querySelector('.synergy-chevron i');
                 if (chevron) chevron.className = 'fas fa-chevron-up';
-                
+
                 // Clear processing flag immediately since no async work needed
                 card.dataset.processing = 'false';
             }
@@ -739,7 +777,7 @@ window.synergyBoard = {
      */
     openCardMenu(sessionId, event) {
         console.log('[SYNERGY] Opening card menu for:', sessionId);
-        
+
         // Close any existing menus
         const existingMenu = document.querySelector('.synergy-card-dropdown-menu');
         if (existingMenu) {
@@ -802,7 +840,7 @@ window.synergyBoard = {
      */
     async editCardFromMenu(sessionId) {
         console.log('[SYNERGY] Editing session:', sessionId);
-        
+
         // Use popup modal if available
         if (window.synergyPopupModal) {
             await window.synergyPopupModal.open(sessionId);
@@ -834,7 +872,7 @@ window.synergyBoard = {
             }
 
             console.log('[SYNERGY] Archived session:', sessionId);
-            
+
             // Remove card from board
             const card = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
             if (card) {
@@ -876,7 +914,7 @@ window.synergyBoard = {
             }
 
             console.log('[SYNERGY] Deleted session:', sessionId);
-            
+
             // Remove card from board with animation
             const card = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
             if (card) {

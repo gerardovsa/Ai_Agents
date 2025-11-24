@@ -121,7 +121,7 @@ const AutomationsSidebar = {
 
             const data = await response.json();
             console.log('[AUTOMATIONS] API response data:', data);
-            
+
             if (!data.success) {
                 console.error('[AUTOMATIONS] API error:', data.error);
                 this.automations = [];
@@ -430,7 +430,7 @@ const AutomationsSidebar = {
     async openAutomation(slug) {
         try {
             console.log('[AUTOMATIONS] Opening workflow:', slug);
-            
+
             // Fetch workflow details from backend API
             const response = await fetch(`/api/automation/${slug}`, {
                 headers: {
@@ -443,7 +443,7 @@ const AutomationsSidebar = {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load workflow');
             }

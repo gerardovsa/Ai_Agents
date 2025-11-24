@@ -15,6 +15,7 @@
 const DebugModule = {
     logs: [],
     maxLogs: 500,
+    htmlLoaded: false,
     filters: {
         threadSave: true,
         threadLoad: true,
@@ -25,12 +26,50 @@ const DebugModule = {
         truncateResults: true
     },
 
-    init() {
+    /**
+     * Initialize debug module (async to support HTML loading)
+     */
+    async init() {
         console.log('[DEBUG MODULE] Initializing...');
+        
+        // Load HTML template first
+        await this.loadHTML();
+        
         this.interceptConsoleLogs();
         this.monitorThreadOperations();
         this.monitorAPIRequests();
         console.log('[DEBUG MODULE] Ready');
+    },
+
+    /**
+     * Load HTML template from external file
+     * CRITICAL: This must run before other initialization
+     */
+    async loadHTML() {
+        if (this.htmlLoaded) {
+            console.log('[DEBUG MODULE] HTML already loaded, skipping');
+            return;
+        }
+
+        try {
+            console.log('[DEBUG MODULE] Loading HTML template...');
+            
+            const response = await fetch('external/modules/debug-module/debug-module.html');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const html = await response.text();
+            
+            // Inject HTML directly into body (debug sidebar is top-level)
+            document.body.insertAdjacentHTML('beforeend', html);
+            
+            this.htmlLoaded = true;
+            console.log('[DEBUG MODULE] HTML template loaded successfully');
+        } catch (error) {
+            console.error('[DEBUG MODULE] Failed to load HTML template:', error);
+            throw new Error(`Debug Module HTML load failed: ${error.message}`);
+        }
     },
 
     /**

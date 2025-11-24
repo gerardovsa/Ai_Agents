@@ -59,6 +59,56 @@ class SynergyPopupModal {
 
         // Bind event listeners
         this.bindEvents();
+
+        // Make popup draggable
+        this.makeDraggable();
+    }
+
+    /**
+     * Make popup container draggable by header
+     */
+    makeDraggable() {
+        const container = document.querySelector('.synergy-popup-container');
+        const header = document.querySelector('.synergy-popup-header');
+
+        if (!container || !header) return;
+
+        let isDragging = false;
+        let currentX = 0;
+        let currentY = 0;
+        let initialX = 0;
+        let initialY = 0;
+
+        header.style.cursor = 'move';
+
+        header.addEventListener('mousedown', (e) => {
+            // Don't drag if clicking buttons
+            if (e.target.closest('button')) return;
+
+            isDragging = true;
+            initialX = e.clientX - currentX;
+            initialY = e.clientY - currentY;
+            header.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+
+            container.style.left = currentX + 'px';
+            container.style.top = currentY + 'px';
+            container.style.transform = 'none';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                header.style.cursor = 'move';
+            }
+        });
     }
 
     /**

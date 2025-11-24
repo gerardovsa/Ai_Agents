@@ -2057,9 +2057,17 @@ window.fetch = function (...args) {
 let isInitialized = false;
 
 async function initializeApp() {
-    // Guard: Prevent duplicate initialization
+    // ✅ GUARD #1: Prevent duplicate initialization
     if (isInitialized) {
         console.log('[AUTH] Account profile already initialized, skipping duplicate call');
+        return;
+    }
+
+    // ✅ GUARD #2 (Nov 24, 2025): If user is ALREADY authenticated (via checkExistingSession)
+    // don't call UserAuth.init() again - this prevents double initialization
+    if (UserAuth.mainAppInitialized) {
+        console.log('[AUTH] Main app already initialized by checkExistingSession path - BLOCKING duplicate init');
+        isInitialized = true;
         return;
     }
 
@@ -2077,6 +2085,8 @@ async function initializeApp() {
         }
         // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
+        isInitialized = true;
+        return;
     } else if (token) {
         console.log('OAuth successful, token received');
 
@@ -2115,18 +2125,22 @@ async function initializeApp() {
         return; // Don't call init() - we already initialized
     }
 
-    // No OAuth token in URL - proceed with normal init
+    // No OAuth token in URL AND user not authenticated - proceed with normal init
+    console.log('[AUTH] No OAuth token, no existing session - Showing login screen');
     UserAuth.init();
 
     // Mark as initialized to prevent duplicate calls
     isInitialized = true;
 
-    // Initialize Device Lock Manager after authentication
-    setTimeout(() => {
-        if (UserAuth.user) {
-            DeviceLockManager.init();
-        }
-    }, 1000);
+    // ❌ REMOVED (Nov 24, 2025): Causes double DeviceLockManager initialization
+    // DeviceLockManager.init() is already called earlier in this file (line 368)
+    // after successful OAuth callback handling
+    //
+    // setTimeout(() => {
+    //     if (UserAuth.user) {
+    //         DeviceLockManager.init();
+    //     }
+    // }, 1000);
 }
 
 // ✅ Export initializeApp for external use (called from main HTML after UserAuth is ready)

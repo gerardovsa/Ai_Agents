@@ -213,20 +213,67 @@ class SettingsSidebarModule extends BaseModule {
     async initialize() {
         console.log('[Settings Sidebar] Initializing...');
 
-        // Initialize from BaseModule
-        await super.initialize();
+        // Load HTML template first (CRITICAL - Must happen before BaseModule init)
+        await this.loadHTML();
+
+        // OVERRIDE: Settings sidebar uses #settings-sidebar, not #tab-settings-sidebar
+        this.container = document.getElementById('settings-sidebar');
+        if (!this.container) {
+            throw new Error('Settings sidebar container (#settings-sidebar) not found in DOM');
+        }
+        console.log('[Settings Sidebar] Container found:', this.container.id);
+
+        // Load manifest (optional - BaseModule method)
+        try {
+            await this.loadManifest();
+        } catch (e) {
+            console.warn('[Settings Sidebar] Manifest not found (not required)');
+        }
 
         // Load settings
         this.settings = this.settingsManager.load();
         this.errorLogs = this.errorLogManager.load();
 
-        // Initialize sub-tabs
-        await this.initializeSubTabs();
-
-        // Apply module colors
-        this.applyModuleColors();
+        // Skip initializeSubTabs() - settings sidebar has its own tab system in HTML
+        // Tabs are controlled by onclick="window.switchSettingsTab()" in the HTML
+        // Event listeners are inline in HTML (onclick, onchange attributes)
+        console.log('[Settings Sidebar] Using inline tab system (no sub-tab framework needed)');
 
         console.log('[Settings Sidebar] Module ready');
+    }
+
+    /**
+     * Load HTML template from external file
+     * CRITICAL: This must run before BaseModule initialization
+     */
+    async loadHTML() {
+        try {
+            console.log('[Settings Sidebar] Loading HTML template...');
+            
+            const response = await fetch('external/modules/settings-sidebar/settings-sidebar.html');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const html = await response.text();
+            
+            // Check if container already exists (avoid duplicates)
+            let container = document.getElementById('settings-sidebar-container');
+            if (!container) {
+                // Create container div
+                container = document.createElement('div');
+                container.id = 'settings-sidebar-container';
+                document.body.appendChild(container);
+            }
+            
+            // Inject HTML
+            container.innerHTML = html;
+            
+            console.log('[Settings Sidebar] HTML template loaded successfully');
+        } catch (error) {
+            console.error('[Settings Sidebar] Failed to load HTML template:', error);
+            throw new Error(`Settings Sidebar HTML load failed: ${error.message}`);
+        }
     }
 
     async initializeSubTabs() {
@@ -1220,11 +1267,33 @@ window.closeSettingsSidebar = () => {
 
 window.switchSettingsTab = (tabName) => {
     console.log('[Settings] switchSettingsTab called:', tabName);
-    if (window.settingsModule) {
-        window.settingsModule.switchSubTab(tabName);
-    } else {
-        console.error('[Settings] settingsModule not initialized!');
-    }
+    
+    // Simple tab switching for settings sidebar (uses native HTML IDs)
+    const tabs = ['recovery', 'display', 'advanced'];
+    
+    tabs.forEach(tab => {
+        // Tab buttons
+        const button = document.querySelector(`[data-tab="${tab}"]`);
+        if (button) {
+            if (tab === tabName) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        }
+        
+        // Tab content
+        const content = document.getElementById(`${tab}-settings-tab`);
+        if (content) {
+            if (tab === tabName) {
+                content.classList.add('active');
+            } else {
+                content.classList.remove('active');
+            }
+        }
+    });
+    
+    console.log('[Settings] Switched to tab:', tabName);
 };
 
 console.log('[Settings Sidebar] Module loaded');

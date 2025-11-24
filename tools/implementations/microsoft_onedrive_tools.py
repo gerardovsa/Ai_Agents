@@ -735,6 +735,8 @@ microsoft_onedrive_tools = MicrosoftOneDriveTools()
 # Export all functions at module level
 # Wrappers handle parameter transformation for registry compatibility
 
+# REMOVED DUPLICATE FUNCTIONS (lines 738-908) - keeping only clean set below
+
 def microsoft_onedrive_upload_file(**kwargs):
     user_id = kwargs.pop('user_id', None)
     if user_id is None:
@@ -787,6 +789,9 @@ def microsoft_onedrive_search_files(**kwargs):
     user_id = kwargs.pop('user_id', None)
     if user_id is None:
         raise ValueError("user_id is required")
+    # Convert max_results from string to int (AI sends strings from JSON)
+    if 'max_results' in kwargs and isinstance(kwargs['max_results'], str):
+        kwargs['max_results'] = int(kwargs['max_results'])
     return microsoft_onedrive_tools.onedrive_search_files(user_id, **kwargs)
 
 def microsoft_onedrive_get_file_versions(**kwargs):
@@ -841,6 +846,9 @@ def microsoft_onedrive_get_recent_files(**kwargs):
     user_id = kwargs.pop('user_id', None)
     if user_id is None:
         raise ValueError("user_id is required")
+    # Convert max_results from string to int (AI sends strings from JSON)
+    if 'max_results' in kwargs and isinstance(kwargs['max_results'], str):
+        kwargs['max_results'] = int(kwargs['max_results'])
     return microsoft_onedrive_tools.onedrive_get_recent_files(user_id, **kwargs)
 
 def microsoft_onedrive_smart_organize_by_type(**kwargs):
@@ -868,142 +876,15 @@ def microsoft_onedrive_smart_sync_folders(**kwargs):
     return microsoft_onedrive_tools.onedrive_smart_sync_folders(user_id, **kwargs)
 
 
+# Wrapper for onedrive_list_files (was missing - tool appeared in schema but not implemented)
+def microsoft_onedrive_list_files(**kwargs):
+    user_id = kwargs.pop('user_id', None)
     if user_id is None:
         raise ValueError("user_id is required")
+    # Convert max_results from string to int (AI sends strings from JSON)
+    if 'max_results' in kwargs and isinstance(kwargs['max_results'], str):
+        kwargs['max_results'] = int(kwargs['max_results'])
     return microsoft_onedrive_tools.onedrive_list_files(user_id, **kwargs)
-
-def microsoft_onedrive_upload_file(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_upload_file(user_id, **kwargs)
-
-def microsoft_onedrive_download_file(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_download_file(user_id, **kwargs)
-
-def microsoft_onedrive_get_file_info(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_get_file_info(user_id, **kwargs)
-
-def microsoft_onedrive_create_folder(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_create_folder(user_id, **kwargs)
-
-def microsoft_onedrive_delete_item(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_delete_item(user_id, **kwargs)
-
-def microsoft_onedrive_move_item(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_move_item(user_id, **kwargs)
-
-def microsoft_onedrive_copy_item(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_copy_item(user_id, **kwargs)
-
-def microsoft_onedrive_rename_item(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_rename_item(user_id, **kwargs)
-
-def microsoft_onedrive_search_files(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_search_files(user_id, **kwargs)
-
-def microsoft_onedrive_get_file_versions(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_get_file_versions(user_id, **kwargs)
-
-def microsoft_onedrive_restore_version(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_restore_version(user_id, **kwargs)
-
-def microsoft_onedrive_get_thumbnail(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_get_thumbnail(user_id, **kwargs)
-
-def microsoft_onedrive_create_share_link(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_create_share_link(user_id, **kwargs)
-
-def microsoft_onedrive_share_with_users(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_share_with_users(user_id, **kwargs)
-
-def microsoft_onedrive_get_permissions(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_get_permissions(user_id, **kwargs)
-
-def microsoft_onedrive_revoke_permission(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_revoke_permission(user_id, **kwargs)
-
-def microsoft_onedrive_get_storage_info(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_get_storage_info(user_id, **kwargs)
-
-def microsoft_onedrive_get_recent_files(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_get_recent_files(user_id, **kwargs)
-
-def microsoft_onedrive_smart_organize_by_type(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_smart_organize_by_type(user_id, **kwargs)
-
-def microsoft_onedrive_smart_backup_folder(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_smart_backup_folder(user_id, **kwargs)
-
-def microsoft_onedrive_smart_cleanup_duplicates(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_smart_cleanup_duplicates(user_id, **kwargs)
-
-def microsoft_onedrive_smart_sync_folders(**kwargs):
-    user_id = kwargs.pop('user_id', None)
-    if user_id is None:
-        raise ValueError("user_id is required")
-    return microsoft_onedrive_tools.onedrive_smart_sync_folders(user_id, **kwargs)
-
 
 microsoft_onedrive_upload_file = microsoft_onedrive_tools.onedrive_upload_file
 
@@ -1019,33 +900,23 @@ microsoft_onedrive_move_item = microsoft_onedrive_tools.onedrive_move_item
 
 microsoft_onedrive_copy_item = microsoft_onedrive_tools.onedrive_copy_item
 
-microsoft_onedrive_rename_item = microsoft_onedrive_tools.onedrive_rename_item
-
-microsoft_onedrive_search_files = microsoft_onedrive_tools.onedrive_search_files
-
-microsoft_onedrive_get_file_versions = microsoft_onedrive_tools.onedrive_get_file_versions
-
-microsoft_onedrive_restore_version = microsoft_onedrive_tools.onedrive_restore_version
-
-microsoft_onedrive_get_thumbnail = microsoft_onedrive_tools.onedrive_get_thumbnail
-
-microsoft_onedrive_create_share_link = microsoft_onedrive_tools.onedrive_create_share_link
-
-microsoft_onedrive_share_with_users = microsoft_onedrive_tools.onedrive_share_with_users
-
-microsoft_onedrive_get_permissions = microsoft_onedrive_tools.onedrive_get_permissions
-
-microsoft_onedrive_revoke_permission = microsoft_onedrive_tools.onedrive_revoke_permission
-
-microsoft_onedrive_get_storage_info = microsoft_onedrive_tools.onedrive_get_storage_info
-
-microsoft_onedrive_get_recent_files = microsoft_onedrive_tools.onedrive_get_recent_files
-
-microsoft_onedrive_smart_organize_by_type = microsoft_onedrive_tools.onedrive_smart_organize_by_type
-
-microsoft_onedrive_smart_backup_folder = microsoft_onedrive_tools.onedrive_smart_backup_folder
-
-microsoft_onedrive_smart_cleanup_duplicates = microsoft_onedrive_tools.onedrive_smart_cleanup_duplicates
-
-microsoft_onedrive_smart_sync_folders = microsoft_onedrive_tools.onedrive_smart_sync_folders
+# NOTE: The following are already defined as wrapper functions above
+# (lines 780-1000). These module-level aliases are commented out to prevent 
+# overwriting the wrappers which contain proper type conversion.
+# 
+# microsoft_onedrive_rename_item = microsoft_onedrive_tools.onedrive_rename_item
+# microsoft_onedrive_search_files = microsoft_onedrive_tools.onedrive_search_files
+# microsoft_onedrive_get_file_versions = microsoft_onedrive_tools.onedrive_get_file_versions
+# microsoft_onedrive_restore_version = microsoft_onedrive_tools.onedrive_restore_version
+# microsoft_onedrive_get_thumbnail = microsoft_onedrive_tools.onedrive_get_thumbnail
+# microsoft_onedrive_create_share_link = microsoft_onedrive_tools.onedrive_create_share_link
+# microsoft_onedrive_share_with_users = microsoft_onedrive_tools.onedrive_share_with_users
+# microsoft_onedrive_get_permissions = microsoft_onedrive_tools.onedrive_get_permissions
+# microsoft_onedrive_revoke_permission = microsoft_onedrive_tools.onedrive_revoke_permission
+# microsoft_onedrive_get_storage_info = microsoft_onedrive_tools.onedrive_get_storage_info
+# microsoft_onedrive_get_recent_files = microsoft_onedrive_tools.onedrive_get_recent_files
+# microsoft_onedrive_smart_organize_by_type = microsoft_onedrive_tools.onedrive_smart_organize_by_type
+# microsoft_onedrive_smart_backup_folder = microsoft_onedrive_tools.onedrive_smart_backup_folder
+# microsoft_onedrive_smart_cleanup_duplicates = microsoft_onedrive_tools.onedrive_smart_cleanup_duplicates
+# microsoft_onedrive_smart_sync_folders = microsoft_onedrive_tools.onedrive_smart_sync_folders
 

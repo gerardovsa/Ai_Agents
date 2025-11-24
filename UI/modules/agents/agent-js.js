@@ -259,10 +259,10 @@ const MultiAgent = {
             workflowId: metadata.workflowId || null,
             automationId: metadata.automationId || null
         };
-        
+
         // Update header immediately
         this.updateAgentHeader(agentId);
-        
+
         // If ThreadManager not ready yet (during startup), retry after delay
         if (typeof ThreadManager === 'undefined' || typeof ThreadManager.renderThreadInfoContainer !== 'function') {
             console.log(`⏳ [setLoadedThread] ThreadManager not ready, will retry in 500ms`);
@@ -271,7 +271,7 @@ const MultiAgent = {
                 this.updateAgentHeader(agentId);
             }, 500);
         }
-        
+
         this.saveState();
     },
 
@@ -811,22 +811,22 @@ const MultiAgent = {
         if (storedMessages && storedMessages.length > 0) {
             storedMessages.forEach((msg, index) => {
                 // CRITICAL FIX: Check content structure FIRST (not role)
-                const isStructuredContent = Array.isArray(msg.content) && 
-                                           msg.content.length > 0 && 
-                                           msg.content[0]?.type && 
-                                           ['thinking', 'tool_use', 'tool_result', 'text'].includes(msg.content[0].type);
+                const isStructuredContent = Array.isArray(msg.content) &&
+                    msg.content.length > 0 &&
+                    msg.content[0]?.type &&
+                    ['thinking', 'tool_use', 'tool_result', 'text'].includes(msg.content[0].type);
 
                 if (isStructuredContent) {
                     // Structured content (thinking, tool_use, tool_result) - use structured rendering
                     console.log(`[RENDER PRIME] Structured content detected: ${msg.content.map(b => b.type).join(', ')}`);
-                    
+
                     // Use TwoRuleStreamProcessor for structured content in Prime
                     msg.content.forEach(block => {
                         if (block.type === 'thinking' || block.type === 'tool_use' || block.type === 'tool_result') {
                             // Create bubble for each structured block
                             const messageDiv = document.createElement('div');
                             messageDiv.className = `ai-message assistant ${block.type === 'thinking' ? 'thinking-bubble' : 'tool-bubble'} collapsed`;
-                            
+
                             messageDiv.innerHTML = `
                                 <div class="ai-message-header">
                                     <div class="ai-message-avatar">
@@ -839,10 +839,10 @@ const MultiAgent = {
                                 <div class="ai-message-content"></div>
                             `;
                             primeMessages.appendChild(messageDiv);
-                            
+
                             const bubble = messageDiv.querySelector('.ai-message-content');
                             const content = block.content || JSON.stringify(block.input || block);
-                            
+
                             if (typeof TwoRuleStreamProcessor !== 'undefined') {
                                 const processor = new TwoRuleStreamProcessor(bubble);
                                 processor.processChunk(content);
@@ -860,9 +860,9 @@ const MultiAgent = {
                 } else if (msg.role === 'user') {
                     // User messages render normally
                     if (typeof addChatMessage === 'function') {
-                        const content = typeof msg.content === 'string' ? msg.content : 
-                                       (Array.isArray(msg.content) ? msg.content.map(b => b.text || '').join('\n') : 
-                                       JSON.stringify(msg.content));
+                        const content = typeof msg.content === 'string' ? msg.content :
+                            (Array.isArray(msg.content) ? msg.content.map(b => b.text || '').join('\n') :
+                                JSON.stringify(msg.content));
                         addChatMessage('user', content);
                     }
 
@@ -950,9 +950,9 @@ const MultiAgent = {
 
         // Update centralized assignment tracker - thread now in Prime
         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.assignThread === 'function') {
-            // First, assign to prime (this updates database)
-            await ThreadManager.assignThread(threadInfo.threadId, 'prime');
-            console.log(`[MultiAgent] [OK] Thread ${threadInfo.threadId} assigned to 'prime' in centralized tracker`);
+            // First, assign to prime-loaded (this updates database and enables page reload restoration)
+            await ThreadManager.assignThread(threadInfo.threadId, 'prime-loaded');
+            console.log(`[MultiAgent] [OK] Thread ${threadInfo.threadId} assigned to 'prime-loaded' in centralized tracker`);
 
             // Then check if agent has any other assigned threads, if not show "Start New Chat"
             if (typeof ThreadManager.checkAndShowEmptyState === 'function') {
@@ -1227,7 +1227,7 @@ const MultiAgent = {
                 const oldAgentId = parseInt(currentLocation.replace('agent-', ''));
                 if (oldAgentId !== agentId) {
                     console.log(`[ISOLATION]  Clearing ${currentLocation} - thread moving to agent-${agentId}`);
-                    
+
                     // CLEANUP: Destroy any active TwoRuleStreamProcessors before clearing
                     const oldMessagesContainer = document.getElementById(`agent-messages-${oldAgentId}`);
                     if (oldMessagesContainer) {
@@ -1244,7 +1244,7 @@ const MultiAgent = {
                             }
                         });
                     }
-                    
+
                     this.clearAgentThread(oldAgentId);
                     console.log(`[ISOLATION] ✅ ${currentLocation} cleared and processors destroyed`);
                 }
@@ -1256,7 +1256,7 @@ const MultiAgent = {
         // thread.messages may be empty/undefined when loading metadata, but message_count from DB is accurate
         const originalMessageCount = thread.message_count || 0;
         const messageCount = thread.messages ? thread.messages.length : originalMessageCount;
-        
+
         const metadata = {
             synergyCardId: thread.synergy_card_id || null,
             synergySessionName: thread.synergy_card_name || null,
@@ -1349,25 +1349,25 @@ const MultiAgent = {
         if (!storedMessages || storedMessages.length === 0) {
             if (thread.message_count > 0) {
                 console.log(`[LOAD] Fetching ${thread.message_count} messages for thread ${thread.id} from backend...`);
-                
+
                 // Show processing indicator while loading messages
                 const processingIndicator = createProcessingIndicator(agentId);
                 messagesDiv.appendChild(processingIndicator);
-                
+
                 if (typeof ThreadManager !== 'undefined' && ThreadManager.loadMessagesForThread) {
                     ThreadManager.loadMessagesForThread(thread.id).then(() => {
                         // Re-fetch from MessageStore after backend load
                         const loadedMessages = window.MessageStore.getMessages(thread.id);
                         if (loadedMessages && loadedMessages.length > 0) {
                             console.log(`[LOAD] Rendering ${loadedMessages.length} messages...`);
-                            
+
                             // Remove processing indicator before rendering messages
                             removeProcessingIndicator(agentId);
-                            
+
                             loadedMessages.forEach((msg, index) => {
                                 // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
                                 console.log(`[LOAD] Rendering message ${index + 1}/${loadedMessages.length} (${msg.role})`);
-                                
+
                                 if (typeof UnifiedMessageRenderer !== 'undefined') {
                                     // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
                                     UnifiedMessageRenderer.render(
@@ -1420,7 +1420,7 @@ const MultiAgent = {
             storedMessages.forEach((msg, index) => {
                 // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
                 console.log(`[LOAD] Rendering message ${index + 1}/${storedMessages.length} (${msg.role})`);
-                
+
                 if (typeof UnifiedMessageRenderer !== 'undefined') {
                     // PRIME PATHWAY: Use UnifiedMessageRenderer for ALL messages
                     UnifiedMessageRenderer.render(
@@ -1766,6 +1766,15 @@ async function initMultiAgent() {
         return;
     }
 
+    // CRITICAL: Load all threads FIRST before trying to use them
+    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+        console.log('📥 [initMultiAgent] Loading threads from backend FIRST...');
+        await ThreadManager.loadThreadsFromBackend();
+        console.log(`✅ [initMultiAgent] Threads loaded: ${ThreadManager.threads?.length || 0} threads in memory`);
+    } else {
+        console.error('❌ [initMultiAgent] ThreadManager.loadThreadsFromBackend not available!');
+    }
+
     // STEP 1: Fetch thread assignments from backend (authoritative source)
     let assignments = {};
     if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.getThreadAssignments === 'function') {
@@ -1817,22 +1826,87 @@ async function initMultiAgent() {
     // Update stats
     MultiAgent.updateDashboardStats();
 
+    // STEP 4.5: GUARANTEE DOM container existence before loading threads
+    // Wait for all agent column DOM elements to be fully created and inserted
+    console.log(`⏳ [initMultiAgent] Verifying DOM containers for ${maxAgentId} agents...`);
+    const containerVerificationPromises = [];
+
+    for (let i = 1; i <= maxAgentId; i++) {
+        const promise = new Promise((resolve) => {
+            // Check immediately first
+            let container = document.getElementById(`thread-info-${i}`);
+            if (container) {
+                console.log(`✅ [initMultiAgent] Agent-${i} container ready (immediate)`);
+                resolve();
+                return;
+            }
+
+            // If not found, wait with short timeout for DOM insertion
+            let attempts = 0;
+            const maxAttempts = 10;
+            const checkInterval = setInterval(() => {
+                container = document.getElementById(`thread-info-${i}`);
+                attempts++;
+
+                if (container) {
+                    console.log(`✅ [initMultiAgent] Agent-${i} container ready (after ${attempts * 50}ms)`);
+                    clearInterval(checkInterval);
+                    resolve();
+                } else if (attempts >= maxAttempts) {
+                    console.error(`❌ [initMultiAgent] Agent-${i} container NOT created after ${maxAttempts * 50}ms!`);
+                    clearInterval(checkInterval);
+                    resolve(); // Don't block - continue anyway
+                }
+            }, 50);
+        });
+
+        containerVerificationPromises.push(promise);
+    }
+
+    // Wait for all containers to be ready
+    await Promise.all(containerVerificationPromises);
+    console.log(`✅ [initMultiAgent] All agent column containers verified and ready`);
+
     // STEP 5: LOAD threads on page initialization (not just restore to memory)
     // CRITICAL: Load prime-loaded thread FIRST, then agent threads
-    
-    // Load prime-loaded thread if exists
-    const primeLoadedThreadId = assignments['prime-loaded'];
-    if (primeLoadedThreadId && typeof ThreadManager !== 'undefined') {
-        console.log(`🎯 [initMultiAgent] Loading prime-loaded thread: ${primeLoadedThreadId}`);
-        await ThreadManager.loadThreadInPrime(primeLoadedThreadId);
-        
-        // Update thread info card for Prime
-        if (typeof ThreadManager.renderThreadInfoContainer === 'function') {
-            ThreadManager.renderThreadInfoContainer('prime', primeLoadedThreadId, true);
-            console.log(`✅ [initMultiAgent] Updated Prime thread info card`);
+
+    // STEP 5A: INITIALIZE PRIME PANEL (same pattern as agent columns)
+    // Check if prime-loaded thread exists and render appropriate content
+    const primeThreadInfoContainer = document.getElementById('prime-thread-info');
+    if (!primeThreadInfoContainer) {
+        console.warn(`⚠️ [initMultiAgent] Prime thread-info container NOT FOUND - thread info cards won't render`);
+    } else {
+        console.log(`✅ [initMultiAgent] Prime thread-info container ready`);
+
+        // Check for prime-loaded thread assignment
+        const primeLoadedThreadId = assignments['prime-loaded'];
+        const primeLoadedThread = primeLoadedThreadId
+            ? ThreadManager.threads.find(t => t.id === primeLoadedThreadId)
+            : null;
+
+        if (primeLoadedThread && typeof ThreadManager !== 'undefined') {
+            // Thread is assigned - load and render thread card
+            console.log(`🎯 [initMultiAgent] Prime has prime-loaded thread: ${primeLoadedThreadId}, loading...`);
+            await ThreadManager.loadThreadInPrime(primeLoadedThreadId);
+
+            // Update thread info card for Prime
+            if (typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                // Render with compact=false for full card display
+                const cardHtml = ThreadManager.renderThreadInfoContainer('prime', primeLoadedThreadId, false);
+                if (cardHtml) {
+                    primeThreadInfoContainer.innerHTML = cardHtml;
+                    console.log(`✅ [initMultiAgent] Prime thread card rendered (${cardHtml.length} chars, replaced empty state)`);
+                } else {
+                    console.error(`❌ [initMultiAgent] Prime card HTML is empty!`);
+                }
+            }
+        } else {
+            // No prime-loaded thread - ensure empty state is shown
+            console.log(`📭 [initMultiAgent] No prime-loaded thread assigned, keeping empty state`);
+            // Empty state already in HTML, no action needed
         }
     }
-    
+
     // Then load all agent-assigned threads
     const agentLoadPromises = [];
     Object.keys(assignments).forEach(location => {
@@ -1875,18 +1949,22 @@ async function initMultiAgent() {
                         // Update thread info card for agent column
                         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
                             console.log(`📋 [initMultiAgent] Rendering thread info card for agent-${agentId}, thread: ${thread.id}`);
+                            // Use compact=true for agent columns (matches initial render during createAgentColumn)
                             const cardHtml = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, thread.id, true);
                             console.log(`📋 [initMultiAgent] Card HTML generated: ${cardHtml ? cardHtml.length + ' chars' : 'NULL'}`);
-                            
+
                             const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
                             console.log(`📋 [initMultiAgent] Container element:`, threadInfoContainer ? 'FOUND' : 'NOT FOUND');
-                            
-                            if (threadInfoContainer) {
+
+                            if (threadInfoContainer && cardHtml) {
+                                // CRITICAL: Replace entire innerHTML (removes empty state if present)
                                 threadInfoContainer.innerHTML = cardHtml;
-                                console.log(`✅ [initMultiAgent] Updated thread info card for ${agentName}`);
+                                console.log(`✅ [initMultiAgent] Updated thread info card for ${agentName} (replaced empty state with thread card)`);
                                 console.log(`✅ [initMultiAgent] Container HTML after injection:`, threadInfoContainer.innerHTML.substring(0, 100) + '...');
-                            } else {
+                            } else if (!threadInfoContainer) {
                                 console.error(`❌ [initMultiAgent] thread-info-${agentId} container NOT FOUND in DOM!`);
+                            } else {
+                                console.error(`❌ [initMultiAgent] Card HTML is empty or null!`);
                             }
                         } else {
                             console.error(`❌ [initMultiAgent] ThreadManager or renderThreadInfoContainer NOT available!`);
@@ -1895,7 +1973,7 @@ async function initMultiAgent() {
                         // Update header
                         MultiAgent.updateAgentHeader(agentId);
                     })();
-                    
+
                     agentLoadPromises.push(loadPromise);
                 } else {
                     console.warn(`[WARN] Thread ${threadId} not found for location ${location}`);
@@ -1903,7 +1981,7 @@ async function initMultiAgent() {
             }
         }
     });
-    
+
     // Wait for all agent threads to finish loading
     if (agentLoadPromises.length > 0) {
         console.log(`⏳ [initMultiAgent] Waiting for ${agentLoadPromises.length} agent threads to load...`);
@@ -2088,9 +2166,8 @@ function createAgentColumn(agentId) {
     const threadId = threadInAgent ? threadInAgent.id : null;
 
     // Use unified thread-info container (same as Prime)
-    const threadInfoHtml = threadId
-        ? ThreadManager.renderThreadInfoContainer(location, threadId, true)
-        : '<div class="agent-no-thread"><i class="fas fa-inbox"></i> No thread loaded</div>';
+    // Thread info card will be populated when thread is loaded via initMultiAgent()
+    let threadInfoHtml = '<div class="agent-thread-placeholder" style="padding: 12px; color: var(--text-muted); font-size: 13px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
 
     column.innerHTML = `
             <!-- Collapsed Column Bar (hidden by default) -->
@@ -2735,7 +2812,7 @@ function buildConversationHistoryForAPI(messages) {
 
                 // Build assistant content array: [thinking, tool_use, text]
                 const assistantContent = [];
-                
+
                 // 1. Add thinking blocks first
                 if (thinkingBlocks.length > 0) {
                     thinkingBlocks.forEach(block => {
@@ -2749,12 +2826,12 @@ function buildConversationHistoryForAPI(messages) {
                         assistantContent.push(preservedBlock);
                     });
                 }
-                
+
                 // 2. Add tool_use blocks
                 if (toolUseBlocks.length > 0) {
                     assistantContent.push(...toolUseBlocks);
                 }
-                
+
                 // 3. Add text blocks (only non-empty)
                 if (nonEmptyTextBlocks.length > 0) {
                     assistantContent.push(...nonEmptyTextBlocks);
@@ -2768,7 +2845,7 @@ function buildConversationHistoryForAPI(messages) {
                     });
                     console.log(`[FIX] Added default text to assistant message with tool_use`);
                 }
-                
+
                 // Push assistant message if it has content
                 if (assistantContent.length > 0) {
                     result.push({
@@ -2915,12 +2992,12 @@ async function sendAgentMessage(agentId) {
         const fileList = attachedFiles.map(f => f.name).join(', ');
         displayMessage = `${messageToSend}\n\n*[Attached files: ${fileList}]*`;
     }
-    
+
     const userMessageDiv = UnifiedMessageRenderer.render(
         `#agent-messages-${agentId}`,
         'user',
         displayMessage,
-        { 
+        {
             threadId: currentThread.id,
             syncToBackend: false
         }
@@ -2943,7 +3020,7 @@ async function sendAgentMessage(agentId) {
 
     const startTime = Date.now();
     let requestBody = null; // Declare here for error logging
-    
+
     // ✅ FIX: Declare threadSlug outside try block so it's accessible in catch
     const threadSlug = currentThread.id;
     const sessionId = threadSlug;
@@ -2961,7 +3038,7 @@ async function sendAgentMessage(agentId) {
         // ❌ REMOVED: Don't build conversation history
         // const storedMessages = window.MessageStore.getMessages(currentThread.id);
         // const conversationHistory = buildConversationHistoryForAPI(storedMessages);
-        
+
         // ✅ NEW: Backend will load from database
         console.log(`📦 [DATABASE] Backend will load conversation from database for Agent ${agentId}`);
 
@@ -3054,11 +3131,11 @@ async function sendAgentMessage(agentId) {
         if (startData.conversation && Array.isArray(startData.conversation)) {
             console.log(`✅ [Agent ${agentId}] Backend returned ${startData.conversation.length} messages (authoritative)`);
             console.log(`📥 [Agent ${agentId}] Syncing frontend state with backend conversation`);
-            
+
             // Update MessageStore with backend's conversation
             if (window.MessageStore) {
                 window.MessageStore.clearThread(currentThread.id);
-                
+
                 for (const msg of startData.conversation) {
                     await window.MessageStore.addMessage(currentThread.id, msg, {
                         checkDuplicates: false,
@@ -3067,7 +3144,7 @@ async function sendAgentMessage(agentId) {
                 }
                 console.log(`✅ [Agent ${agentId}] MessageStore synced from backend`);
             }
-            
+
             // Update AppState
             if (!AppState.agentThreads) AppState.agentThreads = {};
             AppState.agentThreads[agentId] = {
@@ -3098,7 +3175,7 @@ async function sendAgentMessage(agentId) {
         const expectedAgentLocation = `agent-${agentId}`;
         const streamThreadSlug = threadSlug; // Freeze thread slug at stream start
         const streamStartTime = Date.now();
-        
+
         console.log(`[Agent ${agentId}] 🔒 STREAM ISOLATION: thread=${streamThreadSlug}, location=${expectedAgentLocation}, timestamp=${streamStartTime}`);
 
         // HANDLE STREAMING RESPONSE - Use shared TwoRule pathway
@@ -3122,14 +3199,14 @@ async function sendAgentMessage(agentId) {
         let textBubble = null;  // Current text bubble (ATOM icon)
         let thinkingBubble = null;  // Thinking bubble (if needed)
         let lastEventType = null;  // Track event transitions to create new bubbles
-        
+
         console.log(`[Agent ${agentId}] 🔵 STREAMING FUNCTION LOADED (v20251122d)`);
-        
+
         // ISOLATION FIX: Thread-specific error tracking (prevents one agent breaking others)
         let threadErrorCount = 0;
         const maxThreadErrors = 10;  // Allow some parse errors before stopping THIS agent only
         let threadFailed = false;
-        
+
         let fullResponse = '';
         let fullThinkingContent = '';
         let toolsUsed = [];
@@ -3157,7 +3234,7 @@ async function sendAgentMessage(agentId) {
 
                     try {
                         const data = JSON.parse(dataStr);
-                        
+
                         console.log(`[Agent ${agentId}] 📨 Event:`, data.type, data);
 
                         // CONVERSATION_SYNC EVENT - Receive backend's authoritative conversation (Nov 22, 2025 FIX)
@@ -3165,18 +3242,18 @@ async function sendAgentMessage(agentId) {
                         // This prevents duplicate saves and ensures complete block structure
                         if (data.type === 'conversation_sync') {
                             console.log(`[Agent ${agentId}] 📥 [SYNC] Received conversation_sync: ${data.message_count} messages`);
-                            
+
                             if (data.conversation_history && Array.isArray(data.conversation_history)) {
                                 // Get current thread from AppState
                                 const thread = AppState.agentThreads && AppState.agentThreads[agentId];
-                                
+
                                 if (thread) {
                                     // Update thread with backend's authoritative conversation
                                     thread.messages = data.conversation_history;
                                     thread.message_count = data.message_count;
-                                    
+
                                     console.log(`[Agent ${agentId}] ✅ [SYNC] Thread.messages updated with ${data.message_count} messages from backend`);
-                                    
+
                                     // Sync to MessageStore (FROM backend's data, not creating new)
                                     for (const msg of data.conversation_history) {
                                         await window.MessageStore.addMessage(thread.id, msg, {
@@ -3184,7 +3261,7 @@ async function sendAgentMessage(agentId) {
                                             silent: true
                                         });
                                     }
-                                    
+
                                     console.log(`[Agent ${agentId}] ✅ [SYNC] MessageStore synced from backend's conversation`);
                                 } else {
                                     console.warn(`[Agent ${agentId}] ⚠️ [SYNC] Thread not found in AppState.agentThreads`);
@@ -3199,34 +3276,34 @@ async function sendAgentMessage(agentId) {
                             const thinkingText = data.content || data.thinking || '';
                             if (thinkingText && thinkingText.trim().length > 0) {
                                 console.log(`[Agent ${agentId}] 💭 THINKING: ${thinkingText.substring(0, 50)}...`);
-                                
+
                                 // Update status
                                 if (typeof AgentStatusIndicator !== 'undefined') {
                                     AgentStatusIndicator.update('thinking', agentId);
                                 }
-                                
+
                                 // Create thinking bubble if doesn't exist - USING PRIME STRUCTURE
                                 if (!thinkingBubble) {
                                     console.log(`[Agent ${agentId}] Creating thinking bubble with Prime structure...`);
-                                    
+
                                     // Remove processing indicator when first bubble appears
                                     removeProcessingIndicator(agentId);
-                                    
+
                                     thinkingBubble = document.createElement('div');
                                     thinkingBubble.className = 'ai-message assistant';  // ✅ Same as Prime (no extra classes)
                                     thinkingBubble.dataset.agentId = agentId;
                                     thinkingBubble.dataset.threadSlug = streamThreadSlug;
                                     thinkingBubble.setAttribute('data-raw-content', '');  // ✅ Same as Prime
-                                    
+
                                     // Header with BRAIN avatar (PURPLE)
                                     const headerDiv = document.createElement('div');
                                     headerDiv.className = 'ai-message-header';
-                                    
+
                                     const avatar = document.createElement('div');
                                     avatar.className = 'ai-message-avatar';
                                     avatar.style.background = '#8b5cf6'; // Purple
                                     avatar.innerHTML = '<i class="fa-solid fa-brain" style="color: white;"></i>';
-                                    
+
                                     const toggleBtn = document.createElement('button');
                                     toggleBtn.className = 'ai-message-toggle';
                                     toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
@@ -3235,14 +3312,14 @@ async function sendAgentMessage(agentId) {
                                         e.stopPropagation();
                                         thinkingBubble.classList.toggle('collapsed');
                                     });
-                                    
+
                                     headerDiv.appendChild(avatar);
                                     headerDiv.appendChild(toggleBtn);
-                                    
+
                                     // Copy buttons
                                     const actionsDiv = document.createElement('div');
                                     actionsDiv.className = 'ai-message-actions';
-                                    
+
                                     const copyBtn = document.createElement('button');
                                     copyBtn.className = 'ai-message-copy-btn';
                                     copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
@@ -3257,7 +3334,7 @@ async function sendAgentMessage(agentId) {
                                             }, 2000);
                                         });
                                     });
-                                    
+
                                     const copyRawBtn = document.createElement('button');
                                     copyRawBtn.className = 'ai-message-copy-btn';
                                     copyRawBtn.innerHTML = '<i class="fas fa-code"></i>';
@@ -3272,11 +3349,11 @@ async function sendAgentMessage(agentId) {
                                             }, 2000);
                                         });
                                     });
-                                    
+
                                     actionsDiv.appendChild(copyBtn);
                                     actionsDiv.appendChild(copyRawBtn);
                                     headerDiv.appendChild(actionsDiv);
-                                    
+
                                     // Content div
                                     const contentDiv = document.createElement('div');
                                     contentDiv.className = 'ai-message-content';
@@ -3284,18 +3361,18 @@ async function sendAgentMessage(agentId) {
                                     thinkingBubble.appendChild(contentDiv);
                                     thinkingBubble.classList.add('collapsed'); // Start collapsed
                                     messagesContainer.appendChild(thinkingBubble);
-                                    
+
                                     thinkingBubble._fullThinkingText = '';
                                 }
-                                
+
                                 // Accumulate thinking text
                                 thinkingBubble._fullThinkingText = thinkingBubble._fullThinkingText || '';
                                 thinkingBubble._fullThinkingText += thinkingText;
                                 fullThinkingContent += thinkingText;
-                                
+
                                 // ✅ UPDATE RAW CONTENT ATTRIBUTE (SAME AS PRIME)
                                 thinkingBubble.setAttribute('data-raw-content', thinkingBubble._fullThinkingText);
-                                
+
                                 // Render markdown
                                 const thinkingContent = thinkingBubble.querySelector('.ai-message-content');
                                 if (thinkingContent) {
@@ -3313,24 +3390,24 @@ async function sendAgentMessage(agentId) {
                                         thinkingContent.textContent = thinkingBubble._fullThinkingText;
                                     }
                                 }
-                                
+
                                 lastEventType = 'thinking';
                             }
                         }
-                        
+
                         // TOOL USE EVENT - Create TOOL BUBBLE (yellow COG icon)
                         else if (data.type === 'tool_use') {
                             const toolId = data.tool_id || data.tool_use_id || data.id;
                             console.log(`[Agent ${agentId}] ⚙️ TOOL_USE: ${data.tool_name} (${toolId})`);
-                            
+
                             // Update status
                             if (typeof AgentStatusIndicator !== 'undefined') {
                                 AgentStatusIndicator.update('tool-running', agentId);
                             }
-                            
+
                             // Remove processing indicator when first bubble appears
                             removeProcessingIndicator(agentId);
-                            
+
                             // Create tool bubble - USING PRIME STRUCTURE
                             const toolBubble = document.createElement('div');
                             toolBubble.className = 'ai-message tool';  // ✅ Same as Prime (use 'tool' role)
@@ -3338,16 +3415,16 @@ async function sendAgentMessage(agentId) {
                             toolBubble.dataset.agentId = agentId;
                             toolBubble.dataset.threadSlug = streamThreadSlug;
                             toolBubble.setAttribute('data-raw-content', '');  // ✅ Same as Prime
-                            
+
                             // Header with COG avatar (YELLOW)
                             const headerDiv = document.createElement('div');
                             headerDiv.className = 'ai-message-header';
-                            
+
                             const avatar = document.createElement('div');
                             avatar.className = 'ai-message-avatar';
                             avatar.style.background = '#eab308'; // Yellow
                             avatar.innerHTML = '<i class="fas fa-cog" style="color: white;"></i>';
-                            
+
                             const toggleBtn = document.createElement('button');
                             toggleBtn.className = 'ai-message-toggle';
                             toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
@@ -3356,14 +3433,14 @@ async function sendAgentMessage(agentId) {
                                 e.stopPropagation();
                                 toolBubble.classList.toggle('collapsed');
                             });
-                            
+
                             headerDiv.appendChild(avatar);
                             headerDiv.appendChild(toggleBtn);
-                            
+
                             // Copy button
                             const actionsDiv = document.createElement('div');
                             actionsDiv.className = 'ai-message-actions';
-                            
+
                             const copyBtn = document.createElement('button');
                             copyBtn.className = 'ai-message-copy-btn';
                             copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
@@ -3379,10 +3456,10 @@ async function sendAgentMessage(agentId) {
                                     }, 2000);
                                 });
                             });
-                            
+
                             actionsDiv.appendChild(copyBtn);
                             headerDiv.appendChild(actionsDiv);
-                            
+
                             // Content
                             const contentDiv = document.createElement('div');
                             contentDiv.className = 'ai-message-content';
@@ -3390,12 +3467,12 @@ async function sendAgentMessage(agentId) {
                                 <div style="margin-bottom: 8px;"><strong>Tool:</strong> ${data.name || data.tool_name}</div>
                                 <pre>${JSON.stringify(data.input || data.tool_input, null, 2)}</pre>
                             `;
-                            
+
                             toolBubble.appendChild(headerDiv);
                             toolBubble.appendChild(contentDiv);
                             toolBubble.classList.add('collapsed'); // Start collapsed
                             messagesContainer.appendChild(toolBubble);
-                            
+
                             lastEventType = 'tool_use';
                             toolsUsed.push({
                                 name: data.name || data.tool_name,
@@ -3403,12 +3480,12 @@ async function sendAgentMessage(agentId) {
                                 id: toolId
                             });
                         }
-                        
+
                         // TOOL RESULT EVENT - Create SEPARATE tool result bubble (like Prime AI)
                         else if (data.type === 'tool_result') {
                             const toolId = data.tool_id || data.tool_use_id || data.id;
                             console.log(`[Agent ${agentId}] 📊 TOOL_RESULT for ${toolId}`);
-                            
+
                             // Update the original tool bubble avatar to green (complete)
                             const toolBubble = messagesContainer.querySelector(`[data-tool-id="${toolId}"]`);
                             if (toolBubble) {
@@ -3417,31 +3494,31 @@ async function sendAgentMessage(agentId) {
                                     avatar.style.background = '#10b981'; // Green (success)
                                 }
                             }
-                            
+
                             // Remove processing indicator when first bubble appears
                             removeProcessingIndicator(agentId);
-                            
+
                             // Create SEPARATE tool result bubble
                             const isError = data.is_error || !data.success;
                             const resultText = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
                             const rawResult = data.result || '';
-                            
+
                             const toolResultBubble = document.createElement('div');
                             toolResultBubble.className = 'ai-message tool';  // ✅ Same as Prime (use 'tool' role)
                             toolResultBubble.setAttribute('data-tool-result-id', toolId);
                             toolResultBubble.dataset.agentId = agentId;
                             toolResultBubble.dataset.threadSlug = streamThreadSlug;
                             toolResultBubble.setAttribute('data-raw-content', resultText);  // ✅ Same as Prime
-                            
+
                             // Header with white flag icon
                             const headerDiv = document.createElement('div');
                             headerDiv.className = 'ai-message-header';
-                            
+
                             const avatar = document.createElement('div');
                             avatar.className = 'ai-message-avatar';
                             avatar.style.background = isError ? '#ef4444' : '#60A5FA'; // Red for error, Blue for success
                             avatar.innerHTML = '<i class="fas fa-flag" style="color: white; font-size: 14px;"></i>';
-                            
+
                             const toggleBtn = document.createElement('button');
                             toggleBtn.className = 'ai-message-toggle';
                             toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
@@ -3450,14 +3527,14 @@ async function sendAgentMessage(agentId) {
                                 e.stopPropagation();
                                 toolResultBubble.classList.toggle('collapsed');
                             });
-                            
+
                             headerDiv.appendChild(avatar);
                             headerDiv.appendChild(toggleBtn);
-                            
+
                             // Copy buttons
                             const actionsDiv = document.createElement('div');
                             actionsDiv.className = 'ai-message-actions';
-                            
+
                             // Copy formatted button
                             const copyBtn = document.createElement('button');
                             copyBtn.className = 'ai-message-copy-btn';
@@ -3473,7 +3550,7 @@ async function sendAgentMessage(agentId) {
                                     }, 2000);
                                 });
                             });
-                            
+
                             // Copy raw button
                             const copyRawBtn = document.createElement('button');
                             copyRawBtn.className = 'ai-message-copy-btn';
@@ -3488,15 +3565,15 @@ async function sendAgentMessage(agentId) {
                                     }, 2000);
                                 });
                             });
-                            
+
                             actionsDiv.appendChild(copyBtn);
                             actionsDiv.appendChild(copyRawBtn);
                             headerDiv.appendChild(actionsDiv);
-                            
+
                             // Content
                             const contentDiv = document.createElement('div');
                             contentDiv.className = 'ai-message-content';
-                            
+
                             // Format result nicely
                             let formattedResult = resultText;
                             try {
@@ -3505,30 +3582,30 @@ async function sendAgentMessage(agentId) {
                             } catch (e) {
                                 // Keep as-is if not JSON
                             }
-                            
+
                             contentDiv.innerHTML = `
                                 <div style="margin-bottom: 8px; color: ${isError ? '#ef4444' : '#60A5FA'};">
                                     <strong><i class="fas ${isError ? 'fa-times-circle' : 'fa-check-circle'}"></i> Tool Result: ${data.tool_name || 'Unknown'}</strong>
                                 </div>
                                 <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; max-height: 400px; overflow-y: auto;">${formattedResult}</pre>
                             `;
-                            
+
                             toolResultBubble.appendChild(headerDiv);
                             toolResultBubble.appendChild(contentDiv);
                             toolResultBubble.classList.add('collapsed'); // Start collapsed
                             messagesContainer.appendChild(toolResultBubble);
-                            
+
                             if (typeof AgentStatusIndicator !== 'undefined') {
                                 AgentStatusIndicator.update('tool-success', agentId);
                             }
-                            
+
                             toolResults.push(data);
                         }
-                        
+
                         // CONTENT DELTA - Text streaming (ATOM icon)
                         else if (data.type === 'content_delta' && data.text) {
                             console.log(`[Agent ${agentId}] 📝 CONTENT_DELTA: ${data.text.substring(0, 50)}...`);
-                            
+
                             // Create NEW text bubble when switching from non-text to text
                             if (lastEventType !== 'content_delta' && lastEventType !== null) {
                                 if (textBubble) {
@@ -3548,36 +3625,36 @@ async function sendAgentMessage(agentId) {
                                     }
                                 }
                             }
-                            
+
                             fullResponse += data.text;
                             lastEventType = 'content_delta';
-                            
+
                             // ✅ UPDATE RAW CONTENT ATTRIBUTE (SAME AS PRIME)
                             if (textBubble) {
                                 textBubble.setAttribute('data-raw-content', fullResponse);
                             }
-                            
+
                             // Create text bubble if doesn't exist - USING PRIME STRUCTURE
                             if (!textBubble) {
                                 console.log(`[Agent ${agentId}] Creating text bubble with Prime structure...`);
-                                
+
                                 // Remove processing indicator when first bubble appears
                                 removeProcessingIndicator(agentId);
-                                
+
                                 textBubble = document.createElement('div');
                                 textBubble.className = 'ai-message assistant';  // ✅ Same as Prime
                                 textBubble.dataset.agentId = agentId;
                                 textBubble.dataset.threadSlug = streamThreadSlug;
                                 textBubble.setAttribute('data-raw-content', '');  // ✅ Same as Prime
-                                
+
                                 // Header with ATOM ICON (SAME AS PRIME)
                                 const headerDiv = document.createElement('div');
                                 headerDiv.className = 'ai-message-header';  // ✅ Same as Prime
-                                
+
                                 const avatar = document.createElement('div');
                                 avatar.className = 'ai-message-avatar';  // ✅ Same as Prime
                                 avatar.innerHTML = '<i class="fa-solid fa-atom"></i>';  // ✅ Same as Prime
-                                
+
                                 const toggleBtn = document.createElement('button');
                                 toggleBtn.className = 'ai-message-toggle';  // ✅ Same as Prime
                                 toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
@@ -3586,14 +3663,14 @@ async function sendAgentMessage(agentId) {
                                     e.stopPropagation();
                                     textBubble.classList.toggle('collapsed');
                                 });
-                                
+
                                 headerDiv.appendChild(avatar);
                                 headerDiv.appendChild(toggleBtn);
-                                
+
                                 // Copy buttons (SAME AS PRIME)
                                 const actionsDiv = document.createElement('div');
                                 actionsDiv.className = 'ai-message-actions';  // ✅ Same as Prime
-                                
+
                                 const copyBtn = document.createElement('button');
                                 copyBtn.className = 'ai-message-copy-btn';  // ✅ Same as Prime
                                 copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
@@ -3608,7 +3685,7 @@ async function sendAgentMessage(agentId) {
                                         }, 2000);
                                     });
                                 });
-                                
+
                                 // ✅ RAW COPY BUTTON (SAME AS PRIME) - uses data-raw-content attribute
                                 const copyRawBtn = document.createElement('button');
                                 copyRawBtn.className = 'ai-message-copy-btn';
@@ -3624,21 +3701,21 @@ async function sendAgentMessage(agentId) {
                                         }, 2000);
                                     });
                                 });
-                                
+
                                 actionsDiv.appendChild(copyBtn);
                                 actionsDiv.appendChild(copyRawBtn);
                                 headerDiv.appendChild(actionsDiv);
-                                
+
                                 textBubble.appendChild(headerDiv);
-                                
+
                                 // Content div
                                 const contentDiv = document.createElement('div');
                                 contentDiv.className = 'ai-message-content';
                                 textBubble.appendChild(contentDiv);
-                                
+
                                 messagesContainer.appendChild(textBubble);
                                 console.log(`[Agent ${agentId}] Text bubble created`);
-                                
+
                                 // Initialize TwoRuleStreamProcessor
                                 if (typeof TwoRuleStreamProcessor !== 'undefined') {
                                     try {
@@ -3650,7 +3727,7 @@ async function sendAgentMessage(agentId) {
                                     }
                                 }
                             }
-                            
+
                             // Process chunk through TwoRuleStreamProcessor
                             const textContent = textBubble.querySelector('.ai-message-content');
                             if (textContent) {
@@ -3678,7 +3755,7 @@ async function sendAgentMessage(agentId) {
                         // ISOLATION FIX: Only increment error count for THIS agent
                         threadErrorCount++;
                         console.error(`[Agent ${agentId}] SSE parse error (${threadErrorCount}/${maxThreadErrors}):`, e);
-                        
+
                         // If too many errors in THIS agent, stop THIS agent only
                         if (threadErrorCount >= maxThreadErrors) {
                             threadFailed = true;
@@ -3688,7 +3765,7 @@ async function sendAgentMessage(agentId) {
                         // Otherwise continue - don't let one bad event break the whole stream
                     }
                 }
-                
+
                 // If thread failed, break outer message loop too
                 if (threadFailed) {
                     console.error(`[Agent ${agentId}] Exiting stream reader for failed thread`);
@@ -3703,12 +3780,12 @@ async function sendAgentMessage(agentId) {
         }
 
         console.log(`[Agent ${agentId}] Stream complete. Response length: ${fullResponse.length}`);
-        
+
         // Clear status indicator
         if (typeof AgentStatusIndicator !== 'undefined') {
             AgentStatusIndicator.clear(agentId);
         }
-        
+
         // Finalize TwoRuleStreamProcessor (render any pending visualizations)
         if (textBubble && textBubble._twoRuleProcessor) {
             console.log(`[Agent ${agentId}] Finalizing TwoRuleStreamProcessor...`);
@@ -3716,7 +3793,7 @@ async function sendAgentMessage(agentId) {
                 if (typeof textBubble._twoRuleProcessor.finalize === 'function') {
                     await textBubble._twoRuleProcessor.finalize();
                     console.log(`[Agent ${agentId}] ✅ Processor finalized`);
-                    
+
                     // Force render if still no content visible
                     const textContent = textBubble.querySelector('.ai-message-content');
                     if (textContent && (!textContent.innerHTML || textContent.innerHTML.trim() === '')) {
@@ -3732,7 +3809,7 @@ async function sendAgentMessage(agentId) {
                 console.error(`[Agent ${agentId}] Finalize error:`, e);
             }
         }
-        
+
         // Store raw markdown for copy-raw button
         if (textBubble) {
             textBubble.dataset.rawMarkdown = fullResponse;
@@ -3741,12 +3818,12 @@ async function sendAgentMessage(agentId) {
         // SMART SAVE: Find thread by slug (even if user moved it during stream)
         const agentName = getAgentName(agentId);
         let threadForSaving = ThreadManager.getThreadByAgent(agentName);
-        
+
         // If thread not at this agent, find it by slug (user may have moved it)
         if (!threadForSaving || threadForSaving.id !== streamThreadSlug) {
             console.warn(`[Agent ${agentId}] ⚠️ Thread moved during stream! Looking up by slug...`);
             threadForSaving = ThreadManager.threads.find(t => t.id === streamThreadSlug);
-            
+
             if (threadForSaving) {
                 const newLocation = threadForSaving.location || 'prime';
                 console.log(`[Agent ${agentId}] ✅ Found thread at new location: ${newLocation}`);
@@ -3762,7 +3839,7 @@ async function sendAgentMessage(agentId) {
 
         // Save AI response to thread with FULL content structure
         const responseTime = Date.now() - startTime;
-        
+
         if (threadForSaving) {
             // Add AI message with FULL content blocks (for display)
             const fullContent = [];
@@ -3819,7 +3896,7 @@ async function sendAgentMessage(agentId) {
                 MultiAgent.updateAgentHeader(agentId);
                 console.log(`[Agent ${agentId}] Refreshed agent header with new timestamp`);
             }
-            
+
             // Update quick-nav badge to reflect new message count (real-time update)
             if (typeof MultiAgent !== 'undefined' && MultiAgent.updateQuickNavBadge) {
                 MultiAgent.updateQuickNavBadge(agentId);
@@ -3833,15 +3910,15 @@ async function sendAgentMessage(agentId) {
             try {
                 // FIXED: Use ThreadManager.getThreadByAgent() instead of AppState lookup
                 const thread = ThreadManager.getThreadByAgent(agentName);
-                
+
                 if (thread && thread.messages) {
                     // Use backend's conversation (from conversation_sync event)
                     threadForSaving.messages = thread.messages;
                     threadForSaving.message_count = thread.messages.length;
                     threadForSaving.updated = new Date().toISOString();
-                    
+
                     console.log(`[Agent ${agentId}] 📤 [SAVE] Backend's conversation: ${thread.messages.length} messages`);
-                    
+
                     // ✅ BACKEND AUTO-SAVE: Backend saves messages after stream completion
                     // Frontend should NOT save - backend already persisted to sessions.messages
                     console.log(`[Agent ${agentId}] ✅ [SAVE] Messages already saved by backend (auto-save after stream)`);
@@ -3861,13 +3938,13 @@ async function sendAgentMessage(agentId) {
         if (window.ErrorRecoveryManager && error.message) {
             const errorMsg = error.message.toLowerCase();
             const isRecoverable = errorMsg.includes('invalid_request_error') ||
-                                 errorMsg.includes('tool_use_id') ||
-                                 errorMsg.includes('first block must be') ||
-                                 errorMsg.includes('thinking') ||
-                                 errorMsg.includes('rate limit') ||
-                                 errorMsg.includes('context_length') ||
-                                 errorMsg.includes('prompt is too long') ||
-                                 errorMsg.includes('overloaded');
+                errorMsg.includes('tool_use_id') ||
+                errorMsg.includes('first block must be') ||
+                errorMsg.includes('thinking') ||
+                errorMsg.includes('rate limit') ||
+                errorMsg.includes('context_length') ||
+                errorMsg.includes('prompt is too long') ||
+                errorMsg.includes('overloaded');
 
             // DETAILED LOGGING FOR ERROR RECOVERY DEBUGGING
             console.group(`🔴 ERROR RECOVERY SYSTEM TRIGGERED - Agent ${agentId}`);
@@ -3884,17 +3961,17 @@ async function sendAgentMessage(agentId) {
 
             if (isRecoverable) {
                 // Check if auto-recovery is enabled in settings
-                const recoveryEnabled = typeof window.isErrorRecoveryEnabled === 'function' 
-                    ? window.isErrorRecoveryEnabled(errorType) 
+                const recoveryEnabled = typeof window.isErrorRecoveryEnabled === 'function'
+                    ? window.isErrorRecoveryEnabled(errorType)
                     : true;
-                
+
                 if (!recoveryEnabled) {
                     console.log(`[Agent ${agentId}] ⛔ Auto-recovery disabled in settings - skipping recovery`);
                     throw error; // Rethrow to show error normally
                 }
-                
+
                 console.log(`[Agent ${agentId}] Attempting auto-recovery...`);
-                
+
                 try {
                     // Create recovery manager
                     const recoveryManager = new ErrorRecoveryManager(
@@ -3909,16 +3986,16 @@ async function sendAgentMessage(agentId) {
                     // If recovery succeeded
                     if (recoveryResponse) {
                         console.log(`[Agent ${agentId}] Auto-recovery successful!`);
-                        
+
                         // Show recovery log
                         const recoveryLog = recoveryManager.exportRecoveryLog();
                         console.log(`=== RECOVERY LOG (Agent ${agentId}) ===\\n` + recoveryLog);
-                        
+
                         // Show success notification
                         if (typeof showNotification === 'function') {
                             showNotification(`Agent ${getAgentName(agentId)}: Auto-recovery successful`, 'success');
                         }
-                        
+
                         // Exit - recovery handled resubmission
                         return;
                     }
@@ -4025,7 +4102,7 @@ function renderStructuredAgentMessage(agentId, messageContent, threadId = null) 
         console.error(`Container agent-messages-${agentId} not found`);
         return;
     }
-    
+
     const threadSlug = threadId || 'unknown';
 
     console.log(`[Render Structured] Agent ${agentId}, ${messageContent.length} blocks`);

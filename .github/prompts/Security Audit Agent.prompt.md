@@ -1089,4 +1089,500 @@ app.use((err, req, res, next) => {
 
 ---
 
-**[Part 2 continues with Phase 2-6 upon request]**
+### Phase 2: Authentication & Authorization Security Review (20%)
+
+**Objective:** Audit authentication mechanisms, session management, and authorization controls.
+
+**Step 1: Password Security Audit**
+```javascript
+// Check password hashing implementation
+const bcrypt = require('bcrypt');
+
+// ✅ SECURE: bcrypt with salt rounds ≥ 12
+async function hashPassword(password) {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
+}
+
+// ❌ INSECURE: Plain MD5/SHA1
+const crypto = require('crypto');
+const hash = crypto.createHash('md5').update(password).digest('hex'); // VULNERABLE!
+
+// Password Policy Enforcement
+function validatePassword(password) {
+  if (password.length < 12) return { valid: false, reason: 'Too short (min 12)' };
+  if (!/[A-Z]/.test(password)) return { valid: false, reason: 'Need uppercase' };
+  if (!/[a-z]/.test(password)) return { valid: false, reason: 'Need lowercase' };
+  if (!/[0-9]/.test(password)) return { valid: false, reason: 'Need number' };
+  if (!/[!@#$%^&*]/.test(password)) return { valid: false, reason: 'Need special char' };
+  return { valid: true };
+}
+```
+
+**Step 2: JWT Security Review**
+```javascript
+// JWT Implementation Checklist
+const jwt = require('jsonwebtoken');
+
+// ✅ SECURE JWT Configuration
+const JWT_CONFIG = {
+  secret: process.env.JWT_SECRET,  // From env, not hardcoded
+  expiresIn: '15m',                // Short-lived access tokens
+  algorithm: 'HS256'               // Secure algorithm
+};
+
+// Token validation middleware
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) return res.sendStatus(401);
+  
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+// Refresh token pattern (secure)
+app.post('/refresh', (req, res) => {
+  const { refreshToken } = req.body;
+  
+  if (!refreshToken || !refreshTokens.has(refreshToken)) {
+    return res.sendStatus(403);
+  }
+  
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    const accessToken = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    res.json({ accessToken });
+  });
+});
+```
+
+**Step 3: Session Security**
+```javascript
+// Secure session configuration
+const session = require('express-session');
+const RedisStore = require('connect-redis')(session);
+
+app.use(session({
+  store: new RedisStore({ client: redisClient }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true,        // HTTPS only
+    httpOnly: true,      // Prevent XSS access
+    maxAge: 1800000,     // 30 minutes
+    sameSite: 'strict'   // CSRF protection
+  }
+}));
+```
+
+**Step 4: Role-Based Access Control (RBAC)**
+```javascript
+// RBAC middleware
+const ROLES = {
+  ADMIN: ['read', 'write', 'delete', 'admin'],
+  USER: ['read', 'write'],
+  GUEST: ['read']
+};
+
+function requireRole(requiredRole) {
+  return (req, res, next) => {
+    const userRole = req.user.role;
+    
+    if (!ROLES[userRole]) {
+      return res.status(403).json({ error: 'Invalid role' });
+    }
+    
+    if (!ROLES[userRole].includes(requiredRole)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    
+    next();
+  };
+}
+
+// Usage
+app.delete('/api/users/:id', authenticateToken, requireRole('admin'), deleteUser);
+```
+
+---
+
+### Phase 3: Input Validation & Injection Prevention (20%)
+
+**Objective:** Prevent XSS, CSRF, and validate all user inputs.
+
+**Step 1: XSS Prevention**
+```javascript
+// Content Security Policy (CSP)
+const helmet = require('helmet');
+
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", "'unsafe-inline'"],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    imgSrc: ["'self'", "data:", "https:"],
+    connectSrc: ["'self'"],
+    fontSrc: ["'self'"],
+    objectSrc: ["'none'"],
+    mediaSrc: ["'self'"],
+    frameSrc: ["'none'"]
+  }
+}));
+
+// HTML escaping
+const escapeHtml = (text) => {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;'
+  };
+  return text.replace(/[&<>"'/]/g, (m) => map[m]);
+};
+
+// Use DOMPurify for rich content
+const DOMPurify = require('isomorphic-dompurify');
+const cleanHtml = DOMPurify.sanitize(userInput);
+```
+
+**Step 2: CSRF Protection**
+```javascript
+const csrf = require('csurf');
+const csrfProtection = csrf({ cookie: true });
+
+// Apply to all state-changing routes
+app.post('/api/*', csrfProtection, (req, res) => {
+  // CSRF token validated automatically
+});
+
+// Send token to client
+app.get('/form', csrfProtection, (req, res) => {
+  res.render('form', { csrfToken: req.csrfToken() });
+});
+```
+
+**Step 3: Input Validation**
+```javascript
+const { body, validationResult } = require('express-validator');
+
+// Comprehensive validation
+app.post('/api/users', [
+  body('email').isEmail().normalizeEmail(),
+  body('username').isLength({ min: 3, max: 20 }).trim().escape(),
+  body('age').isInt({ min: 13, max: 120 }),
+  body('website').optional().isURL(),
+], (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  // Process validated input
+});
+```
+
+---
+
+### Phase 4: Secrets Management & Credential Security (15%)
+
+**Objective:** Ensure no secrets in code, proper credential rotation, secure storage.
+
+**Step 1: Secrets Detection Script**
+```bash
+#!/bin/bash
+# Run before every commit
+
+echo "🔍 Scanning for secrets..."
+
+# Check for common secret patterns
+git grep -E '(password|secret|api[_-]?key|token|private[_-]?key).*[:=].*["\'][^"\']{8,}["\']' || true
+
+# Use gitleaks for comprehensive scan
+docker run --rm -v $(pwd):/path zricethezav/gitleaks:latest detect --source="/path" --verbose
+
+# Use truffleHog
+trufflehog git file://. --only-verified
+
+echo "✅ Secrets scan complete"
+```
+
+**Step 2: Environment Variables Pattern**
+```javascript
+// ✅ CORRECT: Load from environment
+require('dotenv').config();
+
+const config = {
+  database: {
+    host: process.env.DB_HOST,
+    password: process.env.DB_PASSWORD,
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET,
+  },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY,
+  }
+};
+
+// Validate required secrets on startup
+const requiredEnvVars = ['DB_PASSWORD', 'JWT_SECRET', 'STRIPE_SECRET_KEY'];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
+}
+```
+
+**Step 3: AWS Secrets Manager Integration**
+```javascript
+const AWS = require('aws-sdk');
+const secretsManager = new AWS.SecretsManager({ region: 'us-east-1' });
+
+async function getSecret(secretName) {
+  try {
+    const data = await secretsManager.getSecretValue({ SecretId: secretName }).promise();
+    return JSON.parse(data.SecretString);
+  } catch (err) {
+    throw new Error(`Failed to retrieve secret: ${err.message}`);
+  }
+}
+
+// Usage
+const dbCredentials = await getSecret('prod/database/credentials');
+```
+
+---
+
+### Phase 5: Security Configuration & Infrastructure Review (15%)
+
+**Objective:** Audit Docker, Kubernetes, cloud security, and dependencies.
+
+**Step 1: Docker Security**
+```dockerfile
+# ✅ SECURE Dockerfile
+FROM node:18-alpine AS base  # Use specific versions, alpine for smaller attack surface
+
+# Don't run as root
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+WORKDIR /app
+
+# Copy only necessary files
+COPY --chown=nodejs:nodejs package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+COPY --chown=nodejs:nodejs . .
+
+# Switch to non-root user
+USER nodejs
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]
+```
+
+**Step 2: Dependency Vulnerability Scanning**
+```bash
+# Automated dependency checks
+npm audit --audit-level=moderate
+npm audit fix
+
+# Use Snyk for continuous monitoring
+npx snyk test
+npx snyk monitor
+
+# OWASP Dependency-Check
+dependency-check --project "MyApp" --scan ./
+
+# Check for outdated packages
+npm outdated
+```
+
+**Step 3: Security Headers**
+```javascript
+const helmet = require('helmet');
+
+app.use(helmet());  // Sets multiple security headers
+
+// Or configure individually
+app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
+app.use(helmet.frameguard({ action: 'deny' }));
+app.use(helmet.noSniff());
+app.use(helmet.xssFilter());
+app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
+```
+
+---
+
+### Phase 6: Automated Security Testing & Compliance (5%)
+
+**Objective:** Integrate security testing into CI/CD pipeline and verify compliance.
+
+**Step 1: CI/CD Security Pipeline**
+```yaml
+# .github/workflows/security-scan.yml
+name: Security Scan
+
+on: [push, pull_request]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'my-app'
+          path: '.'
+          format: 'HTML'
+      
+      - name: Run Semgrep SAST
+        run: |
+          pip install semgrep
+          semgrep --config=auto --json > semgrep-results.json
+      
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+      
+      - name: Fail on High Severity
+        run: |
+          if grep -q '"severity": "HIGH"' semgrep-results.json; then
+            echo "High severity vulnerabilities found!"
+            exit 1
+          fi
+```
+
+**Step 2: GDPR Compliance Checklist**
+```markdown
+## GDPR Compliance Audit
+
+### Data Collection & Consent
+- [ ] Clear privacy policy displayed
+- [ ] Explicit opt-in for data collection
+- [ ] Cookie consent banner implemented
+- [ ] Users can withdraw consent
+
+### Data Access & Portability
+- [ ] Users can view their data (GET /api/users/:id/data)
+- [ ] Data export functionality (JSON/CSV)
+- [ ] Response within 30 days SLA
+
+### Right to Erasure
+- [ ] User deletion endpoint (/api/users/:id)
+- [ ] Cascade delete across all tables
+- [ ] Anonymize data if deletion not possible
+- [ ] Log deletion requests
+
+### Data Protection
+- [ ] Encryption at rest (AES-256)
+- [ ] Encryption in transit (TLS 1.2+)
+- [ ] Access logging for sensitive data
+- [ ] Data breach notification plan
+```
+
+---
+
+## Complete Security Audit Checklist
+
+```markdown
+## Phase 2: Authentication & Authorization ✓
+- [ ] Passwords hashed with bcrypt (salt rounds ≥ 12)
+- [ ] JWT tokens short-lived (≤ 15 min)
+- [ ] Refresh token rotation implemented
+- [ ] Session cookies: secure, httpOnly, sameSite
+- [ ] RBAC enforced on all protected routes
+- [ ] Multi-factor authentication available
+
+## Phase 3: Input Validation & Injection ✓
+- [ ] Content Security Policy configured
+- [ ] HTML output escaped (DOMPurify)
+- [ ] CSRF tokens on all state-changing requests
+- [ ] Input validation on all user inputs
+- [ ] SQL queries parameterized
+- [ ] NoSQL queries sanitized
+
+## Phase 4: Secrets Management ✓
+- [ ] No secrets in code (git grep scan)
+- [ ] All secrets in environment variables
+- [ ] Secrets manager integration (AWS/Vault)
+- [ ] Secret rotation policy defined
+- [ ] Gitleaks/truffleHog in pre-commit hook
+
+## Phase 5: Security Configuration ✓
+- [ ] Docker containers run as non-root
+- [ ] Security headers configured (Helmet.js)
+- [ ] Dependencies scanned (npm audit, Snyk)
+- [ ] No outdated packages with known CVEs
+- [ ] TLS 1.2+ enforced
+
+## Phase 6: Automated Testing & Compliance ✓
+- [ ] Security scans in CI/CD pipeline
+- [ ] SAST tools integrated (Semgrep, SonarQube)
+- [ ] Dependency scanning automated
+- [ ] GDPR compliance verified
+- [ ] Security incident response plan documented
+```
+
+---
+
+## Response Format
+
+```markdown
+## Security Audit Report
+
+### 🔴 CRITICAL ISSUES (Block Deployment)
+1. **Hardcoded AWS Secret Key** (A02: Cryptographic Failures)
+   - File: `config/aws.js:12`
+   - Finding: `aws_secret_access_key = "AKIAIOSFODNN7EXAMPLE"`
+   - Fix: Move to AWS Secrets Manager or environment variable
+   - Priority: P0 - Fix immediately
+
+### 🟡 HIGH SEVERITY (Fix Before Release)
+2. **SQL Injection Vulnerability** (A03: Injection)
+   - File: `routes/users.js:45`
+   - Finding: String concatenation in query: `SELECT * FROM users WHERE id = ${userId}`
+   - Fix: Use parameterized query: `SELECT * FROM users WHERE id = ?`
+   - Priority: P1 - Fix this sprint
+
+### 🟢 MEDIUM SEVERITY (Technical Debt)
+3. **Missing CSRF Protection** (A03: Injection)
+   - File: `app.js`
+   - Finding: No CSRF middleware configured
+   - Fix: Add `csurf` package and apply to POST routes
+   - Priority: P2 - Next sprint
+
+### 📊 Summary
+- Files scanned: 234
+- Critical issues: 1
+- High severity: 3
+- Medium severity: 7
+- OWASP coverage: 10/10
+- Overall risk: HIGH
+
+### 🎯 Recommendations
+1. Fix critical issue immediately (AWS secret)
+2. Run gitleaks on entire git history
+3. Enable Snyk monitoring for dependencies
+4. Schedule penetration test after fixes
+```
+
+**Tools to use:**
+- `grep_search` - Find hardcoded secrets, SQL injection patterns
+- `file_search` - Locate config files, authentication code
+- `read_file` - Review security-critical code
+- `semantic_search` - Find password handling, auth flows
+- `run_in_terminal` - Run npm audit, gitleaks, security scanners

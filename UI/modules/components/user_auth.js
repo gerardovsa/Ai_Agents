@@ -267,22 +267,27 @@ const UserAuth = {
     async showMainApp() {
         //  PREVENT DOUBLE INITIALIZATION OF MAIN APP
         if (this.mainAppInitialized) {
-            console.log(' [AUTH] Main app already initialized, checking module system...');
-            
-            // ✅ CRITICAL FIX (Nov 23, 2025): Ensure modules are loaded even if main app is initialized
-            // This handles page refresh scenarios where mainAppInitialized=true but modules aren't loaded
-            if (window.initializeModuleSystem) {
-                console.log('🔷 [AUTH] Triggering module system initialization (retry)...');
-                try {
-                    await window.initializeModuleSystem();
-                    console.log('✅ [AUTH] Module system initialized');
-                } catch (error) {
-                    console.error('❌ [AUTH] Module system initialization failed:', error);
-                }
-            }
-            return;
+            console.log(' [AUTH] Main app already initialized - BLOCKING duplicate call');
+
+            // ❌ REMOVED (Nov 24, 2025): This retry logic was causing duplicate module initialization
+            // The "page refresh" scenario this was meant to handle doesn't exist because:
+            //   1. On page refresh, mainAppInitialized flag resets to false (not persisted)
+            //   2. Normal flow (checkExistingSession → showMainApp) handles initialization correctly
+            //   3. This retry was triggered by INCORRECT double calls (from initializeAccountProfile)
+            //
+            // REMOVED CODE:
+            // if (window.initializeModuleSystem) {
+            //     console.log('🔷 [AUTH] Triggering module system initialization (retry)...');
+            //     await window.initializeModuleSystem();
+            // }
+
+            return; // ← EARLY EXIT - no retry logic
         }
-        this.mainAppInitialized = true;
+
+        // ✅ FIX (Nov 24, 2025): MOVED flag setting to AFTER successful initialization
+        // Previously: Flag was set HERE (before initialization)
+        // Problem: If initialization failed, flag stayed true, preventing retries
+        // Solution: Set flag only after all initialization steps succeed
 
         console.log(' Login successful - Initializing main application...');
 
@@ -305,12 +310,12 @@ const UserAuth = {
         // ✅ CRITICAL FIX (Nov 24, 2025): Wait for DOM to render AND become visible
         // Multiple animation frames to ensure layout is complete
         console.log('[AUTH] Waiting for DOM to be fully rendered...');
-        await new Promise(resolve => requestAnimationFrame(() => 
-            requestAnimationFrame(() => 
+        await new Promise(resolve => requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
                 requestAnimationFrame(resolve)
             )
         ));
-        
+
         // Verify platform container is actually active
         if (platformContainer.classList.contains('active')) {
             console.log('✅ [AUTH] Platform container is active and in layout');
@@ -321,7 +326,10 @@ const UserAuth = {
         try {
             // PHASE 1: Initialize main app with existing libraries (15% progress)
             this.setLoadingProgress(15, 'Initializing application...');
+
+            console.log('🔵 [AUTH] Starting initializeMainApp()...');
             await window.initializeMainApp();
+            console.log('✅ [AUTH] initializeMainApp() complete');
             this.setLoadingProgress(20, 'Application initialized');
 
             // ✅ CRITICAL FIX: Initialize module system AFTER main app is visible
@@ -331,7 +339,7 @@ const UserAuth = {
                 try {
                     await window.initializeModuleSystem();
                     console.log('✅ [AUTH] Module system initialization complete');
-                    
+
                     // Verify modules loaded
                     if (window.ModuleManager && window.ModuleManager.getModules) {
                         const modules = window.ModuleManager.getModules();
@@ -345,6 +353,7 @@ const UserAuth = {
                     }
                 } catch (error) {
                     console.error('❌ [AUTH] Module system initialization ERROR:', error);
+                    // Don't fail the entire flow if modules don't load
                 }
             } else {
                 console.warn('⚠️ [AUTH] initializeModuleSystem not found - modules may not load');
@@ -354,12 +363,25 @@ const UserAuth = {
             // PHASE 2: Load heavy libraries AFTER app is visible (25-75% progress)
             this.setLoadingProgress(30, 'Loading additional resources...');
             console.log(' [POST-AUTH] Loading heavy libraries...');
-            await this.loadPostAuthLibraries();
+            try {
+                await this.loadPostAuthLibraries();
+                console.log('✅ [AUTH] Post-auth libraries loaded');
+            } catch (error) {
+                console.error('❌ [AUTH] Post-auth libraries ERROR:', error);
+                // Don't fail the entire flow if libraries don't load
+            }
             this.setLoadingProgress(75, 'Resources loaded');
 
             // PHASE 3: Load user profile (75-90% progress)
             this.setLoadingProgress(80, 'Loading your profile...');
-            await loadUserProfile();
+            console.log('🔵 [AUTH] Loading user profile...');
+            try {
+                await loadUserProfile();
+                console.log('✅ [AUTH] User profile loaded');
+            } catch (error) {
+                console.error('❌ [AUTH] User profile ERROR:', error);
+                // Don't fail the entire flow if profile doesn't load - we already have basic user data
+            }
             this.setLoadingProgress(90, 'Profile loaded');
 
             if (this.user) {
@@ -378,20 +400,33 @@ const UserAuth = {
 
             // Complete progress and hide overlay
             this.setLoadingProgress(100, 'Ready!');
+
+            // ✅ FIX (Nov 24, 2025): Set initialization flag AFTER successful completion
+            // This ensures the flag is only set if all initialization steps succeeded
+            this.mainAppInitialized = true;
+            console.log('✅ [AUTH] Main app initialization COMPLETE - Flag set to true');
+
             setTimeout(() => {
                 this.hideLoadingOverlay();
             }, 10000); // 10 second delay before hiding auth loading overlay
 
         } catch (error) {
-            console.error(' [AUTH] Failed to initialize main app:', error);
+            console.error('❌ [AUTH] Failed to initialize main app:', error);
+            console.error('❌ [AUTH] Error stack:', error.stack);
+
+            // ✅ FIX (Nov 24, 2025): Reset flag on error to allow retries
+            this.mainAppInitialized = false;
+
             this.setLoadingProgress(0, 'Error loading application');
-            // Still hide loading overlay on error and show main app anyway
+
+            // ✅ FIX (Nov 24, 2025): Show login screen on initialization failure
+            // Previously: Tried to show main app even on error (broken state)
+            // Now: Return to login screen so user can retry
             setTimeout(() => {
                 this.hideLoadingOverlay();
-                // Force show platform container even on error
-                platformContainer.style.opacity = '1';
-                platformContainer.classList.add('active');
-            }, 1000);
+                this.showLogin(); // Show login screen to allow retry
+                console.log('🔄 [AUTH] Returned to login screen - User can retry');
+            }, 2000); // Show error message for 2 seconds before returning to login
         }
     },
 
