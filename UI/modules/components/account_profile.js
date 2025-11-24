@@ -1,5 +1,5 @@
-// Environment-aware API Base URL
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+// Use API_BASE_URL from global scope (declared in main HTML)
+const API_BASE_URL = window.API_BASE_URL || window.location.origin + '/api';
 
 // Login form handler
 async function handleLogin(event) {
@@ -2079,13 +2079,13 @@ async function initializeApp() {
 
     if (error) {
         console.error(' OAuth error:', error);
-        
+
         // Clean URL first
         window.history.replaceState({}, document.title, window.location.pathname);
-        
+
         // Show login screen with error message
         UserAuth.showLogin();
-        
+
         // Display error message after login screen is rendered
         setTimeout(() => {
             const errorDiv = document.getElementById('loginError');
@@ -2095,7 +2095,7 @@ async function initializeApp() {
                 errorDiv.classList.add('show');
             }
         }, 100);
-        
+
         isInitialized = true;
         return;
     } else if (token) {

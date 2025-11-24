@@ -664,10 +664,19 @@ def list_automations():
         cursor.execute(query, params)
         rows = cursor.fetchall()
         print(f'[DEBUG /api/automation/list] SQL query returned {len(rows)} rows for user_id={user_id}')
+        print(f'[DEBUG /api/automation/list] Query filters: category={category}, status={status}, slug={slug}, limit={limit}')
+        
+        # DEBUG: Log first 3 row IDs and slugs
+        if rows:
+            print(f'[DEBUG /api/automation/list] First 3 rows: ')
+            for idx, r in enumerate(rows[:3]):
+                print(f'  Row {idx+1}: automation_id={r.get("automation_id")}, slug={r.get("slug")}, title={r.get("title")}')
+        
         conn.close()
         
         automations = []
         skipped_count = 0
+        print(f'[DEBUG /api/automation/list] Starting transformation loop for {len(rows)} rows...')
         for i, row in enumerate(rows, 1):
             try:
                 # Parse JSON fields
@@ -799,15 +808,14 @@ def list_automations():
                 'error_count': 0,  # TODO: Calculate from execution history
                 'last_run_at': str(row['last_executed_at']) if row['last_executed_at'] else None
                 })
+                print(f'[DEBUG /api/automation/list] ✓ Transformed workflow #{i}: id={row["automation_id"]}, slug={row["slug"]}, title={row["title"]}')
                 
             except Exception as transform_error:
                 skipped_count += 1
-                print(f'[ERROR /api/automation/list] Failed to transform workflow #{i} ({row.get("automation_id", "UNKNOWN")}): {type(transform_error).__name__}: {str(transform_error)}')
+                print(f'[ERROR /api/automation/list] ✗ Failed to transform workflow #{i} ({row.get("automation_id", "UNKNOWN")}): {type(transform_error).__name__}: {str(transform_error)}')
                 import traceback
                 traceback.print_exc()
-                continue  # Skip this workflow and process the rest
-        
-        print(f'[DEBUG /api/automation/list] Successfully transformed {len(automations)} workflows, skipped {skipped_count}')
+                continue  # Skip this workflow and process the rest        print(f'[DEBUG /api/automation/list] Successfully transformed {len(automations)} workflows, skipped {skipped_count}')
         print(f'[DEBUG /api/automation/list] Returning JSON response with count={len(automations)}')
         
         return jsonify({

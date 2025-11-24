@@ -1,0 +1,12 @@
+# Database Analyzer Requirements
+# Install with: pip install -r requirements_analyzer.txt
+
+# Core dependencies
+psycopg2-binary>=2.9.0    # PostgreSQL adapter for Python
+python-dotenv>=0.19.0      # Load environment variables from .env files
+
+# Real-time health checks (Phase 5)
+playwright>=1.40.0         # Browser automation for real-time testing
+
+# Optional: After installing playwright, run:
+# playwright install chromium
