@@ -11,8 +11,9 @@
     'use strict';
 
     // API Base URL (environment-aware)
-// Reference API_BASE_URL from global scope (declared in main HTML)
-let API_BASE_URL = window.API_BASE_URL || window.location.origin + '/api';    // ============================================================
+    // Reference API_BASE_URL from global scope (declared in main HTML)
+    // Use window.API_BASE_URL directly (declared in main HTML)
+// No local declaration needed - access via window.API_BASE_URL    // ============================================================
     // WORKFLOW SLUG LINKING
     // ============================================================
 
