@@ -86,6 +86,10 @@
     <!-- ✨ NEW: Supabase Connection Manager - MUST LOAD BEFORE REALTIME MODULES -->
     <!-- Prevents duplicate connections, adds health monitoring and auto-reconnect -->
     <script src="js/supabase-connection-manager.js?v=20251124O"></script>
+    
+    <!-- ✨ NEW: Supabase Heartbeat Listener - Server-side heartbeat system -->
+    <!-- Listens to pg_cron broadcasts every 60s, detects stale connections -->
+    <script src="js/supabase-heartbeat-listener.js?v=20251124A"></script>
 
     <!-- Socket.IO Client for Real-Time WebSocket Communication -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" crossorigin="anonymous"></script>
