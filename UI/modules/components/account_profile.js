@@ -1,4 +1,5 @@
-
+// Environment-aware API Base URL
+const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
 
 // Login form handler
 async function handleLogin(event) {

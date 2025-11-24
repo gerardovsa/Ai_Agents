@@ -42,6 +42,7 @@ window.ThreadCardRealtime = {
 
     /**
      * Initialize Realtime subscriptions for threads table
+     * NOW USES: SupabaseConnectionManager (prevents duplicate connections)
      * Subscribes to INSERT, UPDATE, DELETE events
      * 
      * @returns {Promise<void>}
@@ -52,69 +53,42 @@ window.ThreadCardRealtime = {
             return;
         }
 
-        // ✅ Wait for Supabase client to be initialized (max 5 seconds)
-        let attempts = 0;
-        const maxAttempts = 50; // 50 x 100ms = 5 seconds
-
-        while (attempts < maxAttempts) {
-            const supabaseClient = window.supabaseClient || window.SUPABASE_CLIENT;
-            if (supabaseClient) {
-                console.log('[ThreadCardRealtime] Supabase client found, initializing...');
-                break;
-            }
-
-            if (attempts === 0) {
-                console.log('[ThreadCardRealtime] Waiting for Supabase client initialization...');
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-
-        // Check if Supabase client exists (try both lowercase and uppercase)
-        const supabaseClient = window.supabaseClient || window.SUPABASE_CLIENT;
-        if (!supabaseClient) {
-            console.warn('[ThreadCardRealtime] Supabase client not available after 5s - skipping Realtime');
-            console.warn('   Real-time thread updates will not work.');
-            console.warn('   Threads will refresh on manual page reload only.');
+        // ✅ Wait for SupabaseConnectionManager
+        if (!window.SupabaseConnectionManager) {
+            console.warn('[ThreadCardRealtime] SupabaseConnectionManager not available');
             return;
         }
 
-        console.log('[ThreadCardRealtime] Initializing Realtime subscriptions...');
+        console.log('[ThreadCardRealtime] Initializing with connection manager...');
 
         try {
-            // Create channel for threads table
-            this.channel = supabaseClient
-                .channel('threads-realtime-channel')
-                .on('postgres_changes', {
-                    event: 'INSERT',
+            // ✨ USE CONNECTION MANAGER (prevents duplicate connections)
+            this.channel = await window.SupabaseConnectionManager.subscribeChannel(
+                'threads-realtime-channel',
+                {
                     schema: 'sessions',
-                    table: 'threads'
-                }, (payload) => this.handleThreadInsert(payload))
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'sessions',
-                    table: 'threads'
-                }, (payload) => this.handleThreadUpdate(payload))
-                .on('postgres_changes', {
-                    event: 'DELETE',
-                    schema: 'sessions',
-                    table: 'threads'
-                }, (payload) => this.handleThreadDelete(payload))
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('[ThreadCardRealtime] Successfully subscribed to threads table');
-                        this.isInitialized = true;
-                    } else if (status === 'CHANNEL_ERROR') {
-                        console.error('[ThreadCardRealtime] Channel error:', status);
-                    } else if (status === 'TIMED_OUT') {
-                        console.error('[ThreadCardRealtime] Subscription timed out');
-                    } else {
-                        console.log('[ThreadCardRealtime] Subscription status:', status);
+                    table: 'threads',
+                    event: '*', // All events
+                    callback: (payload) => {
+                        // Route to appropriate handler
+                        if (payload.eventType === 'INSERT') {
+                            this.handleThreadInsert(payload);
+                        } else if (payload.eventType === 'UPDATE') {
+                            this.handleThreadUpdate(payload);
+                        } else if (payload.eventType === 'DELETE') {
+                            this.handleThreadDelete(payload);
+                        }
                     }
-                });
+                }
+            );
 
-            console.log('[ThreadCardRealtime] Realtime subscriptions initialized');
+            if (!this.channel) {
+                console.warn('[ThreadCardRealtime] Realtime unavailable - using fallback mode');
+                return;
+            }
+
+            this.isInitialized = true;
+            console.log('[ThreadCardRealtime] Initialized with connection manager');
 
         } catch (error) {
             console.error('[ThreadCardRealtime] Failed to initialize Realtime:', error);

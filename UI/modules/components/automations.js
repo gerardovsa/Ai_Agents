@@ -27,21 +27,15 @@ const AutomationsSidebar = {
         }
 
         try {
-            // Check if Supabase JS library is loaded (it's in window.supabase namespace)
-            if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient !== 'function') {
-                console.error('? [AUTOMATIONS] Supabase JS library not loaded');
-                showNotification('Supabase library not loaded', 'error');
+            // NOTE: SUPABASE_CLIENT is set by SupabaseConnectionManager
+            if (!window.SUPABASE_CLIENT) {
+                console.error('? [AUTOMATIONS] Supabase connection manager not initialized yet');
+                showNotification('Supabase connection manager not ready', 'error');
                 return false;
             }
 
-            // Use shared Supabase client (prevents multiple GoTrueClient instances)
-            if (!window.SUPABASE_CLIENT) {
-                window.SUPABASE_CLIENT = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-                console.log('? [AUTOMATIONS] Created shared Supabase client');
-            }
-
             this.supabaseClient = window.SUPABASE_CLIENT;
-            console.log('? [AUTOMATIONS] Using shared Supabase client');
+            console.log('? [AUTOMATIONS] Using shared Supabase client from connection manager');
             return true;
         } catch (error) {
             console.error('? [AUTOMATIONS] Failed to initialize Supabase:', error);

@@ -1,3 +1,5 @@
+// Environment-aware API Base URL
+const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
 
 // ==================== USER AUTHENTICATION SYSTEM ====================
 

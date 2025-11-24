@@ -24,6 +24,9 @@
  * Integration: business-ai-platform-v2.html
  */
 
+// Environment-aware API Base URL
+const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+
 /* ==================== STYLES (MATCHING YOUR UI THEME) ==================== */
 
 const feedbackAreaStyles = `
@@ -653,7 +656,7 @@ function sendFeedback() {
     }
 
     // Save to backend storage (for execute_tool to read)
-    fetch('http://localhost:5001/api/agent/user-feedback/submit', {
+    fetch(`${API_BASE_URL}/api/agent/user-feedback/submit`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -748,7 +751,7 @@ function startPollingForInjection(sessionId, sendBtn, headerText, feedbackBtn) {
         }
 
         // Check injection status
-        fetch(`http://localhost:5001/api/agent/user-feedback/injection-status/${sessionId}`)
+        fetch(`${API_BASE_URL}/api/agent/user-feedback/injection-status/${sessionId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.injected) {

@@ -28,7 +28,7 @@ class InhouseKanbanModule extends BaseModule {
 
         // Configuration
         this.apiEndpoint = '/api/inhouse-kanban';
-        this.backendUrl = 'http://localhost:5001';
+        this.API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
 
         // State management
         this.jobs = [];
@@ -43,7 +43,6 @@ class InhouseKanbanModule extends BaseModule {
 
         // Stage transition cache for timestamp display
         this.stageTransitionCache = new Map();
-        this.analyticsApiBase = 'http://localhost:5001/api/kanban-analytics';
 
         // Card mute settings (per-card customization)
         this.mutedCards = new Map(); // Map<TicketID, MuteSettings>
@@ -2651,7 +2650,7 @@ class InhouseKanbanModule extends BaseModule {
      */
     async loadProductionLogEntries(ticketId) {
         try {
-            const response = await fetch(`http://localhost:5001/api/production-log/${ticketId}`);
+            const response = await fetch(`${this.API_BASE_URL}/api/production-log/${ticketId}`);
             const data = await response.json();
 
             if (!data.success) {
@@ -2849,7 +2848,7 @@ class InhouseKanbanModule extends BaseModule {
                 }
             }
 
-            const response = await fetch(`http://localhost:5001/api/production-log/${ticketId}`, {
+            const response = await fetch(`${this.API_BASE_URL}/api/production-log/${ticketId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -2885,7 +2884,7 @@ class InhouseKanbanModule extends BaseModule {
         }
 
         try {
-            const response = await fetch(`http://localhost:5001/api/production-log/entry/${logId}`, {
+            const response = await fetch(`${this.API_BASE_URL}/api/production-log/entry/${logId}`, {
                 method: 'DELETE'
             });
 
@@ -2951,7 +2950,7 @@ class InhouseKanbanModule extends BaseModule {
             const toStage = this.stages.find(s => s.StageID === toStageId);
 
             // Log stage change
-            const response = await fetch(`http://localhost:5001/api/production-log/${jobId}/stage-change`, {
+            const response = await fetch(`${this.API_BASE_URL}/api/production-log/${jobId}/stage-change`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -3126,7 +3125,7 @@ class InhouseKanbanModule extends BaseModule {
         }
 
         try {
-            const response = await fetch(`http://localhost:5001/api/production-log/${ticketId}/notification`, {
+            const response = await fetch(`${this.API_BASE_URL}/api/production-log/${ticketId}/notification`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

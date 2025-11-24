@@ -26,7 +26,7 @@ class DatabaseVisualizerModule extends BaseModule {
         // Load available databases
         await this.loadDatabases();
 
-        console.log('✅ Database Visualizer module ready');
+        console.log('Database Visualizer module ready');
     }
 
     // ==================== COLOR APPLICATION ====================
@@ -122,7 +122,7 @@ class DatabaseVisualizerModule extends BaseModule {
             </div>
         `;
 
-        // ✅ Attach event listener to refresh button
+        // Attach event listener to refresh button
         const refreshBtn = container.querySelector('#refresh-databases-btn');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => this.loadDatabases());
@@ -172,7 +172,7 @@ class DatabaseVisualizerModule extends BaseModule {
                 <div style="display: flex; flex-direction: column; height: 100%;">
                     <!-- Fixed Toggle Buttons (always visible when table selected) -->
                     <div id="schema-view-controls" style="display: none; padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 16px;">
-                        <div style="display: flex; gap: 8px; justify-content: flex-start;">
+                        <div style="display: flex; gap: 8px; justify-content: center;">
                             <button id="view-structure-btn" class="btn-sm" style="background: ${primaryColor}; border-color: ${primaryColor}; color: white;">
                                 <i class="fas fa-columns"></i> Structure
                             </button>
@@ -215,7 +215,7 @@ class DatabaseVisualizerModule extends BaseModule {
             </div>
         `;
 
-        // ✅ Attach event listeners
+        // Attach event listeners
         const schemaDbSelector = container.querySelector('#schema-db-selector');
         const exportSchemaBtn = container.querySelector('#export-schema-btn');
         const structureBtn = container.querySelector('#view-structure-btn');
@@ -234,7 +234,7 @@ class DatabaseVisualizerModule extends BaseModule {
         if (backToDatabasesBtn) {
             backToDatabasesBtn.addEventListener('click', () => {
                 // Switch to databases tab
-                this.switchSubTab('databases');
+                this.switchTab('databases');
             });
         }
 
@@ -297,7 +297,7 @@ class DatabaseVisualizerModule extends BaseModule {
             </div>
         `;
 
-        // ✅ Attach event listeners
+        // Attach event listeners
         const queryDbSelector = container.querySelector('#query-db-selector');
         const queryTableSelector = container.querySelector('#query-table-selector');
         const exportTableBtn = container.querySelector('#export-table-btn');
@@ -334,7 +334,7 @@ class DatabaseVisualizerModule extends BaseModule {
             const result = await response.json();
             this.databases = result.databases || [];
 
-            console.log(`✅ Found ${this.databases.length} databases`);
+            console.log(`Found ${this.databases.length} databases`);
 
             // Update stats
             this.updateDatabaseStats();
@@ -347,7 +347,7 @@ class DatabaseVisualizerModule extends BaseModule {
 
         } catch (error) {
             console.error(' Failed to load databases:', error);
-            // ✅ FIX: Pass container element as first argument
+            // FIX: Pass container element as first argument
             const container = document.getElementById('databases-grid');
             if (container) {
                 this.showError(container, error.message);
@@ -371,7 +371,7 @@ class DatabaseVisualizerModule extends BaseModule {
             this.schema = result.schema || {};
             this.selectedDb = dbPath;
 
-            console.log(`✅ Loaded schema: ${Object.keys(this.schema).length} tables`);
+            console.log(`Loaded schema: ${Object.keys(this.schema).length} tables`);
 
             // Render tables list
             this.renderSchemaTablesList();
@@ -397,7 +397,7 @@ class DatabaseVisualizerModule extends BaseModule {
             const result = await response.json();
             this.selectedTable = tableName;
 
-            console.log(`✅ Loaded ${result.data.length} rows from ${tableName}`);
+            console.log(`Loaded ${result.data.length} rows from ${tableName}`);
 
             // Render with Tabulator
             this.renderTabulatorTable(result.data, result.columns);
@@ -437,34 +437,24 @@ class DatabaseVisualizerModule extends BaseModule {
         }
 
         // Create HTML without onclick handlers
-        const gridHTML = this.databases.map(db => {
-            // Check if this is a backup database
-            const isBackup = db.path.includes('backup') || db.path.includes('\\backup_') || db.relative_path.includes('backup');
-            const cardColor = isBackup ? '#d97706' : primaryColor; // Orange for backups, purple for regular
-            const bgColor = isBackup ? 'rgba(217, 119, 6, 0.05)' : 'rgba(139, 92, 246, 0.05)';
-            const bgColorHover = isBackup ? 'rgba(217, 119, 6, 0.1)' : 'rgba(139, 92, 246, 0.1)';
-            const backupBadge = isBackup ? '<span style="background: #d97706; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 8px;">BACKUP</span>' : '';
-            
-            return `
-            <div class="database-card" style="background: ${bgColor}; border: 1px solid ${cardColor}; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;" 
+        const gridHTML = this.databases.map(db => `
+            <div class="database-card" style="background: rgba(139, 92, 246, 0.05); border: 1px solid ${primaryColor}; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;" 
                 data-db-path="${db.path}"
-                data-bg-color="${bgColor}"
-                data-bg-hover="${bgColorHover}"
-                onmouseover="this.style.background='${bgColorHover}'" 
-                onmouseout="this.style.background='${bgColor}'">
+                onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'" 
+                onmouseout="this.style.background='rgba(139, 92, 246, 0.05)'">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                            <i class="fas fa-database" style="color: ${cardColor}; font-size: 24px;"></i>
+                            <i class="fas fa-database" style="color: ${primaryColor}; font-size: 24px;"></i>
                             <div>
-                                <h3 style="margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center;">${db.name}${backupBadge}</h3>
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">${db.name}</h3>
                                 <p style="margin: 4px 0 0 0; font-size: 11px; color: var(--text-secondary); font-family: monospace;">${db.relative_path}</p>
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;">
                             <div>
                                 <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Tables</div>
-                                <div style="font-size: 14px; font-weight: 600; color: ${cardColor};">${db.table_count || 0}</div>
+                                <div style="font-size: 14px; font-weight: 600; color: ${primaryColor};">${db.table_count || 0}</div>
                             </div>
                             <div>
                                 <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Size</div>
@@ -476,17 +466,16 @@ class DatabaseVisualizerModule extends BaseModule {
                             </div>
                         </div>
                     </div>
-                    <button class="btn-sm btn-primary database-explore-btn" style="background: ${cardColor}; border-color: ${cardColor};">
+                    <button class="btn-sm btn-primary database-explore-btn">
                         <i class="fas fa-search"></i> Explore
                     </button>
                 </div>
             </div>
-        `;
-        }).join('');
+        `).join('');
 
         container.innerHTML = gridHTML;
 
-        // ✅ Attach event listeners AFTER rendering
+        // Attach event listeners AFTER rendering
         container.querySelectorAll('.database-card').forEach(card => {
             const dbPath = card.getAttribute('data-db-path');
 
@@ -537,7 +526,7 @@ class DatabaseVisualizerModule extends BaseModule {
 
         container.innerHTML = tablesHTML;
 
-        // ✅ Attach event listeners to table items
+        // Attach event listeners to table items
         container.querySelectorAll('.table-list-item').forEach(item => {
             item.addEventListener('click', () => {
                 // Remove active class from all items
@@ -813,45 +802,21 @@ class DatabaseVisualizerModule extends BaseModule {
             this.tabulatorTable.destroy();
         }
 
-        // Determine ID field (use first column as fallback)
-        const idField = columns[0];
-        const storageKey = `database_visualizer_tags_${this.currentDatabase}_${this.currentTable}`;
+        // Build column definitions
+        const columnDefs = columns.map(col => ({
+            title: col,
+            field: col,
+            headerFilter: "input",
+            headerFilterPlaceholder: `Filter ${col}...`,
+            formatter: (cell) => {
+                const value = cell.getValue();
+                if (value === null) return '<span style="color: #666; font-style: italic;">NULL</span>';
+                if (typeof value === 'boolean') return value ? '✓' : '✗';
+                return value;
+            }
+        }));
 
-        // Build column definitions with row tagging and selection
-        const columnDefs = [
-            {
-                title: "Select",
-                formatter: "rowSelection",
-                titleFormatter: "rowSelection",
-                frozen: true,
-                width: 60,
-                headerSort: false,
-                cellClick: function(e, cell) {
-                    cell.getRow().toggleSelect();
-                }
-            },
-            {
-                title: "Tag",
-                formatter: window.TabulatorFunctions.createTagButtonFormatter(idField, null, storageKey),
-                frozen: true,
-                width: 80,
-                headerSort: false
-            },
-            ...columns.map(col => ({
-                title: col,
-                field: col,
-                headerFilter: "input",
-                headerFilterPlaceholder: `Filter ${col}...`,
-                formatter: (cell) => {
-                    const value = cell.getValue();
-                    if (value === null) return '<span style="color: #666; font-style: italic;">NULL</span>';
-                    if (typeof value === 'boolean') return value ? '✓' : '✗';
-                    return value;
-                }
-            }))
-        ];
-
-        // Initialize Tabulator with row tagging support
+        // Initialize Tabulator
         this.tabulatorTable = new Tabulator(container, {
             data: data,
             columns: columnDefs,
@@ -866,27 +831,7 @@ class DatabaseVisualizerModule extends BaseModule {
             headerSort: true,
             headerSortTristate: true,
             placeholder: "No Data Available",
-            selectable: true,
-            selectableRangeMode: "click",
-            rowFormatter: (row) => {
-                window.TabulatorFunctions.applyRowTagFormatter(row, idField, storageKey);
-            }
         });
-
-        // Fix tag button table reference (pass after creation)
-        columnDefs[1].formatter = window.TabulatorFunctions.createTagButtonFormatter(idField, this.tabulatorTable, storageKey);
-        this.tabulatorTable.setColumns(columnDefs);
-
-        // Enable cell popup on double-click
-        this.tabulatorTable.on("cellDblClick", (e, cell) => {
-            window.TabulatorFunctions.showCellPopup(e, cell);
-        });
-
-        // Setup selection counter
-        window.TabulatorFunctions.setupSelectionCounter(this.tabulatorTable, 'selection-count');
-
-        // Add bulk operation buttons if not already present
-        this.addBulkOperationButtons(storageKey, idField);
 
         // Search functionality
         const searchInput = document.getElementById('table-search');
@@ -909,7 +854,7 @@ class DatabaseVisualizerModule extends BaseModule {
         this.selectedDb = dbPath;
         console.log(`📂 Selected database: ${dbPath}`);
 
-        this.switchSubTab('schema');  // ✅ CORRECT METHOD NAME
+        this.switchSubTab('schema');  // CORRECT METHOD NAME
 
         document.getElementById('schema-db-selector').value = dbPath;
         this.loadSchema(dbPath);
@@ -918,7 +863,7 @@ class DatabaseVisualizerModule extends BaseModule {
     exploreDatabase(dbPath) {
         this.selectedDb = dbPath;
 
-        this.switchSubTab('schema');  // ✅ CORRECT METHOD NAME
+        this.switchSubTab('schema');  // CORRECT METHOD NAME
 
         document.getElementById('schema-db-selector').value = dbPath;
         this.loadSchema(dbPath);
@@ -999,65 +944,6 @@ class DatabaseVisualizerModule extends BaseModule {
         if (!dateString) return 'Unknown';
         const date = new Date(dateString);
         return date.toLocaleDateString();
-    }
-
-    addBulkOperationButtons(storageKey, idField) {
-        // Check if buttons already exist
-        if (document.getElementById('bulk-operations-container')) {
-            return;
-        }
-
-        // Create bulk operations container
-        const container = document.getElementById('tabulator-container');
-        if (!container) return;
-
-        const bulkOpsDiv = document.createElement('div');
-        bulkOpsDiv.id = 'bulk-operations-container';
-        bulkOpsDiv.style.cssText = 'margin: 10px 0; padding: 10px; background: rgba(139, 92, 246, 0.1); border-radius: 4px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;';
-
-        bulkOpsDiv.innerHTML = `
-            <span id="selection-count" style="font-weight: bold; color: var(--text-primary);">0 selected</span>
-            <button id="bulk-tag-green" class="action-btn btn-success" style="padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer;">
-                <i class="fas fa-tag"></i> Tag Green
-            </button>
-            <button id="bulk-tag-orange" class="action-btn btn-warning" style="padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer;">
-                <i class="fas fa-tag"></i> Tag Orange
-            </button>
-            <button id="bulk-tag-red" class="action-btn btn-danger" style="padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer;">
-                <i class="fas fa-tag"></i> Tag Red
-            </button>
-            <button id="bulk-delete" class="action-btn btn-danger" style="padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer;">
-                <i class="fas fa-trash"></i> Delete Selected
-            </button>
-        `;
-
-        container.parentNode.insertBefore(bulkOpsDiv, container);
-
-        // Add event listeners
-        document.getElementById('bulk-tag-green').addEventListener('click', () => {
-            window.TabulatorFunctions.bulkTagRows(this.tabulatorTable, 'green', idField, storageKey);
-        });
-
-        document.getElementById('bulk-tag-orange').addEventListener('click', () => {
-            window.TabulatorFunctions.bulkTagRows(this.tabulatorTable, 'orange', idField, storageKey);
-        });
-
-        document.getElementById('bulk-tag-red').addEventListener('click', () => {
-            window.TabulatorFunctions.bulkTagRows(this.tabulatorTable, 'red', idField, storageKey);
-        });
-
-        document.getElementById('bulk-delete').addEventListener('click', () => {
-            const selectedRows = this.tabulatorTable.getSelectedRows();
-            if (selectedRows.length === 0) {
-                alert('No rows selected');
-                return;
-            }
-
-            if (confirm(`Delete ${selectedRows.length} selected rows from the table view?\n\nNote: This only removes them from the current view, not from the database.`)) {
-                selectedRows.forEach(row => row.delete());
-                alert('Rows removed from view');
-            }
-        });
     }
 }
 

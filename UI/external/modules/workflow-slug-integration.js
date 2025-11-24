@@ -10,6 +10,9 @@
 (function () {
     'use strict';
 
+    // API Base URL (environment-aware)
+    const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+
     // ============================================================
     // WORKFLOW SLUG LINKING
     // ============================================================
@@ -22,7 +25,7 @@
             console.log(`[WORKFLOW] Linking workflow ${workflowSlug} to thread ${threadId}`);
 
             // Fetch workflow title from backend
-            const workflowResponse = await fetch(`http://localhost:5001/api/automation/list?slug=${encodeURIComponent(workflowSlug)}`);
+            const workflowResponse = await fetch(`${API_BASE_URL}/api/automation/list?slug=${encodeURIComponent(workflowSlug)}`);
             if (!workflowResponse.ok) {
                 throw new Error('Failed to fetch workflow details');
             }
@@ -81,7 +84,7 @@
             Object.assign(thread, metadata);
 
             // Save to backend - use UPDATE endpoint
-            const response = await fetch(`http://localhost:5001/api/threads/metadata/update`, {
+            const response = await fetch(`${API_BASE_URL}/api/threads/metadata/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
