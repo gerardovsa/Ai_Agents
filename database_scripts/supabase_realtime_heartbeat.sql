@@ -62,8 +62,9 @@ GRANT EXECUTE ON FUNCTION public.broadcast_realtime_heartbeat() TO postgres;
 
 -- Step 3: Schedule the heartbeat job with pg_cron
 -- ============================================================================
--- Schedule heartbeat every 60 seconds (1 minute)
--- Cron syntax: '60 seconds' or '* * * * *' (every minute)
+-- Schedule heartbeat every minute (every 60 seconds)
+-- Cron syntax: '* * * * *' = every minute on minute boundaries
+-- NOTE: pg_cron does NOT accept '60 seconds' - must use cron format or 1-59 seconds
 
 -- First, unschedule if it already exists (to avoid duplicates)
 SELECT cron.unschedule('realtime-heartbeat-job')
@@ -71,10 +72,10 @@ WHERE EXISTS (
     SELECT 1 FROM cron.job WHERE jobname = 'realtime-heartbeat-job'
 );
 
--- Schedule the heartbeat job
+-- Schedule the heartbeat job (every minute)
 SELECT cron.schedule(
     'realtime-heartbeat-job',        -- Job name
-    '60 seconds',                      -- Every 60 seconds
+    '* * * * *',                      -- Every minute (cron format)
     'SELECT public.broadcast_realtime_heartbeat();'
 );
 
