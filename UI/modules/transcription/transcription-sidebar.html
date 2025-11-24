@@ -1,0 +1,311 @@
+<!-- 
+  TRANSCRIPTION SETTINGS SIDEBAR
+  Similar pattern to Synergy Sidebar - 450px width, collapsible, tabbed interface
+  
+  Features:
+  - STT Settings (Whisper endpoint, API key, insert mode)
+  - TTS Settings (Voice selection, speed, pitch, volume)
+  - Transcript Collection (STT and TTS transcripts with timestamps)
+  - Status Dashboard (Recording state, chunks processed, etc.)
+-->
+
+<div class="transcription-sidebar collapsed" id="transcription-sidebar" data-side="right">
+    <!-- Header -->
+    <div class="transcription-sidebar-header">
+        <div class="transcription-header-top">
+            <div class="transcription-sidebar-title">
+                <i class="fas fa-microphone"></i>
+                <span>Transcription</span>
+            </div>
+            <div class="transcription-header-actions">
+                <button class="transcription-icon-btn" onclick="TranscriptionSidebar.refreshStatus()" title="Refresh status">
+                    <i class="fas fa-sync"></i>
+                </button>
+                <button class="transcription-icon-btn" onclick="TranscriptionSidebar.toggleSidebar()" title="Close sidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="transcription-tabs">
+            <button class="transcription-tab active" onclick="TranscriptionSidebar.switchTab('stt')" data-tab="stt">
+                <i class="fas fa-microphone-alt"></i>
+                <span>STT</span>
+            </button>
+            <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('tts')" data-tab="tts">
+                <i class="fas fa-volume-up"></i>
+                <span>TTS</span>
+            </button>
+            <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('transcripts')" data-tab="transcripts">
+                <i class="fas fa-file-alt"></i>
+                <span>Transcripts</span>
+            </button>
+            <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('status')" data-tab="status">
+                <i class="fas fa-chart-line"></i>
+                <span>Status</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar Content -->
+    <div class="transcription-sidebar-content">
+        
+        <!-- ========== STT TAB ========== -->
+        <div class="transcription-tab-content active" id="stt-tab">
+            <div class="transcription-section">
+                <h3><i class="fas fa-microphone-alt"></i> Speech-to-Text Settings</h3>
+                
+                <div class="transcription-field">
+                    <label for="transcription-whisper-endpoint">Whisper Backend URL:</label>
+                    <input type="text" id="transcription-whisper-endpoint" 
+                           value="http://localhost:3001/api/v1/transcribe"
+                           placeholder="http://localhost:3001/api/v1/transcribe">
+                    <small>MustCare ValorAISynergySuite backend</small>
+                </div>
+
+                <div class="transcription-field">
+                    <label for="transcription-api-key">API Key (optional):</label>
+                    <input type="password" id="transcription-api-key" placeholder="Your API key">
+                    <small>Leave blank if backend doesn't require auth</small>
+                </div>
+
+                <div class="transcription-field">
+                    <label for="transcription-insert-mode">Insert Mode:</label>
+                    <select id="transcription-insert-mode">
+                        <option value="append">Append to chat input</option>
+                        <option value="replace">Replace chat input</option>
+                        <option value="none">Display only (no insert)</option>
+                    </select>
+                </div>
+
+                <div class="transcription-field">
+                    <label for="transcription-chunk-size">Chunk Size (ms):</label>
+                    <input type="number" id="transcription-chunk-size" value="5000" min="1000" max="10000" step="1000">
+                    <small>Audio chunks sent to backend (default: 5000ms)</small>
+                </div>
+
+                <div class="transcription-field">
+                    <label for="transcription-sample-rate">Sample Rate (Hz):</label>
+                    <select id="transcription-sample-rate">
+                        <option value="16000" selected>16000 Hz (recommended)</option>
+                        <option value="44100">44100 Hz (high quality)</option>
+                        <option value="48000">48000 Hz (studio quality)</option>
+                    </select>
+                </div>
+
+                <button class="transcription-btn" onclick="TranscriptionSidebar.saveSTTSettings()">
+                    <i class="fas fa-save"></i> Save STT Settings
+                </button>
+
+                <button class="transcription-btn transcription-btn-secondary" onclick="TranscriptionSidebar.testSTT()">
+                    <i class="fas fa-vial"></i> Test STT Connection
+                </button>
+            </div>
+
+            <!-- STT Controls -->
+            <div class="transcription-section">
+                <h3><i class="fas fa-sliders-h"></i> Recording Controls</h3>
+                
+                <div class="transcription-record-controls">
+                    <button id="transcription-record-toggle" class="transcription-record-btn" 
+                            onclick="TranscriptionSidebar.toggleRecording()">
+                        <i class="fas fa-microphone"></i>
+                        <span>Start Recording</span>
+                    </button>
+                </div>
+
+                <div class="transcription-recording-status" id="transcription-recording-status">
+                    <div class="status-item">
+                        <span class="status-label">State:</span>
+                        <span class="status-value" id="stt-state">Idle</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Chunks Sent:</span>
+                        <span class="status-value" id="stt-chunks">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Duration:</span>
+                        <span class="status-value" id="stt-duration">0:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== TTS TAB ========== -->
+        <div class="transcription-tab-content" id="tts-tab">
+            <div class="transcription-section">
+                <h3><i class="fas fa-volume-up"></i> Text-to-Speech Settings</h3>
+                
+                <div class="transcription-field">
+                    <label for="transcription-voice-select">Voice:</label>
+                    <select id="transcription-voice-select">
+                        <option>Loading voices...</option>
+                    </select>
+                    <small id="transcription-voice-info">Select a voice</small>
+                </div>
+
+                <div class="transcription-field">
+                    <label for="transcription-rate">Speed: <span id="transcription-rate-value">1.0x</span></label>
+                    <input type="range" id="transcription-rate" min="0.5" max="2" step="0.1" value="1.0">
+                </div>
+
+                <div class="transcription-field">
+                    <label for="transcription-pitch">Pitch: <span id="transcription-pitch-value">1.0x</span></label>
+                    <input type="range" id="transcription-pitch" min="0.5" max="2" step="0.1" value="1.0">
+                </div>
+
+                <div class="transcription-field">
+                    <label for="transcription-volume">Volume: <span id="transcription-volume-value">100%</span></label>
+                    <input type="range" id="transcription-volume" min="0" max="100" step="5" value="100">
+                </div>
+
+                <button class="transcription-btn" onclick="TranscriptionSidebar.saveTTSSettings()">
+                    <i class="fas fa-save"></i> Save TTS Settings
+                </button>
+
+                <button class="transcription-btn transcription-btn-secondary" onclick="TranscriptionSidebar.testTTS()">
+                    <i class="fas fa-vial"></i> Test TTS Voice
+                </button>
+            </div>
+
+            <!-- TTS Controls -->
+            <div class="transcription-section">
+                <h3><i class="fas fa-play-circle"></i> Playback Controls</h3>
+                
+                <div class="transcription-tts-controls">
+                    <button class="transcription-control-btn" onclick="TranscriptionSidebar.pauseTTS()" title="Pause/Resume">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                    <button class="transcription-control-btn" onclick="TranscriptionSidebar.stopTTS()" title="Stop">
+                        <i class="fas fa-stop"></i>
+                    </button>
+                    <button class="transcription-control-btn" onclick="TranscriptionSidebar.clearTTSTranscript()" title="Clear">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                </div>
+
+                <div class="transcription-tts-status" id="transcription-tts-status">
+                    <div class="status-item">
+                        <span class="status-label">State:</span>
+                        <span class="status-value" id="tts-state">Idle</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Utterances:</span>
+                        <span class="status-value" id="tts-utterances">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Position:</span>
+                        <span class="status-value" id="tts-position">0 / 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== TRANSCRIPTS TAB ========== -->
+        <div class="transcription-tab-content" id="transcripts-tab">
+            <div class="transcription-section">
+                <div class="transcription-section-header">
+                    <h3><i class="fas fa-file-alt"></i> Transcript Collection</h3>
+                    <button class="transcription-icon-btn" onclick="TranscriptionSidebar.clearAllTranscripts()" title="Clear all">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+
+                <!-- STT Transcripts -->
+                <div class="transcription-transcript-section">
+                    <h4><i class="fas fa-microphone-alt"></i> STT Transcripts</h4>
+                    <div class="transcription-transcript-list" id="stt-transcript-collection">
+                        <div class="transcription-empty-state">
+                            <i class="fas fa-microphone-slash"></i>
+                            <p>No STT transcripts yet</p>
+                            <small>Start recording to see transcripts here</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TTS Transcripts -->
+                <div class="transcription-transcript-section">
+                    <h4><i class="fas fa-volume-up"></i> TTS Transcripts</h4>
+                    <div class="transcription-transcript-list" id="tts-transcript-collection">
+                        <div class="transcription-empty-state">
+                            <i class="fas fa-volume-mute"></i>
+                            <p>No TTS transcripts yet</p>
+                            <small>AI responses will appear here when spoken</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="transcription-export-section">
+                    <button class="transcription-btn" onclick="TranscriptionSidebar.exportTranscripts('txt')">
+                        <i class="fas fa-file-alt"></i> Export as TXT
+                    </button>
+                    <button class="transcription-btn" onclick="TranscriptionSidebar.exportTranscripts('json')">
+                        <i class="fas fa-file-code"></i> Export as JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== STATUS TAB ========== -->
+        <div class="transcription-tab-content" id="status-tab">
+            <div class="transcription-section">
+                <h3><i class="fas fa-chart-line"></i> System Status</h3>
+                
+                <!-- Backend Status -->
+                <div class="transcription-status-card">
+                    <h4><i class="fas fa-server"></i> Whisper Backend</h4>
+                    <div class="status-indicator-row">
+                        <span class="status-dot" id="backend-status-dot"></span>
+                        <span id="backend-status-text">Checking...</span>
+                    </div>
+                    <small id="backend-status-detail">Waiting for connection test</small>
+                </div>
+
+                <!-- Browser Support -->
+                <div class="transcription-status-card">
+                    <h4><i class="fas fa-browser"></i> Browser Support</h4>
+                    <div class="support-item">
+                        <span>MediaRecorder API:</span>
+                        <span class="support-status" id="support-mediarecorder">Checking...</span>
+                    </div>
+                    <div class="support-item">
+                        <span>Web Speech API (TTS):</span>
+                        <span class="support-status" id="support-speechsynthesis">Checking...</span>
+                    </div>
+                    <div class="support-item">
+                        <span>Microphone Access:</span>
+                        <span class="support-status" id="support-microphone">Checking...</span>
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="transcription-status-card">
+                    <h4><i class="fas fa-chart-bar"></i> Session Statistics</h4>
+                    <div class="stat-item">
+                        <span class="stat-label">Total STT Chunks:</span>
+                        <span class="stat-value" id="stat-total-chunks">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total TTS Utterances:</span>
+                        <span class="stat-value" id="stat-total-utterances">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Recording Time:</span>
+                        <span class="stat-value" id="stat-total-recording-time">0:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Words Transcribed:</span>
+                        <span class="stat-value" id="stat-total-words">0</span>
+                    </div>
+                </div>
+
+                <button class="transcription-btn transcription-btn-secondary" onclick="TranscriptionSidebar.resetStatistics()">
+                    <i class="fas fa-redo"></i> Reset Statistics
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>

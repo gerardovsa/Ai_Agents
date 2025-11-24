@@ -270,7 +270,7 @@
     overflow: hidden;
     margin: 0 !important;
     padding: 0 !important;
-    transition: opacity 0.3s ease, max-height 0.3s ease;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
 /* Show expanded content on HOVER OR when clicked (.expanded class) */
@@ -283,7 +283,7 @@
     opacity: 1;
     max-height: 500px;
     margin-top: 8px !important;
-    transition: opacity 0.3s ease, max-height 0.3s ease;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
 /* Chevron rotation on hover OR when clicked (.expanded class) */
@@ -294,6 +294,7 @@
 #thread-info-2.expanded .chevron-icon,
 #thread-info-3.expanded .chevron-icon {
     transform: rotate(180deg);
+    transition: transform 0.5s ease;
 }
 
 /* Prime Panel Thread Card - HOVER OR CLICK-BASED EXPANSION */
@@ -304,7 +305,7 @@
     overflow: hidden;
     margin: 0 !important;
     padding: 0 !important;
-    transition: opacity 0.3s ease, max-height 0.3s ease;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
 /* Show expanded content on HOVER OR when clicked (.expanded class) */
@@ -313,13 +314,14 @@
     opacity: 1;
     max-height: 500px;
     margin-top: 8px !important;
-    transition: opacity 0.3s ease, max-height 0.3s ease;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
 /* Chevron rotation on hover OR when clicked (.expanded class) */
 #prime-thread-info:hover .chevron-icon,
 #prime-thread-info.expanded .chevron-icon {
     transform: rotate(180deg);
+    transition: transform 0.5s ease;
 }
 
 /* Thread History Panel - CLICK-BASED EXPANSION ONLY (no hover) */
@@ -330,7 +332,7 @@
     overflow: hidden;
     margin: 0 !important;
     padding: 0 !important;
-    transition: opacity 0.3s ease, max-height 0.3s ease;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
 /* Show expanded content when clicked (has .expanded class) */
@@ -338,12 +340,13 @@
     opacity: 1;
     max-height: 500px;
     margin-top: 8px !important;
-    transition: opacity 0.3s ease, max-height 0.3s ease;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
 }
 
 /* Chevron rotation when expanded */
 .ai-chat-header-info[data-location="thread-history"].expanded .chevron-icon {
     transform: rotate(180deg);
+    transition: transform 0.5s ease;
 }
 
 /* ============================================================
@@ -375,7 +378,7 @@
 }
 
 .chevron-icon {
-    transition: transform 0.3s ease;
+    transition: transform 0.5s ease;
     font-size: 12px;
 }
 
@@ -1367,7 +1370,7 @@
 
 /* Agent thread cards show only top 2 rows by default */
 .agent-thread-card {
-    transition: all 0.3s ease-in-out;
+    transition: all 0.5s ease-in-out;
 }
 
 /* When inside .thread-item, fill the entire container */

@@ -120,7 +120,7 @@ window.ThreadCardExpansion = {
      * @returns {HTMLElement|null} Thread card element or null
      */
     findCardElement(threadId) {
-        // Try all possible locations
+        // Try all possible locations by ID
         const locations = [
             'prime-thread-info',      // Prime panel
             'thread-info-1',          // Agent 1
@@ -135,8 +135,12 @@ window.ThreadCardExpansion = {
             }
         }
 
-        // Fallback: search by data attribute
-        return document.querySelector(`.ai-chat-header-info[data-thread-id="${threadId}"]`);
+        // Fallback: search by data attribute (works for ALL cards including agent-thread-card)
+        const card = document.querySelector(`.ai-chat-header-info[data-thread-id="${threadId}"]`);
+        if (card) return card;
+
+        // Additional fallback: search by agent-thread-card class
+        return document.querySelector(`.agent-thread-card[data-thread-id="${threadId}"]`);
     },
 
     /**

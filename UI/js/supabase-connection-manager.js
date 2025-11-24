@@ -57,14 +57,14 @@ window.SupabaseConnectionManager = {
         if (window.StatusIndicator) {
             window.StatusIndicator.addOperation('supabase_init', 'Connecting to Supabase...');
         }
-        
+
         await this.getClient();
 
         // Start health monitoring
         this._startHealthMonitoring();
 
         console.log('✅ [Supabase] Connection manager initialized');
-        
+
         if (window.StatusIndicator) {
             window.StatusIndicator.removeOperation('supabase_init', 'Supabase connected');
         }
@@ -386,25 +386,25 @@ window.SupabaseConnectionManager = {
         try {
             // Check realtime connection status directly
             const realtimeStatus = this.client.realtime?.connection?.connectionState;
-            
+
             // Valid states: 'open', 'connecting', 'closed'
             if (realtimeStatus === 'open') {
                 console.log('✅ [Supabase] Health check passed (realtime: open)');
                 return;
             }
-            
+
             // If realtime is connecting, wait a bit before failing
             if (realtimeStatus === 'connecting') {
                 console.log('⏳ [Supabase] Health check: realtime connecting, waiting...');
-                
+
                 // Wait up to 5s for connection to establish
                 await new Promise((resolve) => {
                     const maxWait = 5000;
                     const startTime = Date.now();
-                    
+
                     const checkInterval = setInterval(() => {
                         const currentStatus = this.client.realtime?.connection?.connectionState;
-                        
+
                         if (currentStatus === 'open') {
                             clearInterval(checkInterval);
                             console.log('✅ [Supabase] Health check passed (realtime: open after wait)');
@@ -417,10 +417,10 @@ window.SupabaseConnectionManager = {
                         }
                     }, 500);
                 });
-                
+
                 return;
             }
-            
+
             // Connection is closed or undefined - reconnect needed
             console.warn(`⚠️ [Supabase] Health check failed (realtime: ${realtimeStatus || 'undefined'})`);
             this._handleHealthCheckFailure();

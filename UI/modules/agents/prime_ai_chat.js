@@ -538,6 +538,11 @@ async function sendChatMessage() {
 
     const sessionId = currentThreadId;
 
+    // Show processing indicator
+    if (typeof window.showPrimeProcessingIndicator === 'function') {
+        window.showPrimeProcessingIndicator();
+    }
+
     // Update status indicator
     if (typeof AgentStatusIndicator !== 'undefined') {
         AgentStatusIndicator.update('thinking', null);
@@ -805,6 +810,10 @@ async function sendChatMessage() {
 
                                         if (!firstContentReceived) {
                                             removeThinkingIndicator();
+                                            // Hide processing indicator when first content arrives
+                                            if (typeof window.hidePrimeProcessingIndicator === 'function') {
+                                                window.hidePrimeProcessingIndicator();
+                                            }
                                             firstContentReceived = true;
                                             console.log('[OK] Removed bouncing dots indicator');
                                         }
@@ -1633,6 +1642,10 @@ async function sendChatMessage() {
             }
 
             removeThinkingIndicator();
+            // Hide processing indicator when streaming completes
+            if (typeof window.hidePrimeProcessingIndicator === 'function') {
+                window.hidePrimeProcessingIndicator();
+            }
             const responseTime = Date.now() - startTime;
             console.log(`✅ Streamed response received in ${responseTime}ms`);
 
@@ -1642,6 +1655,10 @@ async function sendChatMessage() {
             const responseTime = Date.now() - startTime;
 
             removeThinkingIndicator();
+            // Hide processing indicator for non-streaming response
+            if (typeof window.hidePrimeProcessingIndicator === 'function') {
+                window.hidePrimeProcessingIndicator();
+            }
 
             if (data.tools_used && Array.isArray(data.tools_used)) {
                 console.log(`🔧 AI used ${data.tools_used.length} tools:`, data.tools_used);
@@ -1695,6 +1712,11 @@ async function sendChatMessage() {
             type: error.name,
             stack: error.stack
         });
+
+        // Hide processing indicator on error
+        if (typeof window.hidePrimeProcessingIndicator === 'function') {
+            window.hidePrimeProcessingIndicator();
+        }
 
         if (window.ErrorRecoveryManager && error.message) {
             const errorMsg = error.message.toLowerCase();

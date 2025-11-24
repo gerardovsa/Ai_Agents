@@ -63,10 +63,10 @@ const UnifiedMessageRenderer = (function () {
         // CRITICAL FIX: Skip rendering user messages that ONLY contain tool_result blocks
         // Backend stores tool results as role="user" but UI shouldn't show empty bubbles
         if (role === 'user' && Array.isArray(content)) {
-            const hasOnlyToolResults = content.every(block => 
+            const hasOnlyToolResults = content.every(block =>
                 block && typeof block === 'object' && block.type === 'tool_result'
             );
-            
+
             if (hasOnlyToolResults && content.length > 0) {
                 console.log(`[UnifiedMessageRenderer] Skipping user message with ${content.length} tool_result blocks (no visible content)`);
                 return null;
@@ -131,7 +131,8 @@ const UnifiedMessageRenderer = (function () {
             }, 50);
         }
 
-        console.log(`[UnifiedMessageRenderer] Rendered ${role} message in`, messagesContainer.id);
+        // Final render confirmation with container info
+        console.log(`[UnifiedMessageRenderer] Rendered ${role} message in ${messagesContainer.id}`);
         return messageDiv;
     }
 
@@ -217,12 +218,16 @@ const UnifiedMessageRenderer = (function () {
             return;
         }
 
-        console.log(`[UnifiedMessageRenderer] Rendering ${contentStr.length} chars`);
+        // Start timing for consolidated log
+        const startTime = performance.now();
+        const charCount = contentStr.length;
+        let processorUsed = 'markdown';
+        let success = false;
 
         // TRY VISUALIZATION ENGINE FIRST (if available)
         if (!window.USE_BASIC_RENDERER && typeof TwoRuleStreamProcessor !== 'undefined') {
             try {
-                console.log('[UnifiedMessageRenderer] Using TwoRuleStreamProcessor...');
+                processorUsed = 'TwoRuleStreamProcessor';
                 const processor = new TwoRuleStreamProcessor(contentDiv);
                 processor.processChunk(contentStr);
 
@@ -230,18 +235,30 @@ const UnifiedMessageRenderer = (function () {
                 if (!contentDiv.innerHTML || contentDiv.innerHTML.trim() === '') {
                     console.warn('[UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback');
                     renderMarkdown(contentDiv, contentStr);
+                    processorUsed = 'markdown (fallback)';
+                    success = true;
                 } else {
-                    console.log('[UnifiedMessageRenderer] Visualization engine success');
+                    success = true;
                 }
-                return;
             } catch (error) {
                 console.error('[UnifiedMessageRenderer] Visualization engine error:', error);
-                // Fall through to markdown
+                renderMarkdown(contentDiv, contentStr);
+                processorUsed = 'markdown (error fallback)';
+                success = false;
             }
+        } else {
+            // FALLBACK: Markdown renderer
+            renderMarkdown(contentDiv, contentStr);
+            success = true;
         }
 
-        // FALLBACK: Markdown renderer
-        renderMarkdown(contentDiv, contentStr);
+        // CONSOLIDATED LOG - Single summary of entire rendering flow
+        const duration = (performance.now() - startTime).toFixed(2);
+        const status = success ? '✅' : '❌';
+        console.log(
+            `[UnifiedMessageRenderer] ${charCount} chars → ${processorUsed} → ${status} Success (${duration}ms)` +
+            (window.DEBUG_TWO_RULE ? ' [Debug mode ON - see detailed logs above]' : ' [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]')
+        );
     }
 
     /**
