@@ -1097,7 +1097,7 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 workflow_slug, workflow_title,
                 automation_slug, automation_title,
                 internal_doc_slug, internal_doc_title
-            FROM threads 
+            FROM sessions.threads 
             WHERE thread_slug = %s
             LIMIT 1
         """, (str(thread_slug),))

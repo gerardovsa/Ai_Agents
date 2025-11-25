@@ -109,7 +109,7 @@ class ThreadManager:
         
         max_attempts = 10
         for attempt in range(max_attempts):
-            cursor.execute("SELECT id FROM threads WHERE thread_slug = %s", (slug,))
+            cursor.execute("SELECT id FROM sessions.threads WHERE thread_slug = %s", (slug,))
             if cursor.fetchone() is None:
                 conn.close()
                 return slug
@@ -216,9 +216,9 @@ class ThreadManager:
         
         # Query thread
         if thread_id:
-            cursor.execute("SELECT * FROM threads WHERE id = %s", (thread_id,))
+            cursor.execute("SELECT * FROM sessions.threads WHERE id = %s", (thread_id,))
         else:
-            cursor.execute("SELECT * FROM threads WHERE thread_slug = %s", (thread_slug,))
+            cursor.execute("SELECT * FROM sessions.threads WHERE thread_slug = %s", (thread_slug,))
         
         row = cursor.fetchone()
         
@@ -233,12 +233,12 @@ class ThreadManager:
                 raise ThreadPermissionError(user_id, row['id'], SharePermission.VIEW.value)
         
         # Get message count
-        cursor.execute("SELECT COUNT(*) FROM messages WHERE thread_id = %s", (row['id'],))
+        cursor.execute("SELECT COUNT(*) FROM sessions.messages WHERE thread_id = %s", (row['id'],))
         message_count = cursor.fetchone()[0]
         
         # Get last message time
         sql, params = convert_sql_placeholders("""
-            SELECT created_at FROM messages 
+            SELECT created_at FROM sessions.messages 
             WHERE thread_id = %s 
             ORDER BY id DESC LIMIT 1
         """, (row['id'],))
@@ -335,7 +335,7 @@ class ThreadManager:
             
             # Execute update
             cursor.execute(f"""
-                UPDATE threads 
+                UPDATE sessions.threads 
                 SET {', '.join(updates)}
                 WHERE id = %s
             """, params)
@@ -379,14 +379,14 @@ class ThreadManager:
         try:
             if hard_delete:
                 # Permanently delete thread and messages
-                cursor.execute("DELETE FROM messages WHERE thread_id = %s", (thread_id,))
-                cursor.execute("DELETE FROM thread_shares WHERE thread_id = %s", (thread_id,))
-                cursor.execute("DELETE FROM threads WHERE id = %s", (thread_id,))
+                cursor.execute("DELETE FROM sessions.messages WHERE thread_id = %s", (thread_id,))
+                cursor.execute("DELETE FROM sessions.thread_shares WHERE thread_id = %s", (thread_id,))
+                cursor.execute("DELETE FROM sessions.threads WHERE id = %s", (thread_id,))
             else:
                 # Soft delete
                 now = datetime.utcnow().isoformat()
                 sql, params = convert_sql_placeholders("""
-                    UPDATE threads 
+                    UPDATE sessions.threads 
                     SET status = %s, deleted_at = %s, updated_at = %s
                     WHERE id = %s
                 """, (ThreadStatus.DELETED.value, now, now, thread_id))
@@ -435,7 +435,7 @@ class ThreadManager:
         try:
             now = datetime.utcnow().isoformat()
             sql, params = convert_sql_placeholders("""
-                UPDATE threads 
+                UPDATE sessions.threads 
                 SET status = %s, archived_at = NULL, deleted_at = NULL, updated_at = %s
                 WHERE id = %s
             """, (ThreadStatus.ACTIVE.value, now, thread_id))
@@ -493,7 +493,7 @@ class ThreadManager:
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
         
         # Get total count
-        cursor.execute(f"SELECT COUNT(*) FROM threads WHERE {where_sql}", query_params)
+        cursor.execute(f"SELECT COUNT(*) FROM sessions.threads WHERE {where_sql}", query_params)
         total = cursor.fetchone()[0]
         
         # Get paginated results
@@ -501,7 +501,7 @@ class ThreadManager:
         sort_order = "ASC" if params.sort_order.lower() == "asc" else "DESC"
         
         cursor.execute(f"""
-            SELECT * FROM threads 
+            SELECT * FROM sessions.threads 
             WHERE {where_sql}
             ORDER BY {params.sort_by} {sort_order}
             LIMIT %s OFFSET %s
@@ -577,7 +577,7 @@ class ThreadManager:
             conn.commit()
             
             # Fetch created share
-            cursor.execute("SELECT * FROM thread_shares WHERE id = %s", (share_id,))
+            cursor.execute("SELECT * FROM sessions.thread_shares WHERE id = %s", (share_id,))
             row = cursor.fetchone()
             conn.close()
             
@@ -620,7 +620,7 @@ class ThreadManager:
         cursor = conn.cursor()
         
         # Check if owner
-        cursor.execute("SELECT user_id, visibility FROM threads WHERE id = %s", (thread_id,))
+        cursor.execute("SELECT user_id, visibility FROM sessions.threads WHERE id = %s", (thread_id,))
         row = cursor.fetchone()
         
         if not row:
@@ -637,7 +637,7 @@ class ThreadManager:
         
         # Check explicit share
         sql, params = convert_sql_placeholders("""
-            SELECT permission FROM thread_shares 
+            SELECT permission FROM sessions.thread_shares 
             WHERE thread_id = %s AND user_id = %s AND revoked_at IS NULL
         """, (thread_id, user_id))
 

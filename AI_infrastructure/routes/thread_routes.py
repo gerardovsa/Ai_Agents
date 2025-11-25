@@ -318,7 +318,6 @@ def list_threads():
     
     Returns list of threads FROM sessions.sessions schema (Supabase) or sessions.db (SQLite)
     """
-    conn = None  # CRITICAL: Initialize outside try block for finally access
     try:
         user_id = request.args.get('user_id')
         if not user_id:
@@ -330,9 +329,9 @@ def list_threads():
         print(f"📊 [THREAD API] Parameters: user_id={user_id}, limit={limit}")
         print(f"🗄️ [THREAD API] Database: {'Supabase' if is_using_supabase() else 'SQLite'}")
         
-        # Get database connection (auto-detects SQLite vs Supabase)
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
+        # ✅ CRITICAL FIX: Use context manager to prevent connection leaks
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
         
         # Build query with proper placeholders
         query = """
@@ -416,8 +415,8 @@ def list_threads():
                 'archived': False  # Default for now, add column later if needed
             }
             threads.append(thread_data)
-        
-        # Don't close connection here - finally block will handle it
+            
+            # ✅ Connection automatically closed by context manager
         
         print(f"📤 [THREAD API] Returning {len(threads)} threads")
         for thread in threads[:5]:  # Log first 5 threads
@@ -432,10 +431,6 @@ def list_threads():
     
     except Exception as e:
         return error_response(f"Failed to list threads: {str(e)}", 500)
-    finally:
-        # CRITICAL: Always close connection, even if exception raised
-        if conn:
-            conn.close()
 
 
 @thread_bp.route('/metadata/update', methods=['POST'])
@@ -1635,7 +1630,6 @@ def get_messages():
     Returns:
         {"success": true, "messages": [...], "count": 2, "total": 37}
     """
-    conn = None  # CRITICAL: Initialize outside try block for finally access
     try:
         thread_id = request.args.get('thread_id')
         if not thread_id:
@@ -1688,22 +1682,23 @@ def get_messages():
                 ORDER BY m.created_at ASC
             """
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Get total count
-        cursor.execute(count_query, (thread_id,))
-        total_count = cursor.fetchone()['total']
-        
-        # Get messages
-        if limit:
-            cursor.execute(query, (thread_id, limit, offset))
-        else:
-            cursor.execute(query, (thread_id,))
-        
-        rows = cursor.fetchall()
-        
-        # Don't close connection here - finally block will handle it
+        # ✅ CRITICAL FIX: Use context manager to prevent connection leaks
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Get total count
+            cursor.execute(count_query, (thread_id,))
+            total_count = cursor.fetchone()['total']
+            
+            # Get messages
+            if limit:
+                cursor.execute(query, (thread_id, limit, offset))
+            else:
+                cursor.execute(query, (thread_id,))
+            
+            rows = cursor.fetchall()
+            
+            # ✅ Connection automatically closed by context manager
         
         messages = []
         for row in rows:
@@ -1755,10 +1750,6 @@ def get_messages():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to get messages: {str(e)}', 500)
-    finally:
-        # CRITICAL: Always close connection, even if exception raised
-        if conn:
-            conn.close()
 
 
 # ============================================================
