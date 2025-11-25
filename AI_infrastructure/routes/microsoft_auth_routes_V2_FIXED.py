@@ -378,6 +378,7 @@ def microsoft_login():
         state = secrets.token_urlsafe(32)
         
         # Store state in database (not Flask session - for cloud/multi-instance compatibility)
+        conn = None  # CRITICAL: Initialize outside try for finally access
         try:
             from shared.database_utils import convert_sql_placeholders, is_using_supabase
             
@@ -395,13 +396,15 @@ def microsoft_login():
             
             cursor.execute(sql, params)
             conn.commit()
-            conn.close()
         except Exception as e:
             logger.warning(f"Failed to store OAuth state in database: {e}")
             import traceback
             logger.warning(traceback.format_exc())
             # Fallback to Flask session
             session['microsoft_oauth_state'] = state
+        finally:
+            if conn:
+                conn.close()
         
         # Get redirect URI from environment variable (CRITICAL: Use HTTPS for Render)
         # request.url_root returns http:// on Render (internal), but Azure needs https://
@@ -417,6 +420,7 @@ def microsoft_login():
         # Store original redirect for after login
         return_url = request.args.get('return_url', '/')
         # Also store return_url in database
+        conn = None  # CRITICAL: Initialize outside try for finally access
         try:
             from shared.database_utils import convert_sql_placeholders, is_using_supabase
             
@@ -430,13 +434,15 @@ def microsoft_login():
             
             cursor.execute(sql, params)
             conn.commit()
-            conn.close()
         except Exception as e:
             logger.warning(f"Failed to store return_url: {e}")
             import traceback
             logger.warning(traceback.format_exc())
             # Fallback to Flask session
             session['microsoft_return_url'] = return_url
+        finally:
+            if conn:
+                conn.close()
         
         # Check if force_consent is requested (for re-authentication)
         force_consent = request.args.get('force_consent', 'false').lower() == 'true'
@@ -483,6 +489,7 @@ def microsoft_callback():
         # Check database first (cloud-compatible), then fallback to Flask session
         stored_state = None
         return_url = '/'
+        conn = None  # CRITICAL: Initialize outside try for finally access
         try:
             from shared.database_utils import convert_sql_placeholders, is_using_supabase
             
@@ -513,7 +520,6 @@ def microsoft_callback():
                 cursor.execute(delete_sql, delete_params)
             
             conn.commit()
-            conn.close()
         except Exception as e:
             logger.warning(f"Failed to retrieve OAuth state from database: {e}")
             import traceback
@@ -521,6 +527,9 @@ def microsoft_callback():
             # Fallback to Flask session
             stored_state = session.get('microsoft_oauth_state')
             return_url = session.get('microsoft_return_url', '/')
+        finally:
+            if conn:
+                conn.close()
         
         if not state or not stored_state or state != stored_state:
             logger.error(f"Invalid OAuth state (CSRF protection) - state={state}, stored={stored_state}")

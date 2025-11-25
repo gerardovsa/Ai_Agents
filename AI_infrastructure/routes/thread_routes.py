@@ -307,6 +307,7 @@ def list_threads():
     
     Returns list of threads FROM sessions.sessions schema (Supabase) or sessions.db (SQLite)
     """
+    conn = None  # CRITICAL: Initialize outside try block for finally access
     try:
         user_id = request.args.get('user_id')
         if not user_id:
@@ -405,8 +406,7 @@ def list_threads():
             }
             threads.append(thread_data)
         
-        cursor.close()
-        conn.close()
+        # Don't close connection here - finally block will handle it
         
         print(f"📤 [THREAD API] Returning {len(threads)} threads")
         for thread in threads[:5]:  # Log first 5 threads
@@ -421,6 +421,10 @@ def list_threads():
     
     except Exception as e:
         return error_response(f"Failed to list threads: {str(e)}", 500)
+    finally:
+        # CRITICAL: Always close connection, even if exception raised
+        if conn:
+            conn.close()
 
 
 @thread_bp.route('/metadata/update', methods=['POST'])
