@@ -395,7 +395,7 @@ def google_login():
                 
                 # If token is still valid (not expired), skip OAuth
                 if datetime.utcnow() < expires_at:
-                    print('✅ [GOOGLE OAUTH] User already has valid tokens - skipping OAuth')
+                    print('✅ 🔓🔓 [GOOGLE OAUTH] User already has valid tokens - skipping OAuth')
                     frontend_url = request.url_root.rstrip('/')
                     if 'onrender.com' in request.host or os.getenv('RENDER') == 'true':
                         frontend_url = frontend_url.replace('http://', 'https://')
@@ -742,7 +742,7 @@ def google_callback():
         conn.commit()
         conn.close()
         
-        print('[GOOGLE OAUTH] Tokens stored successfully in oauth_tokens table!')
+        print('✅ 🔓🔓 [GOOGLE OAUTH] Tokens stored successfully in oauth_tokens table!')
         print(f'   Table: oauth_tokens')
         print(f'   User ID: {user_id}')
         print(f'   Platform: google')
@@ -765,7 +765,7 @@ def google_callback():
         # ====================================================================
         # STEP 6: Redirect to app with JWT token
         # ====================================================================
-        print('[GOOGLE OAUTH] OAuth flow complete - redirecting to app')
+        print('✅ 🔓🔓 [GOOGLE OAUTH] OAuth flow complete - redirecting to app')
         
         # CRITICAL: Redirect to correct frontend URL based on environment
         frontend_url = request.url_root.rstrip('/')
@@ -980,7 +980,7 @@ def refresh_google_token():
         conn.commit()
         conn.close()
         
-        print(f'[GOOGLE OAUTH] Token refreshed for user {user_id}')
+        print(f'✅ 🔓🔓 [GOOGLE OAUTH] Token refreshed for user {user_id}')
         print(f'   New expires_at: {expires_at}')
         
         return jsonify({

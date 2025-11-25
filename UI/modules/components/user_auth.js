@@ -389,13 +389,13 @@ const UserAuth = {
             console.log('🔵 [AUTH] Loading user profile...');
             try {
                 await loadUserProfile();
-                console.log('✅ [AUTH] User profile loaded');
+                console.log('✅ 🔓🔓 [AUTH] User profile loaded');
                 
                 // Add authenticated visual indicator to profile button
                 const profileBtn = document.getElementById('userProfileBtn-sidebar');
                 if (profileBtn) {
                     profileBtn.classList.add('authenticated');
-                    console.log('✅ [AUTH] Profile button marked as authenticated (green border)');
+                    console.log('✅ 🔓🔓 [AUTH] Profile button marked as authenticated (green border)');
                 }
             } catch (error) {
                 console.error('❌ [AUTH] User profile ERROR:', error);
@@ -423,7 +423,7 @@ const UserAuth = {
             // ✅ FIX (Nov 24, 2025): Set initialization flag AFTER successful completion
             // This ensures the flag is only set if all initialization steps succeeded
             this.mainAppInitialized = true;
-            console.log('✅ [AUTH] Main app initialization COMPLETE - Flag set to true');
+            console.log('✅ 🔓🔓 [AUTH] Main app initialization COMPLETE - Flag set to true');
 
             setTimeout(() => {
                 this.hideLoadingOverlay();
