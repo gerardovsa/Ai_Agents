@@ -153,6 +153,8 @@ from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool m
 from routes.monitoring_routes import monitoring_bp  # NEW: Connection pool health monitoring (Supabase optimization)
 from routes.search_routes import search_bp  # NEW: Supabase full-text and semantic search (5 endpoints)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
+from routes.vector_db.vector_db_routes import vector_db_bp  # NEW: Vector database management (Pinecone integration, 9 endpoints)
+from routes.module_routes import module_bp  # NEW: Self-registering module system (8 endpoints)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -258,6 +260,28 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to initialize automation tables: {e}")
 
+# Initialize ModuleRegistry (self-registering module system)
+try:
+    from core.module_registry import get_module_registry
+    from pathlib import Path
+    import asyncio
+    
+    log_init(logger, "Initializing Module Registry...")
+    modules_dir = Path(__file__).parent.parent / 'frontend' / 'modules'
+    registry = get_module_registry()
+    
+    # Run async initialization
+    asyncio.run(registry.initialize(modules_dir))
+    log_success(logger, f"Module Registry initialized: {len(registry.modules)} modules discovered")
+    
+    # List discovered modules
+    for module_id, module in registry.modules.items():
+        log_config(logger, f"  - {module.name} ({module_id}): {len(module.required_platforms)} required platforms")
+except Exception as e:
+    log_error(logger, f"Failed to initialize Module Registry: {e}")
+    import traceback
+    log_error(logger, traceback.format_exc())
+
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp, url_prefix='/api/agent')           # Working agent routes with async support
 app.register_blueprint(thread_bp, url_prefix='/api/threads')        # 8 endpoints (conversation storage)
@@ -291,8 +315,10 @@ app.register_blueprint(render_bp)                                    # NEW: Rend
 app.register_blueprint(prompt_routes)                                # NEW: Prompt library (10 endpoints: /api/prompts/*)
 app.register_blueprint(search_bp)                                    # NEW: Supabase search system (5 endpoints: /api/search/*)
 app.register_blueprint(token_routes)                                 # NEW: Token tracking (3 endpoints: /api/tokens/*)
+app.register_blueprint(vector_db_bp)                                 # NEW: Vector database management (9 endpoints: /api/vector-db/*)
 app.register_blueprint(pool_monitor_bp)                              # NEW: Connection pool monitoring (4 endpoints: /api/pool/*)
 app.register_blueprint(monitoring_bp)                                # NEW: Connection pool health monitoring (4 endpoints: /api/pool/stats, /api/pool/health)
+app.register_blueprint(module_bp)                                    # NEW: Self-registering module system (8 endpoints: /api/modules/*)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
 
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)

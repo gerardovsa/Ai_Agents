@@ -1386,18 +1386,19 @@ const MultiAgent = {
                             // Remove processing indicator before rendering messages
                             removeProcessingIndicator(agentId);
 
-                            // Add "Load More" button if there are more messages
-                            if (pagination.hasMore) {
-                                const loadMoreBtn = document.createElement('div');
-                                loadMoreBtn.className = 'load-more-messages';
-                                loadMoreBtn.innerHTML = `
-                                    <button onclick="window.loadMoreMessages('${agentId}')">
-                                        📥 Load More Messages (${pagination.loaded}/${pagination.total})
-                                    </button>
-                                `;
-                                loadMoreBtn.style.cssText = 'text-align: center; padding: 10px; margin: 10px 0;';
-                                messagesDiv.insertBefore(loadMoreBtn, messagesDiv.firstChild);
-                            }
+                            // REMOVED: Manual "Load More" button - auto-loading on scroll is preferred
+                            // Messages will load automatically when user scrolls up
+                            // if (pagination.hasMore) {
+                            //     const loadMoreBtn = document.createElement('div');
+                            //     loadMoreBtn.className = 'load-more-messages';
+                            //     loadMoreBtn.innerHTML = `
+                            //         <button onclick="window.loadMoreMessages('${agentId}')">
+                            //             📥 Load More Messages (${pagination.loaded}/${pagination.total})
+                            //         </button>
+                            //     `;
+                            //     loadMoreBtn.style.cssText = 'text-align: center; padding: 10px; margin: 10px 0;';
+                            //     messagesDiv.insertBefore(loadMoreBtn, messagesDiv.firstChild);
+                            // }
 
                             loadedMessages.forEach((msg, index) => {
                                 // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
@@ -2207,7 +2208,7 @@ function createAgentColumn(agentId) {
     // Use unified thread-info container (same as Prime)
     // Thread info card will be populated when thread is loaded via initMultiAgent()
     // Show loading spinner ONLY if thread is assigned, otherwise show nothing (thread loads during init)
-    let threadInfoHtml = threadInAgent 
+    let threadInfoHtml = threadInAgent
         ? '<div class="agent-thread-placeholder" style="padding: 12px; color: var(--text-muted); font-size: 13px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>'
         : '<div class="agent-thread-placeholder" style="padding: 12px; color: var(--text-muted); font-size: 13px; opacity: 0;"></div>';
 
@@ -4874,7 +4875,7 @@ document.addEventListener('click', (e) => {
 
 // ==================== LOAD MORE MESSAGES FUNCTIONALITY ====================
 // Load more messages function for pagination
-window.loadMoreMessages = async function(agentId) {
+window.loadMoreMessages = async function (agentId) {
     const pagination = window.agentPagination?.[agentId];
     if (!pagination || pagination.loading || !pagination.hasMore) {
         console.log(`[LOAD MORE] Cannot load more: loading=${pagination?.loading}, hasMore=${pagination?.hasMore}`);
@@ -4907,19 +4908,19 @@ window.loadMoreMessages = async function(agentId) {
         if (messagesDiv) {
             // Clear and re-render
             messagesDiv.innerHTML = '';
-            
-            // Add load more button if needed
-            if (pagination.hasMore) {
-                const loadMoreBtn = document.createElement('div');
-                loadMoreBtn.className = 'load-more-messages';
-                loadMoreBtn.innerHTML = `
-                    <button onclick="window.loadMoreMessages('${agentId}')">
-                        📥 Load More Messages (${pagination.loaded}/${pagination.total})
-                    </button>
-                `;
-                loadMoreBtn.style.cssText = 'text-align: center; padding: 10px; margin: 10px 0;';
-                messagesDiv.appendChild(loadMoreBtn);
-            }
+
+            // REMOVED: Manual "Load More" button - auto-loading on scroll handles this
+            // if (pagination.hasMore) {
+            //     const loadMoreBtn = document.createElement('div');
+            //     loadMoreBtn.className = 'load-more-messages';
+            //     loadMoreBtn.innerHTML = `
+            //         <button onclick="window.loadMoreMessages('${agentId}')">
+            //             📥 Load More Messages (${pagination.loaded}/${pagination.total})
+            //         </button>
+            //     `;
+            //     loadMoreBtn.style.cssText = 'text-align: center; padding: 10px; margin: 10px 0;';
+            //     messagesDiv.appendChild(loadMoreBtn);
+            // }
 
             // Render all messages
             allMessages.forEach(msg => {
@@ -4955,9 +4956,7 @@ function setupScrollDetection(agentId, messagesContainer) {
             const scrollTop = messagesContainer.scrollTop;
             if (scrollTop < 100) {
                 console.log('[SCROLL] Near top - loading more messages...');
-                // DEACTIVATED: Auto-load on scroll (only loads 5 messages on startup now)
-                // May re-enable later if needed
-                // window.loadMoreMessages(agentId);
+                window.loadMoreMessages(agentId);
             }
         }, 150);
     });

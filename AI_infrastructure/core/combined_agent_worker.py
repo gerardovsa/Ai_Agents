@@ -2342,8 +2342,11 @@ def execute_streaming_request(
             registry = get_registry()
             
             # CRITICAL: Detect infinite loops (same meta-tool called 3+ times consecutively)
+            # BUT allow retries after tool errors (legitimate error recovery)
             if current_round >= 3:
                 recent_tools = []
+                recent_errors = []
+                
                 for msg in conversation_history[-6:]:  # Check last 3 rounds (6 messages: assistant + user)
                     if msg.get('role') == 'assistant':
                         content = msg.get('content', [])
@@ -2359,16 +2362,52 @@ def execute_streaming_request(
                         for block in content:
                             if isinstance(block, dict) and block.get('type') == 'tool_use':
                                 recent_tools.append(block.get('name'))
+                    
+                    elif msg.get('role') == 'user':
+                        # Check if previous tool call resulted in error
+                        content = msg.get('content', [])
+                        if isinstance(content, list):
+                            for result in content:
+                                if isinstance(result, dict) and result.get('is_error'):
+                                    recent_errors.append(True)
+                                else:
+                                    recent_errors.append(False)
                 
-                # Check if same meta-tool called 3+ times in a row
+                # Check if same meta-tool called 3+ times in a row WITH successful results
+                # (Don't block if agent is retrying after errors)
                 if len(recent_tools) >= 3:
-                    meta_tools = ['list_platform_tools', 'list_available_platforms', 'search_tools']
+                    meta_tools = ['list_platform_tools', 'list_available_platforms', 'search_tools', 'recommend_tools_for_task']
                     last_three = recent_tools[-3:]
+                    
+                    # Only block if: same tool 3 times AND at least 2 successful calls (not error recovery)
                     if all(t in meta_tools for t in last_three) and len(set(last_three)) == 1:
-                        error_msg = f"⚠️  INFINITE LOOP DETECTED: Same discovery tool '{last_three[0]}' called {len([t for t in recent_tools if t == last_three[0]])} times. After discovering tools, proceed to STEP 2 (get_tool_schema) or STEP 3 (execute_tool). DO NOT repeat discovery!"
-                        print(f"{log_prefix} {error_msg}")
-                        yield {'type': 'error', 'error': error_msg, 'session_id': session_id, 'round': current_round}
-                        return
+                        # Check if this is error recovery (recent errors in tool results)
+                        error_recovery_mode = len(recent_errors) > 0 and any(recent_errors[-3:])
+                        
+                        if not error_recovery_mode:
+                            repeated_tool = last_three[0]
+                            repeat_count = len([t for t in recent_tools if t == repeated_tool])
+                            error_msg = f"""⚠️  INFINITE LOOP DETECTED: You called '{repeated_tool}' {repeat_count} times.
+
+🛑 STOP calling discovery tools repeatedly!
+
+✅ NEXT STEPS:
+1. If you found tools → Call get_tool_schema("tool_name") to learn parameters
+2. If you have schema → Call execute_tool("tool_name", param1=..., param2=...)
+3. Move forward to execution, don't repeat discovery!
+
+Example workflow:
+- search_tools("email") → Found gmail_send_email
+- get_tool_schema("gmail_send_email") → Got parameters
+- execute_tool("gmail_send_email", to="...", subject="...", body="...")
+
+Proceed to the NEXT step now."""
+                            print(f"{log_prefix} {error_msg}")
+                            yield {'type': 'error', 'error': error_msg, 'session_id': session_id, 'round': current_round}
+                            return
+                        else:
+                            # Allow retry after error - legitimate error recovery
+                            print(f"{log_prefix} ♻️  Allowing retry of '{last_three[0]}' (error recovery mode)")
             
             tool_results = []
             for tool_use in tool_uses:
