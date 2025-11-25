@@ -71,6 +71,9 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         }
     """
     conn = None
+    previous_location = None
+    displaced_thread = None
+    
     try:
         conn = get_db_connection()
         # ✅ FIXED: Don't modify isolation_level with pooled connections
@@ -102,9 +105,6 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
         
         assignments = metadata.get('thread_assignments', {})
         
-        previous_location = None
-        displaced_thread = None
-        
         # RULE 1: Remove thread from ANY previous location (thread can only be in one place)
         for loc, tid in list(assignments.items()):
             if tid == session_id:
@@ -131,8 +131,7 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             
             logger.info(f"✅ Thread {session_id} moved to Prime in both metadata and sessions.threads (removed from {previous_location})")
             
-            # ✅ FIXED: Let finally block close connection - no manual close here
-            # This prevents connection leaks if commit() fails with exception
+            # Return early - finally block will close connection
             return {
                 'previous_location': previous_location,
                 'displaced_thread': None
