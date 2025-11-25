@@ -1,0 +1,59 @@
+<!-- =====================================================
+     TRANSCRIPTION STREAMING CONTAINER
+     Real-time streaming transcript display for AI_agents
+     Pattern: Matches V7_MustCare transcription container
+     ===================================================== -->
+
+<div id="ai-transcription-container" class="ai-transcription-container hidden">
+    <div class="ai-transcription-header">
+        <h4><i class="fas fa-microphone"></i> Live Transcription</h4>
+        
+        <div class="ai-transcription-header-actions">
+            <!-- Recording status indicator -->
+            <span id="ai-transcription-status" class="ai-transcription-status">
+                <i class="fas fa-circle"></i> Ready
+            </span>
+            
+            <!-- Copy transcript -->
+            <button id="ai-transcription-copy-btn" class="ai-transcription-action-btn" title="Copy transcript to clipboard">
+                <i class="fas fa-clipboard"></i>
+            </button>
+            
+            <!-- Insert into chat input (doesn't send) -->
+            <button id="ai-transcription-insert-btn" class="ai-transcription-action-btn" title="Insert transcript into chat">
+                <i class="fas fa-turn-down"></i>
+            </button>
+            
+            <!-- Insert AND send -->
+            <button id="ai-transcription-send-btn" class="ai-transcription-action-btn" title="Insert and send transcript">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+            
+            <!-- Auto-clear toggle -->
+            <button id="ai-transcription-autoclear-toggle" class="ai-transcription-autoclear-toggle" data-enabled="true" 
+                    title="Auto-clear after insert/send (ON)">
+                <i class="fas fa-toggle-on"></i>
+            </button>
+            
+            <!-- Clear all -->
+            <button id="ai-transcription-clear-btn" class="ai-transcription-action-btn ai-transcription-delete-btn" 
+                    title="Clear transcript">
+                <i class="fas fa-trash-can"></i>
+            </button>
+            
+            <!-- Collapse -->
+            <button id="ai-transcription-collapse-btn" class="ai-transcription-collapse-btn" title="Collapse transcription panel">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Streaming transcript display area -->
+    <div id="ai-transcription-text" class="ai-transcription-text" role="region" aria-live="polite" 
+         aria-label="Live transcription content">
+        <div class="ai-transcription-placeholder">
+            <i class="fas fa-microphone-slash"></i>
+            <p>Click the microphone button and start speaking to begin transcription</p>
+        </div>
+    </div>
+</div>
