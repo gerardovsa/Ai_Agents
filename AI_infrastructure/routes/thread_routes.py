@@ -1624,6 +1624,7 @@ def get_messages():
     Returns:
         {"success": true, "messages": [...], "count": 2, "total": 37}
     """
+    conn = None  # CRITICAL: Initialize outside try block for finally access
     try:
         thread_id = request.args.get('thread_id')
         if not thread_id:
@@ -1690,7 +1691,8 @@ def get_messages():
             cursor.execute(query, (thread_id,))
         
         rows = cursor.fetchall()
-        conn.close()
+        
+        # Don't close connection here - finally block will handle it
         
         messages = []
         for row in rows:
@@ -1742,6 +1744,10 @@ def get_messages():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to get messages: {str(e)}', 500)
+    finally:
+        # CRITICAL: Always close connection, even if exception raised
+        if conn:
+            conn.close()
 
 
 # ============================================================

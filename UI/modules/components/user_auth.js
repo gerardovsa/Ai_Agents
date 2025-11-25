@@ -10,6 +10,20 @@ const UserAuth = {
     mainAppInitialized: false, //  Prevent double main app initialization
 
     async checkExistingSession() {
+        // ✅ CRITICAL FIX (Nov 25, 2025): Wait for DOM to be fully ready before checking session
+        // This prevents 401 errors from calling verifyToken() too early
+        if (document.readyState !== 'complete') {
+            console.log('⏳ [AUTH] Waiting for DOM to be ready before session check...');
+            await new Promise(resolve => {
+                if (document.readyState === 'complete') {
+                    resolve();
+                } else {
+                    window.addEventListener('load', resolve, { once: true });
+                }
+            });
+            console.log('✅ [AUTH] DOM ready, proceeding with session check');
+        }
+
         // Check if user is already logged in
         const storedToken = localStorage.getItem('authToken');
         const storedUser = localStorage.getItem('userProfile');
