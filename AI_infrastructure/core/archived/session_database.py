@@ -287,7 +287,7 @@ class SessionDatabase:
             
             # Update last_active
             sql, params = convert_sql_placeholders("""
-                UPDATE sessions SET last_active = %s WHERE session_id = %s
+                UPDATE sessions.sessions SET last_active = %s WHERE session_id = %s
             """, (now, session_id))
 
             cursor.execute(sql, params)
@@ -432,7 +432,7 @@ class SessionDatabase:
             cursor = conn.cursor()
             
             # Get session
-            cursor.execute("SELECT * FROM sessions WHERE session_id = %s", (session_id,))
+            cursor.execute("SELECT * FROM sessions.sessions WHERE session_id = %s", (session_id,))
             session_row = cursor.fetchone()
             
             if not session_row:
@@ -443,7 +443,7 @@ class SessionDatabase:
             
             # Get messages
             sql, params = convert_sql_placeholders("""
-                SELECT * FROM messages 
+                SELECT * FROM sessions.messages 
                 WHERE session_id = %s 
                 ORDER BY timestamp ASC
             """, (session_id,))
@@ -500,7 +500,7 @@ class SessionDatabase:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            query = "SELECT * FROM sessions WHERE user_id = %s"
+            query = "SELECT * FROM sessions.sessions WHERE user_id = %s"
             params = [user_id]
             
             if status:
@@ -528,7 +528,7 @@ class SessionDatabase:
             cursor = conn.cursor()
             
             sql, params = convert_sql_placeholders("""
-                UPDATE sessions 
+                UPDATE sessions.sessions 
                 SET kanban_column = %s,
                     status = CASE WHEN ? = 'done' THEN 'completed' ELSE status END
                 WHERE session_id = %s
@@ -550,7 +550,7 @@ class SessionDatabase:
             cursor = conn.cursor()
             
             sql, params = convert_sql_placeholders("""
-                UPDATE sessions 
+                UPDATE sessions.sessions 
                 SET google_task_id = %s
                 WHERE session_id = %s
             """, (task_id, session_id))
@@ -571,11 +571,11 @@ class SessionDatabase:
             cursor = conn.cursor()
             
             # Get basic info
-            cursor.execute("SELECT * FROM sessions WHERE session_id = %s", (session_id,))
+            cursor.execute("SELECT * FROM sessions.sessions WHERE session_id = %s", (session_id,))
             session = dict(cursor.fetchone())
             
             # Get message count
-            cursor.execute("SELECT COUNT(*) as count FROM messages WHERE session_id = %s", (session_id,))
+            cursor.execute("SELECT COUNT(*) as count FROM sessions.messages WHERE session_id = %s", (session_id,))
             session['message_count'] = cursor.fetchone()['count']
             
             # Get pending next steps count

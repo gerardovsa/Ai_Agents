@@ -113,7 +113,7 @@ class MessageManager:
             # Verify thread exists and get status
             sql, params = convert_sql_placeholders("""
                 SELECT id, status, workspace_id, user_id 
-                FROM threads 
+                FROM sessions.threads 
                 WHERE id = %s
             """, (message_data.thread_id,))
 
@@ -144,7 +144,7 @@ class MessageManager:
                 # Check last 20 messages for duplicates
                 sql, params = convert_sql_placeholders("""
                     SELECT id, content, role, created_at 
-                    FROM messages 
+                    FROM sessions.messages 
                     WHERE thread_id = %s 
                     ORDER BY created_at DESC 
                     LIMIT 20
@@ -173,7 +173,7 @@ class MessageManager:
             # Check message limit
             sql, params = convert_sql_placeholders("""
                 SELECT COUNT(*) as count 
-                FROM messages 
+                FROM sessions.messages 
                 WHERE thread_id = %s
             """, (message_data.thread_id,))
 
@@ -219,7 +219,7 @@ class MessageManager:
             
             # Update thread's updated_at and last_message_at
             cursor.execute("""
-                UPDATE threads 
+                UPDATE sessions.threads 
                 SET updated_at = %s
                 WHERE id = %s
             """, (now, message_data.thread_id))
@@ -267,7 +267,7 @@ class MessageManager:
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT * FROM messages WHERE id = %s", (message_id,))
+            cursor.execute("SELECT * FROM sessions.messages WHERE id = %s", (message_id,))
         row = cursor.fetchone()
         
         if not row:
@@ -373,7 +373,7 @@ class MessageManager:
                 return self.get_message(message_id)
 
             params.append(message_id)
-            update_sql = f"UPDATE messages SET {', '.join(updates)} WHERE id = %s"
+            update_sql = f"UPDATE sessions.messages SET {', '.join(updates)} WHERE id = %s"
             cursor.execute(update_sql, tuple(params))
             conn.commit()
 
@@ -419,7 +419,7 @@ class MessageManager:
         cursor = conn.cursor()
         
         try:
-            cursor.execute("DELETE FROM messages WHERE id = %s", (message_id,))
+            cursor.execute("DELETE FROM sessions.messages WHERE id = %s", (message_id,))
             conn.commit()
             conn.close()
             
@@ -447,7 +447,7 @@ class MessageManager:
         cursor = conn.cursor()
         
         # Verify thread exists
-        cursor.execute("SELECT id FROM threads WHERE id = %s", (params.thread_id,))
+            cursor.execute("SELECT id FROM sessions.threads WHERE id = %s", (params.thread_id,))
         if not cursor.fetchone():
             conn.close()
             raise ThreadNotFoundError(thread_id=params.thread_id)
@@ -464,7 +464,7 @@ class MessageManager:
         
         # Get total count
         cursor.execute(
-            f"SELECT COUNT(*) FROM messages WHERE {where_sql}",
+            f"SELECT COUNT(*) FROM sessions.messages WHERE {where_sql}",
             query_params
         )
         total = cursor.fetchone()[0]
@@ -473,7 +473,7 @@ class MessageManager:
         offset = (params.page - 1) * params.page_size
         
         cursor.execute(f"""
-            SELECT * FROM messages 
+            SELECT * FROM sessions.messages 
             WHERE {where_sql}
             ORDER BY id ASC
             LIMIT %s OFFSET %s
@@ -522,13 +522,13 @@ class MessageManager:
         cursor = conn.cursor()
         
         # Verify thread exists
-        cursor.execute("SELECT id FROM threads WHERE id = %s", (thread_id,))
+        cursor.execute("SELECT id FROM sessions.threads WHERE id = %s", (thread_id,))
         if not cursor.fetchone():
             conn.close()
             raise ThreadNotFoundError(thread_id=thread_id)
         
         # Get messages
-        query = "SELECT * FROM messages WHERE thread_id = %s ORDER BY id ASC"
+            query = "SELECT * FROM sessions.messages WHERE thread_id = %s ORDER BY id ASC"
         params = [thread_id]
         
         if limit:
@@ -571,14 +571,14 @@ class MessageManager:
         
         if role:
             sql, params = convert_sql_placeholders("""
-                SELECT COUNT(*) FROM messages 
+                SELECT COUNT(*) FROM sessions.messages 
                 WHERE thread_id = %s AND role = %s
             """, (thread_id, role.value))
 
             cursor.execute(sql, params)
         else:
             sql, params = convert_sql_placeholders("""
-                SELECT COUNT(*) FROM messages 
+                SELECT COUNT(*) FROM sessions.messages 
                 WHERE thread_id = %s
             """, (thread_id,))
 
@@ -612,7 +612,7 @@ class MessageManager:
         search_pattern = f"%{search_term}%"
         
         sql, params = convert_sql_placeholders("""
-            SELECT * FROM messages 
+            SELECT * FROM sessions.messages 
             WHERE thread_id = %s AND content LIKE %s
             ORDER BY id DESC
             LIMIT %s
@@ -645,7 +645,7 @@ class MessageManager:
         cursor = conn.cursor()
         
         sql, params = convert_sql_placeholders("""
-            SELECT * FROM messages 
+            SELECT * FROM sessions.messages 
             WHERE thread_id = %s
             ORDER BY id DESC
             LIMIT 1

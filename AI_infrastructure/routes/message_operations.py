@@ -57,7 +57,7 @@ def fork_thread():
         cursor = conn.cursor()
         
         # Get original thread
-        thread_query = "SELECT * FROM threads WHERE id = %s"
+        thread_query = "SELECT * FROM sessions.threads WHERE id = %s"
         cursor.execute(thread_query, (thread_id,))
         thread = cursor.fetchone()
         if not thread:
@@ -67,9 +67,9 @@ def fork_thread():
         
         # Get messages up to fork point
         messages_query = """
-            SELECT * FROM messages 
+            SELECT * FROM sessions.messages 
             WHERE thread_id = %s 
-            AND created_at <= (SELECT created_at FROM messages WHERE id = %s)
+            AND created_at <= (SELECT created_at FROM sessions.messages WHERE id = %s)
             ORDER BY created_at ASC
         """
         cursor.execute(messages_query, (thread_id, message_id))
@@ -176,7 +176,7 @@ def clone_thread():
         cursor = conn.cursor()
         
         # Get original thread
-        thread_query = "SELECT * FROM threads WHERE id = %s"
+        thread_query = "SELECT * FROM sessions.threads WHERE id = %s"
         cursor.execute(thread_query, (thread_id,))
         thread = cursor.fetchone()
         if not thread:
@@ -185,7 +185,7 @@ def clone_thread():
             return error_response("Thread not found", 404)
         
         # Get all messages
-        messages_query = "SELECT * FROM messages WHERE thread_id = %s ORDER BY created_at ASC"
+        messages_query = "SELECT * FROM sessions.messages WHERE thread_id = %s ORDER BY created_at ASC"
         cursor.execute(messages_query, (thread_id,))
         messages = cursor.fetchall()
         
@@ -287,12 +287,12 @@ def delete_messages():
         
         # Delete messages
         placeholders = ','.join('%s' * len(message_ids))
-        delete_query = f"DELETE FROM messages WHERE id IN ({placeholders})"
+        delete_query = f"DELETE FROM sessions.messages WHERE id IN ({placeholders})"
         cursor.execute(delete_query, tuple(message_ids))
         
         # Update thread updated_at
         if thread_id:
-            update_thread = "UPDATE threads SET updated_at = %s WHERE id = %s"
+            update_thread = "UPDATE sessions.threads SET updated_at = %s WHERE id = %s"
             cursor.execute(update_thread, (datetime.now().isoformat(), thread_id))
         
         conn.commit()
@@ -335,7 +335,7 @@ def copy_messages():
         
         # Get messages to copy
         placeholders = ','.join('%s' * len(message_ids))
-        messages_query = f"SELECT * FROM messages WHERE id IN ({placeholders}) ORDER BY created_at ASC"
+        messages_query = f"SELECT * FROM sessions.messages WHERE id IN ({placeholders}) ORDER BY created_at ASC"
         cursor.execute(messages_query, tuple(message_ids))
         messages = cursor.fetchall()
         
@@ -369,7 +369,7 @@ def copy_messages():
             ))
         
         # Update target thread timestamp
-        update_thread = "UPDATE threads SET updated_at = %s WHERE id = %s"
+        update_thread = "UPDATE sessions.threads SET updated_at = %s WHERE id = %s"
         cursor.execute(update_thread, (datetime.now().isoformat(), target_thread_id))
         
         conn.commit()
@@ -402,7 +402,7 @@ def export_thread():
         cursor = conn.cursor()
         
         # Get thread
-        thread_query = "SELECT * FROM threads WHERE id = %s"
+        thread_query = "SELECT * FROM sessions.threads WHERE id = %s"
         cursor.execute(thread_query, (thread_id,))
         thread = cursor.fetchone()
         if not thread:
@@ -412,7 +412,7 @@ def export_thread():
         
         # Get messages
         messages_query = """
-            SELECT * FROM messages 
+            SELECT * FROM sessions.messages 
             WHERE thread_id = %s 
             ORDER BY created_at ASC
         """

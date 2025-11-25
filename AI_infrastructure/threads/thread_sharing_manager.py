@@ -64,7 +64,7 @@ class ThreadSharingManager:
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT * FROM threads WHERE thread_slug = %s
+            SELECT * FROM sessions.threads WHERE thread_slug = %s
         """, (thread_slug,))
         
         row = cursor.fetchone()
@@ -81,7 +81,7 @@ class ThreadSharingManager:
         
         # Check if user is thread owner
         cursor.execute("""
-            SELECT user_id FROM threads WHERE id = %s
+            SELECT user_id FROM sessions.threads WHERE id = %s
         """, (thread_id,))
         
         row = cursor.fetchone()
@@ -91,7 +91,7 @@ class ThreadSharingManager:
         
         # Check if user has admin access via thread_users
         cursor.execute("""
-            SELECT role FROM thread_users
+            SELECT role FROM sessions.thread_users
             WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
         """, (thread_id, user_id))
         
@@ -143,7 +143,7 @@ class ThreadSharingManager:
         try:
             # Check if user already has access
             cursor.execute("""
-                SELECT id FROM thread_users
+                SELECT id FROM sessions.thread_users
                 WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
             """, (thread_id, shared_with_user_id))
             
@@ -152,7 +152,7 @@ class ThreadSharingManager:
             if existing:
                 # Update existing access
                 cursor.execute("""
-                    UPDATE thread_users
+                    UPDATE sessions.thread_users
                     SET role = %s, access_level = 'read_write', added_by_user_id = %s,
                         added_at = CURRENT_TIMESTAMP
                     WHERE id = %s
@@ -294,7 +294,7 @@ class ThreadSharingManager:
         try:
             # Get share invitation
             cursor.execute("""
-                SELECT * FROM thread_shares
+                SELECT * FROM sessions.thread_shares
                 WHERE share_token = %s AND revoked_at IS NULL
             """, (share_token,))
             
@@ -325,14 +325,14 @@ class ThreadSharingManager:
             
             # Update share record
             cursor.execute("""
-                UPDATE thread_shares
+                UPDATE sessions.thread_shares
                 SET accessed_at = CURRENT_TIMESTAMP, shared_with_user_id = %s
                 WHERE id = %s
             """, (user_id, share['id']))
             
             # Get thread details
             cursor.execute("""
-                SELECT thread_slug, title FROM threads WHERE id = %s
+                SELECT thread_slug, title FROM sessions.threads WHERE id = %s
             """, (thread_id,))
             
             thread = cursor.fetchone()
@@ -393,7 +393,7 @@ class ThreadSharingManager:
         try:
             # Remove from thread_users
             cursor.execute("""
-                UPDATE thread_users
+                UPDATE sessions.thread_users
                 SET removed_at = CURRENT_TIMESTAMP
                 WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
             """, (thread_id, user_id_to_revoke))
@@ -451,7 +451,7 @@ class ThreadSharingManager:
         # Get all active collaborators
         cursor.execute("""
             SELECT tu.*, u.username, u.email
-            FROM thread_users tu
+            FROM sessions.thread_users tu
             LEFT JOIN users u ON tu.user_id = u.id
             WHERE tu.thread_id = %s AND tu.removed_at IS NULL
             ORDER BY tu.added_at
@@ -490,8 +490,8 @@ class ThreadSharingManager:
         cursor.execute("""
             SELECT t.*, tu.role, tu.access_level, tu.added_at,
                    owner.username as owner_username
-            FROM thread_users tu
-            JOIN threads t ON tu.thread_id = t.id
+            FROM sessions.thread_users tu
+            JOIN sessions.threads t ON tu.thread_id = t.id
             LEFT JOIN users owner ON t.user_id = owner.id
             WHERE tu.user_id = %s AND tu.removed_at IS NULL AND t.user_id != %s
             ORDER BY tu.added_at DESC
@@ -551,7 +551,7 @@ class ThreadSharingManager:
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT role, access_level FROM thread_users
+            SELECT role, access_level FROM sessions.thread_users
             WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
         """, (thread_id, user_id))
         
