@@ -13,11 +13,9 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.database_utils import get_database_connection, convert_sql_placeholders
-import sqlite3
 import json
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pathlib import Path
 
 from .constants import (
     MessageRole,
@@ -68,19 +66,10 @@ class MessageManager:
         Initialize MessageManager
         
         Args:
-            db_path: Path to sessions.db (defaults to data/sessions.db)
+            db_path: Path to sessions.db (ignored - kept for backward compatibility)
         """
-        if db_path is None:
-            root_dir = Path(__file__).parent.parent.parent
-            db_path = root_dir / 'data' / 'sessions.db'
-        
-        self.db_path = str(db_path)
-    
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection with Row factory"""
-        conn = get_database_connection('sessions')
-        conn.row_factory = sqlite3.Row
-        return conn
+        # db_path parameter ignored - using Supabase PostgreSQL via connection pool
+        pass
     
     def add_message(
         self,
@@ -106,142 +95,129 @@ class MessageManager:
             MaxMessagesReachedError: If thread at message limit
             InvalidMessageContentError: If content is invalid
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        try:
-            # Verify thread exists and get status
-            sql, params = convert_sql_placeholders("""
-                SELECT id, status, workspace_id, user_id 
-                FROM sessions.threads 
-                WHERE id = %s
-            """, (message_data.thread_id,))
-
-            cursor.execute(sql, params)
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
             
-            thread_row = cursor.fetchone()
-            
-            if not thread_row:
-                conn.close()
-                raise ThreadNotFoundError(thread_id=message_data.thread_id)
-            
-            # Check if thread is archived
-            if thread_row['status'] == 'archived':
-                conn.close()
-                raise ThreadArchivedError(message_data.thread_id)
-            
-            # Check permissions if requested
-            if check_permissions:
-                # Owner can always add messages
-                if thread_row['user_id'] != message_data.user_id:
-                    # TODO: Check workspace permissions and shares
-                    pass
-            
-            # NEW: Duplicate detection (before message limit check)
-            if check_duplicates:
-                normalized_content = self._normalize_content(message_data.content)
-                
-                # Check last 20 messages for duplicates
+            try:
+                # Verify thread exists and get status
                 sql, params = convert_sql_placeholders("""
-                    SELECT id, content, role, created_at 
-                    FROM sessions.messages 
-                    WHERE thread_id = %s 
-                    ORDER BY created_at DESC 
-                    LIMIT 20
+                    SELECT id, archived, workspace_id, user_id 
+                    FROM sessions.threads 
+                    WHERE id = %s
                 """, (message_data.thread_id,))
 
                 cursor.execute(sql, params)
+                thread_row = cursor.fetchone()
                 
-                recent_messages = cursor.fetchall()
+                if not thread_row:
+                    raise ThreadNotFoundError(thread_id=message_data.thread_id)
                 
-                for existing_msg in recent_messages:
-                    existing_normalized = self._normalize_content(existing_msg['content'])
+                # Check if thread is archived
+                if thread_row['archived'] == 1:
+                    raise ThreadArchivedError(message_data.thread_id)
+                
+                # Check permissions if requested
+                if check_permissions:
+                    # Owner can always add messages
+                    if thread_row['user_id'] != message_data.user_id:
+                        # TODO: Check workspace permissions and shares
+                        pass
+                
+                # NEW: Duplicate detection (before message limit check)
+                if check_duplicates:
+                    normalized_content = self._normalize_content(message_data.content)
                     
-                    # Check if content matches and role matches
-                    if (existing_normalized == normalized_content and 
-                        existing_msg['role'] == message_data.role.value):
-                        
-                        print(f"[DUPLICATE PREVENTED] Message already exists in thread {message_data.thread_id}. "
-                              f"Existing message ID: {existing_msg['id']}, "
-                              f"Created: {existing_msg['created_at']}")
-                        
-                        # Return existing message instead of creating duplicate
-                        existing_message = self.get_message(existing_msg['id'])
-                        conn.close()
-                        return existing_message
-            
-            # Check message limit
-            sql, params = convert_sql_placeholders("""
-                SELECT COUNT(*) as count 
-                FROM sessions.messages 
-                WHERE thread_id = %s
-            """, (message_data.thread_id,))
+                    # Check last 20 messages for duplicates
+                    sql, params = convert_sql_placeholders("""
+                        SELECT id, content, role, created_at 
+                        FROM sessions.messages 
+                        WHERE thread_id = %s 
+                        ORDER BY created_at DESC 
+                        LIMIT 20
+                    """, (message_data.thread_id,))
 
-            cursor.execute(sql, params)
-            
-            message_count = cursor.fetchone()['count']
-            
-            if message_count >= MAX_MESSAGES_PER_THREAD:
-                conn.close()
-                raise MaxMessagesReachedError(message_data.thread_id, MAX_MESSAGES_PER_THREAD)
-            
-            # Validate content
-            if not message_data.content or not message_data.content.strip():
-                conn.close()
-                raise InvalidMessageContentError("Message content cannot be empty")
-            
-            # Insert message
-            now = datetime.utcnow().isoformat()
-            
-            sql, params = convert_sql_placeholders("""
-                INSERT INTO messages (
-                    thread_id, workspace_id, user_id, role, content,
-                    prompt, include, tool_calls, tokens_used, response_time_ms,
-                    metadata, created_at
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                message_data.thread_id,
-                message_data.workspace_id,
-                message_data.user_id,
-                message_data.role.value,
-                message_data.content,
-                message_data.prompt,
-                message_data.include,
-                message_data.tool_calls,
-                message_data.tokens_used,
-                message_data.response_time_ms,
-                json.dumps(message_data.metadata) if message_data.metadata else None,
-                now
-            ))
-            
-            message_id = cursor.lastrowid
-            
-            # Update thread's updated_at and last_message_at
-            cursor.execute("""
-                UPDATE sessions.threads 
-                SET updated_at = %s
-                WHERE id = %s
-            """, (now, message_data.thread_id))
+                    cursor.execute(sql, params)
+                    recent_messages = cursor.fetchall()
+                    
+                    for existing_msg in recent_messages:
+                        existing_normalized = self._normalize_content(existing_msg['content'])
+                        
+                        # Check if content matches and role matches
+                        if (existing_normalized == normalized_content and 
+                            existing_msg['role'] == message_data.role.value):
+                            
+                            print(f"[DUPLICATE PREVENTED] Message already exists in thread {message_data.thread_id}. "
+                                  f"Existing message ID: {existing_msg['id']}, "
+                                  f"Created: {existing_msg['created_at']}")
+                            
+                            # Return existing message instead of creating duplicate
+                            return self.get_message(existing_msg['id'])
+                
+                # Check message limit
+                sql, params = convert_sql_placeholders("""
+                    SELECT COUNT(*) as count 
+                    FROM sessions.messages 
+                    WHERE thread_id = %s
+                """, (message_data.thread_id,))
 
-            
-            cursor.execute(sql, params)
-            
-            conn.commit()
-            
-            # Fetch created message
-            message = self.get_message(message_id)
-            conn.close()
-            
-            return message
-            
-        except (ThreadNotFoundError, ThreadArchivedError, MaxMessagesReachedError, InvalidMessageContentError):
-            conn.close()
-            raise
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise DatabaseError("add_message", str(e))
+                cursor.execute(sql, params)
+                message_count = cursor.fetchone()['count']
+                
+                if message_count >= MAX_MESSAGES_PER_THREAD:
+                    raise MaxMessagesReachedError(message_data.thread_id, MAX_MESSAGES_PER_THREAD)
+                
+                # Validate content
+                if not message_data.content or not message_data.content.strip():
+                    raise InvalidMessageContentError("Message content cannot be empty")
+                
+                # Insert message
+                now = datetime.utcnow().isoformat()
+                
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO sessions.messages (
+                        thread_id, workspace_id, user_id, role, content,
+                        prompt, include, tool_calls, tokens_used, response_time_ms,
+                        metadata, created_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (
+                    message_data.thread_id,
+                    message_data.workspace_id,
+                    message_data.user_id,
+                    message_data.role.value,
+                    message_data.content,
+                    message_data.prompt,
+                    message_data.include,
+                    message_data.tool_calls,
+                    message_data.tokens_used,
+                    message_data.response_time_ms,
+                    json.dumps(message_data.metadata) if message_data.metadata else None,
+                    now
+                ))
+                
+                cursor.execute(sql, params)
+                result = cursor.fetchone()
+                message_id = result['id']
+                
+                # Update thread's updated_at
+                sql, params = convert_sql_placeholders("""
+                    UPDATE sessions.threads 
+                    SET updated_at = %s
+                    WHERE id = %s
+                """, (now, message_data.thread_id))
+                cursor.execute(sql, params)
+                
+                conn.commit()
+                
+                # Fetch created message
+                return self.get_message(message_id)
+                
+            except (ThreadNotFoundError, ThreadArchivedError, MaxMessagesReachedError, InvalidMessageContentError):
+                raise
+            except Exception as e:
+                conn.rollback()
+                raise DatabaseError("add_message", str(e))
     
     def get_message(
         self,
@@ -264,59 +240,47 @@ class MessageManager:
             MessageNotFoundError: If message doesn't exist
             ThreadPermissionError: If user lacks access
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
             cursor.execute("SELECT * FROM sessions.messages WHERE id = %s", (message_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            raise MessageNotFoundError(message_id)
-        
-        # Check permissions if requested
-        if check_permissions and user_id:
-            # TODO: Check thread permissions via ThreadManager
-            pass
-        
-        conn.close()
-        
-        # Parse metadata if exists
-        metadata = None
-        if row['metadata']:
-            try:
-                metadata = json.loads(row['metadata'])
-            except:
-                metadata = {}
-        
-        # response_time_ms may not exist in older DBs; handle safely
-        response_time_ms = None
-        try:
-            if 'response_time_ms' in row.keys():
-                response_time_ms = row['response_time_ms']
-        except Exception:
-            # sqlite3.Row may not support keys() in some contexts; fallback
-            try:
-                response_time_ms = row['response_time_ms']
-            except Exception:
-                response_time_ms = None
+            row = cursor.fetchone()
+            
+            if not row:
+                raise MessageNotFoundError(message_id)
+            
+            # Check permissions if requested
+            if check_permissions and user_id:
+                # TODO: Check thread permissions via ThreadManager
+                pass
+            
+            # Parse metadata if exists
+            metadata = None
+            if row['metadata']:
+                try:
+                    metadata = json.loads(row['metadata'])
+                except:
+                    metadata = {}
+            
+            # response_time_ms may not exist in older DBs; handle safely
+            response_time_ms = row.get('response_time_ms')
 
-        return Message(
-            id=row['id'],
-            thread_id=row['thread_id'],
-            workspace_id=row['workspace_id'],
-            user_id=row['user_id'],
-            role=MessageRole(row['role']),
-            content=row['content'],
-            prompt=row['prompt'],
-            include=row['include'],
-            tool_calls=row['tool_calls'],
-            tokens_used=row['tokens_used'],
-            response_time_ms=response_time_ms,
-            metadata=metadata,
-            created_at=datetime.fromisoformat(row['created_at']),
-            updated_at=datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None
-        )
+            return Message(
+                id=row['id'],
+                thread_id=row['thread_id'],
+                workspace_id=row['workspace_id'],
+                user_id=row['user_id'],
+                role=MessageRole(row['role']),
+                content=row['content'],
+                prompt=row['prompt'],
+                include=row['include'],
+                tool_calls=row['tool_calls'],
+                tokens_used=row['tokens_used'],
+                response_time_ms=response_time_ms,
+                metadata=metadata,
+                created_at=datetime.fromisoformat(row['created_at']),
+                updated_at=datetime.fromisoformat(row['updated_at']) if row['updated_at'] else None
+            )
     
     def update_message(
         self,
@@ -347,46 +311,44 @@ class MessageManager:
             # TODO: Check if user is thread owner or admin
             raise ThreadPermissionError(user_id, message.thread_id, "edit")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
 
-        try:
-            updates = []
-            params = []
+            try:
+                updates = []
+                params = []
 
-            if update_data.content is not None:
-                updates.append("content = ?")
-                params.append(update_data.content)
+                if update_data.content is not None:
+                    updates.append("content = %s")
+                    params.append(update_data.content)
 
-            if update_data.metadata is not None:
-                updates.append("metadata = ?")
-                params.append(json.dumps(update_data.metadata))
+                if update_data.metadata is not None:
+                    updates.append("metadata = %s")
+                    params.append(json.dumps(update_data.metadata))
 
-            # Always update updated_at
-            updates.append("updated_at = ?")
-            params.append(datetime.utcnow().isoformat())
+                # Always update updated_at
+                updates.append("updated_at = %s")
+                params.append(datetime.utcnow().isoformat())
 
-            # Build and execute UPDATE statement
-            if not updates:
-                # Nothing to update
-                conn.close()
+                # Build and execute UPDATE statement
+                if not updates:
+                    # Nothing to update
+                    return self.get_message(message_id)
+
+                params.append(message_id)
+                update_sql = f"UPDATE sessions.messages SET {', '.join(updates)} WHERE id = %s"
+                
+                sql, converted_params = convert_sql_placeholders(update_sql, tuple(params))
+                cursor.execute(sql, converted_params)
+                conn.commit()
+
                 return self.get_message(message_id)
-
-            params.append(message_id)
-            update_sql = f"UPDATE sessions.messages SET {', '.join(updates)} WHERE id = %s"
-            cursor.execute(update_sql, tuple(params))
-            conn.commit()
-
-            updated = self.get_message(message_id)
-            conn.close()
-            return updated
-        except (MessageNotFoundError, ThreadPermissionError):
-            conn.close()
-            raise
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise DatabaseError("update_message", str(e))
+                
+            except (MessageNotFoundError, ThreadPermissionError):
+                raise
+            except Exception as e:
+                conn.rollback()
+                raise DatabaseError("update_message", str(e))
     
     def delete_message(
         self,
@@ -415,20 +377,22 @@ class MessageManager:
             # TODO: Check if user is thread owner or admin
             raise ThreadPermissionError(user_id, message.thread_id, "delete")
         
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        try:
-            cursor.execute("DELETE FROM sessions.messages WHERE id = %s", (message_id,))
-            conn.commit()
-            conn.close()
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
             
-            return {"success": True, "message": "Message deleted successfully"}
-            
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise DatabaseError("delete_message", str(e))
+            try:
+                sql, params = convert_sql_placeholders(
+                    "DELETE FROM sessions.messages WHERE id = %s",
+                    (message_id,)
+                )
+                cursor.execute(sql, params)
+                conn.commit()
+                
+                return {"success": True, "message": "Message deleted successfully"}
+                
+            except Exception as e:
+                conn.rollback()
+                raise DatabaseError("delete_message", str(e))
     
     def list_messages(self, params: MessageListParams) -> MessageListResponse:
         """
@@ -443,60 +407,66 @@ class MessageManager:
         Raises:
             ThreadNotFoundError: If thread doesn't exist
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Verify thread exists
-            cursor.execute("SELECT id FROM sessions.threads WHERE id = %s", (params.thread_id,))
-        if not cursor.fetchone():
-            conn.close()
-            raise ThreadNotFoundError(thread_id=params.thread_id)
-        
-        # Build WHERE clause
-        where_clauses = ["thread_id = %s"]
-        query_params = [params.thread_id]
-        
-        if params.role:
-            where_clauses.append("role = %s")
-            query_params.append(params.role.value)
-        
-        where_sql = " AND ".join(where_clauses)
-        
-        # Get total count
-        cursor.execute(
-            f"SELECT COUNT(*) FROM sessions.messages WHERE {where_sql}",
-            query_params
-        )
-        total = cursor.fetchone()[0]
-        
-        # Get paginated results (ordered by ID/created_at)
-        offset = (params.page - 1) * params.page_size
-        
-        cursor.execute(f"""
-            SELECT * FROM sessions.messages 
-            WHERE {where_sql}
-            ORDER BY id ASC
-            LIMIT %s OFFSET %s
-        """, query_params + [params.page_size, offset])
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        # Convert to Message objects
-        messages = []
-        for row in rows:
-            message = self.get_message(row['id'])
-            messages.append(message)
-        
-        has_more = (params.page * params.page_size) < total
-        
-        return MessageListResponse(
-            messages=messages,
-            total=total,
-            page=params.page,
-            page_size=params.page_size,
-            has_more=has_more
-        )
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Verify thread exists
+            sql, converted_params = convert_sql_placeholders(
+                "SELECT id FROM sessions.threads WHERE id = %s",
+                (params.thread_id,)
+            )
+            cursor.execute(sql, converted_params)
+            if not cursor.fetchone():
+                raise ThreadNotFoundError(thread_id=params.thread_id)
+            
+            # Build WHERE clause
+            where_clauses = ["thread_id = %s"]
+            query_params = [params.thread_id]
+            
+            if params.role:
+                where_clauses.append("role = %s")
+                query_params.append(params.role.value)
+            
+            where_sql = " AND ".join(where_clauses)
+            
+            # Get total count
+            count_sql = f"SELECT COUNT(*) FROM sessions.messages WHERE {where_sql}"
+            sql, converted_params = convert_sql_placeholders(count_sql, tuple(query_params))
+            cursor.execute(sql, converted_params)
+            total = cursor.fetchone()[0]
+            
+            # Get paginated results (ordered by ID/created_at)
+            offset = (params.page - 1) * params.page_size
+            
+            list_sql = f"""
+                SELECT * FROM sessions.messages 
+                WHERE {where_sql}
+                ORDER BY id ASC
+                LIMIT %s OFFSET %s
+            """
+            sql, converted_params = convert_sql_placeholders(
+                list_sql,
+                tuple(query_params + [params.page_size, offset])
+            )
+            cursor.execute(sql, converted_params)
+            
+            rows = cursor.fetchall()
+            
+            # Convert to Message objects
+            messages = []
+            for row in rows:
+                message = self.get_message(row['id'])
+                messages.append(message)
+            
+            has_more = (params.page * params.page_size) < total
+            
+            return MessageListResponse(
+                messages=messages,
+                total=total,
+                page=params.page,
+                page_size=params.page_size,
+                has_more=has_more
+            )
     
     def get_conversation_history(
         self,
@@ -518,42 +488,45 @@ class MessageManager:
         Raises:
             ThreadNotFoundError: If thread doesn't exist
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Verify thread exists
-        cursor.execute("SELECT id FROM sessions.threads WHERE id = %s", (thread_id,))
-        if not cursor.fetchone():
-            conn.close()
-            raise ThreadNotFoundError(thread_id=thread_id)
-        
-        # Get messages
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Verify thread exists
+            sql, params = convert_sql_placeholders(
+                "SELECT id FROM sessions.threads WHERE id = %s",
+                (thread_id,)
+            )
+            cursor.execute(sql, params)
+            if not cursor.fetchone():
+                raise ThreadNotFoundError(thread_id=thread_id)
+            
+            # Get messages
             query = "SELECT * FROM sessions.messages WHERE thread_id = %s ORDER BY id ASC"
-        params = [thread_id]
-        
-        if limit:
-            query += " LIMIT %s"
-            params.append(limit)
-        
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        conn.close()
-        
-        # Format messages
-        conversation = []
-        for row in rows:
-            if format_for_api:
-                # Anthropic API format (role + content only)
-                conversation.append({
-                    "role": row['role'],
-                    "content": row['content']
-                })
-            else:
-                # Full message data
-                message = self.get_message(row['id'])
-                conversation.append(message.dict())
-        
-        return conversation
+            query_params = [thread_id]
+            
+            if limit:
+                query += " LIMIT %s"
+                query_params.append(limit)
+            
+            sql, params = convert_sql_placeholders(query, tuple(query_params))
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            
+            # Format messages
+            conversation = []
+            for row in rows:
+                if format_for_api:
+                    # Anthropic API format (role + content only)
+                    conversation.append({
+                        "role": row['role'],
+                        "content": row['content']
+                    })
+                else:
+                    # Full message data
+                    message = self.get_message(row['id'])
+                    conversation.append(message.dict())
+            
+            return conversation
     
     def count_messages(self, thread_id: int, role: Optional[MessageRole] = None) -> int:
         """
@@ -566,28 +539,24 @@ class MessageManager:
         Returns:
             int: Message count
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        if role:
-            sql, params = convert_sql_placeholders("""
-                SELECT COUNT(*) FROM sessions.messages 
-                WHERE thread_id = %s AND role = %s
-            """, (thread_id, role.value))
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            if role:
+                sql, params = convert_sql_placeholders("""
+                    SELECT COUNT(*) FROM sessions.messages 
+                    WHERE thread_id = %s AND role = %s
+                """, (thread_id, role.value))
+            else:
+                sql, params = convert_sql_placeholders("""
+                    SELECT COUNT(*) FROM sessions.messages 
+                    WHERE thread_id = %s
+                """, (thread_id,))
 
             cursor.execute(sql, params)
-        else:
-            sql, params = convert_sql_placeholders("""
-                SELECT COUNT(*) FROM sessions.messages 
-                WHERE thread_id = %s
-            """, (thread_id,))
-
-            cursor.execute(sql, params)
-        
-        count = cursor.fetchone()[0]
-        conn.close()
-        
-        return count
+            count = cursor.fetchone()[0]
+            
+            return count
     
     def search_messages(
         self,
@@ -606,30 +575,27 @@ class MessageManager:
         Returns:
             List[Message]: Matching messages
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        search_pattern = f"%{search_term}%"
-        
-        sql, params = convert_sql_placeholders("""
-            SELECT * FROM sessions.messages 
-            WHERE thread_id = %s AND content LIKE %s
-            ORDER BY id DESC
-            LIMIT %s
-        """, (thread_id, search_pattern, limit))
-
-        
-        cursor.execute(sql, params)
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        messages = []
-        for row in rows:
-            message = self.get_message(row['id'])
-            messages.append(message)
-        
-        return messages
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            search_pattern = f"%{search_term}%"
+            
+            sql, params = convert_sql_placeholders("""
+                SELECT * FROM sessions.messages 
+                WHERE thread_id = %s AND content LIKE %s
+                ORDER BY id DESC
+                LIMIT %s
+            """, (thread_id, search_pattern, limit))
+            
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            
+            messages = []
+            for row in rows:
+                message = self.get_message(row['id'])
+                messages.append(message)
+            
+            return messages
     
     def get_last_message(self, thread_id: int) -> Optional[Message]:
         """
@@ -641,26 +607,23 @@ class MessageManager:
         Returns:
             Message or None: Last message if exists
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        sql, params = convert_sql_placeholders("""
-            SELECT * FROM sessions.messages 
-            WHERE thread_id = %s
-            ORDER BY id DESC
-            LIMIT 1
-        """, (thread_id,))
-
-        
-        cursor.execute(sql, params)
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if not row:
-            return None
-        
-        return self.get_message(row['id'])
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders("""
+                SELECT * FROM sessions.messages 
+                WHERE thread_id = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """, (thread_id,))
+            
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            
+            if not row:
+                return None
+            
+            return self.get_message(row['id'])
     
     def _normalize_content(self, content: Any) -> str:
         """

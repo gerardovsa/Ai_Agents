@@ -72,7 +72,7 @@ class UnifiedSessionManager:
         cursor = conn.cursor()
         
         # PostgreSQL (Supabase) - connection pool already configured
-        print("✓ [DB] Using PostgreSQL (Supabase) - sessions schema")
+        print("[OK] [DB] Using PostgreSQL (Supabase) - sessions schema")
         
         # Create tables - PostgreSQL syntax
         cursor.execute("""

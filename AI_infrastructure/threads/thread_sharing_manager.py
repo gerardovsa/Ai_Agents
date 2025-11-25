@@ -3,17 +3,15 @@ Thread Sharing Manager
 
 Handles multi-user thread access, sharing, and permissions.
 
-CRITICAL: Uses sessions.db (thread_users and thread_shares tables)
+CRITICAL: Uses Supabase PostgreSQL (sessions.thread_users and sessions.thread_shares tables)
 """
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.database_utils import get_database_connection
-import sqlite3
 import secrets
 import json
-from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 
@@ -46,17 +44,13 @@ class ThreadSharingManager:
     """
     
     def __init__(self, db_path: Optional[str] = None):
-        """Initialize with database path"""
-        if db_path is None:
-            root_dir = Path(__file__).parent.parent.parent
-            db_path = root_dir / 'data' / 'sessions.db'
-        self.db_path = str(db_path)
+        """Initialize - db_path parameter is ignored (kept for backward compatibility)"""
+        # Using Supabase PostgreSQL connection pool - db_path no longer needed
+        pass
     
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection"""
-        conn = get_database_connection('sessions')
-        conn.row_factory = sqlite3.Row
-        return conn
+    def _get_connection(self):
+        """Get database connection from Supabase PostgreSQL pool"""
+        return get_database_connection('sessions')
     
     def _get_thread_by_slug(self, thread_slug: str) -> Optional[Dict[str, Any]]:
         """Get thread by slug"""
@@ -91,14 +85,14 @@ class ThreadSharingManager:
         
         # Check if user has admin access via thread_users
         cursor.execute("""
-            SELECT role FROM sessions.thread_users
-            WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
+            SELECT permission FROM sessions.thread_users
+            WHERE thread_id = %s AND user_id = %s
         """, (thread_id, user_id))
         
         row = cursor.fetchone()
         conn.close()
         
-        if row and row['role'] in ['owner', 'admin']:
+        if row and row['permission'] in ['owner', 'admin']:
             return True
         
         return False
@@ -144,7 +138,7 @@ class ThreadSharingManager:
             # Check if user already has access
             cursor.execute("""
                 SELECT id FROM sessions.thread_users
-                WHERE thread_id = %s AND user_id = %s AND removed_at IS NULL
+                WHERE thread_id = %s AND user_id = %s
             """, (thread_id, shared_with_user_id))
             
             existing = cursor.fetchone()
@@ -153,7 +147,7 @@ class ThreadSharingManager:
                 # Update existing access
                 cursor.execute("""
                     UPDATE sessions.thread_users
-                    SET role = %s, access_level = 'read_write', added_by_user_id = %s,
+                    SET permission = %s, added_by = %s,
                         added_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (role, shared_by_user_id, existing['id']))
@@ -162,27 +156,29 @@ class ThreadSharingManager:
                 user_id = existing['id']
             else:
                 # Add new access
-                access_level = 'read_write' if role in ['editor', 'admin'] else 'read'
-                
                 cursor.execute("""
-                    INSERT INTO thread_users (
-                        thread_id, user_id, role, access_level, 
-                        added_by_user_id, added_at
-                    ) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                """, (thread_id, shared_with_user_id, role, access_level, shared_by_user_id))
+                    INSERT INTO sessions.thread_users (
+                        thread_id, user_id, permission, 
+                        added_by, added_at
+                    ) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    RETURNING id
+                """, (thread_id, shared_with_user_id, role, shared_by_user_id))
                 
-                user_id = cursor.lastrowid
+                result = cursor.fetchone()
+                user_id = result['id']
                 share_action = 'added'
             
             # Record share event
             cursor.execute("""
-                INSERT INTO thread_shares (
-                    thread_id, shared_by_user_id, shared_with_user_id,
-                    share_type, action, role_granted, created_at
-                ) VALUES (%s, %s, %s, 'direct', %s, %s, CURRENT_TIMESTAMP)
-            """, (thread_id, shared_by_user_id, shared_with_user_id, share_action, role))
+                INSERT INTO sessions.thread_shares (
+                    thread_id, shared_by, shared_with,
+                    share_type, permission, shared_at
+                ) VALUES (%s, %s, %s, 'direct', %s, CURRENT_TIMESTAMP)
+                RETURNING id
+            """, (thread_id, shared_by_user_id, shared_with_user_id, role))
             
-            share_id = cursor.lastrowid
+            result = cursor.fetchone()
+            share_id = result['id']
             
             conn.commit()
             
@@ -242,16 +238,28 @@ class ThreadSharingManager:
         cursor = conn.cursor()
         
         try:
-            # Record share invitation
-            cursor.execute("""
-                INSERT INTO thread_shares (
-                    thread_id, shared_by_user_id, shared_with_email,
-                    share_type, action, role_granted, share_token,
-                    created_at, expires_at
-                ) VALUES (%s, %s, %s, 'email', 'invited', %s, %s, CURRENT_TIMESTAMP, %s)
-            """, (thread_id, shared_by_user_id, email, role, share_token, expires_at))
+            # Note: The schema doesn't support email invitations with tokens
+            # This would need schema updates to add: shared_with_email, share_token columns
+            # For now, we'll create a placeholder share link using notes field
+            share_link = f"/accept-thread-share/{share_token}"
+            notes_data = {
+                'invited_email': email,
+                'share_token': share_token,
+                'invited_by': shared_by_user_id
+            }
             
-            share_id = cursor.lastrowid
+            # Create a temporary share record (requires user_id, so using -1 as placeholder)
+            cursor.execute("""
+                INSERT INTO sessions.thread_shares (
+                    thread_id, shared_by, shared_with,
+                    share_type, permission, share_link, notes,
+                    shared_at, expires_at
+                ) VALUES (%s, %s, -1, 'email', %s, %s, %s, CURRENT_TIMESTAMP, %s)
+                RETURNING id
+            """, (thread_id, shared_by_user_id, role, share_link, json.dumps(notes_data), expires_at))
+            
+            result = cursor.fetchone()
+            share_id = result['id']
             
             conn.commit()
             
@@ -264,7 +272,8 @@ class ThreadSharingManager:
                 'role': role,
                 'share_token': share_token,
                 'expires_at': expires_at,
-                'share_link': f"/accept-thread-share/{share_token}"
+                'share_link': share_link,
+                'note': 'Email invitations require schema updates for full support'
             }
         
         except Exception as e:
@@ -292,10 +301,11 @@ class ThreadSharingManager:
         cursor = conn.cursor()
         
         try:
-            # Get share invitation
+            # Get share invitation from notes field (where token is stored)
             cursor.execute("""
                 SELECT * FROM sessions.thread_shares
-                WHERE share_token = %s AND revoked_at IS NULL
+                WHERE notes::jsonb->>'share_token' = %s 
+                AND revoked = 0
             """, (share_token,))
             
             share = cursor.fetchone()
@@ -305,34 +315,37 @@ class ThreadSharingManager:
             
             # Check expiration
             if share['expires_at']:
-                expires_at = datetime.fromisoformat(share['expires_at'])
+                expires_at = share['expires_at']
                 if datetime.now() > expires_at:
                     raise ShareNotFoundError("Invitation has expired")
             
             thread_id = share['thread_id']
-            role = share['role_granted']
-            access_level = 'read_write' if role in ['editor', 'admin'] else 'read'
+            role = share['permission']
             
             # Add user to thread_users
             cursor.execute("""
-                INSERT INTO thread_users (
-                    thread_id, user_id, role, access_level,
-                    added_by_user_id, added_at
-                ) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-            """, (thread_id, user_id, role, access_level, share['shared_by_user_id']))
+                INSERT INTO sessions.thread_users (
+                    thread_id, user_id, permission,
+                    added_by, added_at
+                ) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                RETURNING id
+            """, (thread_id, user_id, role, share['shared_by']))
             
-            thread_user_id = cursor.lastrowid
+            result = cursor.fetchone()
+            thread_user_id = result['id']
             
             # Update share record
             cursor.execute("""
                 UPDATE sessions.thread_shares
-                SET accessed_at = CURRENT_TIMESTAMP, shared_with_user_id = %s
+                SET last_accessed = CURRENT_TIMESTAMP, 
+                    shared_with = %s,
+                    access_count = access_count + 1
                 WHERE id = %s
             """, (user_id, share['id']))
             
             # Get thread details
             cursor.execute("""
-                SELECT thread_slug, title FROM sessions.threads WHERE id = %s
+                SELECT thread_slug, name FROM sessions.threads WHERE id = %s
             """, (thread_id,))
             
             thread = cursor.fetchone()
@@ -344,9 +357,8 @@ class ThreadSharingManager:
                 'thread_user_id': thread_user_id,
                 'thread_id': thread_id,
                 'thread_slug': thread['thread_slug'],
-                'thread_title': thread['title'],
-                'role': role,
-                'access_level': access_level
+                'thread_title': thread['name'],
+                'role': role
             }
         
         except Exception as e:
@@ -403,7 +415,7 @@ class ThreadSharingManager:
             
             # Record revocation
             cursor.execute("""
-                INSERT INTO thread_shares (
+                INSERT INTO sessions.thread_shares (
                     thread_id, shared_by_user_id, shared_with_user_id,
                     share_type, action, revoked_by_user_id, revoke_reason,
                     created_at, revoked_at
@@ -452,7 +464,7 @@ class ThreadSharingManager:
         cursor.execute("""
             SELECT tu.*, u.username, u.email
             FROM sessions.thread_users tu
-            LEFT JOIN users u ON tu.user_id = u.id
+            LEFT JOIN sessions.users u ON tu.user_id = u.id
             WHERE tu.thread_id = %s AND tu.removed_at IS NULL
             ORDER BY tu.added_at
         """, (thread_id,))
@@ -492,7 +504,7 @@ class ThreadSharingManager:
                    owner.username as owner_username
             FROM sessions.thread_users tu
             JOIN sessions.threads t ON tu.thread_id = t.id
-            LEFT JOIN users owner ON t.user_id = owner.id
+            LEFT JOIN sessions.users owner ON t.user_id = owner.id
             WHERE tu.user_id = %s AND tu.removed_at IS NULL AND t.user_id != %s
             ORDER BY tu.added_at DESC
         """, (user_id, user_id))

@@ -258,8 +258,8 @@ class ThreadManager:
         try:
             cursor.execute('''
                 SELECT t.*, w.slug as workspace_slug, 
-                       (SELECT COUNT(*) FROM messages WHERE thread_id = t.id) as message_count
-                FROM threads t
+                       (SELECT COUNT(*) FROM sessions.messages WHERE thread_id = t.id) as message_count
+                FROM sessions.threads t
                 JOIN workspaces w ON t.workspace_id = w.id
                 WHERE w.slug = %s AND t.thread_slug = %s
             ''', (workspace_slug, thread_slug))
@@ -334,10 +334,10 @@ class ThreadManager:
                 return False
             
             # Delete all messages first (foreign key constraint)
-            cursor.execute('DELETE FROM messages WHERE thread_id = %s', (thread['id'],))
+            cursor.execute('DELETE FROM sessions.messages WHERE thread_id = %s', (thread['id'],))
             
             # Delete thread
-            cursor.execute('DELETE FROM threads WHERE id = %s', (thread['id'],))
+            cursor.execute('DELETE FROM sessions.threads WHERE id = %s', (thread['id'],))
             
             conn.commit()
             return True
@@ -385,7 +385,7 @@ class ThreadManager:
         try:
             # Look up thread from sessions.db (thread already has workspace_id)
             cursor.execute("""
-                SELECT id, thread_slug, name, workspace_id FROM threads
+                SELECT id, thread_slug, name, workspace_id FROM sessions.threads
                 WHERE thread_slug = %s
             """, (thread_slug,))
             
@@ -417,7 +417,7 @@ class ThreadManager:
                 
                 # Fetch the newly created thread
                 cursor.execute("""
-                    SELECT id, thread_slug, name, workspace_id FROM threads
+                    SELECT id, thread_slug, name, workspace_id FROM sessions.threads
                     WHERE thread_slug = %s
                 """, (thread_slug,))
                 
@@ -512,7 +512,7 @@ class ThreadManager:
                 return []
             
             query = '''
-                SELECT * FROM messages 
+                SELECT * FROM sessions.messages 
                 WHERE thread_id = %s
             '''
             
@@ -644,7 +644,7 @@ class ThreadManager:
                     AVG(response_time_ms) as avg_response_time,
                     SUM(CASE WHEN feedback_score = 1 THEN 1 ELSE 0 END) as thumbs_up,
                     SUM(CASE WHEN feedback_score = 0 THEN 1 ELSE 0 END) as thumbs_down
-                FROM messages
+                FROM sessions.messages
                 WHERE thread_id = %s
             ''', (thread['id'],))
             

@@ -45,7 +45,7 @@ def get_user_id_by_email(email: str) -> Optional[int]:
     
     try:
         # First check: Is this the primary email?
-        sql, params = convert_sql_placeholders('SELECT id FROM users WHERE email = %s', (email,))
+        sql, params = convert_sql_placeholders('SELECT id FROM ai_infrastructure.users WHERE email = %s', (email,))
         cursor.execute(sql, params)
         result = cursor.fetchone()
         

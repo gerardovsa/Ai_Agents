@@ -209,12 +209,6 @@ class ModuleLoader {
         // Clear existing module buttons
         moduleButtonsContainer.innerHTML = '';
 
-        // Add separator
-        const separator = document.createElement('div');
-        separator.className = 'sidebar-separator';
-        separator.innerHTML = '<span>Modules</span>';
-        moduleButtonsContainer.appendChild(separator);
-
         // Generate button for each available module
         let availableCount = 0;
 
@@ -224,12 +218,18 @@ class ModuleLoader {
             }
 
             const button = document.createElement('button');
-            button.className = 'sidebar-icon';
+            button.className = 'sidebar-icon-btn';
             button.title = module.name;
             button.dataset.moduleId = moduleId;
-            button.style.color = module.color;
+            button.dataset.tab = moduleId;
 
-            button.innerHTML = `<i class="fas ${module.icon}"></i>`;
+            // Create icon element
+            const icon = document.createElement('i');
+            icon.className = `fas ${module.icon}`;
+            if (module.color) {
+                icon.style.color = module.color;
+            }
+            button.appendChild(icon);
 
             // Click handler to toggle module
             button.addEventListener('click', () => this.toggleModule(moduleId));
