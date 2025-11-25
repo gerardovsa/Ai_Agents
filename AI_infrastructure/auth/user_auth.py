@@ -1386,12 +1386,16 @@ class UserAuthManager:
                 scope = token_row['scope'] or token_row['granted_scopes'] or ''
                 metadata = json.loads(token_row['metadata']) if token_row['metadata'] else {}
                 
-                # Get OAuth config from .env.master
-                client_id = _config.get('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_CLIENT_ID')
-                client_secret = _config.get('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_CLIENT_SECRET')
+                # Get OAuth config from environment variables (Render or .env.master)
+                client_id = (os.getenv('GOOGLE_OAUTH_CLIENT_ID') or os.getenv('GOOGLE_CLIENT_ID') or 
+                            _config.get('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_CLIENT_ID'))
+                client_secret = (os.getenv('GOOGLE_OAUTH_CLIENT_SECRET') or os.getenv('GOOGLE_CLIENT_SECRET') or
+                                _config.get('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_CLIENT_SECRET'))
                 
                 if not client_id or not client_secret:
-                    print("❌ Google OAuth config not found in environment (.env.master)")
+                    print(f"❌ Google OAuth config not found in environment")
+                    print(f"   GOOGLE_OAUTH_CLIENT_ID: {'SET' if client_id else 'NOT SET'}")
+                    print(f"   GOOGLE_OAUTH_CLIENT_SECRET: {'SET' if client_secret else 'NOT SET'}")
                     return None
                 
                 # Parse scopes from space-separated string
@@ -1479,13 +1483,15 @@ class UserAuthManager:
                 scope = token_row['scope'] or token_row['granted_scopes'] or ''
                 metadata = json.loads(token_row['metadata']) if token_row['metadata'] else {}
                 
-                # Get OAuth config from .env.master
-                client_id = _config.get('MICROSOFT_CLIENT_ID')
-                client_secret = _config.get('MICROSOFT_CLIENT_SECRET')
-                tenant_id = _config.get('MICROSOFT_TENANT_ID', 'common')
+                # Get OAuth config from environment variables (Render or .env.master)
+                client_id = os.getenv('MICROSOFT_CLIENT_ID') or _config.get('MICROSOFT_CLIENT_ID')
+                client_secret = os.getenv('MICROSOFT_CLIENT_SECRET') or _config.get('MICROSOFT_CLIENT_SECRET')
+                tenant_id = os.getenv('MICROSOFT_TENANT_ID') or _config.get('MICROSOFT_TENANT_ID', 'common')
                 
                 if not client_id or not client_secret:
-                    print("❌ Microsoft OAuth config not found in environment (.env.master)")
+                    print(f"❌ Microsoft OAuth config not found in environment")
+                    print(f"   MICROSOFT_CLIENT_ID: {'SET' if client_id else 'NOT SET'}")
+                    print(f"   MICROSOFT_CLIENT_SECRET: {'SET' if client_secret else 'NOT SET'}")
                     return None
                 
                 # Parse scopes from space-separated string
