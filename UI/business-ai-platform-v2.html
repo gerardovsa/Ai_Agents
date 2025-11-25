@@ -97,6 +97,9 @@
     <!-- Data Loader - Centralized data loading with caching and batching -->
     <script src="js/data-loader.js"></script>
 
+    <!-- ✨ VOICE TRANSCRIPTION MODULES -->
+    <link rel="stylesheet" href="modules/transcription/transcription-streaming-container.css">
+
     <!-- Synergy Real-Time WebSocket Manager -->
     <script src="js/synergy-realtime.js"></script>
 
@@ -250,8 +253,8 @@
     <script src="modules/components/automations.js"></script>
 
     <!-- ==================== MODULE SYSTEM (Added Nov 22, 2025) ==================== -->
-    <script src="js/module-manager.js?v=20251124f"></script>
-    <script src="js/module-loader.js?v=20251124f"></script>
+    <script src="js/module-manager.js?v=20251124h"></script>
+    <script src="js/module-loader.js?v=20251124h"></script>
 
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
     <!-- ThreadManager Core - Load FIRST (creates base object) -->
@@ -14833,6 +14836,10 @@
                                     title="Give feedback to AI" onclick="toggleFeedbackContainer()">
                                     <i class="fas fa-comment-dots"></i>
                                 </button>
+                                <button class="ai-chat-mic-btn" id="ai-chat-mic-btn" title="Start voice transcription"
+                                    onclick="toggleTranscriptionRecording()">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
                                 <button class="ai-chat-attach-btn" id="ai-chat-attach-btn" title="Attach files">
                                     <i class="fas fa-paperclip"></i>
                                     <input type="file" id="ai-chat-file-input" multiple
@@ -16355,16 +16362,40 @@
          * Show processing indicator in AI Prime chat
          */
         function showPrimeProcessingIndicator() {
-            const indicator = document.getElementById('prime-processing-indicator');
             console.log('🔄 [Prime] showPrimeProcessingIndicator called');
-            console.log('🔍 [Prime] Indicator element:', indicator);
-            if (indicator) {
+
+            // Get or create indicator
+            let indicator = document.getElementById('prime-processing-indicator');
+
+            if (!indicator) {
+                console.log('🔨 [Prime] Creating processing indicator element...');
+                const messagesContainer = document.getElementById('ai-chat-messages');
+
+                if (!messagesContainer) {
+                    console.error('❌ [Prime] Messages container not found!');
+                    return;
+                }
+
+                // Create the indicator
+                indicator = document.createElement('div');
+                indicator.id = 'prime-processing-indicator';
+                indicator.className = 'processing-indicator active';
+                indicator.innerHTML = `
+                    <div class="processing-dots">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <span class="processing-text">Processing...</span>
+                `;
+
+                // Append to messages container
+                messagesContainer.appendChild(indicator);
+                console.log('✅ [Prime] Processing indicator created and added to DOM');
+            } else {
                 indicator.classList.add('active');
                 indicator.style.display = 'flex';
                 console.log('✅ [Prime] Processing indicator shown - classList:', indicator.classList.toString());
-                console.log('✅ [Prime] Indicator display style:', window.getComputedStyle(indicator).display);
-            } else {
-                console.error('❌ [Prime] Processing indicator element not found!');
             }
         }
 
@@ -16461,14 +16492,20 @@
         // ==================== API CONFIGURATION ====================
         // AUTO-DETECT ENVIRONMENT: Production (Render) vs Local Development
         // Uses window.location.hostname to automatically determine the backend URL
+        
+        // Check URL parameters for override
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceRender = urlParams.get('api') === 'render';  // ?api=render forces Render backend
+        
         const isFileProtocol = window.location.protocol === 'file:';
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
         const FORCE_LOCAL = false;  // Set to true to force localhost even on production domain
 
         // Auto-detect backend URL based on current hostname
-        // If opened via file:// protocol, always use localhost
-        const API_BASE_URL = (FORCE_LOCAL || isLocalhost || isFileProtocol) ? 'http://localhost:5001' :
-            window.location.origin;  // Use same domain as frontend (Render URL)
+        // If opened via file:// protocol, always use localhost (unless ?api=render)
+        const API_BASE_URL = (forceRender) ? 'https://ai-agents-backend-singapore.onrender.com' :
+            ((FORCE_LOCAL || isLocalhost || isFileProtocol) ? 'http://localhost:5001' :
+            window.location.origin);  // Use same domain as frontend (auto-detect Render URL)
 
         const VSA_API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 'http://localhost:5300' :
             'https://vsa-agent-service.onrender.com';  // VSA Agent separate service
@@ -16477,11 +16514,24 @@
         window.API_BASE_URL = API_BASE_URL;
         window.VSA_API_BASE_URL = VSA_API_BASE_URL;
 
-        console.log(' Environment:', (isLocalhost || isFileProtocol) ? 'DEVELOPMENT (localhost)' : 'PRODUCTION (Render)');
+        console.log('='.repeat(70));
+        console.log('🌍 [RENDER CONFIG] Environment Detection');
+        console.log('='.repeat(70));
+        console.log(' Current URL:', window.location.href);
         console.log(' Current protocol:', window.location.protocol);
         console.log(' Current hostname:', window.location.hostname || '(none - file:// protocol)');
+        console.log(' Current origin:', window.location.origin || '(no origin)');
+        console.log('');
+        console.log(' Detection Results:');
+        console.log('   isFileProtocol:', isFileProtocol);
+        console.log('   isLocalhost:', isLocalhost);
+        console.log('   FORCE_LOCAL:', FORCE_LOCAL);
+        console.log('   forceRender (?api=render):', forceRender);
+        console.log('');
+        console.log(' Environment:', (isLocalhost || isFileProtocol) ? '🔧 DEVELOPMENT (localhost)' : '🚀 PRODUCTION (Render)');
         console.log(' API Base URL:', API_BASE_URL);
         console.log(' VSA Agent URL:', VSA_API_BASE_URL);
+        console.log('='.repeat(70));
 
         // ? Supabase Global Configuration (loaded from Flask backend)
         window.SUPABASE_URL = null;
@@ -20025,6 +20075,172 @@
         } else {
             AutomationDebug.init();
         }
+    </script>
+
+    <!-- ==================== VOICE TRANSCRIPTION INTEGRATION ==================== -->
+    <script src="modules/transcription/stt-module.js"></script>
+    <script src="modules/transcription/transcription-streaming-container.js"></script>
+    <script>
+        // Load and initialize transcription streaming container
+        fetch('modules/transcription/transcription-streaming-container.html')
+            .then(response => response.text())
+            .then(html => {
+                // Insert container into page
+                document.body.insertAdjacentHTML('beforeend', html);
+
+                // Initialize controller
+                if (window.TranscriptionStreaming) {
+                    window.TranscriptionStreaming.init();
+                    console.log('[TRANSCRIPTION] Streaming container loaded and initialized');
+                }
+            })
+            .catch(error => {
+                console.error('[TRANSCRIPTION] Failed to load streaming container:', error);
+            });
+
+        // Initialize STT Module with callbacks
+        let sttModule = null;
+
+        function initializeSTTModule() {
+            if (sttModule) return;
+
+            sttModule = new STTModule({
+                // Real-time transcription streaming
+                onTranscriptReceived: (transcript, isFinal, confidence) => {
+                    if (window.TranscriptionStreaming) {
+                        window.TranscriptionStreaming.streamText(transcript, isFinal, confidence);
+                    }
+                },
+
+                // Recording state changes
+                onRecordingStart: () => {
+                    if (window.TranscriptionStreaming) {
+                        window.TranscriptionStreaming.show();
+                        window.TranscriptionStreaming.updateStatus('recording', 'Recording...');
+                    }
+
+                    // Update microphone button appearance
+                    const micBtn = document.getElementById('ai-chat-mic-btn');
+                    if (micBtn) {
+                        micBtn.classList.add('recording');
+                        micBtn.querySelector('i').className = 'fas fa-stop';
+                        micBtn.title = 'Stop recording';
+                    }
+                },
+
+                onRecordingStop: () => {
+                    if (window.TranscriptionStreaming) {
+                        window.TranscriptionStreaming.updateStatus('processing', 'Processing...');
+                    }
+
+                    // Update microphone button appearance
+                    const micBtn = document.getElementById('ai-chat-mic-btn');
+                    if (micBtn) {
+                        micBtn.classList.remove('recording');
+                        micBtn.querySelector('i').className = 'fas fa-microphone';
+                        micBtn.title = 'Start voice transcription';
+                    }
+                },
+
+                onChunkSent: (chunkNumber, totalChunks) => {
+                    if (window.TranscriptionStreaming) {
+                        const progress = Math.round((chunkNumber / totalChunks) * 100);
+                        window.TranscriptionStreaming.updateStatus('processing', `Processing... ${progress}%`);
+                    }
+                },
+
+                onComplete: () => {
+                    if (window.TranscriptionStreaming) {
+                        window.TranscriptionStreaming.updateStatus('ready', 'Ready');
+                    }
+                },
+
+                onError: (error) => {
+                    console.error('[TRANSCRIPTION] Error:', error);
+                    if (window.TranscriptionStreaming) {
+                        window.TranscriptionStreaming.updateStatus('ready', 'Error - Ready');
+                        window.TranscriptionStreaming.showToast('Transcription error: ' + error.message, 'error');
+                    }
+
+                    // Reset microphone button
+                    const micBtn = document.getElementById('ai-chat-mic-btn');
+                    if (micBtn) {
+                        micBtn.classList.remove('recording');
+                        micBtn.querySelector('i').className = 'fas fa-microphone';
+                        micBtn.title = 'Start voice transcription';
+                    }
+                }
+            });
+
+            console.log('[TRANSCRIPTION] STT Module initialized');
+        }
+
+        // Toggle transcription recording (called by microphone button)
+        function toggleTranscriptionRecording() {
+            // Initialize STT module on first use
+            if (!sttModule) {
+                initializeSTTModule();
+            }
+
+            // Toggle recording state
+            if (sttModule.isRecording) {
+                sttModule.stopRecording();
+            } else {
+                sttModule.startRecording();
+            }
+        }
+
+        // Add microphone button styling
+        const micBtnStyle = document.createElement('style');
+        micBtnStyle.textContent = `
+            .ai-chat-mic-btn {
+                width: 36px;
+                height: 36px;
+                background: var(--bg-tertiary, #1e293b);
+                border: 1px solid var(--border-default, #334155);
+                border-radius: 6px;
+                color: var(--text-muted, #94a3b8);
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+            }
+            
+            .ai-chat-mic-btn:hover {
+                background: var(--bg-primary, #0f172a);
+                border-color: var(--accent-primary, #3b82f6);
+                color: var(--accent-primary, #3b82f6);
+                transform: translateY(-1px);
+            }
+            
+            .ai-chat-mic-btn.recording {
+                border-color: #ef4444;
+                background: rgba(239, 68, 68, 0.1);
+                color: #ef4444;
+                animation: pulse-recording 1s infinite;
+            }
+            
+            .ai-chat-mic-btn.recording:hover {
+                background: rgba(239, 68, 68, 0.2);
+                transform: scale(1.05);
+            }
+            
+            @keyframes pulse-recording {
+                0%, 100% {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                50% {
+                    opacity: 0.8;
+                    transform: scale(1.05);
+                }
+            }
+        `;
+        document.head.appendChild(micBtnStyle);
+
+        console.log('[TRANSCRIPTION] Voice transcription system loaded');
     </script>
 
 </body>
