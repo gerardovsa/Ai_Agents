@@ -176,8 +176,7 @@ def get_available_modules():
 
 
 @module_bp.route('/needs-setup', methods=['GET'])
-@require_auth
-def get_modules_needing_setup(user_id: int):
+def get_modules_needing_setup():
     """
     Get modules that need credential configuration
     
@@ -201,6 +200,10 @@ def get_modules_needing_setup(user_id: int):
         }
     """
     try:
+        # Get user_id from query params
+        user_id = request.args.get('user_id', type=int)
+        if not user_id:
+            return jsonify({'modules': [], 'count': 0})
         registry = get_module_registry()
         needing_setup = registry.get_modules_needing_credentials(user_id)
         

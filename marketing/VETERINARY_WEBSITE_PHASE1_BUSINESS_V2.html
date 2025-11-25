@@ -834,29 +834,33 @@
         /* Foundation Platforms */
         .foundation-platforms {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             gap: var(--space-2xl);
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto var(--space-4xl);
             flex-wrap: wrap;
         }
 
-        .foundation-box {
+        .foundation-box.expandable {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: var(--radius-xl);
             padding: var(--space-3xl);
             flex: 1;
-            min-width: 280px;
+            min-width: 300px;
             text-align: center;
-            transition: all var(--transition-base);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            max-height: 280px;
         }
 
-        .foundation-box:hover {
+        .foundation-box.expandable:hover {
+            max-height: 600px;
             transform: translateY(-8px);
-            box-shadow: 0 16px 48px rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 60px rgba(255, 255, 255, 0.3);
         }
 
         .foundation-box.microsoft {
@@ -865,7 +869,7 @@
 
         .foundation-box.microsoft:hover {
             border-color: rgba(0, 120, 212, 0.8);
-            background: rgba(0, 120, 212, 0.1);
+            background: rgba(0, 120, 212, 0.15);
         }
 
         .foundation-box.google {
@@ -874,7 +878,7 @@
 
         .foundation-box.google:hover {
             border-color: rgba(66, 133, 244, 0.8);
-            background: rgba(66, 133, 244, 0.1);
+            background: rgba(66, 133, 244, 0.15);
         }
 
         .foundation-logo {
@@ -896,10 +900,71 @@
             margin-bottom: var(--space-md);
         }
 
-        .foundation-apps {
+        .foundation-apps-preview {
             font-size: var(--text-base);
             color: rgba(255, 255, 255, 0.7);
-            margin: 0;
+            margin-bottom: var(--space-md);
+        }
+
+        .foundation-apps-expanded {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-sm);
+            margin-top: var(--space-xl);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.4s ease 0.2s;
+        }
+
+        .foundation-box.expandable:hover .foundation-apps-expanded {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .foundation-box.expandable:hover .hover-hint {
+            opacity: 0;
+        }
+
+        .app-pill {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all var(--transition-fast);
+        }
+
+        .app-pill:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateX(4px);
+        }
+
+        .app-pill i {
+            color: var(--color-accent);
+            font-size: var(--text-base);
+        }
+
+        .hover-hint {
+            font-size: var(--text-sm);
+            color: var(--color-accent);
+            margin-top: var(--space-md);
+            font-weight: 600;
+            opacity: 1;
+            transition: opacity var(--transition-base);
+        }
+
+        .hover-hint i {
+            animation: pointPulse 1.5s infinite;
+        }
+
+        @keyframes pointPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
         }
 
         .foundation-divider {
@@ -907,6 +972,7 @@
             font-weight: 800;
             color: var(--color-accent);
             font-family: var(--font-display);
+            align-self: center;
         }
 
         /* Connects Section */
@@ -2920,22 +2986,45 @@
                     
                     <!-- Business Platform Foundation -->
                     <div class="foundation-platforms">
-                        <div class="foundation-box microsoft">
+                        <div class="foundation-box microsoft expandable">
                             <div class="foundation-logo"><i class="fab fa-microsoft"></i></div>
                             <h4>Microsoft 365</h4>
-                            <p class="foundation-apps">Outlook • Teams • SharePoint • OneDrive</p>
+                            <p class="foundation-apps-preview">Outlook • Teams • SharePoint • OneDrive</p>
+                            <div class="foundation-apps-expanded">
+                                <div class="app-pill"><i class="fas fa-envelope"></i> Outlook Email</div>
+                                <div class="app-pill"><i class="fas fa-users"></i> Teams Chat & Meetings</div>
+                                <div class="app-pill"><i class="fas fa-folder-open"></i> SharePoint</div>
+                                <div class="app-pill"><i class="fas fa-cloud"></i> OneDrive Storage</div>
+                                <div class="app-pill"><i class="fas fa-file-word"></i> Word Documents</div>
+                                <div class="app-pill"><i class="fas fa-file-excel"></i> Excel Spreadsheets</div>
+                                <div class="app-pill"><i class="fas fa-file-powerpoint"></i> PowerPoint</div>
+                                <div class="app-pill"><i class="fas fa-calendar"></i> Outlook Calendar</div>
+                            </div>
+                            <p class="hover-hint"><i class="fas fa-hand-pointer"></i> Hover to see all apps</p>
                         </div>
                         <div class="foundation-divider">OR</div>
-                        <div class="foundation-box google">
+                        <div class="foundation-box google expandable">
                             <div class="foundation-logo"><i class="fab fa-google"></i></div>
                             <h4>Google Workspace</h4>
-                            <p class="foundation-apps">Gmail • Chat • Drive • Analytics</p>
+                            <p class="foundation-apps-preview">Gmail • Chat • Drive • Analytics</p>
+                            <div class="foundation-apps-expanded">
+                                <div class="app-pill"><i class="fas fa-envelope"></i> Gmail</div>
+                                <div class="app-pill"><i class="fas fa-comments"></i> Google Chat</div>
+                                <div class="app-pill"><i class="fas fa-video"></i> Google Meet</div>
+                                <div class="app-pill"><i class="fas fa-folder"></i> Google Drive</div>
+                                <div class="app-pill"><i class="fas fa-file-alt"></i> Google Docs</div>
+                                <div class="app-pill"><i class="fas fa-table"></i> Google Sheets</div>
+                                <div class="app-pill"><i class="fas fa-presentation"></i> Google Slides</div>
+                                <div class="app-pill"><i class="fas fa-calendar-alt"></i> Google Calendar</div>
+                                <div class="app-pill"><i class="fas fa-chart-bar"></i> Google Analytics</div>
+                            </div>
+                            <p class="hover-hint"><i class="fas fa-hand-pointer"></i> Hover to see all apps</p>
                         </div>
                     </div>
 
                     <!-- Connects To Section -->
                     <div class="connects-section">
-                        <h4 class="connects-header"><i class="fas fa-arrows-alt-v"></i> Connects To</h4>
+                        <h4 class="connects-header"><i class="fas fa-plug"></i> Your AI Team Integrates With</h4>
                         
                         <div class="connected-systems-grid">
                             <!-- Veterinary Practice Platforms -->
@@ -2946,6 +3035,7 @@
                                     <span class="system-pill">ezyVet</span>
                                     <span class="system-pill">AVImark</span>
                                     <span class="system-pill">Impromed</span>
+                                    <span class="system-pill">Digitail</span>
                                 </div>
                             </div>
 
@@ -2960,36 +3050,104 @@
                                 </div>
                             </div>
 
-                            <!-- Communication & Client Tools -->
+                            <!-- Email Marketing -->
+                            <div class="system-group">
+                                <h5 class="system-group-title"><i class="fas fa-envelope-open-text"></i> Email Marketing</h5>
+                                <div class="system-pills">
+                                    <span class="system-pill">Mailchimp</span>
+                                    <span class="system-pill">Constant Contact</span>
+                                    <span class="system-pill">HubSpot</span>
+                                    <span class="system-pill">ActiveCampaign</span>
+                                </div>
+                            </div>
+
+                            <!-- Communication Platforms -->
                             <div class="system-group">
                                 <h5 class="system-group-title"><i class="fas fa-comments"></i> Communication</h5>
                                 <div class="system-pills">
                                     <span class="system-pill">Slack</span>
+                                    <span class="system-pill">Discord</span>
                                     <span class="system-pill">Phone Systems</span>
                                     <span class="system-pill">SMS Platforms</span>
-                                    <span class="system-pill">Email Marketing</span>
+                                    <span class="system-pill">WhatsApp Business</span>
                                 </div>
                             </div>
 
-                            <!-- Business Operations -->
+                            <!-- Accounting -->
                             <div class="system-group">
-                                <h5 class="system-group-title"><i class="fas fa-cogs"></i> Operations</h5>
+                                <h5 class="system-group-title"><i class="fas fa-calculator"></i> Accounting</h5>
                                 <div class="system-pills">
                                     <span class="system-pill">QuickBooks</span>
                                     <span class="system-pill">Xero</span>
+                                    <span class="system-pill">MYOB</span>
+                                    <span class="system-pill">FreshBooks</span>
+                                </div>
+                            </div>
+
+                            <!-- Team & Culture -->
+                            <div class="system-group">
+                                <h5 class="system-group-title"><i class="fas fa-users-cog"></i> Team & Culture</h5>
+                                <div class="system-pills">
                                     <span class="system-pill">Booking Systems</span>
                                     <span class="system-pill">Calendar Tools</span>
+                                    <span class="system-pill">Local Regulations</span>
+                                    <span class="system-pill">Compliance Docs</span>
+                                    <span class="system-pill">Research Libraries</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- What It Means Box -->
-                    <div class="foundation-explanation">
-                        <div class="explanation-icon"><i class="fas fa-lightbulb"></i></div>
-                        <div class="explanation-content">
+                    <!-- Business Information Layer -->
+                    <div class="business-info-section">
+                        <h4 class="business-info-header"><i class="fas fa-database"></i> Business Information & Knowledge</h4>
+                        
+                        <div class="info-storage-grid">
+                            <div class="info-storage-box microsoft-storage">
+                                <div class="info-storage-icon"><i class="fab fa-microsoft"></i></div>
+                                <h5>Microsoft Storage</h5>
+                                <div class="storage-items">
+                                    <span><i class="fas fa-folder"></i> SharePoint Libraries</span>
+                                    <span><i class="fas fa-cloud"></i> OneDrive Files</span>
+                                    <span><i class="fas fa-file-alt"></i> Documents & Data</span>
+                                </div>
+                            </div>
+
+                            <div class="info-storage-box google-storage">
+                                <div class="info-storage-icon"><i class="fab fa-google"></i></div>
+                                <h5>Google Storage</h5>
+                                <div class="storage-items">
+                                    <span><i class="fas fa-folder-open"></i> Google Drive</span>
+                                    <span><i class="fas fa-file"></i> Docs & Sheets</span>
+                                    <span><i class="fas fa-database"></i> Business Data</span>
+                                </div>
+                            </div>
+
+                            <div class="info-storage-box vector-storage">
+                                <div class="info-storage-icon"><i class="fas fa-brain"></i></div>
+                                <h5>Secure Vector Database</h5>
+                                <div class="storage-items">
+                                    <span><i class="fas fa-bolt"></i> Limitless Rapid Access</span>
+                                    <span><i class="fas fa-shield-alt"></i> Encrypted Knowledge Base</span>
+                                    <span><i class="fas fa-search"></i> Instant Information Retrieval</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- What It Means - Animated Reveals -->
+                    <div class="foundation-explanation-animated">
+                        <div class="explanation-header">
+                            <div class="explanation-icon-animated"><i class="fas fa-lightbulb"></i></div>
                             <h4>What This Means:</h4>
-                            <p>VetAI uses your Microsoft 365 or Google Workspace tools to <strong>create documents, build spreadsheets, send emails, post to Teams/Chat, store files, and generate reports</strong>—all while pulling data from your veterinary systems. It's a coordination layer that makes everything work together seamlessly.</p>
+                        </div>
+                        <div class="animated-text-reveals">
+                            <p class="reveal-text" data-delay="0">VetAI uses your <span class="highlight">Microsoft 365 or Google Workspace</span> as the foundation...</p>
+                            <p class="reveal-text" data-delay="1">Pulls data from your <span class="highlight">veterinary systems, labs, and communication platforms</span>...</p>
+                            <p class="reveal-text" data-delay="2">Stores everything securely in <span class="highlight">SharePoint, OneDrive, Google Drive, and encrypted vector databases</span>...</p>
+                            <p class="reveal-text" data-delay="3">Then <span class="highlight">creates documents, spreadsheets, emails, reports, and notifications</span> exactly when and where you need them...</p>
+                            <p class="reveal-text" data-delay="4">All while <span class="highlight">learning from your business knowledge</span> to provide instant, intelligent answers...</p>
+                            <p class="reveal-text final" data-delay="5">It's a <span class="highlight-final">coordination layer that makes your entire tech stack work as one unified system.</span></p>
                         </div>
                     </div>
                 </div>

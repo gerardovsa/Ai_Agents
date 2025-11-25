@@ -126,6 +126,12 @@ class ModuleLoader {
 
             // Check which modules need setup
             const needsSetupResponse = await fetch(`/api/modules/needs-setup?user_id=${this.userId}`);
+            
+            if (!needsSetupResponse.ok) {
+                console.warn(`[ModuleLoader] needs-setup endpoint returned ${needsSetupResponse.status}`);
+                return; // Skip setup check if endpoint fails
+            }
+            
             const needsSetupData = await needsSetupResponse.json();
 
             if (needsSetupData.modules && needsSetupData.count > 0) {
@@ -156,7 +162,11 @@ class ModuleLoader {
         const sidebar = document.querySelector('.sidebar-icons');
 
         if (!sidebar) {
-            console.warn('[ModuleLoader] Sidebar container not found');
+            console.warn('[ModuleLoader] Sidebar container not found - may not be visible yet');
+            console.warn('[ModuleLoader] Deferring sidebar button generation...');
+            
+            // Try again after a delay (DOM may still be loading)
+            setTimeout(() => this.generateSidebarButtons(), 1000);
             return;
         }
 
