@@ -463,7 +463,7 @@ class UserAuthManager:
             # Find user by username or email
             cursor.execute('''
                 SELECT id, username, email, password_hash, role, primary_gmail
-                FROM users
+                FROM ai_infrastructure.users
                 WHERE username = %s OR email = %s
             ''', (username, username))
             
@@ -980,7 +980,7 @@ class UserAuthManager:
             # Try oauth_tokens table first (for OAuth platforms)
             cursor.execute('''
                 SELECT 'access_token' as credential_key, access_token as credential_value
-                FROM oauth_tokens
+                FROM ai_infrastructure.oauth_tokens
                 WHERE user_id = %s AND platform = %s AND is_active = TRUE
                 ORDER BY updated_at DESC
                 LIMIT 1
@@ -1066,7 +1066,7 @@ class UserAuthManager:
             if credential_key == 'access_token':
                 cursor.execute('''
                     SELECT access_token
-                    FROM oauth_tokens
+                    FROM ai_infrastructure.oauth_tokens
                     WHERE user_id = %s AND platform = %s AND is_active = TRUE
                     ORDER BY updated_at DESC
                     LIMIT 1
@@ -1099,13 +1099,13 @@ class UserAuthManager:
             # Get platforms from oauth_tokens table (NEW schema)
             cursor.execute('''
                 SELECT DISTINCT platform
-                FROM oauth_tokens
+                FROM ai_infrastructure.oauth_tokens
                 WHERE user_id = %s AND is_active = TRUE
                 
                 UNION
                 
                 SELECT DISTINCT platform
-                FROM user_platform_credentials
+                FROM ai_infrastructure.user_platform_credentials
                 WHERE user_id = %s AND is_active = TRUE
                 
                 ORDER BY platform
@@ -1383,7 +1383,7 @@ class UserAuthManager:
                         metadata,
                         is_valid,
                         is_active
-                    FROM oauth_tokens
+                    FROM ai_infrastructure.oauth_tokens
                     WHERE user_id = %s AND platform = 'google'
                     AND is_active = TRUE
                     ORDER BY updated_at DESC
@@ -1480,7 +1480,7 @@ class UserAuthManager:
                         metadata,
                         is_valid,
                         is_active
-                    FROM oauth_tokens
+                    FROM ai_infrastructure.oauth_tokens
                     WHERE user_id = %s AND platform = 'microsoft'
                     AND is_active = TRUE
                     ORDER BY updated_at DESC
@@ -1685,7 +1685,7 @@ def require_auth(f):
                 # Query oauth_tokens table (NEW schema)
                 cursor.execute('''
                     SELECT access_token, refresh_token, expires_at, metadata, created_at
-                    FROM oauth_tokens
+                    FROM ai_infrastructure.oauth_tokens
                     WHERE user_id = %s AND platform = 'microsoft'
                     AND is_active = TRUE
                     ORDER BY updated_at DESC
@@ -1738,7 +1738,7 @@ def require_auth(f):
                 
                 cursor.execute('''
                     SELECT id, username, email, role, primary_gmail, created_at
-                    FROM users
+                    FROM ai_infrastructure.users
                     WHERE email = %s
                 ''', (email,))
                 

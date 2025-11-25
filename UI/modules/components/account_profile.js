@@ -2042,9 +2042,9 @@ window.fetch = function (...args) {
             '/api/modules/available',
             '/api/modules/needs-setup'
         ];
-        
+
         const shouldSkipAuth = skipAuthEndpoints.some(endpoint => url.includes(endpoint));
-        
+
         if (!shouldSkipAuth) {
             options.headers = options.headers || {};
 
