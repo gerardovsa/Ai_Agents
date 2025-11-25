@@ -122,11 +122,12 @@ class ModuleRegistry:
         self.modules: Dict[str, ModuleManifest] = {}  # module_id → manifest
         self.module_paths: Dict[str, str] = {}  # module_id → directory path
         self.dependency_graph: Dict[str, Set[str]] = {}  # module_id → dependencies
+        self._modules_loaded = False  # Track if async initialize() was called
         
         self._initialized = True
         logger.info("ModuleRegistry initialized (singleton)")
     
-    async def initialize(self, modules_directory: str = None):
+    def initialize(self, modules_directory: str = None):
         """
         Scan modules directory and load all module manifests
         
@@ -211,13 +212,21 @@ class ModuleRegistry:
                 continue
         
         logger.info(f"Module registry initialized: {len(self.modules)} modules loaded")
+        self._modules_loaded = True  # Mark as loaded
+    
+    def _ensure_initialized(self):
+        """Ensure modules are loaded (lazy initialization)"""
+        if not self._modules_loaded:
+            self.initialize()  # Now synchronous!
     
     def get_module(self, module_id: str) -> Optional[ModuleManifest]:
         """Get module manifest by ID"""
+        self._ensure_initialized()  # Lazy load
         return self.modules.get(module_id)
     
     def get_all_modules(self) -> List[ModuleManifest]:
         """Get all registered modules"""
+        self._ensure_initialized()  # Lazy load
         return list(self.modules.values())
     
     def check_user_credentials(self, user_id: int, module_id: str) -> Dict[str, Any]:

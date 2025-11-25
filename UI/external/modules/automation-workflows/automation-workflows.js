@@ -1868,6 +1868,12 @@ class AutomationCanvas {
 
     handleCanvasMouseDown(e) {
         if (e.target.id === 'automation-canvas' || e.target.id === 'automation-canvas-wrapper') {
+            // Clear any previous selection rect
+            if (this.selectionRect) {
+                this.selectionRect.remove();
+                this.selectionRect = null;
+            }
+            
             // Start drag selection with left click
             if (e.button === 0 && !e.ctrlKey) {
                 this.isSelecting = true;
@@ -1922,16 +1928,19 @@ class AutomationCanvas {
     handleCanvasMouseUp(e) {
         const canvas = e.currentTarget;
 
-        if (this.isSelecting) {
-            this.isSelecting = false;
-            canvas.classList.remove('selecting');
+        // Always cleanup selection state
+        this.isSelecting = false;
+        canvas.classList.remove('selecting');
 
-            // Remove selection rectangle
-            if (this.selectionRect) {
-                this.selectionRect.remove();
-                this.selectionRect = null;
-            }
+        // Remove selection rectangle if it exists
+        if (this.selectionRect) {
+            this.selectionRect.remove();
+            this.selectionRect = null;
         }
+        
+        // Ensure no lingering selection rects (DOM cleanup)
+        const lingering = document.querySelectorAll('.selection-rect');
+        lingering.forEach(rect => rect.remove());
     }
 
     updateShapeSelection(left, top, width, height) {
@@ -2534,6 +2543,8 @@ class AutomationCanvas {
                     })
                     .map(s => ({
                         ...s,
+                        x: (s.x || 0) + 200,  // Offset 200px from left
+                        y: (s.y || 0) + 200,  // Offset 200px from top
                         label: (s.label && s.label !== 'null') ? s.label : (s.text && s.text !== 'null') ? s.text : null,
                         description: (s.description && s.description !== 'null') ? s.description : null
                     }));

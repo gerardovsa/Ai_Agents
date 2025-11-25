@@ -850,7 +850,10 @@ def list_automations():
 
 @automation_bp.route('/<automation_id>', methods=['GET'])
 def get_automation(automation_id):
-    """Get full automation details including visual flow JSON"""
+    """Get full automation details including visual flow JSON
+    
+    Accepts either automation_id OR slug (for backwards compatibility)
+    """
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
         if not user_id:
@@ -860,10 +863,11 @@ def get_automation(automation_id):
         cursor = conn.cursor()
         
         # Allow access to user's own workflows AND system templates (user_id=1)
+        # Support both automation_id and slug lookup
         cursor.execute("""
             SELECT * FROM visual_automations 
-            WHERE automation_id = %s AND (user_id = %s OR user_id = 1)
-        """, (automation_id, user_id))
+            WHERE (automation_id = %s OR slug = %s) AND (user_id = %s OR user_id = 1)
+        """, (automation_id, automation_id, user_id))
         
         row = cursor.fetchone()
         conn.close()

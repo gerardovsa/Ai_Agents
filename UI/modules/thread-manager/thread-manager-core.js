@@ -198,6 +198,16 @@ const ThreadManager = {
         console.log('👤 [ThreadManager] Verifying user data...');
 
         try {
+            // ✅ FIX: Profile already loaded during authentication, no need to fetch again
+            if (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) {
+                const userId = UserAuth.user.id || UserAuth.user.user_id;
+                window.currentUserId = userId;
+                console.log('✅ [ThreadManager] Using existing profile data (user_id:', userId, ')');
+                return; // Skip duplicate profile fetch
+            }
+
+            // ⚠️ FALLBACK ONLY: If profile somehow not loaded, fetch it
+            console.warn('⚠️ [ThreadManager] Profile not found in UserAuth, fetching from backend...');
             const response = await fetch(`${this.apiBaseUrl}/api/auth/profile`, {
                 headers: { 'Authorization': `Bearer ${UserAuth.token}` }
             });
@@ -206,18 +216,11 @@ const ThreadManager = {
                 const data = await response.json();
                 if (data.success && data.profile) {
                     const backendUserId = data.profile.id || data.profile.user_id;
-                    const cachedUserId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || null;
-
-                    if (backendUserId !== cachedUserId || !cachedUserId) {
-                        UserAuth.user = data.profile;
-                        UserAuth.user.id = backendUserId;
-                        UserAuth.user.user_id = backendUserId;
-                        window.currentUserId = backendUserId;
-                        // localStorage removed - backend is source of truth
-                        console.log('✅ [ThreadManager] User data updated from backend');
-                    } else {
-                        console.log('✅ [ThreadManager] User ID verified');
-                    }
+                    UserAuth.user = data.profile;
+                    UserAuth.user.id = backendUserId;
+                    UserAuth.user.user_id = backendUserId;
+                    window.currentUserId = backendUserId;
+                    console.log('✅ [ThreadManager] User data loaded from backend');
                 }
             }
         } catch (error) {

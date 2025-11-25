@@ -264,14 +264,13 @@ except Exception as e:
 try:
     from core.module_registry import get_module_registry
     from pathlib import Path
-    import asyncio
     
     log_init(logger, "Initializing Module Registry...")
     modules_dir = Path(__file__).parent.parent / 'frontend' / 'modules'
     registry = get_module_registry()
     
-    # Run async initialization
-    asyncio.run(registry.initialize(modules_dir))
+    # Initialize registry (now synchronous)
+    registry.initialize(modules_dir)
     log_success(logger, f"Module Registry initialized: {len(registry.modules)} modules discovered")
     
     # List discovered modules
