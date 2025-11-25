@@ -129,8 +129,8 @@
     <!-- ==================== SETTINGS SIDEBAR MODULE ==================== -->
     <!-- Error recovery control system with toggles and statistics -->
     <!-- v2: Dynamic HTML loading, toast notifications, hover tooltips -->
-    <!-- CRITICAL: Load BaseModule first (required dependency) -->
-    <script src="js/module-base.js?v=20251124d"></script>
+    <!-- NOTE: Settings Sidebar temporarily disabled - needs migration to new module system -->
+    <!-- <script src="js/module-base.js?v=20251124d"></script> -->
     <link rel="stylesheet" href="external/modules/settings-sidebar/settings-sidebar.css?v=20251124d">
     <script src="external/modules/settings-sidebar/settings-sidebar.js?v=20251124d"></script>
 
@@ -252,9 +252,16 @@
     <script src="modules/components/account_profile.js?v=20251124j"></script>
     <script src="modules/components/automations.js"></script>
 
-    <!-- ==================== MODULE SYSTEM (Added Nov 22, 2025) ==================== -->
-    <script src="js/module-manager.js?v=20251124h"></script>
-    <script src="js/module-loader.js?v=20251124h"></script>
+    <!-- ==================== NEW MODULE SYSTEM (Self-Registering - Nov 25, 2025) ==================== -->
+    <!-- Automatic module discovery from frontend/modules/ directory -->
+    <script src="modules/module_loader.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userId = parseInt(localStorage.getItem('user_id')) || 1;
+            await window.moduleLoader.initialize(userId);
+            console.log('Module system initialized');
+        });
+    </script>
 
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
     <!-- ThreadManager Core - Load FIRST (creates base object) -->

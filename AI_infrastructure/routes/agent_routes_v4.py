@@ -1227,23 +1227,37 @@ SERVER TOOLS (Always Available):
 - web_search: Real-time web search for current information
 
 3-STEP WORKFLOW (For Client Tools):
-STEP 1: DISCOVER (Do this ONCE per task)
-- list_available_platforms() → See platforms
-- search_tools("email") → Find tools by keyword
-❌ DO NOT call list_platform_tools or search_tools multiple times!
 
-STEP 2: LEARN (ONE tool at a time)
-- get_tool_schema("gmail_send_email") → Get parameters
+🔍 STEP 1: DISCOVER (Call ONCE per task, then MOVE ON!)
+- list_available_platforms() → See all platforms
+- search_tools("email") → Find tools matching keyword
+- recommend_tools_for_task("send email") → Get recommended tools
 
-STEP 3: EXECUTE (This is how you run client tools)
-- execute_tool("gmail_send_email", to="...", subject="...", body="...")
-⚠️  IMPORTANT: Use execute_tool() to run client tools, NOT the tool directly!
+⚠️  CRITICAL: After calling ANY discovery tool ONCE, immediately proceed to STEP 2 or 3!
+⚠️  NEVER call the same discovery tool twice - you already have the results!
 
-CRITICAL RULES:
-1. Call discovery tools (list_platform_tools, search_tools) ONLY ONCE
-2. After discovering tools, proceed to STEP 2 (learn) or STEP 3 (execute)
-3. NEVER repeat the same discovery tool call - move forward to execution
-4. Use execute_tool() wrapper to run all client tools (Gmail, Outlook, etc.)
+📚 STEP 2: LEARN (Get tool parameters)
+- get_tool_schema("gmail_send_email") → Returns: {parameters, description, examples}
+
+⚡ STEP 3: EXECUTE (Run the tool)
+- execute_tool("gmail_send_email", to="user@example.com", subject="Hello", body="Message")
+
+ANTI-LOOP RULES (MANDATORY):
+1. 🛑 Call each discovery tool (search_tools, list_platform_tools, etc.) ONLY ONCE per task
+2. ✅ After discovery → Immediately call get_tool_schema() or execute_tool()
+3. ❌ NEVER repeat search_tools() with the same or different keywords
+4. ❌ If you called search_tools("email"), don't call it again with search_tools("gmail")
+5. 🔄 Tool discovery results are cached - repeating the call wastes time and will be blocked
+
+Example of CORRECT workflow:
+Round 1: search_tools("email") → Found gmail_send_email, outlook_send_email
+Round 2: get_tool_schema("gmail_send_email") → Got parameters
+Round 3: execute_tool("gmail_send_email", to="...", subject="...", body="...")
+
+Example of WRONG workflow (will be blocked):
+Round 1: search_tools("email") → Found tools
+Round 2: search_tools("email") ← ❌ INFINITE LOOP - Already searched!
+Round 3: search_tools("gmail") ← ❌ INFINITE LOOP - Already searched!
 
 Use tools in multiple rounds with interleaved thinking."""
     

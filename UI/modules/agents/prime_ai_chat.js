@@ -689,16 +689,16 @@ async function sendChatMessage() {
         // Backend wraps response in { success: true, data: {...} }
         const responseData = startData.data || startData;
         const conversation = responseData.conversation;
-        
+
         if (conversation && Array.isArray(conversation)) {
             console.log(`✅ [SYNC] Backend returned ${conversation.length} messages (authoritative)`);
             console.log(`📥 [SYNC] Replacing frontend state with backend conversation`);
-            
+
             // Replace MessageStore with backend's conversation
             if (window.MessageStore) {
                 // Clear current thread messages
                 window.MessageStore.clearThread(currentThreadId);
-                
+
                 // Add all messages from backend
                 for (const msg of conversation) {
                     await window.MessageStore.addMessage(currentThreadId, msg, {
@@ -708,7 +708,7 @@ async function sendChatMessage() {
                 }
                 console.log(`✅ [MessageStore] Synced ${conversation.length} messages from backend`);
             }
-            
+
             // Also update AppState for backward compatibility
             AppState.chatMessages = conversation;
         } else {
@@ -1215,15 +1215,15 @@ async function sendChatMessage() {
                                     } else if (data.type === 'conversation_sync') {
                                         // ✅ DATABASE AS SOURCE OF TRUTH: Accept backend's conversation
                                         console.log(`📥 [SYNC] Received conversation_sync: ${data.message_count} messages (round ${data.round})`);
-                                        
+
                                         if (data.conversation_history && Array.isArray(data.conversation_history)) {
                                             console.log(`✅ [SYNC] Backend is authoritative - replacing frontend state`);
                                             console.log(`   Backend: ${data.message_count} messages`);
                                             console.log(`   Frontend (before): ${AppState.chatMessages.length} messages`);
-                                            
+
                                             // Replace frontend conversation with backend's authoritative version
                                             AppState.chatMessages = data.conversation_history;
-                                            
+
                                             // Sync to MessageStore
                                             if (window.MessageStore) {
                                                 window.MessageStore.clearThread(currentThreadId);
@@ -1234,13 +1234,13 @@ async function sendChatMessage() {
                                                     });
                                                 }
                                             }
-                                            
+
                                             console.log(`   Frontend (after): ${AppState.chatMessages.length} messages`);
                                             console.log(`✅ [SYNC] Frontend synced with backend's authoritative conversation`);
-                                            
+
                                             // Log structure for debugging
                                             data.conversation_history.forEach((msg, idx) => {
-                                                const contentTypes = Array.isArray(msg.content) 
+                                                const contentTypes = Array.isArray(msg.content)
                                                     ? msg.content.map(b => b.type).join(', ')
                                                     : 'string';
                                                 console.log(`  [${idx}] ${msg.role}: ${contentTypes}`);
@@ -1261,14 +1261,14 @@ async function sendChatMessage() {
                                         // ✅ DATABASE AS SOURCE OF TRUTH: Accept backend's complete conversation
                                         if (data.conversation_history && Array.isArray(data.conversation_history)) {
                                             console.log(`✅ [COMPLETE] Backend returned ${data.conversation_history.length} messages (authoritative)`);
-                                            
+
                                             // Replace frontend state with backend's final conversation
                                             AppState.chatMessages = data.conversation_history;
-                                            
+
                                             // Sync MessageStore
                                             if (window.MessageStore) {
                                                 console.log(`[COMPLETE] Syncing MessageStore with backend's ${data.conversation_history.length} messages...`);
-                                                
+
                                                 window.MessageStore.clearThread(currentThreadId);
                                                 for (const msg of data.conversation_history) {
                                                     await window.MessageStore.addMessage(currentThreadId, msg, {
@@ -1278,7 +1278,7 @@ async function sendChatMessage() {
                                                 }
                                                 console.log(`✅ [MessageStore] Synced complete conversation from backend`);
                                             }
-                                            
+
                                             // Save thread with backend's authoritative conversation
                                             if (typeof ThreadManager !== 'undefined') {
                                                 ThreadManager.updateCurrentThread(data.conversation_history);
@@ -1620,7 +1620,7 @@ async function sendChatMessage() {
                             } catch (e) {
                                 threadErrorCount++;
                                 console.error(`[Prime] SSE parse error (${threadErrorCount}/${maxThreadErrors}):`, e, 'Line:', line);
-                                
+
                                 if (threadErrorCount >= maxThreadErrors) {
                                     threadFailed = true;
                                     console.error(`[Prime] Thread ${threadSlug} failed after ${maxThreadErrors} errors - stopping THIS thread only`);
@@ -1629,7 +1629,7 @@ async function sendChatMessage() {
                             }
                         }
                     }
-                    
+
                     if (threadFailed) {
                         console.error(`[Prime] Exiting stream reader for failed thread ${threadSlug}`);
                         break;
@@ -1721,13 +1721,13 @@ async function sendChatMessage() {
         if (window.ErrorRecoveryManager && error.message) {
             const errorMsg = error.message.toLowerCase();
             const isRecoverable = errorMsg.includes('invalid_request_error') ||
-                                 errorMsg.includes('tool_use_id') ||
-                                 errorMsg.includes('first block must be') ||
-                                 errorMsg.includes('thinking') ||
-                                 errorMsg.includes('rate limit') ||
-                                 errorMsg.includes('context_length') ||
-                                 errorMsg.includes('prompt is too long') ||
-                                 errorMsg.includes('overloaded');
+                errorMsg.includes('tool_use_id') ||
+                errorMsg.includes('first block must be') ||
+                errorMsg.includes('thinking') ||
+                errorMsg.includes('rate limit') ||
+                errorMsg.includes('context_length') ||
+                errorMsg.includes('prompt is too long') ||
+                errorMsg.includes('overloaded');
 
             // DETAILED LOGGING FOR ERROR RECOVERY DEBUGGING
             console.group('🔴 ERROR RECOVERY SYSTEM TRIGGERED');
@@ -1743,17 +1743,17 @@ async function sendChatMessage() {
 
             if (isRecoverable) {
                 // Check if auto-recovery is enabled in settings
-                const recoveryEnabled = typeof window.isErrorRecoveryEnabled === 'function' 
-                    ? window.isErrorRecoveryEnabled(errorType) 
+                const recoveryEnabled = typeof window.isErrorRecoveryEnabled === 'function'
+                    ? window.isErrorRecoveryEnabled(errorType)
                     : true;
-                
+
                 if (!recoveryEnabled) {
                     console.log('⛔ Auto-recovery disabled in settings - skipping recovery');
                     throw error; // Rethrow to show error normally
                 }
-                
+
                 console.log('🔄 Attempting auto-recovery...');
-                
+
                 try {
                     const recoveryManager = new ErrorRecoveryManager(
                         'prime',
@@ -1765,14 +1765,14 @@ async function sendChatMessage() {
 
                     if (recoveryResponse) {
                         console.log('✅ Auto-recovery successful!');
-                        
+
                         const recoveryLog = recoveryManager.exportRecoveryLog();
                         console.log('=== RECOVERY LOG ===\n' + recoveryLog);
-                        
+
                         if (typeof showNotification === 'function') {
                             showNotification('Auto-recovery successful - message sent', 'success');
                         }
-                        
+
                         return;
                     }
                 } catch (recoveryError) {
