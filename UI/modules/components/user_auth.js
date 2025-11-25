@@ -336,16 +336,46 @@ const UserAuth = {
         }
 
         try {
-            // PHASE 1: Initialize main app with existing libraries (15% progress)
-            this.setLoadingProgress(15, 'Initializing application...');
+            // ✅ PHASE 1: Load user profile FIRST (before anything else) - 15-30% progress
+            this.setLoadingProgress(15, 'Loading your profile...');
+            console.log('🔵 [AUTH] Loading user profile FIRST (before app initialization)...');
+            try {
+                await loadUserProfile();
+                console.log('✅ 🔓🔓 [AUTH] User profile loaded');
+
+                // Add authenticated visual indicator to profile button
+                const profileBtn = document.getElementById('userProfileBtn-sidebar');
+                if (profileBtn) {
+                    profileBtn.classList.add('authenticated');
+                    console.log('✅ 🔓🔓 [AUTH] Profile button marked as authenticated (green border)');
+                }
+
+                if (this.user) {
+                    console.log(' Logged in as:', this.user.username);
+                    console.log(' User ID:', this.user.user_id || this.user.id);
+                    console.log(' Gmail accounts:', this.user.gmail_accounts?.length || 0);
+                }
+            } catch (error) {
+                console.error('❌ [AUTH] User profile ERROR:', error);
+                // CRITICAL: If profile fails to load, we can't proceed
+                throw new Error('Failed to load user profile - cannot initialize app');
+            }
+            this.setLoadingProgress(30, 'Profile loaded');
+
+            // ✅ FIX: Dispatch authComplete event so modules can initialize
+            console.log('🔔 [AUTH] Dispatching authComplete event...');
+            document.dispatchEvent(new CustomEvent('authComplete'));
+
+            // PHASE 2: Initialize main app with existing libraries (30-50% progress)
+            this.setLoadingProgress(35, 'Initializing application...');
 
             console.log('🔵 [AUTH] Starting initializeMainApp()...');
             await window.initializeMainApp();
             console.log('✅ [AUTH] initializeMainApp() complete');
-            this.setLoadingProgress(20, 'Application initialized');
+            this.setLoadingProgress(50, 'Application initialized');
 
             // ✅ CRITICAL FIX: Initialize module system AFTER main app is visible
-            this.setLoadingProgress(22, 'Loading modules...');
+            this.setLoadingProgress(52, 'Loading modules...');
             if (window.initializeModuleSystem) {
                 console.log('🔷 [AUTH] Triggering module system initialization...');
                 try {
@@ -370,10 +400,10 @@ const UserAuth = {
             } else {
                 console.warn('⚠️ [AUTH] initializeModuleSystem not found - modules may not load');
             }
-            this.setLoadingProgress(25, 'Modules loaded');
+            this.setLoadingProgress(60, 'Modules loaded');
 
-            // PHASE 2: Load heavy libraries AFTER app is visible (25-75% progress)
-            this.setLoadingProgress(30, 'Loading additional resources...');
+            // PHASE 3: Load heavy libraries AFTER app is visible (60-90% progress)
+            this.setLoadingProgress(65, 'Loading additional resources...');
             console.log(' [POST-AUTH] Loading heavy libraries...');
             try {
                 await this.loadPostAuthLibraries();
@@ -382,31 +412,7 @@ const UserAuth = {
                 console.error('❌ [AUTH] Post-auth libraries ERROR:', error);
                 // Don't fail the entire flow if libraries don't load
             }
-            this.setLoadingProgress(75, 'Resources loaded');
-
-            // PHASE 3: Load user profile (75-90% progress)
-            this.setLoadingProgress(80, 'Loading your profile...');
-            console.log('🔵 [AUTH] Loading user profile...');
-            try {
-                await loadUserProfile();
-                console.log('✅ 🔓🔓 [AUTH] User profile loaded');
-                
-                // Add authenticated visual indicator to profile button
-                const profileBtn = document.getElementById('userProfileBtn-sidebar');
-                if (profileBtn) {
-                    profileBtn.classList.add('authenticated');
-                    console.log('✅ 🔓🔓 [AUTH] Profile button marked as authenticated (green border)');
-                }
-            } catch (error) {
-                console.error('❌ [AUTH] User profile ERROR:', error);
-                // Don't fail the entire flow if profile doesn't load - we already have basic user data
-            }
-            this.setLoadingProgress(90, 'Profile loaded');
-
-            if (this.user) {
-                console.log(' Logged in as:', this.user.username);
-                console.log(' Gmail accounts:', this.user.gmail_accounts.length || 0);
-            }
+            this.setLoadingProgress(90, 'Resources loaded');
 
             // PHASE 4: Final setup (90-100% progress)
             this.setLoadingProgress(95, 'Almost ready...');

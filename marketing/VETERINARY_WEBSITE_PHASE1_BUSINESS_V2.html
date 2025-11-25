@@ -831,40 +831,217 @@
             line-height: 1.6;
         }
 
-        /* Systems Grid */
-        .systems-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--space-lg);
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .system-badge {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: var(--space-lg) var(--space-xl);
-            border-radius: var(--radius-lg);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            font-weight: 600;
-            color: white;
-            transition: all var(--transition-base);
+        /* Foundation Platforms */
+        .foundation-platforms {
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: var(--space-2xl);
+            max-width: 900px;
+            margin: 0 auto var(--space-4xl);
+            flex-wrap: wrap;
+        }
+
+        .foundation-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: var(--radius-xl);
+            padding: var(--space-3xl);
+            flex: 1;
+            min-width: 280px;
+            text-align: center;
+            transition: all var(--transition-base);
+        }
+
+        .foundation-box:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(255, 255, 255, 0.2);
+        }
+
+        .foundation-box.microsoft {
+            border-color: rgba(0, 120, 212, 0.5);
+        }
+
+        .foundation-box.microsoft:hover {
+            border-color: rgba(0, 120, 212, 0.8);
+            background: rgba(0, 120, 212, 0.1);
+        }
+
+        .foundation-box.google {
+            border-color: rgba(66, 133, 244, 0.5);
+        }
+
+        .foundation-box.google:hover {
+            border-color: rgba(66, 133, 244, 0.8);
+            background: rgba(66, 133, 244, 0.1);
+        }
+
+        .foundation-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto var(--space-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-5xl);
+            color: var(--color-accent);
+        }
+
+        .foundation-box h4 {
+            font-size: var(--text-2xl);
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            margin-bottom: var(--space-md);
+        }
+
+        .foundation-apps {
+            font-size: var(--text-base);
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+        }
+
+        .foundation-divider {
+            font-size: var(--text-xl);
+            font-weight: 800;
+            color: var(--color-accent);
+            font-family: var(--font-display);
+        }
+
+        /* Connects Section */
+        .connects-section {
+            margin-top: var(--space-3xl);
+            padding-top: var(--space-3xl);
+            border-top: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .connects-header {
+            text-align: center;
+            font-size: var(--text-2xl);
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            margin-bottom: var(--space-3xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-md);
+        }
+
+        .connects-header i {
+            color: var(--color-accent);
+            font-size: var(--text-3xl);
+        }
+
+        .connected-systems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-2xl);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .system-group {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            transition: all var(--transition-base);
+        }
+
+        .system-group:hover {
+            border-color: var(--color-accent);
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .system-group-title {
+            font-size: var(--text-lg);
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            margin-bottom: var(--space-lg);
+            display: flex;
+            align-items: center;
             gap: var(--space-sm);
         }
 
-        .system-badge:hover {
-            border-color: var(--color-accent);
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(255, 107, 53, 0.3);
-            background: rgba(255, 255, 255, 0.15);
+        .system-group-title i {
+            color: var(--color-accent);
+            font-size: var(--text-xl);
         }
 
-        .system-badge i {
-            color: var(--color-accent);
-            font-size: var(--text-lg);
+        .system-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+        }
+
+        .system-pill {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all var(--transition-fast);
+        }
+
+        .system-pill:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--color-accent);
+            transform: scale(1.05);
+        }
+
+        /* Foundation Explanation */
+        .foundation-explanation {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            border-radius: var(--radius-xl);
+            padding: var(--space-3xl);
+            margin-top: var(--space-4xl);
+            display: flex;
+            gap: var(--space-xl);
+            align-items: flex-start;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 12px 40px rgba(255, 107, 53, 0.4);
+        }
+
+        .explanation-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-3xl);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .explanation-content h4 {
+            font-size: var(--text-2xl);
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            margin-bottom: var(--space-md);
+        }
+
+        .explanation-content p {
+            font-size: var(--text-base);
+            color: white;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .explanation-content strong {
+            font-weight: 700;
+            color: white;
         }
 
         /* Journey Connector */
@@ -896,78 +1073,33 @@
             box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
         }
 
-        /* Agents Showcase */
-        .agents-showcase {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--space-md);
-            justify-content: center;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .agent-pill {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: var(--space-md) var(--space-xl);
-            border-radius: var(--radius-full);
-            font-weight: 700;
-            font-size: var(--text-base);
-            display: flex;
-            align-items: center;
-            gap: var(--space-sm);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            transition: all var(--transition-base);
-        }
-
-        .agent-pill:hover {
-            transform: translateY(-4px) scale(1.05);
-            border-color: var(--color-accent);
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .agent-pill i {
-            color: var(--color-accent);
-        }
-
-        .agent-pill.more {
-            background: var(--color-accent);
-            border-color: var(--color-accent);
-            font-size: var(--text-lg);
-        }
-
-        .agent-pill.more:hover {
-            background: var(--color-accent-light);
-        }
-
-        /* Actions Grid */
-        .actions-grid {
+        /* AI Capabilities */
+        .ai-capabilities {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: var(--space-xl);
-            max-width: 1000px;
-            margin: 0 auto;
+            max-width: 1200px;
+            margin: 0 auto var(--space-4xl);
         }
 
-        .action-item {
+        .capability-card {
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(10px);
-            padding: var(--space-2xl);
-            border-radius: var(--radius-lg);
             border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2xl);
             text-align: center;
             transition: all var(--transition-base);
         }
 
-        .action-item:hover {
+        .capability-card:hover {
             border-color: var(--color-accent);
+            background: rgba(255, 255, 255, 0.12);
             transform: translateY(-8px);
             box-shadow: 0 12px 32px rgba(255, 107, 53, 0.3);
-            background: rgba(255, 255, 255, 0.12);
         }
 
-        .action-item-icon {
+        .capability-icon {
             width: 70px;
             height: 70px;
             background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
@@ -976,23 +1108,173 @@
             align-items: center;
             justify-content: center;
             margin: 0 auto var(--space-lg);
-            color: white;
             font-size: var(--text-2xl);
+            color: white;
         }
 
-        .action-item h4 {
+        .capability-card h4 {
             font-size: var(--text-xl);
             font-family: var(--font-display);
             font-weight: 700;
-            margin-bottom: var(--space-sm);
             color: white;
+            margin-bottom: var(--space-md);
         }
 
-        .action-item p {
+        .capability-card p {
             font-size: var(--text-sm);
             color: rgba(255, 255, 255, 0.7);
-            font-weight: 600;
+            line-height: 1.6;
             margin: 0;
+        }
+
+        /* Agent Team Section */
+        .agent-team-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-xl);
+            padding: var(--space-3xl);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .agent-team-title {
+            text-align: center;
+            font-size: var(--text-2xl);
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            margin-bottom: var(--space-md);
+        }
+
+        .agent-team-subtitle {
+            text-align: center;
+            font-size: var(--text-base);
+            color: rgba(255, 255, 255, 0.8);
+            max-width: 700px;
+            margin: 0 auto var(--space-3xl);
+        }
+
+        .agent-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-xl);
+        }
+
+        .agent-category h5 {
+            font-size: var(--text-lg);
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            margin-bottom: var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .agent-category h5 i {
+            color: var(--color-accent);
+            font-size: var(--text-xl);
+        }
+
+        .agent-pills-small {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .agent-pill-small {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all var(--transition-fast);
+            text-align: center;
+        }
+
+        .agent-pill-small:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--color-accent);
+            transform: translateX(4px);
+        }
+
+        /* Practice Areas Grid */
+        .practice-areas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--space-xl);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .practice-area-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2xl);
+            transition: all var(--transition-base);
+        }
+
+        .practice-area-card:hover {
+            border-color: var(--color-accent);
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 32px rgba(255, 107, 53, 0.3);
+        }
+
+        .practice-area-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-lg);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .practice-area-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-2xl);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .practice-area-header h4 {
+            font-size: var(--text-lg);
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .practice-area-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .practice-area-list li {
+            font-size: var(--text-sm);
+            color: rgba(255, 255, 255, 0.85);
+            padding: var(--space-sm) 0;
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+            line-height: 1.6;
+        }
+
+        .practice-area-list li i {
+            color: var(--color-accent);
+            font-size: var(--text-xs);
+            margin-top: 4px;
+            flex-shrink: 0;
         }
 
         /* Results Layer */
@@ -2627,22 +2909,88 @@
                 </p>
             </div>
 
-            <!-- LAYER 1: YOUR EXISTING SYSTEMS -->
+            <!-- LAYER 1: YOUR EXISTING FOUNDATION -->
             <div class="journey-layer" data-aos="fade-up" data-aos-delay="0">
                 <div class="journey-badge">
                     <span class="journey-number">1</span>
                 </div>
                 <div class="journey-content">
-                    <h3>Your Existing Systems</h3>
-                    <p class="journey-subtitle">All the software you already use—no need to replace anything.</p>
+                    <h3>Builds Upon Your Business Software Foundation</h3>
+                    <p class="journey-subtitle">Works with the productivity platforms you already use every day—no migration, no replacement.</p>
                     
-                    <div class="systems-grid">
-                        <div class="system-badge"><i class="fas fa-database"></i> Cornerstone PIMS</div>
-                        <div class="system-badge"><i class="fas fa-flask"></i> IDEXX Labs</div>
-                        <div class="system-badge"><i class="fas fa-envelope"></i> Email Marketing</div>
-                        <div class="system-badge"><i class="fas fa-phone"></i> Phone System</div>
-                        <div class="system-badge"><i class="fas fa-calendar"></i> Online Booking</div>
-                        <div class="system-badge"><i class="fas fa-file-invoice-dollar"></i> Accounting</div>
+                    <!-- Business Platform Foundation -->
+                    <div class="foundation-platforms">
+                        <div class="foundation-box microsoft">
+                            <div class="foundation-logo"><i class="fab fa-microsoft"></i></div>
+                            <h4>Microsoft 365</h4>
+                            <p class="foundation-apps">Outlook • Teams • SharePoint • OneDrive</p>
+                        </div>
+                        <div class="foundation-divider">OR</div>
+                        <div class="foundation-box google">
+                            <div class="foundation-logo"><i class="fab fa-google"></i></div>
+                            <h4>Google Workspace</h4>
+                            <p class="foundation-apps">Gmail • Chat • Drive • Analytics</p>
+                        </div>
+                    </div>
+
+                    <!-- Connects To Section -->
+                    <div class="connects-section">
+                        <h4 class="connects-header"><i class="fas fa-arrows-alt-v"></i> Connects To</h4>
+                        
+                        <div class="connected-systems-grid">
+                            <!-- Veterinary Practice Platforms -->
+                            <div class="system-group">
+                                <h5 class="system-group-title"><i class="fas fa-hospital"></i> Practice Management</h5>
+                                <div class="system-pills">
+                                    <span class="system-pill">Cornerstone</span>
+                                    <span class="system-pill">ezyVet</span>
+                                    <span class="system-pill">AVImark</span>
+                                    <span class="system-pill">Impromed</span>
+                                </div>
+                            </div>
+
+                            <!-- Lab & Diagnostics -->
+                            <div class="system-group">
+                                <h5 class="system-group-title"><i class="fas fa-flask"></i> Labs & Diagnostics</h5>
+                                <div class="system-pills">
+                                    <span class="system-pill">IDEXX</span>
+                                    <span class="system-pill">Antech</span>
+                                    <span class="system-pill">Heska</span>
+                                    <span class="system-pill">Zoetis</span>
+                                </div>
+                            </div>
+
+                            <!-- Communication & Client Tools -->
+                            <div class="system-group">
+                                <h5 class="system-group-title"><i class="fas fa-comments"></i> Communication</h5>
+                                <div class="system-pills">
+                                    <span class="system-pill">Slack</span>
+                                    <span class="system-pill">Phone Systems</span>
+                                    <span class="system-pill">SMS Platforms</span>
+                                    <span class="system-pill">Email Marketing</span>
+                                </div>
+                            </div>
+
+                            <!-- Business Operations -->
+                            <div class="system-group">
+                                <h5 class="system-group-title"><i class="fas fa-cogs"></i> Operations</h5>
+                                <div class="system-pills">
+                                    <span class="system-pill">QuickBooks</span>
+                                    <span class="system-pill">Xero</span>
+                                    <span class="system-pill">Booking Systems</span>
+                                    <span class="system-pill">Calendar Tools</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- What It Means Box -->
+                    <div class="foundation-explanation">
+                        <div class="explanation-icon"><i class="fas fa-lightbulb"></i></div>
+                        <div class="explanation-content">
+                            <h4>What This Means:</h4>
+                            <p>VetAI uses your Microsoft 365 or Google Workspace tools to <strong>create documents, build spreadsheets, send emails, post to Teams/Chat, store files, and generate reports</strong>—all while pulling data from your veterinary systems. It's a coordination layer that makes everything work together seamlessly.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2653,22 +3001,84 @@
                 <div class="connector-icon"><i class="fas fa-link"></i></div>
             </div>
 
-            <!-- LAYER 2: AI ECOSYSTEM -->
+            <!-- LAYER 2: AI COORDINATION LAYER -->
             <div class="journey-layer" data-aos="fade-up" data-aos-delay="200">
                 <div class="journey-badge">
                     <span class="journey-number">2</span>
                 </div>
                 <div class="journey-content">
-                    <h3>AI Ecosystem Connects Everything</h3>
-                    <p class="journey-subtitle">26 specialized AI agents coordinate across all your platforms—connecting, analyzing, and automating.</p>
+                    <h3>AI Coordination Layer Orchestrates Everything</h3>
+                    <p class="journey-subtitle">26 specialized AI agents pull data from your veterinary systems, create what you need in Microsoft/Google, and coordinate across all platforms.</p>
                     
-                    <div class="agents-showcase">
-                        <div class="agent-pill"><i class="fas fa-bell"></i> Romeo (Reminders)</div>
-                        <div class="agent-pill"><i class="fas fa-phone-volume"></i> Bravo (AI Phone)</div>
-                        <div class="agent-pill"><i class="fas fa-notes-medical"></i> Charlie (SOAP Notes)</div>
-                        <div class="agent-pill"><i class="fas fa-microscope"></i> Papa (Lab Monitor)</div>
-                        <div class="agent-pill"><i class="fas fa-boxes"></i> India (Inventory)</div>
-                        <div class="agent-pill more">+21 More Agents</div>
+                    <!-- What AI Does -->
+                    <div class="ai-capabilities">
+                        <div class="capability-card">
+                            <div class="capability-icon"><i class="fas fa-file-alt"></i></div>
+                            <h4>Creates Documents & Reports</h4>
+                            <p>SOAP notes in Google Docs, treatment plans in Word, client summaries, discharge instructions</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="capability-icon"><i class="fas fa-table"></i></div>
+                            <h4>Builds Spreadsheets & Analytics</h4>
+                            <p>Revenue dashboards in Excel/Sheets, inventory tracking, staff schedules, KPI reports</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="capability-icon"><i class="fas fa-paper-plane"></i></div>
+                            <h4>Sends Communications</h4>
+                            <p>Emails via Outlook/Gmail, Teams/Chat notifications, SMS reminders, Slack updates</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="capability-icon"><i class="fas fa-sync-alt"></i></div>
+                            <h4>Syncs & Stores Data</h4>
+                            <p>Files in OneDrive/Drive, SharePoint folders, automated backups, version control</p>
+                        </div>
+                    </div>
+
+                    <!-- Agent Team -->
+                    <div class="agent-team-section">
+                        <h4 class="agent-team-title">Meet Your 26 AI Agent Team</h4>
+                        <p class="agent-team-subtitle">Each agent specializes in one area—working together 24/7 to support every part of your practice:</p>
+                        
+                        <div class="agent-categories">
+                            <div class="agent-category">
+                                <h5><i class="fas fa-stethoscope"></i> Clinical Care</h5>
+                                <div class="agent-pills-small">
+                                    <span class="agent-pill-small">Charlie (SOAP Notes)</span>
+                                    <span class="agent-pill-small">Papa (Lab Monitor)</span>
+                                    <span class="agent-pill-small">Foxtrot (Prescriptions)</span>
+                                </div>
+                            </div>
+
+                            <div class="agent-category">
+                                <h5><i class="fas fa-users"></i> Client Management</h5>
+                                <div class="agent-pills-small">
+                                    <span class="agent-pill-small">Romeo (Reminders)</span>
+                                    <span class="agent-pill-small">Bravo (AI Phone)</span>
+                                    <span class="agent-pill-small">Juliet (Follow-ups)</span>
+                                </div>
+                            </div>
+
+                            <div class="agent-category">
+                                <h5><i class="fas fa-chart-line"></i> Operations & Admin</h5>
+                                <div class="agent-pills-small">
+                                    <span class="agent-pill-small">India (Inventory)</span>
+                                    <span class="agent-pill-small">Oscar (Scheduling)</span>
+                                    <span class="agent-pill-small">Delta (Analytics)</span>
+                                </div>
+                            </div>
+
+                            <div class="agent-category">
+                                <h5><i class="fas fa-bullhorn"></i> Marketing & Growth</h5>
+                                <div class="agent-pills-small">
+                                    <span class="agent-pill-small">Mike (Marketing)</span>
+                                    <span class="agent-pill-small">November (Reviews)</span>
+                                    <span class="agent-pill-small">+15 More Agents</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2679,45 +3089,104 @@
                 <div class="connector-icon"><i class="fas fa-cogs"></i></div>
             </div>
 
-            <!-- LAYER 3: INTELLIGENT ACTIONS -->
+            <!-- LAYER 3: CREATES WHAT YOU NEED, WHEN YOU NEED IT -->
             <div class="journey-layer" data-aos="fade-up" data-aos-delay="400">
                 <div class="journey-badge">
                     <span class="journey-number">3</span>
                 </div>
                 <div class="journey-content">
-                    <h3>Intelligent Actions Happen 24/7</h3>
-                    <p class="journey-subtitle">AI agents work around the clock—performing tasks, analyzing data, and making intelligent decisions.</p>
+                    <h3>Creates What You Need, When & Where You Need It</h3>
+                    <p class="journey-subtitle">AI agents work 24/7 across every area of your practice—delivering the right information, in the right format, at the right time.</p>
                     
-                    <div class="actions-grid">
-                        <div class="action-item">
-                            <div class="action-item-icon"><i class="fas fa-phone"></i></div>
-                            <h4>Answer Calls</h4>
-                            <p>70% of calls handled by AI</p>
+                    <div class="practice-areas-grid">
+                        <!-- Patient Care -->
+                        <div class="practice-area-card">
+                            <div class="practice-area-header">
+                                <div class="practice-area-icon"><i class="fas fa-heartbeat"></i></div>
+                                <h4>Patient Care & Clinical Services</h4>
+                            </div>
+                            <ul class="practice-area-list">
+                                <li><i class="fas fa-check"></i> SOAP notes from voice dictation</li>
+                                <li><i class="fas fa-check"></i> Treatment plans with dosage calculations</li>
+                                <li><i class="fas fa-check"></i> Lab result monitoring & alerts</li>
+                                <li><i class="fas fa-check"></i> Consultation summaries & referrals</li>
+                                <li><i class="fas fa-check"></i> Medical protocol reminders</li>
+                            </ul>
                         </div>
-                        <div class="action-item">
-                            <div class="action-item-icon"><i class="fas fa-file-medical"></i></div>
-                            <h4>Write SOAP Notes</h4>
-                            <p>From voice dictation in real-time</p>
+
+                        <!-- Client Support -->
+                        <div class="practice-area-card">
+                            <div class="practice-area-header">
+                                <div class="practice-area-icon"><i class="fas fa-comments"></i></div>
+                                <h4>Client Support & Management</h4>
+                            </div>
+                            <ul class="practice-area-list">
+                                <li><i class="fas fa-check"></i> AI phone answering (70% of calls)</li>
+                                <li><i class="fas fa-check"></i> Appointment reminders (SMS/email/voice)</li>
+                                <li><i class="fas fa-check"></i> Follow-up coordination</li>
+                                <li><i class="fas fa-check"></i> Client education materials</li>
+                                <li><i class="fas fa-check"></i> Discharge instructions</li>
+                            </ul>
                         </div>
-                        <div class="action-item">
-                            <div class="action-item-icon"><i class="fas fa-comment-dots"></i></div>
-                            <h4>Send Reminders</h4>
-                            <p>Text, email, voice—automatically</p>
+
+                        <!-- Operations & Admin -->
+                        <div class="practice-area-card">
+                            <div class="practice-area-header">
+                                <div class="practice-area-icon"><i class="fas fa-cogs"></i></div>
+                                <h4>Operations & Administration</h4>
+                            </div>
+                            <ul class="practice-area-list">
+                                <li><i class="fas fa-check"></i> Inventory tracking & auto-ordering</li>
+                                <li><i class="fas fa-check"></i> Staff scheduling optimization</li>
+                                <li><i class="fas fa-check"></i> Revenue & KPI dashboards</li>
+                                <li><i class="fas fa-check"></i> Expense tracking & budgets</li>
+                                <li><i class="fas fa-check"></i> Compliance documentation</li>
+                            </ul>
                         </div>
-                        <div class="action-item">
-                            <div class="action-item-icon"><i class="fas fa-flask"></i></div>
-                            <h4>Monitor Labs</h4>
-                            <p>Alert when results are ready</p>
+
+                        <!-- Team & Culture -->
+                        <div class="practice-area-card">
+                            <div class="practice-area-header">
+                                <div class="practice-area-icon"><i class="fas fa-users"></i></div>
+                                <h4>Team Collaboration & Culture</h4>
+                            </div>
+                            <ul class="practice-area-list">
+                                <li><i class="fas fa-check"></i> Teams/Chat/Slack notifications</li>
+                                <li><i class="fas fa-check"></i> Shared documents & protocols</li>
+                                <li><i class="fas fa-check"></i> Training material delivery</li>
+                                <li><i class="fas fa-check"></i> Performance insights</li>
+                                <li><i class="fas fa-check"></i> Meeting summaries & action items</li>
+                            </ul>
                         </div>
-                        <div class="action-item">
-                            <div class="action-item-icon"><i class="fas fa-box-open"></i></div>
-                            <h4>Track Inventory</h4>
-                            <p>Auto-order before stockouts</p>
+
+                        <!-- Marketing & Growth -->
+                        <div class="practice-area-card">
+                            <div class="practice-area-header">
+                                <div class="practice-area-icon"><i class="fas fa-bullhorn"></i></div>
+                                <h4>Marketing & Practice Growth</h4>
+                            </div>
+                            <ul class="practice-area-list">
+                                <li><i class="fas fa-check"></i> Review request automation</li>
+                                <li><i class="fas fa-check"></i> Email campaign management</li>
+                                <li><i class="fas fa-check"></i> Social media content generation</li>
+                                <li><i class="fas fa-check"></i> Client retention analysis</li>
+                                <li><i class="fas fa-check"></i> Referral tracking</li>
+                            </ul>
                         </div>
-                        <div class="action-item">
-                            <div class="action-item-icon"><i class="fas fa-chart-line"></i></div>
-                            <h4>Analyze Data</h4>
-                            <p>Real-time practice insights</p>
+
+                        <!-- Research & Protocols -->
+                        <div class="practice-area-card">
+                            <div class="practice-area-header">
+                                <div class="practice-area-icon"><i class="fas fa-book-medical"></i></div>
+                                <h4>Research, Policy & Protocols</h4>
+                            </div>
+                            <ul class="practice-area-list">
+                                <li><i class="fas fa-check"></i> Latest research summaries</li>
+                                <li><i class="fas fa-check"></i> Policy documentation</li>
+                                <li><i class="fas fa-check"></i> Treatment protocol updates</li>
+                                <li><i class="fas fa-check"></i> Continuing education tracking</li>
+                                <li><i class="fas fa-check"></i> Drug interaction checking</li>
+                            </ul>
                         </div>
                     </div>
                 </div>

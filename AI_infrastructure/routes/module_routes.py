@@ -65,7 +65,7 @@ def require_auth(f):
 @module_bp.route('/list', methods=['GET'])
 def list_modules():
     """
-    Get all registered modules
+    Get all registered modules (no auth required - public list)
     
     Returns:
         {
@@ -114,8 +114,7 @@ def list_modules():
 
 
 @module_bp.route('/available', methods=['GET'])
-@require_auth
-def get_available_modules(user_id: int):
+def get_available_modules():
     """
     Get modules user can access (has required credentials)
     
@@ -140,6 +139,27 @@ def get_available_modules(user_id: int):
         }
     """
     try:
+        # Get user_id from query params (optional for development)
+        user_id = request.args.get('user_id', type=int)
+        if not user_id:
+            # Development mode: return all modules if no user_id
+            registry = get_module_registry()
+            all_modules = registry.get_all_modules()
+            return jsonify({
+                'modules': [{
+                    'id': m.id,
+                    'name': m.name,
+                    'description': m.description,
+                    'icon': m.icon,
+                    'color': m.color,
+                    'version': m.version,
+                    'available': True,  # Assume available in dev mode
+                    'has_optional': len(m.optional_platforms) > 0,
+                    'available_optional': m.optional_platforms
+                } for m in all_modules],
+                'count': len(all_modules)
+            })
+        
         registry = get_module_registry()
         available = registry.get_available_modules(user_id)
         
@@ -149,7 +169,9 @@ def get_available_modules(user_id: int):
         })
     
     except Exception as e:
-        logger.error(f"Failed to get available modules for user {user_id}: {e}")
+        logger.error(f"Failed to get available modules: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 

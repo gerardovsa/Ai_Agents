@@ -125,8 +125,12 @@ Start-Sleep -Seconds 3
 Write-Host "[3/4] Opening Platform in Browser..." -ForegroundColor Green
 Write-Host ""
 
+# Close any existing browser windows on localhost:5001 (forces fresh load)
+Write-Host "      Opening http://localhost:5001 in new browser window..." -ForegroundColor Gray
+
 # Open browser to Flask server (not direct file access)
-Start-Process "http://localhost:5001"
+# Force new window to avoid cached file:// protocol
+Start-Process "http://localhost:5001" -ArgumentList "--new-window"
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
