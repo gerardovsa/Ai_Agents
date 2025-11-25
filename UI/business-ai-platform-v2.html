@@ -1244,6 +1244,17 @@
             border-color: var(--accent-primary);
         }
 
+        /* User profile button - authenticated state (green border) */
+        #userProfileBtn-sidebar.authenticated {
+            border: 2px solid #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+        }
+
+        #userProfileBtn-sidebar.authenticated:hover {
+            border-color: #10b981;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+        }
+
         /* Thread button active state when sidebar is open */
         #threads-btn.thread-menu-open {
             background: var(--accent-primary);
