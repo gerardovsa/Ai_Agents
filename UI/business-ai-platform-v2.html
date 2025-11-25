@@ -130,11 +130,14 @@
     <!-- Error recovery control system with toggles and statistics -->
     <!-- v2: Dynamic HTML loading, toast notifications, hover tooltips -->
     <!-- NOTE: Settings Sidebar temporarily disabled - needs migration to new module system -->
+    <!-- Depends on BaseModule which was archived - will migrate to new module system -->
     <!-- <script src="js/module-base.js?v=20251124d"></script> -->
-    <link rel="stylesheet" href="external/modules/settings-sidebar/settings-sidebar.css?v=20251124d">
-    <script src="external/modules/settings-sidebar/settings-sidebar.js?v=20251124d"></script>
+    <!-- <link rel="stylesheet" href="external/modules/settings-sidebar/settings-sidebar.css?v=20251124d"> -->
+    <!-- <script src="external/modules/settings-sidebar/settings-sidebar.js?v=20251124d"></script> -->
 
     <!-- Initialize Settings Sidebar Module -->
+    <!-- DISABLED - Settings Sidebar depends on BaseModule which was archived -->
+    <!--
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof SettingsSidebarModule !== 'undefined') {
@@ -155,6 +158,7 @@
             }
         });
     </script>
+    -->
 
     <!-- ==================== AUTOMATION WORKFLOWS MODULE ==================== -->
     <!-- Visual automation canvas with drag-and-drop flow builder -->
@@ -256,11 +260,54 @@
     <!-- Automatic module discovery from frontend/modules/ directory -->
     <script src="modules/module_loader.js"></script>
     <script>
+        // ✅ FIX: Wait for authentication BEFORE initializing module loader
         document.addEventListener('DOMContentLoaded', async () => {
-            const userId = parseInt(localStorage.getItem('user_id')) || 1;
-            await window.moduleLoader.initialize(userId);
-            console.log('Module system initialized');
+            if (typeof UserAuth !== 'undefined' && UserAuth.token && UserAuth.user) {
+                console.log('✅ [ModuleLoader] Auth complete, initializing modules...');
+                const userId = UserAuth.user.id || UserAuth.user.user_id || parseInt(localStorage.getItem('user_id')) || 1;
+                await window.moduleLoader.initialize(userId);
+                console.log('Module system initialized');
+            } else {
+                console.log('⏳ [ModuleLoader] Waiting for authentication...');
+                document.addEventListener('authComplete', async () => {
+                    console.log('✅ [ModuleLoader] Auth complete, initializing modules...');
+                    const userId = UserAuth.user.id || UserAuth.user.user_id || parseInt(localStorage.getItem('user_id')) || 1;
+                    await window.moduleLoader.initialize(userId);
+                    console.log('Module system initialized');
+                });
+            }
         });
+    </script>
+
+    <!-- ==================== API CONFIGURATION (CRITICAL - MUST LOAD BEFORE ALL MODULES) ==================== -->
+    <!-- AUTO-DETECT ENVIRONMENT: Production (Render) vs Local Development -->
+    <script>
+        // Check URL parameters for override
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceRender = urlParams.get('api') === 'render';  // ?api=render forces Render backend
+
+        const isFileProtocol = window.location.protocol === 'file:';
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
+
+        // 🔧 CONFIGURATION FLAGS - Set these to control backend connection
+        const FORCE_LOCAL = false;   // Set to true: Always use localhost (even on Render domain)
+        const FORCE_RENDER = false;  // Set to true: Always use Render (even from file:// protocol)
+
+        // Auto-detect backend URL based on current hostname
+        const API_BASE_URL = (forceRender || FORCE_RENDER) ? 'https://ai-agents-backend-singapore.onrender.com' :
+            ((FORCE_LOCAL || isLocalhost || isFileProtocol) ? 'http://localhost:5001' :
+                window.location.origin);  // Use same domain as frontend (auto-detect Render URL)
+
+        const VSA_API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 'http://localhost:5300' :
+            'https://vsa-agent-service.onrender.com';  // VSA Agent separate service
+
+        // ✅ CRITICAL: Make API URLs globally accessible IMMEDIATELY (before any modules load)
+        window.API_BASE_URL = API_BASE_URL;
+        window.VSA_API_BASE_URL = VSA_API_BASE_URL;
+
+        console.log('🌐 [API CONFIG] Environment:', (isLocalhost || isFileProtocol) ? '🔧 DEVELOPMENT (localhost)' : '🚀 PRODUCTION (Render)');
+        console.log('🌐 [API CONFIG] API Base URL:', API_BASE_URL);
+        console.log('🌐 [API CONFIG] VSA API URL:', VSA_API_BASE_URL);
     </script>
 
     <!-- ==================== THREAD MANAGER (Modular - Nov 20, 2025) ==================== -->
@@ -16507,48 +16554,25 @@
             }
         });
 
-        // ==================== API CONFIGURATION ====================
-        // AUTO-DETECT ENVIRONMENT: Production (Render) vs Local Development
-        // Uses window.location.hostname to automatically determine the backend URL
+        // ==================== API CONFIGURATION (MOVED TO LINE ~280) ====================
+        // ✅ API_BASE_URL is now set EARLY in the document (before ThreadManager loads)
+        // This was moved to prevent ThreadManager from reading undefined and falling back to localhost
 
-        // Check URL parameters for override
-        const urlParams = new URLSearchParams(window.location.search);
-        const forceRender = urlParams.get('api') === 'render';  // ?api=render forces Render backend
+        // The configuration below is LEGACY and NO LONGER NEEDED:
+        // - window.API_BASE_URL is already set at line ~280
+        // - All modules can safely use window.API_BASE_URL
 
-        const isFileProtocol = window.location.protocol === 'file:';
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
-        const FORCE_LOCAL = false;  // Set to true to force localhost even on production domain
-
-        // Auto-detect backend URL based on current hostname
-        // If opened via file:// protocol, always use localhost (unless ?api=render)
-        const API_BASE_URL = (forceRender) ? 'https://ai-agents-backend-singapore.onrender.com' :
-            ((FORCE_LOCAL || isLocalhost || isFileProtocol) ? 'http://localhost:5001' :
-                window.location.origin);  // Use same domain as frontend (auto-detect Render URL)
-
-        const VSA_API_BASE_URL = (FORCE_LOCAL || isLocalhost) ? 'http://localhost:5300' :
-            'https://vsa-agent-service.onrender.com';  // VSA Agent separate service
-
-        // Make API URLs globally accessible
-        window.API_BASE_URL = API_BASE_URL;
-        window.VSA_API_BASE_URL = VSA_API_BASE_URL;
-
+        // Verbose logging for debugging (can be removed after verification)
         console.log('='.repeat(70));
-        console.log('🌍 [RENDER CONFIG] Environment Detection');
+        console.log('🌍 [RENDER CONFIG] Environment Detection (LEGACY LOGS)');
         console.log('='.repeat(70));
         console.log(' Current URL:', window.location.href);
         console.log(' Current protocol:', window.location.protocol);
         console.log(' Current hostname:', window.location.hostname || '(none - file:// protocol)');
         console.log(' Current origin:', window.location.origin || '(no origin)');
         console.log('');
-        console.log(' Detection Results:');
-        console.log('   isFileProtocol:', isFileProtocol);
-        console.log('   isLocalhost:', isLocalhost);
-        console.log('   FORCE_LOCAL:', FORCE_LOCAL);
-        console.log('   forceRender (?api=render):', forceRender);
-        console.log('');
-        console.log(' Environment:', (isLocalhost || isFileProtocol) ? '🔧 DEVELOPMENT (localhost)' : '🚀 PRODUCTION (Render)');
-        console.log(' API Base URL:', API_BASE_URL);
-        console.log(' VSA Agent URL:', VSA_API_BASE_URL);
+        console.log(' ✅ API Base URL (set at line ~280):', window.API_BASE_URL);
+        console.log(' ✅ VSA Agent URL (set at line ~280):', window.VSA_API_BASE_URL);
         console.log('='.repeat(70));
 
         // ? Supabase Global Configuration (loaded from Flask backend)
