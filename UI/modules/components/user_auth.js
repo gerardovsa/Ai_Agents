@@ -390,6 +390,13 @@ const UserAuth = {
             try {
                 await loadUserProfile();
                 console.log('✅ [AUTH] User profile loaded');
+                
+                // Add authenticated visual indicator to profile button
+                const profileBtn = document.getElementById('userProfileBtn-sidebar');
+                if (profileBtn) {
+                    profileBtn.classList.add('authenticated');
+                    console.log('✅ [AUTH] Profile button marked as authenticated (green border)');
+                }
             } catch (error) {
                 console.error('❌ [AUTH] User profile ERROR:', error);
                 // Don't fail the entire flow if profile doesn't load - we already have basic user data
