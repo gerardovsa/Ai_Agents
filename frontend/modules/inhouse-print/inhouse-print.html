@@ -1,0 +1,129 @@
+<!-- InHouse Print Tools Module Sidebar -->
+<div id="inhouse-print-sidebar" class="module-sidebar" style="display: none;">
+    <div class="sidebar-header">
+        <h2>
+            <i class="fas fa-print"></i>
+            InHouse Print Tools
+        </h2>
+        <button class="close-btn" onclick="window.moduleLoader.toggleModule('inhouse_print')" title="Close">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="sidebar-tabs">
+        <button class="tab-btn active" data-tab="sql-queries">
+            <i class="fas fa-database"></i>
+            SQL Queries
+        </button>
+        <button class="tab-btn" data-tab="quote-calculator">
+            <i class="fas fa-calculator"></i>
+            Quotes
+        </button>
+        <button class="tab-btn" data-tab="inventory">
+            <i class="fas fa-boxes"></i>
+            Inventory
+        </button>
+    </div>
+
+    <div class="sidebar-content">
+        <!-- SQL Queries Tab -->
+        <div id="tab-sql-queries" class="tab-content active">
+            <div class="section">
+                <h3>Query Library</h3>
+                <p class="help-text">
+                    50+ pre-built SQL queries for InHouse Print database
+                </p>
+
+                <div class="query-search">
+                    <input type="text" id="query-search" placeholder="Search queries..." class="form-input">
+                </div>
+
+                <div id="query-library-list" class="query-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Loading query library...
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Custom Query</h3>
+                <textarea id="custom-sql-query" class="form-textarea" rows="6"
+                    placeholder="Enter SQL query..."></textarea>
+
+                <button id="execute-query-btn" class="btn btn-primary">
+                    <i class="fas fa-play"></i>
+                    Execute Query
+                </button>
+            </div>
+
+            <div id="query-results" class="section" style="display: none;">
+                <h3>Query Results</h3>
+                <div id="query-results-table"></div>
+            </div>
+        </div>
+
+        <!-- Quote Calculator Tab -->
+        <div id="tab-quote-calculator" class="tab-content">
+            <div class="section">
+                <h3>Quick Quote</h3>
+                <p class="help-text">
+                    Calculate quotes using InHouse Print calculators
+                </p>
+
+                <div class="form-group">
+                    <label>Product Type</label>
+                    <select id="product-type" class="form-select">
+                        <option value="business_cards">Business Cards</option>
+                        <option value="flyers">Flyers</option>
+                        <option value="booklets">Booklets</option>
+                        <option value="perfect_bound_books">Perfect Bound Books</option>
+                        <option value="corflute_signs">Corflute Signs</option>
+                    </select>
+                </div>
+
+                <div id="calculator-params" class="calculator-params">
+                    <!-- Dynamic parameters based on product type -->
+                </div>
+
+                <button id="calculate-quote-btn" class="btn btn-primary">
+                    <i class="fas fa-calculator"></i>
+                    Calculate Quote
+                </button>
+            </div>
+
+            <div id="quote-result" class="section" style="display: none;">
+                <h3>Quote Result</h3>
+                <div id="quote-details"></div>
+            </div>
+        </div>
+
+        <!-- Inventory Tab -->
+        <div id="tab-inventory" class="tab-content">
+            <div class="section">
+                <h3>Stock Levels</h3>
+
+                <div class="stock-search">
+                    <input type="text" id="stock-search" placeholder="Search stock items..." class="form-input">
+                </div>
+
+                <div id="stock-levels-list" class="stock-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Loading stock levels...
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Reorder Alerts</h3>
+                <div id="reorder-alerts-list" class="alerts-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Loading alerts...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

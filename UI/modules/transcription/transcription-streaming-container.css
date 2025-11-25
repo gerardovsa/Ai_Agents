@@ -1,0 +1,392 @@
+/**
+ * TRANSCRIPTION STREAMING CONTAINER - Styling
+ * 
+ * Pattern: Matches V7_MustCare transcription container
+ * Purpose: Real-time streaming transcript display with Copy/Insert/Send controls
+ * Location: Below AI Prime chat panel
+ */
+
+/* =====================================================
+   Container Base
+   ===================================================== */
+
+.ai-transcription-container {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 900px;
+    background: var(--bg-secondary, #1c1f26);
+    border: 1px solid var(--border-default, #30363d);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    max-height: 40vh;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-transcription-container.hidden {
+    display: none;
+}
+
+.ai-transcription-container.collapsed {
+    max-height: 50px;
+}
+
+.ai-transcription-container.collapsed .ai-transcription-text {
+    display: none;
+}
+
+/* =====================================================
+   Header
+   ===================================================== */
+
+.ai-transcription-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-tertiary, #22252c);
+    border-bottom: 1px solid var(--border-default, #30363d);
+    border-radius: 12px 12px 0 0;
+    user-select: none;
+}
+
+.ai-transcription-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #e6edf3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-transcription-header h4 i {
+    color: var(--accent-primary, #58a6ff);
+}
+
+.ai-transcription-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* =====================================================
+   Status Indicator
+   ===================================================== */
+
+.ai-transcription-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--bg-primary, #0d1117);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-muted, #8b92a7);
+    transition: all 0.2s ease;
+}
+
+.ai-transcription-status i {
+    font-size: 8px;
+    color: #6e7681;
+    animation: pulse-idle 2s infinite;
+}
+
+.ai-transcription-status.recording {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.ai-transcription-status.recording i {
+    color: #ef4444;
+    animation: pulse-recording 1s infinite;
+}
+
+.ai-transcription-status.processing {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.ai-transcription-status.processing i {
+    color: #3b82f6;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes pulse-idle {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+@keyframes pulse-recording {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* =====================================================
+   Action Buttons
+   ===================================================== */
+
+.ai-transcription-action-btn,
+.ai-transcription-collapse-btn,
+.ai-transcription-autoclear-toggle {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary, #22252c);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-muted, #8b92a7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.ai-transcription-action-btn:hover,
+.ai-transcription-collapse-btn:hover,
+.ai-transcription-autoclear-toggle:hover {
+    background: var(--bg-primary, #0d1117);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+    transform: translateY(-1px);
+}
+
+.ai-transcription-action-btn:active,
+.ai-transcription-collapse-btn:active {
+    transform: translateY(0);
+}
+
+.ai-transcription-delete-btn {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.ai-transcription-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+/* Auto-clear toggle states */
+.ai-transcription-autoclear-toggle[data-enabled="true"] {
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.ai-transcription-autoclear-toggle[data-enabled="true"]:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b981;
+}
+
+.ai-transcription-autoclear-toggle[data-enabled="false"] {
+    color: #6e7681;
+}
+
+.ai-transcription-autoclear-toggle[data-enabled="false"] i::before {
+    content: "\f204"; /* fa-toggle-off */
+}
+
+/* =====================================================
+   Transcription Text Display
+   ===================================================== */
+
+.ai-transcription-text {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary, #e6edf3);
+    background: var(--bg-primary, #0d1117);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Custom scrollbar */
+.ai-transcription-text::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ai-transcription-text::-webkit-scrollbar-track {
+    background: var(--bg-secondary, #1c1f26);
+}
+
+.ai-transcription-text::-webkit-scrollbar-thumb {
+    background: var(--border-default, #30363d);
+    border-radius: 4px;
+}
+
+.ai-transcription-text::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted, #8b92a7);
+}
+
+/* Placeholder (empty state) */
+.ai-transcription-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 150px;
+    color: var(--text-muted, #8b92a7);
+    text-align: center;
+    gap: 12px;
+}
+
+.ai-transcription-placeholder i {
+    font-size: 32px;
+    opacity: 0.5;
+}
+
+.ai-transcription-placeholder p {
+    margin: 0;
+    font-size: 13px;
+    max-width: 300px;
+}
+
+/* =====================================================
+   Transcript Content Styling
+   ===================================================== */
+
+.ai-transcript-final {
+    color: var(--text-primary, #e6edf3);
+    font-weight: 400;
+}
+
+.ai-transcript-interim {
+    color: var(--text-muted, #8b92a7);
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.ai-transcript-confidence {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+.ai-transcript-confidence.high {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.ai-transcript-confidence.medium {
+    background: rgba(234, 179, 8, 0.2);
+    color: #eab308;
+}
+
+.ai-transcript-confidence.low {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* =====================================================
+   Animations
+   ===================================================== */
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ai-transcription-container.show {
+    animation: fade-in 0.3s ease-out;
+}
+
+/* =====================================================
+   Responsive Design
+   ===================================================== */
+
+@media (max-width: 768px) {
+    .ai-transcription-container {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        max-height: 50vh;
+    }
+    
+    .ai-transcription-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .ai-transcription-header-actions {
+        flex-wrap: wrap;
+    }
+    
+    .ai-transcription-status {
+        order: -1;
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .ai-transcription-action-btn,
+    .ai-transcription-collapse-btn,
+    .ai-transcription-autoclear-toggle {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+    
+    .ai-transcription-header h4 {
+        font-size: 13px;
+    }
+    
+    .ai-transcription-text {
+        font-size: 13px;
+        padding: 12px;
+    }
+}
+
+/* =====================================================
+   Dark Mode Support (Explicit)
+   ===================================================== */
+
+body.dark-mode .ai-transcription-container {
+    background: #1c1f26;
+    border-color: #30363d;
+}
+
+body.dark-mode .ai-transcription-header {
+    background: #22252c;
+    border-color: #30363d;
+}
+
+body.dark-mode .ai-transcription-text {
+    background: #0d1117;
+    color: #e6edf3;
+}
+
+/* =====================================================
+   Print Hiding
+   ===================================================== */
+
+@media print {
+    .ai-transcription-container {
+        display: none !important;
+    }
+}
