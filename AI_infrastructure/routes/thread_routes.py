@@ -53,7 +53,9 @@ def create_thread():
             }
         }
     """
-    conn = None  # CRITICAL: Initialize outside try block for finally access
+    print(f"\n{'='*80}")
+    print(f"[THREAD CREATE] 📝 Creating new thread...")
+    print(f"{'='*80}")
     try:
         import uuid
         
@@ -77,25 +79,21 @@ def create_thread():
         thread_id = str(int(datetime.now().timestamp() * 1000))
         created = datetime.now().isoformat()
         
-        # Insert into database - PostgreSQL/Supabase only
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # PostgreSQL: Exclude id column to let sequence auto-generate
-        insert_query = """
-            INSERT INTO sessions.threads (
-                thread_slug, workspace_id, name, user_id, created_at, updated_at,
-                metadata, location, tags, synergy_card_id,
-                parent_thread_id, branch_point_message_id, branch_name
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-            )
-            RETURNING id
-        """
-        
-        cursor.execute(
-            insert_query,
-            (
+        # ✅ CRITICAL FIX: Use context manager to prevent connection leaks
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # PostgreSQL: Exclude id column to let sequence auto-generate
+            sql, params = convert_sql_placeholders("""
+                INSERT INTO sessions.threads (
+                    thread_slug, workspace_id, name, user_id, created_at, updated_at,
+                    metadata, location, tags, synergy_card_id,
+                    parent_thread_id, branch_point_message_id, branch_name
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+                RETURNING id
+            """, (
                 thread_id,                      # thread_slug
                 1,                              # workspace_id (default workspace)
                 title,                          # name
@@ -109,15 +107,14 @@ def create_thread():
                 parent_thread_id,               # parent_thread_id
                 branch_point_message_id,        # branch_point_message_id
                 branch_name                     # branch_name
-            )
-        )
-        
-        # Get the auto-generated id
-        generated_id_result = cursor.fetchone()
-        generated_id = generated_id_result[0] if isinstance(generated_id_result, tuple) else generated_id_result['id']
-        conn.commit()
-        
-        # Don't close connection here - finally block will handle it
+            ))
+            
+            cursor.execute(sql, params)
+            
+            # Get the auto-generated id
+            generated_id_result = cursor.fetchone()
+            generated_id = generated_id_result[0] if isinstance(generated_id_result, tuple) else generated_id_result['id']
+            conn.commit()
         
         thread_data = {
             'id': thread_id,
@@ -137,10 +134,6 @@ def create_thread():
         
     except Exception as e:
         return error_response(f'Failed to create thread: {str(e)}', 500)
-    finally:
-        # CRITICAL: Always close connection, even if exception raised
-        if conn:
-            conn.close()
 
 
 @thread_bp.route('/upsert', methods=['POST'])
@@ -160,7 +153,6 @@ def upsert_thread():
     Returns:
         {"success": true, "thread_id": "..."}
     """
-    conn = None  # CRITICAL: Initialize outside try block for finally access
     try:
         data = request.get_json() or {}
         thread_id = str(data.get('thread_id'))
@@ -173,29 +165,26 @@ def upsert_thread():
         if not thread_id or not user_id:
             return error_response('thread_id and user_id required', 400)
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # UPSERT: Insert or update on conflict
-        upsert_query = """
-            INSERT INTO sessions.threads (
-                thread_slug, workspace_id, name, user_id, created_at, updated_at,
-                metadata, location, tags, synergy_card_id
-            ) VALUES (
-                %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, %s, %s, %s, %s
-            )
-            ON CONFLICT (thread_slug) DO UPDATE SET
-                name = EXCLUDED.name,
-                location = EXCLUDED.location,
-                tags = EXCLUDED.tags,
-                synergy_card_id = EXCLUDED.synergy_card_id,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING id
-        """
-        
-        cursor.execute(
-            upsert_query,
-            (
+        # ✅ CRITICAL FIX: Use context manager to prevent connection leaks
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # UPSERT: Insert or update on conflict
+            sql, params = convert_sql_placeholders("""
+                INSERT INTO sessions.threads (
+                    thread_slug, workspace_id, name, user_id, created_at, updated_at,
+                    metadata, location, tags, synergy_card_id
+                ) VALUES (
+                    %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, %s, %s, %s, %s
+                )
+                ON CONFLICT (thread_slug) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    location = EXCLUDED.location,
+                    tags = EXCLUDED.tags,
+                    synergy_card_id = EXCLUDED.synergy_card_id,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING id
+            """, (
                 thread_id,
                 1,  # workspace_id
                 title,
@@ -204,14 +193,14 @@ def upsert_thread():
                 location,
                 json.dumps(tags),
                 synergy_card_id
-            )
-        )
-        
-        result = cursor.fetchone()
-        internal_id = result[0] if isinstance(result, tuple) else result['id']
-        
-        conn.commit()
-        conn.close()
+            ))
+            
+            cursor.execute(sql, params)
+            
+            result = cursor.fetchone()
+            internal_id = result[0] if isinstance(result, tuple) else result['id']
+            
+            conn.commit()
         
         print(f"✅ [THREAD UPSERT] Thread {thread_id} (DB ID: {internal_id}) created/updated")
         
@@ -225,10 +214,6 @@ def upsert_thread():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to upsert thread: {str(e)}', 500)
-    finally:
-        # CRITICAL: Always close connection, even if exception raised
-        if conn:
-            conn.close()
 
 
 # ============================================================
@@ -248,6 +233,10 @@ def mark_thread_as_prime_loaded():
     Returns:
         {"success": true, "message": "Thread marked as prime-loaded"}
     """
+    # ✅ LEAK FIX #1: Initialize response BEFORE with block
+    response_data = None
+    status_code = 200
+    
     try:
         data = request.get_json() or {}
         thread_id = data.get('thread_id')
@@ -256,45 +245,49 @@ def mark_thread_as_prime_loaded():
         if not thread_id or not user_id:
             return error_response('thread_id and user_id required', 400)
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Step 1: Unmark all existing prime-loaded threads for this user
-        sql, params = convert_sql_placeholders("""
-            UPDATE sessions.threads
-            SET location = 'prime', updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = %s AND location = 'prime-loaded'
-        """, (user_id,))
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Step 1: Unmark all existing prime-loaded threads for this user
+            sql, params = convert_sql_placeholders("""
+                UPDATE sessions.threads
+                SET location = 'prime', updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s AND location = 'prime-loaded'
+            """, (user_id,))
 
-        cursor.execute(sql, params)
-        
-        unmarked_count = cursor.rowcount
-        print(f"🔄 [PRIME-LOADED] Unmarked {unmarked_count} existing prime-loaded threads for user {user_id}")
-        
-        # Step 2: Mark the new thread as prime-loaded
-        sql, params = convert_sql_placeholders("""
-            UPDATE sessions.threads
-            SET location = 'prime-loaded', updated_at = CURRENT_TIMESTAMP
-            WHERE thread_slug = %s AND user_id = %s
-            RETURNING id
-        """, (thread_id, user_id))
+            cursor.execute(sql, params)
+            
+            unmarked_count = cursor.rowcount
+            print(f"🔄 [PRIME-LOADED] Unmarked {unmarked_count} existing prime-loaded threads for user {user_id}")
+            
+            # Step 2: Mark the new thread as prime-loaded
+            sql, params = convert_sql_placeholders("""
+                UPDATE sessions.threads
+                SET location = 'prime-loaded', updated_at = CURRENT_TIMESTAMP
+                WHERE thread_slug = %s AND user_id = %s
+                RETURNING id
+            """, (thread_id, user_id))
 
-        cursor.execute(sql, params)
+            cursor.execute(sql, params)
+            
+            result = cursor.fetchone()
+            
+            # ✅ LEAK FIX: Don't return inside with block
+            if not result:
+                response_data = error_response(f'Thread {thread_id} not found for user {user_id}', 404)
+                status_code = 404
+            else:
+                conn.commit()
+                
+                print(f"✅ [PRIME-LOADED] Thread {thread_id} marked as prime-loaded for user {user_id}")
+                response_data = success_response({
+                    'thread_id': thread_id,
+                    'message': 'Thread will load on Prime startup'
+                }, message='Thread marked as prime-loaded')
+                status_code = 200
         
-        result = cursor.fetchone()
-        if not result:
-            conn.close()
-            return error_response(f'Thread {thread_id} not found for user {user_id}', 404)
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"✅ [PRIME-LOADED] Thread {thread_id} marked as prime-loaded for user {user_id}")
-        
-        return success_response({
-            'thread_id': thread_id,
-            'message': 'Thread will load on Prime startup'
-        }, message='Thread marked as prime-loaded')
+        # ✅ Return AFTER with block closes
+        return response_data, status_code
         
     except Exception as e:
         print(f"❌ [PRIME-LOADED ERROR] {str(e)}")
@@ -318,6 +311,10 @@ def list_threads():
     
     Returns list of threads FROM sessions.sessions schema (Supabase) or sessions.db (SQLite)
     """
+    # ✅ LEAK FIX #2: Initialize response BEFORE with block
+    response_data = None
+    status_code = 200
+    
     try:
         user_id = request.args.get('user_id')
         if not user_id:
@@ -329,105 +326,107 @@ def list_threads():
         print(f"📊 [THREAD API] Parameters: user_id={user_id}, limit={limit}")
         print(f"🗄️ [THREAD API] Database: {'Supabase' if is_using_supabase() else 'SQLite'}")
         
-        # ✅ CRITICAL FIX: Use context manager to prevent connection leaks
         with get_database_connection('sessions') as conn:
             cursor = conn.cursor()
-        
-        # Build query with proper placeholders
-        query = """
-            SELECT 
-                t.id,
-                t.thread_slug, 
-                t.name, 
-                t.user_id, 
-                t.created_at, 
-                t.updated_at, 
-                t.metadata, 
-                t.location, 
-                t.tags, 
-                t.synergy_card_id, 
-                t.synergy_card_name,
-                t.parent_thread_id, 
-                t.branch_name,
-                t.workflow_id,
-                t.workflow_name,
-                t.workflow_slug,
-                t.workflow_title,
-                t.internal_doc_slug,
-                t.internal_doc_title,
-                COUNT(m.id) as message_count,
-                MAX(m.timestamp) as last_message_time,
-                (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY timestamp DESC LIMIT 1) as last_message_role
-            FROM sessions.threads t
-            LEFT JOIN sessions.messages m ON t.id = m.thread_id
-            WHERE t.user_id = %s
-            GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
-                     t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
-                     t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
-                     t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title
-            ORDER BY t.updated_at DESC
-            LIMIT %s
-        """
-        
-        # Convert ? placeholders to %s for PostgreSQL
-        query = convert_sql_placeholders(query)
-        
-        # Execute query
-        cursor.execute(query, (user_id, limit))
-        rows = cursor.fetchall()
-        
-        print(f"✅ [THREAD API] Query returned {len(rows)} rows")
-        
-        # Log location distribution
-        location_counts = {}
-        for row in rows:
-            loc = row['location'] or 'prime'
-            location_counts[loc] = location_counts.get(loc, 0) + 1
-        print(f"📍 [THREAD API] Location distribution: {location_counts}")
-        
-        threads = []
-        for row in rows:
-            # Rows returned as dicts (RealDictCursor for Supabase, Row for SQLite)
-            thread_data = {
-                'id': row['thread_slug'],
-                'thread_id': row['id'],  # Internal database ID
-                'title': row['name'],
-                'user_id': row['user_id'],
-                'created': row['created_at'],
-                'updated': row['updated_at'],
-                'metadata': json.loads(row['metadata']) if row['metadata'] else {},
-                'location': row['location'] or 'prime',
-                'agent': row['location'] or 'main',  # Alias for frontend compatibility
-                'tags': json.loads(row['tags']) if row['tags'] else [],
-                'synergy_card_id': row['synergy_card_id'],
-                'synergy_card_name': row['synergy_card_name'],
-                'parent_thread_id': row['parent_thread_id'],
-                'branch_name': row['branch_name'],
-                'workflow_id': row['workflow_id'],
-                'workflow_name': row['workflow_name'],
-                'workflow_slug': row['workflow_slug'],
-                'workflow_title': row['workflow_title'],
-                'internal_doc_slug': row['internal_doc_slug'],
-                'internal_doc_title': row['internal_doc_title'],
-                'message_count': row['message_count'] or 0,
-                'last_message_time': row['last_message_time'],
-                'last_message_role': row['last_message_role'],
-                'archived': False  # Default for now, add column later if needed
-            }
-            threads.append(thread_data)
             
-            # ✅ Connection automatically closed by context manager
+            # Build query with proper placeholders
+            query = """
+                SELECT 
+                    t.id,
+                    t.thread_slug, 
+                    t.name, 
+                    t.user_id, 
+                    t.created_at, 
+                    t.updated_at, 
+                    t.metadata, 
+                    t.location, 
+                    t.tags, 
+                    t.synergy_card_id, 
+                    t.synergy_card_name,
+                    t.parent_thread_id, 
+                    t.branch_name,
+                    t.workflow_id,
+                    t.workflow_name,
+                    t.workflow_slug,
+                    t.workflow_title,
+                    t.internal_doc_slug,
+                    t.internal_doc_title,
+                    COUNT(m.id) as message_count,
+                    MAX(m.created_at) as last_message_time,
+                    (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
+                FROM sessions.threads t
+                LEFT JOIN sessions.messages m ON t.id = m.thread_id
+                WHERE t.user_id = %s
+                GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
+                         t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
+                         t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
+                         t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title
+                ORDER BY t.updated_at DESC
+                LIMIT %s
+            """
+            
+            # Convert ? placeholders to %s for PostgreSQL
+            sql, params = convert_sql_placeholders(query, (user_id, limit))
+            
+            # Execute query
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            
+            print(f"✅ [THREAD API] Query returned {len(rows)} rows")
+            
+            # Log location distribution
+            location_counts = {}
+            for row in rows:
+                loc = row['location'] or 'prime'
+                location_counts[loc] = location_counts.get(loc, 0) + 1
+            print(f"📍 [THREAD API] Location distribution: {location_counts}")
+            
+            threads = []
+            for row in rows:
+                # Rows returned as dicts (RealDictCursor for Supabase, Row for SQLite)
+                thread_data = {
+                    'id': row['thread_slug'],
+                    'thread_id': row['id'],  # Internal database ID
+                    'title': row['name'],
+                    'user_id': row['user_id'],
+                    'created': row['created_at'],
+                    'updated': row['updated_at'],
+                    'metadata': json.loads(row['metadata']) if row['metadata'] else {},
+                    'location': row['location'] or 'prime',
+                    'agent': row['location'] or 'main',  # Alias for frontend compatibility
+                    'tags': json.loads(row['tags']) if row['tags'] else [],
+                    'synergy_card_id': row['synergy_card_id'],
+                    'synergy_card_name': row['synergy_card_name'],
+                    'parent_thread_id': row['parent_thread_id'],
+                    'branch_name': row['branch_name'],
+                    'workflow_id': row['workflow_id'],
+                    'workflow_name': row['workflow_name'],
+                    'workflow_slug': row['workflow_slug'],
+                    'workflow_title': row['workflow_title'],
+                    'internal_doc_slug': row['internal_doc_slug'],
+                    'internal_doc_title': row['internal_doc_title'],
+                    'message_count': row['message_count'] or 0,
+                    'last_message_time': row['last_message_time'],
+                    'last_message_role': row['last_message_role'],
+                    'archived': False  # Default for now, add column later if needed
+                }
+                threads.append(thread_data)
         
+        # ✅ LEAK FIX #2: Set response data, don't return inside with block
         print(f"📤 [THREAD API] Returning {len(threads)} threads")
         for thread in threads[:5]:  # Log first 5 threads
             print(f"   🧵 {thread['id']}: '{thread['title']}' → location={thread['location']}")
         if len(threads) > 5:
             print(f"   ... and {len(threads) - 5} more threads")
         
-        return success_response({
+        response_data = success_response({
             'threads': threads,
             'count': len(threads)
         }, message=f"Found {len(threads)} threads for user {user_id}")
+        status_code = 200
+        
+        # ✅ Return AFTER with block closes
+        return response_data
     
     except Exception as e:
         return error_response(f"Failed to list threads: {str(e)}", 500)
@@ -454,31 +453,32 @@ def update_thread_metadata_fields():
         if not thread_slug:
             return error_response('thread_slug required', 400)
         
-        # Build UPDATE query for metadata fields only
-        update_query = """
-            UPDATE sessions.threads SET
-                workflow_slug = %s,
-                workflow_title = %s,
-                internal_doc_slug = %s,
-                internal_doc_title = %s,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE thread_slug = %s
-        """
-        
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(
-            update_query,
-            (
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Build UPDATE query for metadata fields only
+            sql, params = convert_sql_placeholders("""
+                UPDATE sessions.threads SET
+                    workflow_slug = %s,
+                    workflow_title = %s,
+                    internal_doc_slug = %s,
+                    internal_doc_title = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE thread_slug = %s
+            """, (
                 data.get('workflow_slug'),
                 data.get('workflow_title'),
                 data.get('internal_doc_slug'),
                 data.get('internal_doc_title'),
                 thread_slug
-            )
-        )
-        conn.commit()
-        conn.close()
+            ))
+            
+            cursor.execute(sql, params)
+            conn.commit()
+        
+        print(f"[THREAD SAVE] ✅ SUCCESS: Thread saved")
+        print(f"[THREAD SAVE] Messages: {message_count}")
+        print(f"{'='*80}\n")
         
         return success_response({
             'thread_slug': thread_slug,
@@ -739,89 +739,84 @@ def save_thread():
         if not conversation:
             return error_response("Thread has no messages to save", 400)
         
-        # Save to Supabase
-        
-        # Create threads table if not exists (UPDATED SCHEMA with new metadata fields)
-        create_table_query = """
-            CREATE TABLE IF NOT EXISTS saved_threads (
-                thread_id TEXT PRIMARY KEY,
-                agent_id TEXT NOT NULL,
-                session_id TEXT NOT NULL,
-                user_id INTEGER DEFAULT 1,
-                location TEXT DEFAULT 'prime',
-                thread_name TEXT,
-                conversation TEXT NOT NULL,
-                message_count INTEGER,
-                context TEXT,
-                created_at TEXT,
-                saved_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
-                tags TEXT DEFAULT '[]',
-                synergy_card_id TEXT DEFAULT NULL,
-                parent_thread_id TEXT DEFAULT NULL,
-                branch_point_message_id TEXT DEFAULT NULL,
-                branch_name TEXT DEFAULT NULL,
-                summary TEXT DEFAULT NULL,
-                summary_generated_at TEXT DEFAULT NULL
-            )
-        """
-        
-        # Use Supabase connection
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        try:
-            cursor.execute(create_table_query)
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Create threads table if not exists (UPDATED SCHEMA with new metadata fields)
+            create_table_query = """
+                CREATE TABLE IF NOT EXISTS sessions.saved_threads (
+                    thread_id TEXT PRIMARY KEY,
+                    agent_id TEXT NOT NULL,
+                    session_id TEXT NOT NULL,
+                    user_id INTEGER DEFAULT 1,
+                    location TEXT DEFAULT 'prime',
+                    thread_name TEXT,
+                    conversation TEXT NOT NULL,
+                    message_count INTEGER,
+                    context TEXT,
+                    created_at TIMESTAMP,
+                    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    tags TEXT DEFAULT '[]',
+                    synergy_card_id TEXT DEFAULT NULL,
+                    parent_thread_id TEXT DEFAULT NULL,
+                    branch_point_message_id TEXT DEFAULT NULL,
+                    branch_name TEXT DEFAULT NULL,
+                    summary TEXT DEFAULT NULL,
+                    summary_generated_at TEXT DEFAULT NULL
+                )
+            """
+            
+            try:
+                cursor.execute(create_table_query)
+                conn.commit()
+            except Exception as e:
+                print(f"⚠️ [Thread Save] Table already exists or creation failed: {e}")
+                conn.rollback()
+            
+            # Insert thread
+            thread_id_full = f"{agent_id}_{session_id}"
+            conversation_json = json.dumps(conversation)
+            context_json = json.dumps({})  # Empty context for frontend threads
+            
+            # PostgreSQL: INSERT ... ON CONFLICT (upsert)
+            sql, params = convert_sql_placeholders("""
+                INSERT INTO sessions.saved_threads 
+                (thread_id, agent_id, session_id, user_id, location, thread_name, conversation, 
+                 message_count, context, saved_at, last_updated,
+                 tags, synergy_card_id, parent_thread_id, branch_point_message_id, 
+                 branch_name, summary, summary_generated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW(),
+                        %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (thread_id) DO UPDATE SET
+                    thread_name = EXCLUDED.thread_name,
+                    conversation = EXCLUDED.conversation,
+                    message_count = EXCLUDED.message_count,
+                    last_updated = NOW(),
+                    tags = EXCLUDED.tags,
+                    synergy_card_id = EXCLUDED.synergy_card_id
+            """, (
+                thread_id_full,
+                agent_id,
+                session_id,
+                user_id,
+                location,
+                thread_name,
+                conversation_json,
+                len(conversation),
+                context_json,
+                # NEW METADATA FIELDS
+                tags,
+                synergy_card_id,
+                parent_thread_id,
+                branch_point_message_id,
+                branch_name,
+                summary,
+                summary_generated_at
+            ))
+            
+            cursor.execute(sql, params)
             conn.commit()
-        except Exception as e:
-            print(f"⚠️ [Thread Save] Table already exists or creation failed: {e}")
-            conn.rollback()
-        
-        # Insert thread
-        thread_id = f"{agent_id}_{session_id}"
-        conversation_json = json.dumps(conversation)
-        context_json = json.dumps({})  # Empty context for frontend threads
-        
-        # PostgreSQL: INSERT ... ON CONFLICT (upsert)
-        insert_query = """
-            INSERT INTO sessions.saved_threads 
-            (thread_id, agent_id, session_id, user_id, location, thread_name, conversation, 
-             message_count, context, saved_at, last_updated,
-             tags, synergy_card_id, parent_thread_id, branch_point_message_id, 
-             branch_name, summary, summary_generated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW(),
-                    %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (thread_id) DO UPDATE SET
-                thread_name = EXCLUDED.thread_name,
-                conversation = EXCLUDED.conversation,
-                message_count = EXCLUDED.message_count,
-                last_updated = NOW(),
-                tags = EXCLUDED.tags,
-                synergy_card_id = EXCLUDED.synergy_card_id
-        """
-        
-        params = [
-            thread_id,
-            agent_id,
-            session_id,
-            user_id,
-            location,
-            thread_name,
-            conversation_json,
-            len(conversation),
-            context_json,
-            # NEW METADATA FIELDS
-            tags,
-            synergy_card_id,
-            parent_thread_id,
-            branch_point_message_id,
-            branch_name,
-            summary,
-            summary_generated_at
-        ]
-        
-        cursor.execute(insert_query, params)
-        conn.commit()
-        conn.close()
         
         # INTEGRATION: Update thread assignments in sessions.db if location is an agent
         if location and location != 'prime' and location.startswith('agent-'):
@@ -833,7 +828,7 @@ def save_thread():
                 print(f"⚠️ [Thread Save] Failed to update thread assignment: {e}")
         
         return success_response({
-            'thread_id': thread_id,
+            'thread_id': thread_id_full,
             'message_count': len(conversation),
             'saved_at': datetime.now().isoformat(),
             'location': location
@@ -853,49 +848,50 @@ def load_thread(thread_id):
     Returns thread with full conversation history
     """
     try:
-        query = """
-            SELECT 
-                thread_id,
-                agent_id,
-                session_id,
-                user_id,
-                location,
-                thread_name,
-                conversation,
-                message_count,
-                context,
-                created_at,
-                saved_at,
-                last_updated
-            FROM sessions.saved_threads
-            WHERE thread_id = %s
-        """
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders("""
+                SELECT 
+                    thread_id,
+                    agent_id,
+                    session_id,
+                    user_id,
+                    location,
+                    thread_name,
+                    conversation,
+                    message_count,
+                    context,
+                    created_at,
+                    saved_at,
+                    last_updated
+                FROM sessions.saved_threads
+                WHERE thread_id = %s
+            """, (thread_id,))
+            
+            cursor.execute(sql, params)
+            results = cursor.fetchall()
+            
+            if not results:
+                response_data = error_response(f"Thread {thread_id} not found", 404)
+                status_code = 404
+            else:
+                thread = results[0]
+                
+                # Parse JSON fields
+                thread_dict = dict(thread)
+                thread_dict['conversation'] = json.loads(thread['conversation'])
+                thread_dict['context'] = json.loads(thread.get('context', '{}'))
+                
+                response_data = success_response(thread_dict, message="Thread loaded successfully")
+                status_code = 200
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(query, (thread_id,))
-        results = cursor.fetchall()
-        conn.close()
-        
-        if not results:
-            return error_response(f"Thread {thread_id} not found", 404)
-        
-        thread = results[0]
-        
-        # Parse JSON fields
-        thread['conversation'] = json.loads(thread['conversation'])
-        thread['context'] = json.loads(thread.get('context', '{}'))
-        
-        return success_response(thread, message="Thread loaded successfully")
+        return response_data, status_code
     
     except DatabaseConnectionError as e:
         return error_response(f"Database error: {str(e)}", 500)
     except Exception as e:
         return error_response(str(e), 500)
-
-
-# NOTE: The /details endpoint is defined later (line ~1015) with comprehensive agent assignment support
-# This duplicate has been removed to prevent route conflicts
 
 
 @thread_bp.route('/<thread_id>', methods=['DELETE'])
@@ -925,55 +921,56 @@ def delete_thread(thread_id):
             # Just clear from state manager with the full ID
             agent_state_manager.clear_conversation('prime', thread_id)
         
-        # Delete from Supabase (sessions.threads table)
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # First, get the internal thread ID
+            sql, params = convert_sql_placeholders("""
+                SELECT id FROM sessions.threads
+                WHERE thread_slug = %s
+            """, (thread_id,))
+            
+            cursor.execute(sql, params)
+            result = cursor.fetchone()
+            
+            if not result:
+                print(f"[DELETE THREAD] Thread not found: {thread_id}")
+                response_data = error_response(f"Thread {thread_id} not found", 404)
+                status_code = 404
+            else:
+                internal_thread_id = result[0] if isinstance(result, tuple) else result['id']
+                print(f"[DELETE THREAD] Found thread with internal ID: {internal_thread_id}")
+                
+                # Delete related messages first (foreign key constraint)
+                sql, params = convert_sql_placeholders("""
+                    DELETE FROM sessions.messages
+                    WHERE thread_id = %s
+                """, (internal_thread_id,))
+                
+                cursor.execute(sql, params)
+                messages_deleted = cursor.rowcount
+                print(f"[DELETE THREAD] Deleted {messages_deleted} messages")
+                
+                # Now delete the thread
+                sql, params = convert_sql_placeholders("""
+                    DELETE FROM sessions.threads
+                    WHERE id = %s
+                """, (internal_thread_id,))
+                
+                cursor.execute(sql, params)
+                threads_deleted = cursor.rowcount
+                
+                conn.commit()
+                
+                print(f"[DELETE THREAD] Successfully deleted thread {thread_id} (internal ID: {internal_thread_id})")
+                
+                response_data = deleted_response(
+                    message=f"Thread deleted successfully ({messages_deleted} messages removed)",
+                    deleted_count=threads_deleted
+                )
+                status_code = 200
         
-        # First, get the internal thread ID
-        select_query = """
-            SELECT id FROM sessions.threads
-            WHERE thread_slug = %s
-        """
-        
-        cursor.execute(select_query, [thread_id])
-        result = cursor.fetchone()
-        
-        if not result:
-            conn.close()
-            print(f"[DELETE THREAD] Thread not found: {thread_id}")
-            return error_response(f"Thread {thread_id} not found", 404)
-        
-        internal_thread_id = result[0] if isinstance(result, tuple) else result['id']
-        print(f"[DELETE THREAD] Found thread with internal ID: {internal_thread_id}")
-        
-        # Delete related messages first (foreign key constraint)
-        delete_messages_query = """
-            DELETE FROM sessions.messages
-            WHERE thread_id = %s
-        """
-        
-        cursor.execute(delete_messages_query, [internal_thread_id])
-        messages_deleted = cursor.rowcount
-        print(f"[DELETE THREAD] Deleted {messages_deleted} messages")
-        
-        # Now delete the thread
-        delete_thread_query = """
-            DELETE FROM sessions.threads
-            WHERE id = %s
-        """
-        
-        cursor.execute(delete_thread_query, [internal_thread_id])
-        threads_deleted = cursor.rowcount
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"[DELETE THREAD] Successfully deleted thread {thread_id} (internal ID: {internal_thread_id})")
-        
-        return deleted_response(
-            message=f"Thread deleted successfully ({messages_deleted} messages removed)",
-            deleted_count=threads_deleted
-        )
+        return response_data, status_code
     
     except DatabaseConnectionError as e:
         print(f"[DELETE THREAD] Database connection error: {str(e)}")
@@ -1001,6 +998,10 @@ def update_thread_metadata(thread_id):
         "location": "prime" (optional)
     }
     """
+    # ✅ LEAK FIX #3: Initialize response BEFORE with block
+    response_data = None
+    status_code = 200
+    
     try:
         data = request.json
         if not data:
@@ -1009,42 +1010,34 @@ def update_thread_metadata(thread_id):
         # Build dynamic UPDATE query for PostgreSQL
         update_fields = []
         params = []
-        param_counter = 1
         
         if 'name' in data:
-            update_fields.append(f"name = %s")
+            update_fields.append("name = %s")
             params.append(data['name'])
-            param_counter += 1
         
         if 'tags' in data:
-            update_fields.append(f"tags = %s")
+            update_fields.append("tags = %s")
             params.append(json.dumps(data['tags']))
-            param_counter += 1
         
         if 'synergy_card_id' in data:
-            update_fields.append(f"synergy_card_id = %s")
+            update_fields.append("synergy_card_id = %s")
             params.append(data['synergy_card_id'])
-            param_counter += 1
         
         if 'synergy_card_name' in data:
-            update_fields.append(f"synergy_card_name = %s")
+            update_fields.append("synergy_card_name = %s")
             params.append(data['synergy_card_name'])
-            param_counter += 1
         
         if 'workflow_id' in data:
-            update_fields.append(f"workflow_id = %s")
+            update_fields.append("workflow_id = %s")
             params.append(data['workflow_id'])
-            param_counter += 1
         
         if 'workflow_name' in data:
-            update_fields.append(f"workflow_name = %s")
+            update_fields.append("workflow_name = %s")
             params.append(data['workflow_name'])
-            param_counter += 1
         
         if 'location' in data:
-            update_fields.append(f"location = %s")
+            update_fields.append("location = %s")
             params.append(data['location'])
-            param_counter += 1
         
         if not update_fields:
             return error_response("No valid fields to update", 400)
@@ -1055,28 +1048,35 @@ def update_thread_metadata(thread_id):
         # Add thread_id to params for WHERE clause
         params.append(thread_id)
         
-        # Execute UPDATE using Supabase connection
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            update_query = f"""
+                UPDATE sessions.threads
+                SET {', '.join(update_fields)}
+                WHERE thread_slug = %s
+            """
+            
+            sql, converted_params = convert_sql_placeholders(update_query, tuple(params))
+            cursor.execute(sql, converted_params)
+            rowcount = cursor.rowcount
+            conn.commit()
         
-        update_query = f"""
-            UPDATE sessions.threads
-            SET {', '.join(update_fields)}
-            WHERE thread_slug = %s
-        """
-        
-        cursor.execute(update_query, params)
-        rowcount = cursor.rowcount
-        conn.commit()
-        conn.close()
-        
+        # ✅ LEAK FIX #3: Don't return inside with block
         if rowcount == 0:
-            return error_response(f"Thread {thread_id} not found", 404)
+            response_data = error_response(f"Thread {thread_id} not found", 404)
+            status_code = 404
+        else:
+            response_data = success_response({
+                'thread_id': thread_id,
+                'updated_fields': list(data.keys())
+            }, message="Thread updated successfully")
+            status_code = 200
         
-        return success_response({
-            'thread_id': thread_id,
-            'updated_fields': list(data.keys())
-        }, message="Thread updated successfully")
+        # ✅ Return AFTER with block closes
+        if status_code == 404:
+            return response_data
+        return response_data
     
     except Exception as e:
         import traceback
@@ -1085,10 +1085,10 @@ def update_thread_metadata(thread_id):
         return error_response(str(e), 500)
 
 
+
 # ============================================================
 # THREAD STATISTICS
 # ============================================================
-
 @thread_bp.route('/stats', methods=['GET'])
 def get_thread_stats():
     """
@@ -1131,20 +1131,21 @@ def get_thread_stats():
         
         stats['active_threads'] = stats['total_threads']
         
-        # Count saved threads from SQLite
+        # Count saved threads from database
         try:
-            count_query = """
-                SELECT COUNT(*) as count
-                FROM sessions.saved_threads
-            """
-            
-            conn = get_database_connection('sessions')
-            cursor = conn.cursor()
-            cursor.execute(count_query)
-            results = cursor.fetchall()
-            conn.close()
-            if results:
-                stats['saved_threads'] = results[0]['count']
+            with get_database_connection('sessions') as conn:
+                cursor = conn.cursor()
+                
+                sql, params = convert_sql_placeholders("""
+                    SELECT COUNT(*) as count
+                    FROM sessions.saved_threads
+                """, ())
+                
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
+                
+                if results:
+                    stats['saved_threads'] = results[0]['count']
         except:
             # Table might not exist yet
             stats['saved_threads'] = 0
@@ -1172,21 +1173,31 @@ def autosave_thread():
     
     Automatically saves thread every N messages
     """
+    print(f"\n{'='*80}")
+    print(f"[AUTOSAVE] 🔄 Checking autosave trigger...")
+    print(f"{'='*80}")
+    
     try:
         data = request.json
         agent_id = data.get('agent_id')
         session_id = data.get('session_id')
+        print(f"[AUTOSAVE] Agent: {agent_id}, Session: {session_id}")
         
         if not agent_id or not session_id:
+            print(f"[AUTOSAVE] ❌ FAILED: Missing required fields")
+            print(f"{'='*80}\n")
             return error_response("Missing agent_id or session_id", 400)
         
         # Get thread state
         state = agent_state_manager.get_or_create_state(agent_id, session_id, {})
         
         message_count = len(state['conversation'])
+        print(f"[AUTOSAVE] Message count: {message_count}")
         
         # Only auto-save if we have messages
         if message_count == 0:
+            print(f"[AUTOSAVE] ⏭️  SKIPPED: No messages to save")
+            print(f"{'='*80}\n")
             return success_response({
                 'autosaved': False,
                 'reason': 'No messages to save'
@@ -1194,62 +1205,65 @@ def autosave_thread():
         
         # Auto-save every 5 messages
         if message_count % 5 == 0:
-            # Save to Supabase
+            print(f"[AUTOSAVE] 💾 Milestone reached ({message_count} messages) - saving...")
             
-            # Ensure table exists (PostgreSQL)
-            conn = get_database_connection('sessions')
-            cursor = conn.cursor()
-            
-            create_table_query = """
-                CREATE TABLE IF NOT EXISTS sessions.saved_threads (
-                    thread_id TEXT PRIMARY KEY,
-                    agent_id TEXT NOT NULL,
-                    session_id TEXT NOT NULL,
-                    thread_name TEXT,
-                    conversation TEXT NOT NULL,
-                    message_count INTEGER,
-                    context TEXT,
-                    created_at TIMESTAMP,
-                    saved_at TIMESTAMP DEFAULT NOW()
-                )
-            """
-            try:
-                cursor.execute(create_table_query)
-                conn.commit()
-            except Exception as e:
-                conn.rollback()
-                print(f"⚠️ [Autosave] Table exists: {e}")
-            
-            # Save thread
+            # Prepare variables before with block
             thread_id = f"{agent_id}_{session_id}"
             conversation_json = json.dumps(state['conversation'])
             context_json = json.dumps(state.get('context', {}))
             
-            insert_query = """
-                INSERT INTO sessions.saved_threads 
-                (thread_id, agent_id, session_id, thread_name, conversation, 
-                 message_count, context, created_at, saved_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (thread_id) DO UPDATE SET
-                    conversation = EXCLUDED.conversation,
-                    message_count = EXCLUDED.message_count,
-                    saved_at = NOW()
-            """
+            with get_database_connection('sessions') as conn:
+                cursor = conn.cursor()
+                
+                create_table_query = """
+                    CREATE TABLE IF NOT EXISTS sessions.saved_threads (
+                        thread_id TEXT PRIMARY KEY,
+                        agent_id TEXT NOT NULL,
+                        session_id TEXT NOT NULL,
+                        thread_name TEXT,
+                        conversation TEXT NOT NULL,
+                        message_count INTEGER,
+                        context TEXT,
+                        created_at TIMESTAMP,
+                        saved_at TIMESTAMP DEFAULT NOW()
+                    )
+                """
+                try:
+                    cursor.execute(create_table_query)
+                    conn.commit()
+                except Exception as e:
+                    conn.rollback()
+                    print(f"⚠️ [Autosave] Table exists: {e}")
+                
+                # Save thread
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO sessions.saved_threads 
+                    (thread_id, agent_id, session_id, thread_name, conversation, 
+                     message_count, context, created_at, saved_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (thread_id) DO UPDATE SET
+                        conversation = EXCLUDED.conversation,
+                        message_count = EXCLUDED.message_count,
+                        saved_at = NOW()
+                """, (
+                    thread_id,
+                    agent_id,
+                    session_id,
+                    f"Auto-saved conversation ({message_count} messages)",
+                    conversation_json,
+                    message_count,
+                    context_json,
+                    state.get('created_at')
+                ))
+                
+                cursor.execute(sql, params)
+                conn.commit()
             
-            params = [
-                thread_id,
-                agent_id,
-                session_id,
-                f"Auto-saved conversation ({message_count} messages)",
-                conversation_json,
-                message_count,
-                context_json,
-                state.get('created_at')
-            ]
-            
-            cursor.execute(insert_query, params)
-            conn.commit()
-            conn.close()
+            # Return AFTER the with block closes the connection
+            print(f"[AUTOSAVE] ✅ SUCCESS: Thread auto-saved")
+            print(f"[AUTOSAVE] Thread ID: {thread_id}")
+            print(f"[AUTOSAVE] Messages: {message_count}")
+            print(f"{'='*80}\n")
             
             return success_response({
                 'autosaved': True,
@@ -1257,12 +1271,19 @@ def autosave_thread():
                 'thread_id': thread_id
             }, message="Thread auto-saved")
         
+        print(f"[AUTOSAVE] ⏭️  SKIPPED: Waiting for milestone (current: {message_count}, next: {((message_count // 5) + 1) * 5})")
+        print(f"{'='*80}\n")
+        
         return success_response({
             'autosaved': False,
             'reason': f"Waiting for milestone ({message_count} messages)"
         })
     
     except Exception as e:
+        print(f"[AUTOSAVE] ❌ EXCEPTION: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*80}\n")
         return error_response(str(e), 500)
 
 
@@ -1274,35 +1295,33 @@ def mark_thread_read(thread_id):
     Updates last_read timestamp for thread
     """
     try:
-        # PostgreSQL connection
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Ensure table has last_read column
-        alter_query = """
-            ALTER TABLE sessions.saved_threads
-            ADD COLUMN IF NOT EXISTS last_read TIMESTAMP
-        """
-        
-        try:
-            cursor.execute(alter_query)
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Ensure table has last_read column
+            alter_query = """
+                ALTER TABLE sessions.saved_threads
+                ADD COLUMN IF NOT EXISTS last_read TIMESTAMP
+            """
+            
+            try:
+                cursor.execute(alter_query)
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                # Column might already exist
+                pass
+            
+            # Update last_read
+            sql, params = convert_sql_placeholders("""
+                UPDATE sessions.saved_threads
+                SET last_read = NOW()
+                WHERE thread_id = %s
+            """, (thread_id,))
+            
+            cursor.execute(sql, params)
+            rowcount = cursor.rowcount
             conn.commit()
-        except Exception as e:
-            conn.rollback()
-            # Column might already exist
-            pass
-        
-        # Update last_read
-        update_query = """
-            UPDATE sessions.saved_threads
-            SET last_read = NOW()
-            WHERE thread_id = %s
-        """
-        
-        cursor.execute(update_query, [thread_id])
-        rowcount = cursor.rowcount
-        conn.commit()
-        conn.close()
         
         if rowcount == 0:
             return error_response(f"Thread {thread_id} not found", 404)
@@ -1355,53 +1374,49 @@ def get_threads_details():
         print("[THREADS DETAILS] Step 6: Getting database connection...")
         # Note: threads.location is the primary source of truth for agent assignments
         # See: THREAD_LOCATION_ARCHITECTURE.md
-        conn = get_database_connection('sessions')
-        print(f"[THREADS DETAILS] Step 7: Connected to database")
         
-        # Build query with placeholder conversion for PostgreSQL
-        # IMPORTANT: Only match against thread_slug (TEXT column)
-        # The id column is an INTEGER auto-increment in Supabase
-        # Thread identifiers like '1762851232975' are stored in thread_slug
-        query = f"""
-            SELECT 
-                t.id,
-                t.thread_slug,
-                t.name,
-                t.created_at,
-                t.updated_at,
-                t.synergy_card_id,
-                t.location
-            FROM sessions.threads t
-            WHERE t.thread_slug IN ({placeholders})
-            ORDER BY t.updated_at DESC
-        """
-        
-        # Convert SQL placeholders for PostgreSQL compatibility
-        query = convert_sql_placeholders(query)
-        
-        # Only match against thread_slug (not id)
-        params = thread_ids
-        print(f"[THREADS DETAILS] Step 8: Executing query with {len(params)} params...")
-        
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        threads_raw = cursor.fetchall()
-        
-        # Convert to list of dicts
-        threads = []
-        for row in threads_raw:
-            threads.append({
-                'id': row['id'],
-                'thread_slug': row['thread_slug'],
-                'name': row['name'],
-                'created_at': row['created_at'],
-                'updated_at': row['updated_at'],
-                'synergy_card_id': row['synergy_card_id'],
-                'location': row['location']
-            })
-        
-        cursor.close()
-        conn.close()
+        with get_database_connection('sessions') as conn:
+            print(f"[THREADS DETAILS] Step 7: Connected to database")
+            
+            # Build query with placeholder conversion for PostgreSQL
+            # IMPORTANT: Only match against thread_slug (TEXT column)
+            # The id column is an INTEGER auto-increment in Supabase
+            # Thread identifiers like '1762851232975' are stored in thread_slug
+            query = f"""
+                SELECT 
+                    t.id,
+                    t.thread_slug,
+                    t.name,
+                    t.created_at,
+                    t.updated_at,
+                    t.synergy_card_id,
+                    t.location
+                FROM sessions.threads t
+                WHERE t.thread_slug IN ({placeholders})
+                ORDER BY t.updated_at DESC
+            """
+            
+            # Convert SQL placeholders for PostgreSQL compatibility
+            sql, params = convert_sql_placeholders(query, tuple(thread_ids))
+            
+            print(f"[THREADS DETAILS] Step 8: Executing query with {len(params)} params...")
+            
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            threads_raw = cursor.fetchall()
+            
+            # Convert to list of dicts
+            threads = []
+            for row in threads_raw:
+                threads.append({
+                    'id': row['id'],
+                    'thread_slug': row['thread_slug'],
+                    'name': row['name'],
+                    'created_at': row['created_at'],
+                    'updated_at': row['updated_at'],
+                    'synergy_card_id': row['synergy_card_id'],
+                    'location': row['location']
+                })
         
         print(f"[THREADS DETAILS] Step 9: Got {len(threads)} threads")
         
@@ -1433,7 +1448,6 @@ def get_threads_details():
         print("[THREADS DETAILS] Step 15: Building result array...")
         result = []
         for thread in threads:
-            # FIXED: execute_sqlite_query returns dicts, not Row objects - use dict keys not array indices
             thread_id = thread['id']
             thread_slug = thread['thread_slug']
             location_from_threads = thread.get('location')  # threads.location column
@@ -1496,10 +1510,7 @@ def save_messages():
     Returns:
         {"success": true, "thread_id": "...", "messages_saved": 2}
     """
-    conn = None
     try:
-        from thread_manager import ThreadManager
-        
         data = request.get_json() or {}
         thread_id = str(data.get('thread_id'))
         messages = data.get('messages', [])
@@ -1513,104 +1524,97 @@ def save_messages():
         
         print(f"[MESSAGE SAVE] Thread: {thread_id}, User: {user_id}, Messages: {len(messages)}")
         
-        # Get database connection ONCE and reuse
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Get the internal thread database ID and count in ONE query
-        query = """
-            SELECT t.id, COUNT(m.id) as message_count
-            FROM sessions.threads t
-            LEFT JOIN sessions.messages m ON m.thread_id = t.id
-            WHERE t.thread_slug = %s
-            GROUP BY t.id
-        """
-        cursor.execute(query, (thread_id,))
-        result = cursor.fetchone()
-        
-        if not result:
-            cursor.close()
-            conn.close()
-            return error_response(f'Thread {thread_id} not found', 404)
-        
-        internal_thread_id = result['id']
-        existing_message_count = result['message_count'] or 0
-        print(f"[MESSAGE SAVE] Thread {thread_id} (DB ID: {internal_thread_id}) has {existing_message_count} existing messages")
-        
-        # Only save NEW messages (skip messages that already exist)
-        messages_to_save = messages[existing_message_count:]
-        print(f"[MESSAGE SAVE] Appending {len(messages_to_save)} new messages (skipping first {existing_message_count})")
-        
-        # Batch insert messages directly (MUCH faster than ThreadManager loop)
-        saved_count = 0
-        insert_query = """
-            INSERT INTO sessions.messages (thread_id, role, content, created_at)
-            VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-        """
-        
-        for msg in messages_to_save:
-            role = msg.get('role')
-            content = msg.get('content')
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
             
-            if not role or not content:
-                print(f"[MESSAGE SAVE] Skipping invalid message: {msg}")
-                continue
+            # Get the internal thread database ID and count in ONE query
+            sql, params = convert_sql_placeholders("""
+                SELECT t.id, COUNT(m.id) as message_count
+                FROM sessions.threads t
+                LEFT JOIN sessions.messages m ON m.thread_id = t.id
+                WHERE t.thread_slug = %s
+                GROUP BY t.id
+            """, (thread_id,))
             
-            # CRITICAL FIX (Nov 21, 2025): Skip empty/whitespace-only messages
-            # Check if message has real content (not just whitespace)
-            has_real_content = False
-            if isinstance(content, str):
-                has_real_content = content.strip() != ''
-            elif isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict):
-                        if block.get('type') == 'text':
-                            text_content = block.get('text', '').strip()
-                            if text_content:
-                                has_real_content = True
-                                break
-                        elif block.get('type') in ('thinking', 'tool_use', 'tool_result', 'image'):
-                            has_real_content = True
-                            break
+            cursor.execute(sql, params)
+            result = cursor.fetchone()
             
-            if not has_real_content:
-                print(f"[MESSAGE SAVE] Skipping empty/whitespace-only message: {role}")
-                continue
-            
-            try:
-                # Serialize content to JSON if it's a dict/list (Anthropic format)
-                content_str = json.dumps(content) if isinstance(content, (dict, list)) else content
-                cursor.execute(insert_query, (internal_thread_id, role, content_str))
-                saved_count += 1
-            except Exception as msg_error:
-                print(f"[MESSAGE SAVE ERROR] Failed to save message: {msg_error}")
-                continue
+            if not result:
+                response_data = error_response(f'Thread {thread_id} not found', 404)
+                status_code = 404
+            else:
+                internal_thread_id = result['id']
+                existing_message_count = result['message_count'] or 0
+                print(f"[MESSAGE SAVE] Thread {thread_id} (DB ID: {internal_thread_id}) has {existing_message_count} existing messages")
+                
+                # Only save NEW messages (skip messages that already exist)
+                messages_to_save = messages[existing_message_count:]
+                print(f"[MESSAGE SAVE] Appending {len(messages_to_save)} new messages (skipping first {existing_message_count})")
+                
+                # Batch insert messages directly (MUCH faster than ThreadManager loop)
+                saved_count = 0
+                
+                for msg in messages_to_save:
+                    role = msg.get('role')
+                    content = msg.get('content')
+                    
+                    if not role or not content:
+                        print(f"[MESSAGE SAVE] Skipping invalid message: {msg}")
+                        continue
+                    
+                    # CRITICAL FIX (Nov 21, 2025): Skip empty/whitespace-only messages
+                    # Check if message has real content (not just whitespace)
+                    has_real_content = False
+                    if isinstance(content, str):
+                        has_real_content = content.strip() != ''
+                    elif isinstance(content, list):
+                        for block in content:
+                            if isinstance(block, dict):
+                                if block.get('type') == 'text':
+                                    text_content = block.get('text', '').strip()
+                                    if text_content:
+                                        has_real_content = True
+                                        break
+                                elif block.get('type') in ('thinking', 'tool_use', 'tool_result', 'image'):
+                                    has_real_content = True
+                                    break
+                    
+                    if not has_real_content:
+                        print(f"[MESSAGE SAVE] Skipping empty/whitespace-only message: {role}")
+                        continue
+                    
+                    try:
+                        # Serialize content to JSON if it's a dict/list (Anthropic format)
+                        content_str = json.dumps(content) if isinstance(content, (dict, list)) else content
+                        
+                        sql, params = convert_sql_placeholders("""
+                            INSERT INTO sessions.messages (thread_id, role, content, created_at)
+                            VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                        """, (internal_thread_id, role, content_str))
+                        
+                        cursor.execute(sql, params)
+                        saved_count += 1
+                    except Exception as msg_error:
+                        print(f"[MESSAGE SAVE ERROR] Failed to save message: {msg_error}")
+                        continue
+                
+                # Commit all inserts at once
+                conn.commit()
+                
+                print(f"[MESSAGE SAVE] Successfully saved {saved_count} messages to thread {thread_id}")
+                
+                response_data = success_response({
+                    'thread_id': thread_id,
+                    'messages_saved': saved_count
+                }, message=f'Saved {saved_count} messages to thread')
+                status_code = 200
         
-        # Commit all inserts at once
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        print(f"[MESSAGE SAVE] Successfully saved {saved_count} messages to thread {thread_id}")
-        
-        return success_response({
-            'thread_id': thread_id,
-            'messages_saved': saved_count
-        }, message=f'Saved {saved_count} messages to thread')
+        return response_data, status_code
     
     except Exception as e:
         print(f"[MESSAGE SAVE ERROR] {str(e)}")
         import traceback
         traceback.print_exc()
-        
-        # Ensure connection is closed on error
-        if conn:
-            try:
-                conn.rollback()
-                conn.close()
-            except:
-                pass
-        
         return error_response(f'Failed to save messages: {str(e)}', 500)
 
 
@@ -1629,7 +1633,14 @@ def get_messages():
     
     Returns:
         {"success": true, "messages": [...], "count": 2, "total": 37}
+    
+    ✅ CRITICAL FIX: Entire function wrapped in try/except to prevent leaks
     """
+    # ✅ Initialize variables BEFORE with block
+    thread_id = None
+    messages = []
+    total_count = 0
+    
     try:
         thread_id = request.args.get('thread_id')
         if not thread_id:
@@ -1639,95 +1650,101 @@ def get_messages():
         limit = request.args.get('limit', type=int)
         offset = request.args.get('offset', default=0, type=int)
         
-        # First, get total message count for this thread
-        count_query = """
-            SELECT COUNT(m.id) as total
-            FROM sessions.messages m
-            JOIN sessions.threads t ON m.thread_id = t.id
-            WHERE t.thread_slug = %s
-        """
-        
-        # Query messages by thread_slug (with optional pagination)
-        if limit:
-            # Paginated query - get MOST RECENT messages first, then reverse
-            query = """
-                SELECT 
-                    m.id,
-                    m.role,
-                    m.content,
-                    m.tool_calls,
-                    m.tokens_used,
-                    m.created_at,
-                    m.metadata
-                FROM sessions.messages m
-                JOIN sessions.threads t ON m.thread_id = t.id
-                WHERE t.thread_slug = %s
-                ORDER BY m.created_at DESC
-                LIMIT %s OFFSET %s
-            """
-        else:
-            # No pagination - get all messages in chronological order
-            query = """
-                SELECT 
-                    m.id,
-                    m.role,
-                    m.content,
-                    m.tool_calls,
-                    m.tokens_used,
-                    m.created_at,
-                    m.metadata
-                FROM sessions.messages m
-                JOIN sessions.threads t ON m.thread_id = t.id
-                WHERE t.thread_slug = %s
-                ORDER BY m.created_at ASC
-            """
-        
-        # ✅ CRITICAL FIX: Use context manager to prevent connection leaks
+        # ✅ All DB operations inside single with block
         with get_database_connection('sessions') as conn:
             cursor = conn.cursor()
             
-            # Get total count
-            cursor.execute(count_query, (thread_id,))
-            total_count = cursor.fetchone()['total']
+            # First, get total message count for this thread
+            sql, params = convert_sql_placeholders("""
+                SELECT COUNT(m.id) as total
+                FROM sessions.messages m
+                JOIN sessions.threads t ON m.thread_id = t.id
+                WHERE t.thread_slug = %s
+            """, (thread_id,))
             
-            # Get messages
+            cursor.execute(sql, params)
+            result = cursor.fetchone()
+            total_count = result['total'] if isinstance(result, dict) else result[0]
+            
+            # Query messages by thread_slug (with optional pagination)
             if limit:
-                cursor.execute(query, (thread_id, limit, offset))
+                # Paginated query - get MOST RECENT messages first, then reverse
+                sql, params = convert_sql_placeholders("""
+                    SELECT 
+                        m.id,
+                        m.role,
+                        m.content,
+                        m.tool_calls,
+                        m.tokens_used,
+                        m.created_at,
+                        m.metadata
+                    FROM sessions.messages m
+                    JOIN sessions.threads t ON m.thread_id = t.id
+                    WHERE t.thread_slug = %s
+                    ORDER BY m.created_at DESC
+                    LIMIT %s OFFSET %s
+                """, (thread_id, limit, offset))
             else:
-                cursor.execute(query, (thread_id,))
+                # No pagination - get all messages in chronological order
+                sql, params = convert_sql_placeholders("""
+                    SELECT 
+                        m.id,
+                        m.role,
+                        m.content,
+                        m.tool_calls,
+                        m.tokens_used,
+                        m.created_at,
+                        m.metadata
+                    FROM sessions.messages m
+                    JOIN sessions.threads t ON m.thread_id = t.id
+                    WHERE t.thread_slug = %s
+                    ORDER BY m.created_at ASC
+                """, (thread_id,))
             
+            cursor.execute(sql, params)
             rows = cursor.fetchall()
-            
-            # ✅ Connection automatically closed by context manager
         
-        messages = []
+        # ✅ Connection closed - now safe to process results
+        
+        # Process rows into messages array
         for row in rows:
             # Parse metadata JSON if it exists
             metadata = {}
-            if row.get('metadata'):
+            metadata_value = row.get('metadata') if isinstance(row, dict) else row[6]
+            if metadata_value:
                 try:
-                    metadata = json.loads(row['metadata'])
+                    metadata = json.loads(metadata_value)
                 except:
                     metadata = {}
             
             # Parse content JSON if it's a JSON string (Anthropic format)
-            content = row['content']
+            content_value = row['content'] if isinstance(row, dict) else row[2]
             try:
                 # Try to parse as JSON (multi-block Anthropic format)
-                content = json.loads(content)
+                if isinstance(content_value, str):
+                    content = json.loads(content_value)
+                else:
+                    content = content_value
             except:
                 # If parsing fails, keep as string (simple text message)
-                pass
+                content = content_value
+            
+            # Parse tool_calls
+            tool_calls_value = row.get('tool_calls') if isinstance(row, dict) else row[3]
+            try:
+                tool_calls = json.loads(tool_calls_value) if tool_calls_value else []
+            except:
+                tool_calls = []
             
             messages.append({
-                'id': row['id'],
-                'role': row['role'],
+                'id': row['id'] if isinstance(row, dict) else row[0],
+                'role': row['role'] if isinstance(row, dict) else row[1],
                 'content': content,
-                'tool_calls': json.loads(row['tool_calls']) if row['tool_calls'] else [],
-                'tokens_used': row.get('tokens_used'),
+                'tool_calls': tool_calls,
+                'tokens_used': row.get('tokens_used') if isinstance(row, dict) else row[4],
                 'response_time_ms': None,  # Not stored in DB (log only)
-                'timestamp': row['created_at'],
-                'metadata': metadata  # Now properly loaded from database
+                'timestamp': row['created_at'] if isinstance(row, dict) else row[5],
+                'metadata': metadata
             })
         
         # If paginated, reverse messages to get chronological order
@@ -1746,7 +1763,8 @@ def get_messages():
         }, message=f'Found {len(messages)} messages{pagination_info}')
     
     except Exception as e:
-        print(f"[MESSAGE GET ERROR] {str(e)}")
+        # ✅ CRITICAL FIX: Catch ALL exceptions to ensure no leaks
+        print(f"❌ [MESSAGE GET ERROR] {str(e)}")
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to get messages: {str(e)}', 500)
@@ -1770,9 +1788,6 @@ def delete_assignment(location):
         {"success": true, "message": "Assignment cleared"}
     """
     try:
-        import sqlite3
-        from pathlib import Path
-        from shared.database_utils import get_database_connection
         import json
         
         # Clean location (remove extra spaces)
@@ -1801,41 +1816,48 @@ def delete_assignment(location):
         
         print(f"[DELETE ASSIGNMENT] Clearing assignment for location: {location}, user_id: {user_id}")
         
-        # FIXED: Use sessions.db with users.metadata column (same as thread_assignment_routes.py)
-        root_dir = Path(__file__).parent.parent.parent
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        
-        # Ensure user row exists
-        cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", (user_id,))
-        if not cursor.fetchone():
-            sql, params = convert_sql_placeholders("""
-                INSERT INTO ai_infrastructure.users (id, username, email, metadata)
-                VALUES (%s, %s, %s, %s)
-            """, (user_id, f'user_{user_id}', f'user_{user_id}@example.com', '{}'))
-
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            # Ensure user row exists
+            sql, params = convert_sql_placeholders(
+                "SELECT id FROM ai_infrastructure.users WHERE id = %s",
+                (user_id,)
+            )
             cursor.execute(sql, params)
-            print(f'[DELETE ASSIGNMENT] Created user row for user {user_id}')
-        
-        # Get current metadata
-        cursor.execute("SELECT metadata FROM ai_infrastructure.users WHERE id = %s", (user_id,))
-        row = cursor.fetchone()
-        metadata = json.loads(row[0] or '{}')
-        
-        # Remove assignment from metadata
-        assignments = metadata.get('thread_assignments', {})
-        session_id = assignments.pop(location, None)
-        
-        # Update metadata
-        metadata['thread_assignments'] = assignments
-        cursor.execute("""
-            UPDATE ai_infrastructure.users
-            SET metadata = %s
-            WHERE id = %s
-        """, (json.dumps(metadata), user_id))
-        
-        conn.commit()
-        conn.close()
+            
+            if not cursor.fetchone():
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO ai_infrastructure.users (id, username, email, metadata)
+                    VALUES (%s, %s, %s, %s)
+                """, (user_id, f'user_{user_id}', f'user_{user_id}@example.com', '{}'))
+
+                cursor.execute(sql, params)
+                print(f'[DELETE ASSIGNMENT] Created user row for user {user_id}')
+            
+            # Get current metadata
+            sql, params = convert_sql_placeholders(
+                "SELECT metadata FROM ai_infrastructure.users WHERE id = %s",
+                (user_id,)
+            )
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            metadata = json.loads(row['metadata'] if row['metadata'] else '{}')
+            
+            # Remove assignment from metadata
+            assignments = metadata.get('thread_assignments', {})
+            session_id = assignments.pop(location, None)
+            
+            # Update metadata
+            metadata['thread_assignments'] = assignments
+            sql, params = convert_sql_placeholders("""
+                UPDATE ai_infrastructure.users
+                SET metadata = %s
+                WHERE id = %s
+            """, (json.dumps(metadata), user_id))
+            cursor.execute(sql, params)
+            
+            conn.commit()
         
         deleted_count = 1 if session_id else 0
         print(f"[DELETE ASSIGNMENT] Cleared {location} assignment for user {user_id} (session_id: {session_id})")
@@ -1873,6 +1895,10 @@ def lock_thread(thread_id):
             "locked_at": "2025-11-14T10:30:00"
         }
     """
+    # ✅ LEAK FIX #4: Initialize response BEFORE with block
+    response_data = None
+    status_code = 200
+    
     try:
         data = request.get_json()
         device_id = data.get('device_id')
@@ -1884,33 +1910,39 @@ def lock_thread(thread_id):
         # Update thread with lock info
         locked_at = datetime.now().isoformat()
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders("""
+                UPDATE sessions.threads 
+                SET locked_to_device_id = %s,
+                    locked_at = %s
+                WHERE id = %s
+            """, (device_id, locked_at, thread_id))
+            
+            cursor.execute(sql, params)
+            rowcount = cursor.rowcount
+            conn.commit()
         
-        query = """
-            UPDATE sessions.threads 
-            SET locked_by_device = %s,
-                locked_by_device_name = %s,
-                locked_at = %s
-            WHERE id = %s
-        """
-        
-        cursor.execute(query, (device_id, device_name, locked_at, thread_id))
-        rowcount = cursor.rowcount
-        conn.commit()
-        conn.close()
-        
+        # ✅ LEAK FIX #4: Don't return inside with block
         if rowcount == 0:
-            return error_response('Thread not found', 404)
+            response_data = error_response('Thread not found', 404)
+            status_code = 404
+        else:
+            print(f"[DEVICE LOCK] Thread {thread_id} locked to device {device_name} ({device_id})")
+            
+            response_data = success_response({
+                'thread_id': thread_id,
+                'locked_by_device': device_id,
+                'locked_by_device_name': device_name,
+                'locked_at': locked_at
+            }, message=f'Thread locked to {device_name}')
+            status_code = 200
         
-        print(f"[DEVICE LOCK] Thread {thread_id} locked to device {device_name} ({device_id})")
-        
-        return success_response({
-            'thread_id': thread_id,
-            'locked_by_device': device_id,
-            'locked_by_device_name': device_name,
-            'locked_at': locked_at
-        }, message=f'Thread locked to {device_name}')
+        # ✅ Return AFTER with block closes
+        if status_code == 404:
+            return response_data
+        return response_data
     
     except Exception as e:
         print(f"[DEVICE LOCK ERROR] {str(e)}")
@@ -1931,31 +1963,31 @@ def unlock_thread(thread_id):
         }
     """
     try:
-        # Clear lock fields (PostgreSQL)
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders("""
+                UPDATE sessions.threads 
+                SET locked_to_device_id = NULL,
+                    locked_at = NULL
+                WHERE id = %s
+            """, (thread_id,))
+            
+            cursor.execute(sql, params)
+            rowcount = cursor.rowcount
+            conn.commit()
+            
+            if rowcount == 0:
+                response_data = error_response('Thread not found', 404)
+                status_code = 404
+            else:
+                print(f"[DEVICE LOCK] Thread {thread_id} unlocked")
+                response_data = success_response({
+                    'thread_id': thread_id
+                }, message='Thread unlocked successfully')
+                status_code = 200
         
-        query = """
-            UPDATE sessions.threads 
-            SET locked_by_device = NULL,
-                locked_by_device_name = NULL,
-                locked_at = NULL
-            WHERE id = %s
-        """
-        
-        cursor.execute(query, (thread_id,))
-        rowcount = cursor.rowcount
-        conn.commit()
-        conn.close()
-        
-        if rowcount == 0:
-            return error_response('Thread not found', 404)
-        
-        print(f"[DEVICE LOCK] Thread {thread_id} unlocked")
-        
-        return success_response({
-            'thread_id': thread_id
-        }, message='Thread unlocked successfully')
+        return response_data, status_code
     
     except Exception as e:
         print(f"[DEVICE UNLOCK ERROR] {str(e)}")
@@ -1978,35 +2010,46 @@ def get_lock_status(thread_id):
             "locked_at": "2025-11-14T10:30:00"
         }
     """
+    # ✅ LEAK FIX #5: Initialize response BEFORE with block
+    response_data = None
+    status_code = 200
+    
     try:
-        query = """
-            SELECT locked_by_device, locked_by_device_name, locked_at
-            FROM sessions.threads
-            WHERE id = %s
-        """
+        with get_database_connection('sessions') as conn:
+            cursor = conn.cursor()
+            
+            sql, params = convert_sql_placeholders("""
+                SELECT locked_to_device_id, locked_at
+                FROM sessions.threads
+                WHERE id = %s
+            """, (thread_id,))
+            
+            cursor.execute(sql, params)
+            results = cursor.fetchall()
+            
+            # ✅ LEAK FIX #5: Don't return inside with block
+            if not results:
+                response_data = error_response('Thread not found', 404)
+                status_code = 404
+            else:
+                row = results[0]
+                locked = bool(row.get('locked_to_device_id'))
+                
+                result_data = {
+                    'thread_id': thread_id,
+                    'locked': locked,
+                    'locked_by_device': row.get('locked_to_device_id'),
+                    'locked_at': row.get('locked_at')
+                }
+                
+                response_data = success_response(result_data)
+                status_code = 200
         
-        conn = get_database_connection('sessions')
-        cursor = conn.cursor()
-        cursor.execute(query, (thread_id,))
-        results = cursor.fetchall()
-        conn.close()
-        
-        if not results:
-            return error_response('Thread not found', 404)
-        
-        row = results[0]
-        locked = bool(row.get('locked_by_device'))
-        
-        return success_response({
-            'thread_id': thread_id,
-            'locked': locked,
-            'locked_by_device': row.get('locked_by_device'),
-            'locked_by_device_name': row.get('locked_by_device_name'),
-            'locked_at': row.get('locked_at')
-        })
+        # ✅ Return AFTER with block closes
+        if status_code == 404:
+            return response_data
+        return response_data
     
     except Exception as e:
         print(f"[DEVICE LOCK STATUS ERROR] {str(e)}")
         return error_response(f'Failed to get lock status: {str(e)}', 500)
-
-

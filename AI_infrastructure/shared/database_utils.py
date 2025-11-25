@@ -138,7 +138,7 @@ def get_connection_pool(schema_name: str):
                 # Fallback to Session Mode pooler
                 db_url = os.getenv('SUPABASE_DB_URL_SESSION')
                 connection_mode = 'Session Mode (port 5432) - FALLBACK'
-                print(f"⚠️  [POOL] Transaction pooler not configured, using Session Mode fallback")
+                print(f"[WARNING] [POOL] Transaction pooler not configured, using Session Mode fallback")
             
             if not db_url:
                 raise ValueError(
@@ -150,20 +150,21 @@ def get_connection_pool(schema_name: str):
             print(f" [POOL] Using {connection_mode} for '{schema_name}'")
             
             # Create thread-safe connection pool
-            # OPTIMIZED for Supabase Nano Transaction Mode (Nov 24, 2025):
+            # OPTIMIZED for Supabase Nano Transaction Mode (Nov 25, 2025):
             # - Transaction Mode pooler supports 200 concurrent CLIENT connections
             # - Backend limit is 60 connections (shared across all poolers)
-            # - Frontend WebSocket connections were causing pool exhaustion
-            # - REDUCED POOL SIZE to prevent "too many clients" errors
-            # - minconn=1: Minimal ready connections (was 1)
-            # - maxconn=2: Very small pool (was 3) - prevents connection exhaustion
+            # - UI makes 10-15 concurrent requests on page load
+            # - INCREASED POOL SIZE to handle concurrent requests (was maxconn=2)
+            # - minconn=2: Keep connections ready (was 1)
+            # - maxconn=5: Allow burst traffic (was 2) - handles concurrent UI requests
             # - Each connection is short-lived in transaction mode (seconds, not minutes)
+            # - With 3 schemas (ai_infrastructure, sessions, synergy_sessions), max = 15 connections total
             _connection_pools[schema_name] = pool.ThreadedConnectionPool(
-                minconn=1,      # Minimal ready connections
-                maxconn=2,      # REDUCED from 3 - prevents exhaustion
+                minconn=2,      # Keep 2 connections ready (increased from 1)
+                maxconn=5,      # Allow up to 5 concurrent connections (increased from 2)
                 dsn=db_url,
                 sslmode='require',
-                connect_timeout=10,  # Reduced from 30
+                connect_timeout=10,
                 keepalives=1,
                 keepalives_idle=30,
                 keepalives_interval=10,
@@ -173,10 +174,10 @@ def get_connection_pool(schema_name: str):
             _pool_stats['pools_created'] += 1
             _pool_stats['pool_misses'] += 1
             
-            print(f" [POOL] Created connection pool for '{schema_name}' (1-2 connections)")
+            print(f" [POOL] Created connection pool for '{schema_name}' (2-5 connections)")
             print(f" [POOL] Total pools: {_pool_stats['pools_created']}")
-            print(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 2} (Supabase Nano limit: 60)")
-            print(f" [POOL] Pool configuration: minconn=1, maxconn=2 (reduced to prevent exhaustion)")
+            print(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 5} (Supabase Nano limit: 60)")
+            print(f" [POOL] Pool configuration: minconn=2, maxconn=5 (increased to handle concurrent requests)")
         else:
             _pool_stats['pool_hits'] += 1
         
@@ -411,7 +412,7 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
             def __del__(self):
                 """Ensure connection returned even if close() not called"""
                 if not self._closed and not self._return_attempted:
-                    print(f"⚠️  [POOL] Connection NOT returned in close() - attempting in __del__ for '{self._schema}'")
+                    print(f"[WARNING] [POOL] Connection NOT returned in close() - attempting in __del__ for '{self._schema}'")
                     try:
                         self.close()
                     except:
