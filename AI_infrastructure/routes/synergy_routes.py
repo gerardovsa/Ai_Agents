@@ -227,64 +227,65 @@ def init_database():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-    
-    sql, params = convert_sql_placeholders('''
-        CREATE TABLE IF NOT EXISTS synergy_sessions (
-            session_id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            description TEXT,
-            platforms_involved TEXT,
-            status TEXT DEFAULT 'active',
-            priority TEXT DEFAULT 'medium',
-            kanban_column TEXT DEFAULT 'backlog',
-            tags TEXT,
-            documents TEXT,
-            links TEXT,
-            next_steps TEXT,
-            assignees TEXT,
-            recent_activity TEXT,
-            checklist TEXT,
-            due_date TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            last_active TEXT DEFAULT CURRENT_TIMESTAMP,
-            completed_at TEXT,
-            google_task_id TEXT,
-            google_calendar_id TEXT,
-            microsoft_todo_id TEXT,
-            thread_ids TEXT,
-            assigned_agents TEXT
-        )
-    ''')
-    
-    # Add missing columns if they don't exist
-    try:
-        if is_using_supabase():
-            # PostgreSQL syntax
-            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS thread_ids TEXT')
-        else:
-            # SQLite syntax
-            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN thread_ids TEXT')
-    except (sqlite3.OperationalError, Exception):
-        pass  # Column already exists
-    
-    try:
-        if is_using_supabase():
-            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS assigned_agents TEXT')
-        else:
-            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN assigned_agents TEXT')
-    except (sqlite3.OperationalError, Exception):
-        pass  # Column already exists
-    
-    try:
-        if is_using_supabase():
-            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS column_position INTEGER DEFAULT 0')
-        else:
-            cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN column_position INTEGER DEFAULT 0')
-    except (sqlite3.OperationalError, Exception):
-        pass  # Column already exists
-    
+        
+        sql, params = convert_sql_placeholders('''
+            CREATE TABLE IF NOT EXISTS synergy_sessions (
+                session_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                platforms_involved TEXT,
+                status TEXT DEFAULT 'active',
+                priority TEXT DEFAULT 'medium',
+                kanban_column TEXT DEFAULT 'backlog',
+                tags TEXT,
+                documents TEXT,
+                links TEXT,
+                next_steps TEXT,
+                assignees TEXT,
+                recent_activity TEXT,
+                checklist TEXT,
+                due_date TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                last_active TEXT DEFAULT CURRENT_TIMESTAMP,
+                completed_at TEXT,
+                google_task_id TEXT,
+                google_calendar_id TEXT,
+                microsoft_todo_id TEXT,
+                thread_ids TEXT,
+                assigned_agents TEXT
+            )
+        ''')
+        cursor.execute(sql, params)
+        
+        # Add missing columns if they don't exist
+        try:
+            if is_using_supabase():
+                # PostgreSQL syntax
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS thread_ids TEXT')
+            else:
+                # SQLite syntax
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN thread_ids TEXT')
+        except (sqlite3.OperationalError, Exception):
+            pass  # Column already exists
+        
+        try:
+            if is_using_supabase():
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS assigned_agents TEXT')
+            else:
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN assigned_agents TEXT')
+        except (sqlite3.OperationalError, Exception):
+            pass  # Column already exists
+        
+        try:
+            if is_using_supabase():
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN IF NOT EXISTS column_position INTEGER DEFAULT 0')
+            else:
+                cursor.execute('ALTER TABLE synergy_sessions ADD COLUMN column_position INTEGER DEFAULT 0')
+        except (sqlite3.OperationalError, Exception):
+            pass  # Column already exists
+        
         conn.commit()
-    
+        
     finally:
         if conn:
             conn.close()
@@ -389,14 +390,6 @@ def get_sessions_simple():
     finally:
         if conn:
             conn.close()
-
-
-@synergy_bp.route('/sessions/batch', methods=['GET'])
-def get_sessions_with_internal_docs():
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 
 @synergy_bp.route('/sessions/batch', methods=['GET'])
@@ -793,6 +786,7 @@ def create_session():
 @synergy_bp.route('/<session_id>', methods=['GET'])
 def get_session(session_id):
     """Get session by ID - includes milestones if uses_milestones=TRUE"""
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -801,7 +795,6 @@ def get_session(session_id):
         row = cursor.fetchone()
         
         if not row:
-            conn.close()
             return jsonify({
                 'success': False,
                 'error': 'Session not found'
@@ -920,8 +913,6 @@ def get_session(session_id):
             
             session['milestones'] = milestones
         
-        conn.close()
-        
         return jsonify({
             'success': True,
             'session': session
@@ -934,11 +925,16 @@ def get_session(session_id):
             'success': False,
             'error': str(e)
         }), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/<session_id>', methods=['PATCH'])
 def update_session(session_id):
     """Update session"""
+    conn = None
     try:
         data = request.json
         print(f"[DEBUG] Received data: {data}")  # DEBUG
@@ -1019,8 +1015,6 @@ def update_session(session_id):
             conn.commit()
             print(f"[DEBUG] Rows affected: {cursor.rowcount}")  # DEBUG
         
-        conn.close()
-        
         # Broadcast update to all connected WebSocket clients
         try:
             from flask import current_app
@@ -1048,11 +1042,16 @@ def update_session(session_id):
             'success': False,
             'error': str(e)
         }), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/<session_id>/column', methods=['PATCH'])
 def update_column(session_id):
     """Update session column (Kanban movement)"""
+    conn = None
     try:
         data = request.json
         new_column = data.get('target_column') or data.get('kanban_column')
@@ -1090,8 +1089,6 @@ def update_column(session_id):
             
             conn.commit()
         
-        conn.close()
-        
         # Broadcast column change to all connected WebSocket clients
         try:
             from flask import current_app
@@ -1119,18 +1116,22 @@ def update_column(session_id):
             'success': False,
             'error': str(e)
         }), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/<session_id>', methods=['DELETE'])
 def delete_session(session_id):
     """Delete session"""
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute('DELETE FROM synergy_sessions.synergy_sessions WHERE session_id = %s', (session_id,))
         conn.commit()
-        conn.close()
         
         # Broadcast deletion to all connected WebSocket clients
         try:
@@ -1155,6 +1156,10 @@ def delete_session(session_id):
             'success': False,
             'error': str(e)
         }), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/<session_id>/link-thread', methods=['POST'])
@@ -1167,6 +1172,7 @@ def link_thread_to_synergy(session_id):
     
     Body: {thread_id, thread_slug, thread_name}
     """
+    conn = None
     try:
         data = request.get_json()
         thread_id = data.get('thread_id')
@@ -1213,8 +1219,6 @@ def link_thread_to_synergy(session_id):
         else:
             print(f"[SYNERGY SYNC] Thread {thread_id} already linked to {session_id}")
         
-        conn.close()
-        
         return jsonify({
             'success': True,
             'session_id': session_id,
@@ -1225,6 +1229,10 @@ def link_thread_to_synergy(session_id):
     except Exception as e:
         print(f"[SYNERGY SYNC ERROR] Failed to link thread: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/<session_id>/position', methods=['PATCH'])
@@ -1234,6 +1242,7 @@ def update_card_position(session_id):
     
     Body: {position: integer}
     """
+    conn = None
     try:
         data = request.get_json()
         position = data.get('position')
@@ -1251,7 +1260,6 @@ def update_card_position(session_id):
         ''', (position, session_id))
         
         conn.commit()
-        conn.close()
         
         return jsonify({
             'success': True,
@@ -1261,6 +1269,10 @@ def update_card_position(session_id):
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/update-positions', methods=['POST'])
@@ -1270,6 +1282,7 @@ def update_multiple_positions():
     
     Body: {cards: [{session_id, position}]}
     """
+    conn = None
     try:
         data = request.get_json()
         cards = data.get('cards', [])
@@ -1291,7 +1304,6 @@ def update_multiple_positions():
                 ''', (position, session_id))
         
         conn.commit()
-        conn.close()
         
         return jsonify({
             'success': True,
@@ -1300,6 +1312,10 @@ def update_multiple_positions():
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/<session_id>/unlink-thread', methods=['POST'])
@@ -1312,6 +1328,7 @@ def unlink_thread_from_synergy(session_id):
     
     Body: {thread_id}
     """
+    conn = None
     try:
         data = request.get_json()
         thread_id = data.get('thread_id')
@@ -1327,7 +1344,6 @@ def unlink_thread_from_synergy(session_id):
         row = cursor.fetchone()
         
         if not row:
-            conn.close()
             return jsonify({'success': False, 'error': 'Session not found'}), 404
         
         # Parse existing thread_ids (JSON array)
@@ -1356,8 +1372,6 @@ def unlink_thread_from_synergy(session_id):
         else:
             print(f"[SYNERGY SYNC] Thread {thread_id} not found in {session_id}")
         
-        conn.close()
-        
         return jsonify({
             'success': True,
             'session_id': session_id,
@@ -1368,6 +1382,10 @@ def unlink_thread_from_synergy(session_id):
     except Exception as e:
         print(f"[SYNERGY SYNC ERROR] Failed to unlink thread: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 # ============================================================

@@ -62,14 +62,17 @@ window.synergyBoard = {
         this.renderAllCards();
         this.updateStats();
 
-        // Initialize WebSocket for real-time updates
-        if (typeof SynergyRealtime !== 'undefined') {
+        // Initialize WebSocket for real-time updates (optional - falls back to polling)
+        if (typeof SynergyRealtime !== 'undefined' && typeof io !== 'undefined') {
             try {
                 await SynergyRealtime.connect();
                 console.log('🔌 [SYNERGY] Real-time WebSocket connected');
             } catch (error) {
-                console.error('❌ [SYNERGY] Failed to connect WebSocket:', error);
+                console.warn('⚠️  [SYNERGY] WebSocket connection failed - using manual refresh:', error);
+                // Dashboard still works, just requires manual refresh
             }
+        } else {
+            console.warn('⚠️  [SYNERGY] WebSocket not available - using manual refresh only');
         }
 
         this.initialized = true;
@@ -615,6 +618,15 @@ window.synergyBoard = {
         this.updateStats();
 
         console.log('✅ Board refreshed');
+    },
+
+    /**
+     * Manual refresh method (called from UI button)
+     * Alias for refreshBoard()
+     */
+    async manualRefresh() {
+        console.log('🔄 Manual refresh triggered...');
+        await this.refreshBoard();
     },
 
     /**
