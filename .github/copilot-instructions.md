@@ -673,6 +673,216 @@ class MyToolImplementation:
    - **Import pattern**: `from config import Config` (within AI_infrastructure/)
    - **Location**: `C:\Users\gpoli\GIT\AI_agents\AI_infrastructure\config.py`
 
+## 🔐 Centralized Authentication System (CRITICAL)
+
+### Overview
+The platform has a **unified authentication architecture** that all functions/tools must use to access user credentials and OAuth tokens.
+
+### Core Auth Components
+
+**1. `AI_infrastructure/auth/user_auth.py` - Main Auth Manager**
+   - **JWT Authentication**: Token generation, validation, and session management
+   - **User Management**: Registration, login, profile retrieval
+   - **Database**: Queries `ai_infrastructure.users` and `ai_infrastructure.user_sessions` tables
+   - **Decorator**: `@require_auth` - Automatically extracts `user_id` from JWT and injects into Flask request
+
+**2. `AI_infrastructure/auth/credential_injector.py` - OAuth Token Injector**
+   - **Purpose**: Retrieves OAuth tokens from database and injects into tool execution
+   - **Supported Platforms**: Google Workspace, Microsoft 365, Shopify, Stripe, etc.
+   - **Database**: Queries `ai_infrastructure.oauth_tokens` table
+   - **Token Refresh**: Automatically refreshes expired tokens using refresh_token
+   - **Methods**:
+     - `get_google_credentials(user_id)` → Returns Google OAuth tokens
+     - `get_microsoft_credentials(user_id)` → Returns Microsoft OAuth tokens
+     - `inject_credentials(tool_name, params, user_id)` → Auto-detects platform and injects credentials
+
+### Database Tables (Supabase PostgreSQL)
+
+**`ai_infrastructure.users`** - User accounts
+```sql
+- id (primary key)
+- email, password_hash
+- has_google_oauth, has_microsoft_oauth (boolean flags)
+- is_active, role, permissions
+```
+
+**`ai_infrastructure.oauth_tokens`** - OAuth credentials storage
+```sql
+- id (primary key)
+- user_id (foreign key to users.id)
+- platform (text: 'google', 'microsoft', 'shopify', etc.)
+- access_token, refresh_token
+- expires_at, scope, email
+- is_active, is_valid
+- error_count, last_error, last_refreshed_at
+```
+
+**`ai_infrastructure.user_sessions`** - JWT session tracking
+```sql
+- id (primary key)
+- user_id (foreign key to users.id)
+- token (JWT token string)
+- expires_at, last_activity
+- ip_address, user_agent
+```
+
+### How Functions Connect to Auth
+
+**Method 1: Flask Route with @require_auth Decorator (Recommended)**
+```python
+from AI_infrastructure.auth.user_auth import UserAuthManager
+
+auth_manager = UserAuthManager()
+
+@auth_manager.require_auth  # ← Automatically extracts user_id from JWT
+def my_protected_endpoint():
+    user_id = request.user_id  # ← Available here!
+    
+    # Get OAuth credentials
+    from AI_infrastructure.auth.credential_injector import CredentialInjector
+    injector = CredentialInjector()
+    
+    google_creds = injector.get_google_credentials(user_id)
+    # Returns: {'access_token': '...', 'refresh_token': '...', 'expires_at': '...'}
+    
+    microsoft_creds = injector.get_microsoft_credentials(user_id)
+    # Returns: {'access_token': '...'}
+```
+
+**Method 2: Direct Database Query**
+```python
+from shared.database_utils import get_database_connection
+
+def get_oauth_tokens(user_id, platform='google'):
+    """Query oauth_tokens table directly"""
+    conn = get_database_connection('ai_infrastructure')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT access_token, refresh_token, expires_at, email, scope
+        FROM ai_infrastructure.oauth_tokens
+        WHERE user_id = %s AND platform = %s AND is_active = TRUE
+        ORDER BY updated_at DESC
+        LIMIT 1
+    """, (user_id, platform))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return {
+            'access_token': row[0],
+            'refresh_token': row[1],
+            'expires_at': row[2],
+            'email': row[3],
+            'scope': row[4]
+        }
+    return None
+```
+
+**Method 3: Tool Registry (Automatic Injection)**
+```python
+from tools.registry_v3 import RegistryV3
+
+registry = RegistryV3()
+
+# Credentials automatically injected if user_id provided!
+result = registry.execute_tool(
+    'gmail_send_email',
+    user_id=14,  # ← System automatically fetches OAuth tokens for user 14
+    to='test@example.com',
+    subject='Test Email',
+    body='Hello World'
+)
+# Behind the scenes:
+# 1. CredentialInjector.get_google_credentials(14) called
+# 2. access_token, refresh_token added to tool kwargs
+# 3. gmail_send_email(**kwargs) executed with credentials
+```
+
+### Complete Authentication Flow
+
+```
+┌─────────────────┐
+│   USER LOGIN    │
+│ (email/password)│
+└────────┬────────┘
+         │ 1. POST /api/auth/login
+         ↓
+┌─────────────────────────┐
+│  UserAuthManager        │
+│  authenticate_user()    │ 2. Verify password hash
+└────────┬────────────────┘
+         │ 3. Generate JWT token
+         ↓
+┌─────────────────────────┐
+│  user_sessions table    │
+│  INSERT token           │ 4. Store JWT in database
+└────────┬────────────────┘
+         │ 5. Return JWT to frontend
+         ↓
+┌─────────────────────────┐
+│  Frontend stores JWT    │
+│  localStorage.authToken │ 6. Include in all requests
+└────────┬────────────────┘
+         │ 7. Authorization: Bearer <JWT>
+         ↓
+┌─────────────────────────┐
+│  @require_auth          │
+│  Validates JWT          │ 8. Extract user_id
+└────────┬────────────────┘
+         │ 9. Tool execution requested
+         ↓
+┌─────────────────────────┐
+│  CredentialInjector     │
+│  get_google_creds()     │ 10. Query oauth_tokens table
+└────────┬────────────────┘
+         │ 11. WHERE user_id = X AND platform = 'google'
+         ↓
+┌─────────────────────────┐
+│  oauth_tokens table     │
+│  access_token retrieved │ 12. Return OAuth token
+└────────┬────────────────┘
+         │ 13. Inject into tool kwargs
+         ↓
+┌─────────────────────────┐
+│  Tool executes API call │
+│  with user's OAuth      │ 14. Gmail/Microsoft API called
+└─────────────────────────┘
+```
+
+### Key Points for AI Agents
+
+✅ **Always use centralized auth** - Never implement custom credential storage  
+✅ **Use @require_auth decorator** - Automatic JWT validation and user_id extraction  
+✅ **Use CredentialInjector** - Single source of truth for OAuth tokens  
+✅ **Query oauth_tokens table** - All OAuth credentials stored in one place  
+✅ **Platform detection is automatic** - Tool name prefix (google_, microsoft_) determines credential type  
+✅ **Token refresh is automatic** - CredentialInjector handles expired tokens  
+✅ **User isolation is enforced** - Each user_id has separate OAuth tokens  
+
+### Import Patterns
+
+```python
+# User authentication and JWT
+from AI_infrastructure.auth.user_auth import UserAuthManager
+
+# OAuth token injection
+from AI_infrastructure.auth.credential_injector import CredentialInjector
+
+# Direct database access
+from shared.database_utils import get_database_connection
+```
+
+### Security Notes
+
+- **JWT tokens expire after 24 hours** (configurable in UserAuthManager)
+- **OAuth tokens auto-refresh** when expired (if refresh_token available)
+- **Passwords hashed with bcrypt** (cost factor 12)
+- **Credentials never logged** or exposed in API responses
+- **Database encryption** - Supabase PostgreSQL with TLS
+- **User isolation** - Multi-tenant architecture with user_id scoping
+
 ## 🗄️ Database Architecture (CRITICAL - MUST FOLLOW)
 
 ### ✅ SUPABASE POSTGRESQL - ONLY DATABASE USED

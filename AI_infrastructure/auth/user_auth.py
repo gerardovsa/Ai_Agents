@@ -963,6 +963,20 @@ class UserAuthManager:
         with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
+            # Platform name aliases for OAuth (support multiple naming conventions)
+            platform_aliases = {
+                'google_workspace': 'google',
+                'gmail': 'google',
+                'google_docs': 'google',
+                'google_sheets': 'google',
+                'microsoft_365': 'microsoft',
+                'outlook': 'microsoft',
+                'onedrive': 'microsoft'
+            }
+            
+            # Use alias if exists, otherwise use platform name as-is
+            oauth_platform = platform_aliases.get(platform.lower(), platform.lower())
+            
             # Try oauth_tokens table first (for OAuth platforms)
             cursor.execute('''
                 SELECT 'access_token' as credential_key, access_token as credential_value
@@ -970,11 +984,12 @@ class UserAuthManager:
                 WHERE user_id = %s AND platform = %s AND is_active = TRUE
                 ORDER BY updated_at DESC
                 LIMIT 1
-            ''', (user_id, platform))
+            ''', (user_id, oauth_platform))
             
             oauth_tokens = {row[0]: row[1] for row in cursor.fetchall()}
             
             if oauth_tokens:
+                logger.debug(f"Found OAuth credentials for user {user_id}, platform {oauth_platform}")
                 return oauth_tokens
             
             # Build query based on requested data

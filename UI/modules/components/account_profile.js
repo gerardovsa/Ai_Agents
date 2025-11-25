@@ -2034,16 +2034,27 @@ const originalFetch = window.fetch;
 window.fetch = function (...args) {
     const [url, options = {}] = args;
 
-    // Only add auth to API requests
+    // Only add auth to API requests (EXCEPT module endpoints in dev mode)
     if (typeof url === 'string' && (url.includes('/api/') || url.includes('/agent/'))) {
-        options.headers = options.headers || {};
+        // Skip auth for module discovery endpoints (they use user_id in query params)
+        const skipAuthEndpoints = [
+            '/api/modules/list',
+            '/api/modules/available',
+            '/api/modules/needs-setup'
+        ];
+        
+        const shouldSkipAuth = skipAuthEndpoints.some(endpoint => url.includes(endpoint));
+        
+        if (!shouldSkipAuth) {
+            options.headers = options.headers || {};
 
-        // Add auth token if available (check UserAuth exists first)
-        if (typeof UserAuth !== 'undefined' && UserAuth.token) {
-            if (typeof options.headers === 'object' && !(options.headers instanceof Headers)) {
-                options.headers['Authorization'] = `Bearer ${UserAuth.token}`;
-            } else if (options.headers instanceof Headers) {
-                options.headers.set('Authorization', `Bearer ${UserAuth.token}`);
+            // Add auth token if available (check UserAuth exists first)
+            if (typeof UserAuth !== 'undefined' && UserAuth.token) {
+                if (typeof options.headers === 'object' && !(options.headers instanceof Headers)) {
+                    options.headers['Authorization'] = `Bearer ${UserAuth.token}`;
+                } else if (options.headers instanceof Headers) {
+                    options.headers.set('Authorization', `Bearer ${UserAuth.token}`);
+                }
             }
         }
     }
