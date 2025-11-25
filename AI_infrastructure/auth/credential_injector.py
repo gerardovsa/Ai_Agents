@@ -192,9 +192,56 @@ def _save_refreshed_google_token(user_id: int, credentials: Credentials, origina
         conn.close()
 
 
+def _save_refreshed_microsoft_token(user_id: int, access_token: str, refresh_token: str, expires_at):
+    """
+    Save refreshed Microsoft OAuth token back to database
+    
+    Args:
+        user_id: User ID
+        access_token: New access token
+        refresh_token: New refresh token (or existing if unchanged)
+        expires_at: Token expiry datetime
+    """
+    conn = get_connection('ai_infrastructure')
+    cursor = conn.cursor()
+    
+    try:
+        # Convert expires_at to ISO string if datetime object
+        from datetime import datetime
+        if isinstance(expires_at, datetime):
+            expires_at_str = expires_at.isoformat()
+        else:
+            expires_at_str = str(expires_at)
+        
+        # Update access token in oauth_tokens table
+        cursor.execute('''
+            UPDATE oauth_tokens
+            SET access_token = %s, 
+                refresh_token = %s,
+                expires_at = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = %s 
+            AND platform = 'microsoft'
+        ''', (
+            access_token,
+            refresh_token,
+            expires_at_str,
+            user_id
+        ))
+        
+        conn.commit()
+        print(f"💾 Saved refreshed Microsoft token for user {user_id} (expires: {expires_at_str})")
+        
+    except Exception as e:
+        print(f"❌ Failed to save refreshed Microsoft token: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
 def create_microsoft_service_with_user_credentials(user_id: int, service_type: str = 'graph'):
     """
-    Get Microsoft 365 OAuth credentials for API calls
+    Get Microsoft 365 OAuth credentials for API calls with automatic token refresh
     
     Args:
         user_id: User ID
@@ -215,6 +262,90 @@ def create_microsoft_service_with_user_credentials(user_id: int, service_type: s
             f"User {user_id} does not have Microsoft OAuth credentials. "
             f"Please sign in with Microsoft at /api/auth/microsoft/login"
         )
+    
+    # ✅ AUTO-REFRESH: Check if token is expired and refresh if needed
+    from datetime import datetime, timezone
+    import requests
+    
+    expires_at = cred_dict.get('expires_at')
+    if expires_at:
+        # Parse expiry time
+        if isinstance(expires_at, str):
+            try:
+                # Try parsing ISO format: "2025-11-25T02:16:07.123456"
+                expires_at_str = expires_at.replace('Z', '+00:00')
+                if '.' in expires_at_str:
+                    # Has microseconds: "2025-11-25T02:16:07.123456" or "2025-11-25 02:16:07.123456"
+                    expires_at_str = expires_at_str.replace(' ', 'T')  # Normalize space to T
+                    expires_at = datetime.fromisoformat(expires_at_str)
+                else:
+                    # No microseconds: "2025-11-25T02:16:07" or "2025-11-25 02:16:07"
+                    expires_at_str = expires_at_str.replace(' ', 'T')
+                    expires_at = datetime.fromisoformat(expires_at_str)
+            except Exception as e:
+                print(f"⚠️ Failed to parse expires_at '{expires_at}': {e}")
+                expires_at = None
+        elif isinstance(expires_at, datetime):
+            # Already a datetime object
+            pass
+        else:
+            expires_at = None
+        
+        # Check if expired (add timezone if naive)
+        if expires_at:
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            
+            now = datetime.now(timezone.utc)
+            if expires_at <= now:
+                print(f"🔄 Microsoft OAuth token expired for user {user_id}, refreshing...")
+                
+                # Refresh the token
+                refresh_token = cred_dict.get('refresh_token')
+                if not refresh_token:
+                    raise Exception(
+                        f"Microsoft OAuth token expired and no refresh token available. "
+                        f"User {user_id} needs to re-authenticate."
+                    )
+                
+                try:
+                    # Call Microsoft token endpoint to refresh
+                    token_url = cred_dict['token_uri']
+                    refresh_data = {
+                        'client_id': cred_dict['client_id'],
+                        'client_secret': cred_dict['client_secret'],
+                        'refresh_token': refresh_token,
+                        'grant_type': 'refresh_token'
+                    }
+                    
+                    response = requests.post(token_url, data=refresh_data)
+                    response.raise_for_status()
+                    token_data = response.json()
+                    
+                    # Update credentials with new token
+                    new_access_token = token_data.get('access_token')
+                    new_refresh_token = token_data.get('refresh_token', refresh_token)  # Use old if not provided
+                    expires_in = token_data.get('expires_in', 3600)  # Default 1 hour
+                    
+                    from datetime import timedelta
+                    new_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+                    
+                    print(f"✅ Token refreshed successfully for user {user_id}")
+                    
+                    # ✅ SAVE REFRESHED TOKEN back to database
+                    _save_refreshed_microsoft_token(user_id, new_access_token, new_refresh_token, new_expires_at)
+                    
+                    # Update cred_dict with new token
+                    cred_dict['access_token'] = new_access_token
+                    cred_dict['refresh_token'] = new_refresh_token
+                    cred_dict['expires_at'] = new_expires_at
+                    
+                except Exception as e:
+                    print(f"❌ Token refresh failed: {e}")
+                    raise Exception(
+                        f"Failed to refresh Microsoft OAuth token: {e}. "
+                        f"User may need to re-authenticate."
+                    )
     
     # Return credentials dict for Microsoft Graph API calls
     microsoft_service = {
