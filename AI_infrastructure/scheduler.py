@@ -182,6 +182,7 @@ class AutomationScheduler:
     
     def _load_active_tasks(self):
         """Load existing tasks from database on startup"""
+        conn = None
         try:
             conn = get_connection('ai_infrastructure')
             cursor = conn.cursor()
@@ -193,7 +194,6 @@ class AutomationScheduler:
             ''')
             
             tasks = cursor.fetchall()
-            conn.close()
             
             for task in tasks:
                 self._schedule_task(dict(task))
@@ -202,6 +202,9 @@ class AutomationScheduler:
         except Exception as e:
             logger.warning(f"Could not load scheduled tasks (table may not exist): {e}")
             # Non-critical - scheduler can work without persisted tasks
+        finally:
+            if conn:
+                conn.close()
     
     def _schedule_task(self, task: Dict):
         """Schedule a single task based on its trigger type"""
@@ -439,92 +442,103 @@ class AutomationScheduler:
     
     def _check_pending_approvals(self):
         """Check for tasks pending approval and notify users"""
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT * FROM ai_infrastructure.scheduled_tasks 
-            WHERE is_active = true 
-            AND requires_approval = true 
-            AND approval_status = 'pending'
-        ''')
-        
-        pending_tasks = cursor.fetchall()
-        conn.close()
-        
-        if pending_tasks:
-            logger.info(f"Found {len(pending_tasks)} tasks pending approval")
-            # TODO: Send notifications to users
+        conn = None
+        try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT * FROM ai_infrastructure.scheduled_tasks 
+                WHERE is_active = true 
+                AND requires_approval = true 
+                AND approval_status = 'pending'
+            ''')
+            
+            pending_tasks = cursor.fetchall()
+            
+            if pending_tasks:
+                logger.info(f"Found {len(pending_tasks)} tasks pending approval")
+                # TODO: Send notifications to users
+        finally:
+            if conn:
+                conn.close()
     
     def create_task(self, task_data: Dict) -> str:
         """Create a new scheduled task"""
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        
-        task_id = f"task_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{task_data.get('task_name', 'unnamed').replace(' ', '_')}"
-        
-        # Map to actual Supabase columns
-        # Supabase has: user_id, task_name, task_type, schedule_type, schedule_value, 
-        #                tool_name, tool_params, is_active, last_run, next_run, 
-        #                created_at, updated_at, requires_approval, approval_status, status, description
-        
-        cursor.execute('''
-            INSERT INTO ai_infrastructure.scheduled_tasks (
-                user_id, task_name, task_type, schedule_type, schedule_value,
-                tool_name, tool_params, is_active, requires_approval, approval_status, 
-                status, description
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            task_data.get('created_by_user_id') or task_data.get('user_id', 1),
-            task_data.get('task_name'),
-            task_data.get('task_type', 'scheduled'),
-            task_data.get('schedule_type', 'cron'),
-            task_data.get('cron_expression') or task_data.get('schedule_value'),
-            task_data.get('action_type') or task_data.get('tool_name'),
-            str(task_data.get('action_payload', {})),
-            task_data.get('enabled', True),  # Maps to is_active
-            task_data.get('requires_approval', False),
-            'pending' if task_data.get('requires_approval', False) else 'approved',
-            task_data.get('status', 'active'),
-            task_data.get('description')
-        ))
-        
-        conn.commit()
-        conn.close()
-        
-        # Schedule the task if approved or doesn't require approval
-        if not task_data.get('requires_approval', False):
-            self._schedule_task(task_data)
-        
-        logger.info(f"Created task: {task_id}")
-        return task_id
+        conn = None
+        try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            task_id = f"task_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{task_data.get('task_name', 'unnamed').replace(' ', '_')}"
+            
+            # Map to actual Supabase columns
+            # Supabase has: user_id, task_name, task_type, schedule_type, schedule_value, 
+            #                tool_name, tool_params, is_active, last_run, next_run, 
+            #                created_at, updated_at, requires_approval, approval_status, status, description
+            
+            cursor.execute('''
+                INSERT INTO ai_infrastructure.scheduled_tasks (
+                    user_id, task_name, task_type, schedule_type, schedule_value,
+                    tool_name, tool_params, is_active, requires_approval, approval_status, 
+                    status, description
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                task_data.get('created_by_user_id') or task_data.get('user_id', 1),
+                task_data.get('task_name'),
+                task_data.get('task_type', 'scheduled'),
+                task_data.get('schedule_type', 'cron'),
+                task_data.get('cron_expression') or task_data.get('schedule_value'),
+                task_data.get('action_type') or task_data.get('tool_name'),
+                str(task_data.get('action_payload', {})),
+                task_data.get('enabled', True),  # Maps to is_active
+                task_data.get('requires_approval', False),
+                'pending' if task_data.get('requires_approval', False) else 'approved',
+                task_data.get('status', 'active'),
+                task_data.get('description')
+            ))
+            
+            conn.commit()
+            
+            # Schedule the task if approved or doesn't require approval
+            if not task_data.get('requires_approval', False):
+                self._schedule_task(task_data)
+            
+            logger.info(f"Created task: {task_id}")
+            return task_id
+        finally:
+            if conn:
+                conn.close()
     
     def update_task(self, task_id: str, updates: Dict) -> bool:
         """Update an existing task"""
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        
-        # Build update query dynamically
-        update_fields = []
-        values = []
-        
-        for key, value in updates.items():
-            if key not in ['task_id', 'created_at']:
-                update_fields.append(f"{key} = %s")
-                values.append(value)
-        
-        if not update_fields:
-            conn.close()
-            return False
-        
-        update_fields.append("updated_at = CURRENT_TIMESTAMP")
-        values.append(task_id)
-        
-        query = f"UPDATE scheduled_tasks SET {', '.join(update_fields)} WHERE task_id = %s"
-        cursor.execute(query, values)
-        
-        conn.commit()
-        conn.close()
+        conn = None
+        try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            # Build update query dynamically
+            update_fields = []
+            values = []
+            
+            for key, value in updates.items():
+                if key not in ['task_id', 'created_at']:
+                    update_fields.append(f"{key} = %s")
+                    values.append(value)
+            
+            if not update_fields:
+                return False
+            
+            update_fields.append("updated_at = CURRENT_TIMESTAMP")
+            values.append(task_id)
+            
+            query = f"UPDATE scheduled_tasks SET {', '.join(update_fields)} WHERE task_id = %s"
+            cursor.execute(query, values)
+            
+            conn.commit()
+        finally:
+            if conn:
+                conn.close()
         
         # Reschedule task if it's enabled
         if updates.get('enabled', True):
@@ -535,14 +549,18 @@ class AutomationScheduler:
                 pass
             
             # Get updated task and reschedule
-            conn = get_connection('ai_infrastructure')
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
-            task = cursor.fetchone()
-            conn.close()
-            
-            if task:
-                self._schedule_task(dict(task))
+            conn2 = None
+            try:
+                conn2 = get_connection('ai_infrastructure')
+                cursor = conn2.cursor()
+                cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
+                task = cursor.fetchone()
+                
+                if task:
+                    self._schedule_task(dict(task))
+            finally:
+                if conn2:
+                    conn2.close()
         
         logger.info(f"Updated task: {task_id}")
         return True
@@ -556,69 +574,85 @@ class AutomationScheduler:
             pass
         
         # Delete from database
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM scheduled_tasks WHERE task_id = %s', (task_id,))
-        conn.commit()
-        conn.close()
-        
-        logger.info(f"Deleted task: {task_id}")
-        return True
+        conn = None
+        try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM scheduled_tasks WHERE task_id = %s', (task_id,))
+            conn.commit()
+            
+            logger.info(f"Deleted task: {task_id}")
+            return True
+        finally:
+            if conn:
+                conn.close()
     
     def get_task(self, task_id: str) -> Optional[Dict]:
         """Get task by ID"""
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
-        task = cursor.fetchone()
-        conn.close()
-        
-        return dict(task) if task else None
+        conn = None
+        try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM scheduled_tasks WHERE task_id = %s', (task_id,))
+            task = cursor.fetchone()
+            
+            return dict(task) if task else None
+        finally:
+            if conn:
+                conn.close()
     
     def list_tasks(self, filters: Optional[Dict] = None) -> List[Dict]:
         """List all tasks with optional filters"""
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        
-        query = 'SELECT * FROM scheduled_tasks WHERE 1=1'
-        params = []
-        
-        if filters:
-            if 'synergy_session_id' in filters:
-                query += ' AND synergy_session_id = %s'
-                params.append(filters['synergy_session_id'])
-            if 'thread_id' in filters:
-                query += ' AND thread_id = %s'
-                params.append(filters['thread_id'])
-            if 'agent_name' in filters:
-                query += ' AND agent_name = %s'
-                params.append(filters['agent_name'])
-            if 'enabled' in filters:
-                query += ' AND enabled = %s'
-                params.append(filters['enabled'])
-        
-        cursor.execute(query, params)
-        tasks = cursor.fetchall()
-        conn.close()
-        
-        return [dict(task) for task in tasks]
+        conn = None
+        try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            query = 'SELECT * FROM scheduled_tasks WHERE 1=1'
+            params = []
+            
+            if filters:
+                if 'synergy_session_id' in filters:
+                    query += ' AND synergy_session_id = %s'
+                    params.append(filters['synergy_session_id'])
+                if 'thread_id' in filters:
+                    query += ' AND thread_id = %s'
+                    params.append(filters['thread_id'])
+                if 'agent_name' in filters:
+                    query += ' AND agent_name = %s'
+                    params.append(filters['agent_name'])
+                if 'enabled' in filters:
+                    query += ' AND enabled = %s'
+                    params.append(filters['enabled'])
+            
+            cursor.execute(query, params)
+            tasks = cursor.fetchall()
+            
+            return [dict(task) for task in tasks]
+        finally:
+            if conn:
+                conn.close()
     
     def get_execution_history(self, task_id: str, limit: int = 50) -> List[Dict]:
         """Get execution history for a task"""
-        conn = get_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT * FROM task_executions 
-            WHERE task_id = %s 
-            ORDER BY started_at DESC 
-            LIMIT %s
-        ''', (task_id, limit))
-        
-        executions = cursor.fetchall()
-        conn.close()
-        
-        return [dict(execution) for execution in executions]
+        conn = None
+        try:
+            conn = get_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT * FROM task_executions 
+                WHERE task_id = %s 
+                ORDER BY started_at DESC 
+                LIMIT %s
+            ''', (task_id, limit))
+            
+            executions = cursor.fetchall()
+            
+            return [dict(execution) for execution in executions]
+        finally:
+            if conn:
+                conn.close()
 
 
 # Global scheduler instance

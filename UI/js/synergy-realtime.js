@@ -43,6 +43,12 @@ window.SynergyRealtime = {
         }
 
         try {
+            // Check if Socket.IO is available
+            if (typeof io === 'undefined') {
+                console.warn('[REALTIME] Socket.IO library not loaded - real-time updates disabled');
+                return;
+            }
+
             const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
 
             this._log('Connecting to WebSocket:', apiUrl + this.config.namespace);
@@ -50,7 +56,7 @@ window.SynergyRealtime = {
             // Create Socket.IO connection
             // Increased timeout for Render cold starts (can take 30-60 seconds)
             this.socket = io(apiUrl + this.config.namespace, {
-                transports: ['websocket', 'polling'],
+                transports: ['polling', 'websocket'],  // Try polling first (more reliable)
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
                 reconnectionDelay: this.reconnectDelay,
@@ -58,7 +64,8 @@ window.SynergyRealtime = {
                 timeout: 60000,  // 60 seconds (handles Render cold starts)
                 forceNew: false,
                 upgrade: true,
-                rememberUpgrade: true
+                rememberUpgrade: true,
+                autoConnect: true
             });
 
             // Connection events
@@ -79,7 +86,8 @@ window.SynergyRealtime = {
 
         } catch (error) {
             console.error('[REALTIME] Connection failed:', error);
-            this._scheduleReconnect();
+            console.warn('[REALTIME] Real-time updates disabled - dashboard will work in polling mode');
+            // Don't schedule reconnect if connection fundamentally fails
         }
     },
 
