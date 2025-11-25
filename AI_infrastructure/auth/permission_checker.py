@@ -107,7 +107,7 @@ class PermissionChecker:
                     data_access_scope, parent_user_id, is_sub_user,
                     usage_limit_daily, access_start_time, access_end_time,
                     account_expires_at
-                FROM users 
+                FROM ai_infrastructure.users 
                 WHERE id = %s
             """, [user_id])
             

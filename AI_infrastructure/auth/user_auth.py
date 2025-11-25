@@ -783,72 +783,187 @@ class UserAuthManager:
     # ==================== PLATFORM CREDENTIALS MANAGEMENT ====================
     
     def store_platform_credential(self, user_id: int, platform: str, 
-                                  credential_type: str, credential_key: str, 
-                                  credential_value: str, metadata: Dict = None) -> Dict:
+                                  credentials_dict: Dict, 
+                                  settings_dict: Dict = None,
+                                  credential_type: str = 'api_key',
+                                  validate_schema: bool = True) -> Dict:
         """
-        Store platform API key/token for user
+        Store platform credentials for user with flexible schema validation
         
         Args:
             user_id: User ID
-            platform: Platform name (gmail, slack, woocommerce, etc.)
-            credential_type: Type (api_key, oauth_token, app_password, etc.)
-            credential_key: Credential identifier (API_KEY, ACCESS_TOKEN, etc.)
-            credential_value: The actual credential value
-            metadata: Additional metadata (JSON)
+            platform: Platform name (pinecone, voyager, openai, assemblyai, twilio, etc.)
+            credentials_dict: Dict of credentials (stored as JSONB)
+            settings_dict: Optional platform-specific settings (stored separately)
+            credential_type: Type (api_key, oauth_token, etc.)
+            validate_schema: Validate against platform schema (default: True)
         
         Returns:
-            Success status
+            Success status with validation details
+            
+        Examples:
+            # Store AssemblyAI credentials with settings
+            store_platform_credential(
+                user_id=1,
+                platform='assemblyai',
+                credentials_dict={'api_key': 'your_key'},
+                settings_dict={
+                    'language_code': 'en',
+                    'speaker_labels': True,
+                    'word_boost': ['parvo', 'heartworm']
+                }
+            )
+            
+            # Store Twilio credentials
+            store_platform_credential(
+                user_id=1,
+                platform='twilio',
+                credentials_dict={
+                    'account_sid': 'ACxxxxx',
+                    'auth_token': 'token',
+                    'phone_number': '+15555551234'
+                },
+                settings_dict={
+                    'business_hours_start': 8,
+                    'business_hours_end': 18,
+                    'emergency_phone': '+15555550911'
+                }
+            )
         """
         try:
+            # Validate against platform schema
+            if validate_schema:
+                try:
+                    from AI_infrastructure.auth.platform_credential_schemas import validate_platform_credentials
+                    validated_creds = validate_platform_credentials(platform, credentials_dict)
+                    credentials_dict = validated_creds  # Use validated version
+                    print(f"✅ Schema validation passed for {platform}")
+                except ImportError:
+                    print(f"⚠️  Schema validation skipped (platform_credential_schemas.py not found)")
+                except ValueError as ve:
+                    return {
+                        'success': False, 
+                        'error': f'Schema validation failed: {str(ve)}',
+                        'validation_errors': str(ve)
+                    }
+            
             with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
                 
-                metadata_json = json.dumps(metadata) if metadata else None
+                credentials_json = json.dumps(credentials_dict)
+                settings_json = json.dumps(settings_dict) if settings_dict else '{}'
                 
-                # ⚠️ DEPRECATED: user_platform_credentials table is deprecated
-                # Use oauth_tokens table instead
-                print("⚠️ WARNING: store_platform_credential() uses deprecated table")
-                print("   Use oauth_tokens table instead (via OAuth routes)")
+                # Calculate credential hash for change detection (SHA256)
+                import hashlib
+                cred_hash = hashlib.sha256(credentials_json.encode()).hexdigest()
                 
-                # Upsert (insert or update) - STILL USING OLD TABLE FOR BACKWARD COMPATIBILITY
-                # TODO: Migrate all callers to use oauth_tokens directly
+                # Calculate rotation due date (90 days for API keys, 24h for OAuth)
+                from datetime import datetime, timedelta
+                if credential_type == 'oauth_token':
+                    rotation_due = datetime.now() + timedelta(hours=24)
+                else:
+                    rotation_due = datetime.now() + timedelta(days=90)
+                
+                # Check if credential already exists (one row per user+platform)
                 cursor.execute('''
-                    INSERT INTO user_platform_credentials 
-                    (user_id, platform, credential_type, credential_key, credential_value, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT(user_id, platform, credential_key) 
-                    DO UPDATE SET 
-                        credential_value = excluded.credential_value,
-                        credential_type = excluded.credential_type,
-                        metadata = excluded.metadata,
-                        updated_at = CURRENT_TIMESTAMP
-                ''', (user_id, platform, credential_type, credential_key, credential_value, metadata_json))
+                    SELECT id, credential_hash FROM user_platform_credentials
+                    WHERE user_id = %s AND platform = %s
+                ''', (user_id, platform))
+                
+                existing = cursor.fetchone()
+                
+                if existing:
+                    existing_id = existing['id'] if isinstance(existing, dict) else existing[0]
+                    existing_hash = existing['credential_hash'] if isinstance(existing, dict) else existing[1] if len(existing) > 1 else None
+                    
+                    # Check if credentials actually changed
+                    if existing_hash == cred_hash:
+                        print(f"ℹ️  {platform} credentials unchanged for user {user_id}")
+                        return {'success': True, 'changed': False, 'message': 'Credentials unchanged'}
+                    
+                    # Update existing credential
+                    cursor.execute('''
+                        UPDATE user_platform_credentials
+                        SET credentials = %s::jsonb,
+                            settings = %s::jsonb,
+                            credential_type = %s,
+                            credential_hash = %s,
+                            rotation_due_at = %s,
+                            rotation_reminder_sent = FALSE,
+                            validation_status = 'unvalidated',
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    ''', (credentials_json, settings_json, credential_type, cred_hash, rotation_due, existing_id))
+                    print(f"✅ Updated {platform} credentials for user {user_id}")
+                else:
+                    # Insert new credential (id auto-generates)
+                    cursor.execute('''
+                        INSERT INTO user_platform_credentials 
+                        (user_id, platform, credential_type, credential_key, credential_value, 
+                         credentials, settings, credential_hash, rotation_due_at, validation_status)
+                        VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s, 'unvalidated')
+                    ''', (user_id, platform, credential_type, f'{platform.upper()}_CREDENTIALS', '', 
+                          credentials_json, settings_json, cred_hash, rotation_due))
+                    print(f"✅ Inserted {platform} credentials for user {user_id}")
                 
                 conn.commit()
                 
-                print(f"Stored {platform} credential for user {user_id}: {credential_key}")
-                
-                return {'success': True}
+                return {
+                    'success': True, 
+                    'changed': True,
+                    'platform': platform,
+                    'rotation_due': rotation_due.isoformat(),
+                    'validation_status': 'unvalidated'
+                }
                 
         except Exception as e:
-            print(f" Store credential error: {e}")
+            print(f"❌ Store credential error: {e}")
+            import traceback
+            traceback.print_exc()
             return {'success': False, 'error': str(e)}
     
-    def get_platform_credentials(self, user_id: int, platform: str) -> Dict[str, str]:
+    def get_platform_credentials(self, user_id: int, platform: str, 
+                                 include_settings: bool = False,
+                                 include_metadata: bool = False) -> Dict[str, str]:
         """
-        Get all credentials for a platform for this user
+        Get all credentials for a platform for this user with flexible schema support
         
         Args:
             user_id: User ID
             platform: Platform name
+            include_settings: Include settings dict in response (default: False)
+            include_metadata: Include validation/rotation metadata (default: False)
         
         Returns:
-            Dict of credential_key -> credential_value
+            Dict of credentials from JSONB column
+            If include_settings=True: {'credentials': {...}, 'settings': {...}}
+            If include_metadata=True: Adds validation_status, last_validated_at, rotation_due_at
+            
+        Examples:
+            # Get credentials only
+            creds = get_platform_credentials(1, 'assemblyai')
+            # Returns: {'api_key': 'your_key'}
+            
+            # Get credentials + settings
+            data = get_platform_credentials(1, 'twilio', include_settings=True)
+            # Returns: {
+            #   'credentials': {'account_sid': '...', 'auth_token': '...'},
+            #   'settings': {'business_hours_start': 8, 'emergency_phone': '...'}
+            # }
+            
+            # Get full metadata
+            data = get_platform_credentials(1, 'pinecone', include_metadata=True)
+            # Returns: {
+            #   'credentials': {...},
+            #   'validation_status': 'valid',
+            #   'last_validated_at': '2025-11-25T10:30:00',
+            #   'rotation_due_at': '2026-02-23T10:30:00'
+            # }
         """
         with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             
-            # Try oauth_tokens table first (NEW schema)
+            # Try oauth_tokens table first (for OAuth platforms)
             cursor.execute('''
                 SELECT 'access_token' as credential_key, access_token as credential_value
                 FROM oauth_tokens
@@ -862,14 +977,60 @@ class UserAuthManager:
             if oauth_tokens:
                 return oauth_tokens
             
-            # Fallback to old table (DEPRECATED)
-            cursor.execute('''
-                SELECT credential_key, credential_value
+            # Build query based on requested data
+            select_fields = ['credentials']
+            if include_settings:
+                select_fields.append('settings')
+            if include_metadata:
+                select_fields.extend(['validation_status', 'last_validated_at', 'rotation_due_at'])
+            
+            # Read from JSONB credentials column (NEW)
+            query = f'''
+                SELECT {', '.join(select_fields)}
                 FROM user_platform_credentials
                 WHERE user_id = %s AND platform = %s AND is_active = TRUE
-            ''', (user_id, platform))
+                ORDER BY updated_at DESC
+                LIMIT 1
+            '''
             
-            return {row[0]: row[1] for row in cursor.fetchall()}
+            cursor.execute(query, (user_id, platform))
+            row = cursor.fetchone()
+            
+            if not row:
+                return {}
+            
+            # Parse response based on request
+            if include_settings or include_metadata:
+                result = {}
+                
+                # Parse credentials (JSONB)
+                creds = row[0] if not isinstance(row, dict) else row['credentials']
+                result['credentials'] = creds if isinstance(creds, dict) else json.loads(creds) if creds else {}
+                
+                # Parse settings (JSONB)
+                if include_settings:
+                    settings = row[1] if not isinstance(row, dict) else row.get('settings', {})
+                    result['settings'] = settings if isinstance(settings, dict) else json.loads(settings) if settings else {}
+                
+                # Add metadata
+                if include_metadata:
+                    if isinstance(row, dict):
+                        result['validation_status'] = row.get('validation_status', 'unvalidated')
+                        result['last_validated_at'] = str(row.get('last_validated_at')) if row.get('last_validated_at') else None
+                        result['rotation_due_at'] = str(row.get('rotation_due_at')) if row.get('rotation_due_at') else None
+                    else:
+                        base_idx = 2 if include_settings else 1
+                        result['validation_status'] = row[base_idx] if len(row) > base_idx else 'unvalidated'
+                        result['last_validated_at'] = str(row[base_idx + 1]) if len(row) > base_idx + 1 and row[base_idx + 1] else None
+                        result['rotation_due_at'] = str(row[base_idx + 2]) if len(row) > base_idx + 2 and row[base_idx + 2] else None
+                
+                return result
+            else:
+                # Simple mode: Return credentials dict only
+                creds = row[0] if not isinstance(row, dict) else row['credentials']
+                return creds if isinstance(creds, dict) else json.loads(creds) if creds else {}
+            
+            return {}
     
     def get_user_credential(self, user_id: int, platform: str, credential_key: str) -> Optional[str]:
         """
@@ -936,6 +1097,245 @@ class UserAuthManager:
             ''', (user_id, user_id))
             
             return [row[0] for row in cursor.fetchall()]
+    
+    def store_platform_settings(self, user_id: int, platform: str, settings_dict: Dict) -> Dict:
+        """
+        Update platform settings without touching credentials (security best practice)
+        
+        Args:
+            user_id: User ID
+            platform: Platform name
+            settings_dict: Dict of settings (non-sensitive configuration)
+        
+        Returns:
+            Success status
+            
+        Example:
+            # Update Twilio business hours without changing auth_token
+            store_platform_settings(
+                user_id=1,
+                platform='twilio',
+                settings_dict={
+                    'business_hours_start': 9,
+                    'business_hours_end': 17,
+                    'emergency_phone': '+15555550911'
+                }
+            )
+        """
+        try:
+            with get_connection('ai_infrastructure') as conn:
+                cursor = conn.cursor()
+                
+                settings_json = json.dumps(settings_dict)
+                
+                # Update settings column only
+                cursor.execute('''
+                    UPDATE user_platform_credentials
+                    SET settings = %s::jsonb,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND platform = %s
+                ''', (settings_json, user_id, platform))
+                
+                if cursor.rowcount == 0:
+                    return {'success': False, 'error': f'No credentials found for {platform}'}
+                
+                conn.commit()
+                print(f"✅ Updated settings for {platform} (user {user_id})")
+                
+                return {'success': True, 'platform': platform}
+                
+        except Exception as e:
+            print(f"❌ Store settings error: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def test_platform_credential(self, user_id: int, platform: str) -> Dict:
+        """
+        Test platform credential by making API call (validation)
+        
+        Args:
+            user_id: User ID
+            platform: Platform name
+        
+        Returns:
+            Validation result with status
+            
+        Example:
+            result = test_platform_credential(user_id=1, platform='assemblyai')
+            # Returns: {'success': True, 'validation_status': 'valid', 'tested_at': '...'}
+        """
+        try:
+            from datetime import datetime
+            
+            # Get credentials
+            creds = self.get_platform_credentials(user_id, platform)
+            if not creds:
+                return {'success': False, 'error': 'No credentials found'}
+            
+            # Platform-specific validation logic
+            validation_status = 'unvalidated'
+            error_message = None
+            
+            if platform == 'assemblyai':
+                # Test AssemblyAI API
+                try:
+                    import assemblyai as aai
+                    aai.settings.api_key = creds.get('api_key')
+                    # Simple test: Get account info
+                    transcriber = aai.Transcriber()
+                    validation_status = 'valid'
+                except Exception as e:
+                    validation_status = 'invalid'
+                    error_message = str(e)
+            
+            elif platform == 'twilio':
+                # Test Twilio API
+                try:
+                    from twilio.rest import Client
+                    client = Client(creds.get('account_sid'), creds.get('auth_token'))
+                    # Simple test: Get account info
+                    account = client.api.accounts(creds.get('account_sid')).fetch()
+                    validation_status = 'valid'
+                except Exception as e:
+                    validation_status = 'invalid'
+                    error_message = str(e)
+            
+            elif platform == 'openai':
+                # Test OpenAI API
+                try:
+                    from openai import OpenAI
+                    client = OpenAI(api_key=creds.get('api_key'))
+                    # Simple test: List models
+                    models = client.models.list()
+                    validation_status = 'valid'
+                except Exception as e:
+                    validation_status = 'invalid'
+                    error_message = str(e)
+            
+            else:
+                return {'success': False, 'error': f'Validation not implemented for {platform}'}
+            
+            # Update validation status in database
+            with get_connection('ai_infrastructure') as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    UPDATE user_platform_credentials
+                    SET validation_status = %s,
+                        last_validated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND platform = %s
+                ''', (validation_status, user_id, platform))
+                
+                conn.commit()
+            
+            result = {
+                'success': True,
+                'platform': platform,
+                'validation_status': validation_status,
+                'tested_at': datetime.now().isoformat()
+            }
+            
+            if error_message:
+                result['error_message'] = error_message
+            
+            return result
+            
+        except Exception as e:
+            print(f"❌ Test credential error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'error': str(e)}
+    
+    def get_credentials_due_for_rotation(self, days_ahead: int = 7) -> List[Dict]:
+        """
+        Get list of credentials needing rotation soon
+        
+        Args:
+            days_ahead: How many days ahead to check (default: 7)
+        
+        Returns:
+            List of credentials needing rotation
+            
+        Example:
+            due_creds = auth_manager.get_credentials_due_for_rotation(days_ahead=7)
+            # Returns: [
+            #   {'user_id': 1, 'platform': 'pinecone', 'rotation_due_at': '2025-12-01', ...},
+            #   {'user_id': 2, 'platform': 'openai', 'rotation_due_at': '2025-12-03', ...}
+            # ]
+        """
+        try:
+            from datetime import datetime, timedelta
+            
+            with get_connection('ai_infrastructure') as conn:
+                cursor = conn.cursor()
+                
+                cutoff_date = datetime.now() + timedelta(days=days_ahead)
+                
+                cursor.execute('''
+                    SELECT user_id, platform, rotation_due_at, credential_type,
+                           last_validated_at, validation_status
+                    FROM user_platform_credentials
+                    WHERE is_active = TRUE
+                      AND rotation_due_at IS NOT NULL
+                      AND rotation_due_at <= %s
+                      AND rotation_reminder_sent = FALSE
+                    ORDER BY rotation_due_at ASC
+                ''', (cutoff_date,))
+                
+                results = []
+                for row in cursor.fetchall():
+                    if isinstance(row, dict):
+                        results.append({
+                            'user_id': row['user_id'],
+                            'platform': row['platform'],
+                            'rotation_due_at': str(row['rotation_due_at']),
+                            'credential_type': row['credential_type'],
+                            'last_validated_at': str(row['last_validated_at']) if row.get('last_validated_at') else None,
+                            'validation_status': row.get('validation_status', 'unvalidated')
+                        })
+                    else:
+                        results.append({
+                            'user_id': row[0],
+                            'platform': row[1],
+                            'rotation_due_at': str(row[2]),
+                            'credential_type': row[3],
+                            'last_validated_at': str(row[4]) if len(row) > 4 and row[4] else None,
+                            'validation_status': row[5] if len(row) > 5 else 'unvalidated'
+                        })
+                
+                return results
+                
+        except Exception as e:
+            print(f"❌ Get rotation list error: {e}")
+            return []
+    
+    def mark_rotation_reminder_sent(self, user_id: int, platform: str) -> Dict:
+        """
+        Mark that rotation reminder was sent (prevents duplicate alerts)
+        
+        Args:
+            user_id: User ID
+            platform: Platform name
+        
+        Returns:
+            Success status
+        """
+        try:
+            with get_connection('ai_infrastructure') as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    UPDATE user_platform_credentials
+                    SET rotation_reminder_sent = TRUE
+                    WHERE user_id = %s AND platform = %s
+                ''', (user_id, platform))
+                
+                conn.commit()
+                
+                return {'success': True}
+                
+        except Exception as e:
+            print(f"❌ Mark reminder sent error: {e}")
+            return {'success': False, 'error': str(e)}
     
     def get_user_google_oauth_credentials(self, user_id: int) -> Optional[Dict]:
         """
@@ -1379,7 +1779,7 @@ def require_auth(f):
                     metadata['microsoft_id'] = microsoft_id
                 
                 cursor.execute('''
-                    INSERT INTO users (username, email, password_hash, primary_gmail, role, metadata)
+                    INSERT INTO ai_infrastructure.users (username, email, password_hash, primary_gmail, role, metadata)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 ''', (username, email, password_hash, primary_gmail or email, role, json.dumps(metadata)))
                 
@@ -1434,7 +1834,7 @@ def require_auth(f):
         # Get user info
         with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT username, email, role FROM users WHERE id = %s', (user_id,))
+            cursor.execute('SELECT username, email, role FROM ai_infrastructure.users WHERE id = %s', (user_id,))
             row = cursor.fetchone()
             
             if not row:

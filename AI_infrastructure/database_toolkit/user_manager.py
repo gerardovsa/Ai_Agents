@@ -79,11 +79,11 @@ class UserManager:
         cursor = conn.cursor()
         
         if user_id:
-            cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+            cursor.execute("SELECT * FROM ai_infrastructure.users WHERE id = %s", (user_id,))
         elif email:
-            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+            cursor.execute("SELECT * FROM ai_infrastructure.users WHERE email = %s", (email,))
         elif username:
-            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+            cursor.execute("SELECT * FROM ai_infrastructure.users WHERE username = %s", (username,))
         else:
             conn.close()
             return None
@@ -121,9 +121,9 @@ class UserManager:
         cursor = conn.cursor()
         
         if role:
-            cursor.execute("SELECT * FROM users WHERE role = %s ORDER BY created_at DESC", (role,))
+            cursor.execute("SELECT * FROM ai_infrastructure.users WHERE role = %s ORDER BY created_at DESC", (role,))
         else:
-            cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM ai_infrastructure.users ORDER BY created_at DESC")
         
         rows = cursor.fetchall()
         conn.close()
@@ -242,7 +242,7 @@ class UserManager:
         cursor = conn.cursor()
         
         try:
-            cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+            cursor.execute("DELETE FROM ai_infrastructure.users WHERE id = %s", (user_id,))
             conn.commit()
             return True
         except Exception as e:

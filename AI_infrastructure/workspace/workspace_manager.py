@@ -150,7 +150,7 @@ class WorkspaceManager:
             workspace_slug = slug_gen.generate_workspace_slug(workspace_data.name)
             
             # Verify owner exists
-            cursor.execute("SELECT id FROM users WHERE id = %s", (workspace_data.owner_id,))
+            cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", (workspace_data.owner_id,))
             if not cursor.fetchone():
                 conn.close()
                 raise UserNotFoundError(workspace_data.owner_id)
@@ -514,7 +514,7 @@ class WorkspaceManager:
         
         try:
             # Verify user exists
-            cursor.execute("SELECT id FROM users WHERE id = %s", (member_data.user_id,))
+            cursor.execute("SELECT id FROM ai_infrastructure.users WHERE id = %s", (member_data.user_id,))
             if not cursor.fetchone():
                 conn.close()
                 raise UserNotFoundError(member_data.user_id)
