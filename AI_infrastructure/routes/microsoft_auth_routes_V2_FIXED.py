@@ -582,7 +582,7 @@ def microsoft_callback():
         display_name = profile.get('display_name', profile.get('displayName', ''))
         microsoft_id = profile.get('id', '')
         
-        logger.info(f"Microsoft authentication successful: {email}")
+        logger.info(f"✅ 🔓🔓 Microsoft authentication successful: {email}")
         
         # ====================================================================
         # STEP 4: Get or create user
@@ -769,7 +769,7 @@ def microsoft_callback():
         
         conn.close()
         
-        print('[MICROSOFT OAUTH] Tokens stored successfully in oauth_tokens table!')
+        print('✅ 🔓🔓 [MICROSOFT OAUTH] Tokens stored successfully in oauth_tokens table!')
         print(f'   Table: oauth_tokens')
         print(f'   User ID: {user_id}')
         print(f'   Platform: microsoft')
