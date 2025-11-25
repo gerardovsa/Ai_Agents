@@ -223,8 +223,10 @@ def init_database():
         print("🔷 [SYNERGY] Using Supabase - skipping table creation (already migrated)")
         return
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
     
     sql, params = convert_sql_placeholders('''
         CREATE TABLE IF NOT EXISTS synergy_sessions (
@@ -281,8 +283,11 @@ def init_database():
     except (sqlite3.OperationalError, Exception):
         pass  # Column already exists
     
-    conn.commit()
-    conn.close()
+        conn.commit()
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 # Initialize database on module load
@@ -292,6 +297,7 @@ init_database()
 @synergy_bp.route('/list', methods=['GET'])
 def list_sessions():
     """List all sessions with optional filtering"""
+    conn = None
     try:
         status = request.args.get('status')
         priority = request.args.get('priority')
@@ -320,7 +326,6 @@ def list_sessions():
         
         cursor.execute(query, params)
         rows = cursor.fetchall()
-        conn.close()
         
         sessions = []
         for row in rows:
@@ -354,6 +359,7 @@ def get_sessions_simple():
     Get simplified list of sessions for thread linking
     Returns minimal data: session_id, title, status, column
     """
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -366,7 +372,6 @@ def get_sessions_simple():
         """)
         
         rows = cursor.fetchall()
-        conn.close()
         
         sessions = [{
             'session_id': row['session_id'],
@@ -379,6 +384,15 @@ def get_sessions_simple():
         return jsonify(sessions)
     
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+
+@synergy_bp.route('/sessions/batch', methods=['GET'])
+def get_sessions_with_internal_docs():
         return jsonify({
             'success': False,
             'error': str(e)
@@ -596,6 +610,7 @@ def get_sessions_bulk():
     Returns: { success: True, sessions: { <id>: {...}, ... } }
     If no ids provided, falls back to list of sessions (minimal fields).
     """
+    conn = None
     try:
         ids_param = request.args.get('ids')
         if not ids_param:
@@ -639,6 +654,7 @@ def get_sessions_bulk():
 @synergy_bp.route('/create', methods=['POST'])
 def create_session():
     """Create a new session"""
+    conn = None
     try:
         # Validate JSON payload
         if not request.is_json:
@@ -736,8 +752,6 @@ def create_session():
             
             conn.commit()
         
-        conn.close()
-        
         # Broadcast new session creation to all connected WebSocket clients
         try:
             from flask import current_app
@@ -770,6 +784,10 @@ def create_session():
             'success': False,
             'error': str(e)
         }), 500
+    
+    finally:
+        if conn:
+            conn.close()
 
 
 @synergy_bp.route('/<session_id>', methods=['GET'])
