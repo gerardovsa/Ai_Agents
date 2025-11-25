@@ -156,34 +156,53 @@ class ModuleLoader {
      * 
      * Creates buttons in sidebar navigation automatically
      */
-    async generateSidebarButtons() {
+    async generateSidebarButtons(retryCount = 0) {
+        const MAX_RETRIES = 5;
+
         console.log('[ModuleLoader] Generating sidebar buttons...');
 
-        const sidebar = document.querySelector('.sidebar-icons');
+        // Look for the sidebar modules section first (preferred), then fallback to main sidebar
+        let sidebar = document.getElementById('sidebarModulesSection') || document.querySelector('.sidebar');
 
         if (!sidebar) {
-            console.warn('[ModuleLoader] Sidebar container not found - may not be visible yet');
-            console.warn('[ModuleLoader] Deferring sidebar button generation...');
+            if (retryCount >= MAX_RETRIES) {
+                console.error('[ModuleLoader] Sidebar container not found after', MAX_RETRIES, 'attempts - giving up');
+                console.error('[ModuleLoader] Module buttons will NOT be available');
+                return;
+            }
+
+            console.warn(`[ModuleLoader] Sidebar container not found - retry ${retryCount + 1}/${MAX_RETRIES}`);
 
             // Try again after a delay (DOM may still be loading)
-            setTimeout(() => this.generateSidebarButtons(), 1000);
+            setTimeout(() => this.generateSidebarButtons(retryCount + 1), 1000);
             return;
         }
 
-        // Create module buttons container (if doesn't exist)
-        let moduleButtonsContainer = document.getElementById('module-buttons-container');
+        console.log('[ModuleLoader] Found sidebar container:', sidebar.id || sidebar.className);
 
-        if (!moduleButtonsContainer) {
-            moduleButtonsContainer = document.createElement('div');
-            moduleButtonsContainer.id = 'module-buttons-container';
-            moduleButtonsContainer.className = 'module-buttons-section';
+        // If we found the modules section, use it directly
+        // Otherwise create a module buttons container
+        let moduleButtonsContainer;
 
-            // Insert before settings button (usually last)
-            const settingsButton = sidebar.querySelector('[title="Settings"]');
-            if (settingsButton) {
-                sidebar.insertBefore(moduleButtonsContainer, settingsButton);
-            } else {
-                sidebar.appendChild(moduleButtonsContainer);
+        if (sidebar.id === 'sidebarModulesSection') {
+            // Use the modules section directly
+            moduleButtonsContainer = sidebar;
+        } else {
+            // Create module buttons container inside main sidebar
+            moduleButtonsContainer = document.getElementById('module-buttons-container');
+
+            if (!moduleButtonsContainer) {
+                moduleButtonsContainer = document.createElement('div');
+                moduleButtonsContainer.id = 'module-buttons-container';
+                moduleButtonsContainer.className = 'module-buttons-section';
+
+                // Insert before settings button (usually last)
+                const settingsButton = sidebar.querySelector('[title="Settings"]');
+                if (settingsButton) {
+                    sidebar.insertBefore(moduleButtonsContainer, settingsButton);
+                } else {
+                    sidebar.appendChild(moduleButtonsContainer);
+                }
             }
         }
 
