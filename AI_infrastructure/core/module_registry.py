@@ -249,6 +249,7 @@ class ModuleRegistry:
         
         module = self.get_module(module_id)
         if not module:
+            logger.warning(f"Module {module_id} not found in registry")
             return {
                 'has_required': False,
                 'has_optional': False,
@@ -257,6 +258,10 @@ class ModuleRegistry:
                 'error': f"Module {module_id} not found"
             }
         
+        logger.debug(f"Checking credentials for module {module_id}, user {user_id}")
+        logger.debug(f"  Required platforms: {module.required_platforms}")
+        logger.debug(f"  Optional platforms: {module.optional_platforms}")
+        
         auth_manager = UserAuthManager()
         
         # Check required platforms
@@ -264,14 +269,20 @@ class ModuleRegistry:
         for platform in module.required_platforms:
             creds = auth_manager.get_platform_credentials(user_id, platform)
             if not creds:
+                logger.debug(f"  Missing credentials for required platform: {platform}")
                 missing_required.append(platform)
+            else:
+                logger.debug(f"  Found credentials for required platform: {platform}")
         
         # Check optional platforms
         available_optional = []
         for platform in module.optional_platforms:
             creds = auth_manager.get_platform_credentials(user_id, platform)
             if creds:
+                logger.debug(f"  Found credentials for optional platform: {platform}")
                 available_optional.append(platform)
+            else:
+                logger.debug(f"  No credentials for optional platform: {platform}")
         
         return {
             'has_required': len(missing_required) == 0,

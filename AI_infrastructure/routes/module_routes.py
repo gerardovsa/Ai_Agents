@@ -202,10 +202,21 @@ def get_modules_needing_setup():
     try:
         # Get user_id from query params
         user_id = request.args.get('user_id', type=int)
+        logger.info(f"[/needs-setup] Request from user_id={user_id}")
+        
         if not user_id:
+            logger.warning(f"[/needs-setup] No user_id provided, returning empty list")
             return jsonify({'modules': [], 'count': 0})
+        
         registry = get_module_registry()
+        logger.info(f"[/needs-setup] Checking credentials for {len(registry.modules)} modules")
+        
         needing_setup = registry.get_modules_needing_credentials(user_id)
+        
+        logger.info(f"[/needs-setup] Found {len(needing_setup)} modules needing setup")
+        if needing_setup:
+            for module in needing_setup:
+                logger.info(f"  - {module['id']}: missing {module['missing_required']}")
         
         return jsonify({
             'modules': needing_setup,
@@ -213,7 +224,9 @@ def get_modules_needing_setup():
         })
     
     except Exception as e:
-        logger.error(f"Failed to get modules needing setup for user {user_id}: {e}")
+        logger.error(f"[/needs-setup] Failed to get modules needing setup for user {user_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 

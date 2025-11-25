@@ -53,6 +53,7 @@ def create_thread():
             }
         }
     """
+    conn = None  # CRITICAL: Initialize outside try block for finally access
     try:
         import uuid
         
@@ -115,7 +116,8 @@ def create_thread():
         generated_id_result = cursor.fetchone()
         generated_id = generated_id_result[0] if isinstance(generated_id_result, tuple) else generated_id_result['id']
         conn.commit()
-        conn.close()
+        
+        # Don't close connection here - finally block will handle it
         
         thread_data = {
             'id': thread_id,
@@ -135,6 +137,10 @@ def create_thread():
         
     except Exception as e:
         return error_response(f'Failed to create thread: {str(e)}', 500)
+    finally:
+        # CRITICAL: Always close connection, even if exception raised
+        if conn:
+            conn.close()
 
 
 @thread_bp.route('/upsert', methods=['POST'])
@@ -154,6 +160,7 @@ def upsert_thread():
     Returns:
         {"success": true, "thread_id": "..."}
     """
+    conn = None  # CRITICAL: Initialize outside try block for finally access
     try:
         data = request.get_json() or {}
         thread_id = str(data.get('thread_id'))
@@ -218,6 +225,10 @@ def upsert_thread():
         import traceback
         traceback.print_exc()
         return error_response(f'Failed to upsert thread: {str(e)}', 500)
+    finally:
+        # CRITICAL: Always close connection, even if exception raised
+        if conn:
+            conn.close()
 
 
 # ============================================================
