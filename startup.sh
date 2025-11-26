@@ -84,6 +84,13 @@ EOF
         fi
     done
     echo ""
+    
+    # Create config directory for runtime-generated config files
+    echo "→ Creating /app/config directory for runtime configs..."
+    mkdir -p /app/config
+    chmod 777 /app/config
+    echo "✓ /app/config directory ready"
+    echo ""
 else
     echo "✓ Running locally (development)"
 fi

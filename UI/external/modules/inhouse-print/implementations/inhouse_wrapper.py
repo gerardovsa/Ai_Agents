@@ -76,6 +76,7 @@ def _get_agent() -> ToolUseAgent:
             # Import credentials manager
             import sys
             import os
+            import json
             # From: UI/external/modules/inhouse-print/implementations/inhouse_wrapper.py
             # To: AI_infrastructure/auth (need to go up 6 levels to project root)
             project_root = Path(__file__).parent.parent.parent.parent.parent.parent
@@ -90,22 +91,28 @@ def _get_agent() -> ToolUseAgent:
             print("[InHouse Wrapper] Loading database configuration...")
             config = get_database_config()
             
-            # Write config to temporary file for ToolUseAgent
-            # (ToolUseAgent expects file path, not dict)
-            import tempfile
-            import json
+            # Write config to a fixed location in project root
+            # This is needed because ToolUseAgent constructs paths relative to backend folder
+            config_dir = project_root / 'config'
+            config_dir.mkdir(exist_ok=True)
+            config_file = config_dir / 'database-config-runtime.json'
             
-            temp_config = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-            json.dump(config, temp_config, indent=2)
-            temp_config.close()
+            with open(config_file, 'w') as f:
+                json.dump(config, f, indent=2)
             
-            print(f"[InHouse Wrapper] Initializing ToolUseAgent with config from Supabase")
-            _agent_instance = ToolUseAgent(temp_config.name)
+            print(f"[InHouse Wrapper] Config written to: {config_file}")
+            print(f"[InHouse Wrapper] Initializing ToolUseAgent...")
+            
+            # Pass relative path from backend folder to config
+            _agent_instance = ToolUseAgent(str(config_file))
             print("[InHouse Wrapper] Singleton ToolUseAgent initialized successfully")
             
         except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
             raise RuntimeError(
                 f"Failed to initialize InHouse Print tools: {e}\n"
+                f"Details: {error_details}\n"
                 f"Ensure Supabase credentials are configured correctly"
             )
     
