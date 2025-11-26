@@ -34,8 +34,9 @@ RUN apt-get update && \
 
 # Install Microsoft ODBC Driver 18 for SQL Server
 # Required for pyodbc connections to SQL Server (Fred database)
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-    curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
+# Using modern GPG key method (apt-key is deprecated)
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg && \
+    curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list | tee /etc/apt/sources.list.d/mssql-release.list && \
     apt-get update && \
     ACCEPT_EULA=Y apt-get install -y msodbcsql18 && \
     apt-get clean && \
