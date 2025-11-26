@@ -106,26 +106,31 @@ def _get_calculator():
     """Get calculator instance"""
     _ensure_calculator()
     
-    # Get database config path - works both locally and on Render.com
-    # Detect Render by checking for SUPABASE_DB_URL (exists on Render, not locally)
-    is_render = (
-        os.environ.get('RENDER') == 'true' or
-        'SUPABASE_DB_URL' in os.environ or
-        not sys.platform.startswith('win')
-    )
-    
-    if is_render:
-        # Render deployment: Use /app root
-        config_path = Path('/app/config/database-config.json')
-    else:
-        # Local development: Use root_dir
-        config_path = root_dir / "config" / "database-config.json"
-    
-    if not config_path.exists():
-        # Fallback to default G_Folder path
-        config_path = None
-    
-    return ComprehensiveQuoteCalculator(config_path=str(config_path) if config_path else None)
+    try:
+        # Import credentials manager
+        credentials_path = root_dir / 'AI_infrastructure' / 'auth'
+        if str(credentials_path) not in sys.path:
+            sys.path.insert(0, str(credentials_path))
+        
+        from supabase_credentials import get_database_config
+        
+        # Get config (auto-detects Render vs Local)
+        config = get_database_config()
+        
+        # Write config to temporary file for ComprehensiveQuoteCalculator
+        import tempfile
+        import json
+        
+        temp_config = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        json.dump(config, temp_config, indent=2)
+        temp_config.close()
+        
+        return ComprehensiveQuoteCalculator(config_path=temp_config.name)
+        
+    except Exception as e:
+        print(f"⚠️  [Calculator] Failed to load config: {e}")
+        # Fallback to None (calculator will use defaults)
+        return ComprehensiveQuoteCalculator(config_path=None)
 
 
 def _handle_calculator_error(e: Exception, product_type: str) -> Dict[str, Any]:
