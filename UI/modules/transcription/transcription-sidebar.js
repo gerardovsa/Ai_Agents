@@ -587,72 +587,115 @@ class TranscriptionSidebarController {
     
     /**
      * ✅ NEW: Handle browser speech recognition results (instant streaming)
-     * Routes to sidebar display OR chat input based on recording source
+     * Routes to TranscriptionStreaming component with confidence-based styling
      */
     handleBrowserTranscript(event, source) {
-        const { final, interim } = event;
+        // Extract data (handle both formats)
+        let interim = '';
+        let final = '';
+        let confidence = 0;
         
-        // Route to correct destination based on source
-        if (source === 'chat') {
-            // Stream to chat input field
-            this.streamToChatInput(final, interim);
-            return;
+        // Format 1: {final, interim, confidence} (from initializeWebSpeechAPI)
+        if (event.final !== undefined) {
+            interim = event.interim || '';
+            final = event.final || '';
+            confidence = event.confidence || 0;
+        } 
+        // Format 2: SpeechRecognitionEvent (from SharedTranscriptionState)
+        else if (event.results) {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const result = event.results[i];
+                const transcript = result[0].transcript;
+                
+                if (result.isFinal) {
+                    final += transcript + ' ';
+                    confidence = result[0].confidence || 0;
+                } else {
+                    interim += transcript;
+                }
+            }
         }
         
-        // Default: Stream to sidebar display
-        const liveDisplay = document.getElementById('transcription-live-display');
-        if (!liveDisplay) return;
-        
-        // Update interim segment (gray italic) - V7_MustCare pattern
-        if (interim && interim.trim()) {
-            if (this.currentInterimElement) {
-                // ✅ REUSE element for smooth streaming
-                this.currentInterimElement.textContent = interim.trim();
-            } else {
-                // Create new interim element
-                const interimDiv = document.createElement('div');
-                interimDiv.className = 'interim';
-                interimDiv.style.cssText = `
-                    color: #8b949e;
-                    font-style: italic;
-                    opacity: 0.85;
-                    padding: 4px 0;
-                `;
-                interimDiv.textContent = interim.trim();
-                liveDisplay.appendChild(interimDiv);
-                this.currentInterimElement = interimDiv;
+        // Route to TranscriptionStreaming component (styled display)
+        if (window.TranscriptionStreaming) {
+            // Show interim results (gray, italic, pulsing with typing cursor)
+            if (interim && interim.trim()) {
+                window.TranscriptionStreaming.streamText(
+                    interim.trim(), 
+                    false,  // isFinal = false
+                    'unknown',  // confidence (interim doesn't have it)
+                    'browser-stt'  // source
+                );
             }
             
-            // Auto-scroll
-            liveDisplay.scrollTop = liveDisplay.scrollHeight;
+            // Show final results (colored by confidence with blue dot)
+            if (final && final.trim()) {
+                const confidenceLevel = confidence >= 0.8 ? 'high' : 
+                                       confidence >= 0.5 ? 'medium' : 
+                                       confidence > 0 ? 'low' : 'unknown';
+                
+                window.TranscriptionStreaming.streamText(
+                    final.trim(), 
+                    true,  // isFinal = true
+                    confidenceLevel,
+                    'browser-stt'
+                );
+            }
         }
         
-        // Finalize segment (white normal) - V7_MustCare pattern
-        if (final && final.trim()) {
-            if (this.currentInterimElement) {
-                // ✅ Convert interim to final (style change)
-                this.currentInterimElement.className = 'final';
-                this.currentInterimElement.style.cssText = `
-                    color: var(--text-primary, #c9d1d9);
-                    font-style: normal;
-                    padding: 4px 0;
-                `;
-                this.currentInterimElement.textContent = final.trim();
-                this.currentInterimElement = null; // Clear for next segment
-            } else {
-                // No interim to finalize - add directly
-                const finalDiv = document.createElement('div');
-                finalDiv.className = 'final';
-                finalDiv.style.cssText = `
-                    color: var(--text-primary, #c9d1d9);
-                    padding: 4px 0;
-                `;
-                finalDiv.textContent = final.trim();
-                liveDisplay.appendChild(finalDiv);
+        // Also route to chat input for backwards compatibility (final text only)
+        if (source === 'chat' && final && final.trim()) {
+            this.streamToChatInput(final, '');
+        }
+        
+        // Optional: Also show in sidebar live display if not from chat
+        if (source !== 'chat') {
+            const liveDisplay = document.getElementById('transcription-live-display');
+            if (!liveDisplay) return;
+            
+            // Update interim segment (gray italic)
+            if (interim && interim.trim()) {
+                if (this.currentInterimElement) {
+                    this.currentInterimElement.textContent = interim.trim();
+                } else {
+                    const interimDiv = document.createElement('div');
+                    interimDiv.className = 'interim';
+                    interimDiv.style.cssText = `
+                        color: #8b949e;
+                        font-style: italic;
+                        opacity: 0.85;
+                        padding: 4px 0;
+                    `;
+                    interimDiv.textContent = interim.trim();
+                    liveDisplay.appendChild(interimDiv);
+                    this.currentInterimElement = interimDiv;
+                }
+                liveDisplay.scrollTop = liveDisplay.scrollHeight;
             }
             
-            // Auto-scroll
-            liveDisplay.scrollTop = liveDisplay.scrollHeight;
+            // Finalize segment
+            if (final && final.trim()) {
+                if (this.currentInterimElement) {
+                    this.currentInterimElement.className = 'final';
+                    this.currentInterimElement.style.cssText = `
+                        color: var(--text-primary, #c9d1d9);
+                        font-style: normal;
+                        padding: 4px 0;
+                    `;
+                    this.currentInterimElement.textContent = final.trim();
+                    this.currentInterimElement = null;
+                } else {
+                    const finalDiv = document.createElement('div');
+                    finalDiv.className = 'final';
+                    finalDiv.style.cssText = `
+                        color: var(--text-primary, #c9d1d9);
+                        padding: 4px 0;
+                    `;
+                    finalDiv.textContent = final.trim();
+                    liveDisplay.appendChild(finalDiv);
+                }
+                liveDisplay.scrollTop = liveDisplay.scrollHeight;
+            }
         }
     }
     

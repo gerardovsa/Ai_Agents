@@ -385,6 +385,229 @@ def google_slides_get_presentation(presentation_id, format='summary', **kwargs):
         raise
 
 
+def google_slides_get_slide(presentation_id, slide_number, **kwargs):
+    """
+    Get content from a specific slide
+    
+    Args:
+        presentation_id (str): Presentation ID
+        slide_number (int): Slide number (1-indexed)
+        **kwargs: Credential injection parameters
+    
+    Returns:
+        dict: Slide content including text, notes, and elements
+    """
+    try:
+        # Get credentials
+        user_id = kwargs.get('_user_id')
+        injected_creds = kwargs.get('_injected_credentials')
+        credentials_dict = _get_user_credentials_if_available(user_id, injected_creds)
+        
+        if credentials_dict:
+            credentials = Credentials(
+                token=credentials_dict.get('access_token'),
+                refresh_token=credentials_dict.get('refresh_token'),
+                token_uri='https://oauth2.googleapis.com/token',
+                client_id=os.getenv('GOOGLE_CLIENT_ID'),
+                client_secret=os.getenv('GOOGLE_CLIENT_SECRET')
+            )
+            service = build('slides', 'v1', credentials=credentials)
+        else:
+            credentials = get_service_account_credentials(SLIDES_SCOPES)
+            service = build('slides', 'v1', credentials=credentials)
+        
+        # Get full presentation
+        presentation = service.presentations().get(presentationId=presentation_id).execute()
+        
+        slides = presentation.get('slides', [])
+        
+        if slide_number < 1 or slide_number > len(slides):
+            raise ValueError(f"Slide number {slide_number} out of range (1-{len(slides)})")
+        
+        # Get the specific slide (convert to 0-indexed)
+        slide = slides[slide_number - 1]
+        
+        # Extract text content
+        text_content = []
+        for element in slide.get('pageElements', []):
+            if 'shape' in element and 'text' in element['shape']:
+                for text_element in element['shape']['text'].get('textElements', []):
+                    if 'textRun' in text_element:
+                        text_content.append(text_element['textRun']['content'])
+        
+        # Get speaker notes
+        notes_page = slide.get('slideProperties', {}).get('notesPage', {})
+        speaker_notes = ""
+        for element in notes_page.get('pageElements', []):
+            if 'shape' in element and 'text' in element['shape']:
+                for text_element in element['shape']['text'].get('textElements', []):
+                    if 'textRun' in text_element:
+                        speaker_notes += text_element['textRun']['content']
+        
+        # Count elements
+        elements = slide.get('pageElements', [])
+        element_types = {
+            'text_boxes': 0,
+            'images': 0,
+            'shapes': 0,
+            'tables': 0,
+            'charts': 0
+        }
+        
+        for element in elements:
+            if 'shape' in element:
+                if 'text' in element['shape']:
+                    element_types['text_boxes'] += 1
+                else:
+                    element_types['shapes'] += 1
+            elif 'image' in element:
+                element_types['images'] += 1
+            elif 'table' in element:
+                element_types['tables'] += 1
+            elif 'sheetsChart' in element:
+                element_types['charts'] += 1
+        
+        # Get images metadata
+        images = []
+        for element in elements:
+            if 'image' in element:
+                img = element['image']
+                images.append({
+                    'url': img.get('contentUrl', ''),
+                    'description': element.get('description', '')
+                })
+        
+        result = {
+            'success': True,
+            'presentation_id': presentation_id,
+            'slide_number': slide_number,
+            'object_id': slide.get('objectId', ''),
+            'layout': slide.get('slideProperties', {}).get('layoutObjectId', ''),
+            'text_content': text_content,
+            'speaker_notes': speaker_notes.strip(),
+            'elements': element_types,
+            'images': images
+        }
+        
+        print(f"📄 Retrieved slide {slide_number}")
+        print(f"   Text elements: {len(text_content)}")
+        print(f"   Has speaker notes: {len(speaker_notes) > 0}")
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ Failed to get slide: {e}")
+        raise
+
+
+def google_slides_search_presentation(presentation_id, query, **kwargs):
+    """
+    Search for slides containing specific text
+    
+    Args:
+        presentation_id (str): Presentation ID
+        query (str): Search query
+        **kwargs: Credential injection parameters
+    
+    Returns:
+        dict: Matching slides with context
+    """
+    try:
+        # Get credentials
+        user_id = kwargs.get('_user_id')
+        injected_creds = kwargs.get('_injected_credentials')
+        credentials_dict = _get_user_credentials_if_available(user_id, injected_creds)
+        
+        if credentials_dict:
+            credentials = Credentials(
+                token=credentials_dict.get('access_token'),
+                refresh_token=credentials_dict.get('refresh_token'),
+                token_uri='https://oauth2.googleapis.com/token',
+                client_id=os.getenv('GOOGLE_CLIENT_ID'),
+                client_secret=os.getenv('GOOGLE_CLIENT_SECRET')
+            )
+            service = build('slides', 'v1', credentials=credentials)
+        else:
+            credentials = get_service_account_credentials(SLIDES_SCOPES)
+            service = build('slides', 'v1', credentials=credentials)
+        
+        # Get full presentation
+        presentation = service.presentations().get(presentationId=presentation_id).execute()
+        
+        title = presentation.get('title', 'Untitled')
+        slides = presentation.get('slides', [])
+        
+        # Search through slides
+        matches = []
+        query_lower = query.lower()
+        
+        for idx, slide in enumerate(slides):
+            slide_number = idx + 1
+            
+            # Get slide title (usually first text element)
+            slide_title = ""
+            elements = slide.get('pageElements', [])
+            if elements:
+                first_element = elements[0]
+                if 'shape' in first_element and 'text' in first_element['shape']:
+                    for text_el in first_element['shape']['text'].get('textElements', []):
+                        if 'textRun' in text_el:
+                            slide_title = text_el['textRun']['content'].strip()
+                            break
+            
+            # Collect all text from slide
+            all_text = []
+            for element in elements:
+                if 'shape' in element and 'text' in element['shape']:
+                    for text_element in element['shape']['text'].get('textElements', []):
+                        if 'textRun' in text_element:
+                            all_text.append(text_element['textRun']['content'])
+            
+            full_text = "".join(all_text)
+            
+            # Get speaker notes
+            notes_page = slide.get('slideProperties', {}).get('notesPage', {})
+            speaker_notes = ""
+            for element in notes_page.get('pageElements', []):
+                if 'shape' in element and 'text' in element['shape']:
+                    for text_element in element['shape']['text'].get('textElements', []):
+                        if 'textRun' in text_element:
+                            speaker_notes += text_element['textRun']['content']
+            
+            # Check if query matches
+            if query_lower in full_text.lower() or query_lower in speaker_notes.lower():
+                # Find the specific matching text with context
+                matched_text = full_text if query_lower in full_text.lower() else ""
+                matched_notes = speaker_notes if query_lower in speaker_notes.lower() else ""
+                
+                matches.append({
+                    'slide_number': slide_number,
+                    'title': slide_title or f"Slide {slide_number}",
+                    'matched_text': matched_text[:500] if matched_text else "",  # Limit length
+                    'speaker_notes': matched_notes[:500] if matched_notes else ""  # Limit length
+                })
+        
+        result = {
+            'success': True,
+            'presentation_id': presentation_id,
+            'title': title,
+            'query': query,
+            'matches': matches,
+            'match_count': len(matches),
+            'total_slides': len(slides)
+        }
+        
+        print(f"🔍 Searched presentation: {title}")
+        print(f"   Query: '{query}'")
+        print(f"   Matches: {len(matches)} slides")
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ Failed to search presentation: {e}")
+        raise
+
+
 # ==================== SLIDE OPERATIONS ====================
 
 def google_slides_add_slide(presentation_id, layout='BLANK', index=None, **kwargs):

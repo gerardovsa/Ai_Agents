@@ -724,6 +724,95 @@ def google_forms_get_response(form_id, response_id):
         raise
 
 
+def google_forms_search_responses(form_id, query, **kwargs):
+    """
+    Search through form responses for a text query.
+    
+    Args:
+        form_id: The form ID
+        query: Text to search for (case-insensitive)
+        **kwargs: Optional OAuth credentials (access_token, refresh_token, token_uri)
+    
+    Returns:
+        dict with:
+        - matched_responses: List of responses containing the query
+        - total_matches: Number of matching responses
+        - query: The search query used
+    """
+    print(f"Searching responses in form {form_id} for query: {query}")
+    
+    try:
+        # Get credentials - check kwargs first, then service account
+        credentials = _get_user_credentials_if_available(kwargs)
+        if credentials:
+            print("Using user-provided OAuth credentials")
+            service = build('forms', 'v1', credentials=credentials)
+        else:
+            print("Using service account credentials")
+            service = _get_forms_service()
+        
+        # Get all responses
+        response = service.forms().responses().list(formId=form_id).execute()
+        
+        if 'responses' not in response:
+            print("No responses found in form")
+            return {
+                'matched_responses': [],
+                'total_matches': 0,
+                'query': query
+            }
+        
+        responses = response['responses']
+        query_lower = query.lower()
+        matched_responses = []
+        
+        # Search through each response
+        for resp in responses:
+            response_id = resp.get('responseId', '')
+            timestamp = resp.get('lastSubmittedTime', '')
+            answers = resp.get('answers', {})
+            
+            matched_answers = []
+            
+            # Search through all answers in this response
+            for question_id, answer_data in answers.items():
+                # Extract answer text
+                answer_text = ''
+                text_answers = answer_data.get('textAnswers', {})
+                
+                if text_answers:
+                    answer_values = text_answers.get('answers', [])
+                    answer_text = ' '.join([ans.get('value', '') for ans in answer_values])
+                
+                # Check if query matches
+                if query_lower in answer_text.lower():
+                    matched_answers.append({
+                        'question_id': question_id,
+                        'answer_text': answer_text[:300] + ('...' if len(answer_text) > 300 else '')
+                    })
+            
+            # If this response has any matching answers, include it
+            if matched_answers:
+                matched_responses.append({
+                    'response_id': response_id,
+                    'timestamp': timestamp,
+                    'matched_answers': matched_answers,
+                    'total_answers': len(answers)
+                })
+        
+        print(f"Found {len(matched_responses)} responses matching query '{query}'")
+        
+        return {
+            'matched_responses': matched_responses,
+            'total_matches': len(matched_responses),
+            'query': query
+        }
+    
+    except Exception as e:
+        print(f"Failed to search responses: {e}")
+        raise
+
+
 def google_forms_delete_response(form_id, response_id):
     """Delete a response"""
     try:
