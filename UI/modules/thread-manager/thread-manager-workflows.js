@@ -91,7 +91,12 @@ window.ThreadManagerWorkflows = {
             if (data && data.success) {
                 thread.workflow_id = null;
                 thread.workflow_name = null;
+                thread.workflow_slug = null;
+                thread.workflow_title = null;
                 thread.updated = new Date().toISOString();
+
+                // IMMEDIATE UI UPDATE: Remove badge without full re-render
+                this.updateWorkflowBadgeRemove(threadId);
 
                 // Use master sync to update all UI components
                 if (typeof this.syncThreadLocationEverywhere === 'function') {
@@ -117,6 +122,49 @@ window.ThreadManagerWorkflows = {
                 showNotification('Error unlinking workflow', 'error');
             }
             return false;
+        }
+    },
+
+    /**
+     * IMMEDIATE UI UPDATE: Remove workflow badge (no full re-render)
+     */
+    updateWorkflowBadgeRemove(threadId) {
+        // Find thread item in DOM
+        const threadCard = document.querySelector(`[data-thread-id="${threadId}"]`);
+        if (!threadCard) {
+            console.warn(`[WORKFLOW] Thread card not found for ${threadId}`);
+            return;
+        }
+
+        // Find the workflow section
+        const workflowSection = threadCard.querySelector('.thread-item-workflow');
+        if (!workflowSection) {
+            console.warn(`[WORKFLOW] Workflow section not found in thread card`);
+            return;
+        }
+
+        // Check if currently showing linked badge
+        const isLinked = workflowSection.classList.contains('thread-item-workflow-linked');
+        
+        if (isLinked) {
+            // Replace linked badge with unlinked state
+            workflowSection.classList.remove('thread-item-workflow-linked');
+            workflowSection.classList.add('thread-item-workflow-unlinked');
+            workflowSection.removeAttribute('data-workflow-id');
+            
+            // Update HTML to show "Link Workflow" button
+            workflowSection.innerHTML = `
+                <i class="fas fa-robot"></i>
+                <span>Link Workflow</span>
+            `;
+            
+            // Re-add click handler
+            workflowSection.onclick = (e) => {
+                e.stopPropagation();
+                this.openWorkflowLinkModal(threadId);
+            };
+            
+            console.log(`✅ [WORKFLOW] Badge removed immediately for thread ${threadId}`);
         }
     },
 

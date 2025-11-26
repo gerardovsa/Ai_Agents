@@ -528,6 +528,153 @@ if (!window.ModuleRegistry) {
     console.log('Created ModuleRegistry');
 }
 
-// Register this module
-window.ModuleRegistry['quote-calculator'] = QuoteCalculatorModule;
-console.log('✓ Quote Calculator module registered');
+// Register this module with initialization
+window.ModuleRegistry['quote_calculator'] = {
+    class: QuoteCalculatorModule,
+    instance: null,
+
+    init: async function () {
+        console.log('🔧 Initializing Quote Calculator...');
+
+        // Check if sidebar element exists
+        const sidebar = document.getElementById('quote_calculator-sidebar');
+        if (!sidebar) {
+            console.error('❌ Quote Calculator sidebar element not found!');
+            return;
+        }
+
+        // Initialize sub-tabs
+        const subTabs = sidebar.querySelectorAll('.module-sub-tab');
+        const tabContents = sidebar.querySelectorAll('.module-sub-tab-content');
+
+        subTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                subTabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                const tabId = tab.dataset.tab;
+                const content = document.getElementById(tabId);
+                if (content) {
+                    content.classList.add('active');
+                }
+            });
+        });
+
+        // Set up calculator button handlers
+        this.setupBusinessCardsCalculator();
+        this.setupFlyersCalculator();
+        this.setupBookletsCalculator();
+        this.setupPerfectBoundCalculator();
+        this.setupCorfluteCalculator();
+        this.setupStockListLoader();
+
+        console.log('✅ Quote Calculator ready');
+    },
+
+    setupBusinessCardsCalculator: function () {
+        const btn = document.getElementById('bc-calculate-btn');
+        if (btn) {
+            btn.addEventListener('click', async () => {
+                const quantity = parseInt(document.getElementById('bc-quantity').value);
+                const stock = document.getElementById('bc-stock').value;
+                const sides = document.getElementById('bc-sides').value;
+                const finish = document.getElementById('bc-finish').value;
+
+                const resultDiv = document.getElementById('bc-result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Calculating...</div>';
+
+                try {
+                    const result = await fetch('/api/calculator/business-cards', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            quantity,
+                            stock_type: stock,
+                            sided: sides,
+                            finish: finish
+                        })
+                    }).then(r => r.json());
+
+                    resultDiv.innerHTML = `
+                        <h4><i class="fas fa-check-circle"></i> Quote Result</h4>
+                        <div class="result-details">
+                            <div class="result-row">
+                                <span class="result-label">Total Price:</span>
+                                <span class="result-value">$${result.total_price || 'N/A'}</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="result-label">Per Card:</span>
+                                <span class="result-value">$${result.per_unit_price || 'N/A'}</span>
+                            </div>
+                            <div class="result-row">
+                                <span class="result-label">Turnaround:</span>
+                                <span class="result-value">${result.turnaround_days || 'N/A'} days</span>
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultDiv.innerHTML = `<div class="error"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+                }
+            });
+        }
+    },
+
+    setupFlyersCalculator: function () {
+        const btn = document.getElementById('fl-calculate-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const resultDiv = document.getElementById('fl-result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="info"><i class="fas fa-info-circle"></i> Flyers calculator coming soon...</div>';
+            });
+        }
+    },
+
+    setupBookletsCalculator: function () {
+        const btn = document.getElementById('bk-calculate-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const resultDiv = document.getElementById('bk-result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="info"><i class="fas fa-info-circle"></i> Booklets calculator coming soon...</div>';
+            });
+        }
+    },
+
+    setupPerfectBoundCalculator: function () {
+        const btn = document.getElementById('pb-calculate-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const resultDiv = document.getElementById('pb-result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="info"><i class="fas fa-info-circle"></i> Perfect Bound Books calculator coming soon...</div>';
+            });
+        }
+    },
+
+    setupCorfluteCalculator: function () {
+        const btn = document.getElementById('cs-calculate-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const resultDiv = document.getElementById('cs-result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="info"><i class="fas fa-info-circle"></i> Corflute Signs calculator coming soon...</div>';
+            });
+        }
+    },
+
+    setupStockListLoader: function () {
+        const btn = document.getElementById('stocks-load-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const resultDiv = document.getElementById('stocks-result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="info"><i class="fas fa-info-circle"></i> Stock list coming soon...</div>';
+            });
+        }
+    }
+};
+
+console.log('✓ Quote Calculator module registered as quote_calculator');

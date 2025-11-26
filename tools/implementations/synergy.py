@@ -19,9 +19,10 @@ Functions:
 import requests
 from typing import Dict, List, Optional, Any
 import json
+import os
 
-# Synergy backend URL
-SYNERGY_API_BASE = "http://localhost:5001/api/synergy"
+# Synergy backend URL - use environment variable or default to Render deployment
+SYNERGY_API_BASE = os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com').rstrip('/') + '/api/synergy'
 
 
 class SynergyError(Exception):
@@ -80,7 +81,7 @@ def synergy_smart_project_tracker(
         Dict with:
         - session_id: For future updates
         - session: Complete session object
-        - dashboard_url: http://localhost:5001
+        - dashboard_url: https://ai-agents-backend-singapore.onrender.com
         - message: User-friendly status message
         - auto_update_enabled: Whether AI will auto-update
         
@@ -97,7 +98,7 @@ def synergy_smart_project_tracker(
         )
         
         print(result["message"])
-        # "✅ Project tracker created! View dashboard: http://localhost:5001"
+        # "✅ Project tracker created! View dashboard: https://ai-agents-backend-singapore.onrender.com"
         # AI will auto-update as you create documents
     """
     try:
@@ -211,7 +212,7 @@ def synergy_smart_project_tracker(
                 google_sync_status = " (Google sync failed - continuing with Synergy only)"
         
         # Build user message
-        dashboard_url = "http://localhost:5001"
+        dashboard_url = os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com').rstrip('/')
         doc_count = len(initial_documents) if initial_documents else 0
         
         message_parts = [

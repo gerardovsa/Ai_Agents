@@ -135,6 +135,12 @@ class STTModule {
      * Toggle recording on/off
      */
     async toggleRecording() {
+        console.log('🎤 toggleRecording called, current state:', {
+            recording: this.recording,
+            mediaRecorder: this.mediaRecorder?.state,
+            audioStream: !!this.audioStream
+        });
+        
         if (this.recording) {
             this.stopRecording();
         } else {
@@ -158,6 +164,12 @@ class STTModule {
                     noiseSuppression: true
                 } 
             });
+            
+            console.log('🎤 Microphone stream obtained:', {
+                active: this.audioStream.active,
+                tracks: this.audioStream.getTracks().length,
+                trackSettings: this.audioStream.getTracks()[0]?.getSettings()
+            });
 
             // Create MediaRecorder
             const mimeType = this.getSupportedMimeType();
@@ -166,12 +178,31 @@ class STTModule {
             });
 
             // Event handlers
-            this.mediaRecorder.ondataavailable = (event) => this.handleAudioChunk(event);
-            this.mediaRecorder.onstop = () => this.handleRecordingStop();
-            this.mediaRecorder.onerror = (event) => this.handleRecordingError(event);
+            this.mediaRecorder.ondataavailable = (event) => {
+                console.log('🎧 ondataavailable fired:', event.data.size, 'bytes');
+                this.handleAudioChunk(event);
+            };
+            this.mediaRecorder.onstop = () => {
+                console.log('🎧 onstop fired');
+                this.handleRecordingStop();
+            };
+            this.mediaRecorder.onerror = (event) => {
+                console.log('🎧 onerror fired:', event.error);
+                this.handleRecordingError(event);
+            };
 
             // Start recording with time slices
+            console.log('🎧 Starting MediaRecorder with timeSlice:', this.options.timeSlice, 'ms');
             this.mediaRecorder.start(this.options.timeSlice);
+            
+            // WORKAROUND: Some browsers don't reliably fire ondataavailable with timeSlice
+            // Manually request data as a backup
+            this.chunkRequestInterval = setInterval(() => {
+                if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                    console.log('⏰ Manually requesting data from MediaRecorder...');
+                    this.mediaRecorder.requestData();
+                }
+            }, this.options.timeSlice);
 
             // Update state
             this.recording = true;
@@ -199,7 +230,11 @@ class STTModule {
      * Stop audio recording
      */
     stopRecording() {
-        console.log('🛑 Stopping recording...');
+        console.log('🛑 Stopping recording...', {
+            recording: this.recording,
+            mediaRecorderState: this.mediaRecorder?.state,
+            chunkCount: this.chunkCount
+        });
 
         if (!this.recording || !this.mediaRecorder) {
             console.warn('⚠️ No recording to stop');
@@ -208,6 +243,7 @@ class STTModule {
 
         // Stop MediaRecorder
         if (this.mediaRecorder.state !== 'inactive') {
+            console.log('🛑 Calling mediaRecorder.stop()...');
             this.mediaRecorder.stop();
         }
 
@@ -215,6 +251,12 @@ class STTModule {
         if (this.audioStream) {
             this.audioStream.getTracks().forEach(track => track.stop());
             this.audioStream = null;
+        }
+        
+        // Clear chunk request interval
+        if (this.chunkRequestInterval) {
+            clearInterval(this.chunkRequestInterval);
+            this.chunkRequestInterval = null;
         }
 
         // Update state
@@ -305,11 +347,12 @@ class STTModule {
                 this.insertTranscript(result.transcript);
             }
 
-            // Callback
+            // Callback (all Whisper transcripts are final, not interim)
             this.options.onTranscript({ 
                 transcript: result.transcript, 
                 chunkId: chunkId,
-                timestamp: Date.now() 
+                timestamp: Date.now(),
+                isFinal: true
             });
 
             // Update status

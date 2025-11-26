@@ -486,7 +486,8 @@ def synergy_smart_create_document(
         Progressive processing result with status updates
     """
     try:
-        api_base_url = kwargs.get('api_base_url', 'http://localhost:5001')
+        import os
+        api_base_url = kwargs.get('api_base_url', os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com'))
         user_id = kwargs.get('user_id', 1)
         
         processing_steps = []
@@ -711,7 +712,8 @@ def synergy_smart_update_document(
         Update result with validation details
     """
     try:
-        api_base_url = kwargs.get('api_base_url', 'http://localhost:5001')
+        import os
+        api_base_url = kwargs.get('api_base_url', os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com'))
         user_id = kwargs.get('user_id', 1)
         
         # Get existing document
@@ -868,7 +870,8 @@ def synergy_smart_analyze_document(
         Analysis results tailored to requested type
     """
     try:
-        api_base_url = kwargs.get('api_base_url', 'http://localhost:5001')
+        import os
+        api_base_url = kwargs.get('api_base_url', os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com'))
         user_id = kwargs.get('user_id', 1)
         
         # Get document
@@ -1009,7 +1012,8 @@ def synergy_smart_batch_operations(
         Batch operation results with progress tracking
     """
     try:
-        api_base_url = kwargs.get('api_base_url', 'http://localhost:5001')
+        import os
+        api_base_url = kwargs.get('api_base_url', os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com'))
         user_id = kwargs.get('user_id', 1)
         
         results = []

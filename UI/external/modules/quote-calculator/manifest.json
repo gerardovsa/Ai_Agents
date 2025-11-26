@@ -5,10 +5,14 @@
   "description": "InHouse Print quote generation and pricing tools with AI integration",
   "author": "InHouse Print",
   "license": "Proprietary",
+  "html_file": "quote-calculator.html",
+  "js_file": "quote-calculator.js",
+  "css_file": "quote-calculator.css",
   "module": {
     "main": "quote-calculator.js",
     "class": "QuoteCalculatorModule",
-    "styles": "quote-calculator.css"
+    "styles": "quote-calculator.css",
+    "html": "quote-calculator.html"
   },
   "ui": {
     "icon": "fas fa-calculator",

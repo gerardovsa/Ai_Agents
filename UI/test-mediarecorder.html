@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaRecorder Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button.recording {
+            background: #f44336;
+        }
+
+        #log {
+            background: #2a2a2a;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 10px;
+        }
+
+        .log-error {
+            border-left-color: #f44336;
+            color: #ff6b6b;
+        }
+
+        .log-warning {
+            border-left-color: #ff9800;
+            color: #ffb74d;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>MediaRecorder Chunk Test</h1>
+    <p>This test verifies that MediaRecorder properly fires ondataavailable events with timeSlice.</p>
+
+    <button id="recordBtn" onclick="toggleRecording()">Start Recording</button>
+    <button onclick="clearLog()">Clear Log</button>
+
+    <div id="status">Status: <span id="statusText">Idle</span></div>
+    <div id="stats">
+        <div>Chunks Received: <span id="chunkCount">0</span></div>
+        <div>Total Bytes: <span id="totalBytes">0</span></div>
+        <div>Recording Duration: <span id="duration">0s</span></div>
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        let mediaRecorder = null;
+        let audioStream = null;
+        let recording = false;
+        let chunkCount = 0;
+        let totalBytes = 0;
+        let startTime = null;
+        let durationInterval = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type === 'error' ? 'log-error' : type === 'warning' ? 'log-warning' : ''}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            chunkCount = 0;
+            totalBytes = 0;
+            document.getElementById('chunkCount').textContent = '0';
+            document.getElementById('totalBytes').textContent = '0';
+        }
+
+        async function toggleRecording() {
+            if (recording) {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
+        }
+
+        async function startRecording() {
+            log('🎤 Requesting microphone access...');
+
+            try {
+                // Request microphone
+                audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                });
+
+                log('✅ Microphone access granted');
+                log(`   Active: ${audioStream.active}, Tracks: ${audioStream.getTracks().length}`);
+
+                const track = audioStream.getTracks()[0];
+                const settings = track.getSettings();
+                log(`   Track settings: ${JSON.stringify(settings)}`);
+
+                // Create MediaRecorder
+                const mimeType = getSupportedMimeType();
+                log(`📼 Creating MediaRecorder with mimeType: ${mimeType}`);
+
+                mediaRecorder = new MediaRecorder(audioStream, {
+                    mimeType: mimeType
+                });
+
+                log(`   MediaRecorder state: ${mediaRecorder.state}`);
+
+                // Event handlers
+                mediaRecorder.ondataavailable = (event) => {
+                    log(`📦 ondataavailable fired! Size: ${event.data.size} bytes`, 'info');
+                    chunkCount++;
+                    totalBytes += event.data.size;
+                    document.getElementById('chunkCount').textContent = chunkCount;
+                    document.getElementById('totalBytes').textContent = totalBytes.toLocaleString();
+
+                    if (event.data.size > 0) {
+                        log(`   ✅ Valid chunk received (${event.data.size} bytes)`);
+                    } else {
+                        log(`   ⚠️ Empty chunk received!`, 'warning');
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    log('🛑 MediaRecorder stopped');
+                };
+
+                mediaRecorder.onerror = (event) => {
+                    log(`❌ MediaRecorder error: ${event.error}`, 'error');
+                };
+
+                // Start recording with 5-second time slices
+                const timeSlice = 5000;
+                log(`▶️ Starting MediaRecorder with timeSlice: ${timeSlice}ms`);
+                mediaRecorder.start(timeSlice);
+
+                log(`   MediaRecorder state after start: ${mediaRecorder.state}`);
+
+                recording = true;
+                startTime = Date.now();
+
+                // Update UI
+                document.getElementById('recordBtn').textContent = 'Stop Recording';
+                document.getElementById('recordBtn').classList.add('recording');
+                document.getElementById('statusText').textContent = 'Recording...';
+                document.getElementById('statusText').style.color = '#f44336';
+
+                // Update duration
+                durationInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    document.getElementById('duration').textContent = `${elapsed}s`;
+                }, 1000);
+
+                log('✅ Recording started! Waiting for chunks (every 5 seconds)...');
+
+            } catch (error) {
+                log(`❌ Failed to start recording: ${error.message}`, 'error');
+            }
+        }
+
+        function stopRecording() {
+            log('🛑 Stopping recording...');
+
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => {
+                    track.stop();
+                    log(`   Stopped track: ${track.kind}`);
+                });
+                audioStream = null;
+            }
+
+            if (durationInterval) {
+                clearInterval(durationInterval);
+                durationInterval = null;
+            }
+
+            recording = false;
+
+            // Update UI
+            document.getElementById('recordBtn').textContent = 'Start Recording';
+            document.getElementById('recordBtn').classList.remove('recording');
+            document.getElementById('statusText').textContent = 'Idle';
+            document.getElementById('statusText').style.color = '#4CAF50';
+
+            log(`✅ Recording stopped. Total chunks: ${chunkCount}, Total bytes: ${totalBytes.toLocaleString()}`);
+        }
+
+        function getSupportedMimeType() {
+            const types = [
+                'audio/webm',
+                'audio/webm;codecs=opus',
+                'audio/ogg;codecs=opus',
+                'audio/mp4'
+            ];
+
+            for (const type of types) {
+                if (MediaRecorder.isTypeSupported(type)) {
+                    return type;
+                }
+            }
+
+            return 'audio/webm'; // fallback
+        }
+
+        // Log browser info
+        log(`🌐 Browser: ${navigator.userAgent}`);
+        log(`📱 Platform: ${navigator.platform}`);
+    </script>
+</body>
+
+</html>

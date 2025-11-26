@@ -281,7 +281,7 @@
         // Speed controller
         function getGlobalSpeedPhase() {
             const time = (Date.now() - animationStartTime) / 1000;
-            const cycleTime = time % 22;
+            const cycleTime = time % 27; // Extended from 22 to 27 seconds
 
             let speedMultiplier, brightness;
 
@@ -297,10 +297,12 @@
                 speedMultiplier = 4.5;
             } else if (cycleTime < 18) {
                 speedMultiplier = 5.5;
-            } else if (cycleTime < 20) {
+            } else if (cycleTime < 24) {
+                // Extended: keep 19s settings (6.0 speed) from 18s to 24s
                 speedMultiplier = 6.0;
-            } else if (cycleTime < 21.5) {
-                speedMultiplier = 6.0;
+            } else if (cycleTime < 25.5) {
+                // Taper off: gradually reduce speed
+                speedMultiplier = 6.0 - ((cycleTime - 24) / 1.5) * 6.0;
             } else {
                 speedMultiplier = 0;
             }
@@ -309,10 +311,12 @@
                 brightness = 0;
             } else if (cycleTime < 17) {
                 brightness = (cycleTime - 4) / 13;
-            } else if (cycleTime < 20) {
+            } else if (cycleTime < 24) {
+                // Extended: keep brightness at 1.0 from 17s to 24s
                 brightness = 1.0;
-            } else if (cycleTime < 22) {
-                brightness = 1.0 - ((cycleTime - 20) / 2);
+            } else if (cycleTime < 27) {
+                // Taper off: fade out brightness over 3 seconds
+                brightness = 1.0 - ((cycleTime - 24) / 3);
             } else {
                 brightness = 0;
             }
@@ -355,7 +359,7 @@
             });
 
             // Update particles
-            const inProductionPause = speedPhase.cycleTime >= 20 && speedPhase.cycleTime < 22;
+            const inProductionPause = speedPhase.cycleTime >= 25 && speedPhase.cycleTime < 27;
             for (let i = particles.length - 1; i >= 0; i--) {
                 const alive = particles[i].update(speedPhase.speedMultiplier, !inProductionPause);
                 if (!alive) {

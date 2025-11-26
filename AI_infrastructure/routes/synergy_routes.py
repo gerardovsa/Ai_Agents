@@ -1903,7 +1903,7 @@ def get_linked_threads(session_id):
                 created_at,
                 updated_at as last_activity
             FROM sessions.threads
-            WHERE synergy_session_id = %s
+            WHERE synergy_card_id = %s
             ORDER BY updated_at DESC
         """, (session_id,))
         
