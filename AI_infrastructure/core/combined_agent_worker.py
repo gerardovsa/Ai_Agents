@@ -2219,6 +2219,26 @@ def execute_streaming_request(
                             after_first = messages[idx]['content'][0].get('type') if messages[idx]['content'] else 'empty'
                             print(f"{log_prefix} ✅ Fixed: First block is now '{after_first}'")
         
+        # CRITICAL FIX (Nov 27, 2025): Strip ONLY server_tool_use blocks before sending to API
+        # server_tool_use blocks from previous responses cause 400 errors when missing 'id' field
+        # KEEP web_search_tool_result and web_fetch_tool_result for UI display
+        print(f"{log_prefix} 🧹 Cleaning conversation: Removing server_tool_use blocks (keeping result blocks for UI)...")
+        for idx, msg in enumerate(messages):
+            if msg.get('role') == 'assistant':
+                content = msg.get('content', [])
+                if isinstance(content, list):
+                    original_count = len(content)
+                    # Filter out ONLY server_tool_use blocks (keep result blocks for UI)
+                    cleaned_content = [
+                        block for block in content
+                        if not (isinstance(block, dict) and block.get('type') == 'server_tool_use')
+                    ]
+                    
+                    if len(cleaned_content) < original_count:
+                        removed = original_count - len(cleaned_content)
+                        print(f"{log_prefix}   Message [{idx}]: Removed {removed} server_tool_use blocks")
+                        messages[idx]['content'] = cleaned_content
+        
         # DEBUG: Log message structure being sent to API
         print(f"{log_prefix} 📋 FINAL MESSAGE STRUCTURE BEING SENT:")
         for idx, msg in enumerate(messages):
