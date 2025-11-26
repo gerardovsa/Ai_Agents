@@ -107,7 +107,14 @@ def _get_calculator():
     _ensure_calculator()
     
     # Get database config path - works both locally and on Render.com
-    if os.environ.get('RENDER') == 'true':
+    # Detect Render by checking for SUPABASE_DB_URL (exists on Render, not locally)
+    is_render = (
+        os.environ.get('RENDER') == 'true' or
+        'SUPABASE_DB_URL' in os.environ or
+        not sys.platform.startswith('win')
+    )
+    
+    if is_render:
         # Render deployment: Use /app root
         config_path = Path('/app/config/database-config.json')
     else:

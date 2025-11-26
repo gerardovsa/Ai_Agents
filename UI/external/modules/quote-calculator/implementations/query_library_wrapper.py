@@ -84,7 +84,14 @@ def _get_query_library(**kwargs) -> Optional[QueryLibrary]:
         
         if not db_connector:
             # Create database connection - works both locally and on Render.com
-            if os.environ.get('RENDER') == 'true':
+            # Detect Render by checking for SUPABASE_DB_URL (exists on Render, not locally)
+            is_render = (
+                os.environ.get('RENDER') == 'true' or
+                'SUPABASE_DB_URL' in os.environ or
+                not sys.platform.startswith('win')
+            )
+            
+            if is_render:
                 # Render deployment: Use /app root
                 config_path = Path('/app/config/database-config.json')
             else:
@@ -93,6 +100,9 @@ def _get_query_library(**kwargs) -> Optional[QueryLibrary]:
             
             if not config_path.exists():
                 print(f"⚠️  [Query Library] Config not found: {config_path}")
+                print(f"     Detected environment: {'Render' if is_render else 'Local'}")
+                print(f"     Platform: {sys.platform}")
+                print(f"     Has SUPABASE_DB_URL: {'SUPABASE_DB_URL' in os.environ}")
                 return None
             
             db_connector = InHousePrintDB(str(config_path))
