@@ -779,16 +779,10 @@ const MultiAgent = {
 
         // Confirm if Prime has a different active session
         if (AppState.sessionId && AppState.sessionId !== threadInfo.threadId) {
-            UIComponents.showConfirmation({
-                title: 'Replace Prime Session?',
-                message: 'Prime panel has an active session. Moving this thread will replace the current Prime session. Continue?',
-                variant: 'warning',
-                confirmLabel: 'Replace',
-                cancelLabel: 'Cancel',
-                onConfirm: () => {
-                    this.executeThreadMove(agentId, threadInfo);
-                }
-            });
+            if (!confirm('Replace Prime Session?\n\nPrime panel has an active session. Moving this thread will replace the current Prime session. Continue?')) {
+                return;
+            }
+            this.executeThreadMove(agentId, threadInfo);
             return;
         }
 
@@ -2940,35 +2934,34 @@ function buildConversationHistoryForAPI(messages) {
 window.buildConversationHistoryForAPI = buildConversationHistoryForAPI;
 
 function closeAgentColumn(agentId) {
-    UIComponents.showConfirmation({
-        title: `Close ${getAgentName(agentId)}?`,
-        message: `This will close the agent column and clear its conversation.`,
-        variant: 'warning',
-        confirmLabel: 'Close',
-        cancelLabel: 'Cancel',
-        onConfirm: () => {
-            const column = document.getElementById(`agent-${agentId}`);
-            if (column) {
-                // Clean up visualization processors before removing
-                column.querySelectorAll('[data-processor-initialized]').forEach(bubble => {
-                    if (bubble.processor && typeof bubble.processor.cleanup === 'function') {
-                        bubble.processor.cleanup();
-                        console.log(`[CLEAN] Cleaned up processor for Agent ${agentId}`);
-                    }
-                });
+    // Simple confirmation dialog
+    if (!confirm(`Close ${getAgentName(agentId)}?\n\nThis will close the agent column and clear its conversation.`)) {
+        return;
+    }
 
-                column.remove();
-                delete MultiAgent.sessions[agentId];
-                delete MultiAgent.streams[agentId];
-                delete MultiAgent.loadedThreads[agentId];
-
-                // Remove badge from quick-nav bar
-                MultiAgent.removeQuickNavBadge(agentId);
-
-                showNotification(`Agent ${getAgentName(agentId)} closed`, 'info');
+    const column = document.getElementById(`agent-${agentId}`);
+    if (column) {
+        // Clean up visualization processors before removing
+        column.querySelectorAll('[data-processor-initialized]').forEach(bubble => {
+            if (bubble.processor && typeof bubble.processor.cleanup === 'function') {
+                bubble.processor.cleanup();
+                console.log(`[CLEAN] Cleaned up processor for Agent ${agentId}`);
             }
+        });
+
+        column.remove();
+        delete MultiAgent.sessions[agentId];
+        delete MultiAgent.streams[agentId];
+        delete MultiAgent.loadedThreads[agentId];
+
+        // Remove badge from quick-nav bar
+        MultiAgent.removeQuickNavBadge(agentId);
+
+        // Show notification if available
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(`Agent ${getAgentName(agentId)} closed`, 'info');
         }
-    });
+    }
 }
 
 function newChat(agentId) {
