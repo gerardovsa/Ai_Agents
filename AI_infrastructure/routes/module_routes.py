@@ -24,8 +24,9 @@ NOTES:
 - Modules lazy-loaded on-demand (not all at startup)
 - Credential checks cached for performance
 - Module permissions checked before loading
+- ✅ CRITICAL FIX: Enhanced error handling to prevent 500 errors
 
-LAST MODIFIED: 2025-11-25 - Initial module routes implementation
+LAST MODIFIED: 2025-11-25 - Enhanced error handling and graceful degradation
 """
 
 from flask import Blueprint, jsonify, request, Response
@@ -100,7 +101,20 @@ def list_modules():
             'sidebar_position': m.sidebar_position,
             'sidebar_width': m.sidebar_width,
             'requires_auth': m.requires_auth,
-            'features': m.features
+            'features': m.features,
+            # File paths for loading assets
+            'html_file': m.html_file,
+            'js_file': m.js_file,
+            'css_file': m.css_file,
+            'htmlPath': m.htmlPath,
+            'scriptPath': m.scriptPath,
+            'stylePath': m.stylePath,
+            # UI configuration
+            'floating_toggle': getattr(m, 'floating_toggle', False),
+            'floating_toggle_position': getattr(m, 'floating_toggle_position', 'right'),
+            'floating_toggle_default_top': getattr(m, 'floating_toggle_default_top', 280),
+            'main_tab': getattr(m, 'main_tab', False),
+            'main_tab_id': getattr(m, 'main_tab_id', m.id)
         } for m in modules]
         
         return jsonify({
@@ -109,8 +123,15 @@ def list_modules():
         })
     
     except Exception as e:
-        logger.error(f"Failed to list modules: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"❌ Failed to list modules: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        # ✅ CRITICAL FIX: Return empty list instead of 500 error
+        return jsonify({
+            'modules': [],
+            'count': 0,
+            'error': str(e)
+        }), 200  # Return 200 with error message to prevent frontend breakage
 
 
 @module_bp.route('/available', methods=['GET'])
@@ -137,11 +158,17 @@ def get_available_modules():
             ],
             'count': 3
         }
+    
+    ✅ CRITICAL FIX: Enhanced error handling to prevent 500 errors
     """
     try:
         # Get user_id from query params (optional for development)
         user_id = request.args.get('user_id', type=int)
+        
+        logger.info(f"📥 [MODULES] /available request from user_id={user_id}")
+        
         if not user_id:
+            logger.info(f"ℹ️ [MODULES] No user_id, returning all modules (dev mode)")
             # Development mode: return all modules if no user_id
             registry = get_module_registry()
             all_modules = registry.get_all_modules()
@@ -161,7 +188,27 @@ def get_available_modules():
             })
         
         registry = get_module_registry()
-        available = registry.get_available_modules(user_id)
+        
+        # ✅ CRITICAL FIX: Wrap credential checks in try/except
+        try:
+            available = registry.get_available_modules(user_id)
+            logger.info(f"✅ [MODULES] Found {len(available)} available modules for user {user_id}")
+        except Exception as cred_error:
+            logger.warning(f"⚠️ [MODULES] Credential check failed for user {user_id}: {cred_error}")
+            # Return all modules as potentially available if credential check fails
+            all_modules = registry.get_all_modules()
+            available = [{
+                'id': m.id,
+                'name': m.name,
+                'description': m.description,
+                'icon': m.icon,
+                'color': m.color,
+                'version': m.version,
+                'available': False,  # Mark as unavailable if check failed
+                'has_optional': len(m.optional_platforms) > 0,
+                'available_optional': [],
+                'credential_check_failed': True
+            } for m in all_modules]
         
         return jsonify({
             'modules': available,
@@ -169,10 +216,16 @@ def get_available_modules():
         })
     
     except Exception as e:
-        logger.error(f"Failed to get available modules: {e}")
+        logger.error(f"❌ [MODULES] Failed to get available modules: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        # ✅ CRITICAL FIX: Return empty list instead of 500 error
+        return jsonify({
+            'modules': [],
+            'count': 0,
+            'error': str(e),
+            'error_type': 'module_registry_error'
+        }), 200  # Return 200 to prevent frontend breakage
 
 
 @module_bp.route('/needs-setup', methods=['GET'])
@@ -198,25 +251,32 @@ def get_modules_needing_setup():
             ],
             'count': 2
         }
+    
+    ✅ CRITICAL FIX: Enhanced error handling to prevent 500 errors
     """
     try:
         # Get user_id from query params
         user_id = request.args.get('user_id', type=int)
-        logger.info(f"[/needs-setup] Request from user_id={user_id}")
+        logger.info(f"📥 [MODULES] /needs-setup request from user_id={user_id}")
         
         if not user_id:
-            logger.warning(f"[/needs-setup] No user_id provided, returning empty list")
+            logger.warning(f"⚠️ [MODULES] No user_id provided, returning empty list")
             return jsonify({'modules': [], 'count': 0})
         
         registry = get_module_registry()
-        logger.info(f"[/needs-setup] Checking credentials for {len(registry.modules)} modules")
+        logger.info(f"🔍 [MODULES] Checking credentials for {len(registry.modules)} modules")
         
-        needing_setup = registry.get_modules_needing_credentials(user_id)
-        
-        logger.info(f"[/needs-setup] Found {len(needing_setup)} modules needing setup")
-        if needing_setup:
-            for module in needing_setup:
-                logger.info(f"  - {module['id']}: missing {module['missing_required']}")
+        # ✅ CRITICAL FIX: Wrap credential checks in try/except
+        try:
+            needing_setup = registry.get_modules_needing_credentials(user_id)
+            logger.info(f"✅ [MODULES] Found {len(needing_setup)} modules needing setup")
+            if needing_setup:
+                for module in needing_setup:
+                    logger.info(f"  - {module['id']}: missing {module['missing_required']}")
+        except Exception as cred_error:
+            logger.warning(f"⚠️ [MODULES] Credential check failed: {cred_error}")
+            # Return empty list if check fails (better than 500 error)
+            needing_setup = []
         
         return jsonify({
             'modules': needing_setup,
@@ -224,10 +284,15 @@ def get_modules_needing_setup():
         })
     
     except Exception as e:
-        logger.error(f"[/needs-setup] Failed to get modules needing setup for user {user_id}: {e}")
+        logger.error(f"❌ [MODULES] Failed to get modules needing setup for user {user_id}: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        # ✅ CRITICAL FIX: Return empty list instead of 500 error
+        return jsonify({
+            'modules': [],
+            'count': 0,
+            'error': str(e)
+        }), 200  # Return 200 to prevent frontend breakage
 
 
 @module_bp.route('/<module_id>', methods=['GET'])
@@ -281,7 +346,7 @@ def get_module_info(module_id: str):
         })
     
     except Exception as e:
-        logger.error(f"Failed to get module info for {module_id}: {e}")
+        logger.error(f"❌ Failed to get module info for {module_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -306,7 +371,7 @@ def get_module_html(module_id: str):
         return Response(html, mimetype='text/html')
     
     except Exception as e:
-        logger.error(f"Failed to load HTML for {module_id}: {e}")
+        logger.error(f"❌ Failed to load HTML for {module_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -359,7 +424,7 @@ def check_credentials_status(module_id: str, user_id: int):
         })
     
     except Exception as e:
-        logger.error(f"Failed to check credentials for {module_id}, user {user_id}: {e}")
+        logger.error(f"❌ Failed to check credentials for {module_id}, user {user_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -408,7 +473,7 @@ def enable_module(module_id: str, user_id: int):
         })
     
     except Exception as e:
-        logger.error(f"Failed to enable module {module_id} for user {user_id}: {e}")
+        logger.error(f"❌ Failed to enable module {module_id} for user {user_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -448,7 +513,7 @@ def disable_module(module_id: str, user_id: int):
         })
     
     except Exception as e:
-        logger.error(f"Failed to disable module {module_id} for user {user_id}: {e}")
+        logger.error(f"❌ Failed to disable module {module_id} for user {user_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -471,5 +536,113 @@ def get_load_order():
         })
     
     except Exception as e:
-        logger.error(f"Failed to get load order: {e}")
+        logger.error(f"❌ Failed to get load order: {e}")
+        # ✅ CRITICAL FIX: Return empty list instead of 500 error
+        return jsonify({
+            'load_order': [],
+            'error': str(e)
+        }), 200
+
+
+@module_bp.route('/<module_id>/js', methods=['GET'])
+def serve_module_js(module_id):
+    """
+    Serve module JavaScript file
+    
+    Path params:
+        module_id: Module identifier (e.g., 'inhouse-kanban')
+    
+    Returns:
+        JavaScript file content with application/javascript content-type
+    """
+    import os
+    from flask import send_from_directory
+    
+    try:
+        registry = get_module_registry()
+        module = registry.get_module(module_id)
+        
+        if not module:
+            logger.error(f"❌ Module {module_id} not found")
+            return jsonify({'error': 'Module not found'}), 404
+        
+        # Get scriptPath from manifest (attribute name is scriptPath, not script_path)
+        script_path = module.scriptPath
+        
+        if not script_path:
+            logger.error(f"❌ Module {module_id} has no scriptPath in manifest")
+            return jsonify({'error': 'Module has no JavaScript file configured'}), 404
+        
+        # Resolve absolute path
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        js_file_path = os.path.join(base_dir, script_path)
+        
+        if not os.path.exists(js_file_path):
+            logger.error(f"❌ JavaScript file not found: {js_file_path}")
+            return jsonify({'error': 'JavaScript file not found'}), 404
+        
+        logger.info(f"✅ Serving JS for {module_id}: {js_file_path}")
+        
+        # Read and return file content
+        with open(js_file_path, 'r', encoding='utf-8') as f:
+            js_content = f.read()
+        
+        return Response(js_content, mimetype='application/javascript')
+    
+    except Exception as e:
+        logger.error(f"❌ Failed to serve JS for {module_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
+
+
+@module_bp.route('/<module_id>/css', methods=['GET'])
+def serve_module_css(module_id):
+    """
+    Serve module CSS file
+    
+    Path params:
+        module_id: Module identifier (e.g., 'inhouse-kanban')
+    
+    Returns:
+        CSS file content with text/css content-type
+    """
+    import os
+    from flask import send_from_directory
+    
+    try:
+        registry = get_module_registry()
+        module = registry.get_module(module_id)
+        
+        if not module:
+            logger.error(f"❌ Module {module_id} not found")
+            return jsonify({'error': 'Module not found'}), 404
+        
+        # Get stylePath from manifest (attribute name is stylePath, not style_path)
+        style_path = module.stylePath
+        
+        if not style_path:
+            logger.warning(f"⚠️ Module {module_id} has no stylePath in manifest")
+            return Response('/* No CSS file configured */', mimetype='text/css')
+        
+        # Resolve absolute path
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        css_file_path = os.path.join(base_dir, style_path)
+        
+        if not os.path.exists(css_file_path):
+            logger.warning(f"⚠️ CSS file not found: {css_file_path}")
+            return Response('/* CSS file not found */', mimetype='text/css')
+        
+        logger.info(f"✅ Serving CSS for {module_id}: {css_file_path}")
+        
+        # Read and return file content
+        with open(css_file_path, 'r', encoding='utf-8') as f:
+            css_content = f.read()
+        
+        return Response(css_content, mimetype='text/css')
+    
+    except Exception as e:
+        logger.error(f"❌ Failed to serve CSS for {module_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return Response('/* Error loading CSS */', mimetype='text/css')

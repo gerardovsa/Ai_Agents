@@ -389,6 +389,9 @@ def get_active_jobs():
                 # Convert datetime to ISO string
                 if isinstance(value, datetime):
                     value = value.isoformat()
+                # Convert decimal/numeric types to float for JSON serialization
+                elif hasattr(value, '__float__'):
+                    value = float(value)
                 job_dict[col] = value
             
             # Calculate AI Priority Score
@@ -481,6 +484,9 @@ def get_stage_summary():
                 value = row[idx]
                 if isinstance(value, datetime):
                     value = value.isoformat()
+                # Convert decimal/numeric types to float for JSON serialization
+                elif hasattr(value, '__float__'):
+                    value = float(value)
                 stage_dict[col] = value
             stages.append(stage_dict)
         
@@ -660,6 +666,9 @@ def get_job_details(ticket_id):
             value = row[idx]
             if isinstance(value, datetime):
                 value = value.isoformat()
+            # Convert decimal/numeric types to float for JSON serialization
+            elif hasattr(value, '__float__'):
+                value = float(value)
             job[col] = value
         
         # Add calculated fields

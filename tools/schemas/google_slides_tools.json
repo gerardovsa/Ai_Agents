@@ -41,13 +41,19 @@
     },
     {
       "name": "google_slides_get_presentation",
-      "description": "Example response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet presentation details including all slides, layouts, and masters",
+      "description": "⚠️ ENHANCED - Multi-format Google Slides reader with 99.6% token reduction!\n\nAvoids token overflow with progressive format disclosure:\n- summary (1K tokens): Slide titles, layouts, speaker notes preview, slide count\n- text (80K tokens): All text content + complete speaker notes\n- markdown (90K tokens): Slides as markdown sections with ##/### headings, bold/italic formatting\n- full (280K+ tokens): Complete JSON with positioning/transforms (AVOID unless necessary)\n\nExample responses:\n✅ format='summary' (99.6% reduction for 24-slide deck):\n\"Presentation: **Q4 Sales Review** (24 slides)\nSlides:\n1. Title: 'Q4 Sales Review' | Layout: TITLE | Speaker Notes: 'Welcome everyone...'\n2. Title: 'Agenda' | Layout: TITLE_AND_BODY | Notes: 'Cover 3 topics...'\n...\" (~1K tokens)\n\n✅ format='text' (71% reduction):\n\"=== Slide 1: Q4 Sales Review ===\nSubtitle: John Smith, VP Sales\nSpeaker Notes: Welcome everyone to our quarterly review...\" (~80K tokens)\n\n✅ format='markdown' (68% reduction):\n\"## Q4 Sales Review\\n**John Smith, VP Sales**\\n\\n> Speaker Notes: Welcome everyone...\" (~90K tokens)\n\n❌ format='full' (AVOID - 280K+ tokens for 24 slides)\n\n---\n\nGet presentation details with format options. Prevents token overflow by defaulting to summary format. Font sizes determine heading levels in markdown (>=24pt = ##, >=18pt = ###).",
       "parameters": {
         "type": "object",
         "properties": {
           "presentation_id": {
             "type": "string",
-            "description": "Presentation ID"
+            "description": "Presentation ID (required)"
+          },
+          "format": {
+            "type": "string",
+            "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 1K tokens): Slide titles, layout types, speaker notes preview, slide count. Use for quick overview or finding specific slides.\n- 'text' (80K tokens): All text content from all slides + complete speaker notes. Use for full-text search or content analysis.\n- 'markdown' (90K tokens): Slides as markdown sections with ## headings (font >=24pt), ### subheadings (font >=18pt), **bold**, *italic*. Speaker notes as blockquotes. Use for AI content processing or readable exports.\n- 'full' (280K+ tokens): Complete JSON with shapes, positioning, transforms, images. AVOID unless you need layout metadata.\n\nDefault: 'summary'",
+            "enum": ["summary", "text", "markdown", "full"],
+            "default": "summary"
           }
         },
         "required": [
@@ -56,8 +62,34 @@
       },
       "returns": {
         "type": "object",
-        "description": "Full presentation object"
-      }
+        "description": "Presentation data in requested format with token counts:\n- summary: {title, slide_count, slides: [{title, layout, notes_preview}], tokens: ~1K}\n- text: {text_content: string, slide_count, tokens: ~80K}\n- markdown: {markdown_content: string, slide_count, tokens: ~90K}\n- full: {complete JSON structure, tokens: 280K+}"
+      },
+      "examples": [
+        {
+          "description": "Get presentation overview (recommended default)",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "format": "summary"
+          },
+          "expected_tokens": 1000
+        },
+        {
+          "description": "Get full text for content search",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "format": "text"
+          },
+          "expected_tokens": 80000
+        },
+        {
+          "description": "Get markdown for AI processing",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "format": "markdown"
+          },
+          "expected_tokens": 90000
+        }
+      ]
     },
     {
       "name": "google_slides_add_slide",

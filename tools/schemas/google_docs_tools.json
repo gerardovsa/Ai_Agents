@@ -103,18 +103,57 @@
     },
     {
       "name": "google_docs_get_document",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_get_document', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet document content and structure",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_get_document', ...) - DO NOT call directly!\n\n🔄 UPDATED (Nov 2025): Default format changed to 'summary' to prevent token overflow.\n\nGet document content with format control to prevent Claude 200K token limit errors.\n\nFORMAT OPTIONS:\n- 'summary' (DEFAULT): Returns title + first 2000 characters preview + metadata\n  • Prevents token overflow (reduces 200K+ tokens to ~500 tokens)\n  • Perfect for checking document existence, title, or preview\n  • Use this first, then use google_docs_search_document() for specific sections\n\n- 'text': Returns complete document as plain text (no formatting metadata)\n  • 90% token reduction vs 'full' format\n  • Good for documents under 50K tokens\n  • Still may hit limits on very large documents\n\n- 'markdown': Returns formatted document with headings, bold, italic, lists\n  • 85% token reduction vs 'full' format\n  • Preserves structure while removing JSON metadata\n  • Good for documents under 50K tokens\n\n- 'full': Complete JSON with all formatting (LEGACY - NOT RECOMMENDED)\n  • Can be 200K+ tokens for large documents\n  • Will trigger 'prompt too long' errors on documents >100 pages\n  • Only use for small documents (<10 pages)\n\nRECOMMENDED WORKFLOW FOR LARGE DOCUMENTS:\n1. Call with format='summary' to check title and preview (500 tokens)\n2. Use google_docs_search_document(query='...') to find relevant sections (2K tokens)\n3. Only use format='text' or 'markdown' if document is small (<50 pages)\n\nExample response (format='summary'):\n{\n  'success': True,\n  'title': 'Annual Report 2024',\n  'document_id': '1M11p3S...',\n  'preview': 'Executive Summary\\nOur company achieved...', \n  'preview_length': 2000,\n  'format': 'summary',\n  'note': 'Showing first 2000 chars. Use format=\"text\" for full content or google_docs_search_document() for specific sections.'\n}\n\nWARNING: The document '1M11p3SwvTHFSF5pcJd-oq2w9E_ShaBL17IMckkpkvj0' triggered a 400 error with 209,727 tokens (>200K limit) when using format='full'. Always use format='summary' or google_docs_search_document() for large documents.",
       "platform": "google_docs",
       "parameters": {
         "document_id": {
           "type": "string",
           "description": "Document ID",
           "required": true
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'summary' (DEFAULT - 2K preview), 'text' (plain text), 'markdown' (formatted), 'full' (complete JSON - NOT RECOMMENDED)",
+          "required": false,
+          "default": "summary"
         }
       },
       "returns": {
         "type": "object",
-        "description": "Complete document content with formatting"
+        "description": "Document content in requested format (default: summary with 2000 char preview)"
+      }
+    },
+    {
+      "name": "google_docs_search_document",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='google_docs_search_document', ...) - DO NOT call directly!\n\n🆕 NEW TOOL (Nov 2025): Search document for specific text and return only matching sections.\n\nEXTREMELY token-efficient for large documents (90%+ reduction):\n- Returns ONLY sections matching your query with surrounding context\n- Perfect for Q&A: \"What does the document say about X?\"\n- Perfect for extraction: \"Find all mentions of Y\"\n- Prevents 200K+ token responses that cause 400 errors\n\nUSE THIS INSTEAD OF google_docs_get_document when:\n- Document is large (>50 pages) \n- You need specific information (not entire document)\n- Previous google_docs_get_document calls caused token overflow\n- You want to ask questions about document content\n\nExample response:\n{\n  'success': True,\n  'title': 'Product Manual',\n  'document_id': '1M11p3S...',\n  'query': 'warranty',\n  'match_count': 3,\n  'showing': 3,\n  'matches': [\n    {\n      'text': '...warranty coverage includes manufacturing defects and material failures for a period of 12 months...',\n      'position': 1520,\n      'context_length': 800,\n      'match_number': 1\n    },\n    {\n      'text': '...extended warranty plans are available for purchase separately...',\n      'position': 4890,\n      'context_length': 800,\n      'match_number': 2\n    }\n  ],\n  'note': 'Found 3 matches, showing 3 with 800 chars context each'\n}\n\nCommon use cases:\n- 'Find sections about clinical competence' → Returns relevant paragraphs\n- 'What does it say about assessment?' → Extracts assessment-related content\n- 'Search for Year 2 transition' → Finds transition information\n- 'Look for self-scoring' → Returns scoring-related sections",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID",
+          "required": true
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query (keywords or phrases, case-insensitive)",
+          "required": true
+        },
+        "context_chars": {
+          "type": "integer",
+          "description": "Characters of context around matches (default: 800, range: 200-2000)",
+          "required": false,
+          "default": 800
+        },
+        "max_matches": {
+          "type": "integer",
+          "description": "Maximum matches to return (default: 10, range: 1-50)",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with matching sections and context"
       }
     },
     {

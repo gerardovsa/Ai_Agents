@@ -1,0 +1,183 @@
+<!-- InHouse Kanban Module Sidebar -->
+<div id="inhouse-kanban-sidebar" class="module-sidebar kanban-sidebar" style="display: none;">
+    <div class="module-sidebar-header">
+        <h2>
+            <i class="fas fa-industry"></i>
+            Production Workflow
+        </h2>
+        <button class="close-module-btn" onclick="window.moduleLoader.toggleModule('inhouse-kanban')">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="module-sidebar-content">
+        <!-- Sub-tab Navigation -->
+        <div class="module-sub-tabs">
+            <button class="module-sub-tab active" data-tab="kanban-board">
+                <i class="fas fa-columns"></i> Kanban Board
+            </button>
+            <button class="module-sub-tab" data-tab="analytics">
+                <i class="fas fa-chart-line"></i> Analytics
+            </button>
+        </div>
+
+        <!-- Kanban Board Tab -->
+        <div id="kanban-board" class="module-sub-tab-content active">
+            <!-- Filters and Controls -->
+            <div class="kanban-controls">
+                <div class="control-group">
+                    <label>
+                        <i class="fas fa-clock"></i> Timeframe
+                    </label>
+                    <select id="kanban-timeframe" class="form-control form-control-sm">
+                        <option value="-1">Last Month</option>
+                        <option value="-3">Last 3 Months</option>
+                        <option value="-6" selected>Last 6 Months</option>
+                        <option value="-12">Last 12 Months</option>
+                        <option value="0">All Time</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <i class="fas fa-filter"></i> Priority
+                    </label>
+                    <select id="kanban-priority" class="form-control form-control-sm">
+                        <option value="all">All Jobs</option>
+                        <option value="high">High Priority</option>
+                        <option value="medium">Medium Priority</option>
+                        <option value="low">Low Priority</option>
+                    </select>
+                </div>
+
+                <div class="control-group control-group-search">
+                    <label>
+                        <i class="fas fa-search"></i> Search
+                    </label>
+                    <input type="text" id="kanban-search" class="form-control form-control-sm"
+                        placeholder="Search jobs...">
+                </div>
+
+                <button class="btn btn-sm btn-primary" id="kanban-refresh-btn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+
+            <!-- Metrics Dashboard -->
+            <div class="kanban-metrics">
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Total Jobs</div>
+                        <div class="metric-value" id="metric-total-jobs">0</div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">In Progress</div>
+                        <div class="metric-value" id="metric-in-progress">0</div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Delayed</div>
+                        <div class="metric-value" id="metric-delayed">0</div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Completed</div>
+                        <div class="metric-value" id="metric-completed">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kanban Board Container -->
+            <div id="kanban-board-container" class="kanban-board-wrapper">
+                <div class="kanban-board-scroll">
+                    <div id="kanban-board-inner" class="kanban-board">
+                        <!-- Columns will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="kanban-loading" class="kanban-loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Loading production data...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="kanban-empty" class="kanban-empty" style="display: none;">
+                <i class="fas fa-clipboard-list"></i>
+                <h4>No Jobs Found</h4>
+                <p>Try adjusting your filters or refresh the data</p>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="module-sub-tab-content">
+            <div class="analytics-container">
+                <h3><i class="fas fa-chart-line"></i> Workflow Analytics</h3>
+                <p class="analytics-description">Performance metrics and bottleneck analysis</p>
+
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <h4>Stage Performance</h4>
+                        <div id="analytics-stage-chart"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h4>Priority Distribution</h4>
+                        <div id="analytics-priority-chart"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h4>Customer Tiers</h4>
+                        <div id="analytics-customer-chart"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h4>Completion Rate</h4>
+                        <div id="analytics-completion-chart"></div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="analytics-refresh-btn">
+                    <i class="fas fa-sync-alt"></i> Refresh Analytics
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Job Detail Modal -->
+<div id="kanban-job-modal" class="modal" style="display: none;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Job Details</h3>
+                <button class="modal-close" onclick="window.InhouseKanbanModule.closeJobModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="kanban-job-modal-body">
+                <!-- Job details will be inserted here -->
+            </div>
+        </div>
+    </div>
+</div>

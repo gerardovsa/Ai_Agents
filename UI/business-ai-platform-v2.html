@@ -2529,13 +2529,58 @@
 
         .settings-section {
             margin-bottom: 24px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border-default);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-secondary);
         }
 
         .settings-section:last-child {
-            border-bottom: none;
             margin-bottom: 0;
+        }
+
+        .settings-section-header {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .settings-section-header:hover {
+            background: var(--bg-hover);
+        }
+
+        .settings-section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .settings-section-title i {
+            color: var(--accent-primary);
+            font-size: 16px;
+        }
+
+        .settings-section-toggle {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .settings-section.collapsed .settings-section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .settings-section-content {
+            padding: 20px;
+            display: block;
+        }
+
+        .settings-section.collapsed .settings-section-content {
+            display: none;
         }
 
         .settings-section h4 {
@@ -2863,6 +2908,56 @@
         }
 
         .synergy-sidebar-toggle.dragging i {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        /* ==================== MODULE FLOATING TOGGLE (Dynamic) ==================== */
+        .module-floating-toggle {
+            position: fixed;
+            color: white;
+            border: none;
+            cursor: grab;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 64px;
+            user-select: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.7;
+            padding: 8px 4px 8px 8px;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .module-floating-toggle:hover {
+            opacity: 1;
+            box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
+            padding: 8px 8px 8px 12px;
+            filter: brightness(1.2);
+        }
+
+        .module-floating-toggle:active {
+            cursor: grabbing;
+        }
+
+        .module-floating-toggle.dragging {
+            cursor: grabbing;
+            opacity: 0.9;
+            transition: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .module-floating-toggle i {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .module-floating-toggle:hover i {
+            transform: scale(1.15);
+        }
+
+        .module-floating-toggle.dragging i {
             transform: scale(1.1) rotate(5deg);
         }
 
@@ -3227,22 +3322,21 @@
         }
 
         .automation-item-title {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
 
         .automation-item-slug {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--text-primary)
         }
 
         .automation-status-badge {
             padding: 4px 10px;
             border-radius: 12px;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -3602,6 +3696,274 @@
         .synergy-item-btn.popout:hover {
             color: #3b82f6;
             border-color: #3b82f6;
+        }
+
+        /* ==================== ACCOUNT SETTINGS SIDEBAR ==================== */
+        .account-sidebar {
+            position: fixed;
+            top: 60px;
+            right: 60px;
+            height: calc(100vh - 60px);
+            width: 450px;
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            z-index: 10000;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+            border-left: 1px solid var(--border-default);
+        }
+
+        .account-sidebar.collapsed {
+            transform: translateX(calc(100% + 60px));
+            box-shadow: none;
+        }
+
+        .account-sidebar:not(.collapsed) {
+            transform: translateX(0);
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .account-sidebar-header {
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border-default);
+            background: var(--bg-tertiary);
+        }
+
+        .account-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-4);
+        }
+
+        .account-sidebar-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .account-sidebar-title i {
+            color: var(--accent-primary);
+            font-size: 22px;
+        }
+
+        .account-header-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .account-icon-btn {
+            background: transparent;
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .account-icon-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .account-user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-3);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            margin-bottom: var(--space-4);
+        }
+
+        .account-user-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .account-user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .account-user-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .account-user-email {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .account-user-role .role-badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            background: var(--accent-primary);
+            color: white;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .account-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .account-tab {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            text-align: left;
+        }
+
+        .account-tab i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .account-tab:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .account-tab.active {
+            background: var(--bg-secondary);
+            border-left-color: var(--accent-primary);
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .account-sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-4);
+        }
+
+        /* Settings section styles for account sidebar */
+        .account-sidebar-content .settings-section {
+            margin-bottom: var(--space-4);
+        }
+
+        .account-sidebar-content .settings-field {
+            margin-bottom: var(--space-3);
+        }
+
+        .account-sidebar-content .settings-field label {
+            display: block;
+            margin-bottom: var(--space-2);
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .account-sidebar-content .settings-field input[type="text"],
+        .account-sidebar-content .settings-field input[type="number"],
+        .account-sidebar-content .settings-field select,
+        .account-sidebar-content .settings-field textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .account-sidebar-content .settings-field input:focus,
+        .account-sidebar-content .settings-field select:focus,
+        .account-sidebar-content .settings-field textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .account-sidebar-content .settings-checkbox {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-2);
+        }
+
+        .account-sidebar-content .settings-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .account-sidebar-content .settings-checkbox label {
+            margin: 0;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .account-sidebar-content .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .account-sidebar-content .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .account-sidebar-content .btn-primary:hover {
+            background: var(--accent-primary-hover, #79c0ff);
+        }
+
+        .account-sidebar-content .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-default);
+        }
+
+        .account-sidebar-content .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
         }
 
         /* ==================== SYNERGY CARD STYLES ==================== */
@@ -7888,10 +8250,10 @@
             padding: 16px 24px;
             margin: 12px 16px;
             max-width: 200px;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-primary);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px var(--accent-primary);
             position: relative;
             z-index: 100;
         }
@@ -7923,7 +8285,7 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #3b82f6;
+            background: var(--accent-primary);
             animation: processingDotPulse 1.4s infinite ease-in-out both;
         }
 
@@ -7951,7 +8313,7 @@
         }
 
         .processing-text {
-            color: #3b82f6;
+            color: var(--text-primary);
             font-size: 14px;
             font-weight: 600;
         }
@@ -13288,7 +13650,8 @@
 
             <!-- User Dropdown Menu (Still used by sidebar button) -->
             <div class="user-profile-container" id="userProfileContainer" style="display: none;">
-                <div class="user-dropdown-menu" id="userDropdownMenu">
+                <!-- Account Settings Sidebar Trigger (hidden, controlled by userAvatarBtn click) -->
+                <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none;">
                     <!-- User Info Section -->
                     <div class="dropdown-header">
                         <div class="dropdown-user-avatar">
@@ -13564,6 +13927,13 @@
                             </div>
                         </div>
 
+                        <div class="dropdown-item" onclick="showAISettings()">
+                            <i class="fas fa-robot"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">AI Settings</div>
+                            </div>
+                        </div>
+
                         <div class="dropdown-item" onclick="showNotifications()">
                             <i class="fas fa-bell"></i>
                             <div class="dropdown-item-content">
@@ -13575,6 +13945,13 @@
                             <i class="fas fa-paint-brush"></i>
                             <div class="dropdown-item-content">
                                 <div class="dropdown-item-title">Appearance</div>
+                            </div>
+                        </div>
+
+                        <div class="dropdown-item" onclick="showConnections()">
+                            <i class="fas fa-plug"></i>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">Connections</div>
                             </div>
                         </div>
 
@@ -14327,6 +14704,14 @@
                                         <button class="workflow-action-icon-btn" id="save-workflow-btn"
                                             title="Save Workflow (Auto-saves)">
                                             <i class="fas fa-save"></i>
+                                        </button>
+                                        <button class="workflow-action-icon-btn" id="undo-workflow-btn"
+                                            title="Undo (Ctrl+Z)">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                        <button class="workflow-action-icon-btn" id="redo-workflow-btn"
+                                            title="Redo (Ctrl+Y)">
+                                            <i class="fas fa-redo"></i>
                                         </button>
                                         <button class="workflow-action-icon-btn" id="export-workflow-btn"
                                             title="Export Workflow">
@@ -15459,6 +15844,70 @@
         </div>
     </div>
 
+    <!-- ==================== ACCOUNT SETTINGS SIDEBAR ==================== -->
+    <div class="account-sidebar collapsed" id="account-sidebar" data-side="right">
+        <div class="account-sidebar-header">
+            <div class="account-header-top">
+                <div class="account-sidebar-title">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Account Profile</span>
+                </div>
+                <div class="account-header-actions">
+                    <button class="account-icon-btn" onclick="AccountSidebar.toggleSidebar()" title="Close sidebar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- User Info Section -->
+            <div class="account-user-info">
+                <div class="account-user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="account-user-details">
+                    <div class="account-user-name" id="sidebarUserName">Loading...</div>
+                    <div class="account-user-email" id="sidebarUserEmail">Loading...</div>
+                    <div class="account-user-role">
+                        <span class="role-badge" id="sidebarRoleBadge">User</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="account-tabs">
+                <button class="account-tab active" data-tab="profile" onclick="AccountSidebar.switchTab('profile')">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </button>
+                <button class="account-tab" data-tab="ai-settings" onclick="AccountSidebar.switchTab('ai-settings')">
+                    <i class="fas fa-robot"></i>
+                    <span>AI Settings</span>
+                </button>
+                <button class="account-tab" data-tab="notifications"
+                    onclick="AccountSidebar.switchTab('notifications')">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </button>
+                <button class="account-tab" data-tab="appearance" onclick="AccountSidebar.switchTab('appearance')">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Appearance</span>
+                </button>
+                <button class="account-tab" data-tab="connections" onclick="AccountSidebar.switchTab('connections')">
+                    <i class="fas fa-plug"></i>
+                    <span>Connections</span>
+                </button>
+                <button class="account-tab" data-tab="security" onclick="AccountSidebar.switchTab('security')">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Security</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="account-sidebar-content" id="account-sidebar-content">
+            <!-- Tab content will be inserted here dynamically -->
+        </div>
+    </div>
+
     <!-- ==================== SETTINGS SIDEBAR MODULE ==================== -->
     <!-- Settings Sidebar HTML loaded dynamically from external/modules/settings-sidebar/settings-sidebar.html -->
 
@@ -15726,6 +16175,455 @@
         </div>
     </div>
 
+    <!-- ==================== SECURITY MODAL ==================== -->
+    <div class="edit-card-modal" id="security-modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 650px; max-height: 85vh;">
+            <div class="modal-header">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-shield-alt"></i> Security & Sessions
+                </h3>
+                <button class="modal-close" onclick="closeSecurity()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: var(--space-4); overflow-y: auto;">
+                <!-- Active Sessions Section -->
+                <div style="margin-bottom: var(--space-4);">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-desktop" style="color: var(--text-primary); font-size: 20px;"></i>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary); font-size: 16px;">Active
+                                    Sessions</div>
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Devices
+                                    currently logged into your account</div>
+                            </div>
+                        </div>
+                        <span id="sessionCount"
+                            style="background: var(--accent-primary); color: white; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; min-width: 30px; text-align: center;">0</span>
+                    </div>
+
+                    <p
+                        style="font-size: 13px; color: var(--text-secondary); margin: 0 0 var(--space-4) 0; padding: var(--space-3); background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--accent-primary);">
+                        <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                        Manage devices and browsers currently signed in. Revoke access from any device you don't
+                        recognize.
+                    </p>
+
+                    <!-- Sessions List -->
+                    <div id="activeSessionsList"
+                        style="max-height: 450px; overflow-y: auto; margin-bottom: var(--space-3);">
+                        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
+                            <div style="font-size: 14px;">Loading sessions...</div>
+                        </div>
+                    </div>
+
+                    <!-- Revoke All Button -->
+                    <button id="revokeAllSessionsBtn" onclick="revokeAllOtherSessions()" class="btn btn-danger"
+                        style="display: none; width: 100%;">
+                        <i class="fas fa-sign-out-alt"></i> Revoke All Other Sessions
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="display: flex; gap: var(--space-2); padding: var(--space-4); border-top: 1px solid var(--border-default); justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="closeSecurity()">
+                    <i class="fas fa-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== AI SETTINGS MODAL ==================== -->
+    <div class="edit-card-modal" id="ai-settings-modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 650px; max-height: 85vh;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-robot"></i> AI Settings
+                </h3>
+                <button class="modal-close-btn" onclick="closeAISettings()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- AI Memories Section -->
+                <div class="settings-section">
+                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+                        <div class="settings-section-title">
+                            <i class="fas fa-brain"></i> AI Memories
+                            <span class="badge" id="memoryCount"
+                                style="background: var(--accent-primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">0</span>
+                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <div class="settings-section-content">
+                        <div class="settings-field">
+                            <label style="font-weight: 600; font-size: 14px;">About AI Memories</label>
+                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                                The AI stores important information you share during conversations. You can add, edit,
+                                or delete
+                                memories at any time. Use memories to personalize your AI experience.
+                            </p>
+                        </div>
+
+                        <!-- Inline Add/Edit Memory Form -->
+                        <div
+                            style="background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                            <input type="hidden" id="editMemoryId" value="">
+
+                            <div style="margin-bottom: 12px;">
+                                <label for="memoryContent"
+                                    style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
+                                    <i class="fas fa-brain"></i> Memory Content
+                                </label>
+                                <textarea id="memoryContent" rows="3"
+                                    style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 13px; resize: vertical; font-family: inherit;"
+                                    placeholder="Enter what you want the AI to remember..."></textarea>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div>
+                                    <label for="memoryCategory"
+                                        style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
+                                        <i class="fas fa-folder"></i> Category
+                                    </label>
+                                    <select id="memoryCategory"
+                                        style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 13px;">
+                                        <option value="general">General</option>
+                                        <option value="preferences">Preferences</option>
+                                        <option value="personal">Personal</option>
+                                        <option value="work">Work</option>
+                                        <option value="health">Health</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="memoryTags"
+                                        style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
+                                        <i class="fas fa-tags"></i> Tags
+                                    </label>
+                                    <input type="text" id="memoryTags"
+                                        style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 13px;"
+                                        placeholder="tag1, tag2, tag3">
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-primary" onclick="saveMemory()" style="flex: 1;">
+                                    <i class="fas fa-save"></i> Save Memory
+                                </button>
+                                <button class="btn btn-secondary" onclick="cancelMemoryEdit()" id="cancelMemoryBtn"
+                                    style="display: none;">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                                <button class="btn btn-secondary" onclick="refreshMemories()" title="Refresh memories">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="memoriesContainer" style="margin-top: 16px;">
+                            <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                <i class="fas fa-brain" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                                <p>No memories stored yet</p>
+                                <small>Fill out the form above to create your first memory</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Options Section -->
+                <div class="settings-section">
+                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+                        <div class="settings-section-title">
+                            <i class="fas fa-sliders-h"></i> Model Options
+                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <div class="settings-section-content">
+                        <div class="settings-field">
+                            <label>AI Model</label>
+                            <select id="modelSelect" onchange="saveSettings()">
+                                <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (Recommended)
+                                </option>
+                                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+                            </select>
+                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Select the
+                                AI
+                                model to use for agent processing</small>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>Temperature <span class="settings-value" id="tempValue">1.0</span></label>
+                            <input type="range" id="temperature" min="0" max="1" step="0.1" value="1.0"
+                                oninput="document.getElementById('tempValue').textContent = this.value; saveSettings()"
+                                style="width: 100%; cursor: pointer;">
+                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">0.0 =
+                                Deterministic, 1.0 = Creative (Higher = More Random)</small>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>Top P (Nucleus Sampling) <span class="settings-value"
+                                    id="toppValue">1.0</span></label>
+                            <input type="range" id="topP" min="0" max="1" step="0.05" value="1.0"
+                                oninput="document.getElementById('toppValue').textContent = this.value; saveSettings()"
+                                style="width: 100%; cursor: pointer;">
+                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Controls
+                                diversity
+                                of responses (0.0-1.0)</small>
+                        </div>
+
+                        <div class="settings-checkbox">
+                            <input type="checkbox" id="enableThinking" checked onchange="saveSettings()">
+                            <label for="enableThinking">Enable Extended Thinking</label>
+                        </div>
+                        <small style="color: var(--text-muted); margin-top: 8px; display: block;">Improved
+                            cognitive
+                            performance - uses more tokens but provides deeper reasoning</small>
+                    </div>
+                </div>
+
+                <!-- Round Parameters Section -->
+                <div class="settings-section">
+                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+                        <div class="settings-section-title">
+                            <i class="fas fa-sync"></i> Round Parameters
+                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <div class="settings-section-content">
+                        <div class="settings-field">
+                            <label>Maximum Turns <span class="settings-value" id="roundsValue">20</span></label>
+                            <input type="range" id="maxRounds" min="1" max="50" step="1" value="20"
+                                oninput="document.getElementById('roundsValue').textContent = this.value; saveSettings()"
+                                style="width: 100%; cursor: pointer;">
+                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Maximum
+                                number of
+                                conversation rounds (1-50). Higher values allow longer multi-step tasks.</small>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>Timeout Per Round (seconds) <span class="settings-value"
+                                    id="timeoutValue">30</span></label>
+                            <input type="range" id="roundTimeout" min="10" max="360" step="10" value="30"
+                                oninput="document.getElementById('timeoutValue').textContent = this.value; saveSettings()"
+                                style="width: 100%; cursor: pointer;">
+                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">How long
+                                to wait
+                                for each round to complete (10-360 seconds / up to 6 minutes)</small>
+                        </div>
+
+                        <div class="settings-checkbox">
+                            <input type="checkbox" id="enableStreaming" checked onchange="saveSettings()">
+                            <label for="enableStreaming">Enable Streaming Responses (Real-time output)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Token Parameters Section -->
+                <div class="settings-section">
+                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+                        <div class="settings-section-title">
+                            <i class="fas fa-coins"></i> Token Parameters
+                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <div class="settings-section-content">
+                        <div class="settings-field">
+                            <label>Maximum Response Tokens <span class="settings-value"
+                                    id="tokensValue">16000</span></label>
+                            <input type="range" id="maxTokens" min="1000" max="64000" step="1000" value="16000"
+                                oninput="document.getElementById('tokensValue').textContent = this.value; saveSettings()"
+                                style="width: 100%; cursor: pointer;">
+                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Maximum
+                                tokens in
+                                AI responses (1000-64000)</small>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>Thinking Budget Tokens <span class="settings-value"
+                                    id="thinkingValue">10000</span></label>
+                            <input type="range" id="thinkingBudgetSlider" min="0" max="20000" step="1000" value="10000"
+                                oninput="document.getElementById('thinkingValue').textContent = this.value; saveSettings()"
+                                style="width: 100%; cursor: pointer;">
+                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Tokens for
+                                AI
+                                reasoning (only with Extended Thinking)</small>
+                        </div>
+
+                        <div class="settings-info"
+                            style="margin-top: var(--space-3); padding: var(--space-2); background: var(--bg-tertiary); border-left: 3px solid var(--accent-primary); border-radius: 4px;">
+                            <i class="fas fa-info-circle"></i> <strong>Token Usage:</strong> Higher values
+                            enable more
+                            detailed responses but use more API quota.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeAISettings()">
+                    <i class="fas fa-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== NOTIFICATIONS MODAL ==================== -->
+    <div class="edit-card-modal" id="notifications-modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 650px; max-height: 85vh;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-bell"></i> Notifications
+                </h3>
+                <button class="modal-close-btn" onclick="closeNotifications()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+                        <div class="settings-section-title">
+                            <i class="fas fa-bell"></i> Notification Settings
+                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <div class="settings-section-content">
+                        <div class="settings-checkbox">
+                            <input type="checkbox" id="enableNotifications" checked onchange="saveSettings()">
+                            <label for="enableNotifications">Enable Browser Notifications</label>
+                        </div>
+                        <small style="color: var(--text-muted); margin-top: 4px; display: block;">Receive
+                            notifications for task completions and important updates</small>
+
+                        <div class="settings-checkbox" style="margin-top: var(--space-3);">
+                            <input type="checkbox" id="enableSounds" checked onchange="saveSettings()">
+                            <label for="enableSounds">Enable Sound Notifications</label>
+                        </div>
+                        <small style="color: var(--text-muted); margin-top: 4px; display: block;">Play sounds
+                            for messages and alerts</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeNotifications()">
+                    <i class="fas fa-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== APPEARANCE MODAL ==================== -->
+    <div class="edit-card-modal" id="appearance-modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 650px; max-height: 85vh;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-palette"></i> Appearance
+                </h3>
+                <button class="modal-close-btn" onclick="closeAppearance()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+                        <div class="settings-section-title">
+                            <i class="fas fa-palette"></i> Theme Settings
+                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <div class="settings-section-content">
+                        <div class="settings-field">
+                            <label>Theme</label>
+                            <div style="display: flex; gap: 12px; margin-top: 12px;">
+                                <label
+                                    style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                                    <input type="radio" name="theme" value="light" onchange="saveSettings()"
+                                        style="cursor: pointer;">
+                                    <i class="fas fa-sun" style="font-size: 18px;"></i>
+                                    <span style="font-weight: 500;">Light</span>
+                                </label>
+                                <label
+                                    style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                                    <input type="radio" name="theme" value="dark" checked onchange="saveSettings()"
+                                        style="cursor: pointer;">
+                                    <i class="fas fa-moon" style="font-size: 18px;"></i>
+                                    <span style="font-weight: 500;">Dark</span>
+                                </label>
+                            </div>
+                            <small style="color: var(--text-muted); margin-top: 8px; display: block;">Choose
+                                your preferred color scheme</small>
+                        </div>
+
+                        <div class="settings-info"
+                            style="margin-top: var(--space-3); padding: var(--space-2); background: var(--bg-tertiary); border-left: 3px solid var(--accent-primary); border-radius: 4px;">
+                            <i class="fas fa-info-circle"></i> <strong>Coming Soon:</strong> Custom color
+                            schemes and additional theme options
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeAppearance()">
+                    <i class="fas fa-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CONNECTIONS MODAL ==================== -->
+    <div class="edit-card-modal" id="connections-modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 650px; max-height: 85vh;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-plug"></i> Platform Connections
+                </h3>
+                <button class="modal-close-btn" onclick="closeConnections()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
+                        <div class="settings-section-title">
+                            <i class="fas fa-plug"></i> Platform Connections
+                            <span class="badge" id="connectionsCount"
+                                style="background: var(--accent-primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">0</span>
+                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <div class="settings-section-content">
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: var(--space-3);">
+                            Manage your connected platforms and services. These credentials are used by AI
+                            agents to perform actions on your behalf.
+                        </p>
+
+                        <!-- Connections List -->
+                        <div id="connectionsModalContainer" style="display: flex; flex-direction: column; gap: 12px;">
+                            <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
+                                <div style="font-size: 14px;">Loading connections...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="refreshConnectionsModal()">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+                <button class="btn btn-primary" onclick="closeConnections()">
+                    <i class="fas fa-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== ACCOUNT SETTINGS MODAL ==================== -->
     <div class="edit-card-modal" id="account-settings-modal" style="display: none;">
         <div class="modal-overlay"></div>
@@ -15739,7 +16637,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Personalisation Section (TOP PRIORITY) -->
+                <!-- Personalisation Section -->
                 <div class="settings-section">
                     <div class="settings-section-header" onclick="toggleSettingsSection(this)">
                         <div class="settings-section-title">
@@ -15900,7 +16798,7 @@
                             <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
                         </div>
                     </div>
-                    <div class="settings-section-content" style="display: none;">
+                    <div class="settings-section-content">
                         <div class="settings-field">
                             <label style="font-weight: 600; font-size: 14px;">About Mandatory Instructions</label>
                             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
@@ -15964,220 +16862,8 @@
                         </div>
                     </div>
                 </div>
+            </div> <!-- Close modal-body -->
 
-                <!-- AI Memories Section -->
-                <div class="settings-section">
-                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
-                        <div class="settings-section-title">
-                            <i class="fas fa-brain"></i> AI Memories
-                            <span class="badge" id="memoryCount"
-                                style="background: var(--accent-primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">0</span>
-                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
-                        </div>
-                    </div>
-                    <div class="settings-section-content" style="display: none;">
-                        <div class="settings-field">
-                            <label style="font-weight: 600; font-size: 14px;">About AI Memories</label>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                                The AI stores important information you share during conversations. You can add, edit,
-                                or delete
-                                memories at any time. Use memories to personalize your AI experience.
-                            </p>
-                        </div>
-
-                        <!-- Inline Add/Edit Memory Form -->
-                        <div
-                            style="background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                            <input type="hidden" id="editMemoryId" value="">
-
-                            <div style="margin-bottom: 12px;">
-                                <label for="memoryContent"
-                                    style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
-                                    <i class="fas fa-brain"></i> Memory Content
-                                </label>
-                                <textarea id="memoryContent" rows="3"
-                                    style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 13px; resize: vertical; font-family: inherit;"
-                                    placeholder="Enter what you want the AI to remember..."></textarea>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                                <div>
-                                    <label for="memoryCategory"
-                                        style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
-                                        <i class="fas fa-folder"></i> Category
-                                    </label>
-                                    <select id="memoryCategory"
-                                        style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 13px;">
-                                        <option value="general">General</option>
-                                        <option value="preferences">Preferences</option>
-                                        <option value="personal">Personal</option>
-                                        <option value="work">Work</option>
-                                        <option value="health">Health</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="memoryTags"
-                                        style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
-                                        <i class="fas fa-tags"></i> Tags
-                                    </label>
-                                    <input type="text" id="memoryTags"
-                                        style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 13px;"
-                                        placeholder="tag1, tag2, tag3">
-                                </div>
-                            </div>
-
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-primary" onclick="saveMemory()" style="flex: 1;">
-                                    <i class="fas fa-save"></i> Save Memory
-                                </button>
-                                <button class="btn btn-secondary" onclick="cancelMemoryEdit()" id="cancelMemoryBtn"
-                                    style="display: none;">
-                                    <i class="fas fa-times"></i> Cancel
-                                </button>
-                                <button class="btn btn-secondary" onclick="refreshMemories()" title="Refresh memories">
-                                    <i class="fas fa-sync"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="memoriesContainer" style="margin-top: 16px;">
-                            <div style="text-align: center; padding: 24px; color: var(--text-muted);">
-                                <i class="fas fa-brain" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
-                                <p>No memories stored yet</p>
-                                <small>Fill out the form above to create your first memory</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Model Options Section -->
-                <div class="settings-section">
-                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
-                        <div class="settings-section-title">
-                            <i class="fas fa-brain"></i> Model Options
-                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
-                        </div>
-                    </div>
-                    <div class="settings-section-content">
-                        <div class="settings-field">
-                            <label>AI Model</label>
-                            <select id="modelSelect" onchange="saveSettings()">
-                                <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (Recommended)</option>
-                                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
-                            </select>
-                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Select the AI
-                                model to use for agent processing</small>
-                        </div>
-
-                        <div class="settings-field">
-                            <label>Temperature <span class="settings-value" id="tempValue">1.0</span></label>
-                            <input type="range" id="temperature" min="0" max="1" step="0.1" value="1.0"
-                                oninput="document.getElementById('tempValue').textContent = this.value; saveSettings()"
-                                style="width: 100%; cursor: pointer;">
-                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">0.0 =
-                                Deterministic, 1.0 = Creative (Higher = More Random)</small>
-                        </div>
-
-                        <div class="settings-field">
-                            <label>Top P (Nucleus Sampling) <span class="settings-value"
-                                    id="toppValue">1.0</span></label>
-                            <input type="range" id="topP" min="0" max="1" step="0.05" value="1.0"
-                                oninput="document.getElementById('toppValue').textContent = this.value; saveSettings()"
-                                style="width: 100%; cursor: pointer;">
-                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Controls diversity
-                                of responses (0.0-1.0)</small>
-                        </div>
-
-                        <div class="settings-checkbox">
-                            <input type="checkbox" id="enableThinking" checked onchange="saveSettings()">
-                            <label for="enableThinking">Enable Extended Thinking</label>
-                        </div>
-                        <small style="color: var(--text-muted); margin-top: 8px; display: block;">Improved cognitive
-                            performance - uses more tokens but provides deeper reasoning</small>
-                    </div>
-                </div>
-
-                <!-- Round Parameters Section -->
-                <div class="settings-section">
-                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
-                        <div class="settings-section-title">
-                            <i class="fas fa-sync"></i> Round Parameters
-                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
-                        </div>
-                    </div>
-                    <div class="settings-section-content">
-                        <div class="settings-field">
-                            <label>Maximum Turns <span class="settings-value" id="roundsValue">20</span></label>
-                            <input type="range" id="maxRounds" min="1" max="50" step="1" value="20"
-                                oninput="document.getElementById('roundsValue').textContent = this.value; saveSettings()"
-                                style="width: 100%; cursor: pointer;">
-                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Maximum number of
-                                conversation rounds (1-50). Higher values allow longer multi-step tasks.</small>
-                        </div>
-
-                        <div class="settings-field">
-                            <label>Timeout Per Round (seconds) <span class="settings-value"
-                                    id="timeoutValue">30</span></label>
-                            <input type="range" id="roundTimeout" min="10" max="360" step="10" value="30"
-                                oninput="document.getElementById('timeoutValue').textContent = this.value; saveSettings()"
-                                style="width: 100%; cursor: pointer;">
-                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">How long to wait
-                                for each round to complete (10-360 seconds / up to 6 minutes)</small>
-                        </div>
-
-                        <div class="settings-checkbox">
-                            <input type="checkbox" id="enableStreaming" checked onchange="saveSettings()">
-                            <label for="enableStreaming">Enable Streaming Responses (Real-time output)</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Token Parameters Section -->
-                <div class="settings-section">
-                    <div class="settings-section-header" onclick="toggleSettingsSection(this)">
-                        <div class="settings-section-title">
-                            <i class="fas fa-coins"></i> Token Parameters
-                            <span class="settings-section-toggle"><i class="fas fa-chevron-down"></i></span>
-                        </div>
-                    </div>
-                    <div class="settings-section-content">
-                        <div class="settings-field">
-                            <label>Maximum Response Tokens <span class="settings-value"
-                                    id="tokensValue">16000</span></label>
-                            <input type="range" id="maxTokens" min="1000" max="64000" step="1000" value="16000"
-                                oninput="document.getElementById('tokensValue').textContent = this.value; saveSettings()"
-                                style="width: 100%; cursor: pointer;">
-                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Maximum tokens in
-                                AI responses (1000-64000)</small>
-                        </div>
-
-                        <div class="settings-field">
-                            <label>Thinking Budget Tokens <span class="settings-value"
-                                    id="thinkingValue">10000</span></label>
-                            <input type="range" id="thinkingBudgetSlider" min="0" max="20000" step="1000" value="10000"
-                                oninput="document.getElementById('thinkingValue').textContent = this.value; saveSettings()"
-                                style="width: 100%; cursor: pointer;">
-                            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Tokens for AI
-                                reasoning (only with Extended Thinking)</small>
-                        </div>
-
-                        <div class="settings-info"
-                            style="margin-top: var(--space-3); padding: var(--space-2); background: var(--bg-tertiary); border-left: 3px solid var(--accent-primary); border-radius: 4px;">
-                            <i class="fas fa-info-circle"></i> <strong>Token Usage:</strong> Higher values enable more
-                            detailed responses but use more API quota.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Settings Info -->
-                <div class="settings-footer"
-                    style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-default);">
-                    <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
-                        <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Your settings are saved locally and
-                        applied to all AI agent requests. These can be overridden per-session.
-                    </p>
-                </div>
-            </div>
             <div class="modal-footer"
                 style="display: flex; gap: var(--space-2); padding: var(--space-4); border-top: 1px solid var(--border-default); justify-content: space-between;">
                 <button class="btn btn-secondary" onclick="resetAccountSettings()">
@@ -16191,9 +16877,10 @@
                         <i class="fas fa-check"></i> Close
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </div> <!-- Close modal-footer -->
+        </div> <!-- Close modal-content -->
+    </div> <!-- Close modal-overlay -->
+    </div> <!-- Close account-settings-modal -->
 
     <!-- ==================== DEBUG SIDEBAR ==================== -->
     <!-- Debug Sidebar HTML loaded dynamically from external/modules/debug-module/debug-module.html -->
@@ -16521,7 +17208,8 @@
             </div>
             <div class="debug-section-content">
                 <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                    Extract computed CSS styles from rendered elements. Select elements below to see their styles.
+                    Extract computed CSS styles from rendered elements. Select elements below to see their
+                    styles.
                 </p>
 
                 <!-- Controls Row 1 -->
@@ -16551,7 +17239,8 @@
                     style="margin-bottom: 16px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 4px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                         <i class="fas fa-magic" style="color: #3B82F6;"></i>
-                        <span style="font-weight: bold; color: var(--text-primary);">Dynamic Elements Monitor</span>
+                        <span style="font-weight: bold; color: var(--text-primary);">Dynamic Elements
+                            Monitor</span>
                         <span style="color: var(--text-secondary); font-size: 11px;">Track script-generated
                             elements</span>
                     </div>
@@ -17724,6 +18413,98 @@
             });
         }
 
+        // Initialize InHouse Kanban Toggle Button
+        function initializeInhouseKanbanToggleButton() {
+            const toggle = document.getElementById('inhouse-kanban-toggle');
+            if (!toggle) {
+                console.warn('[INHOUSE KANBAN] Toggle button not found');
+                return;
+            }
+
+            let userHasDragged = false;
+
+            // Position toggle
+            function positionToggle() {
+                const savedTop = localStorage.getItem('inhouse-kanban-toggle-top');
+                const hasSavedPosition = savedTop && savedTop !== 'null';
+
+                if (hasSavedPosition && userHasDragged) {
+                    toggle.style.top = savedTop;
+                } else {
+                    // Default position - below synergy toggle
+                    toggle.style.top = '280px';
+                }
+            }
+
+            // Check if user has previously dragged
+            const savedTop = localStorage.getItem('inhouse-kanban-toggle-top');
+            if (savedTop && savedTop !== 'null') {
+                userHasDragged = true;
+            }
+
+            // Position on load
+            positionToggle();
+
+            // Reposition on window resize (only if not user-positioned)
+            window.addEventListener('resize', () => {
+                if (!userHasDragged) {
+                    positionToggle();
+                }
+            });
+
+            // Make button draggable (vertical only)
+            let isDragging = false;
+            let offsetY = 0;
+
+            toggle.addEventListener('mousedown', (e) => {
+                // If clicking the button normally, open the tab instead of dragging
+                if (e.target === toggle || e.target.parentElement === toggle) {
+                    // Start dragging timeout to differentiate click vs drag
+                    isDragging = true;
+                    offsetY = e.clientY - toggle.getBoundingClientRect().top;
+                    toggle.style.cursor = 'grabbing';
+                    toggle.classList.add('dragging');
+                    e.preventDefault();
+                }
+            });
+
+            let hasMoved = false;
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    hasMoved = true;
+                    // Vertical dragging
+                    const newTop = e.clientY - offsetY;
+                    toggle.style.top = `${newTop}px`;
+                }
+            });
+
+            document.addEventListener('mouseup', (e) => {
+                if (isDragging) {
+                    isDragging = false;
+                    toggle.style.cursor = 'grab';
+                    toggle.classList.remove('dragging');
+
+                    // If user didn't move, treat as click
+                    if (!hasMoved) {
+                        // Switch to InHouse Kanban tab
+                        switchTab('inhouse-kanban');
+                        // Update sidebar active state
+                        document.querySelectorAll('.sidebar-icon-btn').forEach(b => b.classList.remove('active'));
+                        document.querySelector('.sidebar-icon-btn[data-tab=\"inhouse-kanban\"]')?.classList.add('active');
+                    } else {
+                        // User dragged, save position
+                        userHasDragged = true;
+                        localStorage.setItem('inhouse-kanban-toggle-top', toggle.style.top);
+                    }
+
+                    hasMoved = false;
+                }
+            });
+
+            console.log('[INHOUSE KANBAN] Toggle button initialized');
+        }
+
         // Helper function to set synergy sidebar side
         function setSynergySidebarSide(side) {
             const sidebar = document.getElementById('synergy-sidebar');
@@ -17766,12 +18547,18 @@
                 if (window.SynergySidebar && typeof SynergySidebar.initDraggableToggle === 'function') {
                     SynergySidebar.initDraggableToggle();
                 }
+                if (window.AccountSidebar) {
+                    console.log('[ACCOUNT] AccountSidebar initialized on DOM ready');
+                }
             });
         } else {
             if (typeof initializeSynergyToggleButton === 'function') initializeSynergyToggleButton();
             initializeAutomationsToggleButton();
             if (window.SynergySidebar && typeof SynergySidebar.initDraggableToggle === 'function') {
                 SynergySidebar.initDraggableToggle();
+            }
+            if (window.AccountSidebar) {
+                console.log('[ACCOUNT] AccountSidebar initialized immediately');
             }
         }
 
@@ -18113,6 +18900,24 @@
             }
 
             console.log('? [AUTH] UserAuth is now available');
+
+            // ✅ SECURITY FIX (Nov 26, 2025): Clean URL IMMEDIATELY if token present
+            // This must happen BEFORE checkExistingSession to prevent token staying in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('token')) {
+                const token = urlParams.get('token');
+                console.log('🔐 [AUTH] OAuth token detected in URL - storing and cleaning...');
+
+                // Store token first
+                localStorage.setItem('authToken', token);
+                if (typeof UserAuth !== 'undefined') {
+                    UserAuth.token = token;
+                }
+
+                // Clean URL immediately (remove token from browser history)
+                window.history.replaceState({}, document.title, window.location.pathname);
+                console.log('✅ [AUTH] Token stored and URL cleaned');
+            }
 
             try {
                 // Check if user is already logged in
@@ -19689,11 +20494,11 @@
             // MASTER SPEED CONTROLLER - All animations follow this
             function getGlobalSpeedPhase() {
                 const time = (Date.now() - animationStartTime) / 1000;
-                const cycleTime = time % 22; // 22s full cycle (20s + 2s fade window)
+                const cycleTime = time % 27; // 27s full cycle (25s + 2s fade window)
 
                 let speedMultiplier, brightness;
 
-                // Speed: 0-13s ramp to 1.5, then accelerate to 4x by 18-19s
+                // Speed: 0-13s ramp to 1.5, then accelerate to 6x by 17-25s
                 if (cycleTime < 13) {
                     // 0-13s: Ramp up from 0.3 to 1.5
                     speedMultiplier = 0.3 + (cycleTime / 13) * 1.2;
@@ -19709,35 +20514,32 @@
                 } else if (cycleTime < 17) {
                     // 16-17s: Speed up to 4.5
                     speedMultiplier = 4.5;
-                } else if (cycleTime < 18) {
-                    // 17-18s: Speed up to 5.5
-                    speedMultiplier = 5.5;
-                } else if (cycleTime < 20) {
-                    // 18-20s: Maximum speed 6.0x (HYPER-SPEED instant lines!)
+                } else if (cycleTime < 25) {
+                    // 17-25s: HYPER-SPEED 6.0x (8 seconds of instant lines!)
                     speedMultiplier = 6.0;
-                } else if (cycleTime < 21.5) {
-                    // 20-21.5s: Stay at 6.0 speed (hyper-fast clearout)
+                } else if (cycleTime < 26.5) {
+                    // 25-26.5s: Stay at 6.0 speed (hyper-fast clearout)
                     speedMultiplier = 6.0;
                 } else {
-                    // 21.5-22s: Drop to 0 (complete stop before restart)
+                    // 26.5-27s: Drop to 0 (complete stop before restart)
                     speedMultiplier = 0;
                 }
 
-                // Brightness: 0 from 0-4s, ramp to max at 17s, pause at 19-21s (2s for particles to clear), fade 21-22s
+                // Brightness: 0 from 0-4s, ramp to max at 17s, stay max during hyper-speed, fade 25-27s
                 if (cycleTime < 4) {
                     // 0-4s: No brightness
                     brightness = 0;
                 } else if (cycleTime < 17) {
                     // 4-17s: Ramp from 0 to 1.0 (13 seconds)
                     brightness = (cycleTime - 4) / 13;
-                } else if (cycleTime < 20) {
-                    // 17-20s: Stay at max brightness during speed peak
+                } else if (cycleTime < 25) {
+                    // 17-25s: Stay at max brightness during hyper-speed (8 seconds)
                     brightness = 1.0;
-                } else if (cycleTime < 22) {
-                    // 20-22s: Production pause (2 seconds) - fade while particles clear
-                    brightness = 1.0 - ((cycleTime - 20) / 2);
+                } else if (cycleTime < 27) {
+                    // 25-27s: Production pause (2 seconds) - fade while particles clear
+                    brightness = 1.0 - ((cycleTime - 25) / 2);
                 } else {
-                    // After 22s: Should not reach (cycle resets)
+                    // After 27s: Should not reach (cycle resets)
                     brightness = 0;
                 }
 
@@ -20063,8 +20865,8 @@
                     const { ctx, canvas, centerX, centerY, particles, neuralNodes, startTime } = animData;
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    // Check for cycle reset (22s cycle with 2s fade window) - use synced time
-                    const currentCycle = Math.floor(((Date.now() - animationStartTime) / 1000) / 22);
+                    // Check for cycle reset (27s cycle with 2s fade window) - use synced time
+                    const currentCycle = Math.floor(((Date.now() - animationStartTime) / 1000) / 27);
                     if (animData.currentCycle !== currentCycle) {
                         console.log(`[Circuit] Cycle ${currentCycle} - regenerating 20% nodes`);
                         createNeuralNetwork(animData, 0.2);
@@ -20080,9 +20882,9 @@
                         node.draw(ctx, startTime, speedPhase.brightness);
                     });
 
-                    // Check if we're in production pause (20-22s) - use same cycleTime as speedPhase
+                    // Check if we're in production pause (25-27s) - use same cycleTime as speedPhase
                     const cycleTime = speedPhase.cycleTime;
-                    const inProductionPause = (cycleTime >= 20 && cycleTime < 22);
+                    const inProductionPause = (cycleTime >= 25 && cycleTime < 27);
 
                     // Update particles with speed multiplier
                     for (let i = particles.length - 1; i >= 0; i--) {
@@ -20098,12 +20900,12 @@
                     let maxParticles = 50; // Base
                     let spawnChance = 0.5; // Base 50%
 
-                    if (cycleTime >= 18) {
-                        maxParticles = 100; // Peak - double particles
+                    if (cycleTime >= 17) {
+                        maxParticles = 100; // Peak - double particles during 8-second hyper-speed
                         spawnChance = 0.1; // 90% spawn rate
                     } else if (cycleTime >= 16) {
-                        // 16-18s: Ramp from 60 to 100 particles
-                        maxParticles = 60 + Math.floor((cycleTime - 16) / 2 * 40);
+                        // 16-17s: Ramp from 60 to 100 particles
+                        maxParticles = 60 + Math.floor((cycleTime - 16) * 40);
                         spawnChance = 0.3; // 70% spawn rate
                     } else if (cycleTime >= 12) {
                         // 12-16s: Ramp from 50 to 60 particles
@@ -20131,7 +20933,7 @@
                         `Connections: ${speedPhase.maxConnections}/17`,
                         `Brightness: ${(speedPhase.brightness * 100).toFixed(0)}%`,
                         `Speed: ${speedPhase.speedMultiplier.toFixed(1)}x`,
-                        `Time: ${cycleTime.toFixed(1)}s / 22s`
+                        `Time: ${cycleTime.toFixed(1)}s / 27s`
                     ];
 
                     debugLines.reverse().forEach(line => {
@@ -20589,6 +21391,8 @@
     </script>
 
     <!-- ==================== VOICE TRANSCRIPTION INTEGRATION ==================== -->
+    <!-- CRITICAL: Load config.js FIRST - provides centralized API endpoint management -->
+    <script src="modules/transcription/config.js"></script>
     <script src="modules/transcription/stt-module.js"></script>
     <script src="modules/transcription/tts-module.js"></script>
     <script src="modules/transcription/transcription-streaming-container.js"></script>
@@ -20812,6 +21616,925 @@
         document.head.appendChild(micBtnStyle);
 
         console.log('[TRANSCRIPTION] Voice transcription system loaded');
+
+        // ==================== SESSION MANAGEMENT ====================
+
+        let activeSessions = [];
+        let sessionsExpanded = false;
+
+        /**
+         * Load and display active sessions
+         */
+        async function loadActiveSessions() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    console.log('[SESSIONS] No auth token - skipping session load');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/auth/sessions`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    activeSessions = data.sessions || [];
+                    displayActiveSessions();
+
+                    // Sessions now shown in Account Settings Security section
+                    console.log(`[SESSIONS] Loaded ${activeSessions.length} active sessions`);
+                }
+            } catch (error) {
+                console.error('[SESSIONS] Error loading sessions:', error);
+            }
+        }
+
+        /**
+         * Display sessions in the dropdown
+         */
+        function displayActiveSessions() {
+            const sessionsList = document.getElementById('activeSessionsList');
+            const sessionCount = document.getElementById('sessionCount');
+            const revokeAllBtn = document.getElementById('revokeAllSessionsBtn');
+
+            // Update count badge
+            sessionCount.textContent = activeSessions.length;
+
+            // Show/hide revoke all button (only if we have other sessions besides current)
+            const otherSessions = activeSessions.filter(s => !s.is_current);
+            revokeAllBtn.style.display = otherSessions.length > 0 ? 'block' : 'none';
+
+            if (activeSessions.length === 0) {
+                sessionsList.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                        <i class="fas fa-info-circle" style="font-size: 20px; margin-bottom: 8px;"></i>
+                        <div>No active sessions</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Render sessions
+            sessionsList.innerHTML = activeSessions.map(session => {
+                const device = session.device_info || {};
+                const browser = device.browser || 'Unknown';
+                const os = device.os || 'Unknown';
+                const deviceType = device.device_type || 'desktop';
+                const isCurrent = session.is_current;
+
+                // Device icon
+                let deviceIcon = 'fa-desktop';
+                if (deviceType === 'mobile') deviceIcon = 'fa-mobile-alt';
+                else if (deviceType === 'tablet') deviceIcon = 'fa-tablet-alt';
+
+                // Browser icon color - use accent color for recognized browsers
+                let browserColor = 'var(--text-muted)';
+                if (['Chrome', 'Firefox', 'Safari', 'Edge'].includes(browser)) {
+                    browserColor = 'var(--accent-primary)';
+                }
+
+                // Format date
+                const createdDate = new Date(session.created_at);
+                const now = new Date();
+                const diffMs = now - createdDate;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMins / 60);
+                const diffDays = Math.floor(diffHours / 24);
+
+                let timeAgo = '';
+                if (diffMins < 1) timeAgo = 'Just now';
+                else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
+                else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
+                else timeAgo = `${diffDays}d ago`;
+
+                return `
+                    <div style="padding: 12px; background: ${isCurrent ? 'var(--bg-success-subtle, rgba(34, 197, 94, 0.05))' : 'var(--bg-secondary)'}; border-radius: 8px; margin-bottom: 8px; border: 1px solid ${isCurrent ? 'var(--border-success, rgba(34, 197, 94, 0.2))' : 'var(--border-default)'};">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                                <i class="fas ${deviceIcon}" style="font-size: 20px; color: ${browserColor}; width: 24px; text-align: center;"></i>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                        ${browser} on ${os}
+                                        ${isCurrent ? '<span style="background: var(--success, #22c55e); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">CURRENT</span>' : ''}
+                                    </div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">
+                                        <i class="fas fa-clock" style="font-size: 9px;"></i> ${timeAgo}
+                                    </div>
+                                    ${session.ip_address ? `<div style="font-size: 10px; color: var(--text-tertiary); margin-top: 2px;"><i class="fas fa-map-marker-alt" style="font-size: 8px;"></i> ${session.ip_address}</div>` : ''}
+                                </div>
+                            </div>
+                            ${!isCurrent ? `
+                                <button 
+                                    onclick="revokeSession(${session.id})"
+                                    style="padding: 6px 12px; background: var(--bg-danger-subtle, rgba(239, 68, 68, 0.1)); color: var(--danger, #dc2626); border: 1px solid var(--border-danger, rgba(239, 68, 68, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;"
+                                    onmouseover="this.style.background='var(--bg-danger-hover, rgba(239, 68, 68, 0.2))'"
+                                    onmouseout="this.style.background='var(--bg-danger-subtle, rgba(239, 68, 68, 0.1))'">
+                                    <i class="fas fa-sign-out-alt"></i> Revoke
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Toggle sessions list visibility
+         */
+        function toggleActiveSessions() {
+            sessionsExpanded = !sessionsExpanded;
+            const sessionsList = document.getElementById('activeSessionsList');
+            const chevron = document.getElementById('sessionsChevron');
+
+            if (sessionsExpanded) {
+                sessionsList.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+
+                // Reload sessions when expanding
+                loadActiveSessions();
+            } else {
+                sessionsList.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        /**
+         * Revoke a specific session
+         */
+        async function revokeSession(sessionId) {
+            if (!confirm('Are you sure you want to revoke this session? The device will be logged out immediately.')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/auth/sessions/${sessionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to revoke session');
+                }
+
+                console.log(`[SESSIONS] Session ${sessionId} revoked`);
+
+                // Show success message
+                showToast('Session revoked successfully', 'success');
+
+                // Reload sessions
+                await loadActiveSessions();
+
+            } catch (error) {
+                console.error('[SESSIONS] Error revoking session:', error);
+                showToast('Failed to revoke session: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Revoke all sessions except current
+         */
+        async function revokeAllOtherSessions() {
+            const otherSessions = activeSessions.filter(s => !s.is_current);
+            if (!confirm(`Are you sure you want to revoke all ${otherSessions.length} other session(s)? All other devices will be logged out immediately.`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/auth/sessions/all`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to revoke sessions');
+                }
+
+                const data = await response.json();
+                console.log(`[SESSIONS] Revoked ${data.revoked_count} sessions`);
+
+                // Show success message
+                showToast(`Successfully revoked ${data.revoked_count} session(s)`, 'success');
+
+                // Reload sessions
+                await loadActiveSessions();
+
+            } catch (error) {
+                console.error('[SESSIONS] Error revoking all sessions:', error);
+                showToast('Failed to revoke sessions: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Show toast notification
+         */
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 16px 20px;
+                background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                z-index: 10000;
+                font-weight: 600;
+                animation: slideInRight 0.3s ease;
+            `;
+            toast.textContent = message;
+
+            document.body.appendChild(toast);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Add toast animations
+        const toastStyles = document.createElement('style');
+        toastStyles.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(toastStyles);
+
+        // Load sessions when user opens profile dropdown
+        document.addEventListener('DOMContentLoaded', () => {
+            const profileBtn = document.getElementById('userProfileBtn-sidebar');
+            if (profileBtn) {
+                profileBtn.addEventListener('click', () => {
+                    // Load sessions when dropdown opens
+                    setTimeout(() => loadActiveSessions(), 100);
+                });
+            }
+        });
+
+        console.log('[SESSIONS] Session management UI initialized');
+
+        // ==================== ACCOUNT SETTINGS SIDEBAR ====================
+        const AccountSidebar = {
+            currentTab: 'profile',
+
+            /**
+             * Toggle sidebar visibility
+             */
+            toggleSidebar() {
+                console.log('[ACCOUNT SIDEBAR] Toggling sidebar');
+                const sidebar = document.getElementById('account-sidebar');
+                if (sidebar) {
+                    sidebar.classList.toggle('collapsed');
+
+                    // Load user info when opening
+                    if (!sidebar.classList.contains('collapsed')) {
+                        this.loadUserInfo();
+                        this.loadTabContent(this.currentTab);
+                    }
+                }
+            },
+
+            /**
+             * Switch between tabs
+             */
+            switchTab(tabName) {
+                console.log(`[ACCOUNT SIDEBAR] Switching to tab: ${tabName}`);
+                this.currentTab = tabName;
+
+                // Update tab active states
+                document.querySelectorAll('.account-tab').forEach(tab => {
+                    if (tab.dataset.tab === tabName) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                });
+
+                // Load tab content
+                this.loadTabContent(tabName);
+            },
+
+            /**
+             * Load user information
+             */
+            async loadUserInfo() {
+                try {
+                    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                    if (!token) return;
+
+                    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        document.getElementById('sidebarUserName').textContent = data.name || 'User';
+                        document.getElementById('sidebarUserEmail').textContent = data.email || '';
+                        document.getElementById('sidebarRoleBadge').textContent = data.role || 'User';
+                    }
+                } catch (error) {
+                    console.error('[ACCOUNT SIDEBAR] Failed to load user info:', error);
+                }
+            },
+
+            /**
+             * Load content for the selected tab
+             */
+            loadTabContent(tabName) {
+                const contentContainer = document.getElementById('account-sidebar-content');
+                if (!contentContainer) return;
+
+                // Clear existing content
+                contentContainer.innerHTML = '';
+
+                // Load content based on tab
+                switch (tabName) {
+                    case 'profile':
+                        this.loadProfileTab(contentContainer);
+                        break;
+                    case 'ai-settings':
+                        this.loadAISettingsTab(contentContainer);
+                        break;
+                    case 'notifications':
+                        this.loadNotificationsTab(contentContainer);
+                        break;
+                    case 'appearance':
+                        this.loadAppearanceTab(contentContainer);
+                        break;
+                    case 'connections':
+                        this.loadConnectionsTab(contentContainer);
+                        break;
+                    case 'security':
+                        this.loadSecurityTab(contentContainer);
+                        break;
+                }
+            },
+
+            /**
+             * Load Profile tab content (from Account Settings modal)
+             */
+            loadProfileTab(container) {
+                const profileModal = document.getElementById('account-settings-modal');
+                if (profileModal) {
+                    const modalBody = profileModal.querySelector('.modal-body');
+                    if (modalBody) {
+                        container.innerHTML = modalBody.innerHTML;
+                    }
+                }
+            },
+
+            /**
+             * Load AI Settings tab content (from AI Settings modal)
+             */
+            loadAISettingsTab(container) {
+                const aiModal = document.getElementById('ai-settings-modal');
+                if (aiModal) {
+                    const modalBody = aiModal.querySelector('.modal-body');
+                    if (modalBody) {
+                        container.innerHTML = modalBody.innerHTML;
+                    }
+                }
+            },
+
+            /**
+             * Load Notifications tab content (from Notifications modal)
+             */
+            loadNotificationsTab(container) {
+                const notifModal = document.getElementById('notifications-modal');
+                if (notifModal) {
+                    const modalBody = notifModal.querySelector('.modal-body');
+                    if (modalBody) {
+                        container.innerHTML = modalBody.innerHTML;
+                    }
+                }
+            },
+
+            /**
+             * Load Appearance tab content (from Appearance modal)
+             */
+            loadAppearanceTab(container) {
+                const appearanceModal = document.getElementById('appearance-modal');
+                if (appearanceModal) {
+                    const modalBody = appearanceModal.querySelector('.modal-body');
+                    if (modalBody) {
+                        container.innerHTML = modalBody.innerHTML;
+                    }
+                }
+            },
+
+            /**
+             * Load Connections tab content (from Connections modal)
+             */
+            loadConnectionsTab(container) {
+                const connectionsModal = document.getElementById('connections-modal');
+                if (connectionsModal) {
+                    const modalBody = connectionsModal.querySelector('.modal-body');
+                    if (modalBody) {
+                        container.innerHTML = modalBody.innerHTML;
+                        // Load connections data
+                        setTimeout(() => loadConnectionsModal(), 100);
+                    }
+                }
+            },
+
+            /**
+             * Load Security tab content (from Security modal)
+             */
+            loadSecurityTab(container) {
+                const securityModal = document.getElementById('security-modal');
+                if (securityModal) {
+                    const modalBody = securityModal.querySelector('.modal-body');
+                    if (modalBody) {
+                        container.innerHTML = modalBody.innerHTML;
+                        // Load active sessions
+                        setTimeout(() => loadActiveSessions(), 100);
+                    }
+                }
+            }
+        };
+
+        // Make AccountSidebar globally accessible
+        window.AccountSidebar = AccountSidebar;
+
+        // Legacy functions for backwards compatibility (redirect to sidebar)
+        function showSecurity() {
+            AccountSidebar.toggleSidebar();
+            AccountSidebar.switchTab('security');
+        }
+
+        function closeSecurity() {
+            const sidebar = document.getElementById('account-sidebar');
+            if (sidebar && !sidebar.classList.contains('collapsed')) {
+                AccountSidebar.toggleSidebar();
+            }
+        }
+
+        function showAccountSettings() {
+            AccountSidebar.toggleSidebar();
+            AccountSidebar.switchTab('profile');
+        }
+
+        function closeAccountSettings() {
+            const sidebar = document.getElementById('account-sidebar');
+            if (sidebar && !sidebar.classList.contains('collapsed')) {
+                AccountSidebar.toggleSidebar();
+            }
+        }
+
+        function showAISettings() {
+            AccountSidebar.toggleSidebar();
+            AccountSidebar.switchTab('ai-settings');
+        }
+
+        function closeAISettings() {
+            const sidebar = document.getElementById('account-sidebar');
+            if (sidebar && !sidebar.classList.contains('collapsed')) {
+                AccountSidebar.toggleSidebar();
+            }
+        }
+
+        function showConnections() {
+            AccountSidebar.toggleSidebar();
+            AccountSidebar.switchTab('connections');
+        }
+
+        function closeConnections() {
+            const sidebar = document.getElementById('account-sidebar');
+            if (sidebar && !sidebar.classList.contains('collapsed')) {
+                AccountSidebar.toggleSidebar();
+            }
+        }
+
+        function showNotifications() {
+            AccountSidebar.toggleSidebar();
+            AccountSidebar.switchTab('notifications');
+        }
+
+        function closeNotifications() {
+            const sidebar = document.getElementById('account-sidebar');
+            if (sidebar && !sidebar.classList.contains('collapsed')) {
+                AccountSidebar.toggleSidebar();
+            }
+        }
+
+        function showAppearance() {
+            AccountSidebar.toggleSidebar();
+            AccountSidebar.switchTab('appearance');
+        }
+
+        function closeAppearance() {
+            const sidebar = document.getElementById('account-sidebar');
+            if (sidebar && !sidebar.classList.contains('collapsed')) {
+                AccountSidebar.toggleSidebar();
+            }
+        }
+
+        /**
+         * Toggle settings section collapsed/expanded state
+         */
+        function toggleSettingsSection(headerElement) {
+            const section = headerElement.closest('.settings-section');
+            if (section) {
+                section.classList.toggle('collapsed');
+            }
+        }
+
+        // ==================== CONNECTIONS MANAGEMENT FUNCTIONS ====================
+        /**
+         * Load user's platform connections from database
+         */
+        async function loadConnections() {
+            console.log('[CONNECTIONS] Loading platform connections...');
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                if (!token) {
+                    console.error('[CONNECTIONS] No auth token found');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/connections`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log(`[CONNECTIONS] Loaded ${data.connections.length} connections`);
+
+                displayConnections(data.connections);
+
+                // Update count badge
+                const countBadge = document.getElementById('connectionsCount');
+                if (countBadge) {
+                    countBadge.textContent = data.connections.length;
+                }
+            } catch (error) {
+                console.error('[CONNECTIONS] Error loading connections:', error);
+                displayConnectionsError(error.message);
+            }
+        }
+
+        /**
+         * Display connections in UI
+         */
+        function displayConnections(connections) {
+            const container = document.getElementById('connectionsContainer');
+            if (!container) return;
+
+            if (connections.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="fas fa-plug" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                        <div style="font-size: 14px; font-weight: 500;">No connections found</div>
+                        <small style="display: block; margin-top: 8px;">Connect platforms to enable AI agent actions</small>
+                    </div>
+                `;
+                return;
+            }
+
+            // Platform icon mapping
+            const platformIcons = {
+                'google_workspace': 'fab fa-google',
+                'microsoft_365': 'fab fa-microsoft',
+                'shopify': 'fab fa-shopify',
+                'stripe': 'fab fa-stripe',
+                'slack': 'fab fa-slack',
+                'github': 'fab fa-github',
+                'default': 'fas fa-plug'
+            };
+
+            container.innerHTML = connections.map(conn => {
+                const icon = platformIcons[conn.platform] || platformIcons['default'];
+                const platformName = conn.platform.split('_').map(word =>
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
+
+                const isActive = conn.is_active;
+                const createdDate = new Date(conn.created_at).toLocaleDateString();
+
+                return `
+                    <div style="padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 8px; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 48px; height: 48px; background: var(--accent-primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 15px; margin-bottom: 4px;">
+                                ${platformName}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                <i class="fas fa-calendar" style="font-size: 10px;"></i> Connected ${createdDate}
+                            </div>
+                            ${conn.metadata && conn.metadata.email ? `
+                                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">
+                                    <i class="fas fa-envelope" style="font-size: 9px;"></i> ${conn.metadata.email}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: ${isActive ? 'var(--success, #22c55e)' : 'var(--danger, #ef4444)'};"></div>
+                                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">
+                                    ${isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                            <button onclick="disconnectPlatform('${conn.platform}')" 
+                                style="padding: 6px 12px; background: var(--bg-danger-subtle, rgba(239, 68, 68, 0.1)); color: var(--danger, #ef4444); border: 1px solid var(--border-danger, rgba(239, 68, 68, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                <i class="fas fa-unlink"></i> Disconnect
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Display error message in connections container
+         */
+        function displayConnectionsError(message) {
+            const container = document.getElementById('connectionsContainer');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: var(--danger, #ef4444);">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 12px;"></i>
+                    <div style="font-size: 14px; font-weight: 500;">Failed to load connections</div>
+                    <small style="display: block; margin-top: 8px; color: var(--text-muted);">${message}</small>
+                </div>
+            `;
+        }
+
+        /**
+         * Refresh connections list
+         */
+        function refreshConnections() {
+            console.log('[CONNECTIONS] Refreshing connections...');
+            const container = document.getElementById('connectionsContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
+                        <div style="font-size: 14px;">Refreshing connections...</div>
+                    </div>
+                `;
+            }
+            loadConnections();
+        }
+
+        /**
+         * Disconnect a platform
+         */
+        async function disconnectPlatform(platform) {
+            if (!confirm(`Are you sure you want to disconnect ${platform}? This will revoke all AI agent access to this platform.`)) {
+                return;
+            }
+
+            console.log(`[CONNECTIONS] Disconnecting ${platform}...`);
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/connections/${platform}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                showToast(`Disconnected from ${platform}`, 'success');
+                refreshConnections();
+            } catch (error) {
+                console.error(`[CONNECTIONS] Error disconnecting ${platform}:`, error);
+                showToast(`Failed to disconnect ${platform}`, 'error');
+            }
+        }
+
+        /**
+         * Load connections for the Connections modal (separate from Account Settings)
+         */
+        async function loadConnectionsModal() {
+            console.log('[CONNECTIONS MODAL] Loading platform connections...');
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                if (!token) {
+                    console.error('[CONNECTIONS MODAL] No auth token found');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/connections`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log(`[CONNECTIONS MODAL] Loaded ${data.connections.length} connections`);
+
+                displayConnectionsModal(data.connections);
+
+            } catch (error) {
+                console.error('[CONNECTIONS MODAL] Error loading connections:', error);
+                displayConnectionsModalError('Failed to load connections. Please try again.');
+            }
+        }
+
+        /**
+         * Display connections in modal
+         */
+        function displayConnectionsModal(connections) {
+            const container = document.getElementById('connectionsModalContainer');
+            if (!container) return;
+
+            if (connections.length === 0) {
+                container.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <i class="fas fa-plug" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">No Connections Found</div>
+                            <div style="font-size: 13px;">Connect your platforms to enable AI agent access</div>
+                        </div>
+                    `;
+                return;
+            }
+
+            const platformIcons = {
+                'google_workspace': 'fab fa-google',
+                'microsoft_365': 'fab fa-microsoft',
+                'shopify': 'fab fa-shopify',
+                'stripe': 'fab fa-stripe',
+                'default': 'fas fa-plug'
+            };
+
+            container.innerHTML = connections.map(conn => {
+                const icon = platformIcons[conn.platform] || platformIcons['default'];
+                const platformName = conn.platform.split('_').map(word =>
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
+
+                const isActive = conn.is_active;
+                const createdDate = new Date(conn.created_at).toLocaleDateString();
+
+                return `
+                    <div style="padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 8px; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 48px; height: 48px; background: var(--accent-primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 15px; margin-bottom: 4px;">
+                                ${platformName}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                <i class="fas fa-calendar" style="font-size: 10px;"></i> Connected ${createdDate}
+                            </div>
+                            ${conn.metadata && conn.metadata.email ? `
+                                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">
+                                    <i class="fas fa-envelope" style="font-size: 9px;"></i> ${conn.metadata.email}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: ${isActive ? 'var(--success, #22c55e)' : 'var(--danger, #ef4444)'};"></div>
+                                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">
+                                    ${isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                            <button onclick="disconnectPlatformModal('${conn.platform}')" 
+                                style="padding: 6px 12px; background: var(--bg-danger-subtle, rgba(239, 68, 68, 0.1)); color: var(--danger, #ef4444); border: 1px solid var(--border-danger, rgba(239, 68, 68, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                <i class="fas fa-unlink"></i> Disconnect
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Display error in connections modal
+         */
+        function displayConnectionsModalError(message) {
+            const container = document.getElementById('connectionsModalContainer');
+            if (!container) return;
+
+            container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-danger, #ef4444);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Error Loading Connections</div>
+                        <div style="font-size: 13px;">${message}</div>
+                    </div>
+                `;
+        }
+
+        /**
+         * Refresh connections modal
+         */
+        function refreshConnectionsModal() {
+            const container = document.getElementById('connectionsModalContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
+                        <div style="font-size: 14px;">Refreshing connections...</div>
+                    </div>
+                `;
+            }
+            loadConnectionsModal();
+        }
+
+        /**
+         * Disconnect platform from modal
+         */
+        async function disconnectPlatformModal(platform) {
+            if (!confirm(`Are you sure you want to disconnect ${platform}? This will revoke all AI agent access to this platform.`)) {
+                return;
+            }
+
+            console.log(`[CONNECTIONS MODAL] Disconnecting ${platform}...`);
+
+            try {
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/connections/${platform}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                showToast(`Disconnected from ${platform}`, 'success');
+                refreshConnectionsModal();
+            } catch (error) {
+                console.error(`[CONNECTIONS MODAL] Error disconnecting ${platform}:`, error);
+                showToast(`Failed to disconnect ${platform}`, 'error');
+            }
+        }
+
+        // Load connections when Account Settings modal opens
+        const originalShowAccountSettings = showAccountSettings;
+        showAccountSettings = function () {
+            originalShowAccountSettings();
+            // Load connections after a short delay to ensure modal is visible
+            setTimeout(() => loadConnections(), 100);
+        };
+
+        console.log('[CONNECTIONS] Connection management UI initialized');
     </script>
 
 </body>

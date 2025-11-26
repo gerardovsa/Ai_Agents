@@ -1228,6 +1228,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    z-index: 10;
+    /* Above connections SVG (z-index: 1) */
 }
 
 .automation-shape:hover {

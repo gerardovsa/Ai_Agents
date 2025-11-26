@@ -47,7 +47,9 @@
       "color": "#00509E",
       "description": "InHousePrint production workflow Kanban board with AI priority scoring and real-time job tracking",
       "manifestPath": "external/modules/inhouse-kanban/manifest.json",
-      "scriptPath": "external/modules/inhouse-kanban/inhouse-kanban.js",
+      "scriptPath": "external/modules/inhouse-kanban/inhouse-kanban.js?v=3.0.1",
+      "stylePath": "external/modules/inhouse-kanban/inhouse-kanban-NEW.css?v=3.0.1",
+      "htmlPath": "external/modules/inhouse-kanban/inhouse-kanban.html",
       "enabled": true
     },
     {

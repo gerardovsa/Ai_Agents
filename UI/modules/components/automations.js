@@ -426,7 +426,8 @@ const AutomationsSidebar = {
             console.log('[AUTOMATIONS] Opening workflow:', slug);
 
             // Fetch workflow details from backend API
-            const response = await fetch(`/api/automation/${slug}`, {
+            const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+            const response = await fetch(`${API_BASE_URL}/api/automation/${slug}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
                 }

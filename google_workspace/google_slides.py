@@ -170,16 +170,23 @@ def google_slides_create_presentation(title, template_id=None, _user_id=None, _i
         raise
 
 
-def google_slides_get_presentation(presentation_id, **kwargs):
+def google_slides_get_presentation(presentation_id, format='summary', **kwargs):
     """
-    Get presentation details
+    Get presentation content with format control to prevent token overflow
+    
+    FORMAT OPTIONS:
+    - 'summary' (DEFAULT): Returns title, slide count, slide titles/layouts preview (~1K tokens)
+    - 'text': Returns all slide text content and speaker notes (~80K tokens for 24 slides)
+    - 'markdown': Returns slides as markdown with structure metadata (~90K tokens for 24 slides)
+    - 'full': Complete JSON with all positioning/styling (LEGACY - NOT RECOMMENDED, ~280K tokens)
     
     Args:
-        presentation_id (str): Presentation ID
+        presentation_id: Presentation ID
+        format: Output format ('summary', 'text', 'markdown', 'full')
         **kwargs: Credential injection (_user_id, _injected_credentials)
         
     Returns:
-        dict: Full presentation object with slides, layouts, masters
+        dict: Content in requested format
     """
     try:
         slides_service = _get_slides_service()
@@ -188,13 +195,193 @@ def google_slides_get_presentation(presentation_id, **kwargs):
             presentationId=presentation_id
         ).execute()
         
-        print(f"📖 Retrieved presentation: {presentation.get('title')}")
-        print(f"   Slides: {len(presentation.get('slides', []))}")
+        title = presentation.get('title', 'Untitled Presentation')
+        slides = presentation.get('slides', [])
+        slide_count = len(slides)
         
-        return presentation
+        # FORMAT: summary (DEFAULT - 1K tokens)
+        if format == 'summary':
+            slide_summaries = []
+            for idx, slide in enumerate(slides, 1):
+                slide_id = slide.get('objectId')
+                page_elements = slide.get('pageElements', [])
+                
+                # Extract slide title
+                slide_title = None
+                for element in page_elements:
+                    if 'shape' in element:
+                        shape = element['shape']
+                        if shape.get('shapeType') == 'TEXT_BOX':
+                            text = shape.get('text', {})
+                            text_elements = text.get('textElements', [])
+                            for text_el in text_elements:
+                                if 'textRun' in text_el:
+                                    content = text_el['textRun'].get('content', '').strip()
+                                    if content and len(content) > 5:
+                                        slide_title = content[:100]
+                                        break
+                            if slide_title:
+                                break
+                
+                # Get layout info
+                layout_id = slide.get('slideProperties', {}).get('layoutObjectId', '')
+                layout_name = 'Unknown'
+                for layout in presentation.get('layouts', []):
+                    if layout.get('objectId') == layout_id:
+                        layout_name = layout.get('layoutProperties', {}).get('displayName', 'Unknown')
+                        break
+                
+                # Check for speaker notes
+                notes_page = slide.get('slideProperties', {}).get('notesPage', {})
+                has_notes = len(notes_page.get('pageElements', [])) > 1
+                
+                slide_summaries.append({
+                    'slide_number': idx,
+                    'slide_id': slide_id,
+                    'title': slide_title or f'(Slide {idx})',
+                    'layout': layout_name,
+                    'element_count': len(page_elements),
+                    'has_notes': has_notes
+                })
+            
+            return {
+                'success': True,
+                'presentation_id': presentation_id,
+                'title': title,
+                'slide_count': slide_count,
+                'slides': slide_summaries,
+                'format': 'summary',
+                'note': 'Use format="text" for full content or google_slides_get_slide() for specific slides'
+            }
+        
+        # FORMAT: text (80K tokens for 24 slides)
+        elif format == 'text':
+            text_content = []
+            
+            for idx, slide in enumerate(slides, 1):
+                slide_text = [f"=== Slide {idx} ==="]
+                page_elements = slide.get('pageElements', [])
+                
+                # Extract all text from slide
+                for element in page_elements:
+                    if 'shape' in element:
+                        shape = element['shape']
+                        if 'text' in shape:
+                            text_elements = shape['text'].get('textElements', [])
+                            for text_el in text_elements:
+                                if 'textRun' in text_el:
+                                    content = text_el['textRun'].get('content', '').strip()
+                                    if content:
+                                        slide_text.append(content)
+                
+                # Extract speaker notes
+                notes_page = slide.get('slideProperties', {}).get('notesPage', {})
+                notes_elements = notes_page.get('pageElements', [])
+                for notes_el in notes_elements:
+                    if 'shape' in notes_el:
+                        shape = notes_el['shape']
+                        if 'text' in shape:
+                            text_elements = shape['text'].get('textElements', [])
+                            for text_el in text_elements:
+                                if 'textRun' in text_el:
+                                    notes_content = text_el['textRun'].get('content', '').strip()
+                                    if notes_content and len(notes_content) > 10:
+                                        slide_text.append(f"\n[Speaker Notes]: {notes_content}")
+                
+                text_content.append('\n'.join(slide_text))
+            
+            full_text = '\n\n'.join(text_content)
+            
+            return {
+                'success': True,
+                'presentation_id': presentation_id,
+                'title': title,
+                'text': full_text,
+                'slide_count': slide_count,
+                'format': 'text'
+            }
+        
+        # FORMAT: markdown (90K tokens for 24 slides)
+        elif format == 'markdown':
+            markdown_lines = [f"# {title}\n"]
+            
+            for idx, slide in enumerate(slides, 1):
+                markdown_lines.append(f"---\n**Slide {idx}**\n---\n")
+                
+                page_elements = slide.get('pageElements', [])
+                
+                # Extract text with basic formatting
+                for element in page_elements:
+                    if 'shape' in element:
+                        shape = element['shape']
+                        if 'text' in shape:
+                            text_elements = shape['text'].get('textElements', [])
+                            for text_el in text_elements:
+                                if 'textRun' in text_el:
+                                    content = text_el['textRun'].get('content', '').strip()
+                                    style = text_el['textRun'].get('style', {})
+                                    
+                                    if content:
+                                        # Apply basic formatting
+                                        if style.get('bold'):
+                                            content = f"**{content}**"
+                                        if style.get('italic'):
+                                            content = f"*{content}*"
+                                        
+                                        # Check font size for heading detection
+                                        font_size = style.get('fontSize', {}).get('magnitude', 11)
+                                        if font_size >= 24:
+                                            markdown_lines.append(f"## {content}")
+                                        elif font_size >= 18:
+                                            markdown_lines.append(f"### {content}")
+                                        else:
+                                            markdown_lines.append(content)
+                
+                # Add speaker notes as blockquote
+                notes_page = slide.get('slideProperties', {}).get('notesPage', {})
+                notes_elements = notes_page.get('pageElements', [])
+                for notes_el in notes_elements:
+                    if 'shape' in notes_el:
+                        shape = notes_el['shape']
+                        if 'text' in shape:
+                            text_elements = shape['text'].get('textElements', [])
+                            for text_el in text_elements:
+                                if 'textRun' in text_el:
+                                    notes_content = text_el['textRun'].get('content', '').strip()
+                                    if notes_content and len(notes_content) > 10:
+                                        markdown_lines.append(f"\n> **Speaker Notes:** {notes_content}\n")
+                
+                markdown_lines.append("")
+            
+            markdown_content = '\n'.join(markdown_lines)
+            
+            return {
+                'success': True,
+                'presentation_id': presentation_id,
+                'title': title,
+                'markdown': markdown_content,
+                'slide_count': slide_count,
+                'format': 'markdown',
+                'note': 'Slides converted to markdown with basic formatting'
+            }
+        
+        # FORMAT: full (LEGACY - 280K+ tokens)
+        elif format == 'full':
+            print(f"📖 Retrieved presentation: {title}")
+            print(f"   Slides: {slide_count}")
+            
+            return {
+                'success': True,
+                'presentation': presentation,
+                'format': 'full',
+                'warning': 'Full format can return 280K+ tokens for large presentations. Use format="summary" instead.'
+            }
+        
+        else:
+            raise ValueError(f"Invalid format: '{format}'. Use 'summary', 'text', 'markdown', or 'full'")
         
     except Exception as e:
-        print(f" Failed to get presentation: {e}")
+        print(f"❌ Failed to get presentation: {e}")
         raise
 
 

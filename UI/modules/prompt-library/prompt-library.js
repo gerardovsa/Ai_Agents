@@ -178,10 +178,14 @@ console.log('[PROMPT LIBRARY] ========================================');
         // Setup event listeners
         setupEventListeners();
 
-        // Load prompts from API
-        fetchPromptLibrary().then(prompts => {
-            renderPromptList();
-            console.log('[PROMPT LIBRARY] Initialization complete');
+        // Wait for authentication before loading prompts from API
+        console.log('[PROMPT LIBRARY] Waiting for authentication...');
+        document.addEventListener('authComplete', () => {
+            console.log('[PROMPT LIBRARY] Auth complete, loading prompts...');
+            fetchPromptLibrary().then(prompts => {
+                renderPromptList();
+                console.log('[PROMPT LIBRARY] Initialization complete');
+            });
         });
     }
 

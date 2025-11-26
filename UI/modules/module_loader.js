@@ -87,6 +87,12 @@ class ModuleLoader {
             // Generate sidebar buttons
             await this.generateSidebarButtons();
 
+            // Generate floating toggle buttons (method is called generateFloatingToggles)
+            this.generateFloatingToggles();
+
+            // Generate main tab containers
+            this.generateMainTabs();
+
             // Load auto-load modules
             await this.loadAutoLoadModules();
 
@@ -113,6 +119,7 @@ class ModuleLoader {
             }
 
             console.log(`[ModuleLoader] User has access to ${data.count} modules`);
+            console.log(`[ModuleLoader] Available module IDs:`, data.modules.map(m => m.id));
 
             // Update module status
             for (const availableModule of data.modules) {
@@ -121,6 +128,9 @@ class ModuleLoader {
                     module.available = true;
                     module.has_optional = availableModule.has_optional;
                     module.available_optional = availableModule.available_optional;
+                    console.log(`[ModuleLoader] Marked ${availableModule.id} as available`);
+                } else {
+                    console.warn(`[ModuleLoader] Module ${availableModule.id} from API not found in local registry`);
                 }
             }
 
@@ -212,8 +222,14 @@ class ModuleLoader {
         // Generate button for each available module
         let availableCount = 0;
 
+        console.log(`[ModuleLoader] Total modules in registry: ${this.modules.size}`);
+        console.log(`[ModuleLoader] Modules:`, Array.from(this.modules.keys()));
+
         for (const [moduleId, module] of this.modules) {
+            console.log(`[ModuleLoader] Checking module ${moduleId}: available=${module.available}`);
+            
             if (!module.available) {
+                console.log(`[ModuleLoader] Skipping unavailable module: ${moduleId}`);
                 continue;
             }
 
@@ -225,14 +241,50 @@ class ModuleLoader {
 
             // Create icon element
             const icon = document.createElement('i');
-            icon.className = `fas ${module.icon}`;
+            // Handle both formats: "fa-industry" and "fas fa-industry"
+            if (module.icon.includes(' ')) {
+                // Already has prefix (e.g., "fas fa-industry")
+                icon.className = module.icon;
+            } else {
+                // Just icon name (e.g., "fa-industry"), add fas prefix
+                icon.className = `fas ${module.icon}`;
+            }
             if (module.color) {
                 icon.style.color = module.color;
             }
             button.appendChild(icon);
 
-            // Click handler to toggle module
-            button.addEventListener('click', () => this.toggleModule(moduleId));
+            // Click handler - switch to main tab if module has main_tab, else toggle sidebar
+            button.addEventListener('click', async () => {
+                if (module.main_tab) {
+                    // Load module first if not loaded
+                    if (!this.loadedModules.has(moduleId)) {
+                        console.log(`[ModuleLoader] Loading module ${moduleId} before switching to main tab...`);
+                        const loaded = await this.loadModule(moduleId);
+                        if (!loaded) {
+                            console.error(`[ModuleLoader] Failed to load module ${moduleId}`);
+                            return;
+                        }
+                    }
+                    
+                    // Switch to main tab
+                    const tabId = module.main_tab_id || moduleId;
+                    console.log(`[ModuleLoader] Switching to main tab: ${tabId}`);
+                    
+                    if (typeof switchTab === 'function') {
+                        switchTab(tabId);
+                    } else {
+                        console.error('[ModuleLoader] switchTab function not found');
+                    }
+                    
+                    // Update sidebar active state
+                    document.querySelectorAll('.sidebar-icon-btn').forEach(b => b.classList.remove('active'));
+                    button.classList.add('active');
+                } else {
+                    // Toggle sidebar
+                    this.toggleModule(moduleId);
+                }
+            });
 
             moduleButtonsContainer.appendChild(button);
             availableCount++;
@@ -249,6 +301,243 @@ class ModuleLoader {
 
         if (needsSetupCount > 0) {
             this.showSetupNotification(needsSetupCount);
+        }
+
+        // Generate floating toggle buttons and main tabs
+        this.generateFloatingToggles();
+        this.generateMainTabs();
+    }
+
+    /**
+     * Generate floating toggle buttons for modules that request them
+     */
+    generateFloatingToggles() {
+        console.log('[ModuleLoader] Generating floating toggle buttons...');
+
+        for (const [moduleId, module] of this.modules) {
+            if (!module.available || !module.floating_toggle) {
+                continue;
+            }
+
+            // Check if button already exists
+            if (document.getElementById(`${moduleId}-floating-toggle`)) {
+                console.log(`[ModuleLoader] Floating toggle for ${moduleId} already exists`);
+                continue;
+            }
+
+            // Create floating toggle button
+            const toggle = document.createElement('button');
+            toggle.id = `${moduleId}-floating-toggle`;
+            toggle.className = 'module-floating-toggle';
+            toggle.title = `${module.name} (Drag to reposition)`;
+            toggle.dataset.moduleId = moduleId;
+
+            // Set colors
+            toggle.style.background = module.color || '#00509E';
+
+            // Create icon
+            const icon = document.createElement('i');
+            if (module.icon.includes(' ')) {
+                icon.className = module.icon;
+            } else {
+                icon.className = `fas ${module.icon}`;
+            }
+            toggle.appendChild(icon);
+
+            // Add to DOM (after other toggle buttons)
+            const platformContainer = document.querySelector('.platform-container');
+            if (platformContainer) {
+                platformContainer.appendChild(toggle);
+            } else {
+                document.body.appendChild(toggle);
+            }
+
+            // Initialize draggable and click behavior
+            this.initializeFloatingToggle(toggle, module);
+
+            console.log(`[ModuleLoader] Created floating toggle for ${module.name}`);
+        }
+    }
+
+    /**
+     * Initialize floating toggle button with drag and click
+     */
+    initializeFloatingToggle(toggle, module) {
+        const moduleId = module.id;
+        let userHasDragged = false;
+        let isDragging = false;
+        let hasMoved = false;
+        let offsetY = 0;
+
+        // Position toggle
+        function positionToggle() {
+            const savedTop = localStorage.getItem(`${moduleId}-toggle-top`);
+            if (savedTop && savedTop !== 'null') {
+                toggle.style.top = savedTop;
+                userHasDragged = true;
+            } else {
+                // Default position from manifest or fallback
+                const defaultTop = module.floating_toggle_default_top || 280;
+                toggle.style.top = `${defaultTop}px`;
+            }
+
+            // Position based on manifest preference
+            const side = module.floating_toggle_position || 'right';
+            if (side === 'right') {
+                toggle.style.right = '60px';
+                toggle.style.left = 'auto';
+                toggle.style.borderRadius = '12px 0 0 12px';
+            } else {
+                toggle.style.left = '60px';
+                toggle.style.right = 'auto';
+                toggle.style.borderRadius = '0 12px 12px 0';
+            }
+        }
+
+        positionToggle();
+
+        // Mousedown - start potential drag
+        toggle.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            hasMoved = false;
+            offsetY = e.clientY - toggle.getBoundingClientRect().top;
+            toggle.style.cursor = 'grabbing';
+            toggle.classList.add('dragging');
+            e.preventDefault();
+        });
+
+        // Mousemove - drag
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                hasMoved = true;
+                const newTop = e.clientY - offsetY;
+                toggle.style.top = `${newTop}px`;
+            }
+        });
+
+        // Mouseup - end drag or execute click
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                toggle.style.cursor = 'grab';
+                toggle.classList.remove('dragging');
+
+                if (!hasMoved) {
+                    // Click - switch to main tab if available, else toggle sidebar
+                    if (module.main_tab) {
+                        // Switch to main tab
+                        if (typeof switchTab === 'function') {
+                            switchTab(module.main_tab_id || moduleId);
+                            // Update sidebar active state
+                            document.querySelectorAll('.sidebar-icon-btn').forEach(b => b.classList.remove('active'));
+                            document.querySelector(`.sidebar-icon-btn[data-tab="${module.main_tab_id || moduleId}"]`)?.classList.add('active');
+                        }
+                    } else {
+                        // Toggle sidebar
+                        this.toggleModule(moduleId);
+                    }
+                } else {
+                    // Dragged - save position
+                    userHasDragged = true;
+                    localStorage.setItem(`${moduleId}-toggle-top`, toggle.style.top);
+                }
+
+                hasMoved = false;
+            }
+        });
+    }
+
+    /**
+     * Generate main tab containers for modules that request them
+     */
+    generateMainTabs() {
+        console.log('[ModuleLoader] Generating main tab containers...');
+
+        const mainContent = document.querySelector('.main-content');
+        if (!mainContent) {
+            console.warn('[ModuleLoader] Main content area not found');
+            return;
+        }
+
+        for (const [moduleId, module] of this.modules) {
+            if (!module.available || !module.main_tab) {
+                continue;
+            }
+
+            const tabId = module.main_tab_id || moduleId;
+
+            // Check if tab already exists
+            if (document.getElementById(`tab-${tabId}`)) {
+                console.log(`[ModuleLoader] Main tab for ${moduleId} already exists`);
+                continue;
+            }
+
+            // Create main tab container
+            const tabContainer = document.createElement('div');
+            tabContainer.id = `tab-${tabId}`;
+            tabContainer.className = 'tab-content';
+
+            // Create full Kanban board structure for inhouse-kanban
+            if (moduleId === 'inhouse-kanban') {
+                tabContainer.innerHTML = `
+                    <div id="${moduleId}-main-container" class="active" style="height: 100%; display: flex; flex-direction: column; background: #0B0E13;">
+                        <!-- Filters Bar -->
+                        <div class="filters-bar">
+                            <div class="filter-group">
+                                <label><i class="fas fa-clock"></i> Timeframe</label>
+                                <select id="timeframe-selector" class="form-control form-control-sm">
+                                    <option value="1">Last Month</option>
+                                    <option value="3">Last 3 Months</option>
+                                    <option value="6" selected>Last 6 Months</option>
+                                    <option value="12">Last Year</option>
+                                    <option value="0">All Time</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label><i class="fas fa-filter"></i> Priority</label>
+                                <select id="priority-selector" class="form-control form-control-sm">
+                                    <option value="all">All</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label><i class="fas fa-search"></i> Search</label>
+                                <input type="text" id="search-input" class="form-control form-control-sm" placeholder="Search jobs...">
+                            </div>
+                            <div class="filter-group">
+                                <label><i class="fas fa-briefcase"></i> Workboard</label>
+                                <div id="workboard-selector"></div>
+                            </div>
+                            <button id="inhouse-refresh-btn" class="btn btn-sm btn-primary">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        
+                        <!-- Metrics Dashboard -->
+                        <div id="kanban-metrics"></div>
+                        
+                        <!-- Kanban Board -->
+                        <div id="kanban-board" style="flex: 1; overflow-x: auto; overflow-y: hidden; padding: 20px;"></div>
+                    </div>
+                `;
+            } else {
+                // Default loading state for other modules
+                tabContainer.innerHTML = `
+                    <div id="${moduleId}-main-container" class="active" style="height: 100%; overflow: auto;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #9CA3AF;">
+                            <i class="${module.icon.includes(' ') ? module.icon : 'fas ' + module.icon}" style="font-size: 3rem; color: ${module.color}; margin-bottom: 16px;"></i>
+                            <p style="font-size: 16px; font-weight: 600;">Loading ${module.name}...</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Insert before the last tab (or at the end)
+            mainContent.appendChild(tabContainer);
+
+            console.log(`[ModuleLoader] Created main tab for ${module.name}`);
         }
     }
 
@@ -295,8 +584,24 @@ class ModuleLoader {
         }
 
         try {
-            // Load HTML
-            const htmlResponse = await fetch(`/api/modules/${moduleId}/html`);
+            // Determine HTML path - try htmlPath from manifest first, then external/modules, then backend API
+            let htmlPath = module.htmlPath || (module.html_file ? `external/modules/${moduleId}/${module.html_file}` : null);
+            
+            // Try external/modules path first (for external modules) - only if path is defined
+            let htmlResponse = htmlPath ? await fetch(htmlPath) : null;
+            
+            // Fallback to backend API if external path fails or wasn't attempted
+            if (!htmlResponse || !htmlResponse.ok) {
+                if (htmlPath) {
+                    console.log(`[ModuleLoader] External path failed, trying backend API for ${moduleId}`);
+                }
+                htmlResponse = await fetch(`/api/modules/${moduleId}/html`);
+            }
+            
+            if (!htmlResponse.ok) {
+                throw new Error(`Failed to load HTML for ${moduleId}: ${htmlResponse.status}`);
+            }
+            
             const html = await htmlResponse.text();
 
             // Inject HTML into DOM
@@ -306,27 +611,52 @@ class ModuleLoader {
 
             console.log(`[ModuleLoader] Injected HTML for ${moduleId}`);
 
-            // Load CSS (if not already loaded)
-            if (module.css_file && !document.querySelector(`link[href*="${module.css_file}"]`)) {
+            // Load CSS via Flask API route
+            if ((module.css_file || module.stylePath) && !document.querySelector(`link[data-module="${moduleId}"]`)) {
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
-                link.href = `/modules/${moduleId}/${module.css_file}`;
+                link.dataset.module = moduleId;
+                
+                // Try Flask API route first, fallback to direct path
+                link.href = `/api/modules/${moduleId}/css`;
+                
+                // Add error handler to try fallback path
+                link.onerror = () => {
+                    console.warn(`[ModuleLoader] Flask CSS route failed, trying direct path for ${moduleId}`);
+                    link.href = module.stylePath || `external/modules/${moduleId}/${module.css_file}`;
+                };
+                
                 document.head.appendChild(link);
-
-                console.log(`[ModuleLoader] Loaded CSS for ${moduleId}`);
+                console.log(`[ModuleLoader] Loaded CSS for ${moduleId} via Flask route`);
             }
 
-            // Load JS (if not already loaded)
-            if (module.js_file && !document.querySelector(`script[src*="${module.js_file}"]`)) {
+            // Load JS via Flask API route
+            if ((module.js_file || module.scriptPath) && !document.querySelector(`script[data-module="${moduleId}"]`)) {
                 await new Promise((resolve, reject) => {
                     const script = document.createElement('script');
-                    script.src = `/modules/${moduleId}/${module.js_file}`;
-                    script.onload = resolve;
-                    script.onerror = reject;
+                    script.dataset.module = moduleId;
+                    
+                    // Try Flask API route first
+                    script.src = `/api/modules/${moduleId}/js`;
+                    
+                    script.onload = () => {
+                        console.log(`[ModuleLoader] ✅ Loaded JS for ${moduleId} via Flask route`);
+                        resolve();
+                    };
+                    
+                    script.onerror = () => {
+                        console.warn(`[ModuleLoader] Flask JS route failed, trying direct path for ${moduleId}`);
+                        // Try fallback path
+                        script.src = module.scriptPath || `external/modules/${moduleId}/${module.js_file}`;
+                        
+                        script.onerror = () => {
+                            console.error(`[ModuleLoader] ❌ Failed to load JS for ${moduleId} from all paths`);
+                            reject(new Error(`Failed to load JS for ${moduleId}`));
+                        };
+                    };
+                    
                     document.body.appendChild(script);
                 });
-
-                console.log(`[ModuleLoader] Loaded JS for ${moduleId}`);
             }
 
             // Mark as loaded
@@ -506,6 +836,32 @@ class ModuleLoader {
 window.moduleLoader = new ModuleLoader();
 
 /**
+ * Initialize module system (wrapper for moduleLoader.initialize)
+ * 
+ * @param {boolean} forceReload - Force reload all modules
+ */
+window.initializeModuleSystem = async function(forceReload = false) {
+    console.log('[ModuleSystem] initializeModuleSystem called (forceReload:', forceReload, ')');
+    
+    // Get user ID from session (assumes window.currentUserId is set)
+    const userId = window.currentUserId || window.userProfile?.id || 14; // Default to user 14 for InHouse
+    
+    if (!userId) {
+        console.error('[ModuleSystem] No user ID available - cannot initialize modules');
+        return;
+    }
+    
+    console.log(`[ModuleSystem] Initializing modules for user ${userId}`);
+    
+    try {
+        await window.moduleLoader.initialize(userId);
+        console.log('✅ [ModuleSystem] Module system initialized successfully');
+    } catch (error) {
+        console.error('❌ [ModuleSystem] Failed to initialize module system:', error);
+    }
+};
+
+/**
  * Initialize module loader on page load
  * 
  * Usage in business-ai-platform-v2.html:
@@ -513,8 +869,7 @@ window.moduleLoader = new ModuleLoader();
  * <script src="modules/module_loader.js"></script>
  * <script>
  *   document.addEventListener('DOMContentLoaded', async () => {
- *     const userId = 1; // Get from session
- *     await window.moduleLoader.initialize(userId);
+ *     await window.initializeModuleSystem();
  *   });
  * </script>
  */

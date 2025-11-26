@@ -99,9 +99,19 @@ const UserAuth = {
                 };
                 this.token = 'dev-mode-token-12345';
                 this.user = mockUser;
-                localStorage.setItem('authToken', this.token);
-                localStorage.setItem('userProfile', JSON.stringify(mockUser));
-                localStorage.setItem('dev_mode_user', 'true');
+                
+                // Try localStorage, fallback to sessionStorage for private browsing
+                try {
+                    localStorage.setItem('authToken', this.token);
+                    localStorage.setItem('userProfile', JSON.stringify(mockUser));
+                    localStorage.setItem('dev_mode_user', 'true');
+                } catch (e) {
+                    console.warn('[AUTH] localStorage blocked (private browsing?), using sessionStorage:', e);
+                    sessionStorage.setItem('authToken', this.token);
+                    sessionStorage.setItem('userProfile', JSON.stringify(mockUser));
+                    sessionStorage.setItem('dev_mode_user', 'true');
+                    this.showPrivateBrowsingWarning();
+                }
                 console.log(' [DEV MODE] Auto-logged in as test user');
                 // DON'T call showMainApp() here - let DOMContentLoaded flow handle it
                 // This prevents double initialization
@@ -200,9 +210,16 @@ const UserAuth = {
                 this.token = data.token;
                 this.user = data.user;
 
-                // Store in localStorage
-                localStorage.setItem('authToken', this.token);
-                localStorage.setItem('userProfile', JSON.stringify(this.user));
+                // Store in localStorage with fallback to sessionStorage
+                try {
+                    localStorage.setItem('authToken', this.token);
+                    localStorage.setItem('userProfile', JSON.stringify(this.user));
+                } catch (e) {
+                    console.warn('[AUTH] localStorage blocked (private browsing?), using sessionStorage:', e);
+                    sessionStorage.setItem('authToken', this.token);
+                    sessionStorage.setItem('userProfile', JSON.stringify(this.user));
+                    this.showPrivateBrowsingWarning();
+                }
 
                 console.log(' Login successful!');
 

@@ -487,7 +487,7 @@
     },
     {
       "name": "google_sheets_read_data",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_sheets_read_data', ...) - DO NOT call directly!\n\nExample response:\n✅ \"Read 45 rows from **Sales Report 2024** (ID: `1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA` | URL: https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit)\nData: [show actual data read]\"\n\n❌ \"Failed to read spreadsheet ID: `1H7RpwSDHUF8hRpL0hjWEqCjvAkr-5wDAWHDOYySVaIc` - 404 Error: Not found or not shared with your account\"\n\n---\n\nRead data from Google Sheet. Returns 2D array of values.",
+      "description": "⚠️ LEGACY - Use google_sheets_get_range instead!\n\nExample response:\n✅ \"Read 45 rows from **Sales Report 2024** (ID: `1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA` | URL: https://docs.google.com/spreadsheets/d/1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA/edit)\nData: [show actual data read]\"\n\n❌ \"Failed to read spreadsheet ID: `1H7RpwSDHUF8hRpL0hjWEqCjvAkr-5wDAWHDOYySVaIc` - 404 Error: Not found or not shared with your account\"\n\n---\n\nRead data from Google Sheet. Returns 2D array of values.",
       "platform": "google_docs",
       "parameters": {
         "spreadsheet_id": {
@@ -506,6 +506,69 @@
         "type": "object",
         "description": "2D array of values with row/column counts"
       }
+    },
+    {
+      "name": "google_sheets_get_range",
+      "description": "⚠️ RECOMMENDED - Multi-format Google Sheets reader with 99.3% token reduction!\n\nAvoids token overflow with progressive format disclosure:\n- summary (500 tokens): Title, headers, first 3 rows, row/col counts\n- values (20K tokens): Raw 2D array, no formatting\n- markdown (25K tokens): Table format with | Col1 | Col2 | structure\n- full (150K+ tokens): Complete JSON with cell formatting (AVOID unless necessary)\n\nExample responses:\n✅ format='summary' (99.6% reduction):\n\"Spreadsheet: **Sales Report Q4 2024** | Sheets: ['Sales', 'Expenses', 'Summary']\nHeaders: ['Date', 'Product', 'Revenue', 'Cost', 'Profit']\nFirst 3 rows shown (Total: 847 rows, 5 columns)\n[['2024-10-01', 'Widget A', '$1,245', '$500', '$745'], ...]\" (~500 tokens)\n\n✅ format='values' (85% reduction):\n[['Date', 'Product', 'Revenue'], ['2024-10-01', 'Widget A', '$1,245'], ...] (~20K tokens for 100 rows)\n\n✅ format='markdown' (83% reduction):\n\"| Date | Product | Revenue |\n|------|---------|----------|\n| 2024-10-01 | Widget A | $1,245 |\" (~25K tokens for 100 rows)\n\n❌ format='full' (AVOID - 150K+ tokens for 100 rows)\n\n---\n\nRead data from Google Sheets with format options. Prevents token overflow by defaulting to summary format. Auto-detects first sheet if range not specified.",
+      "platform": "google_docs",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Source spreadsheet ID (required)",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "A1 notation range (e.g., 'Sheet1!A1:C10' or 'Sales!A:Z'). If empty, reads first sheet automatically. Default: '' (auto-detect first sheet)",
+          "required": false,
+          "default": ""
+        },
+        "format": {
+          "type": "string",
+          "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 500 tokens): Title, sheet names, headers, first 3 rows preview, row/col counts. Use for quick overview or checking structure.\n- 'values' (20K tokens): Raw 2D array [[r1c1, r1c2], [r2c1, r2c2]]. Use for data analysis or processing.\n- 'markdown' (25K tokens): Table format with | Col1 | Col2 | structure. Use for readable display or AI processing.\n- 'full' (150K+ tokens): Complete JSON with cell formatting, formulas, notes. AVOID unless you need metadata.\n\nDefault: 'summary'",
+          "required": false,
+          "default": "summary",
+          "enum": ["summary", "values", "markdown", "full"]
+        },
+        "include_formatting": {
+          "type": "boolean",
+          "description": "Only used with format='full'. Includes cell colors, fonts, borders. Default: false",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Spreadsheet data in requested format with token counts:\n- summary: {title, sheet_names, headers, preview_rows, total_rows, total_cols, tokens: ~500}\n- values: {values: [[...]], row_count, col_count, tokens: ~20K}\n- markdown: {markdown_table: string, row_count, col_count, tokens: ~25K}\n- full: {complete JSON structure, tokens: 150K+}"
+      },
+      "examples": [
+        {
+          "description": "Get spreadsheet overview (recommended default)",
+          "parameters": {
+            "spreadsheet_id": "1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA",
+            "format": "summary"
+          },
+          "expected_tokens": 500
+        },
+        {
+          "description": "Get raw values for data processing",
+          "parameters": {
+            "spreadsheet_id": "1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA",
+            "range": "Sales!A1:E100",
+            "format": "values"
+          },
+          "expected_tokens": 20000
+        },
+        {
+          "description": "Get markdown table for AI processing",
+          "parameters": {
+            "spreadsheet_id": "1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA",
+            "range": "Summary!A:D",
+            "format": "markdown"
+          },
+          "expected_tokens": 25000
+        }
+      ]
     }
   ]
 }
