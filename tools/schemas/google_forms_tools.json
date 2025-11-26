@@ -291,7 +291,12 @@
           "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 1.5K tokens): Question titles with types, options, and required status. Use for quick overview.\n- 'text' (15K tokens): Readable plain text format with all questions and options.\n- 'markdown' (18K tokens): Formatted with ## headings, **bold questions**, ○ radio, ☐ checkboxes.\n- 'full' (95K tokens): Complete JSON with validation rules. AVOID unless you need form logic.\n\nDefault: 'summary'",
           "required": false,
           "default": "summary",
-          "enum": ["summary", "text", "markdown", "full"]
+          "enum": [
+            "summary",
+            "text",
+            "markdown",
+            "full"
+          ]
         }
       },
       "returns": {
@@ -334,7 +339,11 @@
           "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 3K tokens): Aggregated statistics with answer counts and percentages. Use for trends.\n- 'sample' (5K tokens): First N responses (use 'limit' parameter, default 100). Use for spot-checking.\n- 'full' (500K+ tokens): ALL individual responses. AVOID unless you need every response.\n\nDefault: 'summary'",
           "required": false,
           "default": "summary",
-          "enum": ["summary", "sample", "full"]
+          "enum": [
+            "summary",
+            "sample",
+            "full"
+          ]
         },
         "limit": {
           "type": "integer",
@@ -364,6 +373,38 @@
             "limit": 50
           },
           "expected_tokens": 2500
+        }
+      ]
+    },
+    {
+      "name": "google_forms_search_responses",
+      "description": "Search through form responses for a text query. Returns matching responses with answer context.",
+      "platform": "google_forms",
+      "category": "responses",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID (required)",
+          "required": true
+        },
+        "query": {
+          "type": "string",
+          "description": "Text to search for in response answers (case-insensitive, required)",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with: matched_responses (list with response_id, timestamp, matched_answers containing the query), total_matches, query"
+      },
+      "examples": [
+        {
+          "description": "Search for responses mentioning 'bug'",
+          "parameters": {
+            "form_id": "1FAIpQLSe...",
+            "query": "bug"
+          }
         }
       ]
     },

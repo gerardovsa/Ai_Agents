@@ -1156,6 +1156,28 @@ class InhouseKanbanModule extends BaseModule {
     }
 
     /**
+     * Get sub-tab container for module content
+     * @param {string} tabName - Name of the sub-tab (not used, returns main container)
+     * @returns {HTMLElement} The main module container
+     */
+    getSubTabContainer(tabName) {
+        const container = document.getElementById(`${this.manifest.id}-main-container`);
+        
+        if (!container) {
+            console.error(`[InHouseKanban] Main container #${this.manifest.id}-main-container not found!`);
+            // Fallback to tab container
+            const tabContainer = document.getElementById(`tab-${this.manifest.id}`);
+            if (tabContainer) {
+                console.warn(`[InHouseKanban] Using fallback tab container #tab-${this.manifest.id}`);
+                return tabContainer;
+            }
+            throw new Error(`Cannot find container for module ${this.manifest.id}`);
+        }
+        
+        return container;
+    }
+
+    /**
      * Initialize sub-tabs
      */
     initializeSubTabs() {

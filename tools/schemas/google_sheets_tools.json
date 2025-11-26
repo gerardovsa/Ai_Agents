@@ -528,7 +528,12 @@
           "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 500 tokens): Title, sheet names, headers, first 3 rows preview, row/col counts. Use for quick overview or checking structure.\n- 'values' (20K tokens): Raw 2D array [[r1c1, r1c2], [r2c1, r2c2]]. Use for data analysis or processing.\n- 'markdown' (25K tokens): Table format with | Col1 | Col2 | structure. Use for readable display or AI processing.\n- 'full' (150K+ tokens): Complete JSON with cell formatting, formulas, notes. AVOID unless you need metadata.\n\nDefault: 'summary'",
           "required": false,
           "default": "summary",
-          "enum": ["summary", "values", "markdown", "full"]
+          "enum": [
+            "summary",
+            "values",
+            "markdown",
+            "full"
+          ]
         },
         "include_formatting": {
           "type": "boolean",
@@ -567,6 +572,171 @@
             "format": "markdown"
           },
           "expected_tokens": 25000
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_query_data",
+      "description": "Query/filter spreadsheet data by column values. Supports comparison operators (=, !=, >, <, >=, <=, contains) to filter rows.",
+      "platform": "google_docs",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID (required)",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "A1 notation range to query (e.g., 'Sheet1!A1:Z100'). Default: '' (first sheet)",
+          "required": false,
+          "default": ""
+        },
+        "filters": {
+          "type": "array",
+          "description": "List of filter conditions. Each filter is a dict with: column (letter or index), operator (=, !=, >, <, >=, <=, contains), value. All filters use AND logic.",
+          "required": false,
+          "items": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "description": "Column letter (e.g., 'A') or index (e.g., 0)"
+              },
+              "operator": {
+                "type": "string",
+                "enum": ["=", "!=", ">", "<", ">=", "<=", "contains"]
+              },
+              "value": {
+                "type": "string",
+                "description": "Value to compare against"
+              }
+            }
+          }
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Query results with: filtered_rows (matching rows), total_rows (match count), filters_applied"
+      },
+      "examples": [
+        {
+          "description": "Get rows where column B equals 'Active'",
+          "parameters": {
+            "spreadsheet_id": "1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA",
+            "range": "Sales!A:Z",
+            "filters": [
+              {
+                "column": "B",
+                "operator": "=",
+                "value": "Active"
+              }
+            ]
+          }
+        },
+        {
+          "description": "Get rows where revenue (column D) > 1000 AND status (column E) contains 'Complete'",
+          "parameters": {
+            "spreadsheet_id": "1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA",
+            "range": "Data!A1:Z1000",
+            "filters": [
+              {
+                "column": "D",
+                "operator": ">",
+                "value": "1000"
+              },
+              {
+                "column": "E",
+                "operator": "contains",
+                "value": "Complete"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_get_summary",
+      "description": "Get summary statistics from spreadsheet data. Supports aggregations (count, sum, average, min, max) with optional grouping by column.",
+      "platform": "google_docs",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Spreadsheet ID (required)",
+          "required": true
+        },
+        "range": {
+          "type": "string",
+          "description": "A1 notation range to summarize (e.g., 'Sheet1!A1:Z100'). Default: '' (first sheet)",
+          "required": false,
+          "default": ""
+        },
+        "group_by_column": {
+          "type": "string",
+          "description": "Column to group by (letter or index, e.g., 'A' or 0). If null, calculates aggregations for all data.",
+          "required": false
+        },
+        "aggregations": {
+          "type": "array",
+          "description": "List of aggregations to calculate. Each is a dict with: column (letter or index), function (count, sum, average, min, max)",
+          "required": false,
+          "items": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "description": "Column to aggregate (letter or index)"
+              },
+              "function": {
+                "type": "string",
+                "enum": ["count", "sum", "average", "min", "max"]
+              }
+            }
+          }
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Summary statistics with: summary (list of grouped rows with aggregated values), group_by_column, aggregations_applied"
+      },
+      "examples": [
+        {
+          "description": "Get total revenue and average price (no grouping)",
+          "parameters": {
+            "spreadsheet_id": "1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA",
+            "range": "Sales!A:Z",
+            "aggregations": [
+              {
+                "column": "D",
+                "function": "sum"
+              },
+              {
+                "column": "E",
+                "function": "average"
+              }
+            ]
+          }
+        },
+        {
+          "description": "Get sales summary by product (group by column A, sum revenue in column D)",
+          "parameters": {
+            "spreadsheet_id": "1WVCNk9AvzXCq36s6jnUopHiMAAc-2tqbb6_OiyiZTSA",
+            "range": "Sales!A:Z",
+            "group_by_column": "A",
+            "aggregations": [
+              {
+                "column": "D",
+                "function": "sum"
+              },
+              {
+                "column": "D",
+                "function": "average"
+              },
+              {
+                "column": "D",
+                "function": "count"
+              }
+            ]
+          }
         }
       ]
     }
