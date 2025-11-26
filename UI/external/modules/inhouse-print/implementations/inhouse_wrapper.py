@@ -69,38 +69,40 @@ def _get_agent() -> ToolUseAgent:
         raise ImportError("ToolUseAgent could not be imported - check backend path and dependencies")
     
     if _agent_instance is None:
-        # Path to database-config.json - works both locally and on Render.com
-        # On Render: /app/config/database-config.json
-        # Locally: C:\Users\gpoli\GIT\AI_agents\config\database-config.json
+        # Load database configuration from Supabase (Render) or database-config.json (Local)
+        # Uses AI_infrastructure/auth/supabase_credentials.py for environment-aware loading
         
-        # Detect if running on Render.com by checking multiple indicators
-        is_render = (
-            os.environ.get('RENDER') == 'true' or  # Explicit RENDER flag
-            'SUPABASE_DB_URL' in os.environ or      # Supabase env vars present
-            not sys.platform.startswith('win')       # Linux environment (Render uses Linux)
-        )
-        
-        if is_render:
-            # Render deployment: Use /app root
-            config_path = Path('/app/config/database-config.json')
-        else:
-            # Local development: Navigate up from wrapper file
-            # From: UI/external/modules/inhouse-print/implementations/inhouse_wrapper.py
-            # To: config/database-config.json (6 levels up)
-            config_path = Path(__file__).parent.parent.parent.parent.parent.parent / 'config' / 'database-config.json'
-        
-        if not config_path.exists():
-            raise FileNotFoundError(
-                f"Database config not found: {config_path}\n"
-                f"Detected environment: {'Render' if is_render else 'Local'}\n"
-                f"Platform: {sys.platform}\n"
-                f"Has SUPABASE_DB_URL: {'SUPABASE_DB_URL' in os.environ}\n"
-                f"Current file: {__file__}"
+        try:
+            # Import credentials manager
+            import sys
+            credentials_path = Path(__file__).parent.parent.parent.parent.parent / 'AI_infrastructure' / 'auth'
+            if str(credentials_path) not in sys.path:
+                sys.path.insert(0, str(credentials_path))
+            
+            from supabase_credentials import get_database_config
+            
+            # Get config (auto-detects Render vs Local)
+            print("[InHouse Wrapper] Loading database configuration...")
+            config = get_database_config()
+            
+            # Write config to temporary file for ToolUseAgent
+            # (ToolUseAgent expects file path, not dict)
+            import tempfile
+            import json
+            
+            temp_config = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+            json.dump(config, temp_config, indent=2)
+            temp_config.close()
+            
+            print(f"[InHouse Wrapper] Initializing ToolUseAgent with config from Supabase")
+            _agent_instance = ToolUseAgent(temp_config.name)
+            print("[InHouse Wrapper] Singleton ToolUseAgent initialized successfully")
+            
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to initialize InHouse Print tools: {e}\n"
+                f"Ensure Supabase credentials are configured correctly"
             )
-        
-        print(f"[InHouse Wrapper] Initializing ToolUseAgent with config: {config_path}")
-        _agent_instance = ToolUseAgent(str(config_path))
-        print("[InHouse Wrapper] Singleton ToolUseAgent initialized successfully")
     
     return _agent_instance
 
