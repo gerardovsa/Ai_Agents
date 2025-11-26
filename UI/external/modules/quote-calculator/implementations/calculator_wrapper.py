@@ -109,6 +109,7 @@ def _get_calculator():
     try:
         # Import credentials manager
         import sys
+        import json
         # From: UI/external/modules/quote-calculator/implementations/calculator_wrapper.py
         # To: AI_infrastructure/auth (root_dir should be project root)
         project_root = Path(__file__).parent.parent.parent.parent.parent.parent
@@ -122,18 +123,20 @@ def _get_calculator():
         # Get config (auto-detects Render vs Local)
         config = get_database_config()
         
-        # Write config to temporary file for ComprehensiveQuoteCalculator
-        import tempfile
-        import json
+        # Write config to fixed location in project root
+        config_dir = project_root / 'config'
+        config_dir.mkdir(exist_ok=True)
+        config_file = config_dir / 'database-config-runtime.json'
         
-        temp_config = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-        json.dump(config, temp_config, indent=2)
-        temp_config.close()
+        with open(config_file, 'w') as f:
+            json.dump(config, f, indent=2)
         
-        return ComprehensiveQuoteCalculator(config_path=temp_config.name)
+        return ComprehensiveQuoteCalculator(config_path=str(config_file))
         
     except Exception as e:
         print(f"⚠️  [Calculator] Failed to load config: {e}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         # Fallback to None (calculator will use defaults)
         return ComprehensiveQuoteCalculator(config_path=None)
 

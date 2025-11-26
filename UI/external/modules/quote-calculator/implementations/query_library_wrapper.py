@@ -85,6 +85,7 @@ def _get_query_library(**kwargs) -> Optional[QueryLibrary]:
         if not db_connector:
             # Import credentials manager
             import sys
+            import json
             # From: UI/external/modules/quote-calculator/implementations/query_library_wrapper.py
             # To: AI_infrastructure/auth (need to go up 6 levels to project root)
             project_root = Path(__file__).parent.parent.parent.parent.parent.parent
@@ -98,15 +99,15 @@ def _get_query_library(**kwargs) -> Optional[QueryLibrary]:
             # Get config (auto-detects Render vs Local)
             config = get_database_config()
             
-            # Write config to temporary file for InHousePrintDB
-            import tempfile
-            import json
+            # Write config to fixed location in project root
+            config_dir = project_root / 'config'
+            config_dir.mkdir(exist_ok=True)
+            config_file = config_dir / 'database-config-runtime.json'
             
-            temp_config = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-            json.dump(config, temp_config, indent=2)
-            temp_config.close()
+            with open(config_file, 'w') as f:
+                json.dump(config, f, indent=2)
             
-            db_connector = InHousePrintDB(temp_config.name)
+            db_connector = InHousePrintDB(str(config_file))
         
         # Create QueryLibrary instance
         query_lib = QueryLibrary(db_connector)
