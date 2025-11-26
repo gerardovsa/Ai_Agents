@@ -18,7 +18,7 @@
     // ============================================================
 
     /**
-     * Link workflow to thread
+     * Link workflow to thread (ENHANCED: Immediate badge update)
      */
     async function linkWorkflowToThread(threadId, workflowSlug, workflowId) {
         try {
@@ -40,35 +40,81 @@
                 return;
             }
 
-            // Update thread object
+            // Update thread object with BOTH slug and id (for compatibility)
             thread.workflow_slug = workflowSlug;
             thread.workflow_title = workflowTitle;
+            thread.workflow_id = workflowId;  // NEW: Add workflow_id for badge compatibility
+            thread.workflow_name = workflowTitle;  // NEW: Add workflow_name for badge compatibility
             thread.updated = new Date().toISOString();
 
-            // Save to backend database
-            await saveThreadMetadata(threadId, {
+            // IMMEDIATE UI UPDATE: Update badge without full re-render
+            updateWorkflowBadgeUI(threadId, workflowId, workflowTitle);
+
+            // Save to backend database (async, doesn't block UI)
+            saveThreadMetadata(threadId, {
                 workflow_slug: workflowSlug,
-                workflow_title: workflowTitle
+                workflow_title: workflowTitle,
+                workflow_id: workflowId,
+                workflow_name: workflowTitle
             });
 
-            // Re-render thread info card
-            const location = thread.location || 'prime';
-            const threadInfoContainer = document.querySelector(`#thread-info-${location.replace('agent-', '')}`);
-            if (threadInfoContainer) {
-                threadInfoContainer.innerHTML = window.ThreadManager.renderThreadInfoContainer(
-                    location,
-                    threadId,
-                    false
-                );
-            }
-
-            console.log('[WORKFLOW] Successfully linked workflow to thread');
+            console.log('[WORKFLOW] Successfully linked workflow to thread (badge updated immediately)');
 
             // Show success notification
             showNotification(`Workflow "${workflowTitle}" linked to thread`, 'success');
         } catch (error) {
             console.error('[WORKFLOW] Error linking workflow:', error);
             showNotification('Failed to link workflow', 'error');
+        }
+    }
+
+    /**
+     * IMMEDIATE UI update for workflow badge (no full re-render)
+     */
+    function updateWorkflowBadgeUI(threadId, workflowId, workflowTitle) {
+        // Find thread item in DOM
+        const threadCard = document.querySelector(`[data-thread-id="${threadId}"]`);
+        if (!threadCard) {
+            console.warn(`[WORKFLOW] Thread card not found for ${threadId}`);
+            return;
+        }
+
+        // Find the workflow section
+        const workflowSection = threadCard.querySelector('.thread-item-workflow');
+        if (!workflowSection) {
+            console.warn(`[WORKFLOW] Workflow section not found in thread card`);
+            return;
+        }
+
+        // Check if currently showing "Link Workflow" button
+        const isUnlinked = workflowSection.classList.contains('thread-item-workflow-unlinked');
+        
+        if (isUnlinked) {
+            // Replace unlinked state with linked badge
+            workflowSection.classList.remove('thread-item-workflow-unlinked');
+            workflowSection.classList.add('thread-item-workflow-linked');
+            workflowSection.setAttribute('data-workflow-id', workflowId);
+            
+            // Update HTML to show badge
+            workflowSection.innerHTML = `
+                <button class="workflow-badge" style="background: #f97316; color: white; border: none; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; flex: 1;"
+                    onclick="event.stopPropagation(); ThreadManager.openWorkflowDetails('${workflowId}')"
+                    title="${workflowTitle}">
+                    <i class="fas fa-robot"></i>
+                    <span class="workflow-badge-title">${workflowTitle}</span>
+                </button>
+                <button class="thread-workflow-unlink" title="Unlink workflow" onclick="event.stopPropagation(); ThreadManager.unlinkWorkflow('${threadId}', '${workflowId}')">
+                    <i class="fas fa-unlink"></i>
+                </button>
+            `;
+            
+            console.log(`✅ [WORKFLOW] Badge updated immediately for thread ${threadId}`);
+        } else {
+            // Already linked, just update title
+            const badgeTitle = workflowSection.querySelector('.workflow-badge-title');
+            if (badgeTitle) {
+                badgeTitle.textContent = workflowTitle;
+            }
         }
     }
 

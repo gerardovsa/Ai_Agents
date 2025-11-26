@@ -926,7 +926,7 @@ class VisualizationEngine {
             z-index: auto;
             box-sizing: border-box;
             height: auto; /* NCREASED: 300px → 450px to prevent truncation */
-            padding-top: 20px;
+            padding-top: 40px;
         }
 
         /* irect content area - auto-size to its content; hide when empty to avoid gaps */
@@ -979,7 +979,7 @@ class VisualizationEngine {
         /* ction bar styling */
         .viz-action-bar {
             position: absolute;
-            top: -10px;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;

@@ -3983,8 +3983,161 @@ class InhouseKanbanModule extends BaseModule {
     }
 }
 
-// Register module
+// Register module with initialization
 window.ModuleRegistry = window.ModuleRegistry || {};
-window.ModuleRegistry['inhouse-kanban'] = InhouseKanbanModule;
+window.ModuleRegistry['inhouse_print'] = {
+    class: InhouseKanbanModule,
+    instance: null,
+
+    init: async function () {
+        console.log('🔧 Initializing InHouse Kanban...');
+
+        // Check if sidebar element exists
+        const sidebar = document.getElementById('inhouse_print-sidebar');
+        if (!sidebar) {
+            console.error('❌ Kanban sidebar element not found!');
+            return;
+        }
+
+        // Initialize sub-tabs
+        const subTabs = sidebar.querySelectorAll('.module-sub-tab');
+        const tabContents = sidebar.querySelectorAll('.module-sub-tab-content');
+
+        subTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                subTabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                const tabId = tab.dataset.tab;
+                const content = document.getElementById(tabId);
+                if (content) {
+                    content.classList.add('active');
+                }
+            });
+        });
+
+        // Create and initialize the Kanban board instance
+        this.instance = new InhouseKanbanModule('inhouse_print');
+
+        // Set up controls
+        this.setupControls();
+
+        // Load initial data
+        await this.loadKanbanData();
+
+        console.log('✅ InHouse Kanban ready');
+    },
+
+    setupControls: function () {
+        // Timeframe filter
+        const timeframeSelect = document.getElementById('kanban-timeframe');
+        if (timeframeSelect) {
+            timeframeSelect.addEventListener('change', () => {
+                this.instance.filters.timeframe_months = parseInt(timeframeSelect.value);
+                this.loadKanbanData();
+            });
+        }
+
+        // Priority filter
+        const prioritySelect = document.getElementById('kanban-priority');
+        if (prioritySelect) {
+            prioritySelect.addEventListener('change', () => {
+                this.instance.filters.priority_filter = prioritySelect.value;
+                this.loadKanbanData();
+            });
+        }
+
+        // Search
+        const searchInput = document.getElementById('kanban-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                this.instance.filters.search_text = searchInput.value;
+                this.filterKanbanBoard();
+            });
+        }
+
+        // Refresh button
+        const refreshBtn = document.getElementById('kanban-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.loadKanbanData();
+            });
+        }
+
+        // Analytics refresh button
+        const analyticsBtn = document.getElementById('analytics-refresh-btn');
+        if (analyticsBtn) {
+            analyticsBtn.addEventListener('click', () => {
+                this.loadAnalytics();
+            });
+        }
+    },
+
+    async loadKanbanData() {
+        const loadingEl = document.getElementById('kanban-loading');
+        const boardEl = document.getElementById('kanban-board-container');
+        const emptyEl = document.getElementById('kanban-empty');
+
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (boardEl) boardEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        try {
+            // Call the backend API
+            const response = await fetch(`/api/inhouse-kanban/jobs?timeframe=${this.instance.filters.timeframe_months}`);
+            const data = await response.json();
+
+            if (data.success && data.jobs) {
+                this.instance.jobs = data.jobs;
+                this.instance.stages = data.stages || [];
+                this.instance.metrics = data.metrics || {};
+
+                // Update metrics display
+                this.updateMetrics();
+
+                // Render Kanban board
+                this.instance.renderKanbanBoard();
+
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (boardEl) boardEl.style.display = 'block';
+            } else {
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (emptyEl) emptyEl.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Failed to load Kanban data:', error);
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (emptyEl) emptyEl.style.display = 'block';
+        }
+    },
+
+    updateMetrics() {
+        const metrics = this.instance.metrics;
+
+        document.getElementById('metric-total-jobs').textContent = metrics.total_jobs || 0;
+        document.getElementById('metric-in-progress').textContent = metrics.in_progress || 0;
+        document.getElementById('metric-delayed').textContent = metrics.delayed || 0;
+        document.getElementById('metric-completed').textContent = metrics.completed || 0;
+    },
+
+    filterKanbanBoard() {
+        // Filter logic (simplified version)
+        const searchText = this.instance.filters.search_text.toLowerCase();
+        const cards = document.querySelectorAll('.kanban-card');
+
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(searchText) ? 'block' : 'none';
+        });
+    },
+
+    async loadAnalytics() {
+        // Placeholder for analytics loading
+        console.log('Loading analytics...');
+    }
+};
+
+console.log('✓ InHouse Kanban module registered as inhouse_print');
 
 

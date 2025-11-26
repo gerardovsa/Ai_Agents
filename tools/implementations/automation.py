@@ -28,7 +28,7 @@ USED BY:
 
 NOTES:
 - All functions use credential injection via **kwargs
-- API endpoint: http://localhost:5001/api/automation/
+- API endpoint: https://ai-agents-backend-singapore.onrender.com/api/automation/ (default, configurable via API_BASE_URL env var)
 - Returns standardized JSON responses
 
 LAST MODIFIED: 2025-11-20 - Added automation_update_workflow for programmatic workflow updates
@@ -38,8 +38,14 @@ import requests
 import json
 import random
 import string
+import sys
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+
+# Add AI_infrastructure to path for direct database access
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'AI_infrastructure'))
+from shared.database_utils import get_database_connection
 
 
 class AutomationError(Exception):
@@ -55,9 +61,9 @@ def _generate_unique_slug() -> str:
 
 
 def _get_api_url() -> str:
-    """Get API base URL from environment or default to localhost"""
+    """Get API base URL from environment or default to Render deployment"""
     import os
-    return os.getenv('API_BASE_URL', 'http://localhost:5001')
+    return os.getenv('API_BASE_URL', 'https://ai-agents-backend-singapore.onrender.com')
 
 
 def _get_headers(kwargs: dict) -> dict:
@@ -345,30 +351,71 @@ def automation_list_workflows(
         category: Filter by category (optional)
         status: Filter by status (draft, active, inactive, all)
         limit: Max workflows to return
-        **kwargs: Credential injection
+        **kwargs: Credential injection (_user_id)
     
     Returns:
         List of workflows with metadata
     """
     try:
-        api_url = _get_api_url()
-        headers = _get_headers(kwargs)
+        # Get user_id from kwargs
+        user_id = kwargs.get('_user_id', 1)
         
-        params = {'limit': limit}
+        # Connect directly to Supabase PostgreSQL
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        # Build query - include user's workflows + system templates (user_id=1)
+        query = """
+            SELECT automation_id, slug, title, description, category, status,
+                   ui_json, execution_json, is_scheduled, schedule_cron,
+                   created_at, updated_at, last_executed_at, execution_count,
+                   user_id
+            FROM visual_automations
+            WHERE user_id = %s OR user_id = 1
+        """
+        params = [user_id]
+        
+        # Add filters
         if category:
-            params['category'] = category
+            query += " AND category = %s"
+            params.append(category)
+        
         if status != 'all':
-            params['status'] = status
+            query += " AND status = %s"
+            params.append(status)
         
-        response = requests.get(
-            f'{api_url}/api/automation/list',
-            params=params,
-            headers=headers
-        )
-        response.raise_for_status()
+        query += " ORDER BY updated_at DESC LIMIT %s"
+        params.append(limit)
         
-        result = response.json()
-        workflows = result.get('automations', [])
+        # Execute query
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Transform rows to workflow dictionaries
+        workflows = []
+        for row in rows:
+            # Parse JSON fields
+            ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
+            execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
+            
+            workflows.append({
+                'automation_id': row['automation_id'],
+                'slug': row['slug'],
+                'title': row['title'],
+                'description': row['description'],
+                'category': row['category'],
+                'status': row['status'],
+                'is_scheduled': row['is_scheduled'],
+                'schedule_cron': row['schedule_cron'],
+                'execution_count': row['execution_count'],
+                'last_executed_at': str(row['last_executed_at']) if row['last_executed_at'] else None,
+                'created_at': str(row['created_at']) if row['created_at'] else None,
+                'updated_at': str(row['updated_at']) if row['updated_at'] else None,
+                'user_id': row['user_id'],
+                'ui_json': ui_json,
+                'execution_json': execution_json
+            })
         
         return {
             'success': True,
@@ -376,7 +423,7 @@ def automation_list_workflows(
             'workflows': workflows
         }
         
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         raise AutomationError(f"Failed to list workflows: {str(e)}")
 
 
@@ -389,24 +436,56 @@ def automation_get_workflow(
     
     Args:
         automation_id: Workflow ID or slug
-        **kwargs: Credential injection
+        **kwargs: Credential injection (_user_id)
     
     Returns:
         Workflow details with nodes, connections, and execution data
     """
     try:
-        api_url = _get_api_url()
-        headers = _get_headers(kwargs)
+        # Get user_id from kwargs
+        user_id = kwargs.get('_user_id', 1)
         
-        response = requests.get(
-            f'{api_url}/api/automation/{automation_id}',
-            headers=headers
-        )
-        response.raise_for_status()
+        # Connect directly to Supabase PostgreSQL
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
         
-        return response.json()
+        # Query by automation_id or slug, include system templates (user_id=1)
+        cursor.execute("""
+            SELECT * FROM visual_automations 
+            WHERE (automation_id = %s OR slug = %s) 
+            AND (user_id = %s OR user_id = 1)
+        """, (automation_id, automation_id, user_id))
         
-    except requests.exceptions.RequestException as e:
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            raise AutomationError(f"Workflow not found: {automation_id}")
+        
+        # Parse JSON fields
+        ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
+        execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
+        
+        return {
+            'success': True,
+            'automation_id': row['automation_id'],
+            'slug': row['slug'],
+            'title': row['title'],
+            'description': row['description'],
+            'category': row['category'],
+            'status': row['status'],
+            'is_scheduled': row['is_scheduled'],
+            'schedule_cron': row['schedule_cron'],
+            'execution_count': row['execution_count'],
+            'last_executed_at': str(row['last_executed_at']) if row['last_executed_at'] else None,
+            'created_at': str(row['created_at']) if row['created_at'] else None,
+            'updated_at': str(row['updated_at']) if row['updated_at'] else None,
+            'user_id': row['user_id'],
+            'ui_json': ui_json,
+            'execution_json': execution_json
+        }
+        
+    except Exception as e:
         raise AutomationError(f"Failed to get workflow: {str(e)}")
 
 
@@ -560,32 +639,61 @@ def automation_get_execution_history(
     Get execution history for a workflow
     
     Args:
-        automation_id: Workflow ID
+        automation_id: Workflow ID or slug
         limit: Max executions to return
         status_filter: Filter by status (success, failure, running, all)
-        **kwargs: Credential injection
+        **kwargs: Credential injection (_user_id)
     
     Returns:
         List of executions with timestamps, status, and results
     """
     try:
-        api_url = _get_api_url()
-        headers = _get_headers(kwargs)
+        user_id = kwargs.get('_user_id', 1)
         
-        params = {'limit': limit}
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        # Build query with optional status filter
+        query = """
+            SELECT execution_id, automation_id, status, started_at, completed_at,
+                   duration_ms, error_message, input_data, output_data
+            FROM automation_executions
+            WHERE automation_id = %s
+        """
+        params = [automation_id]
+        
         if status_filter != 'all':
-            params['status'] = status_filter
+            query += " AND status = %s"
+            params.append(status_filter)
         
-        response = requests.get(
-            f'{api_url}/api/automation/{automation_id}/history',
-            params=params,
-            headers=headers
-        )
-        response.raise_for_status()
+        query += " ORDER BY started_at DESC LIMIT %s"
+        params.append(limit)
         
-        return response.json()
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
         
-    except requests.exceptions.RequestException as e:
+        executions = []
+        for row in rows:
+            executions.append({
+                'execution_id': row['execution_id'],
+                'automation_id': row['automation_id'],
+                'status': row['status'],
+                'started_at': str(row['started_at']) if row['started_at'] else None,
+                'completed_at': str(row['completed_at']) if row['completed_at'] else None,
+                'duration_ms': row['duration_ms'],
+                'error_message': row['error_message'],
+                'input_data': json.loads(row['input_data']) if row['input_data'] else None,
+                'output_data': json.loads(row['output_data']) if row['output_data'] else None
+            })
+        
+        return {
+            'success': True,
+            'count': len(executions),
+            'executions': executions
+        }
+        
+    except Exception as e:
         raise AutomationError(f"Failed to get execution history: {str(e)}")
 
 
@@ -598,29 +706,77 @@ def automation_export_workflow(
     Export workflow as JSON
     
     Args:
-        automation_id: Workflow ID
+        automation_id: Workflow ID or slug
         include_history: Include execution history in export
-        **kwargs: Credential injection
+        **kwargs: Credential injection (_user_id)
     
     Returns:
         Workflow JSON export
     """
     try:
-        api_url = _get_api_url()
-        headers = _get_headers(kwargs)
+        user_id = kwargs.get('_user_id', 1)
         
-        params = {'include_history': include_history}
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
         
-        response = requests.get(
-            f'{api_url}/api/automation/{automation_id}/export',
-            params=params,
-            headers=headers
-        )
-        response.raise_for_status()
+        cursor.execute("""
+            SELECT * FROM visual_automations 
+            WHERE (automation_id = %s OR slug = %s) AND (user_id = %s OR user_id = 1)
+        """, (automation_id, automation_id, user_id))
         
-        return response.json()
+        row = cursor.fetchone()
         
-    except requests.exceptions.RequestException as e:
+        if not row:
+            conn.close()
+            raise AutomationError(f"Workflow not found: {automation_id}")
+        
+        # Parse JSON fields
+        ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
+        execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
+        
+        export_data = {
+            'automation_id': row['automation_id'],
+            'slug': row['slug'],
+            'title': row['title'],
+            'description': row['description'],
+            'category': row['category'],
+            'status': row['status'],
+            'ui_json': ui_json,
+            'execution_json': execution_json,
+            'is_scheduled': row['is_scheduled'],
+            'schedule_cron': row['schedule_cron'],
+            'created_at': str(row['created_at']) if row['created_at'] else None,
+            'updated_at': str(row['updated_at']) if row['updated_at'] else None
+        }
+        
+        # Include execution history if requested
+        if include_history:
+            cursor.execute("""
+                SELECT execution_id, status, started_at, completed_at, duration_ms, error_message
+                FROM automation_executions
+                WHERE automation_id = %s
+                ORDER BY started_at DESC
+                LIMIT 50
+            """, (row['automation_id'],))
+            
+            history_rows = cursor.fetchall()
+            export_data['execution_history'] = [{
+                'execution_id': h['execution_id'],
+                'status': h['status'],
+                'started_at': str(h['started_at']) if h['started_at'] else None,
+                'completed_at': str(h['completed_at']) if h['completed_at'] else None,
+                'duration_ms': h['duration_ms'],
+                'error_message': h['error_message']
+            } for h in history_rows]
+        
+        conn.close()
+        
+        return {
+            'success': True,
+            'export': export_data
+        }
+        
+    except Exception as e:
         raise AutomationError(f"Failed to export workflow: {str(e)}")
 
 
@@ -633,7 +789,7 @@ def automation_get_workflow_by_slug(
     
     Args:
         slug: Workflow slug (e.g., 'workflow-email-to-sheets', 'workflow-1234567890')
-        **kwargs: Credential injection (user_id, access_token, etc.)
+        **kwargs: Credential injection (_user_id)
     
     Returns:
         Dict with workflow details:
@@ -652,30 +808,43 @@ def automation_get_workflow_by_slug(
         [{'type': 'trigger', 'text': 'New Gmail', ...}, ...]
     """
     try:
-        api_url = _get_api_url()
-        headers = _get_headers(kwargs)
+        user_id = kwargs.get('_user_id', 1)
         
-        # Query by slug using /list endpoint with slug parameter
-        response = requests.get(
-            f'{api_url}/api/automation/list',
-            params={'slug': slug},
-            headers=headers,
-            timeout=10
-        )
-        response.raise_for_status()
-        data = response.json()
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
         
-        workflows = data.get('workflows', [])
-        if not workflows:
+        cursor.execute("""
+            SELECT * FROM visual_automations 
+            WHERE slug = %s AND (user_id = %s OR user_id = 1)
+        """, (slug, user_id))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
             raise AutomationError(f"Workflow not found: {slug}")
         
-        workflow = workflows[0]
+        # Parse JSON fields
+        ui_json = json.loads(row['ui_json']) if isinstance(row['ui_json'], str) else row['ui_json']
+        execution_json = json.loads(row['execution_json']) if isinstance(row['execution_json'], str) else row['execution_json']
         
-        # Parse JSON fields if they're strings
-        if isinstance(workflow.get('ui_json'), str):
-            workflow['ui_json'] = json.loads(workflow['ui_json'])
-        if isinstance(workflow.get('execution_json'), str):
-            workflow['execution_json'] = json.loads(workflow['execution_json'])
+        workflow = {
+            'automation_id': row['automation_id'],
+            'slug': row['slug'],
+            'title': row['title'],
+            'description': row['description'],
+            'category': row['category'],
+            'status': row['status'],
+            'is_scheduled': row['is_scheduled'],
+            'schedule_cron': row['schedule_cron'],
+            'execution_count': row['execution_count'],
+            'last_executed_at': str(row['last_executed_at']) if row['last_executed_at'] else None,
+            'created_at': str(row['created_at']) if row['created_at'] else None,
+            'updated_at': str(row['updated_at']) if row['updated_at'] else None,
+            'user_id': row['user_id'],
+            'ui_json': ui_json,
+            'execution_json': execution_json
+        }
         
         return {
             'success': True,
@@ -683,7 +852,7 @@ def automation_get_workflow_by_slug(
             'message': f"Workflow '{workflow.get('title')}' retrieved successfully"
         }
     
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         raise AutomationError(f"Failed to get workflow: {str(e)}")
 
 
@@ -903,32 +1072,84 @@ def automation_get_workflow_status(
         Next run: 2025-11-20T09:00:00Z
     """
     try:
-        api_url = _get_api_url()
-        headers = _get_headers(kwargs)
+        user_id = kwargs.get('_user_id', 1)
         
-        # Call status endpoint
-        response = requests.get(
-            f'{api_url}/api/automation/{slug}/status',
-            headers=headers,
-            timeout=10
-        )
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
         
-        if response.status_code == 404:
+        # Get workflow metadata
+        cursor.execute("""
+            SELECT automation_id, slug, title, status, is_scheduled, schedule_cron,
+                   execution_count, created_at, updated_at, last_executed_at
+            FROM visual_automations 
+            WHERE slug = %s AND (user_id = %s OR user_id = 1)
+        """, (slug, user_id))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
             raise AutomationError(f'Workflow with slug "{slug}" not found')
         
-        response.raise_for_status()
-        data = response.json()
+        workflow_data = {
+            'slug': row['slug'],
+            'title': row['title'],
+            'status': row['status'],
+            'is_scheduled': row['is_scheduled'],
+            'schedule_cron': row['schedule_cron'],
+            'created_at': str(row['created_at']) if row['created_at'] else None,
+            'updated_at': str(row['updated_at']) if row['updated_at'] else None,
+            'last_executed_at': str(row['last_executed_at']) if row['last_executed_at'] else None
+        }
         
-        if not data.get('success'):
-            raise AutomationError(data.get('error', 'Failed to get workflow status'))
+        # Get execution statistics
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_executions,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successful,
+                MAX(started_at) as last_execution_time
+            FROM automation_executions
+            WHERE automation_id = %s
+        """, (row['automation_id'],))
+        
+        stats_row = cursor.fetchone()
+        
+        # Get last execution details
+        cursor.execute("""
+            SELECT execution_id, started_at, completed_at, status, duration_ms, error_message
+            FROM automation_executions
+            WHERE automation_id = %s
+            ORDER BY started_at DESC
+            LIMIT 1
+        """, (row['automation_id'],))
+        
+        last_exec_row = cursor.fetchone()
+        conn.close()
+        
+        # Calculate success rate
+        total_execs = stats_row['total_executions'] or 0
+        successful_execs = stats_row['successful'] or 0
+        success_rate = successful_execs / total_execs if total_execs > 0 else 0.0
+        
+        execution_status = {
+            'currently_running': last_exec_row['status'] == 'running' if last_exec_row else False,
+            'total_executions': total_execs,
+            'success_rate': success_rate,
+            'last_execution': {
+                'execution_id': last_exec_row['execution_id'],
+                'started_at': str(last_exec_row['started_at']) if last_exec_row['started_at'] else None,
+                'completed_at': str(last_exec_row['completed_at']) if last_exec_row['completed_at'] else None,
+                'status': last_exec_row['status'],
+                'duration_ms': last_exec_row['duration_ms'],
+                'error_message': last_exec_row['error_message']
+            } if last_exec_row else None
+        }
         
         return {
             'success': True,
-            'workflow': data['workflow'],
-            'execution_status': data['execution_status']
+            'workflow': workflow_data,
+            'execution_status': execution_status
         }
         
-    except requests.exceptions.RequestException as e:
-        raise AutomationError(f'Failed to get workflow status: {str(e)}')
     except Exception as e:
-        raise AutomationError(f'Unexpected error getting status: {str(e)}')
+        raise AutomationError(f'Failed to get workflow status: {str(e)}')

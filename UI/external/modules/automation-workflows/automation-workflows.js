@@ -32,6 +32,7 @@ class AutomationCanvas {
         this.workflowTitle = 'Untitled Workflow';
         this.workflowDescription = '';
         this.workflowStatus = 'draft'; // draft, active, inactive
+        this.isLoadingWorkflow = false;
 
         // Canvas interaction
         this.isPanning = false;
@@ -97,7 +98,6 @@ class AutomationCanvas {
     getAuthToken() {
         return localStorage.getItem('authToken') || 
                localStorage.getItem('auth_token') || 
-               this.getAuthToken() || 
                window.UserAuth?.token || 
                '';
     }
@@ -111,12 +111,14 @@ class AutomationCanvas {
         // Start auto-save timer
         this.autoSaveTimer = setInterval(() => {
             if (this.isDirty && this.currentWorkflow) {
-                console.log('[AUTO-SAVE] Saving workflow automatically...');
+                console.log('[AUTO-SAVE] Changes detected - saving workflow automatically...');
                 this.autoSaveWorkflow();
+            } else if (!this.isDirty && this.currentWorkflow) {
+                console.log('[AUTO-SAVE] No changes detected - skipping save');
             }
         }, this.autoSaveInterval);
 
-        console.log('[AUTO-SAVE] Auto-save enabled (30 second interval)');
+        console.log('[AUTO-SAVE] Auto-save enabled (30 second interval, only saves when isDirty=true)');
     }
 
     markDirty() {
@@ -125,9 +127,19 @@ class AutomationCanvas {
     }
 
     async autoSaveWorkflow() {
-        if (!this.currentWorkflow) return;
+        if (!this.currentWorkflow) {
+            console.log('[AUTO-SAVE] No workflow loaded - skipping save');
+            return;
+        }
+
+        if (!this.isDirty) {
+            console.log('[AUTO-SAVE] No changes detected (isDirty=false) - skipping save');
+            return;
+        }
 
         try {
+            console.log('[AUTO-SAVE] Starting save... (shapes: ' + this.shapes.length + ', connections: ' + this.connections.length + ')');
+            
             // Export current canvas state
             const ui_json = {
                 shapes: this.shapes,
@@ -153,15 +165,20 @@ class AutomationCanvas {
                 body: JSON.stringify(workflowData)
             });
 
-            if (!response.ok) throw new Error('Auto-save failed');
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Auto-save failed: ${response.status} ${errorText}`);
+            }
 
+            // CRITICAL: Reset isDirty flag after successful save
             this.isDirty = false;
             this.lastSaved = new Date();
             this.updateAutoSaveIndicator('saved');
-            console.log('[AUTO-SAVE] Workflow auto-saved successfully');
+            console.log('[AUTO-SAVE] Workflow auto-saved successfully (isDirty reset to false)');
         } catch (error) {
             console.error('[AUTO-SAVE] Error:', error);
             this.updateAutoSaveIndicator('error');
+            // Don't reset isDirty on error - will retry next interval
         }
     }
 
@@ -208,6 +225,7 @@ class AutomationCanvas {
             'save-workflow-btn': () => this.saveWorkflow(),
             'export-workflow-btn': () => this.exportToJSON(),
             'print-workflow-btn': () => this.printWorkflow(),
+            'automation-clear-btn': () => this.clearCanvas(),
             'automation-send-ai-btn': () => this.sendToAI(),
             'zoom-in-btn': () => this.zoomIn(),
             'zoom-out-btn': () => this.zoomOut(),
@@ -469,12 +487,22 @@ class AutomationCanvas {
         const controls = document.createElement('div');
         controls.className = 'shape-controls';
         controls.innerHTML = `
-            <button class="shape-control-btn" title="Change color" onclick="automationCanvas.showColorPicker('${shape.id}')">
-                <i class="fas fa-palette"></i>
-            </button>
-            <button class="shape-control-btn" title="Change shape" onclick="automationCanvas.showShapePicker('${shape.id}')">
-                <i class="fas fa-shapes"></i>
-            </button>
+            <div class="shape-type-picker-container">
+                <button class="shape-control-btn" title="Change type" onclick="automationCanvas.toggleTypePicker('${shape.id}')">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                <div class="shape-type-dropdown" id="type-dropdown-${shape.id}" style="display: none;">
+                    <div class="type-option" data-type="trigger" onclick="automationCanvas.changeShapeType('${shape.id}', 'trigger')">Trigger</div>
+                    <div class="type-option" data-type="action" onclick="automationCanvas.changeShapeType('${shape.id}', 'action')">Action</div>
+                    <div class="type-option" data-type="wait" onclick="automationCanvas.changeShapeType('${shape.id}', 'wait')">Wait</div>
+                    <div class="type-option" data-type="decision" onclick="automationCanvas.changeShapeType('${shape.id}', 'decision')">Decision</div>
+                    <div class="type-option" data-type="tool" onclick="automationCanvas.changeShapeType('${shape.id}', 'tool')">Tool</div>
+                    <div class="type-option" data-type="database" onclick="automationCanvas.changeShapeType('${shape.id}', 'database')">Database</div>
+                    <div class="type-option" data-type="output" onclick="automationCanvas.changeShapeType('${shape.id}', 'output')">Output</div>
+                    <div class="type-option" data-type="schedule" onclick="automationCanvas.changeShapeType('${shape.id}', 'schedule')">Schedule</div>
+                    <div class="type-option" data-type="end" onclick="automationCanvas.changeShapeType('${shape.id}', 'end')">End</div>
+                </div>
+            </div>
             <button class="shape-control-btn delete" title="Delete" onclick="automationCanvas.deleteShape('${shape.id}')">
                 <i class="fas fa-trash"></i>
             </button>
@@ -575,16 +603,22 @@ class AutomationCanvas {
     dragShape(e, shape) {
         if (!this.isDragging || e.clientX === 0) return;
 
-        const canvas = document.getElementById('automation-canvas-wrapper');
+        const canvas = document.getElementById('automation-canvas');
+        if (!canvas) return;
+        
         const rect = canvas.getBoundingClientRect();
 
-        shape.x = e.clientX - rect.left - this.dragOffset.x;
-        shape.y = e.clientY - rect.top - this.dragOffset.y;
+        // Update shape position accounting for scroll
+        shape.x = e.clientX - rect.left - this.dragOffset.x + canvas.scrollLeft;
+        shape.y = e.clientY - rect.top - this.dragOffset.y + canvas.scrollTop;
 
         const shapeEl = document.getElementById(shape.id);
-        shapeEl.style.left = `${shape.x}px`;
-        shapeEl.style.top = `${shape.y}px`;
+        if (shapeEl) {
+            shapeEl.style.left = `${shape.x}px`;
+            shapeEl.style.top = `${shape.y}px`;
+        }
 
+        // Update connections in real-time as shape moves
         this.renderConnections();
     }
 
@@ -700,28 +734,54 @@ class AutomationCanvas {
     }
 
     getConnectionPoint(shape, position) {
-        const shapeEl = document.getElementById(shape.id);
-        if (!shapeEl) return { x: 0, y: 0 };
-
-        const rect = shapeEl.getBoundingClientRect();
-        const canvas = document.getElementById('automation-canvas-wrapper');
-        const canvasRect = canvas.getBoundingClientRect();
-
-        const relX = rect.left - canvasRect.left;
-        const relY = rect.top - canvasRect.top;
+        // Calculate connection point directly from shape coordinates
+        // This ensures arrows stay connected even when shapes move
+        const shapeWidth = shape.width || 150;
+        const shapeHeight = shape.height || 80;
 
         switch (position) {
             case 'top':
-                return { x: relX + shape.width / 2, y: relY };
+                return { x: shape.x + shapeWidth / 2, y: shape.y };
             case 'right':
-                return { x: relX + shape.width, y: relY + shape.height / 2 };
+                return { x: shape.x + shapeWidth, y: shape.y + shapeHeight / 2 };
             case 'bottom':
-                return { x: relX + shape.width / 2, y: relY + shape.height };
+                return { x: shape.x + shapeWidth / 2, y: shape.y + shapeHeight };
             case 'left':
-                return { x: relX, y: relY + shape.height / 2 };
+                return { x: shape.x, y: shape.y + shapeHeight / 2 };
             default:
-                return { x: relX + shape.width / 2, y: relY + shape.height / 2 };
+                return { x: shape.x + shapeWidth / 2, y: shape.y + shapeHeight / 2 };
         }
+    }
+    
+    // Calculate the best connection points between two shapes
+    getBestConnectionPoints(fromShape, toShape) {
+        // Get center points of both shapes
+        const fromCenterX = fromShape.x + (fromShape.width || 150) / 2;
+        const fromCenterY = fromShape.y + (fromShape.height || 80) / 2;
+        const toCenterX = toShape.x + (toShape.width || 150) / 2;
+        const toCenterY = toShape.y + (toShape.height || 80) / 2;
+        
+        // Calculate angle between shapes
+        const dx = toCenterX - fromCenterX;
+        const dy = toCenterY - fromCenterY;
+        
+        // Determine best exit and entry points based on relative positions
+        let fromPosition, toPosition;
+        
+        // If shapes are mostly horizontal
+        if (Math.abs(dx) > Math.abs(dy)) {
+            fromPosition = dx > 0 ? 'right' : 'left';
+            toPosition = dx > 0 ? 'left' : 'right';
+        } else {
+            // Shapes are mostly vertical
+            fromPosition = dy > 0 ? 'bottom' : 'top';
+            toPosition = dy > 0 ? 'top' : 'bottom';
+        }
+        
+        return {
+            from: this.getConnectionPoint(fromShape, fromPosition),
+            to: this.getConnectionPoint(toShape, toPosition)
+        };
     }
 
     clearCanvasDOM() {
@@ -800,6 +860,8 @@ class AutomationCanvas {
 
         // Create new SVG
         const canvas = document.getElementById('automation-canvas-wrapper');
+        if (!canvas) return;
+        
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.id = 'connections-svg';
         svg.style.position = 'absolute';
@@ -820,37 +882,55 @@ class AutomationCanvas {
             </defs>
         `;
 
-        // Draw connections
+        // Draw connections with smart routing
         this.connections.forEach(conn => {
             const fromShape = this.shapes.find(s => s.id === conn.from);
             const toShape = this.shapes.find(s => s.id === conn.to);
 
             if (!fromShape || !toShape) return;
 
-            const from = this.getConnectionPoint(fromShape, 'bottom');
-            const to = this.getConnectionPoint(toShape, 'top');
+            // Get best connection points based on shape positions
+            const points = this.getBestConnectionPoints(fromShape, toShape);
+            const from = points.from;
+            const to = points.to;
 
-            // Calculate adjusted endpoint - stop arrow 15px before shape edge
-            const arrowOffset = 15;
+            // Calculate adjusted endpoint - stop arrow at shape edge
+            const arrowOffset = 8;
             const dx = to.x - from.x;
             const dy = to.y - from.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
+            if (distance === 0) return; // Prevent division by zero
+
             const adjustedToX = to.x - (dx / distance) * arrowOffset;
             const adjustedToY = to.y - (dy / distance) * arrowOffset;
 
+            // Create curved path with bezier curve
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const midY = (from.y + adjustedToY) / 2;
+            
+            // Calculate control points for smooth curve
+            const controlOffset = Math.min(Math.abs(dx), Math.abs(dy), 100);
+            let pathData;
+            
+            // Determine curve direction based on connection orientation
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Horizontal connection - use horizontal control points
+                const midX = (from.x + adjustedToX) / 2;
+                pathData = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${adjustedToY}, ${adjustedToX} ${adjustedToY}`;
+            } else {
+                // Vertical connection - use vertical control points
+                const midY = (from.y + adjustedToY) / 2;
+                pathData = `M ${from.x} ${from.y} C ${from.x} ${midY}, ${adjustedToX} ${midY}, ${adjustedToX} ${adjustedToY}`;
+            }
 
-            line.setAttribute('d', `
-                M ${from.x} ${from.y}
-                C ${from.x} ${midY}, ${adjustedToX} ${midY}, ${adjustedToX} ${adjustedToY}
-            `);
+            line.setAttribute('d', pathData);
             line.setAttribute('stroke', '#58a6ff');
             line.setAttribute('stroke-width', '2');
             line.setAttribute('fill', 'none');
             line.setAttribute('marker-end', 'url(#arrowhead)');
             line.classList.add('connection-line');
+            line.dataset.from = conn.from;
+            line.dataset.to = conn.to;
 
             svg.appendChild(line);
         });
@@ -881,17 +961,31 @@ class AutomationCanvas {
             return;
         }
 
+        // Reset all data
         this.shapes = [];
         this.connections = [];
         this.selectedShape = null;
+        this.selectedShapes = [];
 
+        // Clear DOM
         const canvas = document.getElementById('automation-canvas-wrapper');
-        canvas.innerHTML = '';
+        if (canvas) {
+            canvas.innerHTML = '';
+        }
 
+        // Reset workflow metadata
         this.automationId = null;
         this.automationTitle = 'Untitled Automation';
         this.workflowTitle = null;
+        this.workflowSlug = null;
+        this.workflowDescription = '';
         this.updateWorkflowNameDisplay();
+        
+        // Mark as dirty for save state
+        this.markDirty();
+        
+        console.log('Canvas cleared successfully');
+        this.showToast('Canvas cleared', 'success');
     }
 
     exportToJSON() {
@@ -1185,14 +1279,50 @@ class AutomationCanvas {
         }
     }
 
-    showColorPicker(shapeId) {
-        // TODO: Implement color picker modal
-        console.log('Show color picker for', shapeId);
+    toggleTypePicker(shapeId) {
+        const dropdown = document.getElementById(`type-dropdown-${shapeId}`);
+        if (!dropdown) return;
+        
+        // Close all other dropdowns
+        document.querySelectorAll('.shape-type-dropdown').forEach(d => {
+            if (d.id !== `type-dropdown-${shapeId}`) {
+                d.style.display = 'none';
+            }
+        });
+        
+        // Toggle this dropdown
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
     }
 
-    showShapePicker(shapeId) {
-        // TODO: Implement shape picker modal
-        console.log('Show shape picker for', shapeId);
+    changeShapeType(shapeId, newType) {
+        const shape = this.shapes.find(s => s.id === shapeId);
+        if (!shape) return;
+        
+        // Update shape type
+        const oldType = shape.type;
+        shape.type = newType;
+        
+        // Update DOM element classes
+        const shapeEl = document.getElementById(shapeId);
+        if (shapeEl) {
+            shapeEl.classList.remove(oldType);
+            shapeEl.classList.add(newType);
+            
+            // Update type label
+            const typeLabel = shapeEl.querySelector('.shape-type-label');
+            if (typeLabel) {
+                typeLabel.innerHTML = this.getShapeTypeLabel(newType);
+            }
+        }
+        
+        // Close dropdown
+        const dropdown = document.getElementById(`type-dropdown-${shapeId}`);
+        if (dropdown) dropdown.style.display = 'none';
+        
+        // Mark as dirty for auto-save
+        this.markDirty();
+        
+        console.log(`Changed shape ${shapeId} from ${oldType} to ${newType}`);
     }
 
     // ==================== WORKFLOW MANAGEMENT METHODS ====================
@@ -1410,7 +1540,14 @@ class AutomationCanvas {
          * Load workflow from list data (used when clicking from sidebar)
          * @param {object} workflow - Workflow object with shapes and connections
          */
+        // Prevent multiple simultaneous loads
+        if (this.isLoadingWorkflow) {
+            console.log('[AUTOMATION CANVAS] Already loading a workflow, ignoring duplicate request');
+            return;
+        }
+
         try {
+            this.isLoadingWorkflow = true;
             console.log('[AUTOMATION CANVAS] Loading workflow onto canvas:', workflow.slug);
             console.log('[AUTOMATION CANVAS] Full workflow object:', workflow);
 
@@ -1475,10 +1612,12 @@ class AutomationCanvas {
 
             console.log('[AUTOMATION CANVAS] Workflow loaded successfully');
             this.showToast(`Loaded workflow: ${this.workflowTitle}`, 'success');
+            this.isLoadingWorkflow = false;
 
         } catch (error) {
             console.error('[AUTOMATION CANVAS] Failed to load workflow:', error);
             this.showToast(`Failed to load workflow: ${error.message}`, 'error');
+            this.isLoadingWorkflow = false;
         }
     }
 
@@ -1838,6 +1977,7 @@ class AutomationCanvas {
     recenterToShapes() {
         if (this.shapes.length === 0) {
             console.log('No shapes to center on');
+            this.showToast('No shapes on canvas', 'info');
             return;
         }
 
@@ -1848,25 +1988,36 @@ class AutomationCanvas {
         this.shapes.forEach(shape => {
             minX = Math.min(minX, shape.x);
             minY = Math.min(minY, shape.y);
-            maxX = Math.max(maxX, shape.x + shape.width);
-            maxY = Math.max(maxY, shape.y + shape.height);
+            maxX = Math.max(maxX, shape.x + (shape.width || 150));
+            maxY = Math.max(maxY, shape.y + (shape.height || 80));
         });
 
-        // Calculate center point
+        // Calculate center point of all shapes
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
 
-        // Scroll canvas to center
+        // Get canvas container (the scrollable element)
         const canvas = document.getElementById('automation-canvas');
+        if (!canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
+        
         const canvasRect = canvas.getBoundingClientRect();
 
-        canvas.scrollLeft = centerX - (canvasRect.width / 2);
-        canvas.scrollTop = centerY - (canvasRect.height / 2);
+        // Scroll to center the shapes in view
+        canvas.scrollTo({
+            left: centerX - (canvasRect.width / 2),
+            top: centerY - (canvasRect.height / 2),
+            behavior: 'smooth'
+        });
 
-        console.log('Recentered to shapes');
+        console.log(`Recentered to shapes at (${centerX}, ${centerY})`);
+        this.showToast('Centered on shapes', 'success');
     }
 
     handleCanvasMouseDown(e) {
+        // Only start selection if clicking on canvas background (not on shapes)
         if (e.target.id === 'automation-canvas' || e.target.id === 'automation-canvas-wrapper') {
             // Clear any previous selection rect
             if (this.selectionRect) {
@@ -1874,59 +2025,73 @@ class AutomationCanvas {
                 this.selectionRect = null;
             }
             
+            // Clear previous selections
+            this.selectedShapes.forEach(shapeId => {
+                document.getElementById(shapeId)?.classList.remove('selected');
+            });
+            this.selectedShapes = [];
+            
             // Start drag selection with left click
             if (e.button === 0 && !e.ctrlKey) {
                 this.isSelecting = true;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const scrollLeft = e.currentTarget.scrollLeft || 0;
-                const scrollTop = e.currentTarget.scrollTop || 0;
-
+                
+                // Get canvas and wrapper elements
+                const canvas = document.getElementById('automation-canvas');
+                const wrapper = document.getElementById('automation-canvas-wrapper');
+                const canvasRect = canvas.getBoundingClientRect();
+                
+                // Calculate position relative to wrapper, accounting for scroll
                 this.selectionStart = {
-                    x: e.clientX - rect.left + scrollLeft,
-                    y: e.clientY - rect.top + scrollTop
+                    x: e.clientX - canvasRect.left + canvas.scrollLeft,
+                    y: e.clientY - canvasRect.top + canvas.scrollTop
                 };
 
-                // Create selection rectangle
+                // Create selection rectangle in wrapper
                 this.selectionRect = document.createElement('div');
                 this.selectionRect.className = 'selection-rect';
+                this.selectionRect.style.position = 'absolute';
                 this.selectionRect.style.left = `${this.selectionStart.x}px`;
                 this.selectionRect.style.top = `${this.selectionStart.y}px`;
-                document.getElementById('automation-canvas-wrapper').appendChild(this.selectionRect);
+                this.selectionRect.style.width = '0px';
+                this.selectionRect.style.height = '0px';
+                wrapper.appendChild(this.selectionRect);
 
-                e.currentTarget.classList.add('selecting');
+                canvas.classList.add('selecting');
+                e.preventDefault();
             }
         }
     }
 
     handleCanvasMouseMove(e) {
-        const canvas = e.currentTarget;
-
         // Handle drag selection
         if (this.isSelecting && this.selectionRect) {
-            const rect = canvas.getBoundingClientRect();
-            const scrollLeft = canvas.scrollLeft || 0;
-            const scrollTop = canvas.scrollTop || 0;
+            const canvas = document.getElementById('automation-canvas');
+            const canvasRect = canvas.getBoundingClientRect();
 
-            const currentX = e.clientX - rect.left + scrollLeft;
-            const currentY = e.clientY - rect.top + scrollTop;
+            // Calculate current position relative to wrapper with scroll
+            const currentX = e.clientX - canvasRect.left + canvas.scrollLeft;
+            const currentY = e.clientY - canvasRect.top + canvas.scrollTop;
 
+            // Calculate selection rectangle bounds
             const width = Math.abs(currentX - this.selectionStart.x);
             const height = Math.abs(currentY - this.selectionStart.y);
             const left = Math.min(currentX, this.selectionStart.x);
             const top = Math.min(currentY, this.selectionStart.y);
 
+            // Update selection rectangle style
             this.selectionRect.style.width = `${width}px`;
             this.selectionRect.style.height = `${height}px`;
             this.selectionRect.style.left = `${left}px`;
             this.selectionRect.style.top = `${top}px`;
 
-            // Highlight shapes within selection
+            // Update shape selection based on intersection
             this.updateShapeSelection(left, top, width, height);
         }
     }
 
     handleCanvasMouseUp(e) {
-        const canvas = e.currentTarget;
+        const canvas = document.getElementById('automation-canvas');
+        if (!canvas) return;
 
         // Always cleanup selection state
         this.isSelecting = false;
@@ -1941,18 +2106,23 @@ class AutomationCanvas {
         // Ensure no lingering selection rects (DOM cleanup)
         const lingering = document.querySelectorAll('.selection-rect');
         lingering.forEach(rect => rect.remove());
+        
+        console.log(`Selection complete: ${this.selectedShapes.length} shape(s) selected`);
     }
 
     updateShapeSelection(left, top, width, height) {
+        // Clear previous selection
         this.selectedShapes = [];
 
         this.shapes.forEach(shape => {
-            const shapeRight = shape.x + shape.width;
-            const shapeBottom = shape.y + shape.height;
+            const shapeWidth = shape.width || 150;
+            const shapeHeight = shape.height || 80;
+            const shapeRight = shape.x + shapeWidth;
+            const shapeBottom = shape.y + shapeHeight;
             const selectionRight = left + width;
             const selectionBottom = top + height;
 
-            // Check if shape intersects with selection
+            // Check if shape intersects with selection rectangle
             const intersects = !(
                 shape.x > selectionRight ||
                 shapeRight < left ||
@@ -1968,6 +2138,11 @@ class AutomationCanvas {
                 shapeEl?.classList.remove('selected');
             }
         });
+        
+        // Debug log
+        if (this.selectedShapes.length > 0) {
+            console.log(`Selection updated: ${this.selectedShapes.length} shape(s) in selection`);
+        }
     }
 
     copyShapes() {
@@ -2379,9 +2554,18 @@ class AutomationCanvas {
     createLoadWorkflowItem(workflow) {
         const item = document.createElement('div');
         item.className = 'workflow-load-item';
+        
+        // Determine border color based on workflow state
+        const isProduction = workflow.is_production || workflow.workflow_state === 'production';
+        const isDraft = workflow.is_draft || workflow.workflow_state === 'draft';
+        const borderColor = isProduction ? '#10B981' : '#A855F7';  // Green for production, Purple for draft
+        const borderWidth = '4px';
+        
         item.style.cssText = `
             padding: 16px;
+            padding-left: 12px;
             border-bottom: 1px solid var(--border-color);
+            border-left: ${borderWidth} solid ${borderColor};
             cursor: pointer;
             transition: background-color 0.15s ease;
             display: flex;
@@ -2427,11 +2611,33 @@ class AutomationCanvas {
                         ${workflow.description}
                     </div>
                 ` : ''}
-                <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted);">
+                <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
                     <span><i class="fas fa-shapes" style="margin-right: 4px;"></i>${shapeCount} shapes</span>
                     <span><i class="fas fa-link" style="margin-right: 4px;"></i>${connectionCount} connections</span>
                     <span><i class="fas fa-calendar" style="margin-right: 4px;"></i>${updatedDate}</span>
                     ${workflow.category ? `<span><i class="fas fa-tag" style="margin-right: 4px;"></i>${workflow.category}</span>` : ''}
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    ${isProduction ? `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; font-size: 11px; font-weight: 600; color: #10B981;">
+                            <i class="fas fa-check-circle"></i>
+                            <span>PRODUCTION READY</span>
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;" onclick="event.stopPropagation();">
+                            <input type="checkbox" 
+                                   class="workflow-enable-toggle" 
+                                   data-workflow-id="${workflow.automation_workflow_id || workflow.workflow_id || workflow.id}" 
+                                   data-slug="${workflow.slug}"
+                                   ${workflow.automation_enabled ? 'checked' : ''}
+                                   style="width: 16px; height: 16px; cursor: pointer;">
+                            <span style="font-size: 12px; color: var(--text-secondary);">${workflow.automation_enabled ? 'Enabled' : 'Disabled'}</span>
+                        </label>
+                    ` : `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 4px 10px; background: rgba(168, 85, 247, 0.1); border-radius: 4px; font-size: 11px; font-weight: 600; color: #A855F7;">
+                            <i class="fas fa-drafting-compass"></i>
+                            <span>DRAFT MODE</span>
+                        </div>
+                    `}
                 </div>
             </div>
         `;
@@ -2444,6 +2650,43 @@ class AutomationCanvas {
             item.style.background = 'transparent';
         });
 
+        // Enable/disable toggle for production workflows
+        const enableToggle = item.querySelector('.workflow-enable-toggle');
+        if (enableToggle) {
+            enableToggle.addEventListener('change', async (e) => {
+                e.stopPropagation();
+                const isEnabled = e.target.checked;
+                const workflowId = e.target.dataset.workflowId;
+                const slug = e.target.dataset.slug;
+                
+                try {
+                    // Update workflow enabled state via API
+                    const response = await fetch(this.getApiUrl(`/api/automation/toggle/${workflowId || slug}`), {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${this.getAuthToken()}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ enabled: isEnabled })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to update workflow state');
+                    
+                    // Update label text
+                    const label = e.target.parentElement.querySelector('span');
+                    if (label) {
+                        label.textContent = isEnabled ? 'Enabled' : 'Disabled';
+                    }
+                    
+                    this.showToast(`Workflow ${isEnabled ? 'enabled' : 'disabled'}`, 'success');
+                } catch (error) {
+                    console.error('[AUTOMATION] Failed to toggle workflow:', error);
+                    e.target.checked = !isEnabled;  // Revert toggle
+                    this.showToast('Failed to update workflow state', 'error');
+                }
+            });
+        }
+        
         // Click to load
         item.addEventListener('click', () => {
             this.loadWorkflowFromList(workflow);

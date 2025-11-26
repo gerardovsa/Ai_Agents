@@ -2,18 +2,19 @@
 Automation Visual Workflows API Routes
 =======================================
 REST API endpoints for visual automation canvas and AI-interpreted workflows.
-Last Modified: 2025-11-20 - Added PUT /api/automation/update endpoint
+Last Modified: 2025-11-26 - Added PATCH /api/automation/toggle/<id> for production workflow enable/disable
 
 Endpoints:
     POST   /api/automation/parse            - Parse visual flow and interpret intent
     POST   /api/automation/refine           - AI refines user's workflow  
     POST   /api/automation/save             - Save automation to database
     PUT    /api/automation/update           - Update existing workflow (add/remove actions, modify trigger)
-    GET    /api/automation/list             - List user's automations
+    GET    /api/automation/list             - List user's automations (from visual_automations + automation_workflows)
     GET    /api/automation/<id>             - Get automation details
     DELETE /api/automation/<id>             - Delete automation
     POST   /api/automation/<id>/activate    - Schedule automation
     POST   /api/automation/<id>/deactivate  - Unschedule automation
+    PATCH  /api/automation/toggle/<id>      - Enable/disable production automation (automation_workflows)
     GET    /api/automation/<id>/history     - Get execution history
     GET    /api/automation/<id>/export      - Export for canvas rendering
 """
@@ -402,6 +403,13 @@ def save_automation():
         }), 201 if not existing else 200
         
     except Exception as e:
+        # CRITICAL FIX: Close connection on error to prevent pool leak
+        if 'conn' in locals() and conn is not None:
+            try:
+                conn.close()
+                print("[AUTOMATION] Connection closed after exception")
+            except:
+                pass
         return jsonify({'error': str(e)}), 500
 
 
@@ -641,13 +649,33 @@ def list_automations():
         
         # Query includes logged-in user's automations + system user (user_id=1) automations
         # This allows all users to see system templates/examples
+        # Join visual_automations with automation_workflows to determine production state
         query = f"""
-            SELECT automation_id, slug, title, description, category, status,
-                   ui_json, execution_json, is_scheduled, schedule_cron,
-                   created_at, updated_at, last_executed_at, execution_count,
-                   user_id
-            FROM visual_automations
-            WHERE user_id = {placeholder} OR user_id = 1
+            SELECT 
+                va.automation_id, 
+                va.slug, 
+                va.title, 
+                va.description, 
+                va.category, 
+                va.status,
+                va.ui_json, 
+                va.execution_json, 
+                va.is_scheduled, 
+                va.schedule_cron,
+                va.created_at, 
+                va.updated_at, 
+                va.last_executed_at, 
+                va.execution_count,
+                va.user_id,
+                aw.workflow_id,
+                aw.enabled AS automation_enabled,
+                CASE 
+                    WHEN aw.workflow_id IS NOT NULL THEN 'production'
+                    ELSE 'draft'
+                END AS workflow_state
+            FROM visual_automations va
+            LEFT JOIN automation_workflows aw ON va.slug = aw.slug AND va.user_id = aw.user_id
+            WHERE va.user_id = {placeholder} OR va.user_id = 1
         """
         params = [user_id]
         
@@ -803,7 +831,12 @@ def list_automations():
                 'is_system_template': row['user_id'] == 1,  # Flag system templates
                 'is_editable': row['user_id'] == user_id,   # Only own workflows are editable
                 
-                # Automation lifecycle state
+                # Automation lifecycle state (NEW: production vs draft)
+                'workflow_state': row.get('workflow_state', 'draft'),  # 'production' or 'draft'
+                'is_production': row.get('workflow_state') == 'production',  # Exists in automation_workflows
+                'is_draft': row.get('workflow_state') == 'draft',  # Only in visual_automations
+                'automation_enabled': bool(row.get('automation_enabled')) if row.get('automation_enabled') is not None else False,  # Production workflows can be enabled/disabled
+                'automation_workflow_id': row.get('workflow_id'),  # UUID from automation_workflows (if production)
                 'automation_state': row['status'] or 'draft',  # draft, inactive, active
                 'is_design_only': row['status'] == 'draft',
                 'is_automated': row['status'] in ('inactive', 'active'),
@@ -1203,9 +1236,50 @@ def deactivate_automation(automation_id):
         return jsonify({'error': str(e)}), 500
 
 
+@automation_bp.route('/toggle/<workflow_identifier>', methods=['PATCH'])
+def toggle_automation_enabled(workflow_identifier):
+    """Toggle automation enabled state in automation_workflows table (for production workflows)"""
+    try:
+        user_id = get_user_from_token(request.headers.get('Authorization'))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized - invalid or missing token'}), 401
+        
+        data = request.get_json()
+        enabled = data.get('enabled', False)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update automation_workflows table (production workflows only)
+        # workflow_identifier can be workflow_id (UUID) or slug
+        cursor.execute("""
+            UPDATE automation_workflows
+            SET enabled = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE (workflow_id::text = %s OR slug = %s) AND user_id = %s
+        """, (enabled, workflow_identifier, workflow_identifier, user_id))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'error': 'Production workflow not found or not owned by user'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'workflow_id': workflow_identifier,
+            'enabled': enabled,
+            'message': f'Automation {"enabled" if enabled else "disabled"}'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @automation_bp.route('/<automation_id>/toggle', methods=['POST'])
 def toggle_automation(automation_id):
-    """Toggle automation between active and inactive states"""
+    """Toggle automation between active and inactive states (legacy endpoint for visual_automations)"""
     try:
         user_id = get_user_from_token(request.headers.get('Authorization'))
         if not user_id:

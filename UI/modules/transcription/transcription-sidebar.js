@@ -1,4 +1,171 @@
 /**
+ * SHARED TRANSCRIPTION STATE MANAGER
+ * 
+ * Purpose: Global state manager for transcription recording
+ * Pattern: Singleton - ensures both chat button and sidebar button control same recording
+ * 
+ * Usage:
+ *   window.SharedTranscriptionState.startRecording() - From any button
+ *   window.SharedTranscriptionState.stopRecording() - From any button
+ *   window.SharedTranscriptionState.isRecording - Check current state
+ */
+class SharedTranscriptionState {
+    constructor() {
+        this.isRecording = false;
+        this.browserRecognition = null;
+        this.audioRecorder = null;
+        this.audioChunks = [];
+        this.currentInterimElement = null;
+        this.recordingSource = null; // 'chat' or 'sidebar'
+        this.callbacks = {
+            onStart: [],
+            onStop: [],
+            onTranscript: [],
+            onError: []
+        };
+        
+        console.log('[SHARED STATE] Transcription state manager initialized');
+    }
+    
+    // Register callback functions
+    on(event, callback) {
+        if (this.callbacks[event]) {
+            this.callbacks[event].push(callback);
+        }
+    }
+    
+    // Trigger callbacks
+    trigger(event, ...args) {
+        if (this.callbacks[event]) {
+            this.callbacks[event].forEach(cb => cb(...args));
+        }
+    }
+    
+    // Start recording (called by either button)
+    async startRecording(source = 'sidebar') {
+        if (this.isRecording) {
+            console.warn('[SHARED STATE] Already recording');
+            return;
+        }
+        
+        this.recordingSource = source;
+        console.log(`[SHARED STATE] Starting recording from ${source}...`);
+        
+        try {
+            // Get microphone access
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Start audio recording for Whisper
+            this.audioChunks = [];
+            this.audioRecorder = new MediaRecorder(stream);
+            
+            this.audioRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    this.audioChunks.push(event.data);
+                    console.log('[SHARED STATE] Audio chunk captured:', event.data.size, 'bytes');
+                }
+            };
+            
+            this.audioRecorder.onstop = () => {
+                console.log('[SHARED STATE] Audio recording stopped');
+                stream.getTracks().forEach(track => track.stop());
+                this.trigger('onStop');
+            };
+            
+            this.audioRecorder.start();
+            console.log('[SHARED STATE] Audio recorder started');
+            
+            // Start browser speech recognition
+            if (!this.browserRecognition && 'webkitSpeechRecognition' in window) {
+                this.browserRecognition = new webkitSpeechRecognition();
+                this.browserRecognition.continuous = true;
+                this.browserRecognition.interimResults = true;
+                this.browserRecognition.lang = 'en-US';
+                
+                this.browserRecognition.onresult = (event) => {
+                    this.trigger('onTranscript', event, this.recordingSource);
+                };
+                
+                this.browserRecognition.onerror = (event) => {
+                    console.error('[SHARED STATE] Recognition error:', event.error);
+                    this.trigger('onError', event.error);
+                    if (event.error === 'no-speech') {
+                        // Non-fatal, continue recording
+                        return;
+                    }
+                };
+                
+                this.browserRecognition.onend = () => {
+                    console.log('[SHARED STATE] Recognition ended');
+                    if (this.isRecording) {
+                        // Restart if still supposed to be recording
+                        try {
+                            this.browserRecognition.start();
+                        } catch (e) {
+                            console.error('[SHARED STATE] Failed to restart recognition:', e);
+                        }
+                    }
+                };
+            }
+            
+            if (this.browserRecognition) {
+                this.browserRecognition.start();
+                console.log('[SHARED STATE] Browser recognition started');
+            }
+            
+            this.isRecording = true;
+            this.trigger('onStart', this.recordingSource);
+            console.log(`[SHARED STATE] ✅ Recording started successfully from ${this.recordingSource}`);
+            
+        } catch (error) {
+            console.error('[SHARED STATE] Failed to start recording:', error);
+            this.trigger('onError', error.message);
+            throw error;
+        }
+    }
+    
+    // Stop recording (called by either button)
+    stopRecording() {
+        if (!this.isRecording) {
+            console.warn('[SHARED STATE] Not recording');
+            return;
+        }
+        
+        console.log('[SHARED STATE] Stopping recording...');
+        
+        // Stop browser recognition
+        if (this.browserRecognition) {
+            try {
+                this.browserRecognition.stop();
+            } catch (e) {
+                console.error('[SHARED STATE] Failed to stop recognition:', e);
+            }
+        }
+        
+        // Stop audio recorder (triggers onstop callback)
+        if (this.audioRecorder && this.audioRecorder.state === 'recording') {
+            this.audioRecorder.stop();
+        }
+        
+        this.isRecording = false;
+        const source = this.recordingSource;
+        this.recordingSource = null;
+        console.log(`[SHARED STATE] ✅ Recording stopped (was from ${source})`);
+    }
+    
+    // Get recorded audio for Whisper
+    getAudioBlob() {
+        if (this.audioChunks.length === 0) return null;
+        return new Blob(this.audioChunks, { type: 'audio/webm' });
+    }
+}
+
+// Create global singleton instance
+if (!window.SharedTranscriptionState) {
+    window.SharedTranscriptionState = new SharedTranscriptionState();
+}
+
+/**
  * TRANSCRIPTION SIDEBAR CONTROLLER
  * 
  * Purpose: Main controller for transcription settings sidebar
@@ -34,7 +201,17 @@ class TranscriptionSidebarController {
         this.sttTranscripts = [];
         this.ttsTranscripts = [];
         
-        console.log('[TRANSCRIPTION SIDEBAR] Controller initialized');
+        // ✅ Use shared state manager
+        this.sharedState = window.SharedTranscriptionState;
+        this.currentInterimElement = null;
+        
+        // ✅ Register callbacks for shared state events
+        this.sharedState.on('onStart', (source) => this.handleRecordingStart(source));
+        this.sharedState.on('onStop', () => this.handleRecordingStop());
+        this.sharedState.on('onTranscript', (event, source) => this.handleBrowserTranscript(event, source));
+        this.sharedState.on('onError', (error) => this.handleRecordingError(error));
+        
+        console.log('[TRANSCRIPTION SIDEBAR] Controller initialized with shared state');
     }
 
     /**
@@ -65,9 +242,17 @@ class TranscriptionSidebarController {
      * Initialize STT and TTS modules
      */
     initializeModules() {
+        console.log('[TRANSCRIPTION SIDEBAR] Initializing modules...');
+        console.log('[TRANSCRIPTION SIDEBAR] STTModule available:', typeof STTModule !== 'undefined');
+        console.log('[TRANSCRIPTION SIDEBAR] Button exists:', !!document.getElementById('transcription-record-toggle'));
+        
+        // ✅ NEW: Initialize Web Speech API for instant streaming (parallel to Whisper)
+        this.initializeWebSpeechAPI();
+        
         // Check if modules are available globally
         if (typeof STTModule !== 'undefined') {
             const settings = this.getSTTSettings();
+            console.log('[TRANSCRIPTION SIDEBAR] STT Settings:', settings);
             
             this.sttModule = new STTModule({
                 recordButton: 'transcription-record-toggle',
@@ -87,7 +272,7 @@ class TranscriptionSidebarController {
                 onChunkSent: () => this.handleSTTChunkSent()
             });
             
-            console.log('[TRANSCRIPTION SIDEBAR] STT module initialized');
+            console.log('[TRANSCRIPTION SIDEBAR] STT module initialized:', !!this.sttModule);
         } else {
             console.warn('[TRANSCRIPTION SIDEBAR] STTModule not available');
         }
@@ -176,7 +361,7 @@ class TranscriptionSidebarController {
     }
 
     /**
-     * Switch tabs
+     * Switch tabs (Updated for new tab names: recording, tts, transcripts, settings)
      */
     switchTab(tabName) {
         // Update tab buttons
@@ -193,18 +378,281 @@ class TranscriptionSidebarController {
     }
 
     /**
-     * Toggle recording
+     * ✅ NEW: Initialize Web Speech API for instant interim results
      */
-    toggleRecording() {
-        if (!this.sttModule) {
-            alert('STT module not initialized');
+    initializeWebSpeechAPI() {
+        // Check browser support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Web Speech API not supported');
             return;
         }
-
-        if (this.sttModule.recording) {
-            this.sttModule.stopRecording();
+        
+        this.browserRecognition = new SpeechRecognition();
+        this.browserRecognition.continuous = true;
+        this.browserRecognition.interimResults = true; // ✅ CRITICAL: Enable streaming
+        this.browserRecognition.lang = 'en-US';
+        
+        // Handle interim and final results
+        this.browserRecognition.onresult = (event) => {
+            let interimTranscript = '';
+            let finalTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const result = event.results[i];
+                const transcript = result[0].transcript;
+                
+                if (result.isFinal) {
+                    finalTranscript += transcript + ' ';
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+            
+            // Send to display handler
+            this.handleBrowserTranscript({
+                final: finalTranscript,
+                interim: interimTranscript,
+                confidence: event.results[event.resultIndex]?.[0]?.confidence || 0
+            });
+        };
+        
+        this.browserRecognition.onerror = (event) => {
+            console.error('[TRANSCRIPTION SIDEBAR] Speech recognition error:', event.error);
+            if (event.error === 'audio-capture') {
+                console.warn('[TRANSCRIPTION SIDEBAR] Microphone already in use - using Whisper backend only');
+            }
+            this.browserRecognitionActive = false;
+        };
+        
+        this.browserRecognition.onend = () => {
+            console.log('[TRANSCRIPTION SIDEBAR] Browser recognition ended');
+            this.browserRecognitionActive = false;
+        };
+        
+        console.log('[TRANSCRIPTION SIDEBAR] Web Speech API initialized');
+    }
+    
+    /**
+     * ✅ NEW: Stream transcript to chat input field (for chat button)
+     */
+    streamToChatInput(final, interim) {
+        const chatInput = document.getElementById('ai-chat-input');
+        if (!chatInput) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Chat input not found');
+            return;
+        }
+        
+        // For chat input, only show final results (not interim)
+        // This prevents jumpy text updates while typing
+        if (final && final.trim()) {
+            const currentText = chatInput.value;
+            
+            // Append final text with space separator if there's existing content
+            if (currentText && !currentText.endsWith(' ')) {
+                chatInput.value = currentText + ' ' + final.trim();
+            } else {
+                chatInput.value = currentText + final.trim();
+            }
+            
+            // Auto-resize textarea if it has auto-resize functionality
+            if (typeof chatInput.style.height !== 'undefined') {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = chatInput.scrollHeight + 'px';
+            }
+            
+            // Trigger input event for any listeners
+            chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            console.log('[TRANSCRIPTION SIDEBAR] Streamed to chat input:', final.trim());
+        }
+    }
+    
+    /**
+     * ✅ Handle recording start (called by SharedTranscriptionState)
+     */
+    handleRecordingStart() {
+        console.log('[TRANSCRIPTION SIDEBAR] Recording started callback');
+        this.handleSTTStart();
+    }
+    
+    /**
+     * ✅ Handle recording stop (called by SharedTranscriptionState)
+     */
+    handleRecordingStop() {
+        console.log('[TRANSCRIPTION SIDEBAR] Recording stopped callback');
+        this.handleSTTStop();
+        
+        // Send audio to Whisper
+        this.sendAudioToWhisper();
+    }
+    
+    /**
+     * ✅ Handle recording error (called by SharedTranscriptionState)
+     */
+    handleRecordingError(error) {
+        console.error('[TRANSCRIPTION SIDEBAR] Recording error:', error);
+        // Reset UI
+        const recordBtn = document.getElementById('stt-record-btn');
+        if (recordBtn) {
+            recordBtn.textContent = 'Start Recording';
+            recordBtn.classList.remove('recording');
+        }
+    }
+    
+    /**
+     * ✅ NEW: Send recorded audio to Whisper backend
+     */
+    async sendAudioToWhisper() {
+        const audioBlob = this.sharedState.getAudioBlob();
+        
+        if (!audioBlob) {
+            console.warn('[TRANSCRIPTION SIDEBAR] No audio to send');
+            return;
+        }
+        
+        console.log('[TRANSCRIPTION SIDEBAR] Sending audio to Whisper:', {
+            size: audioBlob.size,
+            type: audioBlob.type,
+            chunks: this.audioChunks.length
+        });
+        
+        // Get settings
+        const settings = this.getSTTSettings();
+        
+        // Create FormData
+        const formData = new FormData();
+        formData.append('file', audioBlob, `recording_${Date.now()}.webm`);
+        formData.append('session_id', `sidebar_${Date.now()}`);
+        
+        try {
+            // Send to Whisper backend
+            const response = await fetch(settings.whisperEndpoint, {
+                method: 'POST',
+                headers: settings.apiKey ? { 'X-API-Key': settings.apiKey } : {},
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Whisper API error: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('[TRANSCRIPTION SIDEBAR] Whisper result:', result);
+            
+            // Add to transcript collection
+            if (result.transcript || result.text) {
+                this.addSTTTranscript(result.transcript || result.text);
+                console.log('[TRANSCRIPTION SIDEBAR] Whisper transcript saved to collection');
+            }
+            
+            // Update statistics
+            this.statistics.totalChunks++;
+            this.updateStatistics();
+            
+        } catch (error) {
+            console.error('[TRANSCRIPTION SIDEBAR] Failed to send audio to Whisper:', error);
+            // Non-fatal - browser transcript is already displayed
+        }
+    }
+    
+    /**
+     * ✅ NEW: Handle browser speech recognition results (instant streaming)
+     * Routes to sidebar display OR chat input based on recording source
+     */
+    handleBrowserTranscript(event, source) {
+        const { final, interim } = event;
+        
+        // Route to correct destination based on source
+        if (source === 'chat') {
+            // Stream to chat input field
+            this.streamToChatInput(final, interim);
+            return;
+        }
+        
+        // Default: Stream to sidebar display
+        const liveDisplay = document.getElementById('transcription-live-display');
+        if (!liveDisplay) return;
+        
+        // Update interim segment (gray italic) - V7_MustCare pattern
+        if (interim && interim.trim()) {
+            if (this.currentInterimElement) {
+                // ✅ REUSE element for smooth streaming
+                this.currentInterimElement.textContent = interim.trim();
+            } else {
+                // Create new interim element
+                const interimDiv = document.createElement('div');
+                interimDiv.className = 'interim';
+                interimDiv.style.cssText = `
+                    color: #8b949e;
+                    font-style: italic;
+                    opacity: 0.85;
+                    padding: 4px 0;
+                `;
+                interimDiv.textContent = interim.trim();
+                liveDisplay.appendChild(interimDiv);
+                this.currentInterimElement = interimDiv;
+            }
+            
+            // Auto-scroll
+            liveDisplay.scrollTop = liveDisplay.scrollHeight;
+        }
+        
+        // Finalize segment (white normal) - V7_MustCare pattern
+        if (final && final.trim()) {
+            if (this.currentInterimElement) {
+                // ✅ Convert interim to final (style change)
+                this.currentInterimElement.className = 'final';
+                this.currentInterimElement.style.cssText = `
+                    color: var(--text-primary, #c9d1d9);
+                    font-style: normal;
+                    padding: 4px 0;
+                `;
+                this.currentInterimElement.textContent = final.trim();
+                this.currentInterimElement = null; // Clear for next segment
+            } else {
+                // No interim to finalize - add directly
+                const finalDiv = document.createElement('div');
+                finalDiv.className = 'final';
+                finalDiv.style.cssText = `
+                    color: var(--text-primary, #c9d1d9);
+                    padding: 4px 0;
+                `;
+                finalDiv.textContent = final.trim();
+                liveDisplay.appendChild(finalDiv);
+            }
+            
+            // Auto-scroll
+            liveDisplay.scrollTop = liveDisplay.scrollHeight;
+        }
+    }
+    
+    /**
+     * Toggle recording (uses SharedTranscriptionState - connected to chat button)
+     */
+    toggleRecording() {
+        console.log('[TRANSCRIPTION SIDEBAR] toggleRecording called', {
+            isRecording: this.sharedState.isRecording
+        });
+        
+        if (this.sharedState.isRecording) {
+            console.log('[TRANSCRIPTION SIDEBAR] Stopping recording via shared state...');
+            this.sharedState.stopRecording();
         } else {
-            this.sttModule.startRecording();
+            console.log('[TRANSCRIPTION SIDEBAR] Starting recording via shared state...');
+            
+            // Clear previous segments
+            this.currentInterimElement = null;
+            const liveDisplay = document.getElementById('transcription-live-display');
+            if (liveDisplay) {
+                liveDisplay.innerHTML = '';
+            }
+            
+            this.sharedState.startRecording('sidebar')
+                .catch(error => {
+                    console.error('[TRANSCRIPTION SIDEBAR] Failed to start:', error);
+                    alert('Could not start recording: ' + error.message);
+                });
         }
     }
 
@@ -260,11 +708,19 @@ class TranscriptionSidebarController {
     }
 
     handleSTTTranscript(event) {
-        console.log('[TRANSCRIPTION SIDEBAR] STT transcript received:', event.transcript);
+        console.log('[TRANSCRIPTION SIDEBAR] STT transcript received (Whisper chunk):', event.transcript);
+        console.log('[TRANSCRIPTION SIDEBAR] Event data:', event);
         
         // Update UI
-        document.getElementById('stt-state').textContent = 'Complete';
-        document.getElementById('stt-state').style.color = '#10b981';
+        const stateElement = document.getElementById('stt-state');
+        if (stateElement) {
+            stateElement.textContent = 'Processing';
+            stateElement.style.color = '#58a6ff';
+        }
+
+        // ✅ NOTE: Live display is handled by browser speech recognition (instant)
+        // Whisper chunks are just for backend storage and accuracy verification
+        console.log('[TRANSCRIPTION SIDEBAR] Whisper chunk saved for storage (live display via browser API)');
 
         // Add to transcript collection
         this.addSTTTranscript(event.transcript);
@@ -748,7 +1204,7 @@ class TranscriptionSidebarController {
      */
     getSTTSettings() {
         return {
-            whisperEndpoint: document.getElementById('transcription-whisper-endpoint')?.value || 'http://localhost:3001/api/v1/transcribe',
+            whisperEndpoint: document.getElementById('transcription-whisper-endpoint')?.value || 'http://localhost:5001/api/transcribe',
             apiKey: document.getElementById('transcription-api-key')?.value || null,
             insertMode: document.getElementById('transcription-insert-mode')?.value || 'append',
             chunkSize: parseInt(document.getElementById('transcription-chunk-size')?.value || 5000),

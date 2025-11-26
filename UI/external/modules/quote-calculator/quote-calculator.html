@@ -1,0 +1,275 @@
+<!-- Quote Calculator Module Sidebar -->
+<div id="quote_calculator-sidebar" class="module-sidebar" style="display: none;">
+    <div class="module-sidebar-header">
+        <h2>
+            <i class="fas fa-calculator"></i>
+            Quote Calculator
+        </h2>
+        <button class="close-module-btn" onclick="window.moduleLoader.toggleModule('quote_calculator')">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="module-sidebar-content">
+        <!-- Sub-tab Navigation -->
+        <div class="module-sub-tabs">
+            <button class="module-sub-tab active" data-tab="business-cards">
+                <i class="fas fa-id-card"></i> Business Cards
+            </button>
+            <button class="module-sub-tab" data-tab="flyers">
+                <i class="fas fa-file-alt"></i> Flyers
+            </button>
+            <button class="module-sub-tab" data-tab="booklets">
+                <i class="fas fa-book"></i> Booklets
+            </button>
+            <button class="module-sub-tab" data-tab="perfect-bound-books">
+                <i class="fas fa-book-open"></i> Perfect Bound Books
+            </button>
+            <button class="module-sub-tab" data-tab="corflute-signs">
+                <i class="fas fa-sign"></i> Corflute Signs
+            </button>
+            <button class="module-sub-tab" data-tab="stocks">
+                <i class="fas fa-warehouse"></i> Stock List
+            </button>
+        </div>
+
+        <!-- Tab Content Panels -->
+        <div id="business-cards" class="module-sub-tab-content active">
+            <div class="calculator-form">
+                <h3><i class="fas fa-id-card"></i> Business Cards Quote</h3>
+                <p class="calculator-description">Calculate professional business card printing quotes</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bc-quantity">Quantity</label>
+                        <input type="number" id="bc-quantity" class="form-control" value="250" min="1" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bc-stock">Stock Type</label>
+                        <select id="bc-stock" class="form-control">
+                            <option value="standard">350GSM Satin</option>
+                            <option value="premium">400GSM Silk</option>
+                            <option value="gloss">350GSM Gloss</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bc-sides">Printing Sides</label>
+                        <select id="bc-sides" class="form-control">
+                            <option value="single">Single Sided</option>
+                            <option value="double">Double Sided</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bc-finish">Finish</label>
+                        <select id="bc-finish" class="form-control">
+                            <option value="none">None</option>
+                            <option value="matt">Matt Celloglaze</option>
+                            <option value="gloss">Gloss Celloglaze</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-calculate" id="bc-calculate-btn">
+                    <i class="fas fa-calculator"></i> Calculate Quote
+                </button>
+
+                <div id="bc-result" class="result-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="flyers" class="module-sub-tab-content">
+            <div class="calculator-form">
+                <h3><i class="fas fa-file-alt"></i> Flyers & Leaflets Quote</h3>
+                <p class="calculator-description">Digital printing for flyers and promotional materials</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fl-quantity">Quantity</label>
+                        <input type="number" id="fl-quantity" class="form-control" value="500" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fl-size">Size</label>
+                        <select id="fl-size" class="form-control">
+                            <option value="A4">A4</option>
+                            <option value="A5">A5</option>
+                            <option value="A6">A6</option>
+                            <option value="DL">DL</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fl-stock">Stock</label>
+                        <select id="fl-stock" class="form-control">
+                            <option value="150gsm-gloss">150GSM Gloss</option>
+                            <option value="200gsm-gloss">200GSM Gloss</option>
+                            <option value="250gsm-silk">250GSM Silk</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fl-color">Color</label>
+                        <select id="fl-color" class="form-control">
+                            <option value="4-0">Full Color (4/0)</option>
+                            <option value="4-4">Full Color Both Sides (4/4)</option>
+                            <option value="1-0">Black Only (1/0)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-calculate" id="fl-calculate-btn">
+                    <i class="fas fa-calculator"></i> Calculate Quote
+                </button>
+
+                <div id="fl-result" class="result-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="booklets" class="module-sub-tab-content">
+            <div class="calculator-form">
+                <h3><i class="fas fa-book"></i> Booklets Quote</h3>
+                <p class="calculator-description">Saddle-stitched booklet printing</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bk-quantity">Quantity</label>
+                        <input type="number" id="bk-quantity" class="form-control" value="100" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bk-pages">Total Pages</label>
+                        <input type="number" id="bk-pages" class="form-control" value="24" min="4" step="4">
+                        <small class="form-text">Must be multiple of 4</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bk-size">Size</label>
+                        <select id="bk-size" class="form-control">
+                            <option value="A4">A4</option>
+                            <option value="A5">A5</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bk-cover">Cover Stock</label>
+                        <select id="bk-cover" class="form-control">
+                            <option value="250gsm">250GSM Silk</option>
+                            <option value="300gsm">300GSM Silk</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-calculate" id="bk-calculate-btn">
+                    <i class="fas fa-calculator"></i> Calculate Quote
+                </button>
+
+                <div id="bk-result" class="result-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="perfect-bound-books" class="module-sub-tab-content">
+            <div class="calculator-form">
+                <h3><i class="fas fa-book-open"></i> Perfect Bound Books Quote</h3>
+                <p class="calculator-description">Professional perfect bound book printing</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="pb-quantity">Quantity</label>
+                        <input type="number" id="pb-quantity" class="form-control" value="50" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pb-pages">Total Pages</label>
+                        <input type="number" id="pb-pages" class="form-control" value="100" min="40">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="pb-size">Size</label>
+                        <select id="pb-size" class="form-control">
+                            <option value="A4">A4</option>
+                            <option value="A5">A5</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pb-cover">Cover Type</label>
+                        <select id="pb-cover" class="form-control">
+                            <option value="soft">Soft Cover</option>
+                            <option value="hard">Hard Cover</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-calculate" id="pb-calculate-btn">
+                    <i class="fas fa-calculator"></i> Calculate Quote
+                </button>
+
+                <div id="pb-result" class="result-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="corflute-signs" class="module-sub-tab-content">
+            <div class="calculator-form">
+                <h3><i class="fas fa-sign"></i> Corflute Signs Quote</h3>
+                <p class="calculator-description">Corflute signage with tier pricing</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cs-quantity">Quantity</label>
+                        <input type="number" id="cs-quantity" class="form-control" value="10" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cs-thickness">Thickness</label>
+                        <select id="cs-thickness" class="form-control">
+                            <option value="3mm">3mm</option>
+                            <option value="5mm">5mm</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cs-width">Width (mm)</label>
+                        <input type="number" id="cs-width" class="form-control" value="600" min="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cs-height">Height (mm)</label>
+                        <input type="number" id="cs-height" class="form-control" value="900" min="100">
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-calculate" id="cs-calculate-btn">
+                    <i class="fas fa-calculator"></i> Calculate Quote
+                </button>
+
+                <div id="cs-result" class="result-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="stocks" class="module-sub-tab-content">
+            <div class="calculator-form">
+                <h3><i class="fas fa-warehouse"></i> Stock List</h3>
+                <p class="calculator-description">Available paper stocks and materials</p>
+
+                <button class="btn btn-primary btn-calculate" id="stocks-load-btn">
+                    <i class="fas fa-sync-alt"></i> Load Stock List
+                </button>
+
+                <div id="stocks-result" class="result-panel" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>

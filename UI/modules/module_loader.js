@@ -332,12 +332,38 @@ class ModuleLoader {
             // Mark as loaded
             this.loadedModules.add(moduleId);
 
+            // Initialize module if it has an init function
+            await this.initializeModule(moduleId);
+
             console.log(`[ModuleLoader] Successfully loaded module: ${module.name}`);
             return true;
 
         } catch (error) {
             console.error(`[ModuleLoader] Failed to load module ${moduleId}:`, error);
             return false;
+        }
+    }
+
+    /**
+     * Initialize module after HTML and JS are loaded
+     * 
+     * @param {string} moduleId - Module ID to initialize
+     */
+    async initializeModule(moduleId) {
+        console.log(`[ModuleLoader] Initializing module: ${moduleId}`);
+
+        // Check if module has initialization in window.ModuleRegistry
+        if (window.ModuleRegistry && window.ModuleRegistry[moduleId]) {
+            if (typeof window.ModuleRegistry[moduleId].init === 'function') {
+                try {
+                    await window.ModuleRegistry[moduleId].init();
+                    console.log(`[ModuleLoader] ✅ Module ${moduleId} initialized successfully`);
+                } catch (error) {
+                    console.error(`[ModuleLoader] ❌ Failed to initialize ${moduleId}:`, error);
+                }
+            }
+        } else {
+            console.log(`[ModuleLoader] No initialization function found for ${moduleId}`);
         }
     }
 
