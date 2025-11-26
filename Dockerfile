@@ -15,6 +15,7 @@ WORKDIR /app
 # - unixodbc unixodbc-dev: For pyodbc SQL Server connections
 # - freetds-dev: For pymssql SQL Server connections
 # - tesseract-ocr: For pytesseract OCR text extraction
+# - gnupg: For adding Microsoft's GPG key
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
@@ -26,8 +27,19 @@ RUN apt-get update && \
     unixodbc-dev \
     freetds-dev \
     tesseract-ocr \
+    gnupg \
+    apt-transport-https \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Microsoft ODBC Driver 18 for SQL Server
+# Required for pyodbc connections to SQL Server (Fred database)
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y msodbcsql18 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
