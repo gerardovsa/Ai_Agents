@@ -73,8 +73,14 @@ def _get_agent() -> ToolUseAgent:
         # On Render: /app/config/database-config.json
         # Locally: C:\Users\gpoli\GIT\AI_agents\config\database-config.json
         
-        # Check if running on Render.com (Docker container)
-        if os.environ.get('RENDER') == 'true':
+        # Detect if running on Render.com by checking multiple indicators
+        is_render = (
+            os.environ.get('RENDER') == 'true' or  # Explicit RENDER flag
+            'SUPABASE_DB_URL' in os.environ or      # Supabase env vars present
+            not sys.platform.startswith('win')       # Linux environment (Render uses Linux)
+        )
+        
+        if is_render:
             # Render deployment: Use /app root
             config_path = Path('/app/config/database-config.json')
         else:
@@ -84,7 +90,13 @@ def _get_agent() -> ToolUseAgent:
             config_path = Path(__file__).parent.parent.parent.parent.parent.parent / 'config' / 'database-config.json'
         
         if not config_path.exists():
-            raise FileNotFoundError(f"Database config not found: {config_path}")
+            raise FileNotFoundError(
+                f"Database config not found: {config_path}\n"
+                f"Detected environment: {'Render' if is_render else 'Local'}\n"
+                f"Platform: {sys.platform}\n"
+                f"Has SUPABASE_DB_URL: {'SUPABASE_DB_URL' in os.environ}\n"
+                f"Current file: {__file__}"
+            )
         
         print(f"[InHouse Wrapper] Initializing ToolUseAgent with config: {config_path}")
         _agent_instance = ToolUseAgent(str(config_path))
