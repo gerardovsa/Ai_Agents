@@ -122,18 +122,39 @@
 }
 
 @keyframes pulse-idle {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 @keyframes pulse-recording {
-    0%, 100% { opacity: 0.4; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.3); }
+
+    0%,
+    100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.3);
+    }
 }
 
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* =====================================================
@@ -197,7 +218,8 @@
 }
 
 .ai-transcription-autoclear-toggle[data-enabled="false"] i::before {
-    content: "\f204"; /* fa-toggle-off */
+    content: "\f204";
+    /* fa-toggle-off */
 }
 
 /* =====================================================
@@ -306,6 +328,7 @@
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -327,16 +350,16 @@
         border-radius: 0;
         max-height: 50vh;
     }
-    
+
     .ai-transcription-header {
         flex-wrap: wrap;
         gap: 8px;
     }
-    
+
     .ai-transcription-header-actions {
         flex-wrap: wrap;
     }
-    
+
     .ai-transcription-status {
         order: -1;
         width: 100%;
@@ -344,6 +367,7 @@
 }
 
 @media (max-width: 480px) {
+
     .ai-transcription-action-btn,
     .ai-transcription-collapse-btn,
     .ai-transcription-autoclear-toggle {
@@ -351,11 +375,11 @@
         height: 32px;
         font-size: 12px;
     }
-    
+
     .ai-transcription-header h4 {
         font-size: 13px;
     }
-    
+
     .ai-transcription-text {
         font-size: 13px;
         padding: 12px;
@@ -379,6 +403,160 @@ body.dark-mode .ai-transcription-header {
 body.dark-mode .ai-transcription-text {
     background: #0d1117;
     color: #e6edf3;
+}
+
+/* =====================================================
+   Transcript Text Styling (Dual-Mode Support)
+   ===================================================== */
+
+/* Final transcript text */
+.ai-transcript-final {
+    color: var(--text-primary, #e6edf3);
+    line-height: 1.6;
+    display: inline;
+}
+
+/* Interim transcript text (streaming as you speak) */
+.ai-transcript-interim {
+    color: var(--text-muted, #8b949e);
+    font-style: italic;
+    opacity: 0.8;
+    line-height: 1.6;
+    display: inline;
+    animation: pulse-interim 1.5s ease-in-out infinite;
+    position: relative;
+}
+
+/* Pulse animation for interim text */
+@keyframes pulse-interim {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Add typing cursor effect to interim text */
+.ai-transcript-interim::after {
+    content: '▋';
+    color: var(--accent-primary, #58a6ff);
+    animation: blink-cursor 1s step-end infinite;
+    margin-left: 2px;
+}
+
+@keyframes blink-cursor {
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* =====================================================
+   Confidence-Based Styling
+   ===================================================== */
+
+/* High confidence (browser STT 80%+, Whisper default) */
+.ai-transcript-final[data-confidence="high"] {
+    color: #3fb950;
+    /* Green */
+    font-weight: 500;
+}
+
+/* Medium confidence (browser STT 50-79%) */
+.ai-transcript-final[data-confidence="medium"] {
+    color: #f0883e;
+    /* Orange */
+}
+
+/* Low confidence (browser STT <50%) */
+.ai-transcript-final[data-confidence="low"] {
+    color: #f85149;
+    /* Red */
+    opacity: 0.85;
+}
+
+/* Unknown confidence (no data) */
+.ai-transcript-final[data-confidence="unknown"] {
+    color: var(--text-primary, #e6edf3);
+}
+
+/* =====================================================
+   Source Indicators (optional visual badges)
+   ===================================================== */
+
+/* Add subtle indicator for Whisper transcripts */
+.ai-transcript-final[data-source="whisper"]::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #a371f7;
+    /* Purple for Whisper */
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    opacity: 0.6;
+}
+
+/* Add subtle indicator for browser STT */
+.ai-transcript-final[data-source="browser-stt"]::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #58a6ff;
+    /* Blue for browser STT */
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    opacity: 0.6;
+}
+
+/* =====================================================
+   Hover Effects for Confidence Visualization
+   ===================================================== */
+
+.ai-transcript-final:hover {
+    background: rgba(88, 166, 255, 0.1);
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    cursor: default;
+    transition: all 0.2s ease;
+}
+
+/* Show confidence tooltip on hover */
+.ai-transcript-final:hover::after {
+    content: attr(data-source) ' - ' attr(data-confidence) ' confidence';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.ai-transcript-final:hover::after {
+    opacity: 1;
 }
 
 /* =====================================================

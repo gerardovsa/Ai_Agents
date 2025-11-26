@@ -57,7 +57,8 @@ if (window.TranscriptionStreaming) {
 console.log('\n📝 NEXT STEPS:');
 console.log('  1. If container appeared, click microphone button to test recording');
 console.log('  2. If not appearing, check Network tab for failed file loads');
-console.log('  3. Make sure Whisper backend is running: http://localhost:3001/api/v1/system/check');
+console.log('  3. Make sure Whisper backend is running. Check URL with: getTranscriptionConfig()');
+console.log('     Default endpoint:', window.TranscriptionConfig ? window.TranscriptionConfig.getEndpoint('systemCheck') : 'http://localhost:5001/api/system/check');
 console.log('  4. Hard refresh browser: Ctrl+Shift+R');
 
 console.log('\n✅ DIAGNOSTIC COMPLETE');

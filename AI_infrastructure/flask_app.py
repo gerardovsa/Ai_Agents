@@ -148,6 +148,7 @@ from routes.render_routes import render_bp  # NEW: Render cloud management (depl
 from routes.file_routes import file_bp  # NEW: File storage management (upload, download, delete)
 from routes.prompt_library_routes import prompt_routes  # NEW: Prompt library (database-backed prompt management)
 from routes.token_routes import token_routes  # NEW: Token tracking (real-time token counts for threads)
+from routes.transcription_routes import transcription_bp  # NEW: Voice/audio transcription with Whisper API
 from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-device session management)
 from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool monitoring dashboard
 from routes.monitoring_routes import monitoring_bp  # NEW: Connection pool health monitoring (Supabase optimization)
@@ -155,6 +156,8 @@ from routes.search_routes import search_bp  # NEW: Supabase full-text and semant
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
 from routes.vector_db.vector_db_routes import vector_db_bp  # NEW: Vector database management (Pinecone integration, 9 endpoints)
 from routes.module_routes import module_bp  # NEW: Self-registering module system (8 endpoints)
+from routes.session_management_routes import session_management_bp  # NEW: Session management (list/revoke sessions, 3 endpoints)
+from routes.connection_routes import connections_bp  # Platform connections (2 endpoints)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -297,6 +300,8 @@ app.register_blueprint(account_linking_bp)                           # NEW: Acco
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
 # app.register_blueprint(database_visualizer_bp)                       # DISABLED: Needs migration to Supabase PostgreSQL
 app.register_blueprint(synergy_bp)                                   # NEW: Synergy Dashboard (6 endpoints: /api/synergy/*)
+app.register_blueprint(session_management_bp)                        # NEW: Session management (3 endpoints: list, revoke session, revoke all)
+app.register_blueprint(connections_bp)                               # Platform connections (2 endpoints: list, disconnect)
 app.register_blueprint(scheduler_bp)                                 # NEW: AI Automation Scheduler (10 endpoints: /api/scheduler/*)
 app.register_blueprint(automation_bp)                                # NEW: Visual Automation Canvas (9 endpoints: /api/automation/*)
 if INHOUSE_KANBAN_AVAILABLE:
@@ -314,6 +319,7 @@ app.register_blueprint(render_bp)                                    # NEW: Rend
 app.register_blueprint(prompt_routes)                                # NEW: Prompt library (10 endpoints: /api/prompts/*)
 app.register_blueprint(search_bp)                                    # NEW: Supabase search system (5 endpoints: /api/search/*)
 app.register_blueprint(token_routes)                                 # NEW: Token tracking (3 endpoints: /api/tokens/*)
+app.register_blueprint(transcription_bp)                             # NEW: Voice/audio transcription (2 endpoints: /api/transcribe, /api/system/check)
 app.register_blueprint(vector_db_bp)                                 # NEW: Vector database management (9 endpoints: /api/vector-db/*)
 app.register_blueprint(pool_monitor_bp)                              # NEW: Connection pool monitoring (4 endpoints: /api/pool/*)
 app.register_blueprint(monitoring_bp)                                # NEW: Connection pool health monitoring (4 endpoints: /api/pool/stats, /api/pool/health)

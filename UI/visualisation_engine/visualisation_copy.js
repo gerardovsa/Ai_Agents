@@ -927,6 +927,7 @@ class VisualizationEngine {
             box-sizing: border-box;
             height: auto; /* NCREASED: 300px → 450px to prevent truncation */
             padding-top: 40px;
+            border: 1px solid var(--border-default);
         }
 
         /* irect content area - auto-size to its content; hide when empty to avoid gaps */

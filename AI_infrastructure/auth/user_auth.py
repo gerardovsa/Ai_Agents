@@ -282,6 +282,34 @@ class UserAuthManager:
                         )
                     ''')
                     
+                    # Credential audit log table
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS credential_audit_log (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            platform TEXT NOT NULL,
+                            tool_name TEXT,
+                            access_type TEXT DEFAULT 'read',
+                            query_executed TEXT,
+                            ip_address TEXT,
+                            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            success BOOLEAN DEFAULT 1,
+                            error_message TEXT,
+                            session_id TEXT,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                        )
+                    ''')
+                    
+                    # Create indexes for audit log queries
+                    cursor.execute('''
+                        CREATE INDEX IF NOT EXISTS idx_audit_user_platform 
+                        ON credential_audit_log(user_id, platform)
+                    ''')
+                    cursor.execute('''
+                        CREATE INDEX IF NOT EXISTS idx_audit_timestamp 
+                        ON credential_audit_log(timestamp DESC)
+                    ''')
+                    
                     conn.commit()
                     log_db(logger, "User authentication tables initialized")
                     break  # Success - exit retry loop
@@ -786,12 +814,73 @@ class UserAuthManager:
             traceback.print_exc()
             return {'success': False, 'error': str(e)}
     
-    def get_platform_credentials(self, user_id: int, platform: str, 
-                                 include_settings: bool = False,
-                                 include_metadata: bool = False) -> Dict[str, str]:
-        """Get all credentials for a platform for this user"""
+    def log_credential_access(self, user_id: int, platform: str, tool_name: str = None,
+                              access_type: str = 'read', query: str = None,
+                              success: bool = True, error_message: str = None):
+        """
+        Log credential access for audit trail
         
-        # ✅ CRITICAL FIX: Wrap ENTIRE method in try/except to ensure cleanup
+        Args:
+            user_id: User ID accessing credentials
+            platform: Platform being accessed (google, microsoft, inhouse_print, etc.)
+            tool_name: Tool/function name requesting credentials
+            access_type: Type of access (read, write, delete)
+            query: SQL query or API endpoint (truncated to 500 chars)
+            success: Whether access was successful
+            error_message: Error message if access failed
+        """
+        try:
+            with get_connection('ai_infrastructure') as conn:
+                cursor = conn.cursor()
+                
+                # Get IP address from Flask request context (if available)
+                ip_address = None
+                try:
+                    from flask import request
+                    ip_address = request.remote_addr if request else None
+                except (ImportError, RuntimeError):
+                    pass
+                
+                # Truncate long queries
+                if query and len(query) > 500:
+                    query = query[:500] + '... [truncated]'
+                
+                # 🔴 CRITICAL: Use PostgreSQL placeholders %s (NOT SQLite ?)
+                cursor.execute('''
+                    INSERT INTO ai_infrastructure.credential_audit_log 
+                    (user_id, platform, tool_name, access_type, query_executed, 
+                     ip_address, success, error_message)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    user_id, platform, tool_name, access_type, query,
+                    ip_address, success, error_message
+                ))
+                conn.commit()
+                
+        except Exception as e:
+            # Don't fail the main operation if logging fails
+            logger.warning(f'Failed to log credential access: {e}')
+    
+    def get_platform_credentials(self, user_id: int, platform: str, 
+                             include_settings: bool = False,
+                             include_metadata: bool = False) -> Dict[str, str]:
+        """
+        Get all credentials for a platform for this user with flexible schema support
+        
+        Args:
+            user_id: User ID
+            platform: Platform name
+            include_settings: Include settings dict in response (default: False)
+            include_metadata: Include validation/rotation metadata (default: False)
+        
+        Returns:
+            Dict of credentials from JSONB column or oauth_tokens table
+        
+        ✅ CRITICAL FIX: No early returns inside with block to prevent leaks
+        """
+        # ✅ Initialize result BEFORE with block
+        result = {}
+        
         try:
             with get_connection('ai_infrastructure') as conn:
                 cursor = conn.cursor()
@@ -809,87 +898,75 @@ class UserAuthManager:
                 
                 oauth_platform = platform_aliases.get(platform.lower(), platform.lower())
                 
-                # Try oauth_tokens table first
+                # Try oauth_tokens table first (for OAuth platforms)
                 try:
                     cursor.execute('''
-                        SELECT 'access_token' as credential_key, access_token as credential_value
+                        SELECT access_token
                         FROM ai_infrastructure.oauth_tokens
                         WHERE user_id = %s AND platform = %s AND is_active = TRUE
                         ORDER BY updated_at DESC
                         LIMIT 1
                     ''', (user_id, oauth_platform))
                     
-                    oauth_tokens = {
-                        (row[0] if not isinstance(row, dict) else row['credential_key']): 
-                        (row[1] if not isinstance(row, dict) else row['credential_value'])
-                        for row in cursor.fetchall()
-                    }
+                    oauth_row = cursor.fetchone()
                     
-                    if oauth_tokens:
+                    if oauth_row:
+                        access_token = oauth_row['access_token'] if isinstance(oauth_row, dict) else oauth_row[0]
                         logger.debug(f"Found OAuth credentials for user {user_id}, platform {oauth_platform}")
-                        return oauth_tokens
+                        result = {'access_token': access_token}
+                        # ✅ DON'T return here - continue to end of with block
+                        
                 except Exception as e:
-                    # OAuth table query failed - log and continue to platform credentials
                     print(f"⚠️ OAuth token lookup failed: {e}")
+                    # Continue to try platform credentials
                 
-                # Try user_platform_credentials table (may not exist yet)
-                try:
-                    # Build query based on requested data
-                    select_fields = ['credentials']
-                    if include_settings:
-                        select_fields.append('settings')
-                    if include_metadata:
-                        select_fields.extend(['validation_status', 'last_validated_at', 'rotation_due_at'])
-                    
-                    query = f'''
-                        SELECT {', '.join(select_fields)}
-                        FROM ai_infrastructure.user_platform_credentials
-                        WHERE user_id = %s AND platform = %s AND is_active = TRUE
-                        ORDER BY updated_at DESC
-                        LIMIT 1
-                    '''
-                    
-                    cursor.execute(query, (user_id, platform))
-                    row = cursor.fetchone()
-                    
-                    if not row:
-                        return {}
-                    
-                    # Parse response based on request
-                    if include_settings or include_metadata:
+                # If OAuth didn't find anything, try user_platform_credentials
+                if not result:
+                    try:
+                        cursor.execute('''
+                            SELECT credential_key, credential_value
+                            FROM ai_infrastructure.user_platform_credentials
+                            WHERE user_id = %s AND platform = %s AND is_active = TRUE
+                        ''', (user_id, platform))
+                        
+                        rows = cursor.fetchall()
+                        
+                        if rows:
+                            result = {}
+                            for row in rows:
+                                key = row['credential_key'] if isinstance(row, dict) else row[0]
+                                value = row['credential_value'] if isinstance(row, dict) else row[1]
+                                result[key] = value
+                            
+                    except Exception as e:
+                        print(f"⚠️ Platform credentials lookup failed: {e}")
                         result = {}
-                        
-                        creds = row[0] if not isinstance(row, dict) else row['credentials']
-                        result['credentials'] = creds if isinstance(creds, dict) else json.loads(creds) if creds else {}
-                        
-                        if include_settings:
-                            settings = row[1] if not isinstance(row, dict) else row.get('settings', {})
-                            result['settings'] = settings if isinstance(settings, dict) else json.loads(settings) if settings else {}
-                        
-                        if include_metadata:
-                            if isinstance(row, dict):
-                                result['validation_status'] = row.get('validation_status', 'unvalidated')
-                                result['last_validated_at'] = str(row.get('last_validated_at')) if row.get('last_validated_at') else None
-                                result['rotation_due_at'] = str(row.get('rotation_due_at')) if row.get('rotation_due_at') else None
-                            else:
-                                base_idx = 2 if include_settings else 1
-                                result['validation_status'] = row[base_idx] if len(row) > base_idx else 'unvalidated'
-                                result['last_validated_at'] = str(row[base_idx + 1]) if len(row) > base_idx + 1 and row[base_idx + 1] else None
-                                result['rotation_due_at'] = str(row[base_idx + 2]) if len(row) > base_idx + 2 and row[base_idx + 2] else None
-                        
-                        return result
-                    else:
-                        creds = row[0] if not isinstance(row, dict) else row['credentials']
-                        return creds if isinstance(creds, dict) else json.loads(creds) if creds else {}
-                        
-                except Exception as e:
-                    # Table doesn't exist or query failed
-                    print(f"⚠️ Platform credentials lookup failed (table may not exist): {e}")
-                    return {}
-        
+            
+            # ✅ Log successful credential access
+            if result:
+                self.log_credential_access(
+                    user_id=user_id,
+                    platform=platform,
+                    tool_name='get_platform_credentials',
+                    access_type='read',
+                    success=True
+                )
+            
+            # ✅ Return AFTER with block closes connection
+            return result
+            
         except Exception as e:
-            # Catch-all to ensure we never leak connections
+            # ✅ Final safety net - ensure we never leak
             print(f"❌ get_platform_credentials error: {e}")
+            # Log failed access
+            self.log_credential_access(
+                user_id=user_id,
+                platform=platform,
+                tool_name='get_platform_credentials',
+                access_type='read',
+                success=False,
+                error_message=str(e)
+            )
             return {}
     
     def get_user_credential(self, user_id: int, platform: str, credential_key: str) -> Optional[str]:
@@ -1432,6 +1509,73 @@ class UserAuthManager:
                 'error': 'Username or email already exists' if 'UNIQUE' in str(e) else str(e)
             }
     
+    def parse_user_agent(self, user_agent: str) -> dict:
+        """
+        Parse user agent string to extract device info
+        
+        Args:
+            user_agent: User agent string from request headers
+        
+        Returns:
+            dict: {browser, browser_version, os, os_version, device_type}
+        """
+        if not user_agent:
+            return {}
+        
+        ua_lower = user_agent.lower()
+        device_info = {}
+        
+        # Detect browser
+        if 'edg/' in ua_lower or 'edge/' in ua_lower:
+            device_info['browser'] = 'Edge'
+            if 'edg/' in ua_lower:
+                device_info['browser_version'] = user_agent.split('Edg/')[1].split()[0] if 'Edg/' in user_agent else ''
+        elif 'chrome/' in ua_lower and 'safari/' in ua_lower and 'edg/' not in ua_lower:
+            device_info['browser'] = 'Chrome'
+            device_info['browser_version'] = user_agent.split('Chrome/')[1].split()[0] if 'Chrome/' in user_agent else ''
+        elif 'firefox/' in ua_lower:
+            device_info['browser'] = 'Firefox'
+            device_info['browser_version'] = user_agent.split('Firefox/')[1].split()[0] if 'Firefox/' in user_agent else ''
+        elif 'safari/' in ua_lower and 'chrome/' not in ua_lower:
+            device_info['browser'] = 'Safari'
+            device_info['browser_version'] = user_agent.split('Version/')[1].split()[0] if 'Version/' in user_agent else ''
+        else:
+            device_info['browser'] = 'Unknown'
+            device_info['browser_version'] = ''
+        
+        # Detect OS
+        if 'windows nt 10.0' in ua_lower:
+            device_info['os'] = 'Windows'
+            device_info['os_version'] = '11' if 'windows nt 10.0' in ua_lower else '10'
+        elif 'windows nt' in ua_lower:
+            device_info['os'] = 'Windows'
+            device_info['os_version'] = user_agent.split('Windows NT ')[1].split(';')[0] if 'Windows NT' in user_agent else ''
+        elif 'mac os x' in ua_lower or 'macos' in ua_lower:
+            device_info['os'] = 'MacOS'
+            device_info['os_version'] = user_agent.split('Mac OS X ')[1].split(')')[0].replace('_', '.') if 'Mac OS X' in user_agent else ''
+        elif 'linux' in ua_lower:
+            device_info['os'] = 'Linux'
+            device_info['os_version'] = ''
+        elif 'android' in ua_lower:
+            device_info['os'] = 'Android'
+            device_info['os_version'] = user_agent.split('Android ')[1].split(';')[0] if 'Android ' in user_agent else ''
+        elif 'iphone' in ua_lower or 'ipad' in ua_lower:
+            device_info['os'] = 'iOS'
+            device_info['os_version'] = user_agent.split('OS ')[1].split()[0].replace('_', '.') if ' OS ' in user_agent else ''
+        else:
+            device_info['os'] = 'Unknown'
+            device_info['os_version'] = ''
+        
+        # Detect device type
+        if 'mobile' in ua_lower or 'android' in ua_lower or 'iphone' in ua_lower:
+            device_info['device_type'] = 'mobile'
+        elif 'tablet' in ua_lower or 'ipad' in ua_lower:
+            device_info['device_type'] = 'tablet'
+        else:
+            device_info['device_type'] = 'desktop'
+        
+        return device_info
+    
     def create_session(self, user_id: int) -> str:
         """Create JWT session for user"""
         with get_connection('ai_infrastructure') as conn:
@@ -1459,15 +1603,31 @@ class UserAuthManager:
         
         token = jwt.encode(payload, self.jwt_secret, algorithm='HS256')
         
+        # Capture device info from Flask request context (if available)
+        device_info = {}
+        ip_address = None
+        user_agent = None
+        
+        try:
+            from flask import request
+            if request:
+                ip_address = request.remote_addr
+                user_agent = request.headers.get('User-Agent', '')
+                device_info = self.parse_user_agent(user_agent)
+        except (ImportError, RuntimeError):
+            pass
+        
         with get_connection('ai_infrastructure') as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO ai_infrastructure.user_sessions (user_id, token, expires_at)
-                VALUES (%s, %s, %s)
-            ''', (user_id, token, expiry.isoformat()))
+                INSERT INTO ai_infrastructure.user_sessions 
+                (user_id, token, expires_at, ip_address, user_agent, device_info)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (user_id, token, expiry.isoformat(), ip_address, user_agent, 
+                  json.dumps(device_info) if device_info else '{}'))
             conn.commit()
         
-        print(f"✅ Created session for user {user_id}")
+        print(f"✅ Created session for user {user_id} from {device_info.get('browser', 'Unknown')} on {device_info.get('os', 'Unknown')}")
         return token
     
     def verify_session(self, token: str) -> Optional[Dict]:

@@ -18,7 +18,32 @@
  * @updated 2025-11-03 15:30 - Fixed StageID filtering
  */
 
-console.log('🔷 InHouse Kanban Module Loading - VERSION 2.0 - StageID Filtering ACTIVE');
+console.log('🔷 InHouse Kanban Module Loading - VERSION 3.0 - BaseModule.initialize() + analyticsApiBase FIXED');
+
+// BaseModule polyfill (lightweight replacement since BaseModule.js not loaded)
+class BaseModule {
+    constructor(moduleId) {
+        this.moduleId = moduleId;
+        this.manifest = null;
+        this.backendUrl = window.API_BASE_URL || 'http://localhost:5001';
+        console.log(`✅ BaseModule constructor - moduleId: ${moduleId}, backendUrl: ${this.backendUrl}`);
+    }
+    
+    async initialize() {
+        console.log(`✅ BaseModule.initialize() called for ${this.moduleId}`);
+        try {
+            const response = await fetch(`${this.backendUrl}/api/modules/${this.moduleId}`);
+            if (response.ok) {
+                this.manifest = await response.json();
+                console.log(`✅ Manifest loaded for ${this.moduleId}:`, this.manifest);
+            } else {
+                console.warn(`⚠️ Failed to load manifest (HTTP ${response.status}), using defaults`);
+            }
+        } catch (error) {
+            console.warn(`⚠️ Failed to load manifest for ${this.moduleId}:`, error);
+        }
+    }
+}
 
 class InhouseKanbanModule extends BaseModule {
     constructor(moduleId) {
@@ -29,6 +54,7 @@ class InhouseKanbanModule extends BaseModule {
         // Configuration
         this.apiEndpoint = '/api/inhouse-kanban';
         this.API_BASE_URL = window.API_BASE_URL || 'http://localhost:5001';
+        this.analyticsApiBase = this.API_BASE_URL + '/api/inhouse-kanban'; // ✅ FIX: Initialize analytics API base URL
 
         // State management
         this.jobs = [];
@@ -905,21 +931,23 @@ class InhouseKanbanModule extends BaseModule {
      * Apply module-specific colors as CSS variables
      */
     applyModuleColors() {
-        // CRITICAL: Safe null-checking for manifest colors
+        // CRITICAL: Safe null-checking for manifest
         // Manifest is loaded by super.initialize(), check it exists
-        if (!this.manifest || !this.manifest.colors) {
-            console.warn('⚠️ Manifest or colors not available, using defaults');
+        if (!this.manifest) {
+            console.warn('⚠️ Manifest not loaded yet, skipping color application');
             return;
         }
 
-        const colors = this.manifest.colors;
+        // Use manifest.color (singular) as primary color
+        const primaryColor = this.manifest.color || '#00509E';
         const tabContainer = document.getElementById(`tab-${this.moduleId}`);
 
         if (tabContainer) {
-            tabContainer.style.setProperty('--module-primary', colors.primary);
-            tabContainer.style.setProperty('--module-secondary', colors.secondary);
-            tabContainer.style.setProperty('--module-hover', colors.hover);
-            tabContainer.style.setProperty('--module-primary-light', this.lightenColor(colors.primary, 0.1));
+            tabContainer.style.setProperty('--module-primary', primaryColor);
+            tabContainer.style.setProperty('--module-primary-light', this.lightenColor(primaryColor, 0.1));
+            console.log(`✅ Applied module colors: ${primaryColor}`);
+        } else {
+            console.warn(`⚠️ Tab container not found: tab-${this.moduleId}`);
         }
     }
 
@@ -2337,6 +2365,9 @@ class InhouseKanbanModule extends BaseModule {
             // Initialize drag and resize functionality
             this.initializeModalDragResize();
 
+            // Initialize collapsible sections
+            this.initializeCollapsibleSections();
+
             // Load production log entries
             this.loadProductionLogEntries(jobId);
 
@@ -2439,6 +2470,52 @@ class InhouseKanbanModule extends BaseModule {
 
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
+            });
+        });
+    }
+
+    /**
+     * Initialize collapsible sections in modal
+     */
+    initializeCollapsibleSections() {
+        const sectionTitles = document.querySelectorAll('.kanban-section-title');
+        
+        sectionTitles.forEach(title => {
+            // Make cursor pointer to indicate clickability
+            title.style.cursor = 'pointer';
+            title.style.userSelect = 'none';
+            
+            // Add chevron icon if not already present
+            if (!title.querySelector('.section-chevron')) {
+                const chevron = document.createElement('i');
+                chevron.className = 'fas fa-chevron-down section-chevron';
+                chevron.style.marginLeft = 'auto';
+                chevron.style.transition = 'transform 0.3s ease';
+                title.appendChild(chevron);
+            }
+            
+            // Add click handler
+            title.addEventListener('click', (e) => {
+                // Don't collapse if clicking a button inside the title
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                
+                const section = title.parentElement;
+                const content = section.querySelector('.kanban-section-content');
+                const chevron = title.querySelector('.section-chevron');
+                
+                if (content) {
+                    const isCollapsed = content.style.display === 'none';
+                    
+                    if (isCollapsed) {
+                        // Expand
+                        content.style.display = '';
+                        if (chevron) chevron.style.transform = 'rotate(0deg)';
+                    } else {
+                        // Collapse
+                        content.style.display = 'none';
+                        if (chevron) chevron.style.transform = 'rotate(-90deg)';
+                    }
+                }
             });
         });
     }
@@ -3983,7 +4060,8 @@ class InhouseKanbanModule extends BaseModule {
     }
 }
 
-// Register module with initialization
+// OLD REGISTRATION REMOVED - Module now uses simplified pattern at end of file
+/*
 window.ModuleRegistry = window.ModuleRegistry || {};
 window.ModuleRegistry['inhouse_print'] = {
     class: InhouseKanbanModule,
@@ -4137,7 +4215,25 @@ window.ModuleRegistry['inhouse_print'] = {
         console.log('Loading analytics...');
     }
 };
+*/
 
-console.log('✓ InHouse Kanban module registered as inhouse_print');
+// Module Registry Registration - NEW SIMPLIFIED PATTERN
+window.ModuleRegistry = window.ModuleRegistry || {};
+window.ModuleRegistry['inhouse-kanban'] = {
+    init: async () => {
+        console.log('🏭 Initializing InHouse Kanban Module...');
+        try {
+            const module = new InhouseKanbanModule('inhouse-kanban');
+            await module.initialize();
+            console.log('✅ InHouse Kanban Module initialized successfully');
+            return module;
+        } catch (error) {
+            console.error('❌ Failed to initialize InHouse Kanban Module:', error);
+            throw error;
+        }
+    }
+};
+
+console.log('📦 InHouse Kanban Module script loaded');
 
 

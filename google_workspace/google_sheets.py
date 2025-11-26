@@ -374,7 +374,7 @@ def google_sheets_append_data(spreadsheet_id, data, sheet_name='Sheet1', _user_i
 
 def google_sheets_read_data(spreadsheet_id, range_name='Sheet1!A1:Z1000', _user_id=None, _injected_credentials=None, **kwargs):
     """
-    Read data from Google Sheet
+    Read data from Google Sheet (LEGACY - use google_sheets_get_range instead)
     
     Args:
         spreadsheet_id (str): Source spreadsheet ID
@@ -413,6 +413,141 @@ def google_sheets_read_data(spreadsheet_id, range_name='Sheet1!A1:Z1000', _user_
     except Exception as e:
         # print(f"[ERROR] Failed to read data: {e}")
         raise
+
+
+def google_sheets_get_range(spreadsheet_id, range='', format='summary', _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Get spreadsheet data with format control to prevent token overflow
+    
+    FORMAT OPTIONS:
+    - 'summary' (DEFAULT): Returns title, sheet info, headers, first 3 rows preview (~500 tokens)
+    - 'values': Returns raw cell values only, no formatting (~20K tokens for 100 rows)
+    - 'markdown': Returns data as markdown table (~25K tokens for 100 rows)
+    - 'full': Complete JSON with all formatting (LEGACY - NOT RECOMMENDED, ~150K tokens)
+    
+    Args:
+        spreadsheet_id: Spreadsheet ID
+        range: A1 notation (e.g., 'Sheet1!A1:Z100'). If empty, uses first sheet
+        format: Output format ('summary', 'values', 'markdown', 'full')
+        _user_id: User ID for OAuth credentials
+        _injected_credentials: Flag for credential injection
+    
+    Returns:
+        dict: Content in requested format
+    """
+    try:
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        
+        # Get spreadsheet metadata
+        spreadsheet = sheets_service.spreadsheets().get(
+            spreadsheetId=spreadsheet_id
+        ).execute()
+        
+        title = spreadsheet.get('properties', {}).get('title', 'Untitled')
+        sheets = spreadsheet.get('sheets', [])
+        
+        # Determine range to fetch
+        if not range:
+            # Use first sheet, all data
+            if sheets:
+                first_sheet = sheets[0].get('properties', {}).get('title', 'Sheet1')
+                range = f"{first_sheet}!A1:Z1000"
+            else:
+                range = "Sheet1!A1:Z1000"
+        
+        # Get values
+        result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range
+        ).execute()
+        
+        values = result.get('values', [])
+        rows = len(values)
+        cols = max(len(row) for row in values) if values else 0
+        
+        # FORMAT: summary (DEFAULT - 500 tokens)
+        if format == 'summary':
+            headers = values[0] if values else []
+            preview_rows = values[:3] if len(values) > 0 else []
+            
+            return {
+                'success': True,
+                'title': title,
+                'spreadsheet_id': spreadsheet_id,
+                'range': range,
+                'row_count': rows,
+                'column_count': cols,
+                'headers': headers,
+                'preview': preview_rows,
+                'format': 'summary',
+                'note': 'Showing first 3 rows. Use format="values" for all data or format="markdown" for formatted table.'
+            }
+        
+        # FORMAT: values (20K tokens for 100 rows)
+        elif format == 'values':
+            return {
+                'success': True,
+                'spreadsheet_id': spreadsheet_id,
+                'range': range,
+                'values': values,
+                'row_count': rows,
+                'column_count': cols,
+                'format': 'values'
+            }
+        
+        # FORMAT: markdown (25K tokens for 100 rows)
+        elif format == 'markdown':
+            if not values:
+                return {
+                    'success': True,
+                    'markdown': '(empty sheet)',
+                    'format': 'markdown'
+                }
+            
+            # Convert to markdown table
+            markdown_lines = []
+            
+            # Headers (first row)
+            if values:
+                header_row = values[0]
+                markdown_lines.append('| ' + ' | '.join(str(cell) for cell in header_row) + ' |')
+                markdown_lines.append('|' + '|'.join(['---' for _ in header_row]) + '|')
+            
+            # Data rows
+            for row in values[1:]:
+                # Pad row to match header length
+                padded_row = row + [''] * (len(header_row) - len(row))
+                markdown_lines.append('| ' + ' | '.join(str(cell) for cell in padded_row) + ' |')
+            
+            markdown_content = '\n'.join(markdown_lines)
+            
+            return {
+                'success': True,
+                'spreadsheet_id': spreadsheet_id,
+                'range': range,
+                'markdown': markdown_content,
+                'row_count': rows,
+                'column_count': cols,
+                'format': 'markdown',
+                'note': 'Data converted to markdown table format'
+            }
+        
+        # FORMAT: full (LEGACY - 150K+ tokens)
+        elif format == 'full':
+            return {
+                'success': True,
+                'spreadsheet': spreadsheet,
+                'values': values,
+                'format': 'full',
+                'warning': 'Full format returns 150K+ tokens. Use format="summary" or "values" instead.'
+            }
+        
+        else:
+            raise ValueError(f"Invalid format: '{format}'. Use 'summary', 'values', 'markdown', or 'full'")
+    
+    except Exception as e:
+        raise Exception(f"Failed to get spreadsheet range: {str(e)}")
 
 
 # ==================== ALIASES (Short Names) ====================

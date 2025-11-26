@@ -153,7 +153,7 @@ function handleLogout() {
     }
 }
 
-// ==================== USER PROFILE DROPDOWN ====================
+// ==================== USER PROFILE SIDEBAR ====================
 
 function toggleUserMenu(event) {
     // Prevent event bubbling to avoid immediate close
@@ -161,22 +161,35 @@ function toggleUserMenu(event) {
         event.stopPropagation();
     }
 
-    const menu = document.getElementById('userDropdownMenu');
-    const btnHeader = document.getElementById('userProfileBtn');
-    const btnSidebar = document.getElementById('userProfileBtn-sidebar');
-
-    if (!menu) {
-        console.error(' Profile dropdown elements not found');
-        return;
+    // Open Account Sidebar instead of dropdown menu
+    if (window.AccountSidebar) {
+        window.AccountSidebar.toggleSidebar();
+        
+        const btnHeader = document.getElementById('userProfileBtn');
+        const btnSidebar = document.getElementById('userProfileBtn-sidebar');
+        const sidebar = document.getElementById('account-sidebar');
+        
+        // Update button active states based on sidebar state
+        const isOpen = sidebar && !sidebar.classList.contains('collapsed');
+        if (btnHeader) {
+            if (isOpen) {
+                btnHeader.classList.add('active');
+            } else {
+                btnHeader.classList.remove('active');
+            }
+        }
+        if (btnSidebar) {
+            if (isOpen) {
+                btnSidebar.classList.add('active');
+            } else {
+                btnSidebar.classList.remove('active');
+            }
+        }
+        
+        console.log('[ACCOUNT] Profile sidebar toggled:', isOpen ? 'OPEN' : 'CLOSED');
+    } else {
+        console.error('[ACCOUNT] AccountSidebar not found');
     }
-
-    menu.classList.toggle('active');
-
-    // Toggle active state on both buttons
-    if (btnHeader) btnHeader.classList.toggle('active');
-    if (btnSidebar) btnSidebar.classList.toggle('active');
-
-    console.log(' Profile menu toggled:', menu.classList.contains('active') ? 'OPEN' : 'CLOSED');
 }
 
 function toggleNotificationPanel(event) {
@@ -1784,15 +1797,26 @@ function removePreferredTool(tool) {
 
 function renderPreferredTools() {
     const container = document.getElementById('preferredToolsContainer');
+    
+    console.log('🔧 renderPreferredTools called:', {
+        containerFound: !!container,
+        preferredToolsLength: preferredTools?.length || 0,
+        preferredTools: preferredTools
+    });
+
+    if (!container) {
+        console.error('❌ preferredToolsContainer not found in DOM');
+        return;
+    }
 
     // Ensure preferredTools is an array (defensive programming)
     if (!Array.isArray(preferredTools)) {
-        console.warn('preferredTools is not an array, resetting to empty array');
+        console.warn('⚠️ preferredTools is not an array, resetting to empty array');
         preferredTools = [];
     }
 
     if (preferredTools.length === 0) {
-        container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">No tools added yet. Type a tool name and click Add.</span>';
+        container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">No mandatory instructions added yet. Type an instruction and click Add.</span>';
         updatePreferencesCount();
         return;
     }
@@ -1844,15 +1868,26 @@ function removeCustomPreference(preference) {
 
 function renderCustomPreferences() {
     const container = document.getElementById('customPreferencesContainer');
+    
+    console.log('🔧 renderCustomPreferences called:', {
+        containerFound: !!container,
+        customPreferencesLength: customPreferences?.length || 0,
+        customPreferences: customPreferences
+    });
+
+    if (!container) {
+        console.error('❌ customPreferencesContainer not found in DOM');
+        return;
+    }
 
     // Ensure customPreferences is an array (defensive programming)
     if (!Array.isArray(customPreferences)) {
-        console.warn('customPreferences is not an array, resetting to empty array');
+        console.warn('⚠️ customPreferences is not an array, resetting to empty array');
         customPreferences = [];
     }
 
     if (customPreferences.length === 0) {
-        container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">No preferences added yet. Type a preference and click Add.</span>';
+        container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">No custom preferences added yet. Type a preference and click Add.</span>';
         updatePreferencesCount();
         return;
     }
@@ -2006,10 +2041,17 @@ async function loadUserPreferences() {
             detectAndDisplayGeolocation();
         }
 
+        // Render after data is loaded
         renderPreferredTools();
         renderCustomPreferences();
+        
+        console.log('✅ User preferences loaded:', {
+            preferredTools: preferredTools.length,
+            customPreferences: customPreferences.length
+        });
     } catch (error) {
-        console.error('Error loading preferences:', error);
+        console.error('❌ Error loading preferences:', error);
+        // Still render with empty arrays
         renderPreferredTools();
         renderCustomPreferences();
         // Fallback to IP detection on error
@@ -2113,11 +2155,26 @@ async function initializeApp() {
         console.log('OAuth successful, token received');
 
         // Clear dev mode flag - real OAuth login succeeded
-        localStorage.removeItem('dev_mode_user');
+        try {
+            localStorage.removeItem('dev_mode_user');
+        } catch (e) {
+            sessionStorage.removeItem('dev_mode_user');
+        }
 
-        // Store token
-        localStorage.setItem('authToken', token);
+        // Store token with fallback to sessionStorage
+        try {
+            localStorage.setItem('authToken', token);
+        } catch (e) {
+            console.warn('[AUTH] localStorage blocked (private browsing?), using sessionStorage:', e);
+            sessionStorage.setItem('authToken', token);
+            if (typeof UserAuth !== 'undefined' && UserAuth.showPrivateBrowsingWarning) {
+                UserAuth.showPrivateBrowsingWarning();
+            }
+        }
         UserAuth.token = token;
+
+        // Clean URL IMMEDIATELY for security (remove token from browser history)
+        window.history.replaceState({}, document.title, window.location.pathname);
 
         // Load user profile first to detect auth_platform from backend
         await loadUserProfile();
@@ -2142,8 +2199,6 @@ async function initializeApp() {
         // Mark as initialized to prevent duplicate calls
         isInitialized = true;
 
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
         return; // Don't call init() - we already initialized
     }
 

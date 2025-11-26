@@ -181,13 +181,184 @@ def google_forms_create_form(title, document_title=None, description=None, share
         raise
 
 
-def google_forms_get_form(form_id):
-    """Get form details"""
+def google_forms_get_form(form_id, format='summary'):
+    """
+    Get form content with format control to prevent token overflow
+    
+    FORMAT OPTIONS:
+    - 'summary' (DEFAULT): Returns question list with types/options (~1.5K tokens)
+    - 'text': Returns full form as readable text (~15K tokens)
+    - 'markdown': Returns formatted questions as markdown (~18K tokens)
+    - 'full': Complete JSON with all validation rules (LEGACY - NOT RECOMMENDED, ~95K tokens)
+    
+    Args:
+        form_id: Form ID
+        format: Output format ('summary', 'text', 'markdown', 'full')
+    
+    Returns:
+        dict: Content in requested format
+    """
     try:
         service = _get_forms_service()
         form = service.forms().get(formId=form_id).execute()
         
-        return form
+        title = form.get('info', {}).get('title', 'Untitled Form')
+        description = form.get('info', {}).get('description', '')
+        items = form.get('items', [])
+        
+        # Get response count if available
+        try:
+            responses_result = service.forms().responses().list(formId=form_id).execute()
+            response_count = len(responses_result.get('responses', []))
+        except:
+            response_count = 0
+        
+        # FORMAT: summary (DEFAULT - 1.5K tokens)
+        if format == 'summary':
+            question_summaries = []
+            
+            for idx, item in enumerate(items, 1):
+                if 'questionItem' in item:
+                    question = item['questionItem']['question']
+                    q_title = item.get('title', f'Question {idx}')
+                    
+                    # Determine question type
+                    q_type = 'TEXT'
+                    options = []
+                    
+                    if 'choiceQuestion' in question:
+                        q_type = question['choiceQuestion'].get('type', 'RADIO')
+                        options = [opt.get('value', '') for opt in question['choiceQuestion'].get('options', [])]
+                    elif 'textQuestion' in question:
+                        q_type = 'TEXT'
+                    elif 'scaleQuestion' in question:
+                        q_type = 'SCALE'
+                    elif 'dateQuestion' in question:
+                        q_type = 'DATE'
+                    elif 'timeQuestion' in question:
+                        q_type = 'TIME'
+                    elif 'fileUploadQuestion' in question:
+                        q_type = 'FILE_UPLOAD'
+                    
+                    question_summaries.append({
+                        'question_number': idx,
+                        'question_id': question.get('questionId'),
+                        'title': q_title,
+                        'type': q_type,
+                        'required': question.get('required', False),
+                        'options': options if options else None
+                    })
+            
+            return {
+                'success': True,
+                'form_id': form_id,
+                'title': title,
+                'description': description,
+                'question_count': len(question_summaries),
+                'response_count': response_count,
+                'questions': question_summaries,
+                'format': 'summary',
+                'note': 'Use format="text" or "markdown" for full form content'
+            }
+        
+        # FORMAT: text (15K tokens)
+        elif format == 'text':
+            text_lines = [title]
+            if description:
+                text_lines.append(f"\n{description}\n")
+            text_lines.append("=" * 50)
+            
+            for idx, item in enumerate(items, 1):
+                if 'questionItem' in item:
+                    question = item['questionItem']['question']
+                    q_title = item.get('title', f'Question {idx}')
+                    required = ' (Required)' if question.get('required') else ''
+                    
+                    text_lines.append(f"\nQuestion {idx}: {q_title}{required}")
+                    
+                    if 'choiceQuestion' in question:
+                        q_type = question['choiceQuestion'].get('type', 'RADIO')
+                        text_lines.append(f"Type: {q_type}")
+                        options = question['choiceQuestion'].get('options', [])
+                        for opt in options:
+                            text_lines.append(f"  - {opt.get('value', '')}")
+                    elif 'textQuestion' in question:
+                        paragraph = question['textQuestion'].get('paragraph', False)
+                        text_lines.append(f"Type: {'PARAGRAPH' if paragraph else 'SHORT_ANSWER'}")
+                    elif 'scaleQuestion' in question:
+                        scale = question['scaleQuestion']
+                        low = scale.get('low', 1)
+                        high = scale.get('high', 5)
+                        text_lines.append(f"Type: SCALE ({low} to {high})")
+            
+            full_text = '\n'.join(text_lines)
+            
+            return {
+                'success': True,
+                'form_id': form_id,
+                'title': title,
+                'text': full_text,
+                'question_count': len(items),
+                'format': 'text'
+            }
+        
+        # FORMAT: markdown (18K tokens)
+        elif format == 'markdown':
+            markdown_lines = [f"# {title}\n"]
+            if description:
+                markdown_lines.append(f"*{description}*\n")
+            markdown_lines.append("---\n")
+            
+            for idx, item in enumerate(items, 1):
+                if 'questionItem' in item:
+                    question = item['questionItem']['question']
+                    q_title = item.get('title', f'Question {idx}')
+                    required = ' *(required)*' if question.get('required') else ''
+                    
+                    markdown_lines.append(f"## Question {idx}: {q_title}{required}\n")
+                    
+                    if 'choiceQuestion' in question:
+                        q_type = question['choiceQuestion'].get('type', 'RADIO')
+                        markdown_lines.append(f"**Type:** {q_type}\n")
+                        options = question['choiceQuestion'].get('options', [])
+                        for opt in options:
+                            symbol = '○' if q_type == 'RADIO' else '☐'
+                            markdown_lines.append(f"- {symbol} {opt.get('value', '')}")
+                        markdown_lines.append("")
+                    elif 'textQuestion' in question:
+                        paragraph = question['textQuestion'].get('paragraph', False)
+                        q_type = 'Paragraph Text' if paragraph else 'Short Answer'
+                        markdown_lines.append(f"**Type:** {q_type}\n")
+                        markdown_lines.append("_[Text input field]_\n")
+                    elif 'scaleQuestion' in question:
+                        scale = question['scaleQuestion']
+                        low = scale.get('low', 1)
+                        high = scale.get('high', 5)
+                        markdown_lines.append(f"**Type:** Linear Scale ({low} to {high})\n")
+            
+            markdown_content = '\n'.join(markdown_lines)
+            
+            return {
+                'success': True,
+                'form_id': form_id,
+                'title': title,
+                'markdown': markdown_content,
+                'question_count': len(items),
+                'format': 'markdown',
+                'note': 'Form converted to markdown format'
+            }
+        
+        # FORMAT: full (LEGACY - 95K tokens)
+        elif format == 'full':
+            return {
+                'success': True,
+                'form': form,
+                'format': 'full',
+                'warning': 'Full format can return 95K+ tokens. Use format="summary" instead.'
+            }
+        
+        else:
+            raise ValueError(f"Invalid format: '{format}'. Use 'summary', 'text', 'markdown', or 'full'")
     
     except Exception as e:
         print(f"Failed to get form: {e}")
@@ -384,23 +555,152 @@ def google_forms_delete_question(form_id, item_id):
 
 # ==================== RESPONSES ====================
 
-def google_forms_get_responses(form_id, filter=None):
-    """Get form responses"""
+def google_forms_get_responses(form_id, format='summary', limit=100, filter=None):
+    """
+    Get form responses with format control to prevent token overflow
+    
+    FORMAT OPTIONS:
+    - 'summary' (DEFAULT): Returns aggregated response statistics (~3K tokens)
+    - 'sample': Returns first N responses (default 100) (~5K tokens for 100 responses)
+    - 'full': All responses with complete metadata (LEGACY - NOT RECOMMENDED, ~500K+ tokens for 2847 responses)
+    
+    Args:
+        form_id: Form ID
+        format: Output format ('summary', 'sample', 'full')
+        limit: Max responses to return when format='sample' (default: 100)
+        filter: Optional filter dict (not yet implemented in API)
+    
+    Returns:
+        dict: Content in requested format
+    """
     try:
         service = _get_forms_service()
         
+        # Get form structure
+        form = service.forms().get(formId=form_id).execute()
+        title = form.get('info', {}).get('title', 'Untitled Form')
+        items = form.get('items', [])
+        
+        # Get all responses
         params = {'formId': form_id}
         if filter:
             params['filter'] = filter
         
         result = service.forms().responses().list(**params).execute()
-        
         responses = result.get('responses', [])
+        total_responses = len(responses)
         
-        return {
-            'responses': responses,
-            'count': len(responses)
-        }
+        # FORMAT: summary (DEFAULT - 3K tokens)
+        if format == 'summary':
+            # Aggregate response data by question
+            question_summaries = []
+            
+            for item in items:
+                if 'questionItem' in item:
+                    question = item['questionItem']['question']
+                    q_id = question.get('questionId')
+                    q_title = item.get('title', 'Untitled Question')
+                    
+                    # Count responses for this question
+                    answer_counts = {}
+                    
+                    for response in responses:
+                        answers = response.get('answers', {})
+                        if q_id in answers:
+                            answer = answers[q_id]
+                            
+                            # Handle different answer types
+                            if 'textAnswers' in answer:
+                                for text_ans in answer['textAnswers'].get('answers', []):
+                                    value = text_ans.get('value', '')
+                                    answer_counts[value] = answer_counts.get(value, 0) + 1
+                    
+                    # Calculate percentages
+                    percentages = {}
+                    if answer_counts and total_responses > 0:
+                        for value, count in answer_counts.items():
+                            percentages[value] = f"{(count/total_responses)*100:.1f}%"
+                    
+                    # Determine question type
+                    q_type = 'TEXT'
+                    if 'choiceQuestion' in question:
+                        q_type = question['choiceQuestion'].get('type', 'RADIO')
+                    elif 'scaleQuestion' in question:
+                        q_type = 'SCALE'
+                    
+                    question_summaries.append({
+                        'question': q_title,
+                        'type': q_type,
+                        'total_responses': len([r for r in responses if q_id in r.get('answers', {})]),
+                        'response_breakdown': answer_counts,
+                        'percentages': percentages
+                    })
+            
+            return {
+                'success': True,
+                'form_id': form_id,
+                'title': title,
+                'total_responses': total_responses,
+                'summary': question_summaries,
+                'format': 'summary',
+                'note': 'Aggregated response statistics. Use format="sample" for individual responses.'
+            }
+        
+        # FORMAT: sample (5K tokens for 100 responses)
+        elif format == 'sample':
+            sample_responses = []
+            
+            for response in responses[:limit]:
+                response_id = response.get('responseId')
+                create_time = response.get('createTime', '')
+                answers = response.get('answers', {})
+                
+                # Extract answers in readable format
+                response_data = {
+                    'response_id': response_id,
+                    'submitted': create_time,
+                    'answers': {}
+                }
+                
+                for item in items:
+                    if 'questionItem' in item:
+                        question = item['questionItem']['question']
+                        q_id = question.get('questionId')
+                        q_title = item.get('title', 'Untitled Question')
+                        
+                        if q_id in answers:
+                            answer = answers[q_id]
+                            
+                            if 'textAnswers' in answer:
+                                text_values = [ta.get('value', '') for ta in answer['textAnswers'].get('answers', [])]
+                                response_data['answers'][q_title] = ', '.join(text_values)
+                
+                sample_responses.append(response_data)
+            
+            return {
+                'success': True,
+                'form_id': form_id,
+                'title': title,
+                'responses': sample_responses,
+                'returned_count': len(sample_responses),
+                'total_responses': total_responses,
+                'format': 'sample',
+                'note': f'Showing first {limit} of {total_responses} responses'
+            }
+        
+        # FORMAT: full (LEGACY - 500K+ tokens for large forms)
+        elif format == 'full':
+            return {
+                'success': True,
+                'form_id': form_id,
+                'responses': responses,
+                'count': total_responses,
+                'format': 'full',
+                'warning': f'Full format returns {total_responses} complete responses. Use format="summary" or "sample" instead.'
+            }
+        
+        else:
+            raise ValueError(f"Invalid format: '{format}'. Use 'summary', 'sample', or 'full'")
     
     except Exception as e:
         print(f"Failed to get responses: {e}")

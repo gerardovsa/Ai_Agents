@@ -198,9 +198,10 @@ class TranscriptionStreamingController {
      * Stream transcript text (called by STT module)
      * @param {string} text - Text to append
      * @param {boolean} isFinal - Is this final or interim result
-     * @param {number} confidence - Confidence score (0-1)
+     * @param {string|number} confidence - Confidence ('high'|'medium'|'low' or 0-1 number)
+     * @param {string} source - Source of transcript ('browser-stt'|'whisper'|etc)
      */
-    streamText(text, isFinal = false, confidence = null) {
+    streamText(text, isFinal = false, confidence = null, source = 'unknown') {
         if (!this.textDisplay) return;
         
         // Remove placeholder if present
@@ -218,12 +219,10 @@ class TranscriptionStreamingController {
             span.className = 'ai-transcript-final';
             span.textContent = text + ' ';
             
-            // Add confidence indicator if available
+            // Add source and confidence as data attributes
+            span.setAttribute('data-source', source);
             if (confidence !== null) {
-                const confidenceBadge = document.createElement('span');
-                confidenceBadge.className = `ai-transcript-confidence ${this.getConfidenceLevel(confidence)}`;
-                confidenceBadge.textContent = `${Math.round(confidence * 100)}%`;
-                span.appendChild(confidenceBadge);
+                span.setAttribute('data-confidence', this.getConfidenceLevel(confidence));
             }
             
             this.textDisplay.appendChild(span);
@@ -231,6 +230,8 @@ class TranscriptionStreamingController {
             // Remove any interim text
             const interimElements = this.textDisplay.querySelectorAll('.ai-transcript-interim');
             interimElements.forEach(el => el.remove());
+            
+            console.log(`[STREAMING] Final text added: "${text.substring(0, 50)}..." (source: ${source}, confidence: ${confidence})`);
         } else {
             // Interim transcript - show but don't commit
             // Remove previous interim
@@ -243,7 +244,10 @@ class TranscriptionStreamingController {
             const span = document.createElement('span');
             span.className = 'ai-transcript-interim';
             span.textContent = text + ' ';
+            span.setAttribute('data-source', source);
             this.textDisplay.appendChild(span);
+            
+            console.log(`[STREAMING] Interim text: "${text.substring(0, 30)}..." (source: ${source})`);
         }
         
         // Auto-scroll to bottom

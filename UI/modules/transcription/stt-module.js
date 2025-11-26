@@ -36,8 +36,10 @@ class STTModule {
             mimeType: options.mimeType || 'audio/webm',
             timeSlice: options.timeSlice || 5000, // 5 seconds per chunk
             
-            // Backend Settings
-            whisperEndpoint: options.whisperEndpoint || 'http://localhost:3001/api/v1/transcribe',
+            // Backend Settings (uses centralized config)
+            whisperEndpoint: options.whisperEndpoint || (window.TranscriptionConfig ? 
+                window.TranscriptionConfig.getEndpoint('transcribe') : 
+                'http://localhost:5001/api/transcribe'),
             apiKey: options.apiKey || null, // X-API-Key header
             
             // UI Elements

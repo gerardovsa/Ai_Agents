@@ -44,6 +44,25 @@ window.ThreadManagerWorkflows = {
                     });
                 }
 
+                // Refresh all thread info cards to show workflow pill
+                if (typeof this.refreshAllThreadInfoCards === 'function') {
+                    this.refreshAllThreadInfoCards(threadId);
+                    console.log('[linkWorkflow] Refreshed thread info cards for thread:', threadId);
+                }
+
+                // CRITICAL: Also refresh agent column cards (thread-info-1, thread-info-2, thread-info-3)
+                for (let i = 1; i <= 3; i++) {
+                    const agentCard = document.getElementById(`thread-info-${i}`);
+                    if (agentCard && agentCard.dataset.threadId === String(threadId)) {
+                        const agentLocation = `agent-${i}`;
+                        const newCardHTML = this.renderThreadInfoContainer(agentLocation, threadId, false);
+                        if (newCardHTML) {
+                            agentCard.outerHTML = newCardHTML;
+                            console.log(`[linkWorkflow] Refreshed agent card thread-info-${i}`);
+                        }
+                    }
+                }
+
                 if (typeof showNotification === 'function') {
                     showNotification(`Linked to workflow: ${workflowName}`, 'success');
                 }

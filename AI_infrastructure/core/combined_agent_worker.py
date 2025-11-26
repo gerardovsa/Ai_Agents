@@ -1244,10 +1244,10 @@ sys.path.insert(0, calculator_module_path)
 try:
     from tool_use_agent import ToolUseAgent
     TOOL_USE_AGENT_AVAILABLE = True
-    print("✅ [Combined Worker] ToolUseAgent imported - Quote Calculator tools available")
+    print("[Combined Worker] ToolUseAgent imported - Quote Calculator tools available")
 except ImportError:
     TOOL_USE_AGENT_AVAILABLE = False
-    print("ℹ️  [Combined Worker] Quote Calculator module not found (optional)")
+    print("[Combined Worker] Quote Calculator module not found (optional)")
     
     # Fallback placeholder
     class ToolUseAgent:

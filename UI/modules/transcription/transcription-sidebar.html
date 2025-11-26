@@ -288,9 +288,18 @@
                 <div class="transcription-field">
                     <label for="transcription-whisper-endpoint">Whisper Backend URL:</label>
                     <input type="text" id="transcription-whisper-endpoint"
-                        value="http://localhost:3001/api/v1/transcribe"
-                        placeholder="http://localhost:3001/api/v1/transcribe">
-                    <small>MustCare ValorAISynergySuite backend</small>
+                        placeholder="Auto-detected (local: localhost:5001 | production: Render)">
+                    <small>
+                        <span id="backend-url-hint">Loading...</span>
+                        <button onclick="TranscriptionSidebar.detectBackendUrl()"
+                            style="margin-left: 8px; padding: 2px 8px; font-size: 11px;">
+                            🔄 Auto-detect
+                        </button>
+                        <button onclick="TranscriptionSidebar.testBackendConnection()"
+                            style="margin-left: 4px; padding: 2px 8px; font-size: 11px;">
+                            🧪 Test
+                        </button>
+                    </small>
                 </div>
 
                 <div class="transcription-field">

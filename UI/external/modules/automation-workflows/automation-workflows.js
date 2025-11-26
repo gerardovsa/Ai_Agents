@@ -49,6 +49,11 @@ class AutomationCanvas {
         // Clipboard
         this.clipboard = null;
 
+        // Undo/Redo history
+        this.history = [];
+        this.historyIndex = -1;
+        this.maxHistorySize = 50; // Keep last 50 states
+
         // Auto-save
         this.autoSaveTimer = null;
         this.autoSaveInterval = 30000; // 30 seconds
@@ -73,11 +78,15 @@ class AutomationCanvas {
         console.log('[AUTOMATION] init() - Setting up event listeners...');
         this.setupEventListeners();
 
-        console.log('[AUTOMATION] init() - Loading workflows from API...');
-        this.loadWorkflows();
-
         console.log('[AUTOMATION] init() - Starting auto-save timer...');
         this.startAutoSave();
+
+        // Wait for authentication before loading workflows
+        console.log('[AUTOMATION] init() - Waiting for authentication...');
+        document.addEventListener('authComplete', () => {
+            console.log('[AUTOMATION] init() - Auth complete, loading workflows...');
+            this.loadWorkflows();
+        });
 
         console.log('[AUTOMATION] init() - Complete! Canvas ready.');
     }
@@ -96,10 +105,10 @@ class AutomationCanvas {
      * @returns {string} Auth token or empty string
      */
     getAuthToken() {
-        return localStorage.getItem('authToken') || 
-               localStorage.getItem('auth_token') || 
-               window.UserAuth?.token || 
-               '';
+        return localStorage.getItem('authToken') ||
+            localStorage.getItem('auth_token') ||
+            window.UserAuth?.token ||
+            '';
     }
 
     startAutoSave() {
@@ -124,6 +133,115 @@ class AutomationCanvas {
     markDirty() {
         this.isDirty = true;
         this.updateAutoSaveIndicator('unsaved');
+        this.saveHistoryState(); // Save state for undo/redo
+    }
+
+    /**
+     * Save current canvas state to history for undo/redo
+     */
+    saveHistoryState() {
+        // Create deep copy of current state
+        const state = {
+            shapes: JSON.parse(JSON.stringify(this.shapes)),
+            connections: JSON.parse(JSON.stringify(this.connections))
+        };
+
+        // Remove any future states (if we're not at the end)
+        if (this.historyIndex < this.history.length - 1) {
+            this.history = this.history.slice(0, this.historyIndex + 1);
+        }
+
+        // Add new state
+        this.history.push(state);
+
+        // Limit history size
+        if (this.history.length > this.maxHistorySize) {
+            this.history.shift();
+        } else {
+            this.historyIndex++;
+        }
+
+        this.updateUndoRedoButtons();
+        console.log(`[HISTORY] Saved state ${this.historyIndex + 1}/${this.history.length}`);
+    }
+
+    /**
+     * Undo last action
+     */
+    undo() {
+        if (this.historyIndex <= 0) {
+            console.log('[UNDO] No more undo states');
+            this.showToast('Nothing to undo', 'info');
+            return;
+        }
+
+        this.historyIndex--;
+        this.restoreHistoryState();
+        console.log(`[UNDO] Restored state ${this.historyIndex + 1}/${this.history.length}`);
+        this.showToast('Undo', 'info');
+    }
+
+    /**
+     * Redo last undone action
+     */
+    redo() {
+        if (this.historyIndex >= this.history.length - 1) {
+            console.log('[REDO] No more redo states');
+            this.showToast('Nothing to redo', 'info');
+            return;
+        }
+
+        this.historyIndex++;
+        this.restoreHistoryState();
+        console.log(`[REDO] Restored state ${this.historyIndex + 1}/${this.history.length}`);
+        this.showToast('Redo', 'info');
+    }
+
+    /**
+     * Restore canvas state from history
+     */
+    restoreHistoryState() {
+        const state = this.history[this.historyIndex];
+        if (!state) {
+            console.error('[HISTORY] Invalid state at index', this.historyIndex);
+            return;
+        }
+
+        // Clear canvas
+        const canvas = document.getElementById('automation-canvas-wrapper');
+        if (canvas) {
+            canvas.innerHTML = '';
+        }
+
+        // Restore shapes and connections
+        this.shapes = JSON.parse(JSON.stringify(state.shapes));
+        this.connections = JSON.parse(JSON.stringify(state.connections));
+
+        // Re-render everything
+        this.renderAllShapes();
+        this.renderConnections();
+
+        this.updateUndoRedoButtons();
+    }
+
+    /**
+     * Update undo/redo button states
+     */
+    updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('undo-workflow-btn');
+        const redoBtn = document.getElementById('redo-workflow-btn');
+
+        if (undoBtn) {
+            undoBtn.disabled = this.historyIndex <= 0;
+            undoBtn.style.opacity = this.historyIndex <= 0 ? '0.5' : '1';
+            undoBtn.style.cursor = this.historyIndex <= 0 ? 'not-allowed' : 'pointer';
+        }
+
+        if (redoBtn) {
+            redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+            redoBtn.style.opacity = this.historyIndex >= this.history.length - 1 ? '0.5' : '1';
+            redoBtn.style.cursor = this.historyIndex >= this.history.length - 1 ? 'not-allowed' : 'pointer';
+        }
     }
 
     async autoSaveWorkflow() {
@@ -139,15 +257,16 @@ class AutomationCanvas {
 
         try {
             console.log('[AUTO-SAVE] Starting save... (shapes: ' + this.shapes.length + ', connections: ' + this.connections.length + ')');
-            
+
             // Export current canvas state
             const ui_json = {
                 shapes: this.shapes,
                 connections: this.connections
             };
 
-            // Prepare workflow data
+            // Prepare workflow data - Use automation_id instead of slug to prevent duplicates
             const workflowData = {
+                automation_id: this.currentWorkflow.automation_id,
                 slug: this.workflowSlug,
                 title: this.workflowTitle,
                 description: this.workflowDescription,
@@ -159,8 +278,8 @@ class AutomationCanvas {
             const response = await fetch(this.getApiUrl('/api/automation/save'), {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.getAuthToken()}`
+                    'Content-Type': 'application/json'
+                    // REMOVED: Authorization not required for auto-save
                 },
                 body: JSON.stringify(workflowData)
             });
@@ -223,6 +342,8 @@ class AutomationCanvas {
             'new-workflow-btn': () => this.openWorkflowModal(),
             'load-workflow-btn': () => window.toggleWorkflowLibraryPanel(),
             'save-workflow-btn': () => this.saveWorkflow(),
+            'undo-workflow-btn': () => this.undo(),
+            'redo-workflow-btn': () => this.redo(),
             'export-workflow-btn': () => this.exportToJSON(),
             'print-workflow-btn': () => this.printWorkflow(),
             'automation-clear-btn': () => this.clearCanvas(),
@@ -391,6 +512,16 @@ class AutomationCanvas {
             if (e.ctrlKey && e.key === 'v' && this.clipboard) {
                 e.preventDefault();
                 this.pasteShapes();
+            }
+            // Undo (Ctrl+Z)
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                this.undo();
+            }
+            // Redo (Ctrl+Y or Ctrl+Shift+Z)
+            if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+                e.preventDefault();
+                this.redo();
             }
             // Zoom shortcuts
             if (e.ctrlKey && e.key === '=') {
@@ -598,6 +729,27 @@ class AutomationCanvas {
         };
         shapeEl.classList.add('dragging');
         this.isDragging = true;
+
+        // If clicked shape is in selection, drag ALL selected shapes as a group
+        if (this.selectedShapes.includes(shape.id) && this.selectedShapes.length > 1) {
+            this.isDraggingGroup = true;
+            // Calculate offsets for all selected shapes
+            this.groupDragOffsets = {};
+            this.selectedShapes.forEach(shapeId => {
+                const selectedShape = this.shapes.find(s => s.id === shapeId);
+                if (selectedShape) {
+                    const selectedEl = document.getElementById(shapeId);
+                    const selectedRect = selectedEl.getBoundingClientRect();
+                    this.groupDragOffsets[shapeId] = {
+                        x: e.clientX - selectedRect.left,
+                        y: e.clientY - selectedRect.top
+                    };
+                    selectedEl.classList.add('dragging');
+                }
+            });
+        } else {
+            this.isDraggingGroup = false;
+        }
     }
 
     dragShape(e, shape) {
@@ -605,17 +757,34 @@ class AutomationCanvas {
 
         const canvas = document.getElementById('automation-canvas');
         if (!canvas) return;
-        
+
         const rect = canvas.getBoundingClientRect();
 
-        // Update shape position accounting for scroll
-        shape.x = e.clientX - rect.left - this.dragOffset.x + canvas.scrollLeft;
-        shape.y = e.clientY - rect.top - this.dragOffset.y + canvas.scrollTop;
+        if (this.isDraggingGroup) {
+            // Drag all selected shapes as a group
+            this.selectedShapes.forEach(shapeId => {
+                const selectedShape = this.shapes.find(s => s.id === shapeId);
+                if (selectedShape && this.groupDragOffsets[shapeId]) {
+                    selectedShape.x = e.clientX - rect.left - this.groupDragOffsets[shapeId].x + canvas.scrollLeft;
+                    selectedShape.y = e.clientY - rect.top - this.groupDragOffsets[shapeId].y + canvas.scrollTop;
 
-        const shapeEl = document.getElementById(shape.id);
-        if (shapeEl) {
-            shapeEl.style.left = `${shape.x}px`;
-            shapeEl.style.top = `${shape.y}px`;
+                    const selectedEl = document.getElementById(shapeId);
+                    if (selectedEl) {
+                        selectedEl.style.left = `${selectedShape.x}px`;
+                        selectedEl.style.top = `${selectedShape.y}px`;
+                    }
+                }
+            });
+        } else {
+            // Drag single shape
+            shape.x = e.clientX - rect.left - this.dragOffset.x + canvas.scrollLeft;
+            shape.y = e.clientY - rect.top - this.dragOffset.y + canvas.scrollTop;
+
+            const shapeEl = document.getElementById(shape.id);
+            if (shapeEl) {
+                shapeEl.style.left = `${shape.x}px`;
+                shapeEl.style.top = `${shape.y}px`;
+            }
         }
 
         // Update connections in real-time as shape moves
@@ -623,7 +792,16 @@ class AutomationCanvas {
     }
 
     endDragShape(e, shape) {
-        document.getElementById(shape.id)?.classList.remove('dragging');
+        if (this.isDraggingGroup) {
+            // Remove dragging class from all selected shapes
+            this.selectedShapes.forEach(shapeId => {
+                document.getElementById(shapeId)?.classList.remove('dragging');
+            });
+            this.isDraggingGroup = false;
+            this.groupDragOffsets = {};
+        } else {
+            document.getElementById(shape.id)?.classList.remove('dragging');
+        }
         this.isDragging = false;
         this.markDirty(); // Track change for auto-save
     }
@@ -752,7 +930,7 @@ class AutomationCanvas {
                 return { x: shape.x + shapeWidth / 2, y: shape.y + shapeHeight / 2 };
         }
     }
-    
+
     // Calculate the best connection points between two shapes
     getBestConnectionPoints(fromShape, toShape) {
         // Get center points of both shapes
@@ -760,14 +938,14 @@ class AutomationCanvas {
         const fromCenterY = fromShape.y + (fromShape.height || 80) / 2;
         const toCenterX = toShape.x + (toShape.width || 150) / 2;
         const toCenterY = toShape.y + (toShape.height || 80) / 2;
-        
+
         // Calculate angle between shapes
         const dx = toCenterX - fromCenterX;
         const dy = toCenterY - fromCenterY;
-        
+
         // Determine best exit and entry points based on relative positions
         let fromPosition, toPosition;
-        
+
         // If shapes are mostly horizontal
         if (Math.abs(dx) > Math.abs(dy)) {
             fromPosition = dx > 0 ? 'right' : 'left';
@@ -777,7 +955,7 @@ class AutomationCanvas {
             fromPosition = dy > 0 ? 'bottom' : 'top';
             toPosition = dy > 0 ? 'top' : 'bottom';
         }
-        
+
         return {
             from: this.getConnectionPoint(fromShape, fromPosition),
             to: this.getConnectionPoint(toShape, toPosition)
@@ -856,12 +1034,20 @@ class AutomationCanvas {
         // Remove existing SVG
         document.getElementById('connections-svg')?.remove();
 
-        if (this.connections.length === 0) return;
+        if (this.connections.length === 0) {
+            console.log('[CONNECTIONS] No connections to render');
+            return;
+        }
 
         // Create new SVG
         const canvas = document.getElementById('automation-canvas-wrapper');
-        if (!canvas) return;
-        
+        if (!canvas) {
+            console.error('[CONNECTIONS] Canvas wrapper not found');
+            return;
+        }
+
+        console.log(`[CONNECTIONS] Rendering ${this.connections.length} connections`);
+
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.id = 'connections-svg';
         svg.style.position = 'absolute';
@@ -870,7 +1056,7 @@ class AutomationCanvas {
         svg.style.width = '100%';
         svg.style.height = '100%';
         svg.style.pointerEvents = 'none';
-        svg.style.zIndex = '1';
+        svg.style.zIndex = '1'; // Below shapes (shapes have z-index 10)
 
         // Define arrowhead marker
         svg.innerHTML = `
@@ -883,11 +1069,16 @@ class AutomationCanvas {
         `;
 
         // Draw connections with smart routing
-        this.connections.forEach(conn => {
+        this.connections.forEach((conn, index) => {
             const fromShape = this.shapes.find(s => s.id === conn.from);
             const toShape = this.shapes.find(s => s.id === conn.to);
 
-            if (!fromShape || !toShape) return;
+            if (!fromShape || !toShape) {
+                console.warn(`[CONNECTIONS] Connection ${index} skipped: from=${conn.from} (${fromShape ? 'found' : 'NOT FOUND'}), to=${conn.to} (${toShape ? 'found' : 'NOT FOUND'})`);
+                return;
+            }
+
+            console.log(`[CONNECTIONS] Drawing connection ${index}: ${conn.from} → ${conn.to}`);
 
             // Get best connection points based on shape positions
             const points = this.getBestConnectionPoints(fromShape, toShape);
@@ -907,11 +1098,11 @@ class AutomationCanvas {
 
             // Create curved path with bezier curve
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            
+
             // Calculate control points for smooth curve
             const controlOffset = Math.min(Math.abs(dx), Math.abs(dy), 100);
             let pathData;
-            
+
             // Determine curve direction based on connection orientation
             if (Math.abs(dx) > Math.abs(dy)) {
                 // Horizontal connection - use horizontal control points
@@ -980,10 +1171,10 @@ class AutomationCanvas {
         this.workflowSlug = null;
         this.workflowDescription = '';
         this.updateWorkflowNameDisplay();
-        
+
         // Mark as dirty for save state
         this.markDirty();
-        
+
         console.log('Canvas cleared successfully');
         this.showToast('Canvas cleared', 'success');
     }
@@ -1282,14 +1473,14 @@ class AutomationCanvas {
     toggleTypePicker(shapeId) {
         const dropdown = document.getElementById(`type-dropdown-${shapeId}`);
         if (!dropdown) return;
-        
+
         // Close all other dropdowns
         document.querySelectorAll('.shape-type-dropdown').forEach(d => {
             if (d.id !== `type-dropdown-${shapeId}`) {
                 d.style.display = 'none';
             }
         });
-        
+
         // Toggle this dropdown
         dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
     }
@@ -1297,31 +1488,31 @@ class AutomationCanvas {
     changeShapeType(shapeId, newType) {
         const shape = this.shapes.find(s => s.id === shapeId);
         if (!shape) return;
-        
+
         // Update shape type
         const oldType = shape.type;
         shape.type = newType;
-        
+
         // Update DOM element classes
         const shapeEl = document.getElementById(shapeId);
         if (shapeEl) {
             shapeEl.classList.remove(oldType);
             shapeEl.classList.add(newType);
-            
+
             // Update type label
             const typeLabel = shapeEl.querySelector('.shape-type-label');
             if (typeLabel) {
                 typeLabel.innerHTML = this.getShapeTypeLabel(newType);
             }
         }
-        
+
         // Close dropdown
         const dropdown = document.getElementById(`type-dropdown-${shapeId}`);
         if (dropdown) dropdown.style.display = 'none';
-        
+
         // Mark as dirty for auto-save
         this.markDirty();
-        
+
         console.log(`Changed shape ${shapeId} from ${oldType} to ${newType}`);
     }
 
@@ -1329,15 +1520,23 @@ class AutomationCanvas {
 
     async loadWorkflows() {
         try {
+            const token = this.getAuthToken();
+            console.log('[AUTOMATION] Loading workflows...');
+            console.log('[AUTOMATION] Token available:', token ? `Yes (${token.substring(0, 20)}...)` : 'NO TOKEN FOUND');
+            console.log('[AUTOMATION] localStorage.authToken:', localStorage.getItem('authToken') ? 'YES' : 'NO');
+            console.log('[AUTOMATION] window.UserAuth?.token:', window.UserAuth?.token ? 'YES' : 'NO');
+
             const response = await fetch(this.getApiUrl('/api/automation/list'), {
                 headers: {
-                    'Authorization': `Bearer ${this.getAuthToken()}`
+                    'Authorization': `Bearer ${token}`
                 }
             });
 
+            console.log('[AUTOMATION] Response status:', response.status, response.statusText);
+
             if (!response.ok) {
                 // Gracefully handle API not available (backend may not be running)
-                console.warn('[AutomationCanvas] Workflows API not available - showing empty state');
+                console.warn('[AutomationCanvas] Workflows API returned', response.status, '- showing empty state');
                 this.workflows = [];
                 this.renderWorkflowList();
                 return;
@@ -1575,13 +1774,17 @@ class AutomationCanvas {
             console.log('[AUTOMATION CANVAS] Shapes data:', shapes);
             console.log('[AUTOMATION CANVAS] Connections data:', connections);
 
-            // Load shapes
-            shapes.forEach(shape => {
+            // Load shapes with AI-recommended vertical spacing (150px between shapes)
+            shapes.forEach((shape, index) => {
+                // Calculate recommended Y position with 150px spacing
+                const baseY = shape.y || shape.position?.y || 100;
+                const recommendedY = index === 0 ? baseY : baseY + (index * 150);
+                
                 const shapeData = {
                     id: shape.id,
                     type: shape.type || 'rectangle',
                     x: shape.x || shape.position?.x || 100,
-                    y: shape.y || shape.position?.y || 100,
+                    y: recommendedY, // Use AI-recommended spacing
                     width: shape.width || shape.size?.width || 150,
                     height: shape.height || shape.size?.height || 80,
                     text: shape.text || shape.label || '',
@@ -2002,7 +2205,7 @@ class AutomationCanvas {
             console.error('Canvas element not found');
             return;
         }
-        
+
         const canvasRect = canvas.getBoundingClientRect();
 
         // Scroll to center the shapes in view
@@ -2024,22 +2227,22 @@ class AutomationCanvas {
                 this.selectionRect.remove();
                 this.selectionRect = null;
             }
-            
+
             // Clear previous selections
             this.selectedShapes.forEach(shapeId => {
                 document.getElementById(shapeId)?.classList.remove('selected');
             });
             this.selectedShapes = [];
-            
+
             // Start drag selection with left click
             if (e.button === 0 && !e.ctrlKey) {
                 this.isSelecting = true;
-                
+
                 // Get canvas and wrapper elements
                 const canvas = document.getElementById('automation-canvas');
                 const wrapper = document.getElementById('automation-canvas-wrapper');
                 const canvasRect = canvas.getBoundingClientRect();
-                
+
                 // Calculate position relative to wrapper, accounting for scroll
                 this.selectionStart = {
                     x: e.clientX - canvasRect.left + canvas.scrollLeft,
@@ -2102,11 +2305,11 @@ class AutomationCanvas {
             this.selectionRect.remove();
             this.selectionRect = null;
         }
-        
+
         // Ensure no lingering selection rects (DOM cleanup)
         const lingering = document.querySelectorAll('.selection-rect');
         lingering.forEach(rect => rect.remove());
-        
+
         console.log(`Selection complete: ${this.selectedShapes.length} shape(s) selected`);
     }
 
@@ -2138,7 +2341,7 @@ class AutomationCanvas {
                 shapeEl?.classList.remove('selected');
             }
         });
-        
+
         // Debug log
         if (this.selectedShapes.length > 0) {
             console.log(`Selection updated: ${this.selectedShapes.length} shape(s) in selection`);
@@ -2554,13 +2757,13 @@ class AutomationCanvas {
     createLoadWorkflowItem(workflow) {
         const item = document.createElement('div');
         item.className = 'workflow-load-item';
-        
+
         // Determine border color based on workflow state
         const isProduction = workflow.is_production || workflow.workflow_state === 'production';
         const isDraft = workflow.is_draft || workflow.workflow_state === 'draft';
         const borderColor = isProduction ? '#10B981' : '#A855F7';  // Green for production, Purple for draft
         const borderWidth = '4px';
-        
+
         item.style.cssText = `
             padding: 16px;
             padding-left: 12px;
@@ -2658,7 +2861,7 @@ class AutomationCanvas {
                 const isEnabled = e.target.checked;
                 const workflowId = e.target.dataset.workflowId;
                 const slug = e.target.dataset.slug;
-                
+
                 try {
                     // Update workflow enabled state via API
                     const response = await fetch(this.getApiUrl(`/api/automation/toggle/${workflowId || slug}`), {
@@ -2669,15 +2872,15 @@ class AutomationCanvas {
                         },
                         body: JSON.stringify({ enabled: isEnabled })
                     });
-                    
+
                     if (!response.ok) throw new Error('Failed to update workflow state');
-                    
+
                     // Update label text
                     const label = e.target.parentElement.querySelector('span');
                     if (label) {
                         label.textContent = isEnabled ? 'Enabled' : 'Disabled';
                     }
-                    
+
                     this.showToast(`Workflow ${isEnabled ? 'enabled' : 'disabled'}`, 'success');
                 } catch (error) {
                     console.error('[AUTOMATION] Failed to toggle workflow:', error);
@@ -2686,7 +2889,7 @@ class AutomationCanvas {
                 }
             });
         }
-        
+
         // Click to load
         item.addEventListener('click', () => {
             this.loadWorkflowFromList(workflow);

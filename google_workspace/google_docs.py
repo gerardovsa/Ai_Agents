@@ -2292,24 +2292,329 @@ def google_docs_smart_update(document_id, markdown_content, insertion_position='
         raise
 
 
-def google_docs_get_document(document_id, _user_id=None, _injected_credentials=None, **kwargs):
-    """Get document content
+def google_docs_get_document(document_id, format='summary', _user_id=None, _injected_credentials=None, **kwargs):
+    """Get document content with format control (UPDATED: default='summary' to prevent token overflow)
     
     Args:
         document_id: Document ID
+        format: 'summary' (metadata + 2K preview - DEFAULT), 'text' (plain text only), 'markdown' (formatted text), 'full' (complete JSON - VERY LARGE!)
         _user_id: User ID for credential injection
         _injected_credentials: Flag for credential injection
+    
+    Returns:
+        Formatted document content (default is summary to avoid 200K+ token responses)
+        
+    IMPORTANT: Default changed to 'summary' to prevent token overflow errors.
+    For full document content use format='text' or format='markdown' instead.
     """
     try:
         cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
         service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
         document = service.documents().get(documentId=document_id).execute()
         
-        return document
+        # Return full document if explicitly requested (LEGACY - CAN BE VERY LARGE!)
+        if format == 'full':
+            print(f"WARNING: Returning full document JSON - may be 200K+ tokens for large documents!")
+            return document
+        
+        title = document.get('title', 'Untitled')
+        body = document.get('body', {})
+        content = body.get('content', [])
+        
+        # Summary format (DEFAULT) - metadata + 2K character preview
+        if format == 'summary':
+            text_parts = []
+            char_count = 0
+            max_preview = 2000
+            
+            for element in content:
+                if char_count >= max_preview:
+                    break
+                if 'paragraph' in element:
+                    paragraph = element['paragraph']
+                    for text_element in paragraph.get('elements', []):
+                        if 'textRun' in text_element:
+                            text = text_element['textRun']['content']
+                            text_parts.append(text)
+                            char_count += len(text)
+            
+            preview_text = ''.join(text_parts)[:max_preview]
+            
+            return {
+                'success': True,
+                'title': title,
+                'document_id': document_id,
+                'preview': preview_text + ('...' if char_count >= max_preview else ''),
+                'preview_length': len(preview_text),
+                'format': 'summary',
+                'revision_id': document.get('revisionId'),
+                'note': f'Showing first {max_preview} characters. Use format="text" or format="markdown" for full content, or google_docs_search_document() to find specific sections.'
+            }
+        
+        # Plain text format - complete text without formatting metadata
+        elif format == 'text':
+            text_parts = []
+            for element in content:
+                if 'paragraph' in element:
+                    paragraph = element['paragraph']
+                    for text_element in paragraph.get('elements', []):
+                        if 'textRun' in text_element:
+                            text_parts.append(text_element['textRun']['content'])
+            
+            full_text = ''.join(text_parts)
+            
+            return {
+                'success': True,
+                'title': title,
+                'document_id': document_id,
+                'text': full_text,
+                'character_count': len(full_text),
+                'format': 'plain_text',
+                'note': 'Full document text without formatting. Use google_docs_search_document() to find specific sections in large documents.'
+            }
+        
+        # Markdown format - formatted text (headings, bold, italic, lists) WITH SIZE METADATA
+        elif format == 'markdown':
+            markdown_lines = [f"# {title}\n"]
+            
+            # Track document structure for AI context
+            structure_info = {
+                'heading_1_size': None,
+                'heading_2_size': None,
+                'heading_3_size': None,
+                'heading_4_size': None,
+                'normal_text_size': None,
+                'heading_spacing': {}
+            }
+            
+            for element in content:
+                if 'paragraph' in element:
+                    paragraph = element['paragraph']
+                    para_style = paragraph.get('paragraphStyle', {})
+                    named_style = para_style.get('namedStyleType', 'NORMAL_TEXT')
+                    
+                    # Extract text with inline formatting AND capture font size
+                    text_parts = []
+                    font_size = None
+                    for text_element in paragraph.get('elements', []):
+                        if 'textRun' in text_element:
+                            text_run = text_element['textRun']
+                            text = text_run.get('content', '').strip()
+                            text_style = text_run.get('textStyle', {})
+                            
+                            # Capture font size for structure metadata
+                            if not font_size and 'fontSize' in text_style:
+                                font_size = text_style['fontSize'].get('magnitude', 11)
+                            
+                            # Apply inline formatting
+                            if text_style.get('bold'):
+                                text = f"**{text}**"
+                            if text_style.get('italic'):
+                                text = f"*{text}*"
+                            
+                            text_parts.append(text)
+                    
+                    line_text = ' '.join(text_parts).strip()
+                    
+                    if not line_text:
+                        markdown_lines.append('')
+                        continue
+                    
+                    # Capture spacing info
+                    space_above = para_style.get('spaceAbove', {}).get('magnitude', 0)
+                    space_below = para_style.get('spaceBelow', {}).get('magnitude', 0)
+                    
+                    # Apply block-level formatting with size tracking
+                    if named_style == 'HEADING_1':
+                        markdown_lines.append(f"## {line_text}")
+                        if not structure_info['heading_1_size']:
+                            structure_info['heading_1_size'] = f"{font_size}pt"
+                            structure_info['heading_spacing']['H1'] = f"{space_above}pt above, {space_below}pt below"
+                    elif named_style == 'HEADING_2':
+                        markdown_lines.append(f"### {line_text}")
+                        if not structure_info['heading_2_size']:
+                            structure_info['heading_2_size'] = f"{font_size}pt"
+                            structure_info['heading_spacing']['H2'] = f"{space_above}pt above, {space_below}pt below"
+                    elif named_style == 'HEADING_3':
+                        markdown_lines.append(f"#### {line_text}")
+                        if not structure_info['heading_3_size']:
+                            structure_info['heading_3_size'] = f"{font_size}pt"
+                            structure_info['heading_spacing']['H3'] = f"{space_above}pt above, {space_below}pt below"
+                    elif named_style == 'HEADING_4':
+                        markdown_lines.append(f"##### {line_text}")
+                        if not structure_info['heading_4_size']:
+                            structure_info['heading_4_size'] = f"{font_size}pt"
+                            structure_info['heading_spacing']['H4'] = f"{space_above}pt above, {space_below}pt below"
+                    else:
+                        # Check for lists
+                        if 'bullet' in paragraph:
+                            bullet = paragraph['bullet']
+                            nesting_level = bullet.get('nestingLevel', 0)
+                            indent = '  ' * nesting_level
+                            markdown_lines.append(f"{indent}- {line_text}")
+                        else:
+                            markdown_lines.append(line_text)
+                            if not structure_info['normal_text_size'] and font_size:
+                                structure_info['normal_text_size'] = f"{font_size}pt"
+                    
+                    markdown_lines.append('')
+            
+            markdown_content = '\n'.join(markdown_lines)
+            
+            # Add document structure metadata at the top for AI context
+            structure_header = "---\n"
+            structure_header += "**Document Structure:**\n"
+            if structure_info['heading_1_size']:
+                structure_header += f"- H1 (##): {structure_info['heading_1_size']}, {structure_info['heading_spacing'].get('H1', 'no spacing info')}\n"
+            if structure_info['heading_2_size']:
+                structure_header += f"- H2 (###): {structure_info['heading_2_size']}, {structure_info['heading_spacing'].get('H2', 'no spacing info')}\n"
+            if structure_info['heading_3_size']:
+                structure_header += f"- H3 (####): {structure_info['heading_3_size']}, {structure_info['heading_spacing'].get('H3', 'no spacing info')}\n"
+            if structure_info['heading_4_size']:
+                structure_header += f"- H4 (#####): {structure_info['heading_4_size']}, {structure_info['heading_spacing'].get('H4', 'no spacing info')}\n"
+            if structure_info['normal_text_size']:
+                structure_header += f"- Normal text: {structure_info['normal_text_size']}\n"
+            structure_header += "---\n\n"
+            
+            markdown_with_structure = structure_header + markdown_content
+            
+            return {
+                'success': True,
+                'title': title,
+                'document_id': document_id,
+                'markdown': markdown_with_structure,
+                'character_count': len(markdown_with_structure),
+                'format': 'markdown',
+                'structure': structure_info,
+                'note': 'Full document as markdown with document structure metadata. AI can see heading sizes and spacing to match original formatting hierarchy.'
+            }
+        
+        else:
+            return {
+                'success': False,
+                'error': f"Unknown format: {format}. Use 'summary' (default), 'text', 'markdown', or 'full' (not recommended for large docs)"
+            }
     
     except Exception as e:
         print(f" Failed to get document: {e}")
-        raise
+        return {'success': False, 'error': str(e), 'document_id': document_id}
+
+
+def google_docs_search_document(document_id, query, context_chars=800, max_matches=10, _user_id=None, _injected_credentials=None, **kwargs):
+    """Search document for specific text and return matching sections with context
+    
+    EXTREMELY efficient for large documents - only returns relevant sections instead
+    of entire document (90%+ token reduction). Perfect for Q&A, finding specific info,
+    or extracting relevant sections from large documents.
+    
+    Args:
+        document_id: Document ID
+        query: Search query (keywords or phrases to find, case-insensitive)
+        context_chars: Characters of context around matches (default: 800)
+        max_matches: Maximum matches to return (default: 10)
+        _user_id: User ID for credential injection
+        _injected_credentials: Flag for credential injection
+    
+    Returns:
+        dict with title, matches (list of matching sections), match_count, query
+    
+    Example response:
+    {
+        'success': True,
+        'title': 'Product Manual',
+        'matches': [
+            {
+                'text': '...warranty coverage includes manufacturing defects...',
+                'position': 1520,
+                'context_length': 800
+            }
+        ],
+        'match_count': 3,
+        'query': 'warranty',
+        'showing': 3
+    }
+    
+    Use cases:
+    - "Find sections about X in this document"
+    - "What does the document say about Y?"
+    - "Search for mentions of Z"
+    - Extract specific information without loading full doc
+    """
+    try:
+        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        document = service.documents().get(documentId=document_id).execute()
+        
+        title = document.get('title', 'Untitled')
+        body = document.get('body', {})
+        content = body.get('content', [])
+        
+        # Extract full text
+        text_parts = []
+        for element in content:
+            if 'paragraph' in element:
+                paragraph = element['paragraph']
+                for text_element in paragraph.get('elements', []):
+                    if 'textRun' in text_element:
+                        text_parts.append(text_element['textRun']['content'])
+        
+        full_text = ''.join(text_parts)
+        
+        # Case-insensitive search
+        query_lower = query.lower()
+        full_text_lower = full_text.lower()
+        
+        matches = []
+        search_start = 0
+        
+        while len(matches) < max_matches:
+            match_pos = full_text_lower.find(query_lower, search_start)
+            if match_pos == -1:
+                break
+            
+            # Extract context around match
+            context_start = max(0, match_pos - context_chars // 2)
+            context_end = min(len(full_text), match_pos + len(query) + context_chars // 2)
+            
+            context_text = full_text[context_start:context_end]
+            
+            # Add ellipsis if truncated
+            if context_start > 0:
+                context_text = '...' + context_text
+            if context_end < len(full_text):
+                context_text = context_text + '...'
+            
+            matches.append({
+                'text': context_text,
+                'position': match_pos,
+                'context_length': len(context_text),
+                'match_number': len(matches) + 1
+            })
+            
+            search_start = match_pos + len(query)
+        
+        # Count total matches (even if not all returned)
+        total_count = full_text_lower.count(query_lower)
+        
+        return {
+            'success': True,
+            'title': title,
+            'document_id': document_id,
+            'query': query,
+            'match_count': total_count,
+            'showing': len(matches),
+            'matches': matches,
+            'note': f'Found {total_count} matches, showing {len(matches)} with {context_chars} chars context each' + (f'. Use max_matches={total_count} to see all.' if total_count > len(matches) else '')
+        }
+    
+    except Exception as e:
+        print(f" Failed to search document: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'document_id': document_id,
+            'query': query
+        }
 
 
 def google_docs_batch_update(document_id, requests, _user_id=None, _injected_credentials=None, **kwargs):

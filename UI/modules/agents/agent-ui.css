@@ -549,6 +549,7 @@
     gap: 12px;
     padding: 16px 20px;
     background: var(--bg-tertiary);
+    border: 1px solid var(--accent-primary);
     border-radius: 8px;
     margin: 12px 0;
     animation: fadeIn 0.3s ease;

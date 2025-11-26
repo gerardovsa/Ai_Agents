@@ -64,6 +64,11 @@ class ModuleManifest:
     js_file: Optional[str] = None  # Controller logic
     css_file: Optional[str] = None  # Styling
     
+    # Full file paths (from project root)
+    htmlPath: Optional[str] = None  # Full path to HTML file
+    scriptPath: Optional[str] = None  # Full path to JS file
+    stylePath: Optional[str] = None  # Full path to CSS file
+    
     # Credential requirements (auto-discovered)
     required_platforms: List[str] = field(default_factory=list)  # e.g., ["pinecone", "openai"]
     optional_platforms: List[str] = field(default_factory=list)  # e.g., ["assemblyai"]
@@ -73,6 +78,13 @@ class ModuleManifest:
     sidebar_width: int = 450  # Default width in pixels
     auto_load: bool = False  # Load at startup vs on-demand
     requires_auth: bool = True  # Require user authentication
+    
+    # UI configuration
+    floating_toggle: bool = False  # Show floating toggle button
+    floating_toggle_position: str = "right"  # Position of floating toggle
+    floating_toggle_default_top: int = 280  # Default top position in pixels
+    main_tab: bool = False  # Show as main tab (not sidebar)
+    main_tab_id: Optional[str] = None  # Main tab identifier
     
     # Dependencies
     dependencies: List[str] = field(default_factory=list)  # Other module IDs this depends on
@@ -180,12 +192,20 @@ class ModuleRegistry:
                     html_file=manifest_data.get('html_file'),
                     js_file=manifest_data.get('js_file'),
                     css_file=manifest_data.get('css_file'),
+                    htmlPath=manifest_data.get('htmlPath'),
+                    scriptPath=manifest_data.get('scriptPath'),
+                    stylePath=manifest_data.get('stylePath'),
                     required_platforms=manifest_data.get('required_platforms', []),
                     optional_platforms=manifest_data.get('optional_platforms', []),
                     sidebar_position=manifest_data.get('sidebar_position', 'right'),
                     sidebar_width=manifest_data.get('sidebar_width', 450),
                     auto_load=manifest_data.get('auto_load', False),
                     requires_auth=manifest_data.get('requires_auth', True),
+                    floating_toggle=manifest_data.get('floating_toggle', False),
+                    floating_toggle_position=manifest_data.get('floating_toggle_position', 'right'),
+                    floating_toggle_default_top=manifest_data.get('floating_toggle_default_top', 280),
+                    main_tab=manifest_data.get('main_tab', False),
+                    main_tab_id=manifest_data.get('main_tab_id'),
                     dependencies=manifest_data.get('dependencies', []),
                     api_routes=manifest_data.get('api_routes', []),
                     features=manifest_data.get('features', {}),

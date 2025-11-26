@@ -72,7 +72,9 @@ class SharedTranscriptionState {
                 this.trigger('onStop');
             };
             
-            this.audioRecorder.start();
+            // Start recording with 1-second chunks
+            this.audioRecorder.start(1000);
+            console.log('[SHARED STATE] MediaRecorder started with 1s timeslice');
             console.log('[SHARED STATE] Audio recorder started');
             
             // Start browser speech recognition
@@ -87,12 +89,16 @@ class SharedTranscriptionState {
                 };
                 
                 this.browserRecognition.onerror = (event) => {
-                    console.error('[SHARED STATE] Recognition error:', event.error);
-                    this.trigger('onError', event.error);
-                    if (event.error === 'no-speech') {
-                        // Non-fatal, continue recording
+                    console.warn('[SHARED STATE] Recognition error:', event.error);
+                    
+                    // Non-fatal errors (continue with Whisper)
+                    if (event.error === 'no-speech' || event.error === 'audio-capture') {
+                        console.log('[SHARED STATE] Non-fatal STT error, continuing with Whisper transcription');
                         return;
                     }
+                    
+                    // Fatal errors
+                    this.trigger('onError', event.error);
                 };
                 
                 this.browserRecognition.onend = () => {
@@ -109,8 +115,13 @@ class SharedTranscriptionState {
             }
             
             if (this.browserRecognition) {
-                this.browserRecognition.start();
-                console.log('[SHARED STATE] Browser recognition started');
+                try {
+                    this.browserRecognition.start();
+                    console.log('[SHARED STATE] Browser recognition started');
+                } catch (err) {
+                    console.warn('[SHARED STATE] Browser STT failed (non-fatal, Whisper will handle):', err);
+                    // Continue recording with Whisper only
+                }
             }
             
             this.isRecording = true;
@@ -219,6 +230,24 @@ class TranscriptionSidebarController {
      */
     async init() {
         console.log('[TRANSCRIPTION SIDEBAR] Initializing...');
+
+        // Show auto-detected backend URL hint
+        if (window.TranscriptionConfig) {
+            const hint = document.getElementById('backend-url-hint');
+            const input = document.getElementById('transcription-whisper-endpoint');
+            const detectedUrl = window.TranscriptionConfig.getEndpoint('transcribe');
+            const config = window.TranscriptionConfig.getConfig();
+            const env = config.environment === 'local' ? 'Local (localhost:5001)' : 'Production (Render)';
+            
+            if (hint) {
+                hint.textContent = `${env} (auto-detected): ${detectedUrl}`;
+            }
+            
+            // Set placeholder to show auto-detected URL
+            if (input && !input.value) {
+                input.placeholder = detectedUrl;
+            }
+        }
 
         // Load saved settings
         this.loadSettings();
@@ -514,7 +543,7 @@ class TranscriptionSidebarController {
         console.log('[TRANSCRIPTION SIDEBAR] Sending audio to Whisper:', {
             size: audioBlob.size,
             type: audioBlob.type,
-            chunks: this.audioChunks.length
+            chunks: this.sharedState.audioChunks.length
         });
         
         // Get settings
@@ -1200,11 +1229,45 @@ class TranscriptionSidebarController {
     }
 
     /**
+     * Backend configuration helpers
+     */
+    detectBackendUrl() {
+        if (!window.TranscriptionConfig) {
+            alert('TranscriptionConfig not loaded. Please ensure config.js is included.');
+            return;
+        }
+        
+        const detectedUrl = window.TranscriptionConfig.getEndpoint('transcribe');
+        const input = document.getElementById('transcription-whisper-endpoint');
+        if (input) {
+            input.value = detectedUrl;
+        }
+        
+        // Update hint
+        const hint = document.getElementById('backend-url-hint');
+        if (hint) {
+            const config = window.TranscriptionConfig.getConfig();
+            const env = config.environment === 'local' ? 'Local (localhost:5001)' : 'Production (Render)';
+            hint.textContent = `${env}: ${detectedUrl}`;
+        }
+        
+        const config = window.TranscriptionConfig.getConfig();
+        const envLabel = config.environment === 'local' ? 'Local Development' : 'Production (Render)';
+        console.log('[TRANSCRIPTION SIDEBAR] Auto-detected backend URL:', detectedUrl);
+        alert(`Detected ${envLabel} backend:\n${detectedUrl}\n\nUsing global API_BASE_URL: ${config.globalApiBaseUrl}`);
+    }
+
+    /**
      * Settings management
      */
     getSTTSettings() {
+        // Get default endpoint from centralized config
+        const defaultEndpoint = window.TranscriptionConfig ? 
+            window.TranscriptionConfig.getEndpoint('transcribe') : 
+            'http://localhost:5001/api/transcribe';
+        
         return {
-            whisperEndpoint: document.getElementById('transcription-whisper-endpoint')?.value || 'http://localhost:5001/api/transcribe',
+            whisperEndpoint: document.getElementById('transcription-whisper-endpoint')?.value || defaultEndpoint,
             apiKey: document.getElementById('transcription-api-key')?.value || null,
             insertMode: document.getElementById('transcription-insert-mode')?.value || 'append',
             chunkSize: parseInt(document.getElementById('transcription-chunk-size')?.value || 5000),
@@ -1257,6 +1320,12 @@ class TranscriptionSidebarController {
                 document.getElementById('transcription-insert-mode').value = settings.insertMode;
                 document.getElementById('transcription-chunk-size').value = settings.chunkSize;
                 document.getElementById('transcription-sample-rate').value = settings.sampleRate;
+        
+                // Update hint with loaded URL
+                const hint = document.getElementById('backend-url-hint');
+                if (hint) {
+                    hint.textContent = `Saved: ${settings.whisperEndpoint}`;
+                }
             } catch (error) {
                 console.error('[TRANSCRIPTION SIDEBAR] Failed to load STT settings:', error);
             }

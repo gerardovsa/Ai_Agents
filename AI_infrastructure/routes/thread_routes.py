@@ -6,6 +6,7 @@ Thread/conversation management for all AI agents
 from flask import Blueprint, request
 import json
 from datetime import datetime, timedelta
+from psycopg2.extras import RealDictCursor
 
 # Import infrastructure
 from core.agent_state_manager import agent_state_manager
@@ -327,7 +328,8 @@ def list_threads():
         print(f"🗄️ [THREAD API] Database: {'Supabase' if is_using_supabase() else 'SQLite'}")
         
         with get_database_connection('sessions') as conn:
-            cursor = conn.cursor()
+            # ✅ FIX: Use RealDictCursor - DatabaseConnection.cursor() passes through cursor_factory
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             
             # Build query with proper placeholders
             query = """
@@ -351,7 +353,17 @@ def list_threads():
                     t.workflow_title,
                     t.internal_doc_slug,
                     t.internal_doc_title,
-                    COUNT(m.id) as message_count,
+                    COUNT(CASE 
+                        -- Count user messages ONLY if NOT tool_result messages
+                        WHEN m.role = 'user' AND (
+                            m.metadata IS NULL 
+                            OR m.metadata::jsonb->>'tool_results' IS NULL 
+                            OR m.metadata::jsonb->>'tool_results' != 'true'
+                        ) THEN 1
+                        -- Count assistant messages ONLY if they contain text content
+                        WHEN m.role = 'assistant' AND m.content::jsonb::text LIKE '%%"type": "text"%%' THEN 1
+                        ELSE NULL
+                    END) as message_count,
                     MAX(m.created_at) as last_message_time,
                     (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
                 FROM sessions.threads t
@@ -365,54 +377,85 @@ def list_threads():
                 LIMIT %s
             """
             
-            # Convert ? placeholders to %s for PostgreSQL
-            sql, params = convert_sql_placeholders(query, (user_id, limit))
-            
-            # Execute query
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-            
-            print(f"✅ [THREAD API] Query returned {len(rows)} rows")
-            
-            # Log location distribution
-            location_counts = {}
-            for row in rows:
-                loc = row['location'] or 'prime'
-                location_counts[loc] = location_counts.get(loc, 0) + 1
-            print(f"📍 [THREAD API] Location distribution: {location_counts}")
+            try:
+                # Execute query with user_id and limit
+                print(f"🔍 [THREAD API] Executing query with user_id={user_id}, limit={limit}")
+                print(f"🔍 [THREAD API] user_id type: {type(user_id)}, limit type: {type(limit)}")
+                print(f"🔍 [THREAD API] Parameters tuple: {(user_id, limit)}")
+                print(f"🔍 [THREAD API] Counting %s in query...")
+                placeholder_count = query.count('%s')
+                print(f"🔍 [THREAD API] Found {placeholder_count} %s placeholders in query")
+                print(f"🔍 [THREAD API] Query preview: {query[:200]}...")
+                print(f"🔍 [THREAD API] About to call cursor.execute()...")
+                cursor.execute(query, (user_id, limit))
+                print(f"🔍 [THREAD API] cursor.execute() succeeded!")
+                print(f"🔍 [THREAD API] About to call cursor.fetchall()...")
+                rows = cursor.fetchall()
+                print(f"🔍 [THREAD API] cursor.fetchall() succeeded!")
+                
+                print(f"✅ [THREAD API] Query returned {len(rows)} rows")
+                if len(rows) > 0:
+                    print(f"🔍 [THREAD API] First row type: {type(rows[0])}")
+                    print(f"🔍 [THREAD API] First row keys: {list(rows[0].keys()) if hasattr(rows[0], 'keys') else 'NOT A DICT'}")
+                
+                # Log location distribution
+                location_counts = {}
+                for row in rows:
+                    loc = row.get('location') or 'prime'
+                    location_counts[loc] = location_counts.get(loc, 0) + 1
+                print(f"📍 [THREAD API] Location distribution: {location_counts}")
+                
+            except Exception as query_error:
+                print(f"❌❌❌ [THREAD API] CRITICAL: Query execution failed!")
+                print(f"❌ Error: {query_error}")
+                import traceback
+                traceback.print_exc()
+                # Return error instead of empty list
+                return error_response(f"Query execution failed: {str(query_error)}", 500)
             
             threads = []
-            for row in rows:
-                # Rows returned as dicts (RealDictCursor for Supabase, Row for SQLite)
-                thread_data = {
-                    'id': row['thread_slug'],
-                    'thread_id': row['id'],  # Internal database ID
-                    'title': row['name'],
-                    'user_id': row['user_id'],
-                    'created': row['created_at'],
-                    'updated': row['updated_at'],
-                    'metadata': json.loads(row['metadata']) if row['metadata'] else {},
-                    'location': row['location'] or 'prime',
-                    'agent': row['location'] or 'main',  # Alias for frontend compatibility
-                    'tags': json.loads(row['tags']) if row['tags'] else [],
-                    'synergy_card_id': row['synergy_card_id'],
-                    'synergy_card_name': row['synergy_card_name'],
-                    'parent_thread_id': row['parent_thread_id'],
-                    'branch_name': row['branch_name'],
-                    'workflow_id': row['workflow_id'],
-                    'workflow_name': row['workflow_name'],
-                    'workflow_slug': row['workflow_slug'],
-                    'workflow_title': row['workflow_title'],
-                    'internal_doc_slug': row['internal_doc_slug'],
-                    'internal_doc_title': row['internal_doc_title'],
-                    'message_count': row['message_count'] or 0,
-                    'last_message_time': row['last_message_time'],
-                    'last_message_role': row['last_message_role'],
-                    'archived': False  # Default for now, add column later if needed
-                }
-                threads.append(thread_data)
+            print(f"🔄 [THREAD API] Processing {len(rows)} rows into thread objects...")
+            for idx, row in enumerate(rows, 1):
+                try:
+                    print(f"🔄 [THREAD API] Processing row {idx}/{len(rows)}: thread_slug={row.get('thread_slug')}")
+                    # Rows returned as dicts (RealDictCursor for Supabase, Row for SQLite)
+                    thread_data = {
+                        'id': row.get('thread_slug'),
+                        'thread_id': row.get('id'),  # Internal database ID
+                        'title': row.get('name'),
+                        'user_id': row.get('user_id'),
+                        'created': row.get('created_at'),
+                        'updated': row.get('updated_at'),
+                        'metadata': json.loads(row.get('metadata')) if row.get('metadata') else {},
+                        'location': row.get('location') or 'prime',
+                        'agent': row.get('location') or 'main',  # Alias for frontend compatibility
+                        'tags': json.loads(row.get('tags')) if row.get('tags') else [],
+                        'synergy_card_id': row.get('synergy_card_id'),
+                        'synergy_card_name': row.get('synergy_card_name'),
+                        'parent_thread_id': row.get('parent_thread_id'),
+                        'branch_name': row.get('branch_name'),
+                        'workflow_id': row.get('workflow_id'),
+                        'workflow_name': row.get('workflow_name'),
+                        'workflow_slug': row.get('workflow_slug'),
+                        'workflow_title': row.get('workflow_title'),
+                        'internal_doc_slug': row.get('internal_doc_slug'),
+                        'internal_doc_title': row.get('internal_doc_title'),
+                        'message_count': row.get('message_count') or 0,
+                        'last_message_time': row.get('last_message_time'),
+                        'last_message_role': row.get('last_message_role'),
+                        'archived': False  # Default for now, add column later if needed
+                    }
+                    threads.append(thread_data)
+                    print(f"✅ [THREAD API] Row {idx} processed successfully")
+                except Exception as row_error:
+                    print(f"❌ [THREAD API] ERROR processing row {idx}: {row_error}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
         
-        # ✅ LEAK FIX #2: Set response data, don't return inside with block
+        # ✅ with block ends here - connection returned to pool
+        
+        # ✅ LEAK FIX #2: Set response data AFTER with block closes
         print(f"📤 [THREAD API] Returning {len(threads)} threads")
         for thread in threads[:5]:  # Log first 5 threads
             print(f"   🧵 {thread['id']}: '{thread['title']}' → location={thread['location']}")
@@ -425,7 +468,7 @@ def list_threads():
         }, message=f"Found {len(threads)} threads for user {user_id}")
         status_code = 200
         
-        # ✅ Return AFTER with block closes
+        # ✅ Return response
         return response_data
     
     except Exception as e:
