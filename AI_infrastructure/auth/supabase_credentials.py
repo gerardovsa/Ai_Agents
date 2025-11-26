@@ -1,4 +1,4 @@
-"""
+r"""
 Supabase Credentials Manager for InHouse Print Tools
 
 PURPOSE: Fetch SQL Server and API credentials from Supabase for Render deployment

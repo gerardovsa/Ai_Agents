@@ -75,7 +75,12 @@ def _get_agent() -> ToolUseAgent:
         try:
             # Import credentials manager
             import sys
-            credentials_path = Path(__file__).parent.parent.parent.parent.parent / 'AI_infrastructure' / 'auth'
+            import os
+            # From: UI/external/modules/inhouse-print/implementations/inhouse_wrapper.py
+            # To: AI_infrastructure/auth (need to go up 6 levels to project root)
+            project_root = Path(__file__).parent.parent.parent.parent.parent.parent
+            credentials_path = project_root / 'AI_infrastructure' / 'auth'
+            
             if str(credentials_path) not in sys.path:
                 sys.path.insert(0, str(credentials_path))
             

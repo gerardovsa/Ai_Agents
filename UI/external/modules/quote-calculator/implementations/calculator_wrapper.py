@@ -108,7 +108,12 @@ def _get_calculator():
     
     try:
         # Import credentials manager
-        credentials_path = root_dir / 'AI_infrastructure' / 'auth'
+        import sys
+        # From: UI/external/modules/quote-calculator/implementations/calculator_wrapper.py
+        # To: AI_infrastructure/auth (root_dir should be project root)
+        project_root = Path(__file__).parent.parent.parent.parent.parent.parent
+        credentials_path = project_root / 'AI_infrastructure' / 'auth'
+        
         if str(credentials_path) not in sys.path:
             sys.path.insert(0, str(credentials_path))
         
