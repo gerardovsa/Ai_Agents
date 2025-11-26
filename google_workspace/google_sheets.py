@@ -550,6 +550,291 @@ def google_sheets_get_range(spreadsheet_id, range='', format='summary', _user_id
         raise Exception(f"Failed to get spreadsheet range: {str(e)}")
 
 
+def google_sheets_query_data(spreadsheet_id, range='', filters=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Query/filter spreadsheet data by column values.
+    
+    Args:
+        spreadsheet_id: The spreadsheet ID
+        range: Range to query (e.g., 'Sheet1!A1:Z100')
+        filters: List of filter conditions. Each filter is a dict with:
+            - column: Column letter or index (e.g., 'A' or 0)
+            - operator: '=', '!=', '>', '<', '>=', '<=', 'contains'
+            - value: Value to compare against
+        **kwargs: Optional OAuth credentials
+    
+    Returns:
+        dict with:
+        - filtered_rows: Rows matching all filter conditions
+        - total_rows: Number of matching rows
+        - filters_applied: List of filters that were applied
+    """
+    print(f"Querying data in spreadsheet {spreadsheet_id}, range: {range}")
+    
+    try:
+        # Get service with OAuth or service account
+        service = _get_sheets_service_with_oauth(_user_id, _injected_credentials)
+        
+        # Get the data
+        result = service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range
+        ).execute()
+        
+        values = result.get('values', [])
+        
+        if not values:
+            print("No data found in range")
+            return {
+                'filtered_rows': [],
+                'total_rows': 0,
+                'filters_applied': filters or []
+            }
+        
+        # If no filters, return all rows
+        if not filters:
+            return {
+                'filtered_rows': values,
+                'total_rows': len(values),
+                'filters_applied': []
+            }
+        
+        # Apply filters
+        filtered_rows = []
+        
+        for row in values:
+            matches_all = True
+            
+            for filter_cond in filters:
+                column = filter_cond.get('column')
+                operator = filter_cond.get('operator')
+                filter_value = filter_cond.get('value')
+                
+                # Convert column letter to index if needed
+                if isinstance(column, str):
+                    column_index = ord(column.upper()) - ord('A')
+                else:
+                    column_index = column
+                
+                # Check if row has this column
+                if column_index >= len(row):
+                    matches_all = False
+                    break
+                
+                cell_value = row[column_index]
+                
+                # Apply operator
+                try:
+                    if operator == '=':
+                        if str(cell_value) != str(filter_value):
+                            matches_all = False
+                            break
+                    elif operator == '!=':
+                        if str(cell_value) == str(filter_value):
+                            matches_all = False
+                            break
+                    elif operator == 'contains':
+                        if str(filter_value).lower() not in str(cell_value).lower():
+                            matches_all = False
+                            break
+                    elif operator in ['>', '<', '>=', '<=']:
+                        # Try numeric comparison
+                        try:
+                            cell_num = float(cell_value)
+                            filter_num = float(filter_value)
+                            
+                            if operator == '>' and not cell_num > filter_num:
+                                matches_all = False
+                                break
+                            elif operator == '<' and not cell_num < filter_num:
+                                matches_all = False
+                                break
+                            elif operator == '>=' and not cell_num >= filter_num:
+                                matches_all = False
+                                break
+                            elif operator == '<=' and not cell_num <= filter_num:
+                                matches_all = False
+                                break
+                        except (ValueError, TypeError):
+                            # Can't compare non-numeric values
+                            matches_all = False
+                            break
+                except Exception as e:
+                    print(f"Filter comparison error: {e}")
+                    matches_all = False
+                    break
+            
+            if matches_all:
+                filtered_rows.append(row)
+        
+        print(f"Found {len(filtered_rows)} rows matching filters")
+        
+        return {
+            'filtered_rows': filtered_rows,
+            'total_rows': len(filtered_rows),
+            'filters_applied': filters
+        }
+    
+    except Exception as e:
+        print(f"Failed to query data: {e}")
+        raise
+
+
+def google_sheets_get_summary(spreadsheet_id, range='', group_by_column=None, aggregations=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Get summary statistics from spreadsheet data (aggregate/group by column).
+    
+    Args:
+        spreadsheet_id: The spreadsheet ID
+        range: Range to summarize (e.g., 'Sheet1!A1:Z100')
+        group_by_column: Column to group by (letter or index, e.g., 'A' or 0)
+        aggregations: List of aggregation configs. Each is a dict with:
+            - column: Column to aggregate (letter or index)
+            - function: 'count', 'sum', 'average', 'min', 'max'
+        **kwargs: Optional OAuth credentials
+    
+    Returns:
+        dict with:
+        - summary: List of summary rows with grouped values and aggregations
+        - group_by_column: Column used for grouping
+        - aggregations_applied: List of aggregation functions applied
+    """
+    print(f"Getting summary for spreadsheet {spreadsheet_id}, range: {range}")
+    
+    try:
+        # Get service with OAuth or service account
+        service = _get_sheets_service_with_oauth(_user_id, _injected_credentials)
+        
+        # Get the data
+        result = service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range
+        ).execute()
+        
+        values = result.get('values', [])
+        
+        if not values:
+            print("No data found in range")
+            return {
+                'summary': [],
+                'group_by_column': group_by_column,
+                'aggregations_applied': aggregations or []
+            }
+        
+        # If no group by, calculate aggregations for all data
+        if group_by_column is None:
+            summary_row = {'group': 'ALL'}
+            
+            for agg in (aggregations or []):
+                agg_column = agg.get('column')
+                agg_function = agg.get('function')
+                
+                # Convert column letter to index if needed
+                if isinstance(agg_column, str):
+                    col_index = ord(agg_column.upper()) - ord('A')
+                else:
+                    col_index = agg_column
+                
+                # Extract numeric values from column
+                numeric_values = []
+                for row in values:
+                    if col_index < len(row):
+                        try:
+                            numeric_values.append(float(row[col_index]))
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Calculate aggregation
+                if agg_function == 'count':
+                    summary_row[f'{agg_column}_{agg_function}'] = len(numeric_values)
+                elif agg_function == 'sum' and numeric_values:
+                    summary_row[f'{agg_column}_{agg_function}'] = sum(numeric_values)
+                elif agg_function == 'average' and numeric_values:
+                    summary_row[f'{agg_column}_{agg_function}'] = sum(numeric_values) / len(numeric_values)
+                elif agg_function == 'min' and numeric_values:
+                    summary_row[f'{agg_column}_{agg_function}'] = min(numeric_values)
+                elif agg_function == 'max' and numeric_values:
+                    summary_row[f'{agg_column}_{agg_function}'] = max(numeric_values)
+            
+            return {
+                'summary': [summary_row],
+                'group_by_column': None,
+                'aggregations_applied': aggregations or []
+            }
+        
+        # Group by column
+        # Convert column letter to index if needed
+        if isinstance(group_by_column, str):
+            group_col_index = ord(group_by_column.upper()) - ord('A')
+        else:
+            group_col_index = group_by_column
+        
+        # Group rows by the group_by_column value
+        groups = {}
+        
+        for row in values:
+            if group_col_index >= len(row):
+                continue
+            
+            group_value = row[group_col_index]
+            
+            if group_value not in groups:
+                groups[group_value] = []
+            
+            groups[group_value].append(row)
+        
+        # Calculate aggregations for each group
+        summary = []
+        
+        for group_value, group_rows in groups.items():
+            summary_row = {'group': group_value}
+            
+            for agg in (aggregations or []):
+                agg_column = agg.get('column')
+                agg_function = agg.get('function')
+                
+                # Convert column letter to index if needed
+                if isinstance(agg_column, str):
+                    col_index = ord(agg_column.upper()) - ord('A')
+                else:
+                    col_index = agg_column
+                
+                # Extract numeric values from column in this group
+                numeric_values = []
+                for row in group_rows:
+                    if col_index < len(row):
+                        try:
+                            numeric_values.append(float(row[col_index]))
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Calculate aggregation
+                if agg_function == 'count':
+                    summary_row[f'{agg_column}_{agg_function}'] = len(numeric_values)
+                elif agg_function == 'sum' and numeric_values:
+                    summary_row[f'{agg_column}_{agg_function}'] = sum(numeric_values)
+                elif agg_function == 'average' and numeric_values:
+                    summary_row[f'{agg_column}_{agg_function}'] = sum(numeric_values) / len(numeric_values)
+                elif agg_function == 'min' and numeric_values:
+                    summary_row[f'{agg_column}_{agg_function}'] = min(numeric_values)
+                elif agg_function == 'max' and numeric_values:
+                    summary_row[f'{agg_column}_{agg_function}'] = max(numeric_values)
+            
+            summary.append(summary_row)
+        
+        print(f"Generated summary with {len(summary)} groups")
+        
+        return {
+            'summary': summary,
+            'group_by_column': group_by_column,
+            'aggregations_applied': aggregations or []
+        }
+    
+    except Exception as e:
+        print(f"Failed to get summary: {e}")
+        raise
+
+
 # ==================== ALIASES (Short Names) ====================
 # These aliases map schema names to implementation functions
 

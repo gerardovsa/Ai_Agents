@@ -52,7 +52,12 @@
           "format": {
             "type": "string",
             "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 1K tokens): Slide titles, layout types, speaker notes preview, slide count. Use for quick overview or finding specific slides.\n- 'text' (80K tokens): All text content from all slides + complete speaker notes. Use for full-text search or content analysis.\n- 'markdown' (90K tokens): Slides as markdown sections with ## headings (font >=24pt), ### subheadings (font >=18pt), **bold**, *italic*. Speaker notes as blockquotes. Use for AI content processing or readable exports.\n- 'full' (280K+ tokens): Complete JSON with shapes, positioning, transforms, images. AVOID unless you need layout metadata.\n\nDefault: 'summary'",
-            "enum": ["summary", "text", "markdown", "full"],
+            "enum": [
+              "summary",
+              "text",
+              "markdown",
+              "full"
+            ],
             "default": "summary"
           }
         },
@@ -88,6 +93,68 @@
             "format": "markdown"
           },
           "expected_tokens": 90000
+        }
+      ]
+    },
+    {
+      "name": "google_slides_get_slide",
+      "description": "Get content from a specific slide by number. Returns text content, speaker notes, and element counts for a single slide.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID (required)"
+          },
+          "slide_number": {
+            "type": "integer",
+            "description": "Slide number to retrieve (1-indexed, required)"
+          }
+        },
+        "required": ["presentation_id", "slide_number"]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Single slide data with: slide_number, slide_id, text_content, speaker_notes, element_counts (text_boxes, images, shapes, tables, charts), image_metadata"
+      },
+      "examples": [
+        {
+          "description": "Get slide 3 content",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "slide_number": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_slides_search_presentation",
+      "description": "Search all slides in a presentation for text query. Returns matching slides with context.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID (required)"
+          },
+          "query": {
+            "type": "string",
+            "description": "Text to search for (case-insensitive, required)"
+          }
+        },
+        "required": ["presentation_id", "query"]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with: matched_slides (list of slides containing query with slide_number, title, matched_text preview, speaker_notes), total_matches, query"
+      },
+      "examples": [
+        {
+          "description": "Search for 'revenue' in presentation",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "query": "revenue"
+          }
         }
       ]
     },
