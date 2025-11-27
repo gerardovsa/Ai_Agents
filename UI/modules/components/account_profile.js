@@ -2239,7 +2239,36 @@ async function initializeApp() {
         return; // Don't call init() - we already initialized
     }
 
-    // No OAuth token in URL AND user not authenticated - proceed with normal init
+    // Check if token exists in localStorage (set by main HTML OAuth detection)
+    const storedToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    
+    if (storedToken && !isInitialized) {
+        // Token exists but not in URL - OAuth callback already processed by main HTML
+        console.log('🔐 [AUTH] Token found in localStorage - continuing OAuth flow...');
+        UserAuth.token = storedToken;
+        
+        // Load user profile
+        console.log('📋 [AUTH] Loading user profile from backend...');
+        try {
+            await loadUserProfile();
+            console.log('✅ [AUTH] User profile loaded successfully');
+            
+            // Show main app
+            console.log('🚀 [AUTH] Calling UserAuth.showMainApp()...');
+            await UserAuth.showMainApp();
+            console.log('✅ [AUTH] Main app initialized successfully');
+            
+            isInitialized = true;
+            return;
+        } catch (error) {
+            console.error('❌ [AUTH] Failed to load user profile:', error);
+            // Token invalid - clear and show login
+            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('authToken');
+        }
+    }
+    
+    // No OAuth token in URL AND no valid stored token - proceed with normal init
     console.log('[AUTH] No OAuth token, no existing session - Showing login screen');
     UserAuth.init();
 
