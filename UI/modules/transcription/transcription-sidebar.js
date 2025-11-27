@@ -866,6 +866,18 @@ class TranscriptionSidebarController {
         console.log('[TRANSCRIPTION SIDEBAR] STT transcript received (Whisper chunk):', event.transcript);
         console.log('[TRANSCRIPTION SIDEBAR] Event data:', event);
         
+        // ✅ FILTER: Reject error messages (Whisper backend errors)
+        if (event.transcript && event.transcript.includes('[Error:')) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Rejected error message from Whisper backend:', event.transcript.substring(0, 100));
+            return; // Don't process error messages as transcripts
+        }
+        
+        // ✅ FILTER: Reject Whisper disabled message
+        if (event.transcript && event.transcript.includes('Whisper backend disabled')) {
+            console.log('[TRANSCRIPTION SIDEBAR] Ignored Whisper disabled message');
+            return; // Don't process disabled message
+        }
+        
         // Update UI
         const stateElement = document.getElementById('stt-state');
         if (stateElement) {

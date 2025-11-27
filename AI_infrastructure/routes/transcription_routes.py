@@ -109,10 +109,12 @@ def transcribe_audio():
         
         logger.info(f'[TRANSCRIPTION] File saved: {temp_path} ({file_size} bytes)')
         
-        # Transcribe with local Whisper model
-        transcript_text = ''
+        # ❌ WHISPER BACKEND DISABLED - USE BROWSER SPEECH API ONLY
+        # Reason: MediaRecorder conflicts with Browser STT causing corrupt audio files
+        # Browser Web Speech API provides instant transcription (no backend needed)
+        transcript_text = '[Whisper backend disabled - using Browser Speech API only]'
         
-        if WHISPER_AVAILABLE and file_size > 0:
+        if False:  # WHISPER_AVAILABLE and file_size > 0:
             try:
                 logger.info('[TRANSCRIPTION] Transcribing with local Whisper model...')
                 
