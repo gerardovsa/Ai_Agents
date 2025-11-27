@@ -1,266 +1,266 @@
 {
-    "platform": "synergy",
-    "description": "Smart AI-powered internal document tool with progressive processing capabilities",
-    "tools": [
-        {
-            "name": "synergy_smart_create_document",
-            "description": "AI-powered smart document creation that handles complex multi-step operations. This tool intelligently processes document requirements, generates content, formats appropriately, and creates the document with all metadata. Unlike basic create, this tool can: 1) Generate content from templates or prompts, 2) Auto-format markdown/tables/lists, 3) Extract metadata from content, 4) Create multiple related documents, 5) Link documents together, 6) Set up proper tags and descriptions. The backend progressively processes the request, returning status updates as it works.",
-            "platform": "synergy",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "session_id": {
-                        "type": "string",
-                        "description": "Synergy session ID to attach document(s) to (required). Format: sess_YYYYMMDD_HHMM_title"
-                    },
-                    "operation": {
-                        "type": "string",
-                        "enum": [
-                            "create_from_template",
-                            "create_from_prompt",
-                            "create_multiple",
-                            "create_structured",
-                            "create_spreadsheet_advanced",
-                            "create_with_analysis"
-                        ],
-                        "description": "Smart operation type (required). create_from_template: Use predefined template (meeting notes, project plan, etc.). create_from_prompt: Generate content from natural language prompt. create_multiple: Create several related documents at once. create_structured: Create document with specific structure (sections, TOC, etc.). create_spreadsheet_advanced: Create spreadsheet with formulas, formatting, validation. create_with_analysis: Create document with AI analysis/insights."
-                    },
-                    "template": {
-                        "type": "string",
-                        "enum": [
-                            "meeting_notes",
-                            "project_plan",
-                            "technical_spec",
-                            "code_review",
-                            "bug_report",
-                            "feature_request",
-                            "sprint_retrospective",
-                            "user_story",
-                            "api_documentation",
-                            "training_guide",
-                            "policy_document",
-                            "budget_forecast"
-                        ],
-                        "description": "Template to use (required for create_from_template operation). Each template has predefined structure and sections."
-                    },
-                    "prompt": {
-                        "type": "string",
-                        "description": "Natural language description of what to create (required for create_from_prompt, optional for others). Example: 'Create a comprehensive project plan for migrating to microservices architecture, including timeline, resources, risks, and milestones.'"
-                    },
-                    "title": {
-                        "type": "string",
-                        "description": "Document title (optional - can be auto-generated from content). If not provided, AI will generate appropriate title based on content."
-                    },
-                    "context": {
-                        "type": "object",
-                        "description": "Additional context for content generation (optional). Can include: previous_doc_id (for continuity), data (for tables/charts), requirements (specific sections needed), tone (formal/casual), audience (technical/non-technical), length (brief/detailed)."
-                    },
-                    "doc_type": {
-                        "type": "string",
-                        "enum": [
-                            "richtext",
-                            "spreadsheet"
-                        ],
-                        "description": "Document type (optional, default: richtext). Use spreadsheet for tables/data analysis."
-                    },
-                    "auto_tags": {
-                        "type": "boolean",
-                        "description": "Automatically generate tags from content (optional, default: true). Uses AI to extract relevant keywords."
-                    },
-                    "auto_link": {
-                        "type": "boolean",
-                        "description": "Automatically link to related documents in session (optional, default: true). AI finds and links related content."
-                    }
-                },
-                "required": [
-                    "session_id",
-                    "operation"
-                ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Progressive processing result with status updates. Returns: success (boolean), doc_id or doc_ids (array for multiple), title(s), slug(s), share_url(s), processing_steps (array of completed steps), ai_generated_content (boolean), metadata (tags, description, links), warnings (any issues encountered)."
-            }
+  "platform": "synergy",
+  "description": "Smart AI-powered internal document tool with progressive processing capabilities",
+  "tools": [
+    {
+      "name": "synergy_smart_create_document",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAI-powered smart document creation that handles complex multi-step operations. This tool intelligently processes document requirements, generates content, formats appropriately, and creates the document with all metadata. Unlike basic create, this tool can: 1) Generate content from templates or prompts, 2) Auto-format markdown/tables/lists, 3) Extract metadata from content, 4) Create multiple related documents, 5) Link documents together, 6) Set up proper tags and descriptions. The backend progressively processes the request, returning status updates as it works.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Synergy session ID to attach document(s) to (required). Format: sess_YYYYMMDD_HHMM_title"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "create_from_template",
+              "create_from_prompt",
+              "create_multiple",
+              "create_structured",
+              "create_spreadsheet_advanced",
+              "create_with_analysis"
+            ],
+            "description": "Smart operation type (required). create_from_template: Use predefined template (meeting notes, project plan, etc.). create_from_prompt: Generate content from natural language prompt. create_multiple: Create several related documents at once. create_structured: Create document with specific structure (sections, TOC, etc.). create_spreadsheet_advanced: Create spreadsheet with formulas, formatting, validation. create_with_analysis: Create document with AI analysis/insights."
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "meeting_notes",
+              "project_plan",
+              "technical_spec",
+              "code_review",
+              "bug_report",
+              "feature_request",
+              "sprint_retrospective",
+              "user_story",
+              "api_documentation",
+              "training_guide",
+              "policy_document",
+              "budget_forecast"
+            ],
+            "description": "Template to use (required for create_from_template operation). Each template has predefined structure and sections."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Natural language description of what to create (required for create_from_prompt, optional for others). Example: 'Create a comprehensive project plan for migrating to microservices architecture, including timeline, resources, risks, and milestones.'"
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title (optional - can be auto-generated from content). If not provided, AI will generate appropriate title based on content."
+          },
+          "context": {
+            "type": "object",
+            "description": "Additional context for content generation (optional). Can include: previous_doc_id (for continuity), data (for tables/charts), requirements (specific sections needed), tone (formal/casual), audience (technical/non-technical), length (brief/detailed)."
+          },
+          "doc_type": {
+            "type": "string",
+            "enum": [
+              "richtext",
+              "spreadsheet"
+            ],
+            "description": "Document type (optional, default: richtext). Use spreadsheet for tables/data analysis."
+          },
+          "auto_tags": {
+            "type": "boolean",
+            "description": "Automatically generate tags from content (optional, default: true). Uses AI to extract relevant keywords."
+          },
+          "auto_link": {
+            "type": "boolean",
+            "description": "Automatically link to related documents in session (optional, default: true). AI finds and links related content."
+          }
         },
-        {
-            "name": "synergy_smart_update_document",
-            "description": "AI-powered smart document update with intelligent content modification. Unlike basic update, this tool can: 1) Append content intelligently (finds right section), 2) Replace specific sections without affecting others, 3) Reformat content automatically, 4) Update metadata intelligently, 5) Merge content from multiple sources, 6) Resolve conflicts, 7) Maintain document structure. The backend progressively processes changes with validation.",
-            "platform": "synergy",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "doc_id": {
-                        "type": "string",
-                        "description": "Internal document ID to update (required). Format: int_doc_<timestamp>"
-                    },
-                    "operation": {
-                        "type": "string",
-                        "enum": [
-                            "append_content",
-                            "replace_section",
-                            "insert_at",
-                            "merge_from",
-                            "reformat",
-                            "update_metadata",
-                            "smart_edit"
-                        ],
-                        "description": "Smart update operation (required). append_content: Add content to end or specific section. replace_section: Replace specific section by title. insert_at: Insert content at specific position. merge_from: Merge content from another document. reformat: Reformat existing content (fix markdown, tables, etc.). update_metadata: Intelligently update tags/description. smart_edit: AI-powered content modification from natural language instruction."
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "Content to add/replace/insert (required for most operations). For smart_edit, this can be a natural language instruction like 'Add a risks section' or 'Improve the executive summary'."
-                    },
-                    "section": {
-                        "type": "string",
-                        "description": "Section identifier (optional, for append_content/replace_section). Can be section title (e.g., '## Risks') or section number. If not provided, content is appended to end."
-                    },
-                    "position": {
-                        "type": "integer",
-                        "description": "Character position for insert_at operation (optional). Zero-indexed position in document content."
-                    },
-                    "source_doc_id": {
-                        "type": "string",
-                        "description": "Source document ID for merge_from operation (optional). Content will be intelligently merged from this document."
-                    },
-                    "preserve_formatting": {
-                        "type": "boolean",
-                        "description": "Preserve existing formatting during update (optional, default: true). Set false to allow reformatting."
-                    },
-                    "validate": {
-                        "type": "boolean",
-                        "description": "Validate content before update (optional, default: true). Checks for markdown errors, broken links, etc."
-                    }
-                },
-                "required": [
-                    "doc_id",
-                    "operation"
-                ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Update result with validation details. Returns: success, doc_id, version (new version number), changes_made (description of modifications), validation_warnings (any issues found), updated_sections (list of modified sections), diff (before/after comparison for smart_edit)."
-            }
+        "required": [
+          "session_id",
+          "operation"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Progressive processing result with status updates. Returns: success (boolean), doc_id or doc_ids (array for multiple), title(s), slug(s), share_url(s), processing_steps (array of completed steps), ai_generated_content (boolean), metadata (tags, description, links), warnings (any issues encountered)."
+      }
+    },
+    {
+      "name": "synergy_smart_update_document",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nAI-powered smart document update with intelligent content modification. Unlike basic update, this tool can: 1) Append content intelligently (finds right section), 2) Replace specific sections without affecting others, 3) Reformat content automatically, 4) Update metadata intelligently, 5) Merge content from multiple sources, 6) Resolve conflicts, 7) Maintain document structure. The backend progressively processes changes with validation.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Internal document ID to update (required). Format: int_doc_<timestamp>"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "append_content",
+              "replace_section",
+              "insert_at",
+              "merge_from",
+              "reformat",
+              "update_metadata",
+              "smart_edit"
+            ],
+            "description": "Smart update operation (required). append_content: Add content to end or specific section. replace_section: Replace specific section by title. insert_at: Insert content at specific position. merge_from: Merge content from another document. reformat: Reformat existing content (fix markdown, tables, etc.). update_metadata: Intelligently update tags/description. smart_edit: AI-powered content modification from natural language instruction."
+          },
+          "content": {
+            "type": "string",
+            "description": "Content to add/replace/insert (required for most operations). For smart_edit, this can be a natural language instruction like 'Add a risks section' or 'Improve the executive summary'."
+          },
+          "section": {
+            "type": "string",
+            "description": "Section identifier (optional, for append_content/replace_section). Can be section title (e.g., '## Risks') or section number. If not provided, content is appended to end."
+          },
+          "position": {
+            "type": "integer",
+            "description": "Character position for insert_at operation (optional). Zero-indexed position in document content."
+          },
+          "source_doc_id": {
+            "type": "string",
+            "description": "Source document ID for merge_from operation (optional). Content will be intelligently merged from this document."
+          },
+          "preserve_formatting": {
+            "type": "boolean",
+            "description": "Preserve existing formatting during update (optional, default: true). Set false to allow reformatting."
+          },
+          "validate": {
+            "type": "boolean",
+            "description": "Validate content before update (optional, default: true). Checks for markdown errors, broken links, etc."
+          }
         },
-        {
-            "name": "synergy_smart_analyze_document",
-            "description": "AI-powered document analysis with comprehensive insights. Goes beyond simple retrieval to provide: 1) Content summary, 2) Key points extraction, 3) Action items identification, 4) Sentiment analysis, 5) Completeness assessment, 6) Improvement suggestions, 7) Related documents discovery, 8) Question answering about content. Perfect for understanding documents without reading entire content.",
-            "platform": "synergy",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "doc_id": {
-                        "type": "string",
-                        "description": "Internal document ID to analyze (required). Format: int_doc_<timestamp>"
-                    },
-                    "analysis_type": {
-                        "type": "string",
-                        "enum": [
-                            "summary",
-                            "key_points",
-                            "action_items",
-                            "sentiment",
-                            "completeness",
-                            "improvements",
-                            "related_docs",
-                            "qa",
-                            "full_analysis"
-                        ],
-                        "description": "Type of analysis (required). summary: Concise overview. key_points: Main takeaways. action_items: Tasks/todos extracted. sentiment: Tone analysis. completeness: Missing sections check. improvements: Suggestions for enhancement. related_docs: Find similar documents. qa: Answer specific question. full_analysis: All of the above."
-                    },
-                    "question": {
-                        "type": "string",
-                        "description": "Specific question to answer (required for qa analysis_type). Example: 'What are the main risks mentioned?', 'Who is responsible for the API integration?', 'When is the deadline?'"
-                    },
-                    "context": {
-                        "type": "object",
-                        "description": "Additional context for analysis (optional). Can include: focus_areas (specific topics to analyze), compare_to (doc_id to compare with), depth (brief/detailed), format (bullet_points/paragraph/table)."
-                    }
-                },
-                "required": [
-                    "doc_id",
-                    "analysis_type"
-                ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Analysis results tailored to requested type. Returns: success, doc_id, analysis_type, result (main analysis output), metadata (word_count, sections, version, etc.), confidence_score (AI confidence in analysis), recommendations (suggested actions), related_documents (for related_docs type)."
-            }
+        "required": [
+          "doc_id",
+          "operation"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update result with validation details. Returns: success, doc_id, version (new version number), changes_made (description of modifications), validation_warnings (any issues found), updated_sections (list of modified sections), diff (before/after comparison for smart_edit)."
+      }
+    },
+    {
+      "name": "synergy_smart_analyze_document",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAI-powered document analysis with comprehensive insights. Goes beyond simple retrieval to provide: 1) Content summary, 2) Key points extraction, 3) Action items identification, 4) Sentiment analysis, 5) Completeness assessment, 6) Improvement suggestions, 7) Related documents discovery, 8) Question answering about content. Perfect for understanding documents without reading entire content.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Internal document ID to analyze (required). Format: int_doc_<timestamp>"
+          },
+          "analysis_type": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "key_points",
+              "action_items",
+              "sentiment",
+              "completeness",
+              "improvements",
+              "related_docs",
+              "qa",
+              "full_analysis"
+            ],
+            "description": "Type of analysis (required). summary: Concise overview. key_points: Main takeaways. action_items: Tasks/todos extracted. sentiment: Tone analysis. completeness: Missing sections check. improvements: Suggestions for enhancement. related_docs: Find similar documents. qa: Answer specific question. full_analysis: All of the above."
+          },
+          "question": {
+            "type": "string",
+            "description": "Specific question to answer (required for qa analysis_type). Example: 'What are the main risks mentioned?', 'Who is responsible for the API integration?', 'When is the deadline?'"
+          },
+          "context": {
+            "type": "object",
+            "description": "Additional context for analysis (optional). Can include: focus_areas (specific topics to analyze), compare_to (doc_id to compare with), depth (brief/detailed), format (bullet_points/paragraph/table)."
+          }
         },
-        {
-            "name": "synergy_smart_batch_operations",
-            "description": "AI-powered batch operations on multiple documents. Efficiently performs operations across document sets: 1) Bulk create from templates, 2) Batch update (apply same change to multiple docs), 3) Mass export (export multiple docs to same format), 4) Bulk tag/organize, 5) Archive/restore multiple, 6) Generate summaries for all, 7) Cross-document search, 8) Relationship mapping. Perfect for managing large document collections.",
-            "platform": "synergy",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "operation": {
-                        "type": "string",
-                        "enum": [
-                            "bulk_create",
-                            "batch_update",
-                            "mass_export",
-                            "bulk_tag",
-                            "archive_multiple",
-                            "generate_summaries",
-                            "cross_search",
-                            "map_relationships"
-                        ],
-                        "description": "Batch operation type (required). bulk_create: Create multiple docs from list. batch_update: Apply same update to multiple docs. mass_export: Export multiple docs to same format. bulk_tag: Apply tags to multiple docs. archive_multiple: Archive/delete multiple docs. generate_summaries: Create summary doc from multiple docs. cross_search: Search across multiple docs. map_relationships: Identify connections between docs."
-                    },
-                    "session_id": {
-                        "type": "string",
-                        "description": "Synergy session ID (required for bulk_create, optional for others). If not provided for other operations, uses doc_ids to determine session."
-                    },
-                    "doc_ids": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "description": "Array of document IDs for batch operations (required for most operations except bulk_create). Example: ['int_doc_123', 'int_doc_456', 'int_doc_789']"
-                    },
-                    "templates": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "description": "Array of templates for bulk_create (required for bulk_create). Example: ['meeting_notes', 'project_plan', 'technical_spec']"
-                    },
-                    "update_content": {
-                        "type": "string",
-                        "description": "Content to apply in batch_update (required for batch_update). Applied to all specified documents."
-                    },
-                    "export_format": {
-                        "type": "string",
-                        "enum": [
-                            "markdown",
-                            "html",
-                            "csv",
-                            "pdf",
-                            "zip"
-                        ],
-                        "description": "Export format for mass_export (required for mass_export). 'zip' creates archive of all docs."
-                    },
-                    "tags": {
-                        "type": "string",
-                        "description": "Tags to apply for bulk_tag (required for bulk_tag). Comma-separated."
-                    },
-                    "search_query": {
-                        "type": "string",
-                        "description": "Search query for cross_search (required for cross_search). Natural language or keywords."
-                    },
-                    "parallel": {
-                        "type": "boolean",
-                        "description": "Process operations in parallel (optional, default: true). Faster but uses more resources."
-                    }
-                },
-                "required": [
-                    "operation"
-                ]
+        "required": [
+          "doc_id",
+          "analysis_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Analysis results tailored to requested type. Returns: success, doc_id, analysis_type, result (main analysis output), metadata (word_count, sections, version, etc.), confidence_score (AI confidence in analysis), recommendations (suggested actions), related_documents (for related_docs type)."
+      }
+    },
+    {
+      "name": "synergy_smart_batch_operations",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAI-powered batch operations on multiple documents. Efficiently performs operations across document sets: 1) Bulk create from templates, 2) Batch update (apply same change to multiple docs), 3) Mass export (export multiple docs to same format), 4) Bulk tag/organize, 5) Archive/restore multiple, 6) Generate summaries for all, 7) Cross-document search, 8) Relationship mapping. Perfect for managing large document collections.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "bulk_create",
+              "batch_update",
+              "mass_export",
+              "bulk_tag",
+              "archive_multiple",
+              "generate_summaries",
+              "cross_search",
+              "map_relationships"
+            ],
+            "description": "Batch operation type (required). bulk_create: Create multiple docs from list. batch_update: Apply same update to multiple docs. mass_export: Export multiple docs to same format. bulk_tag: Apply tags to multiple docs. archive_multiple: Archive/delete multiple docs. generate_summaries: Create summary doc from multiple docs. cross_search: Search across multiple docs. map_relationships: Identify connections between docs."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Synergy session ID (required for bulk_create, optional for others). If not provided for other operations, uses doc_ids to determine session."
+          },
+          "doc_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
             },
-            "returns": {
-                "type": "object",
-                "description": "Batch operation results with progress tracking. Returns: success, operation, total_docs, processed_docs, successful_operations, failed_operations, results (array of individual results), errors (array of errors encountered), processing_time_ms, summary (human-readable summary of operation)."
-            }
-        }
-    ]
+            "description": "Array of document IDs for batch operations (required for most operations except bulk_create). Example: ['int_doc_123', 'int_doc_456', 'int_doc_789']"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of templates for bulk_create (required for bulk_create). Example: ['meeting_notes', 'project_plan', 'technical_spec']"
+          },
+          "update_content": {
+            "type": "string",
+            "description": "Content to apply in batch_update (required for batch_update). Applied to all specified documents."
+          },
+          "export_format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "html",
+              "csv",
+              "pdf",
+              "zip"
+            ],
+            "description": "Export format for mass_export (required for mass_export). 'zip' creates archive of all docs."
+          },
+          "tags": {
+            "type": "string",
+            "description": "Tags to apply for bulk_tag (required for bulk_tag). Comma-separated."
+          },
+          "search_query": {
+            "type": "string",
+            "description": "Search query for cross_search (required for cross_search). Natural language or keywords."
+          },
+          "parallel": {
+            "type": "boolean",
+            "description": "Process operations in parallel (optional, default: true). Faster but uses more resources."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Batch operation results with progress tracking. Returns: success, operation, total_docs, processed_docs, successful_operations, failed_operations, results (array of individual results), errors (array of errors encountered), processing_time_ms, summary (human-readable summary of operation)."
+      }
+    }
+  ]
 }

@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "read_user_memories",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='read_user_memories', ...) - DO NOT call directly!\n\nRetrieve user's stored memories. Use this to recall information the user has asked you to remember. Can filter by category (preferences, personal, work, health, general) or tags. Always check memories before responding to understand user context better.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='read_user_memories', ...) - DO NOT call directly!\n\nRetrieve user's stored memories. Use this to recall information the user has asked you to remember. Can filter by category (preferences, personal, work, health, general) or tags. Always check memories before responding to understand user context better.",
       "platform": "memory",
       "parameters": {
         "type": "object",
@@ -57,7 +57,7 @@
     },
     {
       "name": "add_user_memory",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='add_user_memory', ...) - DO NOT call directly!\n\nStore a new memory for the user. Use this when the user says 'remember this', 'save this preference', 'keep this in mind', or shares important information they want recalled later. Automatically categorizes and timestamps the memory.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='add_user_memory', ...) - DO NOT call directly!\n\nStore a new memory for the user. Use this when the user says 'remember this', 'save this preference', 'keep this in mind', or shares important information they want recalled later. Automatically categorizes and timestamps the memory.",
       "platform": "memory",
       "parameters": {
         "type": "object",
@@ -133,7 +133,7 @@
     },
     {
       "name": "update_user_memory",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='update_user_memory', ...) - DO NOT call directly!\n\nUpdate an existing memory's content. Use this when information changes or needs to be refined. Requires the memory ID from read_user_memories.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='update_user_memory', ...) - DO NOT call directly!\n\nUpdate an existing memory's content. Use this when information changes or needs to be refined. Requires the memory ID from read_user_memories.",
       "platform": "memory",
       "parameters": {
         "type": "object",
@@ -168,7 +168,7 @@
     },
     {
       "name": "delete_user_memory",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='delete_user_memory', ...) - DO NOT call directly!\n\nDelete a memory. Use this when the user says 'forget that', 'delete that memory', or when information is no longer relevant. Requires the memory ID from read_user_memories.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='delete_user_memory', ...) - DO NOT call directly!\n\nDelete a memory. Use this when the user says 'forget that', 'delete that memory', or when information is no longer relevant. Requires the memory ID from read_user_memories.",
       "platform": "memory",
       "parameters": {
         "type": "object",

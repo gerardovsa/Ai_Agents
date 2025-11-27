@@ -102,6 +102,18 @@ class SharedTranscriptionState {
             this.audioChunks = [];
             this.audioRecorder = null;
             
+            // ✅ FIX: Stop any existing browser recognition before starting new one
+            if (this.browserRecognition) {
+                try {
+                    this.browserRecognition.stop();
+                    console.log('[SHARED STATE] Stopped previous browser recognition before starting new one');
+                } catch (err) {
+                    console.log('[SHARED STATE] No previous recognition to stop:', err.message);
+                }
+                // Reset to null to force recreation
+                this.browserRecognition = null;
+            }
+            
             // Start browser speech recognition
             if (!this.browserRecognition && 'webkitSpeechRecognition' in window) {
                 this.browserRecognition = new webkitSpeechRecognition();

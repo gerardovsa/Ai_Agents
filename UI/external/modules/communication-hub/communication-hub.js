@@ -17,8 +17,156 @@
  * EXPORTS:
  * - CommunicationHubModule class
  * 
- * LAST MODIFIED: 2025-11-10 - Initial creation with drag-and-drop support
+ * LAST MODIFIED: 2025-11-27 - Fixed initialization with BaseModule polyfill
  */
+
+console.log('🔷 Communication Hub Module Loading - VERSION 2.0 - BaseModule.initialize() ADDED');
+
+// BaseModule polyfill (lightweight replacement since BaseModule.js not loaded)
+// VERSION 2.0 - Added initialize() method (from inhouse-kanban pattern)
+class BaseModule {
+    constructor(moduleId) {
+        this.moduleId = moduleId;
+        this.manifest = null;
+        this.backendUrl = window.API_BASE_URL || 'http://localhost:5001';
+        console.log(`✅ BaseModule constructor - moduleId: ${moduleId}`);
+    }
+
+    async initialize() {
+        console.log(`✅ BaseModule.initialize() called for ${this.moduleId}`);
+        // Load manifest from backend
+        try {
+            const response = await fetch(`${this.backendUrl}/api/modules/${this.moduleId}`);
+            if (response.ok) {
+                this.manifest = await response.json();
+                console.log(`✅ Manifest loaded for ${this.moduleId}:`, this.manifest);
+            } else {
+                console.warn(`⚠️ Failed to load manifest (HTTP ${response.status})`);
+            }
+        } catch (error) {
+            console.warn(`⚠️ Failed to load manifest for ${this.moduleId}:`, error);
+        }
+    }
+
+    // Create standard module UI structure (header + sub-tabs + content containers)
+    async createModuleStructure() {
+        // Ensure container exists - respect manifest.main_tab_id fallback
+        const preferredTabId = this.manifest?.main_tab_id || this.moduleId;
+        this.container = document.getElementById(`tab-${preferredTabId}`) || document.getElementById(`tab-${this.moduleId}`);
+        if (!this.container) {
+            console.warn(`[BaseModule] Container #tab-${this.moduleId} not found - createModuleStructure skipped`);
+            return;
+        }
+
+        // If already created, skip
+        if (this.container.querySelector('.module-header')) {
+            console.log(`[BaseModule] UI structure already exists for ${this.moduleId}`);
+            return;
+        }
+
+        // Load manifest if not present
+        if (!this.manifest) {
+            try {
+                const resp = await fetch(`${this.backendUrl}/api/modules/${this.moduleId}`);
+                if (resp.ok) this.manifest = await resp.json();
+            } catch (e) {
+                console.warn('[BaseModule] Failed to reload manifest in createModuleStructure', e);
+            }
+        }
+
+        // Minimal manifest fallback
+        const manifest = this.manifest || { id: this.moduleId, name: this.moduleId, icon: 'fas fa-cube', color: 'var(--accent-primary)', tabs: [] };
+
+        // Clear loading state
+        this.container.innerHTML = '';
+
+        // Module header
+        const header = document.createElement('div');
+        header.className = 'module-header';
+        header.innerHTML = `
+            <div class="module-header-left">
+                <h2 class="module-title">
+                    <i class="${manifest.icon}" style="color: ${manifest.color}"></i>
+                    ${manifest.name}
+                </h2>
+                <p class="module-description">${manifest.description || ''}</p>
+            </div>
+            <div class="module-header-right">
+                <button class="module-action-btn" data-action="refresh" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="module-action-btn" data-action="settings" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        `;
+
+        // Hook header actions
+        header.querySelector('[data-action="refresh"]')?.addEventListener('click', () => window.location.reload());
+        header.querySelector('[data-action="settings"]')?.addEventListener('click', () => console.log('[BaseModule] Settings clicked'));
+
+        this.container.appendChild(header);
+
+        // Sub-tabs nav
+        const subTabsNav = document.createElement('div');
+        subTabsNav.className = 'module-subtabs-nav';
+
+        // Content holder for sub-tabs
+        const subTabsContent = document.createElement('div');
+        subTabsContent.className = 'module-subtabs-content';
+        subTabsContent.id = `${this.moduleId}-subtabs-content`;
+
+        // Create sub-tabs from manifest.tabs if present
+        if (Array.isArray(manifest.tabs) && manifest.tabs.length) {
+            manifest.tabs.forEach((tab, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'module-subtab-btn';
+                if (tab.default || idx === 0) btn.classList.add('active');
+                btn.setAttribute('data-subtab', tab.id);
+                btn.innerHTML = `<i class="${tab.icon || ''}"></i> ${tab.name}`;
+                btn.addEventListener('click', () => this.switchSubTab(tab.id));
+                subTabsNav.appendChild(btn);
+
+                // Create corresponding content container
+                const subTabDiv = document.createElement('div');
+                subTabDiv.className = 'module-subtab-content';
+                if (tab.default || idx === 0) subTabDiv.classList.add('active');
+                subTabDiv.id = `${this.moduleId}-subtab-${tab.id}`;
+                subTabDiv.setAttribute('data-subtab', tab.id);
+                subTabsContent.appendChild(subTabDiv);
+            });
+        } else {
+            // Single content area
+            const single = document.createElement('div');
+            single.className = 'module-subtab-content active';
+            single.id = `${this.moduleId}-content`;
+            subTabsContent.appendChild(single);
+        }
+
+        this.container.appendChild(subTabsNav);
+        this.container.appendChild(subTabsContent);
+
+        console.log(`[BaseModule] Module structure created for ${this.moduleId}`);
+    }
+
+    // Switch sub-tab (basic implementation)
+    switchSubTab(subTabId) {
+        if (!this.container) return;
+        this.container.querySelectorAll('.module-subtab-content').forEach(c => c.classList.remove('active'));
+        this.container.querySelectorAll('.module-subtab-btn').forEach(b => b.classList.remove('active'));
+
+        const subTab = document.getElementById(`${this.moduleId}-subtab-${subTabId}`) || this.container.querySelector(`.module-subtab-content[data-subtab="${subTabId}"]`);
+        if (subTab) subTab.classList.add('active');
+
+        const btn = this.container.querySelector(`[data-subtab="${subTabId}"]`);
+        if (btn) btn.classList.add('active');
+
+        // Hook for subclasses
+        if (typeof this.onSubTabActivate === 'function') {
+            try { this.onSubTabActivate(subTabId); } catch (e) { console.warn(e); }
+        }
+    }
+}
 
 class CommunicationHubModule extends BaseModule {
     constructor(moduleId) {
@@ -54,6 +202,13 @@ class CommunicationHubModule extends BaseModule {
 
         // Call parent initialize
         await super.initialize();
+
+        // Ensure base UI structure (header + sub-tabs) exists
+        try {
+            await this.createModuleStructure();
+        } catch (e) {
+            console.warn('[Communication Hub] createModuleStructure failed:', e);
+        }
 
         // Load connected accounts
         await this.loadAccounts();
@@ -1581,7 +1736,31 @@ Please analyze these emails and provide:
     // ==================== UTILITY METHODS ====================
 
     getSubTabContainer(tabName) {
-        return document.getElementById(`${this.moduleId}-subtab-${tabName}`);
+        // Try to get main container first (new pattern)
+        const moduleId = this.manifest?.id || this.moduleId;
+        const mainContainer = document.getElementById(`${moduleId}-main-container`);
+
+        if (mainContainer) {
+            console.log(`[Communication Hub] Using main container #${moduleId}-main-container`);
+            return mainContainer;
+        }
+
+        // Fallback: Try subtab container (old pattern)
+        const subtabContainer = document.getElementById(`${moduleId}-subtab-${tabName}`);
+        if (subtabContainer) {
+            console.log(`[Communication Hub] Using subtab container #${moduleId}-subtab-${tabName}`);
+            return subtabContainer;
+        }
+
+        // Fallback: Try tab container
+        const tabContainer = document.getElementById(`tab-${moduleId}`);
+        if (tabContainer) {
+            console.warn(`[Communication Hub] Using fallback tab container #tab-${moduleId}`);
+            return tabContainer;
+        }
+
+        console.error(`[Communication Hub] Cannot find container for module ${moduleId}, tab ${tabName}`);
+        return null;
     }
 
     showNotification(message, type = 'info') {
@@ -1622,10 +1801,137 @@ Please analyze these emails and provide:
     }
 }
 
-// Register module globally
-if (typeof window.ModuleRegistry === 'undefined') {
-    window.ModuleRegistry = {};
-}
-window.ModuleRegistry['communication-hub'] = CommunicationHubModule;
+// Module Registry Registration - NEW SIMPLIFIED PATTERN (from inhouse-kanban)
+window.ModuleRegistry = window.ModuleRegistry || {};
+window.ModuleRegistry['communication-hub'] = {
+    instance: null,
 
-console.log('[Communication Hub] Module class registered');
+    init: async () => {
+        console.log('📧 Initializing Communication Hub Module...');
+        try {
+            const module = new CommunicationHubModule('communication-hub');
+            await module.initialize();
+
+            // Store instance in registry
+            window.ModuleRegistry['communication-hub'].instance = module;
+
+            // Expose methods for easy access
+            window.ModuleRegistry['communication-hub'].sendEmail = (data) => module.sendEmail(data);
+            window.ModuleRegistry['communication-hub'].loadEmails = () => module.loadEmails();
+            window.ModuleRegistry['communication-hub'].refreshInbox = () => module.loadEmails();
+
+            console.log('✅ Communication Hub Module initialized successfully');
+            return module;
+        } catch (error) {
+            console.error('❌ Failed to initialize Communication Hub Module:', error);
+            throw error;
+        }
+    }
+};
+
+console.log('📦 Communication Hub Module script loaded');
+
+// ==================== DEBUG COMMAND ====================
+// Run in browser console: debugCommunicationHub()
+window.debugCommunicationHub = function () {
+    console.log('🔍 ========== COMMUNICATION HUB DEBUG ==========');
+
+    // 1. Check if module is registered
+    console.log('\n📋 MODULE REGISTRY CHECK:');
+    if (window.ModuleRegistry && window.ModuleRegistry['communication-hub']) {
+        console.log('✅ Module registered in window.ModuleRegistry');
+        console.log('   Instance:', window.ModuleRegistry['communication-hub'].instance);
+        console.log('   Has init():', typeof window.ModuleRegistry['communication-hub'].init === 'function');
+    } else {
+        console.error('❌ Module NOT registered in window.ModuleRegistry');
+        return;
+    }
+
+    // 2. Check DOM containers
+    console.log('\n📦 DOM CONTAINER CHECK:');
+    const commTab = document.getElementById('tab-communication');
+    const commHubTab = document.getElementById('tab-communication-hub');
+    console.log('   #tab-communication:', commTab ? '✅ EXISTS' : '❌ MISSING');
+    console.log('   #tab-communication-hub:', commHubTab ? '✅ EXISTS' : '❌ MISSING');
+
+    const container = commTab || commHubTab;
+    if (container) {
+        console.log('   Container innerHTML length:', container.innerHTML.length);
+        console.log('   Has .module-header:', !!container.querySelector('.module-header'));
+        console.log('   Has .module-subtabs-nav:', !!container.querySelector('.module-subtabs-nav'));
+        console.log('   Sub-tab buttons found:', container.querySelectorAll('.module-subtab-btn').length);
+        console.log('   Sub-tab content areas:', container.querySelectorAll('.module-subtab-content').length);
+    }
+
+    // 3. Check sidebar button
+    console.log('\n🔘 SIDEBAR BUTTON CHECK:');
+    const sidebarBtn = document.querySelector('[data-tab="communication"]');
+    console.log('   Button exists:', sidebarBtn ? '✅ YES' : '❌ NO');
+    if (sidebarBtn) {
+        const computed = window.getComputedStyle(sidebarBtn);
+        console.log('   Display:', computed.display);
+        console.log('   Visibility:', computed.visibility);
+        console.log('   Opacity:', computed.opacity);
+        console.log('   Is active:', sidebarBtn.classList.contains('active'));
+    }
+
+    // 4. Check module loader
+    console.log('\n🔧 MODULE LOADER CHECK:');
+    if (window.moduleLoader) {
+        console.log('✅ ModuleLoader exists');
+        console.log('   Loaded modules:', Array.from(window.moduleLoader.loadedModules || []));
+        const commModule = window.moduleLoader.modules?.get('communication-hub');
+        if (commModule) {
+            console.log('   Module manifest:', commModule);
+            console.log('   Module available:', commModule.available);
+            console.log('   Main tab:', commModule.main_tab);
+            console.log('   Main tab ID:', commModule.main_tab_id);
+        } else {
+            console.warn('⚠️ Module not in moduleLoader.modules');
+        }
+    } else {
+        console.error('❌ window.moduleLoader not found');
+    }
+
+    // 5. Check manifest
+    console.log('\n📄 MANIFEST CHECK:');
+    const instance = window.ModuleRegistry['communication-hub']?.instance;
+    if (instance) {
+        console.log('   Module ID:', instance.moduleId);
+        console.log('   Manifest loaded:', !!instance.manifest);
+        if (instance.manifest) {
+            console.log('   Manifest tabs:', instance.manifest.tabs?.length || 0);
+            console.log('   Tabs:', instance.manifest.tabs?.map(t => t.id).join(', '));
+        }
+        console.log('   Container property:', instance.container ? `#${instance.container.id}` : 'NOT SET');
+    }
+
+    // 6. Try to force initialization
+    console.log('\n🚀 FORCE INITIALIZATION:');
+    try {
+        if (!window.ModuleRegistry['communication-hub'].instance) {
+            console.log('⚡ Calling init()...');
+            window.ModuleRegistry['communication-hub'].init().then(() => {
+                console.log('✅ Init completed');
+                console.log('   Instance now exists:', !!window.ModuleRegistry['communication-hub'].instance);
+            }).catch(err => {
+                console.error('❌ Init failed:', err);
+            });
+        } else {
+            console.log('✅ Already initialized');
+            // Try to show the tab
+            if (typeof switchTab === 'function') {
+                console.log('⚡ Attempting switchTab("communication")...');
+                switchTab('communication');
+            }
+        }
+    } catch (error) {
+        console.error('❌ Force init error:', error);
+    }
+
+    console.log('\n🔍 ========== DEBUG COMPLETE ==========');
+    console.log('💡 TIP: If module is registered but not visible, try: switchTab("communication")');
+    console.log('💡 TIP: To reinitialize, run: window.ModuleRegistry["communication-hub"].init()');
+};
+
+console.log('💡 Debug command loaded! Run: debugCommunicationHub()');

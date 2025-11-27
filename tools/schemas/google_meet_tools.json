@@ -5,7 +5,7 @@
   "tools": [
     {
       "name": "google_meet_create_meeting",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_meeting', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Google Meet meeting via Google Calendar. Returns meet link, calendar event ID, and meeting details.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_create_meeting', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Google Meet meeting via Google Calendar. Returns meet link, calendar event ID, and meeting details.",
       "platform": "google_meet",
       "category": "basic",
       "priority": "medium",
@@ -50,7 +50,7 @@
     },
     {
       "name": "google_meet_create_instant_meeting",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_instant_meeting', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate an instant Google Meet meeting starting now. Perfect for ad-hoc discussions or urgent meetings.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_create_instant_meeting', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate an instant Google Meet meeting starting now. Perfect for ad-hoc discussions or urgent meetings.",
       "platform": "google_meet",
       "category": "smart_bundled",
       "priority": "high",
@@ -73,7 +73,7 @@
     },
     {
       "name": "google_meet_schedule_recurring_meeting",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_schedule_recurring_meeting', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate a recurring Google Meet series (daily, weekly, or monthly). Same Meet link for all occurrences.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_schedule_recurring_meeting', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate a recurring Google Meet series (daily, weekly, or monthly). Same Meet link for all occurrences.",
       "platform": "google_meet",
       "category": "basic",
       "priority": "medium",
@@ -128,7 +128,7 @@
     },
     {
       "name": "google_meet_get_meeting_details",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_get_meeting_details', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet complete details of a Google Meet meeting including attendees, status, and Meet link.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_get_meeting_details', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet complete details of a Google Meet meeting including attendees, status, and Meet link.",
       "platform": "google_meet",
       "category": "basic",
       "priority": "low",
@@ -147,7 +147,7 @@
     },
     {
       "name": "google_meet_update_meeting",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_update_meeting', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing Google Meet meeting. Can change title, time, duration, description, or add attendees.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_update_meeting', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing Google Meet meeting. Can change title, time, duration, description, or add attendees.",
       "platform": "google_meet",
       "category": "basic",
       "priority": "medium",
@@ -189,7 +189,7 @@
     },
     {
       "name": "google_meet_cancel_meeting",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_cancel_meeting', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCancel a Google Meet meeting and optionally send cancellation notifications to attendees.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_cancel_meeting', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCancel a Google Meet meeting and optionally send cancellation notifications to attendees.",
       "platform": "google_meet",
       "category": "basic",
       "priority": "medium",
@@ -213,7 +213,7 @@
     },
     {
       "name": "google_meet_list_upcoming_meetings",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_list_upcoming_meetings', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList upcoming Google Meet meetings. Returns meetings in chronological order.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_list_upcoming_meetings', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList upcoming Google Meet meetings. Returns meetings in chronological order.",
       "platform": "google_meet",
       "category": "basic",
       "priority": "low",
@@ -231,7 +231,7 @@
     },
     {
       "name": "google_meet_create_space",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_space', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a persistent Google Meet space (permanent meeting room). Spaces have a permanent Meet link that can be reused.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_create_space', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a persistent Google Meet space (permanent meeting room). Spaces have a permanent Meet link that can be reused.",
       "platform": "google_meet",
       "category": "advanced",
       "priority": "medium",
@@ -250,7 +250,7 @@
     },
     {
       "name": "google_meet_get_space",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_get_space', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a Google Meet space including its permanent Meet link and configuration.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_get_space', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet details of a Google Meet space including its permanent Meet link and configuration.",
       "platform": "google_meet",
       "category": "advanced",
       "priority": "low",
@@ -269,7 +269,7 @@
     },
     {
       "name": "google_meet_get_join_info",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_get_join_info', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet quick join information for a meeting (Meet link, title, time until start).",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_get_join_info', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet quick join information for a meeting (Meet link, title, time until start).",
       "platform": "google_meet",
       "category": "basic",
       "priority": "low",
@@ -288,7 +288,7 @@
     },
     {
       "name": "google_meet_create_daily_standup",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_daily_standup', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a complete daily standup series with optimized settings for team standups. Automatically configured with short duration (15 min), recurring daily schedule, structured agenda, and email reminders.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_create_daily_standup', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a complete daily standup series with optimized settings for team standups. Automatically configured with short duration (15 min), recurring daily schedule, structured agenda, and email reminders.",
       "platform": "google_meet",
       "category": "smart_bundled",
       "priority": "high",
@@ -330,7 +330,7 @@
     },
     {
       "name": "google_meet_schedule_interview_series",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_schedule_interview_series', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🎯 SMART: Schedule a complete interview series for a candidate with multiple sessions, different interviewers, and coordinated timing. Each interview gets its own Meet link and calendar event.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_schedule_interview_series', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🎯 SMART: Schedule a complete interview series for a candidate with multiple sessions, different interviewers, and coordinated timing. Each interview gets its own Meet link and calendar event.",
       "platform": "google_meet",
       "category": "smart_bundled",
       "priority": "high",
@@ -393,7 +393,7 @@
     },
     {
       "name": "google_meet_create_team_meeting_with_agenda",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_team_meeting_with_agenda', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a structured team meeting with a detailed agenda. Automatically formats agenda items with time estimates and adds preparation notes.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_create_team_meeting_with_agenda', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a structured team meeting with a detailed agenda. Automatically formats agenda items with time estimates and adds preparation notes.",
       "platform": "google_meet",
       "category": "smart_bundled",
       "priority": "high",
@@ -442,7 +442,7 @@
     },
     {
       "name": "google_meet_create_weekly_review",
-      "description": "⚠️ MUST USE: execute_tool(tool_name='google_meet_create_weekly_review', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a weekly review/retrospective series with structured agenda for team reflection and improvement. Includes sections for wins, challenges, priorities, and action items.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_meet_create_weekly_review', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART: Create a weekly review/retrospective series with structured agenda for team reflection and improvement. Includes sections for wins, challenges, priorities, and action items.",
       "platform": "google_meet",
       "category": "smart_bundled",
       "priority": "high",

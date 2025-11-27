@@ -14,6 +14,7 @@ FIXED: Microsoft tools class instance extraction - detects and uses global insta
 import json
 import importlib
 import sys
+import time
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
@@ -35,6 +36,16 @@ class RegistryV3:
         self.tool_call_count = 0
         self.last_feedback_check = 0
         self.feedback_check_interval = 1  # Check EVERY tool call (changed from 3)
+        
+        # Tool Intelligence Logger (Nov 27, 2025)
+        # Silent learning system that tracks patterns and generates AI observations
+        self.intelligence_logger = None
+        try:
+            from AI_infrastructure.core.tool_intelligence_logger import ToolIntelligenceLogger
+            self.intelligence_logger = ToolIntelligenceLogger()
+            logger.info("[INTELLIGENCE] Tool Intelligence Logger initialized")
+        except Exception as e:
+            logger.warning(f"[INTELLIGENCE] Could not initialize Tool Intelligence Logger: {e}")
         
         # Add paths to sys.path
         if str(self.root_dir) not in sys.path:
@@ -497,16 +508,66 @@ class RegistryV3:
         
         # Execute the tool with all remaining kwargs
         # Type conversion happens in the tool implementation, NOT here!
+        start_time = time.time()
         try:
             result = func(**kwargs)
+            execution_time_ms = int((time.time() - start_time) * 1000)
             
             # Inject user feedback into result if present
             if user_feedback:
                 result = self._inject_feedback_into_result(result, user_feedback)
             
+            # Log tool intelligence (silent, non-blocking)
+            # NOTE: This runs AFTER tool execution, never blocks user workflow
+            if self.intelligence_logger and user_id:
+                try:
+                    # Extract metadata from kwargs
+                    user_request = kwargs.get('_user_request', 'Direct tool call')
+                    thread_id = kwargs.get('_thread_id')
+                    session_id = kwargs.get('_session_id')
+                    workflow_context = kwargs.get('_workflow_context')
+                    
+                    # Remove internal parameters before logging
+                    tool_parameters = {k: v for k, v in kwargs.items() if not k.startswith('_')}
+                    
+                    self.intelligence_logger.log_tool_execution(
+                        tool_name=tool_name,
+                        tool_result=result,
+                        user_request=user_request,
+                        user_id=user_id,
+                        thread_id=thread_id,
+                        session_id=session_id,
+                        workflow_context=workflow_context,
+                        execution_time_ms=execution_time_ms,
+                        tool_parameters=tool_parameters
+                    )
+                except Exception as log_error:
+                    # Never break tool execution due to logging failure
+                    logger.debug(f"[INTELLIGENCE] Logging failed for {tool_name}: {log_error}")
+            
             return result
         except Exception as e:
+            execution_time_ms = int((time.time() - start_time) * 1000)
             logger.error(f"Error executing {tool_name}: {e}")
+            
+            # Log intelligence even for errors (helps learn from failures)
+            if self.intelligence_logger and user_id:
+                try:
+                    error_result = {'success': False, 'error': str(e)}
+                    self.intelligence_logger.log_tool_execution(
+                        tool_name=tool_name,
+                        tool_result=error_result,
+                        user_request=kwargs.get('_user_request', 'Direct tool call'),
+                        user_id=user_id,
+                        thread_id=kwargs.get('_thread_id'),
+                        session_id=kwargs.get('_session_id'),
+                        workflow_context=kwargs.get('_workflow_context'),
+                        execution_time_ms=execution_time_ms,
+                        tool_parameters={k: v for k, v in kwargs.items() if not k.startswith('_')}
+                    )
+                except Exception as log_error:
+                    logger.debug(f"[INTELLIGENCE] Error logging failed for {tool_name}: {log_error}")
+            
             raise
 
     def _fetch_user_feedback(self, session_id: Optional[str]) -> Optional[str]:

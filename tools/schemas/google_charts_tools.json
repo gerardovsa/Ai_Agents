@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "google_charts_create",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a professional Google Chart in a new Google Sheet. Supports 10+ chart types (column, bar, line, area, pie, scatter, combo, histogram, candlestick, bubble) with full customization including colors, titles, axis labels, stacking, and legend positioning. The chart is embedded in a shareable spreadsheet for easy viewing and editing.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a professional Google Chart in a new Google Sheet. Supports 10+ chart types (column, bar, line, area, pie, scatter, combo, histogram, candlestick, bubble) with full customization including colors, titles, axis labels, stacking, and legend positioning. The chart is embedded in a shareable spreadsheet for easy viewing and editing.",
       "platform": "google_charts",
       "parameters": {
         "title": {
@@ -40,7 +40,7 @@
     },
     {
       "name": "google_docs_insert_chart",
-      "description": "Example response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Google Chart and insert it as an image into a Google Doc. This function creates a temporary spreadsheet with the chart, exports it as an image, and embeds it in the document. Perfect for adding visual data representations to reports, presentations, and documents.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Google Chart and insert it as an image into a Google Doc. This function creates a temporary spreadsheet with the chart, exports it as an image, and embeds it in the document. Perfect for adding visual data representations to reports, presentations, and documents.",
       "platform": "google_charts",
       "parameters": {
         "document_id": {

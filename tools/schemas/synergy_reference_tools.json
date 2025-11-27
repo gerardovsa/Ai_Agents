@@ -1,302 +1,303 @@
 {
-    "platform": "synergy",
-    "description": "Synergy reference resolution - understand user references like 'N4', 'C2.1', 'D1'",
-    "tools": [
+  "platform": "synergy",
+  "description": "Synergy reference resolution - understand user references like 'N4', 'C2.1', 'D1'",
+  "tools": [
+    {
+      "name": "synergy_resolve_reference",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nResolve a user reference like 'N4' or 'C2.1' to actual Synergy session item. Use this when user says 'continue N4', 'start C2.1', 'check D1', etc.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string",
+            "description": "The reference code (N4, C2.1, D1, etc.). Format: N# for next steps, C# for checklist, C#.# for sub-items, D# for documents"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Optional session ID. If not provided, uses the most recent active session"
+          }
+        },
+        "required": [
+          "reference"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Resolved item with full context including description, completion status, and session info"
+      },
+      "instructions": {
+        "when_to_use": [
+          "User mentions a reference like 'N4', 'C2', 'C2.1', or 'D1'",
+          "User says 'continue N4' or 'start working on C2.1'",
+          "User asks 'what is N4?' or 'show me D1'",
+          "User wants to work on a specific task by its ID",
+          "Need to understand what a reference refers to before taking action"
+        ],
+        "prerequisites": [
+          "A Synergy session must exist with next steps, checklist, or documents",
+          "References are assigned automatically by the UI when items are created",
+          "N = Next Steps (N1, N2, N3...)",
+          "C = Checklist (C1, C2... or C1.1, C1.2... for sub-items)",
+          "D = Documents (D1, D2, D3...)"
+        ],
+        "expected_workflow": [
+          "User says 'continue N4'",
+          "Call synergy_resolve_reference(reference='N4')",
+          "Result shows: 'Process MGR Roofing - 100 Corflute signs order'",
+          "Now you know what N4 is and can take action",
+          "Proceed with the task (create invoice, send email, etc.)"
+        ],
+        "error_handling": [
+          "If reference not found → List all available references with synergy_list_all_references",
+          "If no active session → Ask user which session or create new one",
+          "If invalid format → Explain valid formats (N#, C#, C#.#, D#)"
+        ]
+      }
+    },
+    {
+      "examples": [
         {
-            "name": "synergy_resolve_reference",
-            "description": "Resolve a user reference like 'N4' or 'C2.1' to actual Synergy session item. Use this when user says 'continue N4', 'start C2.1', 'check D1', etc.",
-            "platform": "synergy",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "reference": {
-                        "type": "string",
-                        "description": "The reference code (N4, C2.1, D1, etc.). Format: N# for next steps, C# for checklist, C#.# for sub-items, D# for documents"
-                    },
-                    "session_id": {
-                        "type": "string",
-                        "description": "Optional session ID. If not provided, uses the most recent active session"
-                    }
-                },
-                "required": [
-                    "reference"
-                ]
+          "description": "Resolve next step N4",
+          "parameters": {
+            "reference": "N4"
+          },
+          "expected_result": {
+            "success": true,
+            "reference": "N4",
+            "type": "next_step",
+            "item": {
+              "id": "N4",
+              "description": "Process MGR Roofing - 100 Corflute signs order",
+              "completed": false
             },
-            "returns": {
-                "type": "object",
-                "description": "Resolved item with full context including description, completion status, and session info"
-            },
-            "instructions": {
-                "when_to_use": [
-                    "User mentions a reference like 'N4', 'C2', 'C2.1', or 'D1'",
-                    "User says 'continue N4' or 'start working on C2.1'",
-                    "User asks 'what is N4?' or 'show me D1'",
-                    "User wants to work on a specific task by its ID",
-                    "Need to understand what a reference refers to before taking action"
-                ],
-                "prerequisites": [
-                    "A Synergy session must exist with next steps, checklist, or documents",
-                    "References are assigned automatically by the UI when items are created",
-                    "N = Next Steps (N1, N2, N3...)",
-                    "C = Checklist (C1, C2... or C1.1, C1.2... for sub-items)",
-                    "D = Documents (D1, D2, D3...)"
-                ],
-                "expected_workflow": [
-                    "User says 'continue N4'",
-                    "Call synergy_resolve_reference(reference='N4')",
-                    "Result shows: 'Process MGR Roofing - 100 Corflute signs order'",
-                    "Now you know what N4 is and can take action",
-                    "Proceed with the task (create invoice, send email, etc.)"
-                ],
-                "error_handling": [
-                    "If reference not found → List all available references with synergy_list_all_references",
-                    "If no active session → Ask user which session or create new one",
-                    "If invalid format → Explain valid formats (N#, C#, C#.#, D#)"
-                ]
-            }
+            "session_title": "InHouse Print Production Queue",
+            "context": "Next Step N4: 'Process MGR Roofing - 100 Corflute signs order' (⏳ Pending) in session 'InHouse Print Production Queue'"
+          }
         },
         {
-            "examples": [
-                {
-                    "description": "Resolve next step N4",
-                    "parameters": {
-                        "reference": "N4"
-                    },
-                    "expected_result": {
-                        "success": true,
-                        "reference": "N4",
-                        "type": "next_step",
-                        "item": {
-                            "id": "N4",
-                            "description": "Process MGR Roofing - 100 Corflute signs order",
-                            "completed": false
-                        },
-                        "session_title": "InHouse Print Production Queue",
-                        "context": "Next Step N4: 'Process MGR Roofing - 100 Corflute signs order' (⏳ Pending) in session 'InHouse Print Production Queue'"
-                    }
-                },
-                {
-                    "description": "Resolve checklist sub-item C2.1",
-                    "parameters": {
-                        "reference": "C2.1"
-                    },
-                    "expected_result": {
-                        "success": true,
-                        "reference": "C2.1",
-                        "type": "checklist",
-                        "item": {
-                            "id": "C2.1",
-                            "parent_id": "C2",
-                            "description": "Read full email for specifications (500 + 1,500 Arch DLs)",
-                            "completed": false
-                        },
-                        "context": "Checklist C2.1 (under C2): 'Read full email for specifications' (⏳ Pending)"
-                    }
-                }
-            ]
-        },
-        {
-            "name": "synergy_list_all_references",
-            "description": "List all available references in a Synergy session (N1-N7, C1-C2, D1, etc.). Use this to show the user what IDs are available.",
-            "platform": "synergy",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "session_id": {
-                        "type": "string",
-                        "description": "Optional session ID. If not provided, uses the most recent active session"
-                    },
-                    "include_completed": {
-                        "type": "boolean",
-                        "description": "Include completed items in the list (default: false)",
-                        "default": false
-                    }
-                },
-                "required": []
+          "description": "Resolve checklist sub-item C2.1",
+          "parameters": {
+            "reference": "C2.1"
+          },
+          "expected_result": {
+            "success": true,
+            "reference": "C2.1",
+            "type": "checklist",
+            "item": {
+              "id": "C2.1",
+              "parent_id": "C2",
+              "description": "Read full email for specifications (500 + 1,500 Arch DLs)",
+              "completed": false
             },
-            "returns": {
-                "type": "object",
-                "description": "Categorized list of all references with their descriptions and completion status"
-            },
-            "instructions": {
-                "when_to_use": [
-                    "User asks 'what can I work on?' or 'show me the tasks'",
-                    "User mentions invalid reference → Show valid ones",
-                    "User says 'list next steps' or 'show checklist'",
-                    "Before resolving a reference, to verify it exists",
-                    "To provide context about what's in the session"
-                ],
-                "expected_workflow": [
-                    "User says 'what tasks do I have?'",
-                    "Call synergy_list_all_references()",
-                    "Show formatted list: N1-N7 (Next Steps), C1-C2 (Checklist), D1 (Documents)",
-                    "User can then say 'start N4' and you'll know what it is"
-                ],
-                "presentation": [
-                    "Format output as organized list by type",
-                    "Show reference IDs clearly (N1, N2, C1.1, etc.)",
-                    "Indicate completion status (✅ or ⏳)",
-                    "Group sub-items under parent items",
-                    "Highlight pending/urgent items"
-                ]
-            },
-            "examples": [
-                {
-                    "description": "List all references in active session",
-                    "parameters": {},
-                    "expected_result": {
-                        "success": true,
-                        "session_title": "InHouse Print Production Queue",
-                        "next_steps": [
-                            {
-                                "ref": "N1",
-                                "description": "Respond to Aaron Woods with turnaround time",
-                                "completed": false
-                            },
-                            {
-                                "ref": "N2",
-                                "description": "Process GoldCoast Marketing HIGH PRIORITY order",
-                                "completed": false
-                            },
-                            {
-                                "ref": "N3",
-                                "description": "Respond to MBE Eight Mile Plains",
-                                "completed": false
-                            },
-                            {
-                                "ref": "N4",
-                                "description": "Process MGR Roofing - 100 Corflute signs order",
-                                "completed": false
-                            }
-                        ],
-                        "checklist": [
-                            {
-                                "ref": "C1",
-                                "description": "Aaron Woods - Quote Approval & Turnaround Time",
-                                "completed": false,
-                                "sub_items": [
-                                    {
-                                        "ref": "C1.1",
-                                        "description": "Read full email thread",
-                                        "completed": false
-                                    },
-                                    {
-                                        "ref": "C1.2",
-                                        "description": "Look up original quote",
-                                        "completed": false
-                                    }
-                                ]
-                            }
-                        ],
-                        "documents": [
-                            {
-                                "ref": "D1",
-                                "name": "MBE Eight Mile Plains Quote",
-                                "type": "word_doc"
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-        {
-            "name": "synergy_update_by_reference",
-            "description": "Update a Synergy item using its reference (N4, C2.1, etc.). Mark as complete, update description, or delete.",
-            "platform": "synergy",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "reference": {
-                        "type": "string",
-                        "description": "The reference code (N4, C2.1, D1, etc.)"
-                    },
-                    "action": {
-                        "type": "string",
-                        "description": "Action to perform: 'complete', 'uncomplete', 'update', or 'delete'",
-                        "enum": [
-                            "complete",
-                            "uncomplete",
-                            "update",
-                            "delete"
-                        ],
-                        "default": "complete"
-                    },
-                    "session_id": {
-                        "type": "string",
-                        "description": "Optional session ID. If not provided, uses the most recent active session"
-                    },
-                    "new_description": {
-                        "type": "string",
-                        "description": "New description text (required only when action='update')"
-                    }
-                },
-                "required": [
-                    "reference"
-                ]
-            },
-            "returns": {
-                "type": "object",
-                "description": "Confirmation of update with the modified item"
-            },
-            "instructions": {
-                "when_to_use": [
-                    "User says 'mark N4 as complete' or 'done with N4'",
-                    "User says 'update C2.1 to say...'",
-                    "User completes a task and mentions its reference",
-                    "User wants to modify or remove an item",
-                    "After completing work on a referenced task"
-                ],
-                "prerequisites": [
-                    "Reference must exist in the session",
-                    "Use synergy_resolve_reference first to verify reference exists",
-                    "For action='update', new_description is required"
-                ],
-                "expected_workflow": [
-                    "User says 'I finished N4'",
-                    "Call synergy_update_by_reference(reference='N4', action='complete')",
-                    "Item marked as completed",
-                    "Confirm to user: 'Marked N4 as complete: Process MGR Roofing order'"
-                ],
-                "best_practices": [
-                    "Always resolve reference first to show user what you're updating",
-                    "Confirm action before marking as complete (unless user explicitly said 'done')",
-                    "For updates, show old vs new description",
-                    "After update, consider suggesting next available tasks"
-                ]
-            },
-            "examples": [
-                {
-                    "description": "Mark N4 as complete",
-                    "parameters": {
-                        "reference": "N4",
-                        "action": "complete"
-                    },
-                    "expected_result": {
-                        "success": true,
-                        "reference": "N4",
-                        "action": "complete",
-                        "message": "Updated N4 successfully",
-                        "updated_item": {
-                            "description": "Process MGR Roofing - 100 Corflute signs order",
-                            "completed": true
-                        }
-                    }
-                },
-                {
-                    "description": "Update C2.1 description",
-                    "parameters": {
-                        "reference": "C2.1",
-                        "action": "update",
-                        "new_description": "Read full email for updated specifications (500 + 2,000 Arch DLs)"
-                    },
-                    "expected_result": {
-                        "success": true,
-                        "reference": "C2.1",
-                        "action": "update",
-                        "message": "Updated C2.1 successfully"
-                    }
-                }
-            ]
+            "context": "Checklist C2.1 (under C2): 'Read full email for specifications' (⏳ Pending)"
+          }
         }
-    ]
+      ],
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n"
+    },
+    {
+      "name": "synergy_list_all_references",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all available references in a Synergy session (N1-N7, C1-C2, D1, etc.). Use this to show the user what IDs are available.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Optional session ID. If not provided, uses the most recent active session"
+          },
+          "include_completed": {
+            "type": "boolean",
+            "description": "Include completed items in the list (default: false)",
+            "default": false
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Categorized list of all references with their descriptions and completion status"
+      },
+      "instructions": {
+        "when_to_use": [
+          "User asks 'what can I work on?' or 'show me the tasks'",
+          "User mentions invalid reference → Show valid ones",
+          "User says 'list next steps' or 'show checklist'",
+          "Before resolving a reference, to verify it exists",
+          "To provide context about what's in the session"
+        ],
+        "expected_workflow": [
+          "User says 'what tasks do I have?'",
+          "Call synergy_list_all_references()",
+          "Show formatted list: N1-N7 (Next Steps), C1-C2 (Checklist), D1 (Documents)",
+          "User can then say 'start N4' and you'll know what it is"
+        ],
+        "presentation": [
+          "Format output as organized list by type",
+          "Show reference IDs clearly (N1, N2, C1.1, etc.)",
+          "Indicate completion status (✅ or ⏳)",
+          "Group sub-items under parent items",
+          "Highlight pending/urgent items"
+        ]
+      },
+      "examples": [
+        {
+          "description": "List all references in active session",
+          "parameters": {},
+          "expected_result": {
+            "success": true,
+            "session_title": "InHouse Print Production Queue",
+            "next_steps": [
+              {
+                "ref": "N1",
+                "description": "Respond to Aaron Woods with turnaround time",
+                "completed": false
+              },
+              {
+                "ref": "N2",
+                "description": "Process GoldCoast Marketing HIGH PRIORITY order",
+                "completed": false
+              },
+              {
+                "ref": "N3",
+                "description": "Respond to MBE Eight Mile Plains",
+                "completed": false
+              },
+              {
+                "ref": "N4",
+                "description": "Process MGR Roofing - 100 Corflute signs order",
+                "completed": false
+              }
+            ],
+            "checklist": [
+              {
+                "ref": "C1",
+                "description": "Aaron Woods - Quote Approval & Turnaround Time",
+                "completed": false,
+                "sub_items": [
+                  {
+                    "ref": "C1.1",
+                    "description": "Read full email thread",
+                    "completed": false
+                  },
+                  {
+                    "ref": "C1.2",
+                    "description": "Look up original quote",
+                    "completed": false
+                  }
+                ]
+              }
+            ],
+            "documents": [
+              {
+                "ref": "D1",
+                "name": "MBE Eight Mile Plains Quote",
+                "type": "word_doc"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_by_reference",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate a Synergy item using its reference (N4, C2.1, etc.). Mark as complete, update description, or delete.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string",
+            "description": "The reference code (N4, C2.1, D1, etc.)"
+          },
+          "action": {
+            "type": "string",
+            "description": "Action to perform: 'complete', 'uncomplete', 'update', or 'delete'",
+            "enum": [
+              "complete",
+              "uncomplete",
+              "update",
+              "delete"
+            ],
+            "default": "complete"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Optional session ID. If not provided, uses the most recent active session"
+          },
+          "new_description": {
+            "type": "string",
+            "description": "New description text (required only when action='update')"
+          }
+        },
+        "required": [
+          "reference"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Confirmation of update with the modified item"
+      },
+      "instructions": {
+        "when_to_use": [
+          "User says 'mark N4 as complete' or 'done with N4'",
+          "User says 'update C2.1 to say...'",
+          "User completes a task and mentions its reference",
+          "User wants to modify or remove an item",
+          "After completing work on a referenced task"
+        ],
+        "prerequisites": [
+          "Reference must exist in the session",
+          "Use synergy_resolve_reference first to verify reference exists",
+          "For action='update', new_description is required"
+        ],
+        "expected_workflow": [
+          "User says 'I finished N4'",
+          "Call synergy_update_by_reference(reference='N4', action='complete')",
+          "Item marked as completed",
+          "Confirm to user: 'Marked N4 as complete: Process MGR Roofing order'"
+        ],
+        "best_practices": [
+          "Always resolve reference first to show user what you're updating",
+          "Confirm action before marking as complete (unless user explicitly said 'done')",
+          "For updates, show old vs new description",
+          "After update, consider suggesting next available tasks"
+        ]
+      },
+      "examples": [
+        {
+          "description": "Mark N4 as complete",
+          "parameters": {
+            "reference": "N4",
+            "action": "complete"
+          },
+          "expected_result": {
+            "success": true,
+            "reference": "N4",
+            "action": "complete",
+            "message": "Updated N4 successfully",
+            "updated_item": {
+              "description": "Process MGR Roofing - 100 Corflute signs order",
+              "completed": true
+            }
+          }
+        },
+        {
+          "description": "Update C2.1 description",
+          "parameters": {
+            "reference": "C2.1",
+            "action": "update",
+            "new_description": "Read full email for updated specifications (500 + 2,000 Arch DLs)"
+          },
+          "expected_result": {
+            "success": true,
+            "reference": "C2.1",
+            "action": "update",
+            "message": "Updated C2.1 successfully"
+          }
+        }
+      ]
+    }
+  ]
 }

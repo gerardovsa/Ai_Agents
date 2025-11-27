@@ -2734,6 +2734,115 @@ def google_docs_append_text(document_id, text, _user_id=None, _injected_credenti
     return google_docs_insert_text(document_id, text, end_index, _user_id=_user_id, _injected_credentials=_injected_credentials)
 
 
+def google_docs_update_content(document_id, content, mode='replace_all', find_text=None, _user_id=None, _injected_credentials=None, **kwargs):
+    """
+    Update document content with multiple modes.
+    
+    Args:
+        document_id: Document ID
+        content: New content to write
+        mode: Update mode:
+            - 'replace_all': Replace entire document with new content (default)
+            - 'find_replace': Find and replace specific text (requires find_text parameter)
+            - 'append': Add content to end of document
+        find_text: Text to find (required when mode='find_replace')
+        **kwargs: OAuth credentials
+    
+    Returns:
+        dict with success status and operation details
+    """
+    print(f"Updating document {document_id} with mode: {mode}")
+    
+    try:
+        # Get credentials
+        credentials = _get_user_credentials_if_available({'_user_id': _user_id, '_injected_credentials': _injected_credentials})
+        if credentials:
+            print("Using user-provided OAuth credentials")
+            service = build('docs', 'v1', credentials=credentials)
+        else:
+            print("Using service account credentials")
+            service = _get_docs_service()
+        
+        requests = []
+        
+        if mode == 'replace_all':
+            # Get document to find content range
+            doc = service.documents().get(documentId=document_id).execute()
+            end_index = doc['body']['content'][-1]['endIndex'] - 1
+            
+            # Delete all content, then insert new
+            requests = [
+                {
+                    'deleteContentRange': {
+                        'range': {
+                            'startIndex': 1,
+                            'endIndex': end_index
+                        }
+                    }
+                },
+                {
+                    'insertText': {
+                        'location': {'index': 1},
+                        'text': content
+                    }
+                }
+            ]
+            print(f"Replacing all content ({len(content)} characters)")
+            
+        elif mode == 'find_replace':
+            if not find_text:
+                raise ValueError("find_text parameter required when mode='find_replace'")
+            
+            # Find and replace specific text
+            requests = [{
+                'replaceAllText': {
+                    'containsText': {
+                        'text': find_text,
+                        'matchCase': True
+                    },
+                    'replaceText': content
+                }
+            }]
+            print(f"Finding '{find_text}' and replacing with new content")
+            
+        elif mode == 'append':
+            # Get document to find end index
+            doc = service.documents().get(documentId=document_id).execute()
+            end_index = doc['body']['content'][-1]['endIndex'] - 1
+            
+            # Insert at end
+            requests = [{
+                'insertText': {
+                    'location': {'index': end_index},
+                    'text': '\n' + content
+                }
+            }]
+            print(f"Appending {len(content)} characters to end")
+            
+        else:
+            raise ValueError(f"Invalid mode: '{mode}'. Use 'replace_all', 'find_replace', or 'append'")
+        
+        # Execute batch update
+        result = service.documents().batchUpdate(
+            documentId=document_id,
+            body={'requests': requests}
+        ).execute()
+        
+        print(f"Successfully updated document (mode: {mode})")
+        
+        return {
+            'success': True,
+            'document_id': document_id,
+            'mode': mode,
+            'content_length': len(content),
+            'requests_executed': len(result.get('replies', []))
+        }
+    
+    except Exception as e:
+        print(f"Failed to update document content: {e}")
+        raise
+
+
 # ==================== FORMATTING ====================
 
 def google_docs_format_text(document_id, start_index, end_index, bold=None, italic=None, 

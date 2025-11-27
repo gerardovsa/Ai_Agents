@@ -1,11 +1,17 @@
 {
     "id": "communication-hub",
     "name": "Communication Hub",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "Unified inbox for Gmail and Outlook with AI agent integration. Drag emails to AI sidebar or right-click to send to agents.",
     "icon": "fas fa-comments",
     "author": "InHouse Print",
     "created": "2025-11-10",
+    "js_file": "communication-hub.js",
+    "css_file": "communication-hub.css",
+    "scriptPath": "external/modules/communication-hub/communication-hub.js?v=2.0.0",
+    "stylePath": "external/modules/communication-hub/communication-hub.css?v=2.0.0",
+    "main_tab": true,
+    "main_tab_id": "communication",
     "colors": {
         "primary": "#6366f1",
         "secondary": "#818cf8",
