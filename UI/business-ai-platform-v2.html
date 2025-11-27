@@ -19098,17 +19098,24 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('token')) {
                 const token = urlParams.get('token');
-                console.log('🔐 [AUTH] OAuth token detected in URL - storing and cleaning...');
+                console.log('🔐 [AUTH INIT] OAuth token detected in URL');
+                console.log('🔐 [AUTH INIT] Token length:', token.length);
+                console.log('🔐 [AUTH INIT] Token preview:', token.substring(0, 50) + '...');
 
                 // Store token first
                 localStorage.setItem('authToken', token);
+                console.log('✅ [AUTH INIT] Token stored in localStorage');
+                
                 if (typeof UserAuth !== 'undefined') {
                     UserAuth.token = token;
+                    console.log('✅ [AUTH INIT] Token set in UserAuth.token');
+                } else {
+                    console.warn('⚠️ [AUTH INIT] UserAuth not available yet - will be set by account_profile.js');
                 }
 
                 // Clean URL immediately (remove token from browser history)
                 window.history.replaceState({}, document.title, window.location.pathname);
-                console.log('✅ [AUTH] Token stored and URL cleaned');
+                console.log('✅ [AUTH INIT] URL cleaned (token removed from browser history)');
             }
 
             try {

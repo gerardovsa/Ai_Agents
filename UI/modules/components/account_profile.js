@@ -329,32 +329,48 @@ document.addEventListener('click', (e) => {
 
 // Load user profile data
 async function loadUserProfile() {
-    console.log(' Loading user profile...');
-    console.log(' Token available:', !!UserAuth.token);
-    console.log(' User data:', UserAuth.user);
+    console.log('📋 [PROFILE] Loading user profile...');
+    console.log('📋 [PROFILE] Token available:', !!UserAuth.token);
+    console.log('📋 [PROFILE] Token preview:', UserAuth.token ? UserAuth.token.substring(0, 30) + '...' : 'null');
+    console.log('📋 [PROFILE] Existing user data:', UserAuth.user ? 'Present' : 'None');
 
     // Guard: Skip if profile already loaded and token hasn't changed
     if (UserAuth.user && UserAuth.user.user_id && UserAuth.token === UserAuth._lastTokenUsed) {
-        console.log('✅ Profile already loaded, skipping duplicate call');
+        console.log('✅ [PROFILE] Profile already loaded, skipping duplicate call');
         return UserAuth.user;
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        const apiUrl = `${API_BASE_URL}/api/auth/profile`;
+        console.log('📋 [PROFILE] Fetching from:', apiUrl);
+        console.log('📋 [PROFILE] Authorization header:', `Bearer ${UserAuth.token.substring(0, 30)}...`);
+        
+        const response = await fetch(apiUrl, {
             headers: {
                 'Authorization': `Bearer ${UserAuth.token}`
             }
         });
 
-        console.log(' Profile API response status:', response.status);
+        console.log('📋 [PROFILE] Response status:', response.status);
+        console.log('📋 [PROFILE] Response ok:', response.ok);
 
         if (!response.ok) {
             // Handle 401 gracefully - use cached profile if available
             if (response.status === 401 && UserAuth.user && UserAuth.user.user_id) {
-                console.warn('[WARN] Token expired (401), using cached profile');
+                console.warn('⚠️ [PROFILE] Token expired (401), using cached profile');
                 return UserAuth.user;
             }
-            throw new Error(`Failed to load profile: ${response.status} ${response.statusText}`);
+            
+            // Log full error details
+            let errorText = '';
+            try {
+                errorText = await response.text();
+                console.error('❌ [PROFILE] Error response body:', errorText);
+            } catch (e) {
+                console.error('❌ [PROFILE] Could not read error response');
+            }
+            
+            throw new Error(`Failed to load profile: ${response.status} ${response.statusText}. ${errorText}`);
         }
 
         const data = await response.json();
@@ -2152,7 +2168,9 @@ async function initializeApp() {
         isInitialized = true;
         return;
     } else if (token) {
-        console.log('OAuth successful, token received');
+        console.log('🔐 [OAUTH CALLBACK] OAuth successful, token received');
+        console.log('🔐 [OAUTH CALLBACK] Token length:', token.length);
+        console.log('🔐 [OAUTH CALLBACK] Token preview:', token.substring(0, 50) + '...');
 
         // Clear dev mode flag - real OAuth login succeeded
         try {
@@ -2164,37 +2182,56 @@ async function initializeApp() {
         // Store token with fallback to sessionStorage
         try {
             localStorage.setItem('authToken', token);
+            console.log('✅ [OAUTH CALLBACK] Token stored in localStorage');
         } catch (e) {
-            console.warn('[AUTH] localStorage blocked (private browsing?), using sessionStorage:', e);
+            console.warn('⚠️ [OAUTH CALLBACK] localStorage blocked (private browsing?), using sessionStorage:', e);
             sessionStorage.setItem('authToken', token);
             if (typeof UserAuth !== 'undefined' && UserAuth.showPrivateBrowsingWarning) {
                 UserAuth.showPrivateBrowsingWarning();
             }
         }
         UserAuth.token = token;
+        console.log('✅ [OAUTH CALLBACK] Token set in UserAuth.token');
 
         // Clean URL IMMEDIATELY for security (remove token from browser history)
         window.history.replaceState({}, document.title, window.location.pathname);
+        console.log('✅ [OAUTH CALLBACK] URL cleaned (token removed from browser history)');
 
         // Load user profile first to detect auth_platform from backend
-        await loadUserProfile();
+        console.log('📋 [OAUTH CALLBACK] Loading user profile from backend...');
+        try {
+            await loadUserProfile();
+            console.log('✅ [OAUTH CALLBACK] User profile loaded successfully');
+        } catch (error) {
+            console.error('❌ [OAUTH CALLBACK] Failed to load user profile:', error);
+            // Show login screen with error
+            UserAuth.showLogin();
+            const errorDiv = document.getElementById('loginError');
+            if (errorDiv) {
+                errorDiv.textContent = 'Failed to load user profile. Please try again.';
+                errorDiv.classList.add('show');
+            }
+            return;
+        }
 
         // Mark OAuth as connected based on backend's auth_platform
         const userProfile = UserAuth.user || JSON.parse(localStorage.getItem('userProfile') || '{ }');
         const authPlatform = userProfile.auth_platform;
 
-        console.log(' Detected auth platform:', authPlatform);
+        console.log('🔍 [OAUTH CALLBACK] Detected auth platform:', authPlatform);
 
         if (authPlatform === 'microsoft') {
             localStorage.setItem('oauth_connected_microsoft', 'true');
-            console.log(' Marked Microsoft 365 OAuth as connected');
+            console.log('✅ [OAUTH CALLBACK] Marked Microsoft 365 OAuth as connected');
         } else if (authPlatform === 'google') {
             localStorage.setItem('oauth_connected', 'true');
-            console.log(' Marked Google OAuth as connected');
+            console.log('✅ [OAUTH CALLBACK] Marked Google OAuth as connected');
         }
 
         // Show main app
+        console.log('🚀 [OAUTH CALLBACK] Calling UserAuth.showMainApp()...');
         await UserAuth.showMainApp();
+        console.log('✅ [OAUTH CALLBACK] Main app initialized successfully');
 
         // Mark as initialized to prevent duplicate calls
         isInitialized = true;
