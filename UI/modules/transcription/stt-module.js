@@ -205,6 +205,8 @@ class STTModule {
                     this.mediaRecorder.requestData();
                 }
             }, this.options.timeSlice);
+            
+            console.log('[STT] Chunk request interval started:', this.chunkRequestInterval);
 
             // Update state
             this.recording = true;
@@ -243,6 +245,13 @@ class STTModule {
             return;
         }
 
+        // ✅ CRITICAL: Clear chunk request interval BEFORE stopping MediaRecorder
+        if (this.chunkRequestInterval) {
+            console.log('[STT] Clearing chunk request interval:', this.chunkRequestInterval);
+            clearInterval(this.chunkRequestInterval);
+            this.chunkRequestInterval = null;
+        }
+        
         // Stop MediaRecorder
         if (this.mediaRecorder.state !== 'inactive') {
             console.log('🛑 Calling mediaRecorder.stop()...');

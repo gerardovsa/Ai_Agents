@@ -2219,27 +2219,31 @@ def execute_streaming_request(
                             after_first = messages[idx]['content'][0].get('type') if messages[idx]['content'] else 'empty'
                             print(f"{log_prefix} ✅ Fixed: First block is now '{after_first}'")
         
-        # CRITICAL FIX (Nov 27, 2025): Strip ONLY server_tool_use blocks before sending to API
-        # server_tool_use blocks from previous responses cause 400 errors when missing 'id' field
-        # KEEP web_search_tool_result and web_fetch_tool_result for UI display
-        print(f"{log_prefix} 🧹 Cleaning conversation: Removing server_tool_use blocks (keeping result blocks for UI)...")
-        for idx, msg in enumerate(messages):
-            if msg.get('role') == 'assistant':
-                content = msg.get('content', [])
-                if isinstance(content, list):
-                    original_count = len(content)
-                    # Filter out ONLY server_tool_use blocks (keep result blocks for UI)
-                    cleaned_content = [
-                        block for block in content
-                        if not (isinstance(block, dict) and block.get('type') == 'server_tool_use')
-                    ]
-                    
-                    if len(cleaned_content) < original_count:
-                        removed = original_count - len(cleaned_content)
-                        print(f"{log_prefix}   Message [{idx}]: Removed {removed} server_tool_use blocks")
-                        messages[idx]['content'] = cleaned_content
-        
-        # DEBUG: Log message structure being sent to API
+            # CRITICAL FIX (Nov 27, 2025): Strip server tool blocks before sending to API
+            # Server-side tool blocks (server_tool_use and their result blocks) cause 400 errors 
+            # when replayed because result blocks require tool_use_id references that are removed
+            # NOTE: Result blocks are already stored in DB and visible in UI - no data loss
+            print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks...")
+            for idx, msg in enumerate(messages):
+                if msg.get('role') == 'assistant':
+                    content = msg.get('content', [])
+                    if isinstance(content, list):
+                        original_count = len(content)
+                        # Filter out ALL server-side tool blocks (both requests and results)
+                        # These blocks are for display only and shouldn't be replayed to API
+                        cleaned_content = [
+                            block for block in content
+                            if not (isinstance(block, dict) and block.get('type') in [
+                                'server_tool_use',           # Server tool request
+                                'web_search_tool_result',    # Web search result
+                                'web_fetch_tool_result'      # Web fetch result
+                            ])
+                        ]
+                        
+                        if len(cleaned_content) < original_count:
+                            removed = original_count - len(cleaned_content)
+                            print(f"{log_prefix}   Message [{idx}]: Removed {removed} server tool blocks")
+                            messages[idx]['content'] = cleaned_content        # DEBUG: Log message structure being sent to API
         print(f"{log_prefix} 📋 FINAL MESSAGE STRUCTURE BEING SENT:")
         for idx, msg in enumerate(messages):
             role = msg.get('role')
@@ -2342,7 +2346,25 @@ def execute_streaming_request(
                     print(f"  - Final dict keys: {list(thinking_dict.keys())}")
                     serialized_content.append(thinking_dict)
                 elif block.type == 'text':
-                    serialized_content.append({'type': 'text', 'text': block.text})
+                    # CRITICAL FIX (Nov 27, 2025): Preserve citations from web search/fetch
+                    # Citations are embedded in text blocks and must be preserved for UI display
+                    text_block = {'type': 'text', 'text': block.text}
+                    
+                    # Copy citations if present (from web search/fetch)
+                    if hasattr(block, 'citations') and block.citations:
+                        text_block['citations'] = [
+                            {
+                                'type': citation.type if hasattr(citation, 'type') else 'web_search_result_location',
+                                'url': citation.url if hasattr(citation, 'url') else None,
+                                'title': citation.title if hasattr(citation, 'title') else None,
+                                'cited_text': citation.cited_text if hasattr(citation, 'cited_text') else None,
+                                'encrypted_index': citation.encrypted_index if hasattr(citation, 'encrypted_index') else None
+                            }
+                            for citation in block.citations
+                        ]
+                        print(f"{log_prefix} 📚 Preserved {len(block.citations)} citations in text block")
+                    
+                    serialized_content.append(text_block)
                 elif block.type == 'tool_use':
                     serialized_content.append({'type': 'tool_use', 'id': block.id, 'name': block.name, 'input': block.input})
         

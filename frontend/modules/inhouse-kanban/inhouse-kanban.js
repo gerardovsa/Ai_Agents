@@ -204,10 +204,11 @@ class InhouseKanbanModule extends BaseModule {
         // Apply module colors (after manifest is loaded)
         this.applyModuleColors();
 
-        // Load initial data
-        await this.loadInitialData();
+        // CRITICAL: Initialize the Kanban board HTML structure
+        // This creates all the UI elements (filters, legend, metrics, board container)
+        this.initializeKanbanBoard();
 
-        // Set up event listeners
+        // Set up event listeners (must be after HTML is created)
         this.setupEventListeners();
 
         // Start auto-refresh
@@ -1193,6 +1194,17 @@ class InhouseKanbanModule extends BaseModule {
         const primaryColor = this.manifest?.colors?.primary || '#00509E';
 
         container.innerHTML = `
+            <!-- Module Header -->
+            <div style="padding: 20px 20px 12px 20px; border-bottom: 2px solid #30363d; background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);">
+                <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #f0f6fc; display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-industry" style="color: ${primaryColor};"></i>
+                    InHouse Print Workboard
+                </h1>
+                <p style="margin: 8px 0 0 0; color: #8b949e; font-size: 14px;">
+                    Production workflow management and job tracking
+                </p>
+            </div>
+            
             <div class="filters-bar">
                 <div class="filter-group">
                     <label><i class="fas fa-calendar-alt"></i> Timeframe:</label>
@@ -1398,7 +1410,7 @@ class InhouseKanbanModule extends BaseModule {
             </details>
             
             <!-- Card Customisations (Advanced Settings - Placed AFTER Color Guide) -->
-            <details class="card-customisations-expander" open style="margin: 15px 20px; border: 2px solid #58a6ff; border-radius: 8px; background: #161b22; padding: 12px;">
+            <details class="card-customisations-expander" style="margin: 15px 20px; border: 2px solid #30363d; border-radius: 8px; background: #161b22; padding: 12px;">
                 <summary style="cursor: pointer; font-weight: bold; color: #58a6ff; padding: 10px; user-select: none; display: flex; align-items: center; gap: 10px; font-size: 1.05em;">
                     <i class="fas fa-cogs"></i> Advanced Color Customization
                     <span style="font-size: 0.85em; color: #8b949e; font-weight: normal; margin-left: auto;">(Edit colors, borders, & styles - LINKED TO GUIDE ABOVE)</span>
@@ -1527,7 +1539,9 @@ class InhouseKanbanModule extends BaseModule {
                 </div>
             </details>
             
-            <div class="workboard-selector" id="workboard-selector"></div>
+            <div class="workboard-selector" id="workboard-selector" style="min-height: 60px; background: #1A1F2E; border: 2px solid #00509E;">
+                <div style="padding: 20px; color: #FBBF24;">⏳ Loading workboard selector...</div>
+            </div>
             
             <div class="kanban-metrics" id="kanban-metrics"></div>
             
@@ -1589,31 +1603,60 @@ class InhouseKanbanModule extends BaseModule {
      * Render workboard selector tabs
      */
     renderWorkboardSelector() {
+        console.log('🔷 renderWorkboardSelector() called');
+        
         const container = document.getElementById('workboard-selector');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ Workboard selector container not found!');
+            return;
+        }
+
+        console.log('✅ Workboard selector container found');
+        console.log('   Workboards defined:', Object.keys(this.workboards));
+        console.log('   Active workboard:', this.activeWorkboard);
 
         let tabsHtml = '';
         Object.keys(this.workboards).forEach(boardKey => {
             const board = this.workboards[boardKey];
             const isActive = boardKey === this.activeWorkboard ? 'active' : '';
             tabsHtml += `
-                <button class="workboard-tab ${isActive}" onclick="window.ModuleRegistry['inhouse-kanban'].switchWorkboard('${boardKey}')">
+                <button class="workboard-tab ${isActive}" onclick="window.currentKanbanModule.switchWorkboard('${boardKey}')">
                     <i class="fas ${board.icon}"></i>
                     ${board.name}
                 </button>
             `;
         });
 
-        container.innerHTML = tabsHtml;
+        console.log('   Generated HTML length:', tabsHtml.length);
+        
+        if (tabsHtml.length === 0) {
+            container.innerHTML = '<div style="padding: 20px; color: #EF4444;">⚠️ No workboards found!</div>';
+            console.error('❌ No workboards to render!');
+        } else {
+            container.innerHTML = tabsHtml;
+            console.log('✅ Workboard selector rendered with', Object.keys(this.workboards).length, 'tabs');
+        }
     }
 
     /**
      * Switch to a different workboard
      */
     switchWorkboard(boardKey) {
+        console.log(`🔄 Switching to workboard: ${boardKey}`);
+        
+        if (!this.workboards[boardKey]) {
+            console.error(`❌ Invalid workboard key: ${boardKey}`);
+            console.log('   Available workboards:', Object.keys(this.workboards));
+            return;
+        }
+        
         this.activeWorkboard = boardKey;
+        console.log(`✅ Active workboard set to: ${this.activeWorkboard}`);
+        
         this.renderWorkboardSelector();
         this.renderKanbanBoard();
+        
+        console.log(`✅ Workboard switch complete`);
     }
 
     /**
@@ -4197,11 +4240,27 @@ window.ModuleRegistry['inhouse_print'] = {
 // Module Registry Registration - NEW SIMPLIFIED PATTERN
 window.ModuleRegistry = window.ModuleRegistry || {};
 window.ModuleRegistry['inhouse-kanban'] = {
+    instance: null,
+    
     init: async () => {
         console.log('🏭 Initializing InHouse Kanban Module...');
         try {
             const module = new InhouseKanbanModule('inhouse-kanban');
             await module.initialize();
+            
+            // Store instance in registry for backward compatibility with onclick handlers
+            window.ModuleRegistry['inhouse-kanban'].instance = module;
+            
+            // Also store methods directly for easier access
+            window.ModuleRegistry['inhouse-kanban'].switchWorkboard = (boardKey) => module.switchWorkboard(boardKey);
+            window.ModuleRegistry['inhouse-kanban'].handleDrop = (event, stageId, stageName) => module.handleDrop(event, stageId, stageName);
+            window.ModuleRegistry['inhouse-kanban'].handleDragStart = (event, ticketId, stageId) => module.handleDragStart(event, ticketId, stageId);
+            window.ModuleRegistry['inhouse-kanban'].showJobDetailsModal = (ticketId) => module.showJobDetailsModal(ticketId);
+            window.ModuleRegistry['inhouse-kanban'].showClientNotificationDialog = (ticketId) => module.showClientNotificationDialog(ticketId);
+            window.ModuleRegistry['inhouse-kanban'].addProductionLogEntry = (ticketId) => module.addProductionLogEntry(ticketId);
+            window.ModuleRegistry['inhouse-kanban'].deleteProductionLogEntry = (logId, ticketId) => module.deleteProductionLogEntry(logId, ticketId);
+            window.ModuleRegistry['inhouse-kanban'].sendClientNotification = (ticketId) => module.sendClientNotification(ticketId);
+            
             console.log('✅ InHouse Kanban Module initialized successfully');
             return module;
         } catch (error) {

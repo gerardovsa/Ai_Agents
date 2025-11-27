@@ -294,6 +294,293 @@ class HybridModule {
 
 ---
 
+## Architecture 2 Critical Patterns & Best Practices
+
+### The Container Access Pattern (CRITICAL)
+
+**Problem**: Architecture 2 modules generate HTML programmatically, but need a container to inject it into.
+
+**Platform Container Structure** (created by module_loader.js):
+```html
+<div id="tab-{module-id}" class="tab-content">
+    <div id="{module-id}-main-container" class="active" style="height: 100%; overflow: auto;">
+        <!-- Your HTML goes here -->
+    </div>
+</div>
+```
+
+**The Helper Method Pattern** (ALWAYS IMPLEMENT):
+```javascript
+/**
+ * Get sub-tab container for module content
+ * @param {string} tabName - Name of the sub-tab (can be ignored for single-view modules)
+ * @returns {HTMLElement} The main module container
+ */
+getSubTabContainer(tabName) {
+    // Try main container first (created by module_loader.js)
+    const container = document.getElementById(`${this.manifest.id}-main-container`);
+    
+    if (!container) {
+        console.error(`[${this.manifest.name}] Main container #${this.manifest.id}-main-container not found!`);
+        
+        // Fallback to tab container
+        const tabContainer = document.getElementById(`tab-${this.manifest.id}`);
+        if (tabContainer) {
+            console.warn(`[${this.manifest.name}] Using fallback tab container #tab-${this.manifest.id}`);
+            return tabContainer;
+        }
+        
+        throw new Error(`Cannot find container for module ${this.manifest.id}`);
+    }
+    
+    return container;
+}
+```
+
+**Why This Matters:**
+- Without this helper, your code will call `undefined.innerHTML = ...` and fail silently
+- JavaScript doesn't throw errors on undefined property access
+- Your perfect HTML generation code becomes dead code
+- Users see blank screen with no errors
+
+### The Initialization Flow Pattern (CRITICAL)
+
+**Complete Initialization Order** (MUST FOLLOW):
+```javascript
+async initialize() {
+    console.log(`🔧 Initializing ${this.manifest.name} module...`);
+    
+    // 1. Store global reference for onclick handlers (if needed)
+    window.currentModuleInstance = this;
+    
+    // 2. Inject CSS styles FIRST (before HTML needs them)
+    this.injectCriticalStyles();
+    
+    // 3. Initialize from platform (loads manifest, sets up container)
+    await super.initialize();
+    
+    // 4. Apply module-specific colors/themes (after manifest loaded)
+    this.applyModuleColors();
+    
+    // 5. ⚠️ CRITICAL: Generate and inject HTML structure
+    //    This is the method that creates ALL your UI
+    this.initializeDashboard();  // or initializeKanbanBoard(), generateUI(), etc.
+    
+    // 6. Setup event listeners (AFTER HTML exists)
+    this.setupEventListeners();
+    
+    // 7. Start background processes (auto-refresh, polling, etc.)
+    this.startAutoRefresh();
+    
+    console.log(`✅ ${this.manifest.name} module ready`);
+}
+```
+
+**The HTML Generation Method Pattern**:
+```javascript
+/**
+ * Initialize dashboard HTML structure
+ * Creates all UI elements and loads initial data
+ */
+initializeDashboard() {
+    // Get container using helper method
+    const container = this.getSubTabContainer('dashboard');
+    
+    // Generate complete HTML structure
+    container.innerHTML = `
+        <div class="filters-bar">
+            <!-- Filters, search, controls -->
+        </div>
+        
+        <div class="metrics-dashboard" id="metrics-dashboard">
+            <!-- Metrics cards -->
+        </div>
+        
+        <div class="main-content" id="main-content">
+            <!-- Primary content area -->
+        </div>
+    `;
+    
+    // Load data and render content
+    this.loadInitialData().then(() => {
+        this.renderMetrics();
+        this.renderMainContent();
+        this.updateLastRefreshTime();
+    }).catch(error => {
+        console.error('Failed to load initial data:', error);
+        this.showNotification('error', 'Failed to load data');
+    });
+}
+```
+
+### The Style Injection Pattern
+
+**Inline Styles with Module Scoping**:
+```javascript
+injectCriticalStyles() {
+    // Prevent duplicate injection
+    const existingStyle = document.getElementById(`${this.manifest.id}-critical-styles`);
+    if (existingStyle) return;
+    
+    const style = document.createElement('style');
+    style.id = `${this.manifest.id}-critical-styles`;
+    
+    // CRITICAL: Scope ALL styles to your module container
+    style.textContent = `
+        /* Base container styles */
+        #tab-${this.manifest.id}.active {
+            height: 100%;
+            overflow: auto;
+            background: #0d1117;
+        }
+        
+        /* Component styles - ALWAYS scoped */
+        #tab-${this.manifest.id}.active .filters-bar {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        #tab-${this.manifest.id}.active .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        /* More styles... */
+    `;
+    
+    document.head.appendChild(style);
+}
+```
+
+**Why Scoping Matters:**
+- Prevents styles from affecting other modules
+- Ensures styles only apply when module is active
+- Allows multiple modules to use same class names
+- Makes styles easy to debug (inspector shows module scope)
+
+### Common Architecture 2 Mistakes (AVOID)
+
+❌ **Mistake 1: Forgetting to Call HTML Generation Method**
+```javascript
+// BAD - Perfect HTML generation code that's never called
+async initialize() {
+    this.injectCriticalStyles();
+    await super.initialize();
+    // ❌ Forgot to call this.initializeDashboard()!
+    this.setupEventListeners();
+}
+
+initializeDashboard() {
+    // This perfect code is DEAD CODE - never executes!
+    const container = this.getSubTabContainer('dashboard');
+    container.innerHTML = `<!-- 1000 lines of perfect HTML -->`;
+}
+```
+
+✅ **Fix: Call the method!**
+```javascript
+async initialize() {
+    this.injectCriticalStyles();
+    await super.initialize();
+    this.initializeDashboard();  // ✅ Actually call it!
+    this.setupEventListeners();
+}
+```
+
+---
+
+❌ **Mistake 2: Calling Undefined Helper Methods**
+```javascript
+// BAD - Calls method that doesn't exist
+initializeDashboard() {
+    const container = this.getSubTabContainer('dashboard');  // ❌ Function not defined!
+    container.innerHTML = `...`;  // ❌ container is undefined!
+}
+```
+
+✅ **Fix: Define the helper method!**
+```javascript
+// Add this method BEFORE using it
+getSubTabContainer(tabName) {
+    const container = document.getElementById(`${this.manifest.id}-main-container`);
+    if (!container) throw new Error('Container not found');
+    return container;
+}
+
+initializeDashboard() {
+    const container = this.getSubTabContainer('dashboard');  // ✅ Now it exists!
+    container.innerHTML = `...`;
+}
+```
+
+---
+
+❌ **Mistake 3: Event Listeners Before HTML Exists**
+```javascript
+// BAD - Listeners attached before elements exist
+async initialize() {
+    this.setupEventListeners();  // ❌ No HTML yet!
+    this.initializeDashboard();  // HTML created AFTER listeners
+}
+
+setupEventListeners() {
+    // ❌ These elements don't exist yet!
+    document.getElementById('refresh-btn').addEventListener('click', ...);
+}
+```
+
+✅ **Fix: HTML first, then listeners!**
+```javascript
+async initialize() {
+    this.initializeDashboard();  // ✅ Create HTML first
+    this.setupEventListeners();  // ✅ Then attach listeners
+}
+
+setupEventListeners() {
+    // Use event delegation on container (always exists)
+    this.container.addEventListener('click', (e) => {
+        if (e.target.matches('#refresh-btn')) {
+            this.loadData();
+        }
+    });
+}
+```
+
+---
+
+❌ **Mistake 4: Unscoped CSS Styles**
+```javascript
+// BAD - Styles affect entire page
+injectCriticalStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .button {  /* ❌ Too generic - affects ALL buttons on page! */
+            background: blue;
+        }
+    `;
+    document.head.appendChild(style);
+}
+```
+
+✅ **Fix: Scope to module container!**
+```javascript
+injectCriticalStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        #tab-${this.manifest.id}.active .button {  /* ✅ Only affects this module */
+            background: blue;
+        }
+    `;
+    document.head.appendChild(style);
+}
+```
+
+---
+
 ### Phase 2: Module Construction (30% of time)
 **Goal**: Build all module files following platform patterns
 
@@ -1149,18 +1436,78 @@ SYMPTOMS: Module loads but shows blank/empty container
 DEBUG STEPS:
 1. Check browser console for JavaScript errors
 2. Verify container exists: `document.getElementById('tab-${moduleId}')`
-3. Check if `renderDashboard()` or equivalent called
+3. Check if HTML generation method called (e.g., `initializeKanbanBoard()`, `renderDashboard()`)
 4. Verify `this.container.innerHTML = ...` executed
-5. Check if data loaded before rendering
-6. Look for template literal syntax errors
+5. Check if helper methods exist (e.g., `getSubTabContainer()`)
+6. Check if data loaded before rendering
+7. Look for template literal syntax errors
 
 COMMON CAUSES:
 ❌ Container not found (wrong ID)
-❌ Render method not called in initialize()
+❌ **HTML generation method NEVER CALLED in initialize()** ⚠️ CRITICAL
+❌ **Helper methods called but NOT DEFINED** ⚠️ CRITICAL (e.g., `getSubTabContainer()`)
 ❌ Data not loaded yet (async timing issue)
 ❌ Template literal syntax error (unclosed backticks)
 ❌ Missing return statement in render methods
 ❌ Undefined variables in template literals
+
+**CRITICAL CASE STUDY: InHouse Kanban Module**
+```
+PROBLEM: Module loaded but showed empty container despite having 1,365 lines of perfect HTML generation code
+
+ROOT CAUSE #1: Missing Helper Function
+- Code called: `const container = this.getSubTabContainer('kanban-board')`
+- But function: NEVER DEFINED anywhere in 4,195 lines!
+- Result: container = undefined
+- Result: `container.innerHTML = ...` failed silently
+- NO HTML EVER INJECTED
+
+ROOT CAUSE #2: Method Never Called
+- Method existed: `initializeKanbanBoard()` (lines 1191-1556)
+- Contained: ALL the HTML generation code (filters, toggles, legend, metrics, board)
+- But: NEVER called during `initialize()`
+- Result: Perfect code sat there unused
+
+THE FIX:
+1. Add missing helper method (18 lines):
+   ```javascript
+   getSubTabContainer(tabName) {
+       const container = document.getElementById(`${this.manifest.id}-main-container`);
+       if (!container) {
+           console.error(`Main container not found!`);
+           const fallback = document.getElementById(`tab-${this.manifest.id}`);
+           if (fallback) return fallback;
+           throw new Error(`Cannot find container for module ${this.manifest.id}`);
+       }
+       return container;
+   }
+   ```
+
+2. Call the HTML generation method (1 line in initialize()):
+   ```javascript
+   async initialize() {
+       console.log('Initializing module...');
+       window.currentModule = this;
+       this.injectCriticalStyles();
+       await super.initialize();
+       this.applyModuleColors();
+       
+       // ⚠️ CRITICAL: Actually call the method that creates HTML!
+       this.initializeKanbanBoard();  // ← THIS WAS MISSING!
+       
+       this.setupEventListeners();
+       this.startAutoRefresh();
+   }
+   ```
+
+RESULT: 1,365 lines of perfect HTML finally rendered!
+
+KEY LESSON:
+- If you generate HTML in a separate method, YOU MUST CALL IT in initialize()
+- If you call helper methods, THEY MUST BE DEFINED
+- JavaScript fails SILENTLY when calling undefined functions or setting innerHTML on undefined
+- Always verify: "Is this method called? Does this function exist?"
+```
 
 FIX:
 ```javascript

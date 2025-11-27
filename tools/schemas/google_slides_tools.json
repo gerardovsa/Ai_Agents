@@ -111,7 +111,10 @@
             "description": "Slide number to retrieve (1-indexed, required)"
           }
         },
-        "required": ["presentation_id", "slide_number"]
+        "required": [
+          "presentation_id",
+          "slide_number"
+        ]
       },
       "returns": {
         "type": "object",
@@ -142,7 +145,10 @@
             "description": "Text to search for (case-insensitive, required)"
           }
         },
-        "required": ["presentation_id", "query"]
+        "required": [
+          "presentation_id",
+          "query"
+        ]
       },
       "returns": {
         "type": "object",
