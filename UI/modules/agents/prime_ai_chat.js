@@ -1752,15 +1752,15 @@ async function sendChatMessage() {
         }
 
         if (window.ErrorRecoveryManager && error.message) {
-            const errorMsg = error.message.toLowerCase();
-            const isRecoverable = errorMsg.includes('invalid_request_error') ||
-                errorMsg.includes('tool_use_id') ||
-                errorMsg.includes('first block must be') ||
-                errorMsg.includes('thinking') ||
-                errorMsg.includes('rate limit') ||
-                errorMsg.includes('context_length') ||
-                errorMsg.includes('prompt is too long') ||
-                errorMsg.includes('overloaded');
+            const errorMsgLower = error.message.toLowerCase();
+            const isRecoverable = errorMsgLower.includes('invalid_request_error') ||
+                errorMsgLower.includes('tool_use_id') ||
+                errorMsgLower.includes('first block must be') ||
+                errorMsgLower.includes('thinking') ||
+                errorMsgLower.includes('rate limit') ||
+                errorMsgLower.includes('context_length') ||
+                errorMsgLower.includes('prompt is too long') ||
+                errorMsgLower.includes('overloaded');
 
             // DETAILED LOGGING FOR ERROR RECOVERY DEBUGGING
             console.group('🔴 ERROR RECOVERY SYSTEM TRIGGERED');
