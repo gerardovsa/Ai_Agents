@@ -1718,6 +1718,39 @@ async function sendChatMessage() {
             window.hidePrimeProcessingIndicator();
         }
 
+        // Show user-friendly toast notification for common errors
+        const errorMsg = error.message || '';
+        if (errorMsg.includes('502') || errorMsg.includes('Bad Gateway')) {
+            if (typeof showNotification === 'function') {
+                showNotification('⚠️ Backend is restarting. Please wait 30 seconds and try again.', 'warning', 8000);
+            }
+        } else if (errorMsg.includes('503') || errorMsg.includes('Service Unavailable')) {
+            if (typeof showNotification === 'function') {
+                showNotification('⚠️ Service temporarily unavailable. Retrying in a moment...', 'warning', 5000);
+            }
+        } else if (errorMsg.includes('500') || errorMsg.includes('Internal Server Error')) {
+            if (typeof showNotification === 'function') {
+                showNotification('❌ Server error occurred. Please try again or contact support.', 'error', 6000);
+            }
+        } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+            if (typeof showNotification === 'function') {
+                showNotification('🔒 Session expired. Please refresh and log in again.', 'error', 6000);
+            }
+        } else if (errorMsg.includes('429') || errorMsg.includes('rate limit')) {
+            if (typeof showNotification === 'function') {
+                showNotification('⏰ Rate limit reached. Please wait a moment and try again.', 'warning', 6000);
+            }
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('Failed to fetch')) {
+            if (typeof showNotification === 'function') {
+                showNotification('📡 Network error. Check your connection and try again.', 'error', 5000);
+            }
+        } else {
+            // Generic error notification
+            if (typeof showNotification === 'function') {
+                showNotification('❌ An error occurred. Please try again.', 'error', 4000);
+            }
+        }
+
         if (window.ErrorRecoveryManager && error.message) {
             const errorMsg = error.message.toLowerCase();
             const isRecoverable = errorMsg.includes('invalid_request_error') ||
