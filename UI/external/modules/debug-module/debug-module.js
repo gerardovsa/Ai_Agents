@@ -35,10 +35,12 @@ const DebugModule = {
         // Load HTML template first
         await this.loadHTML();
         
-        this.interceptConsoleLogs();
+        // ❌ DISABLED: Console interception causing all logs to show as debug-module.js:85
+        // this.interceptConsoleLogs();
+        
         this.monitorThreadOperations();
         this.monitorAPIRequests();
-        console.log('[DEBUG MODULE] Ready');
+        console.log('[DEBUG MODULE] Ready (console interception disabled)');
     },
 
     /**
