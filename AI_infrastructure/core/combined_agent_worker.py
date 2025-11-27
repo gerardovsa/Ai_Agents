@@ -1520,6 +1520,56 @@ def run_simple_agent_worker(
             messages.append({'role': 'user', 'content': prompt})
             print(f"{log_prefix} ✅ No history - added current prompt as first message")
         
+        # CRITICAL FIX (Nov 27, 2025): Strip server tool blocks before sending to API
+        # Server-side tool blocks (server_tool_use and their result blocks) cause 400 errors 
+        # when replayed because result blocks require tool_use_id references that are removed
+        # NOTE: Result blocks are already stored in DB and visible in UI - no data loss
+        print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks...")
+        try:
+            for idx, msg in enumerate(messages):
+                if msg.get('role') == 'assistant':
+                    content = msg.get('content', [])
+                    if isinstance(content, list):
+                        original_count = len(content)
+                        # Filter out ALL server-side tool blocks (both requests and results)
+                        # These blocks are for display only and shouldn't be replayed to API
+                        cleaned_content = [
+                            block for block in content
+                            if not (isinstance(block, dict) and block.get('type') in [
+                                'server_tool_use',           # Server tool request
+                                'web_search_tool_result',    # Web search result
+                                'web_fetch_tool_result'      # Web fetch result
+                            ])
+                        ]
+                        
+                        if len(cleaned_content) < original_count:
+                            removed = original_count - len(cleaned_content)
+                            print(f"{log_prefix}   Message [{idx}]: Removed {removed} server tool blocks")
+                            messages[idx]['content'] = cleaned_content
+                        
+                        # SAFETY CHECK: If ALL blocks were removed, skip this message entirely
+                        if len(cleaned_content) == 0:
+                            print(f"{log_prefix}   ⚠️ Message [{idx}]: ALL blocks removed - will skip empty message")
+        except Exception as cleaning_error:
+            # CRITICAL: If cleaning fails, log error but continue with original messages
+            # This prevents conversation from stalling due to cleaning logic errors
+            print(f"{log_prefix} ⚠️ Error during cleaning: {cleaning_error}")
+            print(f"{log_prefix} ⚠️ Continuing with original messages (uncleaned)")
+        
+        # SAFETY: Remove any assistant messages that became empty after cleaning
+        messages = [msg for msg in messages if not (
+            msg.get('role') == 'assistant' and 
+            isinstance(msg.get('content'), list) and 
+            len(msg.get('content', [])) == 0
+        )]
+        
+        # CRITICAL SAFETY CHECK: Ensure we have at least the user message
+        if not messages:
+            print(f"{log_prefix} ⚠️ All messages removed during cleaning - adding current prompt")
+            messages.append({'role': 'user', 'content': prompt})
+        
+        print(f"{log_prefix} ✅ Final message count after cleaning: {len(messages)} messages")
+        
         # Call AI with tools
         response = ai_client.create_message(
             messages=messages,
