@@ -4237,10 +4237,554 @@ window.ModuleRegistry['inhouse_print'] = {
 };
 */
 
+// ==================== SIDEBAR FUNCTIONALITY ====================
+
+class InhouseKanbanSidebar {
+    constructor(moduleInstance) {
+        this.module = moduleInstance;
+        this.selectedWorkboard = 'main';
+        this.selectedColumn = null;
+        this.expandedCards = new Set();
+        this.filters = {
+            search: '',
+            dateRange: '-6',
+            priority: 'all'
+        };
+        
+        this.initializeSidebar();
+    }
+    
+    initializeSidebar() {
+        console.log('🔧 Initializing sidebar functionality...');
+        
+        // Workboard selector
+        const workboardSelector = document.getElementById('sidebar-workboard-selector');
+        if (workboardSelector) {
+            workboardSelector.addEventListener('change', (e) => this.onWorkboardChange(e.target.value));
+        }
+        
+        // Column selector
+        const columnSelector = document.getElementById('sidebar-column-selector');
+        if (columnSelector) {
+            columnSelector.addEventListener('change', (e) => this.onColumnChange(e.target.value));
+        }
+        
+        // Search input
+        const searchInput = document.getElementById('sidebar-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => this.onSearchChange(e.target.value));
+        }
+        
+        // Date filter
+        const dateFilter = document.getElementById('sidebar-date-filter');
+        if (dateFilter) {
+            dateFilter.addEventListener('change', (e) => this.onDateFilterChange(e.target.value));
+        }
+        
+        // Priority filter
+        const priorityFilter = document.getElementById('sidebar-priority-filter');
+        if (priorityFilter) {
+            priorityFilter.addEventListener('change', (e) => this.onPriorityFilterChange(e.target.value));
+        }
+        
+        // Clear filters button
+        const clearBtn = document.getElementById('sidebar-clear-filters');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => this.clearFilters());
+        }
+        
+        // Refresh button
+        const refreshBtn = document.getElementById('sidebar-refresh');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.refreshData());
+        }
+        
+        // Analytics refresh
+        const analyticsRefreshBtn = document.getElementById('analytics-refresh-btn');
+        if (analyticsRefreshBtn) {
+            analyticsRefreshBtn.addEventListener('click', () => this.refreshAnalytics());
+        }
+        
+        // Initialize with default workboard
+        this.loadWorkboardColumns(this.selectedWorkboard);
+        
+        console.log('✅ Sidebar initialized');
+    }
+    
+    onWorkboardChange(workboardKey) {
+        console.log(`📋 Workboard changed to: ${workboardKey}`);
+        this.selectedWorkboard = workboardKey;
+        this.loadWorkboardColumns(workboardKey);
+    }
+    
+    loadWorkboardColumns(workboardKey) {
+        const workboard = this.module.workboards[workboardKey];
+        if (!workboard) {
+            console.error(`❌ Workboard not found: ${workboardKey}`);
+            return;
+        }
+        
+        const columnSelector = document.getElementById('sidebar-column-selector');
+        if (!columnSelector) return;
+        
+        // Clear existing options
+        columnSelector.innerHTML = '';
+        
+        // Get stages for this workboard
+        const stages = workboard.stages || [];
+        const allStages = this.module.stages;
+        
+        stages.forEach(stageId => {
+            const stage = allStages.find(s => s.id === stageId);
+            if (stage) {
+                const option = document.createElement('option');
+                option.value = stageId;
+                option.textContent = `${stage.name}`;
+                columnSelector.appendChild(option);
+            }
+        });
+        
+        // Select first column and load cards
+        if (stages.length > 0) {
+            this.selectedColumn = stages[0];
+            this.loadColumnCards();
+        }
+        
+        // Update analytics workboard display
+        const analyticsDisplay = document.getElementById('analytics-workboard-display');
+        if (analyticsDisplay) {
+            analyticsDisplay.textContent = workboard.name;
+        }
+    }
+    
+    onColumnChange(stageId) {
+        console.log(`📊 Column changed to: ${stageId}`);
+        this.selectedColumn = parseInt(stageId);
+        this.loadColumnCards();
+    }
+    
+    onSearchChange(searchText) {
+        this.filters.search = searchText.toLowerCase();
+        this.filterCards();
+    }
+    
+    onDateFilterChange(dateRange) {
+        this.filters.dateRange = dateRange;
+        this.refreshData();
+    }
+    
+    onPriorityFilterChange(priority) {
+        this.filters.priority = priority;
+        this.filterCards();
+    }
+    
+    clearFilters() {
+        this.filters = {
+            search: '',
+            dateRange: '-6',
+            priority: 'all'
+        };
+        
+        document.getElementById('sidebar-search').value = '';
+        document.getElementById('sidebar-date-filter').value = '-6';
+        document.getElementById('sidebar-priority-filter').value = 'all';
+        
+        this.filterCards();
+    }
+    
+    async refreshData() {
+        console.log('🔄 Refreshing sidebar data...');
+        await this.module.loadTickets();
+        this.loadColumnCards();
+        this.refreshAnalytics();
+    }
+    
+    loadColumnCards() {
+        if (!this.selectedColumn) {
+            console.warn('⚠️ No column selected');
+            return;
+        }
+        
+        const container = document.getElementById('sidebar-cards-container');
+        if (!container) return;
+        
+        // Get jobs for selected column
+        const jobs = this.module.tickets.filter(ticket => 
+            ticket.current_stage_id === this.selectedColumn
+        );
+        
+        console.log(`📦 Loading ${jobs.length} cards for column ${this.selectedColumn}`);
+        
+        // Clear container
+        container.innerHTML = '';
+        
+        if (jobs.length === 0) {
+            container.innerHTML = `
+                <div class="sidebar-empty" style="display: flex;">
+                    <i class="fas fa-inbox"></i>
+                    <p>No jobs in this stage</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Render cards
+        jobs.forEach(job => {
+            const card = this.createJobCard(job);
+            container.appendChild(card);
+        });
+        
+        // Apply filters
+        this.filterCards();
+    }
+    
+    createJobCard(job) {
+        const card = document.createElement('div');
+        card.className = 'sidebar-job-card';
+        card.dataset.ticketId = job.ticket_id;
+        card.dataset.jobNumber = job.job_number || '';
+        card.dataset.clientName = (job.client_name || '').toLowerCase();
+        card.dataset.itemDescription = (job.item_description || '').toLowerCase();
+        card.dataset.priority = job.priority || 'medium';
+        
+        // Collapsed view
+        const collapsedView = document.createElement('div');
+        collapsedView.className = 'card-collapsed';
+        collapsedView.innerHTML = `
+            <div class="card-header-row">
+                <span class="card-job-number">#${job.job_number || job.ticket_id}</span>
+                <span class="card-priority-badge ${job.priority || 'medium'}">${(job.priority || 'medium').toUpperCase()}</span>
+            </div>
+            <div class="card-item-name">${job.item_description || 'No description'}</div>
+            <div class="card-client-name">${job.client_name || 'No client'}</div>
+            <div class="card-due-date ${this.getDueDateClass(job.due_date)}">
+                <i class="fas fa-calendar"></i>
+                ${this.formatDueDate(job.due_date)}
+            </div>
+        `;
+        
+        collapsedView.addEventListener('click', () => this.toggleCardExpansion(card, job));
+        card.appendChild(collapsedView);
+        
+        return card;
+    }
+    
+    toggleCardExpansion(cardElement, job) {
+        const ticketId = job.ticket_id;
+        const isExpanded = this.expandedCards.has(ticketId);
+        
+        if (isExpanded) {
+            // Collapse
+            this.expandedCards.delete(ticketId);
+            cardElement.classList.remove('expanded');
+            const expandedView = cardElement.querySelector('.card-expanded');
+            if (expandedView) {
+                expandedView.remove();
+            }
+        } else {
+            // Expand
+            this.expandedCards.add(ticketId);
+            cardElement.classList.add('expanded');
+            const expandedView = this.createExpandedView(job);
+            cardElement.appendChild(expandedView);
+        }
+    }
+    
+    createExpandedView(job) {
+        const expandedDiv = document.createElement('div');
+        expandedDiv.className = 'card-expanded';
+        
+        expandedDiv.innerHTML = `
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-building"></i> Client Information
+                </div>
+                <div class="card-section-content">
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Company:</span>
+                        <span class="card-detail-value">${job.client_name || 'N/A'}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Contact:</span>
+                        <span class="card-detail-value">${job.contact_name || 'N/A'}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Tier:</span>
+                        <span class="card-detail-value">${job.customer_tier || 'Standard'}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-box"></i> Job Details
+                </div>
+                <div class="card-section-content">
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Item:</span>
+                        <span class="card-detail-value">${job.item_description || 'N/A'}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Quantity:</span>
+                        <span class="card-detail-value">${job.quantity || 'N/A'}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Priority:</span>
+                        <span class="card-detail-value">${(job.priority || 'medium').toUpperCase()}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-calendar-alt"></i> Timeline
+                </div>
+                <div class="card-section-content">
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Created:</span>
+                        <span class="card-detail-value">${this.formatDate(job.date_created)}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Due Date:</span>
+                        <span class="card-detail-value ${this.getDueDateClass(job.due_date)}">${this.formatDueDate(job.due_date)}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Stage:</span>
+                        <span class="card-detail-value">${this.getStageName(job.current_stage_id)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-dollar-sign"></i> Financial
+                </div>
+                <div class="card-section-content">
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Quote:</span>
+                        <span class="card-detail-value">$${(job.quote_amount || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="card-detail-label">Status:</span>
+                        <span class="card-detail-value">${job.payment_status || 'Pending'}</span>
+                    </div>
+                </div>
+            </div>
+            
+            ${job.notes ? `
+            <div class="card-section">
+                <div class="card-section-title">
+                    <i class="fas fa-sticky-note"></i> Notes
+                </div>
+                <div class="card-section-content">
+                    ${job.notes}
+                </div>
+            </div>
+            ` : ''}
+            
+            <div class="card-actions">
+                <button class="btn btn-copy" onclick="window.inhouseKanbanSidebar.copyJobToClipboard(${job.ticket_id})">
+                    <i class="fas fa-clipboard"></i> Copy
+                </button>
+                <button class="btn btn-collapse" onclick="window.inhouseKanbanSidebar.collapseCard(${job.ticket_id})">
+                    <i class="fas fa-chevron-up"></i> Collapse
+                </button>
+            </div>
+        `;
+        
+        return expandedDiv;
+    }
+    
+    collapseCard(ticketId) {
+        const card = document.querySelector(`.sidebar-job-card[data-ticket-id="${ticketId}"]`);
+        if (card) {
+            this.expandedCards.delete(ticketId);
+            card.classList.remove('expanded');
+            const expandedView = card.querySelector('.card-expanded');
+            if (expandedView) {
+                expandedView.remove();
+            }
+        }
+    }
+    
+    copyJobToClipboard(ticketId) {
+        const job = this.module.tickets.find(t => t.ticket_id === ticketId);
+        if (!job) return;
+        
+        const formattedText = `
+Job #${job.job_number || job.ticket_id} - ${job.item_description || 'No description'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Priority: ${(job.priority || 'medium').toUpperCase()} ${this.getPriorityEmoji(job.priority)}
+Due: ${this.formatDueDate(job.due_date)}
+
+CLIENT:
+• Company: ${job.client_name || 'N/A'}
+• Contact: ${job.contact_name || 'N/A'}
+• Tier: ${job.customer_tier || 'Standard'}
+
+JOB DETAILS:
+• Item: ${job.item_description || 'N/A'}
+• Quantity: ${job.quantity || 'N/A'}
+• Priority: ${(job.priority || 'medium').toUpperCase()}
+
+TIMELINE:
+• Created: ${this.formatDate(job.date_created)}
+• Due: ${this.formatDueDate(job.due_date)}
+• Stage: ${this.getStageName(job.current_stage_id)}
+
+FINANCIAL:
+• Quote: $${(job.quote_amount || 0).toFixed(2)}
+• Status: ${job.payment_status || 'Pending'}
+
+${job.notes ? `NOTES:\n${job.notes}` : ''}
+        `.trim();
+        
+        navigator.clipboard.writeText(formattedText).then(() => {
+            console.log('✅ Job copied to clipboard');
+            // Show brief success indicator
+            const btn = event.target.closest('.btn-copy');
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('❌ Failed to copy to clipboard:', err);
+        });
+    }
+    
+    filterCards() {
+        const cards = document.querySelectorAll('.sidebar-job-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const jobNumber = card.dataset.jobNumber || '';
+            const clientName = card.dataset.clientName || '';
+            const itemDescription = card.dataset.itemDescription || '';
+            const priority = card.dataset.priority || 'medium';
+            
+            const searchText = this.filters.search.toLowerCase();
+            const matchesSearch = !searchText || 
+                jobNumber.includes(searchText) ||
+                clientName.includes(searchText) ||
+                itemDescription.includes(searchText);
+            
+            const matchesPriority = this.filters.priority === 'all' || 
+                priority === this.filters.priority;
+            
+            const isVisible = matchesSearch && matchesPriority;
+            card.style.display = isVisible ? 'block' : 'none';
+            
+            if (isVisible) visibleCount++;
+        });
+        
+        console.log(`🔍 Filtered: ${visibleCount} of ${cards.length} cards visible`);
+    }
+    
+    refreshAnalytics() {
+        console.log('📊 Refreshing analytics...');
+        
+        // Get jobs for current workboard
+        const workboard = this.module.workboards[this.selectedWorkboard];
+        if (!workboard) return;
+        
+        const workboardJobs = this.module.tickets.filter(ticket =>
+            workboard.stages.includes(ticket.current_stage_id)
+        );
+        
+        // Calculate stats
+        const total = workboardJobs.length;
+        const inProgress = workboardJobs.filter(j => j.status !== 'completed').length;
+        const delayed = workboardJobs.filter(j => this.isDelayed(j.due_date)).length;
+        const completed = workboardJobs.filter(j => j.status === 'completed').length;
+        
+        // Update quick stats
+        document.getElementById('analytics-total').textContent = total;
+        document.getElementById('analytics-in-progress').textContent = inProgress;
+        document.getElementById('analytics-delayed').textContent = delayed;
+        document.getElementById('analytics-completed').textContent = completed;
+        
+        // Update priority distribution
+        const priorities = { critical: 0, high: 0, medium: 0, low: 0 };
+        workboardJobs.forEach(job => {
+            const priority = job.priority || 'medium';
+            if (priorities.hasOwnProperty(priority)) {
+                priorities[priority]++;
+            }
+        });
+        
+        Object.keys(priorities).forEach(priority => {
+            const percentage = total > 0 ? (priorities[priority] / total * 100) : 0;
+            document.getElementById(`priority-bar-${priority}`).style.width = `${percentage}%`;
+            document.getElementById(`priority-val-${priority}`).textContent = priorities[priority];
+        });
+        
+        console.log('✅ Analytics refreshed');
+    }
+    
+    // Helper methods
+    getStageName(stageId) {
+        const stage = this.module.stages.find(s => s.id === stageId);
+        return stage ? stage.name : 'Unknown';
+    }
+    
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    
+    formatDueDate(dateString) {
+        if (!dateString) return 'No due date';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = date - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
+        if (diffDays === 0) return 'Due today';
+        if (diffDays === 1) return 'Due tomorrow';
+        return `Due in ${diffDays} days`;
+    }
+    
+    getDueDateClass(dateString) {
+        if (!dateString) return 'normal';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = date - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 0) return 'overdue';
+        if (diffDays <= 1) return 'critical';
+        if (diffDays <= 3) return 'warning';
+        return 'normal';
+    }
+    
+    isDelayed(dateString) {
+        if (!dateString) return false;
+        const date = new Date(dateString);
+        const now = new Date();
+        return date < now;
+    }
+    
+    getPriorityEmoji(priority) {
+        const emojis = {
+            critical: '🔴',
+            high: '🟠',
+            medium: '🟡',
+            low: '🟢'
+        };
+        return emojis[priority] || '⚪';
+    }
+}
+
 // Module Registry Registration - NEW SIMPLIFIED PATTERN
 window.ModuleRegistry = window.ModuleRegistry || {};
 window.ModuleRegistry['inhouse-kanban'] = {
     instance: null,
+    sidebar: null,
     
     init: async () => {
         console.log('🏭 Initializing InHouse Kanban Module...');
@@ -4250,6 +4794,10 @@ window.ModuleRegistry['inhouse-kanban'] = {
             
             // Store instance in registry for backward compatibility with onclick handlers
             window.ModuleRegistry['inhouse-kanban'].instance = module;
+            
+            // Initialize sidebar
+            window.ModuleRegistry['inhouse-kanban'].sidebar = new InhouseKanbanSidebar(module);
+            window.inhouseKanbanSidebar = window.ModuleRegistry['inhouse-kanban'].sidebar;
             
             // Also store methods directly for easier access
             window.ModuleRegistry['inhouse-kanban'].switchWorkboard = (boardKey) => module.switchWorkboard(boardKey);

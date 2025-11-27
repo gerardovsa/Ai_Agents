@@ -21585,7 +21585,9 @@
     <!-- ==================== VOICE TRANSCRIPTION INTEGRATION ==================== -->
     <!-- CRITICAL: Load config.js FIRST - provides centralized API endpoint management -->
     <script src="modules/transcription/config.js"></script>
-    <script src="modules/transcription/stt-module.js"></script>
+    <!-- ❌ STT-MODULE.JS DISABLED - CAUSES WHISPER BACKEND ERRORS -->
+    <!-- This module creates MediaRecorder that conflicts with Browser STT -->
+    <!-- <script src="modules/transcription/stt-module.js"></script> -->
     <script src="modules/transcription/tts-module.js"></script>
     <script src="modules/transcription/transcription-streaming-container.js"></script>
     <script src="modules/transcription/transcription-sidebar.js"></script>
