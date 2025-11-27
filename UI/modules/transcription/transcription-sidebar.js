@@ -52,30 +52,13 @@ class SharedTranscriptionState {
         console.log(`[SHARED STATE] Starting recording from ${source}...`);
         
         try {
-            // Get microphone access
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // ✅ REMOVED: MediaRecorder (was causing audio-capture error)
+            // Browser Web Speech API needs exclusive microphone access
+            // MediaRecorder was blocking browserRecognition from starting
             
-            // Start audio recording for Whisper
+            // Reset audio chunks (no longer using MediaRecorder)
             this.audioChunks = [];
-            this.audioRecorder = new MediaRecorder(stream);
-            
-            this.audioRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    this.audioChunks.push(event.data);
-                    console.log('[SHARED STATE] Audio chunk captured:', event.data.size, 'bytes');
-                }
-            };
-            
-            this.audioRecorder.onstop = () => {
-                console.log('[SHARED STATE] Audio recording stopped');
-                stream.getTracks().forEach(track => track.stop());
-                this.trigger('onStop');
-            };
-            
-            // Start recording with 1-second chunks
-            this.audioRecorder.start(1000);
-            console.log('[SHARED STATE] MediaRecorder started with 1s timeslice');
-            console.log('[SHARED STATE] Audio recorder started');
+            this.audioRecorder = null;
             
             // Start browser speech recognition
             if (!this.browserRecognition && 'webkitSpeechRecognition' in window) {
@@ -85,19 +68,52 @@ class SharedTranscriptionState {
                 this.browserRecognition.lang = 'en-US';
                 
                 this.browserRecognition.onresult = (event) => {
-                    this.trigger('onTranscript', event, this.recordingSource);
+                    // ✅ FIX: Extract interim and final text BEFORE triggering event
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+                    let avgConfidence = 0;
+                    let confidenceCount = 0;
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        const transcript = result[0].transcript;
+                        
+                        if (result.isFinal) {
+                            finalTranscript += transcript + ' ';
+                            avgConfidence += result[0].confidence;
+                            confidenceCount++;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    const confidence = confidenceCount > 0 ? avgConfidence / confidenceCount : 0;
+                    
+                    console.log('[SHARED STATE] Browser STT result:', {
+                        interim: interimTranscript.substring(0, 50),
+                        final: finalTranscript.substring(0, 50),
+                        confidence: confidence.toFixed(2)
+                    });
+                    
+                    this.trigger('onTranscript', {
+                        interim: interimTranscript,
+                        final: finalTranscript,
+                        confidence: confidence
+                    }, this.recordingSource);
                 };
                 
                 this.browserRecognition.onerror = (event) => {
                     console.warn('[SHARED STATE] Recognition error:', event.error);
                     
-                    // Non-fatal errors (continue with Whisper)
-                    if (event.error === 'no-speech' || event.error === 'audio-capture') {
-                        console.log('[SHARED STATE] Non-fatal STT error, continuing with Whisper transcription');
+                    // Non-fatal errors
+                    if (event.error === 'no-speech') {
+                        console.log('[SHARED STATE] No speech detected, continuing...');
                         return;
                     }
                     
-                    // Fatal errors
+                    // ✅ FIXED: audio-capture is now fatal (no MediaRecorder fallback)
+                    // This error means Browser STT can't access microphone
+                    console.error('[SHARED STATE] Fatal STT error:', event.error);
                     this.trigger('onError', event.error);
                 };
                 
@@ -148,15 +164,15 @@ class SharedTranscriptionState {
         if (this.browserRecognition) {
             try {
                 this.browserRecognition.stop();
+                console.log('[SHARED STATE] Browser recognition stopped');
             } catch (e) {
                 console.error('[SHARED STATE] Failed to stop recognition:', e);
             }
         }
         
-        // Stop audio recorder (triggers onstop callback)
-        if (this.audioRecorder && this.audioRecorder.state === 'recording') {
-            this.audioRecorder.stop();
-        }
+        // ✅ REMOVED: MediaRecorder stop (no longer using it)
+        // Trigger onStop manually since we removed MediaRecorder.onstop
+        this.trigger('onStop');
         
         this.isRecording = false;
         const source = this.recordingSource;
@@ -164,10 +180,11 @@ class SharedTranscriptionState {
         console.log(`[SHARED STATE] ✅ Recording stopped (was from ${source})`);
     }
     
-    // Get recorded audio for Whisper
+    // ✅ REMOVED: getAudioBlob (no longer using MediaRecorder/Whisper)
+    // Browser Web Speech API provides transcription directly
     getAudioBlob() {
-        if (this.audioChunks.length === 0) return null;
-        return new Blob(this.audioChunks, { type: 'audio/webm' });
+        console.warn('[SHARED STATE] getAudioBlob called but MediaRecorder removed (Browser STT only)');
+        return null;
     }
 }
 
@@ -521,11 +538,26 @@ class TranscriptionSidebarController {
      */
     handleRecordingError(error) {
         console.error('[TRANSCRIPTION SIDEBAR] Recording error:', error);
+        
+        // ✅ FIX: Stop timer on error (was continuing after error)
+        if (this.recordingInterval) {
+            clearInterval(this.recordingInterval);
+            this.recordingInterval = null;
+            console.log('[TRANSCRIPTION SIDEBAR] Timer stopped due to error');
+        }
+        
         // Reset UI
-        const recordBtn = document.getElementById('stt-record-btn');
+        const recordBtn = document.getElementById('transcription-record-toggle');
         if (recordBtn) {
-            recordBtn.textContent = 'Start Recording';
+            recordBtn.innerHTML = '<i class="fas fa-microphone"></i><span>Start Recording</span>';
             recordBtn.classList.remove('recording');
+        }
+        
+        // Update status
+        const stateElement = document.getElementById('stt-state');
+        if (stateElement) {
+            stateElement.textContent = 'Error';
+            stateElement.style.color = '#ef4444';
         }
     }
     
@@ -744,6 +776,13 @@ class TranscriptionSidebarController {
         document.getElementById('stt-state').textContent = 'Recording';
         document.getElementById('stt-state').style.color = '#ef4444';
 
+        // ✅ FIX: Clear any existing timer before starting new one
+        if (this.recordingInterval) {
+            clearInterval(this.recordingInterval);
+            this.recordingInterval = null;
+            console.log('[TRANSCRIPTION SIDEBAR] Cleared old timer before starting new one');
+        }
+
         // Start duration timer
         this.recordingStartTime = Date.now();
         this.recordingInterval = setInterval(() => {
@@ -776,6 +815,50 @@ class TranscriptionSidebarController {
             const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
             this.statistics.totalRecordingTime += elapsed;
             this.updateStatistics();
+        }
+        
+        // Add action buttons below live transcript
+        const liveDisplay = document.getElementById('transcription-live-display');
+        if (liveDisplay && liveDisplay.textContent.trim()) {
+            // Check if actions already exist
+            if (!liveDisplay.querySelector('.live-transcript-actions')) {
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'live-transcript-actions';
+                actionsDiv.style.cssText = `
+                    display: flex;
+                    gap: 8px;
+                    padding: 12px 0;
+                    border-top: 1px solid var(--border-primary, #30363d);
+                    margin-top: 12px;
+                `;
+                
+                actionsDiv.innerHTML = `
+                    <button onclick="TranscriptionSidebar.sendLiveTranscriptToChat()" 
+                            style="flex: 1; padding: 8px 12px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                            onmouseover="this.style.background='#2ea043'"
+                            onmouseout="this.style.background='#238636'">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Send to Chat</span>
+                    </button>
+                    <button onclick="TranscriptionSidebar.copyLiveTranscript()" 
+                            style="padding: 8px 12px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
+                            onmouseover="this.style.background='#30363d'"
+                            onmouseout="this.style.background='#21262d'"
+                            title="Copy">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button onclick="TranscriptionSidebar.clearLiveTranscript()" 
+                            style="padding: 8px 12px; background: #21262d; color: #f85149; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px;"
+                            onmouseover="this.style.background='#30363d'"
+                            onmouseout="this.style.background='#21262d'"
+                            title="Clear">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                `;
+                
+                liveDisplay.appendChild(actionsDiv);
+                liveDisplay.scrollTop = liveDisplay.scrollHeight;
+            }
         }
     }
 
@@ -921,6 +1004,9 @@ class TranscriptionSidebarController {
             <div class="transcription-transcript-header">
                 <span class="transcription-transcript-time">${time}</span>
                 <div class="transcription-transcript-actions">
+                    <button onclick="TranscriptionSidebar.sendTranscriptToChat(${transcript.timestamp})" title="Send to Chat">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                     <button onclick="TranscriptionSidebar.copyTranscript(${transcript.timestamp})" title="Copy">
                         <i class="fas fa-copy"></i>
                     </button>
@@ -933,6 +1019,50 @@ class TranscriptionSidebarController {
         `;
         
         return entry;
+    }
+
+    /**
+     * Send transcript to chat input
+     */
+    sendTranscriptToChat(timestamp) {
+        const transcript = [...this.sttTranscripts, ...this.ttsTranscripts]
+            .find(t => t.timestamp === timestamp);
+        
+        if (transcript) {
+            const chatInput = document.getElementById('ai-chat-input');
+            if (chatInput) {
+                // Check insert mode from settings
+                const insertMode = this.config.insertMode || 'append';
+                
+                if (insertMode === 'replace') {
+                    chatInput.value = transcript.text;
+                } else if (insertMode === 'append') {
+                    const currentText = chatInput.value.trim();
+                    chatInput.value = currentText ? currentText + ' ' + transcript.text : transcript.text;
+                }
+                
+                // Focus the input and trigger input event
+                chatInput.focus();
+                chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                console.log('[TRANSCRIPTION SIDEBAR] Transcript sent to chat input');
+                
+                // Optional: Show success feedback
+                const btn = event?.target?.closest('button');
+                if (btn) {
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-check';
+                        setTimeout(() => {
+                            icon.className = 'fas fa-paper-plane';
+                        }, 1000);
+                    }
+                }
+            } else {
+                console.error('[TRANSCRIPTION SIDEBAR] Chat input not found (id: ai-chat-input)');
+                alert('Chat input not found. Please make sure you\'re on the chat page.');
+            }
+        }
     }
 
     /**
@@ -951,6 +1081,50 @@ class TranscriptionSidebarController {
                 .catch(err => {
                     console.error('[TRANSCRIPTION SIDEBAR] Failed to copy transcript:', err);
                 });
+        }
+    }
+
+    /**
+     * Send transcript to chat input
+     */
+    sendTranscriptToChat(timestamp) {
+        const transcript = [...this.sttTranscripts, ...this.ttsTranscripts]
+            .find(t => t.timestamp === timestamp);
+        
+        if (transcript) {
+            const chatInput = document.getElementById('ai-chat-input');
+            if (chatInput) {
+                // Check insert mode from settings
+                const insertMode = this.config.insertMode || 'append';
+                
+                if (insertMode === 'replace') {
+                    chatInput.value = transcript.text;
+                } else if (insertMode === 'append') {
+                    const currentText = chatInput.value.trim();
+                    chatInput.value = currentText ? currentText + ' ' + transcript.text : transcript.text;
+                }
+                
+                // Focus the input and trigger input event
+                chatInput.focus();
+                chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                console.log('[TRANSCRIPTION SIDEBAR] Transcript sent to chat input');
+                
+                // Optional: Show success feedback
+                const btn = event?.target?.closest('button');
+                if (btn) {
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-check';
+                        setTimeout(() => {
+                            icon.className = 'fas fa-paper-plane';
+                        }, 1000);
+                    }
+                }
+            } else {
+                console.error('[TRANSCRIPTION SIDEBAR] Chat input not found (id: ai-chat-input)');
+                alert('Chat input not found. Please make sure you\'re on the chat page.');
+            }
         }
     }
 
@@ -980,6 +1154,101 @@ class TranscriptionSidebarController {
                 });
             }
         });
+    }
+
+    /**
+     * Send live transcript to chat input
+     */
+    sendLiveTranscriptToChat() {
+        const liveDisplay = document.getElementById('transcription-live-display');
+        if (!liveDisplay) return;
+        
+        // Get all final text segments (not interim, not action buttons)
+        const textSegments = Array.from(liveDisplay.querySelectorAll('.final'))
+            .map(el => el.textContent.trim())
+            .filter(text => text.length > 0);
+        
+        const fullText = textSegments.join(' ');
+        
+        if (fullText) {
+            const chatInput = document.getElementById('ai-chat-input');
+            if (chatInput) {
+                const insertMode = this.config.insertMode || 'append';
+                
+                if (insertMode === 'replace') {
+                    chatInput.value = fullText;
+                } else if (insertMode === 'append') {
+                    const currentText = chatInput.value.trim();
+                    chatInput.value = currentText ? currentText + ' ' + fullText : fullText;
+                }
+                
+                chatInput.focus();
+                chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                console.log('[TRANSCRIPTION SIDEBAR] Live transcript sent to chat input');
+                
+                // Show success feedback
+                const btn = event?.target?.closest('button');
+                if (btn) {
+                    const icon = btn.querySelector('i');
+                    const span = btn.querySelector('span');
+                    if (icon) icon.className = 'fas fa-check';
+                    if (span) span.textContent = 'Sent!';
+                    setTimeout(() => {
+                        if (icon) icon.className = 'fas fa-paper-plane';
+                        if (span) span.textContent = 'Send to Chat';
+                    }, 1500);
+                }
+            } else {
+                console.error('[TRANSCRIPTION SIDEBAR] Chat input not found');
+                alert('Chat input not found. Please make sure you\'re on the chat page.');
+            }
+        }
+    }
+
+    /**
+     * Copy live transcript to clipboard
+     */
+    copyLiveTranscript() {
+        const liveDisplay = document.getElementById('transcription-live-display');
+        if (!liveDisplay) return;
+        
+        const textSegments = Array.from(liveDisplay.querySelectorAll('.final'))
+            .map(el => el.textContent.trim())
+            .filter(text => text.length > 0);
+        
+        const fullText = textSegments.join(' ');
+        
+        if (fullText) {
+            navigator.clipboard.writeText(fullText)
+                .then(() => {
+                    console.log('[TRANSCRIPTION SIDEBAR] Live transcript copied');
+                    const btn = event?.target?.closest('button');
+                    if (btn) {
+                        const icon = btn.querySelector('i');
+                        if (icon) {
+                            icon.className = 'fas fa-check';
+                            setTimeout(() => {
+                                icon.className = 'fas fa-copy';
+                            }, 1000);
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('[TRANSCRIPTION SIDEBAR] Failed to copy:', err);
+                });
+        }
+    }
+
+    /**
+     * Clear live transcript display
+     */
+    clearLiveTranscript() {
+        const liveDisplay = document.getElementById('transcription-live-display');
+        if (liveDisplay) {
+            liveDisplay.innerHTML = '';
+            console.log('[TRANSCRIPTION SIDEBAR] Live transcript cleared');
+        }
     }
 
     /**

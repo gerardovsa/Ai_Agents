@@ -3869,8 +3869,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         /* OAuth Connections Expand */
@@ -3916,15 +3923,29 @@
             font-weight: 600;
             color: var(--text-primary);
             font-size: 13px;
-            margin-bottom: 2px;
+            margin-bottom: 6px;
         }
 
-        .oauth-platform-services {
+        .oauth-services-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .oauth-service-item {
+            display: flex;
+            align-items: center;
             font-size: 11px;
-            color: var(--text-tertiary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+
+        .oauth-service-item i {
+            flex-shrink: 0;
+        }
+
+        .oauth-service-item span {
+            flex: 1;
         }
 
         .oauth-reconnect-btn {
@@ -16011,15 +16032,18 @@
                             <div class="account-user-name" id="sidebarUserName">Loading...</div>
                             <span class="role-badge" id="sidebarRoleBadge">User</span>
                         </div>
-                        <i class="fas fa-chevron-down" id="userExpandChevron" style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s;"></i>
+                        <i class="fas fa-chevron-down" id="userExpandChevron"
+                            style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s;"></i>
                     </div>
                     <div class="account-user-email-container">
-                        <i class="fas fa-circle" id="authStatusDot" style="font-size: 8px; color: var(--text-muted); margin-right: 6px;"></i>
+                        <i class="fas fa-circle" id="authStatusDot"
+                            style="font-size: 8px; color: var(--text-muted); margin-right: 6px;"></i>
                         <div class="account-user-email" id="sidebarUserEmail">Loading...</div>
                     </div>
-                    
+
                     <!-- Expandable OAuth Connections -->
-                    <div class="account-oauth-connections collapsed" id="oauthConnectionsExpand" style="margin-top: 12px; border-top: 1px solid var(--border-default); padding-top: 12px;">
+                    <div class="account-oauth-connections collapsed" id="oauthConnectionsExpand"
+                        style="margin-top: 12px; border-top: 1px solid var(--border-default); padding-top: 12px;">
                         <div id="oauthConnectionsList" style="display: flex; flex-direction: column; gap: 8px;">
                             <!-- OAuth connections will be loaded here -->
                             <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px;">
@@ -16058,7 +16082,7 @@
                     <i class="fas fa-shield-alt"></i>
                     <span>Security</span>
                 </button>
-                
+
                 <!-- Logout Button -->
                 <button class="account-logout-btn" onclick="logoutUser()" title="Log out from your account">
                     <i class="fas fa-sign-out-alt"></i>
@@ -21652,17 +21676,18 @@
 
         // ✅ REMOVED: Duplicate STTModule initialization
         // SharedTranscriptionState already handles recording via Browser Web Speech API
-        // This duplicate was causing microphone conflicts (audio-capture error)
+        // ❌ COMPLETELY DISABLED - Causes microphone conflict with SharedTranscriptionState
         let sttModule = null;
 
         function initializeSTTModule() {
-            console.log('[TRANSCRIPTION] Using SharedTranscriptionState only (Browser STT)');
-            console.log('[TRANSCRIPTION] STTModule initialization skipped - no longer needed');
-            // SharedTranscriptionState is already initialized globally
-            // Chat button already wired to toggleTranscriptionRecording()
-            return;
+            console.log('[TRANSCRIPTION] ❌ STTModule DISABLED - Using SharedTranscriptionState only');
+            console.log('[TRANSCRIPTION] Do NOT initialize STTModule - causes audio-capture errors');
+            // CRITICAL: STTModule MediaRecorder conflicts with SharedTranscriptionState browserRecognition
+            // Browser only allows ONE audio consumer at a time
+            // SharedTranscriptionState provides instant streaming via Web Speech API
+            return; // ← EXIT IMMEDIATELY - DO NOT CREATE STTMODULE
 
-            /* ❌ COMMENTED OUT - DUPLICATE CAUSING CONFLICTS
+            /* ❌❌❌ NEVER UNCOMMENT THIS - CAUSES AUDIO-CAPTURE ERRORS ❌❌❌
             if (sttModule) return;
 
             sttModule = new STTModule({
@@ -22153,11 +22178,11 @@
             toggleUserExpand() {
                 const expandSection = document.getElementById('oauthConnectionsExpand');
                 const chevron = document.getElementById('userExpandChevron');
-                
+
                 if (expandSection && chevron) {
                     expandSection.classList.toggle('collapsed');
                     chevron.classList.toggle('expanded');
-                    
+
                     // Load connections when expanding
                     if (!expandSection.classList.contains('collapsed')) {
                         this.loadOAuthConnections();
@@ -22171,7 +22196,7 @@
             async loadOAuthConnections() {
                 const container = document.getElementById('oauthConnectionsList');
                 if (!container) return;
-                
+
                 try {
                     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
                     if (!token) return;
@@ -22187,10 +22212,10 @@
 
                     const data = await response.json();
                     this.displayOAuthConnections(data.connections);
-                    
+
                     // Update auth status dot
                     this.updateAuthStatus(data.connections);
-                    
+
                 } catch (error) {
                     console.error('[ACCOUNT SIDEBAR] Failed to load OAuth connections:', error);
                     container.innerHTML = `
@@ -22202,12 +22227,111 @@
             },
 
             /**
+             * Map OAuth scopes to user-friendly service names
+             */
+            mapScopesToServices(scopes, platform) {
+                if (!scopes) return [];
+
+                // Parse scope string (can be comma or space separated)
+                const scopeArray = typeof scopes === 'string'
+                    ? scopes.split(/[,\s]+/).filter(s => s.trim())
+                    : scopes;
+
+                const services = new Set();
+
+                if (platform === 'microsoft' || platform === 'microsoft_365') {
+                    // Microsoft Graph API scope mapping
+                    const microsoftScopeMap = {
+                        'Mail.Read': 'Outlook Email',
+                        'Mail.ReadWrite': 'Outlook Email',
+                        'Mail.Send': 'Outlook Email',
+                        'MailboxSettings.Read': 'Outlook Email',
+                        'MailboxSettings.ReadWrite': 'Outlook Email',
+                        'Calendars.Read': 'Outlook Calendar',
+                        'Calendars.ReadWrite': 'Outlook Calendar',
+                        'Contacts.Read': 'Outlook Contacts',
+                        'Contacts.ReadWrite': 'Outlook Contacts',
+                        'Files.Read': 'OneDrive Storage',
+                        'Files.ReadWrite': 'OneDrive Storage',
+                        'Files.ReadWrite.All': 'OneDrive Storage',
+                        'Sites.Read.All': 'SharePoint',
+                        'Sites.ReadWrite.All': 'SharePoint',
+                        'User.Read': 'Microsoft Profile',
+                        'User.ReadWrite': 'Microsoft Profile',
+                        'Team.ReadBasic.All': 'Teams Chat & Meetings',
+                        'Channel.ReadBasic.All': 'Teams Chat & Meetings',
+                        'ChannelMessage.Send': 'Teams Chat & Meetings',
+                        'Chat.Read': 'Teams Chat & Meetings',
+                        'Chat.ReadWrite': 'Teams Chat & Meetings',
+                        'Tasks.Read': 'Microsoft To Do',
+                        'Tasks.ReadWrite': 'Microsoft To Do',
+                        'Notes.Read': 'OneNote',
+                        'Notes.ReadWrite': 'OneNote',
+                        'People.Read': 'Microsoft People'
+                    };
+
+                    scopeArray.forEach(scope => {
+                        const service = microsoftScopeMap[scope];
+                        if (service) services.add(service);
+                    });
+
+                    // Add implicit services
+                    if (services.size > 0) {
+                        // Always add core services if any scope is granted
+                        if (Array.from(services).some(s => s.includes('Outlook'))) {
+                            services.add('Word Documents');
+                            services.add('Excel Spreadsheets');
+                            services.add('PowerPoint');
+                        }
+                    }
+
+                } else if (platform === 'google' || platform === 'google_workspace') {
+                    // Google Workspace scope mapping
+                    const googleScopeMap = {
+                        'https://www.googleapis.com/auth/gmail.readonly': 'Gmail',
+                        'https://www.googleapis.com/auth/gmail.modify': 'Gmail',
+                        'https://www.googleapis.com/auth/gmail.compose': 'Gmail',
+                        'https://www.googleapis.com/auth/gmail.send': 'Gmail',
+                        'https://mail.google.com/': 'Gmail',
+                        'https://www.googleapis.com/auth/calendar': 'Google Calendar',
+                        'https://www.googleapis.com/auth/calendar.readonly': 'Google Calendar',
+                        'https://www.googleapis.com/auth/calendar.events': 'Google Calendar',
+                        'https://www.googleapis.com/auth/drive': 'Google Drive',
+                        'https://www.googleapis.com/auth/drive.readonly': 'Google Drive',
+                        'https://www.googleapis.com/auth/drive.file': 'Google Drive',
+                        'https://www.googleapis.com/auth/documents': 'Google Docs',
+                        'https://www.googleapis.com/auth/documents.readonly': 'Google Docs',
+                        'https://www.googleapis.com/auth/spreadsheets': 'Google Sheets',
+                        'https://www.googleapis.com/auth/spreadsheets.readonly': 'Google Sheets',
+                        'https://www.googleapis.com/auth/presentations': 'Google Slides',
+                        'https://www.googleapis.com/auth/presentations.readonly': 'Google Slides',
+                        'https://www.googleapis.com/auth/forms': 'Google Forms',
+                        'https://www.googleapis.com/auth/forms.body': 'Google Forms',
+                        'https://www.googleapis.com/auth/userinfo.email': 'Google Profile',
+                        'https://www.googleapis.com/auth/userinfo.profile': 'Google Profile',
+                        'https://www.googleapis.com/auth/chat.spaces': 'Google Chat',
+                        'https://www.googleapis.com/auth/chat.messages': 'Google Chat',
+                        'https://www.googleapis.com/auth/meetings.space.readonly': 'Google Meet',
+                        'https://www.googleapis.com/auth/analytics': 'Google Analytics',
+                        'https://www.googleapis.com/auth/analytics.readonly': 'Google Analytics'
+                    };
+
+                    scopeArray.forEach(scope => {
+                        const service = googleScopeMap[scope];
+                        if (service) services.add(service);
+                    });
+                }
+
+                return Array.from(services).sort();
+            },
+
+            /**
              * Display OAuth connections in sidebar header
              */
             displayOAuthConnections(connections) {
                 const container = document.getElementById('oauthConnectionsList');
                 if (!container) return;
-                
+
                 if (!connections || connections.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 11px;">
@@ -22217,35 +22341,61 @@
                     `;
                     return;
                 }
-                
+
                 const platformIcons = {
                     'google': 'fab fa-google',
                     'google_workspace': 'fab fa-google',
                     'microsoft': 'fab fa-microsoft',
                     'microsoft_365': 'fab fa-microsoft'
                 };
-                
-                const platformServices = {
-                    'google': 'Gmail, Docs, Sheets, Drive, Calendar',
-                    'google_workspace': 'Gmail, Docs, Sheets, Drive, Calendar',
-                    'microsoft': 'Outlook, OneDrive, Teams',
-                    'microsoft_365': 'Outlook, OneDrive, Teams'
-                };
-                
+
                 container.innerHTML = connections.map(conn => {
                     const icon = platformIcons[conn.platform] || 'fas fa-plug';
-                    const services = platformServices[conn.platform] || 'Platform services';
-                    const platformName = conn.platform === 'google' || conn.platform === 'google_workspace' 
-                        ? 'Google Workspace' 
+                    const platformName = conn.platform === 'google' || conn.platform === 'google_workspace'
+                        ? 'Google Workspace'
                         : 'Microsoft 365';
                     const isActive = conn.is_active;
-                    
+
+                    // Get actual services from OAuth scopes
+                    const scopeString = conn.metadata?.scope || conn.scope || '';
+                    const grantedServices = this.mapScopesToServices(scopeString, conn.platform);
+
+                    // Build services list HTML
+                    let servicesHTML = '';
+                    if (grantedServices.length > 0) {
+                        servicesHTML = `
+                            <div class="oauth-services-list">
+                                ${grantedServices.map(service => `
+                                    <div class="oauth-service-item">
+                                        <i class="fas fa-check-circle" style="color: var(--success, #22c55e); font-size: 10px; margin-right: 4px;"></i>
+                                        <span>${service}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        // Fallback
+                        const defaultServices = conn.platform.includes('google')
+                            ? ['Gmail', 'Drive', 'Calendar']
+                            : ['Outlook', 'OneDrive', 'Teams'];
+                        servicesHTML = `
+                            <div class="oauth-services-list">
+                                ${defaultServices.map(service => `
+                                    <div class="oauth-service-item">
+                                        <i class="fas fa-check-circle" style="color: var(--text-muted); font-size: 10px; margin-right: 4px;"></i>
+                                        <span>${service}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+
                     return `
                         <div class="oauth-connection-item">
                             <i class="${icon} platform-icon" style="color: ${isActive ? 'var(--accent-primary)' : 'var(--text-muted)'};"></i>
                             <div class="oauth-connection-details">
                                 <div class="oauth-platform-name">${platformName}</div>
-                                <div class="oauth-platform-services">${services}</div>
+                                ${servicesHTML}
                             </div>
                             ${!isActive ? `
                                 <button class="oauth-reconnect-btn" onclick="reauthenticatePlatform('${conn.platform}')">
@@ -22263,18 +22413,18 @@
             updateAuthStatus(connections) {
                 const statusDot = document.getElementById('authStatusDot');
                 if (!statusDot) return;
-                
+
                 // Remove all status classes
                 statusDot.classList.remove('auth-status-active', 'auth-status-inactive', 'auth-status-unknown');
-                
+
                 if (!connections || connections.length === 0) {
                     statusDot.classList.add('auth-status-unknown');
                     return;
                 }
-                
+
                 // Check if any connection is active
                 const hasActiveConnection = connections.some(c => c.is_active);
-                
+
                 if (hasActiveConnection) {
                     statusDot.classList.add('auth-status-active');
                 } else {
@@ -22299,9 +22449,25 @@
 
                     if (response.ok) {
                         const data = await response.json();
-                        document.getElementById('sidebarUserName').textContent = data.name || 'User';
-                        document.getElementById('sidebarUserEmail').textContent = data.email || '';
-                        document.getElementById('sidebarRoleBadge').textContent = data.role || 'User';
+                        console.log('[ACCOUNT SIDEBAR] Profile data received:', data);
+
+                        // Extract profile data (API returns {success: true, profile: {...}})
+                        const profile = data.profile || data;
+
+                        // Update DOM elements
+                        const nameEl = document.getElementById('sidebarUserName');
+                        const emailEl = document.getElementById('sidebarUserEmail');
+                        const roleEl = document.getElementById('sidebarRoleBadge');
+
+                        if (nameEl) nameEl.textContent = profile.username || profile.email?.split('@')[0] || 'User';
+                        if (emailEl) emailEl.textContent = profile.email || '';
+                        if (roleEl) roleEl.textContent = profile.role || 'User';
+
+                        console.log('[ACCOUNT SIDEBAR] User info loaded:', {
+                            name: nameEl?.textContent,
+                            email: emailEl?.textContent,
+                            role: roleEl?.textContent
+                        });
                     }
                 } catch (error) {
                     console.error('[ACCOUNT SIDEBAR] Failed to load user info:', error);
@@ -22606,6 +22772,29 @@
                                     <i class="fas fa-envelope" style="font-size: 9px;"></i> ${conn.metadata.email}
                                 </div>
                             ` : ''}
+                            ${(() => {
+                        // Get granted services from OAuth scopes
+                        const scopeString = conn.scope || conn.metadata?.scope || '';
+                        const grantedServices = AccountSidebar.mapScopesToServices(scopeString, conn.platform);
+
+                        if (grantedServices.length > 0) {
+                            return `
+                                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.05));">
+                                            <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">
+                                                <i class="fas fa-shield-check" style="font-size: 10px;"></i> Granted Access:
+                                            </div>
+                                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                                ${grantedServices.map(service => `
+                                                    <span style="font-size: 10px; padding: 2px 8px; background: var(--accent-primary); color: white; border-radius: 12px; white-space: nowrap;">
+                                                        ${service}
+                                                    </span>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    `;
+                        }
+                        return '';
+                    })()}
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <div style="display: flex; align-items: center; gap: 6px;">
@@ -22614,6 +22803,12 @@
                                     ${isActive ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
+                            ${!isActive ? `
+                                <button onclick="reauthenticatePlatform('${conn.platform}')" 
+                                    style="padding: 6px 12px; background: var(--bg-warning-subtle, rgba(245, 158, 11, 0.1)); color: var(--warning, #f59e0b); border: 1px solid var(--border-warning, rgba(245, 158, 11, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-right: 8px;">
+                                    <i class="fas fa-sync"></i> Reconnect
+                                </button>
+                            ` : ''}
                             <button onclick="disconnectPlatform('${conn.platform}')" 
                                 style="padding: 6px 12px; background: var(--bg-danger-subtle, rgba(239, 68, 68, 0.1)); color: var(--danger, #ef4444); border: 1px solid var(--border-danger, rgba(239, 68, 68, 0.3)); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                                 <i class="fas fa-unlink"></i> Disconnect

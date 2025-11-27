@@ -604,7 +604,15 @@
               },
               "operator": {
                 "type": "string",
-                "enum": ["=", "!=", ">", "<", ">=", "<=", "contains"]
+                "enum": [
+                  "=",
+                  "!=",
+                  ">",
+                  "<",
+                  ">=",
+                  "<=",
+                  "contains"
+                ]
               },
               "value": {
                 "type": "string",
@@ -688,7 +696,13 @@
               },
               "function": {
                 "type": "string",
-                "enum": ["count", "sum", "average", "min", "max"]
+                "enum": [
+                  "count",
+                  "sum",
+                  "average",
+                  "min",
+                  "max"
+                ]
               }
             }
           }

@@ -5,7 +5,7 @@ Platform Connections Routes
 API endpoints for managing user platform credentials/connections.
 Displays connected platforms in the Account Settings Connections section.
 
-Database: ai_infrastructure.user_platform_credentials
+Database: ai_infrastructure.oauth_tokens
 """
 
 from flask import Blueprint, jsonify, request
@@ -38,23 +38,30 @@ def list_user_connections():
             "total_count": int
         }
     """
-    user_id = request.user_id
+    # Extract user_id from request.user dict set by @require_auth
+    user_id = request.user.get('user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'User ID not found in session'}), 401
     
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
         
-        # Query user's platform credentials
+        # Query OAuth tokens (actual platform connections)
         cursor.execute("""
             SELECT 
                 id,
                 platform,
-                credential_type,
+                email,
                 is_active,
+                is_valid,
                 created_at,
                 updated_at,
-                metadata
-            FROM ai_infrastructure.user_platform_credentials
+                expires_at,
+                last_refreshed_at,
+                scope
+            FROM ai_infrastructure.oauth_tokens
             WHERE user_id = %s
             ORDER BY created_at DESC
         """, (user_id,))
@@ -65,14 +72,37 @@ def list_user_connections():
         
         connections = []
         for row in rows:
+            # Handle both dict and tuple responses
+            if isinstance(row, dict):
+                row_data = row
+            else:
+                row_data = {
+                    'id': row[0],
+                    'platform': row[1],
+                    'email': row[2],
+                    'is_active': row[3],
+                    'is_valid': row[4],
+                    'created_at': row[5],
+                    'updated_at': row[6],
+                    'expires_at': row[7],
+                    'last_refreshed_at': row[8],
+                    'scope': row[9]
+                }
+            
             connection = {
-                'id': row[0],
-                'platform': row[1],
-                'credential_type': row[2],
-                'is_active': row[3],
-                'created_at': row[4].isoformat() if row[4] else None,
-                'updated_at': row[5].isoformat() if row[5] else None,
-                'metadata': row[6] if row[6] else {}
+                'id': row_data['id'],
+                'platform': row_data['platform'],
+                'credential_type': 'oauth',
+                'is_active': row_data['is_active'] and row_data['is_valid'],
+                'created_at': row_data['created_at'].isoformat() if row_data['created_at'] else None,
+                'updated_at': row_data['updated_at'].isoformat() if row_data['updated_at'] else None,
+                'scope': row_data['scope'],  # Include scope at top level for easy access
+                'metadata': {
+                    'email': row_data['email'],
+                    'expires_at': row_data['expires_at'].isoformat() if row_data['expires_at'] else None,
+                    'last_refreshed_at': row_data['last_refreshed_at'].isoformat() if row_data['last_refreshed_at'] else None,
+                    'scope': row_data['scope']
+                }
             }
             connections.append(connection)
         
@@ -103,15 +133,19 @@ def disconnect_platform(platform):
     Returns:
         {"success": bool, "message": str}
     """
-    user_id = request.user_id
+    # Extract user_id from request.user dict set by @require_auth
+    user_id = request.user.get('user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'User ID not found in session'}), 401
     
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
         
-        # Set is_active = False instead of deleting
+        # Set is_active = False in oauth_tokens instead of deleting
         cursor.execute("""
-            UPDATE ai_infrastructure.user_platform_credentials
+            UPDATE ai_infrastructure.oauth_tokens
             SET is_active = FALSE,
                 updated_at = CURRENT_TIMESTAMP
             WHERE user_id = %s AND platform = %s

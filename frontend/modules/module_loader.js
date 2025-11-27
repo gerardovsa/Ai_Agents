@@ -388,8 +388,11 @@ class ModuleLoader {
                 toggle.classList.remove('dragging');
 
                 if (!hasMoved) {
-                    // Click - switch to main tab if available, else toggle sidebar
-                    if (module.main_tab) {
+                    // Click - check if module prefers sidebar or main tab
+                    if (module.floating_toggle_opens_sidebar) {
+                        // Toggle sidebar panel
+                        this.toggleModule(moduleId);
+                    } else if (module.main_tab) {
                         // Switch to main tab
                         if (typeof switchTab === 'function') {
                             switchTab(module.main_tab_id || moduleId);
@@ -398,7 +401,7 @@ class ModuleLoader {
                             document.querySelector(`.sidebar-icon-btn[data-tab="${module.main_tab_id || moduleId}"]`)?.classList.add('active');
                         }
                     } else {
-                        // Toggle sidebar
+                        // Toggle sidebar (default)
                         this.toggleModule(moduleId);
                     }
                 } else {
